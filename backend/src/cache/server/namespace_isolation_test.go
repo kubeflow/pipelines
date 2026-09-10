@@ -148,3 +148,29 @@ func TestCacheAdmissionSkipsUnknownNamespaceAndMalformedTemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestCacheRejectsWrongShapedTemplates(t *testing.T) {
+	for _, template := range []string{
+		`null`, `[]`, `"template"`,
+		`{"container":null}`, `{"container":[]}`, `{"container":"image"}`,
+		`{"container":42}`, `{"container":true}`,
+	} {
+		t.Run(template, func(t *testing.T) {
+			m := namespaceCacheManager(t)
+			p := cachePod("tenant")
+			p.Spec.Containers[0].Env[0].Value = template
+			key, err := generateCacheKeyFromTemplate(template, p.Namespace)
+			require.Error(t, err)
+			require.Empty(t, key)
+			req := GetFakeRequestFromPod(p)
+			req.Namespace = p.Namespace
+			patches, err := MutatePodIfCached(req, m)
+			require.NoError(t, err)
+			require.Empty(t, patches)
+			require.Error(t, cacheCompletedPod(context.Background(), p, m))
+			var rows int64
+			require.NoError(t, m.DB().Model(&model.ExecutionCache{}).Count(&rows).Error)
+			require.Zero(t, rows)
+		})
+	}
+}

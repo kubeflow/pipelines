@@ -241,18 +241,30 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 // intersectStructureWithSkeleton recursively intersects two maps
 // nil values in the skeleton map mean that the whole value (which can also be a map) should be kept.
-func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[string]interface{}) map[string]interface{} {
+func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[string]interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	for key, skeletonValue := range skeleton {
 		if value, ok := src[key]; ok {
 			if skeletonValue == nil {
 				result[key] = value
 			} else {
-				result[key] = intersectStructureWithSkeleton(value.(map[string]interface{}), skeletonValue.(map[string]interface{}))
+				object, ok := value.(map[string]interface{})
+				if !ok || object == nil {
+					return nil, fmt.Errorf("template field %q must be a JSON object", key)
+				}
+				nestedSkeleton, ok := skeletonValue.(map[string]interface{})
+				if !ok {
+					return nil, fmt.Errorf("cache skeleton field %q must be an object or nil", key)
+				}
+				nested, err := intersectStructureWithSkeleton(object, nestedSkeleton)
+				if err != nil {
+					return nil, fmt.Errorf("template field %q: %w", key, err)
+				}
+				result[key] = nested
 			}
 		}
 	}
-	return result
+	return result, nil
 }
 
 func generateCacheKeyFromTemplate(template string, namespace string) (string, error) {
@@ -264,6 +276,9 @@ func generateCacheKeyFromTemplate(template string, namespace string) (string, er
 	err := json.Unmarshal(b, &templateMap)
 	if err != nil {
 		return "", err
+	}
+	if templateMap == nil {
+		return "", fmt.Errorf("cache template must be a JSON object, not null")
 	}
 
 	// Selectively copying parts of the template that should affect the cache
@@ -281,7 +296,10 @@ func generateCacheKeyFromTemplate(template string, namespace string) (string, er
 		"initContainers": nil,
 		"sidecars":       nil,
 	}
-	cacheKeyMap := intersectStructureWithSkeleton(templateMap, templateSkeleton)
+	cacheKeyMap, err := intersectStructureWithSkeleton(templateMap, templateSkeleton)
+	if err != nil {
+		return "", err
+	}
 
 	// Bind the cache entry to the pod's namespace (the KFP tenant boundary) so an
 	// entry written by one tenant is never served to another. Without the
