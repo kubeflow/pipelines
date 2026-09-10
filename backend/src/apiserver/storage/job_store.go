@@ -75,6 +75,9 @@ type JobStoreInterface interface {
 	// Update a recurring run entry in the database.
 	UpdateJob(swf *util.ScheduledWorkflow) error
 
+	// Update observed status without accepting changes to the authorized recurring run specification.
+	UpdateJobStatus(swf *util.ScheduledWorkflow) error
+
 	// Removes a recurring run entry from the database.
 	DeleteJob(id string) error
 }
@@ -494,6 +497,22 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			return util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow has an invalid version: %v", swf.GetVersion()), "Failed to update job %v", swf.UID)
 		}
 	}
+	return s.updateJob(swf, updateSQL)
+}
+
+// UpdateJobStatus keeps the API-created job specification authoritative when
+// reporting a ScheduledWorkflow that namespace users may be able to modify.
+func (s *JobStore) UpdateJobStatus(swf *util.ScheduledWorkflow) error {
+	q := s.dbDialect.QuoteIdentifier
+	updateSQL := s.dbDialect.QueryBuilder().Update(q("jobs")).SetMap(sq.Eq{
+		q("Conditions"):     model.StatusState(swf.ConditionSummary()).ToString(),
+		q("UpdatedAtInSec"): s.time.Now().Unix(),
+	})
+	return s.updateJob(swf, updateSQL)
+}
+
+func (s *JobStore) updateJob(swf *util.ScheduledWorkflow, updateSQL sq.UpdateBuilder) error {
+	q := s.dbDialect.QuoteIdentifier
 	sql, args, err := updateSQL.Where(sq.Eq{q("UUID"): string(swf.UID)}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,

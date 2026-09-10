@@ -35,11 +35,13 @@ import (
 // fakeRunServiceClient captures the context passed to CreateRun so tests can
 // inspect outgoing gRPC metadata.
 type fakeRunServiceClient struct {
-	capturedCtx context.Context
+	capturedCtx     context.Context
+	capturedRequest *api.CreateRunRequest
 }
 
 func (f *fakeRunServiceClient) CreateRun(ctx context.Context, in *api.CreateRunRequest, opts ...grpc.CallOption) (*api.Run, error) {
 	f.capturedCtx = ctx
+	f.capturedRequest = in
 	return &api.Run{DisplayName: "fake-run"}, nil
 }
 
@@ -278,6 +280,7 @@ func TestNewController_InvalidUserIdentityHeader(test *testing.T) {
 		nil, // tokenSrc
 		"invalid header",
 		"some-value",
+		false, // multiUser
 	)
 	require.Error(test, err)
 	assert.Contains(test, err.Error(), "invalid userIdentityHeader")

@@ -831,6 +831,79 @@ func TestUpdateJob_Success(t *testing.T) {
 	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
 }
 
+func TestUpdateJobStatus_PreservesAuthorizedSpecification(t *testing.T) {
+	for _, version := range []string{"kubeflow.org/v1beta1", "kubeflow.org/v2beta1"} {
+		t.Run(version, func(t *testing.T) {
+			db, _, jobStore := initializeDBAndStore()
+			defer db.Close()
+
+			job, err := jobStore.GetJob("1")
+			require.NoError(t, err)
+			job.UUID = "status-only"
+			job.ServiceAccount = "authorized-runner"
+			job.Parameters = `[{"name":"command","value":"authorized"}]`
+			job.RuntimeConfig.Parameters = `{"command":"authorized"}`
+			job.PipelineRoot = "s3://authorized-root"
+			job.PipelineSpecManifest = "authorized pipeline"
+			job.WorkflowSpecManifest = "authorized workflow"
+			job.PluginsInputString = testLargeTextPtr(`{"plugin":{"command":"authorized"}}`)
+			_, err = jobStore.CreateJob(job)
+			require.NoError(t, err)
+			before, err := jobStore.GetJob(job.UUID)
+			require.NoError(t, err)
+
+			swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+				TypeMeta: metav1.TypeMeta{APIVersion: version, Kind: "ScheduledWorkflow"},
+				ObjectMeta: metav1.ObjectMeta{
+					UID:       "status-only",
+					Name:      "modified-name",
+					Namespace: "modified-namespace",
+				},
+				Spec: swfapi.ScheduledWorkflowSpec{
+					Enabled:        false,
+					ServiceAccount: "modified-runner",
+					ExperimentId:   "modified-experiment",
+					PipelineId:     "modified-pipeline",
+					MaxConcurrency: util.Int64Pointer(200),
+					NoCatchup:      util.BoolPointer(true),
+					Workflow: &swfapi.WorkflowResource{
+						Parameters:   []swfapi.Parameter{{Name: "command", Value: `"modified"`}},
+						PipelineRoot: "s3://modified-root",
+					},
+					Trigger: swfapi.Trigger{
+						PeriodicSchedule: &swfapi.PeriodicSchedule{IntervalSecond: 999},
+					},
+				},
+				Status: swfapi.ScheduledWorkflowStatus{
+					Conditions: []swfapi.ScheduledWorkflowCondition{{
+						Type:   swfapi.ScheduledWorkflowDisabled,
+						Status: corev1.ConditionTrue,
+					}},
+				},
+			})
+
+			require.NoError(t, jobStore.UpdateJobStatus(swf))
+			after, err := jobStore.GetJob(job.UUID)
+			require.NoError(t, err)
+			before.Conditions = "DISABLED"
+			before.UpdatedAtInSec++
+			assert.Equal(t, before, after, "reports must only change observed status and its timestamp")
+		})
+	}
+}
+
+func TestUpdateJobStatus_RecordNotFound(t *testing.T) {
+	db, _, jobStore := initializeDBAndStore()
+	defer db.Close()
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{UID: "unknown", Name: "unknown", Namespace: "n1"},
+	})
+
+	err := jobStore.UpdateJobStatus(swf)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+}
+
 func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 	db, _, jobStore := initializeDBAndStore()
 	defer db.Close()

@@ -18,6 +18,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
+
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
@@ -26,6 +29,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -414,4 +420,55 @@ func TestCrdPluginsInputToProto(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid plugins_input entry")
 	})
+}
+
+func TestSubmitNewWorkflowIfNotAlreadySubmitted_MultiUserUsesPersistedRun(t *testing.T) {
+	for _, embedded := range []bool{false, true} {
+		name := "pipeline reference"
+		if embedded {
+			name = "embedded workflow"
+		}
+		t.Run(name, func(t *testing.T) {
+			executionClient := &fakeExecutionClient{}
+			runClient := &fakeRunServiceClient{}
+			controller := &Controller{
+				workflowClient:     client.NewWorkflowClient(executionClient, &fakeExecutionInformer{}),
+				runClient:          runClient,
+				multiUser:          true,
+				tokenSrc:           &fakeTokenSource{token: "controller-token"},
+				userIdentityHeader: "kubeflow-userid",
+				userIdentityValue:  "system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow",
+			}
+			swf := newTestSWFForAPIPath()
+			swf.Spec.ExperimentId = "untrusted-experiment"
+			swf.Spec.PipelineId = "untrusted-pipeline"
+			swf.Spec.PipelineVersionId = "untrusted-version"
+			swf.Spec.ServiceAccount = "privileged-account"
+			swf.Spec.Workflow.PipelineRoot = "s3://untrusted-root"
+			// Invalid inputs must not even be parsed on the multi-user path.
+			swf.Spec.Workflow.Parameters = []swfapi.Parameter{{Name: "command", Value: "invalid json"}}
+			swf.Spec.PluginsInput = map[string]apiextensionsv1.JSON{
+				"plugin": {Raw: []byte("invalid json")},
+			}
+			if embedded {
+				swf.Spec.Workflow.Spec = "invalid embedded workflow"
+			}
+
+			submitted, name, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
+			require.NoError(t, err)
+			assert.True(t, submitted)
+			assert.Equal(t, "fake-run", name)
+			assert.Nil(t, executionClient.createdWorkflow, "multi-user schedules must never create workflows directly")
+			want := &api.CreateRunRequest{Run: &api.Run{
+				RecurringRunId: string(swf.UID),
+				DisplayName:    swf.NextResourceName(),
+				ScheduledAt:    timestamppb.New(time.Unix(100, 0)),
+			}}
+			assert.True(t, proto.Equal(want, runClient.capturedRequest), "unexpected request: %v", runClient.capturedRequest)
+			md, ok := metadata.FromOutgoingContext(runClient.capturedCtx)
+			require.True(t, ok)
+			assert.Equal(t, []string{"Bearer controller-token"}, md.Get("authorization"))
+			assert.Equal(t, []string{controller.userIdentityValue}, md.Get("kubeflow-userid"))
+		})
+	}
 }

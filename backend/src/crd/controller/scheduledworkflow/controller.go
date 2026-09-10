@@ -39,6 +39,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -95,6 +96,7 @@ type Controller struct {
 	swfClient      *client.ScheduledWorkflowClient
 	workflowClient *client.WorkflowClient
 	runClient      api.RunServiceClient
+	multiUser      bool
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -155,6 +157,7 @@ func NewController(
 	tokenSrc transport.ResettableTokenSource,
 	userIdentityHeader string,
 	userIdentityValue string,
+	multiUser bool,
 ) (*Controller, error) {
 	// Normalize and validate the user identity metadata key up front so the
 	// controller fails fast at startup rather than risking failed requests
@@ -185,6 +188,7 @@ func NewController(
 		kubeClient:     client.NewKubeClient(kubeClientSet, recorder),
 		swfClient:      client.NewScheduledWorkflowClient(swfClientSet, swfInformer),
 		runClient:      runClient,
+		multiUser:      multiUser,
 		workflowClient: client.NewWorkflowClient(workflowClientSet, executionInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
@@ -626,7 +630,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	}
 
 	// If the workflow is not found, we need to create it.
-	if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
+	if !c.multiUser && swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
 		// V1 recurring runs bypass the API server by embedding the workflow spec directly in the ScheduledWorkflow CRD,
 		// so the V1 pipeline block needs to be enforced at the controller level as well.
 		if shouldEnforceV1Block(swf) {
@@ -659,6 +663,16 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		ctx = metadata.AppendToOutgoingContext(ctx, c.userIdentityHeader, c.userIdentityValue)
 	}
 
+	if c.multiUser {
+		// ScheduledWorkflow objects are editable by namespace users. The API server
+		// restores execution inputs from the authorized, persisted recurring run.
+		return c.createRun(ctx, swf, &api.CreateRunRequest{Run: &api.Run{
+			RecurringRunId: string(swf.UID),
+			DisplayName:    workflowName,
+			ScheduledAt:    timestamppb.New(time.Unix(nextScheduledEpoch, 0)),
+		}})
+	}
+
 	var runtimeConfig *api.RuntimeConfig
 
 	if swf.Spec.Workflow != nil {
@@ -689,7 +703,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		}
 	}
 
-	run, err := c.runClient.CreateRun(ctx, &api.CreateRunRequest{
+	return c.createRun(ctx, swf, &api.CreateRunRequest{
 		ExperimentId: swf.Spec.ExperimentId,
 		Run: &api.Run{
 			ExperimentId:   swf.Spec.ExperimentId,
@@ -707,6 +721,10 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			ServiceAccount: swf.Spec.ServiceAccount,
 		},
 	})
+}
+
+func (c *Controller) createRun(ctx context.Context, swf *util.ScheduledWorkflow, request *api.CreateRunRequest) (bool, string, error) {
+	run, err := c.runClient.CreateRun(ctx, request)
 	if err != nil {
 		return false, "", fmt.Errorf(
 			"failed to create a run from the scheduled workflow (%s/%s): %w", swf.Namespace, swf.Name, err,

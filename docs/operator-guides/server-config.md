@@ -111,3 +111,9 @@ spec:
         - name: NO_PROXY
           value: localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,metadata-grpc-service,0,1,2,3,4,5,6,7,8,9
 ```
+
+## Recurring runs and custom service accounts
+
+See [Service accounts for recurring runs](scheduled-service-accounts.md) for
+`ALLOWEDSERVICEACCOUNTS`, scoped controller grants, multi-user upgrade requirements,
+and revoking scheduled execution.

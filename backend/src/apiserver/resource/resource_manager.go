@@ -760,17 +760,6 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
-	// Guard against duplicate runs from concurrent recurring-run controller replicas.
-	if run.RecurringRunId != "" && run.DisplayName != "" {
-		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to check for existing run")
-		}
-		if existingRunID != "" {
-			return r.runStore.GetRun(existingRunID)
-		}
-	}
-
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
 	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
@@ -804,6 +793,26 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		RunID: run.UUID,
 		RunAt: run.CreatedAtInSec,
 	}
+	var owner *scheduledworkflow.ScheduledWorkflow
+	if run.RecurringRunId != "" {
+		job, err := r.jobStore.GetJob(run.RecurringRunId)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to retrieve recurring run")
+		}
+		ownerNamespace := job.Namespace
+		if common.IsMultiUserMode() && r.IsEmptyNamespace(ownerNamespace) {
+			ownerNamespace = run.Namespace
+		}
+		owner, err = r.swfClient.ScheduledWorkflow(ownerNamespace).Get(ctx, job.K8SName, v1.GetOptions{})
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to retrieve ScheduledWorkflow")
+		}
+		index := int64(1)
+		if owner.Status.Trigger.LastIndex != nil {
+			index = *owner.Status.Trigger.LastIndex + 1
+		}
+		runWorkflowOptions.RecurringRunIndex = &index
+	}
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to generate the ExecutionSpec")
@@ -826,28 +835,28 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 
 	executionSpec.SetExecutionNamespace(k8sNamespace)
-
-	// assign OwnerReference and canonical labels to scheduledworkflow
-	if run.RecurringRunId != "" {
-		job, err := r.jobStore.GetJob(run.RecurringRunId)
-		if err != nil {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("RecurringRunId doesn't exist: %s", run.RecurringRunId), "Failed to create a run due to invalid recurring run id")
+	if owner != nil {
+		executionSpec.SetOwnerReferences(owner)
+		scheduledAt := run.CreatedAtInSec
+		if run.ScheduledAtInSec > 0 {
+			scheduledAt = run.ScheduledAtInSec
 		}
-		swf, err := r.swfClient.ScheduledWorkflow(job.Namespace).Get(ctx, job.K8SName, v1.GetOptions{})
-		if err != nil {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow doesn't exist: %s", job.K8SName), "Failed to create a run due to invalid name")
-		}
-		executionSpec.SetOwnerReferences(swf)
-		// canonical labels required for SWF controller label-based workflow tracking
-		nextIndex := int64(1)
-		if swf.Status.Trigger.LastIndex != nil {
-			nextIndex = *swf.Status.Trigger.LastIndex + 1
-		}
-		executionSpec.SetCannonicalLabels(swf.Name, run.CreatedAtInSec, nextIndex)
+		executionSpec.SetCannonicalLabels(owner.Name, scheduledAt, *runWorkflowOptions.RecurringRunIndex)
 	}
 
 	if err := r.authorizeServiceAccount(ctx, executionSpec.ServiceAccount(), k8sNamespace); err != nil {
 		return nil, util.Wrap(err, "Failed to create a run due to service account authorization error")
+	}
+
+	// Guard against duplicate runs from concurrent recurring-run controller replicas.
+	if run.RecurringRunId != "" && run.DisplayName != "" {
+		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to check for existing run")
+		}
+		if existingRunID != "" {
+			return r.runStore.GetRun(existingRunID)
+		}
 	}
 
 	// Run plugin lifecycle hooks before workflow creation.
@@ -1653,20 +1662,22 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
 
-		// When plugins are enabled, the SWF controller must call the CreateRun API
-		// so that per-run plugin logic executes.
-		if r.pluginDispatcher.PluginsRegistered() {
-			// Plugin-enabled: create a lightweight SWF without inline workflow spec
-			// so the SWF controller calls the CreateRun API for per-run plugin logic.
-			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
-		} else {
-			// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
-			// Convert modelJob into scheduledWorkflow.
-			scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
-		}
+		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+			return nil, util.Wrap(err, "Failed to validate the recurring run workflow")
 		}
+		job.ServiceAccount, err = scheduledServiceAccount(scheduledWorkflow, job.ServiceAccount)
+		if err != nil {
+			return nil, err
+		}
+		// Plugins execute per run, so omit the embedded workflow after validating it.
+		if r.pluginDispatcher.PluginsRegistered() {
+			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to create a recurring run")
+			}
+		}
+
 	} else if job.PipelineId == "" {
 		return nil, errors.New("Cannot create a job with an empty pipeline ID")
 	} else {
@@ -1715,17 +1726,24 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
 			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
 		}
-		scheduledWorkflow.Spec.ServiceAccount = validatedScheduledWorkflow.Spec.ServiceAccount
+		scheduledWorkflow.Spec.ServiceAccount, err = scheduledServiceAccount(validatedScheduledWorkflow, job.ServiceAccount)
+		if err != nil {
+			return nil, err
+		}
+		if util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
+			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to KFP V2 pipelines.", k8sNamespace)
+		}
 	}
 
 	if tmpl != nil && util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
 		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
 	}
 
-	resolvedJobServiceAccount := scheduledWorkflow.Spec.ServiceAccount
-	if resolvedJobServiceAccount == "" {
-		resolvedJobServiceAccount = job.ServiceAccount
+	resolvedJobServiceAccount, err := scheduledServiceAccount(scheduledWorkflow, job.ServiceAccount)
+	if err != nil {
+		return nil, err
 	}
+	job.ServiceAccount = resolvedJobServiceAccount
 	if err := r.authorizeServiceAccount(ctx, resolvedJobServiceAccount, k8sNamespace); err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
@@ -1751,20 +1769,11 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	}
 
 	if tmpl.GetTemplateType() == template.V1 {
-		// Get the service account
-		serviceAccount := ""
-		if swf.Spec.Workflow != nil {
-			execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
-			if err == nil {
-				serviceAccount = execSpec.ServiceAccount()
-			}
-		}
-		job.ServiceAccount = serviceAccount
 		job.WorkflowSpecManifest = model.LargeText(manifest)
 	} else {
-		job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
 		job.PipelineSpecManifest = model.LargeText(manifest)
 	}
+
 	return r.jobStore.CreateJob(job)
 }
 
@@ -3131,8 +3140,15 @@ func escapeJSONPointerPathPart(pathPart string) string {
 // Updates a recurring run with a scheduled workflow CR.
 func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWorkflow) error {
 	// Verify the job exists
-	if _, err := r.GetJob(string(swf.UID)); err != nil {
+	job, err := r.GetJob(string(swf.UID))
+	if err != nil {
 		return util.Wrapf(err, "Failed to report scheduled workflow due to error retrieving recurring run %s", string(swf.UID))
+	}
+	if common.IsMultiUserMode() {
+		if job.K8SName != swf.Name || job.Namespace != swf.Namespace {
+			return util.NewPermissionDeniedError(fmt.Errorf("ScheduledWorkflow identity differs from its job"), "Cannot report a different recurring run")
+		}
+		return r.jobStore.UpdateJobStatus(swf)
 	}
 	return r.jobStore.UpdateJob(swf)
 }

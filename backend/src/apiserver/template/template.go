@@ -144,6 +144,8 @@ type Template interface {
 type RunWorkflowOptions struct {
 	RunID string
 	RunAt int64
+	// Nil for one-off runs; derived from the live schedule for recurring runs.
+	RecurringRunIndex *int64
 }
 
 type TemplateOptions struct {
