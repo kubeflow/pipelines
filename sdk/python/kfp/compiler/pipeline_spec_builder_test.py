@@ -20,7 +20,6 @@ import unittest
 from absl.testing import parameterized
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
-import kfp
 from kfp import dsl
 from kfp import kubernetes
 from kfp.compiler import compiler
@@ -516,6 +515,23 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
                 t = comp()
                 kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
 
+    def test_resource_claims_without_passthrough_raises(self):
+
+        @dsl.component(task_config_passthroughs=[TaskConfigField.RESOURCES])
+        def comp():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Task 'comp' cannot handle resource type 'KUBERNETES_RESOURCE_CLAIMS'"
+        ):
+
+            @dsl.pipeline
+            def pipe():
+                t = comp()
+                kubernetes.add_resource_claim(
+                    t, resource_claim_template_name='gpu')
+
 
 class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
 
@@ -528,6 +544,7 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
             TaskConfigField.KUBERNETES_NODE_SELECTOR,
             TaskConfigField.KUBERNETES_AFFINITY,
             TaskConfigField.KUBERNETES_VOLUMES,
+            TaskConfigField.KUBERNETES_RESOURCE_CLAIMS,
         ])
         def comp():
             pass
@@ -549,6 +566,7 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
                     'values': ['ssd']
                 }])
             kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
+            kubernetes.add_resource_claim(t, resource_claim_template_name='gpu')
 
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(tmpdir, 'pipeline.yaml')

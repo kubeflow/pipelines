@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import List, Optional
+from typing import List, Optional, Sequence
 import warnings
 
 import click
@@ -45,8 +45,8 @@ FROM {base_image}
 WORKDIR {component_root_dir}
 COPY {requirements_file} {requirements_file}
 RUN pip install {index_urls}--no-cache-dir -r {requirements_file}
-{maybe_copy_kfp_package}
-RUN pip install {index_urls}--no-cache-dir {kfp_package_path}
+{maybe_copy_packages}
+RUN pip install {index_urls}--no-cache-dir {package_paths}
 COPY . .
 '''
 
@@ -86,6 +86,7 @@ class ComponentBuilder():
         context_directory: pathlib.Path,
         kfp_package_path: Optional[pathlib.Path] = None,
         component_filepattern: str = '**/*.py',
+        additional_package_paths: Optional[Sequence[pathlib.Path]] = None,
     ):
         """ComponentBuilder builds containerized components.
 
@@ -96,6 +97,9 @@ class ComponentBuilder():
                 This can either be pointing to KFP SDK root directory located in
                 a local clone of the KFP repo, or a git+https location.
                 If left empty, defaults to KFP on PyPI.
+            component_filepattern: File pattern used to discover components.
+            additional_package_paths: Additional local pip-installable paths to
+                build and install with KFP.
         """
         self._context_directory = context_directory
         self._dockerfile = self._context_directory / _DOCKERFILE
@@ -105,44 +109,29 @@ class ComponentBuilder():
 
         # This is only set if we need to install KFP from local copy.
         self._maybe_copy_kfp_package = ''
+        self._maybe_copy_additional_packages = ''
+        self._additional_package_paths = []
 
         if kfp_package_path is None:
             self._kfp_package_path = f'kfp=={kfp.__version__}'
         elif kfp_package_path.is_dir():
-            logging.info(
-                f'Building KFP package from local directory {kfp_package_path}')
-            temp_dir = pathlib.Path(tempfile.mkdtemp())
-            try:
-                subprocess.run([
-                    sys.executable,
-                    '-m',
-                    'pip',
-                    'wheel',
-                    '--no-deps',
-                    '--wheel-dir',
-                    str(temp_dir),
-                    str(kfp_package_path),
-                ],
-                               check=True)
-                wheel_files = list(temp_dir.glob('*.whl'))
-                if len(wheel_files) != 1:
-                    logging.error(
-                        f'Failed to find built KFP wheel under {temp_dir}')
-                    raise sys.exit(1)
-
-                wheel_file = wheel_files[0]
-                shutil.copy(wheel_file, self._context_directory)
-                self._kfp_package_path = wheel_file.name
-                self._maybe_copy_kfp_package = 'COPY {wheel_name} {wheel_name}'.format(
-                    wheel_name=self._kfp_package_path)
-            except subprocess.CalledProcessError as e:
-                logging.error(f'Failed to build KFP wheel locally:\n{e}')
-                raise sys.exit(1)
-            finally:
-                logging.info(f'Cleaning up temporary directory {temp_dir}')
-                shutil.rmtree(temp_dir)
+            self._kfp_package_path = self._build_local_package(kfp_package_path)
+            self._maybe_copy_kfp_package = 'COPY {wheel_name} {wheel_name}'.format(
+                wheel_name=self._kfp_package_path)
         else:
             self._kfp_package_path = kfp_package_path
+
+        for package_path in additional_package_paths or []:
+            if package_path.is_dir():
+                wheel_name = self._build_local_package(package_path)
+            else:
+                wheel_name = package_path.name
+                destination = self._context_directory / wheel_name
+                if package_path.resolve() != destination.resolve():
+                    shutil.copy(package_path, destination)
+            self._additional_package_paths.append(wheel_name)
+            self._maybe_copy_additional_packages += (
+                f'COPY {wheel_name} {wheel_name}\n')
 
         logging.info(
             f'Building component using KFP package path: {str(self._kfp_package_path)}'
@@ -164,6 +153,36 @@ class ComponentBuilder():
         self._pip_index_urls = None
         self._pip_trusted_hosts = None
         self._load_components()
+
+    def _build_local_package(self, package_path: pathlib.Path) -> str:
+        logging.info(f'Building local package from {package_path}')
+        temp_dir = pathlib.Path(tempfile.mkdtemp())
+        try:
+            subprocess.run([
+                sys.executable,
+                '-m',
+                'pip',
+                'wheel',
+                '--no-deps',
+                '--wheel-dir',
+                str(temp_dir),
+                str(package_path),
+            ],
+                           check=True)
+            wheel_files = list(temp_dir.glob('*.whl'))
+            if len(wheel_files) != 1:
+                logging.error(
+                    f'Failed to find one built wheel under {temp_dir}')
+                raise sys.exit(1)
+            wheel_file = wheel_files[0]
+            shutil.copy(wheel_file, self._context_directory)
+            return wheel_file.name
+        except subprocess.CalledProcessError as e:
+            logging.error(f'Failed to build local package:\n{e}')
+            raise sys.exit(1)
+        finally:
+            logging.info(f'Cleaning up temporary directory {temp_dir}')
+            shutil.rmtree(temp_dir)
 
     def _load_components(self):
         if not self._component_files:
@@ -293,9 +312,16 @@ class ComponentBuilder():
             self._pip_index_urls, self._pip_trusted_hosts)
         dockerfile_contents = _DOCKERFILE_TEMPLATE.format(
             base_image=self._base_image,
-            maybe_copy_kfp_package=self._maybe_copy_kfp_package,
+            maybe_copy_packages='\n'.join(
+                filter(None, [
+                    self._maybe_copy_kfp_package,
+                    self._maybe_copy_additional_packages.rstrip(),
+                ])),
             component_root_dir=_COMPONENT_ROOT_DIR,
-            kfp_package_path=self._kfp_package_path,
+            package_paths=' '.join([
+                *self._additional_package_paths,
+                str(self._kfp_package_path),
+            ]),
             requirements_file=_REQUIREMENTS_TXT,
             index_urls=index_urls_options,
         )
@@ -390,6 +416,12 @@ def component(ctx: click.Context):
     default=None,
     help='A pip-installable path to the KFP package.')
 @click.option(
+    '--additional-package-path',
+    'additional_package_paths',
+    type=click.Path(exists=True),
+    multiple=True,
+    help='An additional local pip-installable path to include in the image.')
+@click.option(
     '--overwrite-dockerfile',
     type=bool,
     is_flag=True,
@@ -414,7 +446,8 @@ def component(ctx: click.Context):
     default=True,
     help='Push the built image to its remote repository.')
 def build(components_directory: str, component_filepattern: str, engine: str,
-          kfp_package_path: Optional[str], overwrite_dockerfile: bool,
+          kfp_package_path: Optional[str],
+          additional_package_paths: Sequence[str], overwrite_dockerfile: bool,
           build_image: bool, platform: str, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
 
@@ -448,6 +481,9 @@ def build(components_directory: str, component_filepattern: str, engine: str,
     builder = ComponentBuilder(
         context_directory=components_directory,
         kfp_package_path=kfp_package_path,
+        additional_package_paths=[
+            pathlib.Path(path) for path in additional_package_paths
+        ],
         component_filepattern=component_filepattern,
     )
     builder.write_component_files()
