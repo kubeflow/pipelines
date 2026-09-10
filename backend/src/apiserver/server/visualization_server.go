@@ -19,14 +19,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -39,19 +40,50 @@ const (
 	visualizationServicePort = "VisualizationService.Port"
 )
 
-type VisualizationServer struct {
+func buildVisualizationServiceURL(namespace string) string {
+	host := common.GetStringConfig(visualizationServiceName)
+	if common.IsMultiUserMode() && len(namespace) > 0 {
+		host = fmt.Sprintf("%s.%s", host, namespace)
+	}
+	u := &url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, common.GetStringConfig(visualizationServicePort)),
+	}
+	return u.String()
+}
+
+func isVisualizationServiceAlive(serviceURL string) error {
+	resp, err := http.Get(serviceURL)
+	if err != nil {
+		wrappedErr := util.Wrapf(err, "Unable to verify visualization service aliveness by sending request to %s", serviceURL)
+		glog.Error(wrappedErr)
+		return wrappedErr
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		wrappedErr := errors.New(fmt.Sprintf("Unable to verify visualization service aliveness by sending request to %s and got response code: %s", serviceURL, resp.Status))
+		glog.Error(wrappedErr)
+		return wrappedErr
+	}
+	return nil
+}
+
+type VisualizationServerV1 struct {
 	resourceManager *resource.ResourceManager
-	serviceURL      string
 	apiv1beta1.UnimplementedVisualizationServiceServer
 }
 
-func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
+func NewVisualizationServerV1(resourceManager *resource.ResourceManager) *VisualizationServerV1 {
+	return &VisualizationServerV1{resourceManager: resourceManager}
+}
+
+func (s *VisualizationServerV1) CreateVisualizationV1(ctx context.Context, request *apiv1beta1.CreateVisualizationRequest) (*apiv1beta1.Visualization, error) {
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}
 
-	// In multi-user mode, we allow empty namespace in which case we fall back to use the visualization service in system namespace.
-	// See getVisualizationServiceURL() for details.
+	// In multi-user mode, allow empty namespace falls back to the
+	// visualization service running in the system namespace.
 	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace:   request.Namespace,
@@ -62,13 +94,12 @@ func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request
 			Subresource: "",
 			Name:        "",
 		}
-		err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
-		if err != nil {
+		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
 			return nil, util.Wrap(err, "Failed to authorize on namespace")
 		}
 	}
 
-	body, err := s.generateVisualizationFromRequest(request)
+	body, err := s.generateVisualization(request)
 	if err != nil {
 		return nil, err
 	}
@@ -76,22 +107,12 @@ func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request
 	return request.Visualization, nil
 }
 
-// validateCreateVisualizationRequest ensures that a go_client.Visualization
-// object has valid values.
-// It returns an error if a go_client.Visualization object does not have valid
-// values.
-func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_client.CreateVisualizationRequest) error {
-	// Only validate that a source is provided for non-custom visualizations.
-	if request.Visualization.Type != go_client.Visualization_CUSTOM {
+func (s *VisualizationServerV1) validateCreateVisualizationRequest(request *apiv1beta1.CreateVisualizationRequest) error {
+	if request.Visualization.Type != apiv1beta1.Visualization_CUSTOM {
 		if len(request.Visualization.Source) == 0 {
 			return util.NewInvalidInputError("A visualization requires a Source to be provided. Received %s", request.Visualization.Source)
 		}
 	}
-	// Manually set Arguments to empty JSON if nothing is provided. This is done
-	// because visualizations such as TFDV and TFMA only require a Source to
-	// be provided for a visualization to be generated. If no JSON is provided
-	// json.Valid will fail without this check as an empty string is provided for
-	// those visualizations.
 	if len(request.Visualization.Arguments) == 0 {
 		request.Visualization.Arguments = "{}"
 	}
@@ -101,15 +122,12 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 	return nil
 }
 
-// generateVisualizationFromRequest communicates with the python visualization
-// service to generate HTML visualizations from a request.
-// It returns the generated HTML as a string and any error that is encountered.
-func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
-	serviceURL := s.getVisualizationServiceURL(request)
+func (s *VisualizationServerV1) generateVisualization(request *apiv1beta1.CreateVisualizationRequest) ([]byte, error) {
+	serviceURL := buildVisualizationServiceURL(request.Namespace)
 	if err := isVisualizationServiceAlive(serviceURL); err != nil {
 		return nil, util.Wrap(err, "Cannot generate visualization")
 	}
-	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
+	visualizationType := strings.ToLower(apiv1beta1.Visualization_Type_name[int32(request.Visualization.Type)])
 	urlValues := url.Values{
 		"arguments": {request.Visualization.Arguments},
 		"source":    {request.Visualization.Source},
@@ -119,10 +137,10 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to initialize visualization request")
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s", resp.Status)
-	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("visualization service returned non-OK status: %s", resp.Status)
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse visualization response")
@@ -130,35 +148,80 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	return body, nil
 }
 
-func (s *VisualizationServer) getVisualizationServiceURL(request *go_client.CreateVisualizationRequest) string {
-	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
-		return fmt.Sprintf("http://%s.%s:%s",
-			common.GetStringConfig(visualizationServiceName),
-			request.Namespace,
-			common.GetStringConfig(visualizationServicePort))
-	}
-	return s.serviceURL
+type VisualizationServer struct {
+	resourceManager *resource.ResourceManager
+	apiv2beta1.UnimplementedVisualizationServiceServer
 }
 
-func isVisualizationServiceAlive(serviceURL string) error {
-	resp, err := http.Get(serviceURL)
+func NewVisualizationServer(resourceManager *resource.ResourceManager) *VisualizationServer {
+	return &VisualizationServer{resourceManager: resourceManager}
+}
+
+func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *apiv2beta1.CreateVisualizationRequest) (*apiv2beta1.Visualization, error) {
+	if err := s.validateCreateVisualizationRequest(request); err != nil {
+		return nil, err
+	}
+
+	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace:   request.Namespace,
+			Verb:        common.RbacResourceVerbCreate,
+			Group:       common.RbacPipelinesGroup,
+			Version:     common.RbacPipelinesVersion,
+			Resource:    common.RbacResourceTypeVisualizations,
+			Subresource: "",
+			Name:        "",
+		}
+		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrap(err, "Failed to authorize on namespace")
+		}
+	}
+
+	body, err := s.generateVisualization(request)
 	if err != nil {
-		wrappedErr := util.Wrapf(err, "Unable to verify visualization service aliveness by sending request to %s", serviceURL)
-		glog.Error(wrappedErr)
-		return wrappedErr
-	} else if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
-		wrappedErr := errors.New(fmt.Sprintf("Unable to verify visualization service aliveness by sending request to %s and get response code: %s !", serviceURL, resp.Status))
-		glog.Error(wrappedErr)
-		return wrappedErr
+		return nil, err
+	}
+	request.Visualization.Html = string(body)
+	return request.Visualization, nil
+}
+
+func (s *VisualizationServer) validateCreateVisualizationRequest(request *apiv2beta1.CreateVisualizationRequest) error {
+	if request.Visualization.Type != apiv2beta1.Visualization_CUSTOM {
+		if len(request.Visualization.Source) == 0 {
+			return util.NewInvalidInputError("A visualization requires a Source to be provided. Received %s", request.Visualization.Source)
+		}
+	}
+	if len(request.Visualization.Arguments) == 0 {
+		request.Visualization.Arguments = "{}"
+	}
+	if !json.Valid([]byte(request.Visualization.Arguments)) {
+		return util.NewInvalidInputError("A visualization requires valid JSON to be provided as Arguments. Received %s", request.Visualization.Arguments)
 	}
 	return nil
 }
 
-func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceHost string, servicePort string) *VisualizationServer {
-	serviceURL := fmt.Sprintf("http://%s:%s", serviceHost, servicePort)
-	return &VisualizationServer{
-		resourceManager: resourceManager,
-		serviceURL:      serviceURL,
+func (s *VisualizationServer) generateVisualization(request *apiv2beta1.CreateVisualizationRequest) ([]byte, error) {
+	serviceURL := buildVisualizationServiceURL(request.Namespace)
+	if err := isVisualizationServiceAlive(serviceURL); err != nil {
+		return nil, util.Wrap(err, "Cannot generate visualization")
 	}
+	visualizationType := strings.ToLower(apiv2beta1.Visualization_Type_name[int32(request.Visualization.Type)])
+	urlValues := url.Values{
+		"arguments": {request.Visualization.Arguments},
+		"source":    {request.Visualization.Source},
+		"type":      {visualizationType},
+	}
+	resp, err := http.PostForm(serviceURL, urlValues)
+	if err != nil {
+		return nil, util.Wrap(err, "Unable to initialize visualization request")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("visualization service returned non-OK status: %s", resp.Status)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, util.Wrap(err, "Unable to parse visualization response")
+	}
+	return body, nil
 }
