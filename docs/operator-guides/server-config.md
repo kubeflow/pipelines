@@ -38,34 +38,71 @@ deployment.
 ### TensorBoard proxy signing secret
 
 The frontend signs scoped TensorBoard proxy paths with
-`TENSORBOARD_PROXY_SIGNING_SECRET`. If this variable is unset, each frontend
-server process generates a random signing secret at startup. This default is
-suitable for the standard single-replica deployment, whose `Recreate` strategy
-prevents pods with different process-local secrets from serving concurrently.
-The UI is briefly unavailable during an update, and existing proxy paths become
-invalid whenever the frontend restarts.
+`TENSORBOARD_PROXY_SIGNING_SECRET`. The default Kustomize installation initializes
+a dedicated random key in the `ml-pipeline-ui-tensorboard-proxy` Secret and
+injects its `signing-secret` field into every UI replica. The UI uses
+`RollingUpdate` with `maxUnavailable: 0`, so upgrades can keep serving requests
+while a replacement pod becomes ready. Allow capacity for one additional UI pod.
 
-Deployments with multiple frontend replicas, or deployments that need proxy
-paths to survive restarts, must provide the same dedicated random secret of at
-least 32 bytes to every `ml-pipeline-ui` replica. Store it in a Kubernetes
-Secret and reference it from the deployment, for example:
+A separate initialization Job generates the key only if the field is absent.
+It preserves existing keys, including operator-provided keys, and concurrent
+initializers use Kubernetes resource versions to avoid overwriting each other.
+The Job can only get and update this named Secret; the UI receives no additional
+Secret permissions. UI pods wait for the required Secret field before starting.
+If initialization fails, check the Job status, its get/update permissions, and
+whether an existing key is too short. An invalid existing key is never replaced
+automatically. After correcting a failed initialization, delete the failed Job
+and reapply the manifests to retry. If the Secret was deleted, restore it from
+backup before starting replacement UI pods. If restoration is impossible,
+reapply the manifests to recreate the empty Secret, delete the existing
+initializer Job, and reapply again to generate a new key. Restart all UI replicas
+together after regeneration. Reapplying alone does not rerun a completed Job.
+
+The Secret manifest intentionally omits `data` and `stringData`. Keep those
+fields absent when using automatic initialization, and preserve the Secret
+across upgrades and in backups. Reapplying the manifests does not rotate the key.
+For GitOps, use apply-based reconciliation and keep generated key data out of
+Git. Do not replace, force-recreate, or prune this Secret during upgrades. If
+Argo CD reports the generated field as drift, scope `ignoreDifferences` to this
+Secret's name and namespace and `/data/signing-secret`, and enable
+`RespectIgnoreDifferences=true` to preserve the live value during sync. See
+[Argo CD sync options](https://argo-cd.readthedocs.io/en/latest/user-guide/sync-options/#respect-ignore-differences-configs).
+
+The Job name includes a hash of its source template, configured image, and
+settings so image upgrades create a new Job without mutating a completed Job's
+immutable pod template. Completed Jobs and their generated ConfigMaps can be
+pruned after upgrades; do not delete the signing Secret. If an overlay changes
+the Job pod template, also add or change a literal in its ConfigMap generator to
+force a new Job name.
+
+To use an externally managed key, provide a dedicated random secret of at least
+32 bytes and override the deployment's reference if necessary:
 
 ```yaml
 env:
   - name: TENSORBOARD_PROXY_SIGNING_SECRET
     valueFrom:
       secretKeyRef:
-        name: ml-pipeline-ui-tensorboard-proxy
+        name: my-tensorboard-signing-secret
         key: signing-secret
 ```
 
-The base deployment uses `Recreate` to protect the process-local default. After
-configuring a shared signing secret, deployments that require uninterrupted
-updates can override `spec.strategy.type` to `RollingUpdate`.
+Do not reuse `MINIO_SECRET_KEY` or another application credential. The frontend
+refuses to start if the configured signing secret is shorter than 32 UTF-8 bytes
+or matches `MINIO_SECRET_KEY`.
 
-Do not reuse `MINIO_SECRET_KEY` or another application credential for this
-value. The frontend refuses to start when the configured signing secret is
-shorter than 32 bytes or matches `MINIO_SECRET_KEY`.
+**Upgrade and rotation:** the first upgrade from a storage-derived or
+process-local key invalidates existing TensorBoard proxy URLs. Reopen TensorBoard
+from the UI to obtain a new URL. Subsequent UI restarts and rolling updates keep
+URLs valid while the shared key remains unchanged. Deliberately replacing or
+losing the Secret invalidates existing URLs again. After manual rotation,
+restart every UI replica to load the new value; use a coordinated restart to
+avoid serving with different keys during the transition.
+
+Outside the default manifests, leaving `TENSORBOARD_PROXY_SIGNING_SECRET` unset
+still generates a process-local key. This supports local development, but URLs
+expire on process restart and replicas cannot share URLs. Configure a shared key
+before enabling multiple replicas or rolling updates in custom deployments.
 
 ## Proxy
 

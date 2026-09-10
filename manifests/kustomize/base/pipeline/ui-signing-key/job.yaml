@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # The generated ConfigMap hash also names the Job, allowing image/template upgrades.
+  name: ml-pipeline-ui-signing-key-init
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: ml-pipeline-ui-signing-key-init
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: initialize
+          image: ghcr.io/kubeflow/kfp-frontend:dummy
+          workingDir: /server
+          command: [node, dist/initialize-tensorboard-signing-key.js]
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SIGNING_SECRET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: ml-pipeline-ui-signing-key-init
+                  key: secretName
+            - name: SIGNING_SECRET_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: ml-pipeline-ui-signing-key-init
+                  key: secretKey
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
