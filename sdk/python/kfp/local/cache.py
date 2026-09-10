@@ -49,11 +49,14 @@ class LocalCache:
         """Serializes a Python value to a JSON-friendly form for key
         computation."""
         if isinstance(value, dsl.Artifact):
+            uri = value.uri
+            if uri and not _is_remote_uri(uri):
+                uri = os.path.basename(uri)
             return {
                 _ARTIFACT_MARKER: True,
                 'schema_title': type(value).schema_title,
                 'name': value.name,
-                'uri': value.uri,
+                'uri': uri,
                 'metadata': value.metadata,
             }
         if isinstance(value, list):
@@ -135,6 +138,11 @@ class LocalCache:
                 f'Cache entry for key {key} references missing artifact '
                 f'{e.uri}. Treating as cache miss.')
             return None
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
+            logging.warning(
+                f'Failed to deserialize cache entry for key {key}: {e}. '
+                'Treating as cache miss.')
+            return None
 
     def put(self, key: str, outputs: Dict[str, Any]) -> None:
         """Persists `outputs` under `key`, atomically."""
@@ -148,6 +156,12 @@ class LocalCache:
                 with os.fdopen(fd, 'w') as f:
                     json.dump(serialized, f)
                 os.replace(tmp_path, entry_path)
+            except PermissionError as e:
+                logging.warning(
+                    f'Permission error when updating cache entry {entry_path}: {e}.'
+                )
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
             except Exception:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
@@ -163,11 +177,14 @@ class LocalCache:
     def _serialize_output(value: Any) -> Any:
         if isinstance(value, dsl.Artifact):
             return LocalCache._serialize_artifact(value)
-        if isinstance(value, list) and value and isinstance(
-                value[0], dsl.Artifact):
+        if isinstance(value, list) and any(
+                isinstance(x, dsl.Artifact) for x in value):
             return {
                 _ARTIFACT_LIST_MARKER: True,
-                'artifacts': [LocalCache._serialize_artifact(a) for a in value],
+                'artifacts': [
+                    LocalCache._serialize_artifact(a)
+                    if isinstance(a, dsl.Artifact) else a for a in value
+                ],
             }
         return value
 
@@ -195,6 +212,7 @@ class LocalCache:
         if isinstance(value, dict) and value.get(_ARTIFACT_LIST_MARKER):
             return [
                 LocalCache._deserialize_artifact(a)
+                if isinstance(a, dict) and a.get(_ARTIFACT_MARKER) else a
                 for a in value.get('artifacts', [])
             ]
         return value
