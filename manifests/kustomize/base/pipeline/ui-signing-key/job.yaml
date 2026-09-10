@@ -21,6 +21,7 @@ spec:
       containers:
         - name: initialize
           image: ghcr.io/kubeflow/kfp-frontend:dummy
+          imagePullPolicy: IfNotPresent
           workingDir: /server
           command: [node, dist/initialize-tensorboard-signing-key.js]
           env:

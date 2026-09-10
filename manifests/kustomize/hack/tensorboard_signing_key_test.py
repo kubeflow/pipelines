@@ -19,13 +19,17 @@ import subprocess
 import tempfile
 import unittest
 
-PIPELINE = Path(__file__).resolve().parents[1] / 'base' / 'pipeline'
+REPO_ROOT = Path(__file__).resolve().parents[3]
+PIPELINE = REPO_ROOT / 'manifests/kustomize/base/pipeline'
 SECRET = 'ml-pipeline-ui-tensorboard-proxy'
 INIT = 'ml-pipeline-ui-signing-key-init'
 
 
-def render(path):
-    yaml = subprocess.check_output(['kustomize', 'build', str(path)], text=True)
+def render(path, allow_external_patches=False):
+    command = ['kustomize', 'build', str(path)]
+    if allow_external_patches:
+        command.append('--load-restrictor=LoadRestrictionsNone')
+    yaml = subprocess.check_output(command, text=True)
     encoded = subprocess.check_output(['yq', 'r', '-d', '*', '-j', '-'],
                                       input=yaml,
                                       text=True)
@@ -54,6 +58,24 @@ def resource(resources, kind, prefix):
 
 
 class TensorboardSigningKeyTest(unittest.TestCase):
+
+    def test_ci_uses_preloaded_initializer_image(self):
+        resources = render(
+            REPO_ROOT / '.github/resources/manifests/standalone/default',
+            allow_external_patches=True)
+        job = resource(resources, 'Job', INIT)
+        container = job['spec']['template']['spec']['containers'][0]
+        self.assertEqual(container['image'],
+                         'kind-registry:5000/frontend:latest')
+        self.assertEqual(container.get('imagePullPolicy'), 'IfNotPresent')
+
+    def test_openshift_allows_namespace_assigned_uid(self):
+        resources = render(REPO_ROOT / 'manifests/kustomize/env/openshift/base')
+        job = resource(resources, 'Job', INIT)
+        pod = job['spec']['template']['spec']
+        self.assertNotIn('runAsUser', pod.get('securityContext', {}))
+        for container in pod['containers'] + pod.get('initContainers', []):
+            self.assertNotIn('runAsUser', container.get('securityContext', {}))
 
     def test_shared_key_and_least_privilege(self):
         resources = render(PIPELINE)

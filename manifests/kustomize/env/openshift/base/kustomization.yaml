@@ -178,3 +178,9 @@ patches:
       kind: Job
       name: init-seaweedfs
       version: v1
+  - path: patches/remove-sc-pod.json
+    target:
+      group: batch
+      kind: Job
+      name: ml-pipeline-ui-signing-key-init
+      version: v1
