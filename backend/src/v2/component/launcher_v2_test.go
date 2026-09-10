@@ -37,6 +37,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -106,7 +107,7 @@ func Test_executeV2_Parameters(t *testing.T) {
 				fakeKubernetesClientset,
 				"false",
 				"",
-				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
+				&OpenBucketConfig{ctx: context.Background(), k8sClient: fakeKubernetesClientset, namespace: "namespace", config: bucketConfig},
 			)
 
 			if test.wantErr {
@@ -121,12 +122,12 @@ func Test_executeV2_Parameters(t *testing.T) {
 
 func Test_executeV2_publishLogs(t *testing.T) {
 	tests := []struct {
-		name          string
-		executorInput *pipelinespec.ExecutorInput
-		executorArgs  []string
-		retryIndex    string
-		wantErr       bool
-		uploadFailure bool
+		name            string
+		executorInput   *pipelinespec.ExecutorInput
+		executorArgs    []string
+		retryIndex      string
+		wantErr         bool
+		metadataFailure bool
 	}{
 		{
 			"happy pass",
@@ -213,7 +214,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			var countingFakeMetadataClient *metadata.RecordArtifactFailureFakeClient
 			// Use a fake client that will fail the executor-logs RecordArtifact call the first time,
 			// and succeed the second time, to test retry behavior without depending on map iteration order.
-			if test.uploadFailure {
+			if test.metadataFailure {
 				countingFakeMetadataClient = metadata.NewRecordArtifactFailureFakeClientForOutput("executor-logs", 1)
 				fakeMetadataClient = countingFakeMetadataClient
 			} else {
@@ -223,6 +224,14 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			assert.Nil(t, err)
 			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
 			assert.Nil(t, err)
+			bucketRefreshes := 0
+			openBucketConfig := &OpenBucketConfig{ctx: context.Background(), k8sClient: fakeKubernetesClientset, namespace: "namespace", config: bucketConfig}
+			if test.metadataFailure {
+				openBucketConfig.open = func(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *objectstore.Config) (*blob.Bucket, error) {
+					bucketRefreshes++
+					return nil, errors.New("bucket refresh should not run for metadata retry")
+				}
+			}
 			// Add executor-logs and output artifact to outputs
 			if test.executorInput.Outputs == nil {
 				test.executorInput.Outputs = &pipelinespec.ExecutorInput_Outputs{}
@@ -271,20 +280,26 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				fakeKubernetesClientset,
 				"true",
 				"",
-				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
+				openBucketConfig,
 			)
 
 			if test.wantErr {
 				assert.NotNil(t, err)
 				assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
-				if test.uploadFailure {
+				if test.metadataFailure {
 					assert.Equal(t, 2, countingFakeMetadataClient.OutputNameCalls["executor-logs"])
+					// Only logs uploaded - first call fails, second call succeeds
+					assert.Equal(t, 2, countingFakeMetadataClient.RecordArtifactCalls)
+					assert.Equal(t, 0, bucketRefreshes)
 				}
 			} else {
 				assert.Nil(t, err)
 				assert.Len(t, outputArtifacts, 2, "Expected 2 output artifacts (executor-logs and output-data)")
-				if test.uploadFailure {
+				if test.metadataFailure {
 					assert.Equal(t, 2, countingFakeMetadataClient.OutputNameCalls["executor-logs"])
+					// First call fails and returns early, then both artifacts succeed on retry
+					assert.Equal(t, 3, countingFakeMetadataClient.RecordArtifactCalls)
+					assert.Equal(t, 0, bucketRefreshes)
 				}
 			}
 
@@ -311,6 +326,121 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			assert.Equal(t, "testoutput\n", string(outputLog))
 		})
 	}
+}
+
+func Test_uploadOutputArtifactsWithRetry_refreshesBucketAfterUploadFailure(t *testing.T) {
+	ctx := context.Background()
+	fakeKubernetesClientset := &fake.Clientset{}
+	bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket-refresh/pipeline-root/", nil)
+	assert.Nil(t, err)
+
+	staleBucket, err := blob.OpenBucket(ctx, "mem://test-bucket-refresh")
+	assert.Nil(t, err)
+	assert.Nil(t, staleBucket.Close())
+
+	refreshedBucket, err := blob.OpenBucket(ctx, "mem://test-bucket-refresh")
+	assert.Nil(t, err)
+	defer refreshedBucket.Close()
+
+	tempDir := t.TempDir()
+	outputDataPath := filepath.Join(tempDir, "output-data")
+	assert.Nil(t, os.WriteFile(outputDataPath, []byte("dataset"), 0644))
+
+	executorInput := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"output-data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri:        "mem://test-bucket-refresh/pipeline-root/output-data",
+							Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"}},
+							CustomPath: &outputDataPath,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	bucketRefreshes := 0
+	openBucketConfig := &OpenBucketConfig{
+		ctx:       ctx,
+		k8sClient: fakeKubernetesClientset,
+		namespace: "namespace",
+		config:    bucketConfig,
+		open: func(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *objectstore.Config) (*blob.Bucket, error) {
+			bucketRefreshes++
+			return refreshedBucket, nil
+		},
+	}
+
+	outputArtifacts, err := uploadOutputArtifactsWithRetry(
+		ctx,
+		executorInput,
+		nil,
+		uploadOutputArtifactsOptions{
+			bucketConfig:   bucketConfig,
+			bucket:         staleBucket,
+			metadataClient: metadata.NewFakeClient(),
+		},
+		true,
+		openBucketConfig,
+		2,
+	)
+
+	assert.Nil(t, err)
+	assert.Len(t, outputArtifacts, 1)
+	assert.Equal(t, 1, bucketRefreshes)
+	uploaded, err := refreshedBucket.ReadAll(ctx, "output-data")
+	assert.Nil(t, err)
+	assert.Equal(t, "dataset", string(uploaded))
+}
+
+func Test_uploadOutputArtifactsWithRetry_returnsErrorWhenUploadFailureCannotRefreshBucket(t *testing.T) {
+	ctx := context.Background()
+	bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket-refresh-missing-config/pipeline-root/", nil)
+	assert.Nil(t, err)
+
+	staleBucket, err := blob.OpenBucket(ctx, "mem://test-bucket-refresh-missing-config")
+	assert.Nil(t, err)
+	assert.Nil(t, staleBucket.Close())
+
+	tempDir := t.TempDir()
+	outputDataPath := filepath.Join(tempDir, "output-data")
+	assert.Nil(t, os.WriteFile(outputDataPath, []byte("dataset"), 0644))
+
+	executorInput := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"output-data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri:        "mem://test-bucket-refresh-missing-config/pipeline-root/output-data",
+							Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"}},
+							CustomPath: &outputDataPath,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err = uploadOutputArtifactsWithRetry(
+		ctx,
+		executorInput,
+		nil,
+		uploadOutputArtifactsOptions{
+			bucketConfig:   bucketConfig,
+			bucket:         staleBucket,
+			metadataClient: metadata.NewFakeClient(),
+		},
+		true,
+		nil,
+		2,
+	)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "open bucket config is nil")
 }
 
 func Test_executeV2_publishLogs_skipsArtifactWhenSetupFailsBeforeLogsExist(t *testing.T) {
@@ -355,7 +485,7 @@ func Test_executeV2_publishLogs_skipsArtifactWhenSetupFailsBeforeLogsExist(t *te
 		fakeKubernetesClientset,
 		"true",
 		filepath.Join(tempDir, "missing-ca.pem"),
-		&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
+		&OpenBucketConfig{ctx: context.Background(), k8sClient: fakeKubernetesClientset, namespace: "namespace", config: bucketConfig},
 	)
 
 	assert.Error(t, err)
@@ -418,7 +548,7 @@ EOF`, filepath.Dir(outputMetadataFile), outputMetadataFile)
 		fakeKubernetesClientset,
 		"true",
 		"",
-		&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
+		&OpenBucketConfig{ctx: context.Background(), k8sClient: fakeKubernetesClientset, namespace: "namespace", config: bucketConfig},
 	)
 
 	assert.Nil(t, err)
