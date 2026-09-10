@@ -1159,34 +1159,46 @@ func (c *Client) GetInputArtifactsByExecutionID(ctx context.Context, executionID
 		return nil, err
 	}
 	var artifactIDs []int64
-	nameByID := make(map[int64]string)
+	orderedIDsByName := make(map[string][]int64)
 	for _, event := range eventsRes.Events {
 		if *event.Type == pb.Event_INPUT {
-			artifactIDs = append(artifactIDs, event.GetArtifactId())
+			id := event.GetArtifactId()
+			artifactIDs = append(artifactIDs, id)
 			name, err := getArtifactName(event.Path)
 			if err != nil {
 				return nil, err
 			}
-			nameByID[event.GetArtifactId()] = name
+			orderedIDsByName[name] = append(orderedIDsByName[name], id)
 		}
 	}
 	artifacts, err := c.GetArtifacts(ctx, artifactIDs)
 	if err != nil {
 		return nil, err
 	}
-	inputs = make(map[string]*pipelinespec.ArtifactList)
+	runtimeArtifactByID := make(map[int64]*pipelinespec.RuntimeArtifact, len(artifacts))
 	for _, artifact := range artifacts {
-		name, ok := nameByID[artifact.GetId()]
-		if !ok {
-			return nil, fmt.Errorf("failed to get name of artifact with id %v", artifact.GetId())
-		}
 		runtimeArtifact, err := toRuntimeArtifact(artifact)
 		if err != nil {
 			return nil, err
 		}
-		inputs[name] = &pipelinespec.ArtifactList{
-			Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
+		runtimeArtifactByID[artifact.GetId()] = runtimeArtifact
+	}
+	// Rebuild each list in the order its INPUT events were recorded, rather than
+	// whatever order GetArtifacts returns them in. MLMD does not document an
+	// ordering guarantee for GetEventsByExecutionIDs either, but this at least
+	// ties list order to the recorded events instead of an unrelated RPC's
+	// response order.
+	inputs = make(map[string]*pipelinespec.ArtifactList)
+	for name, ids := range orderedIDsByName {
+		artifactList := &pipelinespec.ArtifactList{}
+		for _, id := range ids {
+			runtimeArtifact, ok := runtimeArtifactByID[id]
+			if !ok {
+				return nil, fmt.Errorf("failed to get artifact with id %v for input %q", id, name)
+			}
+			artifactList.Artifacts = append(artifactList.Artifacts, runtimeArtifact)
 		}
+		inputs[name] = artifactList
 	}
 	return inputs, nil
 }
