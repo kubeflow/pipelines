@@ -569,3 +569,57 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 	assert.NotNil(t, err1)
 	assert.Contains(t, err1.Error(), "failed to read artifacts")
 }
+func TestProcessReportMetricResults_MixedStatuses(t *testing.T) {
+	results := []*api.ReportRunMetricsResponse_ReportRunMetricResult{
+		{
+			MetricNodeId: "node-1",
+			MetricName:   "accuracy",
+			Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_OK,
+		},
+		{
+			MetricNodeId: "node-1",
+			MetricName:   "logloss",
+			Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT,
+			Message:      "invalid metric value",
+		},
+		{
+			MetricNodeId: "node-2",
+			MetricName:   "precision",
+			Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR,
+			Message:      "server unavailable",
+		},
+	}
+	reportMetricsResponse := &api.ReportRunMetricsResponse{Results: results}
+
+	errs := processReportMetricResults(reportMetricsResponse)
+
+	assert.Len(t, errs, 2)
+
+	assert.True(t, util.HasCustomCode(errs[0], util.CUSTOM_CODE_PERMANENT))
+	assert.Contains(t, errs[0].Error(), "invalid arguments")
+	assert.Contains(t, errs[0].Error(), "logloss")
+
+	assert.True(t, util.HasCustomCode(errs[1], util.CUSTOM_CODE_TRANSIENT))
+	assert.Contains(t, errs[1].Error(), "internal error")
+	assert.Contains(t, errs[1].Error(), "precision")
+}
+
+func TestProcessReportMetricResults_AllOK_NoErrors(t *testing.T) {
+	results := []*api.ReportRunMetricsResponse_ReportRunMetricResult{
+		{
+			MetricNodeId: "node-1",
+			MetricName:   "accuracy",
+			Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_OK,
+		},
+		{
+			MetricNodeId: "node-1",
+			MetricName:   "logloss",
+			Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_DUPLICATE_REPORTING,
+		},
+	}
+	reportMetricsResponse := &api.ReportRunMetricsResponse{Results: results}
+
+	errs := processReportMetricResults(reportMetricsResponse)
+
+	assert.Empty(t, errs)
+}
