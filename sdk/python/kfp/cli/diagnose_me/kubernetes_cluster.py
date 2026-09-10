@@ -51,7 +51,7 @@ def execute_kubectl_command(
     Args:
       kubectl_command_list: a command string list to be past to kubectl example
         format is ['config', 'view']
-      human_readable: If false sets parameter -o json for all calls, otherwie
+      human_readable: If false sets parameter -o json for all calls, otherwise
         output will be in human readable format.
 
     Returns:
@@ -82,14 +82,14 @@ def get_kubectl_configuration(
           current env including current_context.
         - PODS: returns all pods and their status details.
         - PVCS: returns all PersistentVolumeClaim and their status details.
-        - SECRETS: returns all accessible k8 secrests.
+        - SECRETS: returns all accessible k8 secrets.
         - PVS: returns all PersistentVolume and their status details.
         - SERVICES: returns all services and their status details.
       kubernetes_context: Context to use to retrieve cluster specific commands, if
         set to None calls will rely on current_context configured.
-      namespace: default name space to be used for the commaand, if not specifeid
+      namespace: default name space to be used for the command, if not specified
         --all-namespaces will be used.
-      human_readable: If true all output will be in human readable form insted of
+      human_readable: If true all output will be in human readable form instead of
         Json.
 
     Returns:
