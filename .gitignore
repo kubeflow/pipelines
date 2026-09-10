@@ -116,6 +116,7 @@ bin/
 frontend/scripts/ui-smoke-test/node_modules/
 .npm-cache/
 .npm/
+backend/metadata_writer/src/.venv/
 
 # Don't commit docs written with https://github.com/obra/superpowers.
 docs/superpowers
