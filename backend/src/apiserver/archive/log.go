@@ -258,6 +258,14 @@ func (a *LogArchive) GetLogObjectKey(workflow util.ExecutionSpec, nodeID string)
 	if a.logPathPrefix == "" || a.logFileName == "" || workflow == nil {
 		return "", util.Wrapf(errors.New("invalid log archive configuration"), "configuration: %v", a)
 	}
+	// nodeID is supplied by the read-log API caller and is joined into the
+	// object store key below. A value carrying a path separator or a ".."
+	// component would resolve the key outside this run's log prefix, so reject
+	// it before use. readRunLogFromPod applies the equivalent guard on the pod
+	// read path.
+	if nodeID == ".." || strings.ContainsAny(nodeID, "/\\") {
+		return "", util.NewInvalidInputError("invalid node id %q", nodeID)
+	}
 	if archivedLogKey := workflow.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, archivedLogArtifactName); archivedLogKey != "" {
 		return archivedLogKey, nil
 	}
