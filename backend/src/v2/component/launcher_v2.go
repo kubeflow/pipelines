@@ -1047,30 +1047,42 @@ func fetchNonDefaultBuckets(
 	return nonDefaultBuckets, nil
 
 }
-
 func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, args []string) (string, []string, error) {
 	placeholders, err := getPlaceholders(executorInput)
+	if err != nil {
+		return "", nil, err
+	}
 
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to convert ExecutorInput into JSON: %w", err)
 	}
+
 	executorInputJSONKey := "{{$}}"
 	executorInputJSONString := string(executorInputJSON)
 
-	compiledCmd := strings.ReplaceAll(cmd, executorInputJSONKey, executorInputJSONString)
+	compiledCmd := substitutePlaceholders(cmd, executorInputJSONKey, executorInputJSONString, placeholders)
 	compiledArgs := make([]string, 0, len(args))
-	for placeholder, replacement := range placeholders {
-		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
-	}
 	for _, arg := range args {
-		compiledArgTemplate := strings.ReplaceAll(arg, executorInputJSONKey, executorInputJSONString)
-		for placeholder, replacement := range placeholders {
-			compiledArgTemplate = strings.ReplaceAll(compiledArgTemplate, placeholder, replacement)
-		}
-		compiledArgs = append(compiledArgs, compiledArgTemplate)
+		compiledArgs = append(compiledArgs, substitutePlaceholders(arg, executorInputJSONKey, executorInputJSONString, placeholders))
 	}
+
 	return compiledCmd, compiledArgs, nil
+}
+
+func substitutePlaceholders(s, execInputKey, execInputJSON string, placeholders map[string]string) string {
+    s = strings.ReplaceAll(s, execInputKey, execInputJSON)
+    maxPasses := 10 // Prevents infinite loops on cyclic/self-referential placeholders
+    for pass := 0; pass < maxPasses; pass++ {
+        prev := s
+        for placeholder, replacement := range placeholders {
+            s = strings.ReplaceAll(s, placeholder, replacement)
+        }
+        if s == prev {
+            break
+        }
+    }
+    return s
 }
 
 // Add executor input placeholders to provided map.
