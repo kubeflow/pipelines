@@ -21,6 +21,7 @@
 import functools
 import os
 import sys
+from datetime import datetime
 from typing import List, Optional
 
 import sphinx
@@ -35,7 +36,7 @@ sys.path.insert(0, os.path.abspath('../sdk/python'))
 
 # -- Project information -----------------------------------------------------
 project = 'Kubeflow Pipelines'
-copyright = '2022, The Kubeflow Authors'
+copyright = f'2019-{datetime.now().year}, The Kubeflow Authors'
 author = 'The Kubeflow Authors'
 
 # The short X.Y version
