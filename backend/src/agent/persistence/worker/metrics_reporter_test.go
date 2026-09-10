@@ -34,6 +34,92 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+func TestProcessReportMetricResults(t *testing.T) {
+	tests := []struct {
+		name     string
+		results  []*api.ReportRunMetricsResponse_ReportRunMetricResult
+		wantErrs int
+		wantCode util.CustomCode
+	}{
+		{
+			name:     "no results",
+			results:  nil,
+			wantErrs: 0,
+		},
+		{
+			name: "ok result",
+			results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{
+				{
+					MetricNodeId: "node-1",
+					MetricName:   "accuracy",
+					Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_OK,
+				},
+			},
+			wantErrs: 0,
+		},
+		{
+			name: "invalid argument",
+			results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{
+				{
+					MetricNodeId: "node-1",
+					MetricName:   "log loss",
+					Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT,
+					Message:      "invalid metric name",
+				},
+			},
+			wantErrs: 1,
+			wantCode: util.CUSTOM_CODE_PERMANENT,
+		},
+		{
+			name: "internal error",
+			results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{
+				{
+					MetricNodeId: "node-1",
+					MetricName:   "accuracy",
+					Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR,
+					Message:      "database unavailable",
+				},
+			},
+			wantErrs: 1,
+			wantCode: util.CUSTOM_CODE_TRANSIENT,
+		},
+		{
+			name: "mixed results",
+			results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{
+				{
+					MetricNodeId: "node-1",
+					MetricName:   "accuracy",
+					Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_OK,
+				},
+				{
+					MetricNodeId: "node-1",
+					MetricName:   "log loss",
+					Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT,
+					Message:      "invalid metric name",
+				},
+				{
+					MetricNodeId: "node-1",
+					MetricName:   "accuracy",
+					Status:       api.ReportRunMetricsResponse_ReportRunMetricResult_INTERNAL_ERROR,
+					Message:      "database unavailable",
+				},
+			},
+			wantErrs: 2,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := processReportMetricResults(&api.ReportRunMetricsResponse{
+				Results: tc.results,
+			})
+			assert.Len(t, got, tc.wantErrs)
+			if tc.wantCode != 0 && len(got) > 0 {
+				assert.True(t, util.HasCustomCode(got[0], tc.wantCode))
+			}
+		})
+	}
+}
+
 func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 
