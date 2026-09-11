@@ -22,6 +22,10 @@ on:
       - '.github/resources/buildkitd.toml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
+      - '.github/resources/scripts/*.js'
+      - '.github/resources/ci-workflow-inventory.json'
+      # Any trigger change must update the expected-workflow inventory.
+      - '.github/workflows/**'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
