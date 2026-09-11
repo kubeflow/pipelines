@@ -392,7 +392,7 @@ func (tc *TestContext) RunRootDag(testSetup *TestContext, run *apiv2beta1.Run, r
 
 func (tc *TestContext) RunDagDriver(
 	taskName string,
-	parentTask *apiv2beta1.PipelineTask) (*Execution, *apiv2beta1.PipelineTask) {
+	parentTask *apiv2beta1.PipelineTask, iterationIndex ...int64) (*Execution, *apiv2beta1.PipelineTask) {
 	t := tc.T
 	tc.RefreshRun()
 	defer tc.RefreshRun()
@@ -402,6 +402,9 @@ func (tc *TestContext) RunDagDriver(
 	taskSpec := tc.GetLast().GetTaskSpec()
 
 	opts := tc.setupDagOptions(parentTask, taskSpec, nil)
+	if len(iterationIndex) != 0 {
+		opts.IterationIndex = int(iterationIndex[0])
+	}
 
 	execution, err := DAG(context.Background(), opts, tc.ClientManager)
 	require.NoError(t, err)

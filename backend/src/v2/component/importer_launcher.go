@@ -360,7 +360,7 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 	if importerSpec.Metadata != nil {
 		artifact.Metadata = importerSpec.Metadata.GetFields()
 	}
-	artifact.Metadata = preserveArtifactSchemaTitle(artifact.Metadata, schemaTitleForMetadata)
+	artifact.Metadata = preserveArtifactSchema(artifact.Metadata, schemaTitleForMetadata, importerSpec.GetTypeSchema().GetSchemaVersion())
 	if strings.HasPrefix(artifactUri, "oci://") {
 		// OCI artifacts are not supported when workspace is used
 		if l.opts.ImporterSpec.GetDownloadToWorkspace() {
@@ -406,6 +406,7 @@ func (l *ImportLauncher) getArtifactOutputKey() (string, error) {
 }
 
 const artifactSchemaTitleMetadataKey = "_kfp_schema_title"
+const artifactSchemaVersionMetadataKey = "_kfp_schema_version"
 
 func inferArtifactType(typeSchema *pipelinespec.ArtifactTypeSchema) (apiV2beta1.Artifact_ArtifactType, string, error) {
 	schemaType, err := getArtifactSchemaType(typeSchema)
@@ -419,39 +420,51 @@ func inferArtifactType(typeSchema *pipelinespec.ArtifactTypeSchema) (apiV2beta1.
 	return artifactType, "", nil
 }
 
-func preserveArtifactSchemaTitle(metadata map[string]*structpb.Value, schemaTitle string) map[string]*structpb.Value {
-	if schemaTitle == "" {
+func preserveArtifactSchema(metadata map[string]*structpb.Value, schemaTitle, schemaVersion string) map[string]*structpb.Value {
+	if schemaTitle == "" && schemaVersion == "" {
 		return metadata
 	}
+	metadata = maps.Clone(metadata)
 	if metadata == nil {
 		metadata = map[string]*structpb.Value{}
 	}
-	metadata[artifactSchemaTitleMetadataKey] = structpb.NewStringValue(schemaTitle)
+	if schemaTitle != "" {
+		metadata[artifactSchemaTitleMetadataKey] = structpb.NewStringValue(schemaTitle)
+	}
+	if schemaVersion != "" {
+		metadata[artifactSchemaVersionMetadataKey] = structpb.NewStringValue(schemaVersion)
+	}
 	return metadata
 }
 
-// RuntimeArtifactSchemaTitleAndMetadata restores custom schema titles from stored
-// metadata and removes the internal marker before exposing metadata downstream.
-func RuntimeArtifactSchemaTitleAndMetadata(
+// RuntimeArtifactSchemaAndMetadata restores the executor schema and removes
+// internal schema markers before exposing metadata downstream.
+func RuntimeArtifactSchemaAndMetadata(
 	artifactType apiV2beta1.Artifact_ArtifactType,
 	metadata map[string]*structpb.Value,
-) (string, map[string]*structpb.Value) {
+) (*pipelinespec.ArtifactTypeSchema, map[string]*structpb.Value) {
 	schemaTitle := artifactType.String()
-	if metadata == nil {
-		return schemaTitle, nil
+	// Native enum names are not executor schema titles (Metric is system.Metrics).
+	for title, nativeType := range artifactTypeSchemaToArtifactTypeMap {
+		if nativeType == artifactType {
+			schemaTitle = title
+			break
+		}
 	}
-
-	storedSchemaTitle, ok := metadata[artifactSchemaTitleMetadataKey]
-	if !ok || storedSchemaTitle.GetStringValue() == "" {
-		return schemaTitle, metadata
+	if storedTitle := metadata[artifactSchemaTitleMetadataKey].GetStringValue(); storedTitle != "" {
+		schemaTitle = storedTitle
 	}
-
+	schema := &pipelinespec.ArtifactTypeSchema{
+		Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: schemaTitle},
+		SchemaVersion: metadata[artifactSchemaVersionMetadataKey].GetStringValue(),
+	}
 	restoredMetadata := maps.Clone(metadata)
 	delete(restoredMetadata, artifactSchemaTitleMetadataKey)
+	delete(restoredMetadata, artifactSchemaVersionMetadataKey)
 	if len(restoredMetadata) == 0 {
 		restoredMetadata = nil
 	}
-	return storedSchemaTitle.GetStringValue(), restoredMetadata
+	return schema, restoredMetadata
 }
 
 func inferArtifactName(uri string) (string, error) {

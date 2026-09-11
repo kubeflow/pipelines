@@ -185,6 +185,17 @@ func isCurrentParameterIteratorInput(opts common.Options, name string) bool {
 	return iterator != nil && iterator.GetItemInput() == name
 }
 
+func canExportIterationCollection(task *apiv2beta1.PipelineTask) bool {
+	switch task.GetType() {
+	case apiv2beta1.PipelineTask_LOOP, apiv2beta1.PipelineTask_DAG,
+		apiv2beta1.PipelineTask_ROOT, apiv2beta1.PipelineTask_CONDITION,
+		apiv2beta1.PipelineTask_CONDITION_BRANCH:
+		return true
+	default:
+		return false
+	}
+}
+
 func isZeroIterationLoopTask(task *apiv2beta1.PipelineTask) bool {
 	if task == nil || task.GetType() != apiv2beta1.PipelineTask_LOOP || task.GetTypeAttributes() == nil {
 		return false
@@ -399,7 +410,7 @@ func resolveTaskOutputParameter(
 	if len(outputs) == 0 && isZeroIterationLoopTask(producerTask) {
 		return emptyCollectedParameterOutput(outputKey, producerTask.GetName()), nil
 	}
-	outputIO, err := findParameterByProducerKeyInList(outputKey, producerTask.GetName(), outputs)
+	outputIO, err := findParameterByProducerKeyInList(outputKey, producerTask.GetName(), outputs, canExportIterationCollection(producerTask))
 	if err != nil {
 		return nil, err
 	}
@@ -674,6 +685,7 @@ func ResolveInputParameterStr(
 func findParameterByProducerKeyInList(
 	producerKey, producerTaskName string,
 	parametersIO []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
+	collectIterations bool,
 ) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, error) {
 	var parameterIOList []*apiv2beta1.PipelineTask_InputOutputs_IOParameter
 	for _, parameterIO := range parametersIO {
@@ -685,9 +697,12 @@ func findParameterByProducerKeyInList(
 		return nil, fmt.Errorf("parameter with producer key %s not found", producerKey)
 	}
 
-	isCollection := len(parameterIOList) > 1 ||
-		parameterIOList[0].GetType() == apiv2beta1.IOType_ITERATOR_OUTPUT
-	if isCollection {
+	// Leaf tasks mark their own iteration outputs too. Only group outputs
+	// represent collections, including DAGs exporting a descendant loop.
+	if !collectIterations && len(parameterIOList) > 1 {
+		return nil, fmt.Errorf("multiple outputs with producer key %s outside a loop collection", producerKey)
+	}
+	if collectIterations && (len(parameterIOList) > 1 || parameterIOList[0].GetType() == apiv2beta1.IOType_ITERATOR_OUTPUT) {
 		hasCompleteIterationMetadata := true
 		for _, parameterIO := range parameterIOList {
 			if parameterIO.GetType() != apiv2beta1.IOType_ITERATOR_OUTPUT {

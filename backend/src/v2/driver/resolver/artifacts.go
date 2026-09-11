@@ -195,7 +195,7 @@ func resolveTaskOutputArtifact(
 	if len(outputs) == 0 && isZeroIterationLoopTask(producerTask) {
 		return producerTask, emptyCollectedArtifactOutput(outputKey, producerTask.GetName()), nil
 	}
-	outputIO, err := findArtifactByProducerKeyInList(outputKey, producerTask.GetName(), outputs)
+	outputIO, err := findArtifactByProducerKeyInList(outputKey, producerTask.GetName(), outputs, canExportIterationCollection(producerTask))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -356,6 +356,7 @@ func getTaskNameWithTaskID(taskName, taskID string) string {
 func findArtifactByProducerKeyInList(
 	producerKey, producerTaskName string,
 	artifactsIO []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact,
+	collectIterations bool,
 ) (*apiv2beta1.PipelineTask_InputOutputs_IOArtifact, error) {
 	var artifactIOList []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact
 	for _, artifactIO := range artifactsIO {
@@ -367,11 +368,10 @@ func findArtifactByProducerKeyInList(
 		return nil, fmt.Errorf("artifact with producer key %s not found", producerKey)
 	}
 
-	// This occurs in the parallelFor case, where multiple iterations resulted in the same
-	// producer key.
-	isCollection := len(artifactIOList) > 1 ||
-		artifactIOList[0].GetType() == apiv2beta1.IOType_ITERATOR_OUTPUT
-	if isCollection {
+	if !collectIterations && len(artifactIOList) > 1 {
+		return nil, fmt.Errorf("multiple artifacts with producer key %s outside a loop collection", producerKey)
+	}
+	if collectIterations && (len(artifactIOList) > 1 || artifactIOList[0].GetType() == apiv2beta1.IOType_ITERATOR_OUTPUT) {
 		hasCompleteIterationMetadata := true
 		for _, artifactIO := range artifactIOList {
 			if artifactIO.GetType() != apiv2beta1.IOType_ITERATOR_OUTPUT {

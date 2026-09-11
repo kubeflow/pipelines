@@ -147,6 +147,35 @@ func TestResolveTaskOutputArtifact_EmptyLoopProducesEmptyCollection(t *testing.T
 	assert.Empty(t, resolved.GetArtifacts())
 }
 
+func TestResolveTaskOutputArtifact_CollectionBoundary(t *testing.T) {
+	for _, taskType := range []apiv2beta1.PipelineTask_TaskType{apiv2beta1.PipelineTask_RUNTIME, apiv2beta1.PipelineTask_LOOP} {
+		t.Run(taskType.String(), func(t *testing.T) {
+			parent := &apiv2beta1.PipelineTask{TaskId: "outer", Name: "outer", Type: apiv2beta1.PipelineTask_LOOP}
+			producer := &apiv2beta1.PipelineTask{
+				TaskId: "producer", Name: "produce", Type: taskType,
+				ParentTaskId:   util.StringPointer("outer"),
+				TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(0)},
+				Outputs:        &apiv2beta1.PipelineTask_InputOutputs{Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{iteratorArtifact("result", 0, "artifact")}},
+			}
+			_, resolved, ioType, err := resolveInputArtifact(common.Options{
+				ParentTask: parent, IterationIndex: 0, Run: &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producer}},
+			}, "input", &pipelinespec.TaskInputsSpec_InputArtifactSpec{
+				Kind: &pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact{
+					TaskOutputArtifact: &pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec{ProducerTask: "produce", OutputArtifactKey: "result"},
+				},
+			}, nil)
+			require.NoError(t, err)
+			require.Len(t, resolved.GetArtifacts(), 1)
+			assert.Equal(t, "artifact", resolved.GetArtifacts()[0].GetArtifactId())
+			if taskType == apiv2beta1.PipelineTask_LOOP {
+				assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, ioType)
+			} else {
+				assert.Equal(t, apiv2beta1.IOType_TASK_OUTPUT_INPUT, ioType)
+			}
+		})
+	}
+}
+
 func TestFindArtifactByProducerKeyInList_WrapsSingletonIteratorOutput(t *testing.T) {
 	resolved, err := findArtifactByProducerKeyInList(
 		"result",
@@ -154,6 +183,7 @@ func TestFindArtifactByProducerKeyInList_WrapsSingletonIteratorOutput(t *testing
 		[]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
 			iteratorArtifact("result", 0, "artifact-1"),
 		},
+		true,
 	)
 
 	require.NoError(t, err)
@@ -172,6 +202,7 @@ func TestFindArtifactByProducerKeyInList_OrdersIteratorOutputs(t *testing.T) {
 			iteratorArtifact("result", 0, "artifact-0"),
 			iteratorArtifact("result", 1, "artifact-1"),
 		},
+		true,
 	)
 
 	require.NoError(t, err)

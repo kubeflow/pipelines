@@ -132,6 +132,41 @@ func TestResolveTaskOutputParameter_FindsIterationScopedNonRuntimeProducer(t *te
 	}
 }
 
+func TestResolveTaskOutputParameter_CollectionBoundary(t *testing.T) {
+	for _, producerType := range []apiv2beta1.PipelineTask_TaskType{
+		apiv2beta1.PipelineTask_RUNTIME, apiv2beta1.PipelineTask_DAG, apiv2beta1.PipelineTask_LOOP,
+	} {
+		for _, value := range []*structpb.Value{
+			structpb.NewNumberValue(605), ToListValue([]*structpb.Value{structpb.NewNumberValue(605)}),
+		} {
+			t.Run(producerType.String()+"/"+value.String(), func(t *testing.T) {
+				parent := &apiv2beta1.PipelineTask{TaskId: "outer", Name: "outer", Type: apiv2beta1.PipelineTask_LOOP}
+				output := iteratorParameter("result", 0, "")
+				output.Value = value
+				producer := &apiv2beta1.PipelineTask{
+					TaskId: "producer", Name: "produce", Type: producerType,
+					ParentTaskId:   util.StringPointer("outer"),
+					TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(0)},
+					Outputs:        &apiv2beta1.PipelineTask_InputOutputs{Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{output}},
+				}
+				resolved, ioType, err := ResolveInputParameter(common.Options{
+					ParentTask: parent, IterationIndex: 0,
+					Run: &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producer}},
+				}, common.InputParamTaskOutput("produce", "result"), nil)
+				require.NoError(t, err)
+				if producerType != apiv2beta1.PipelineTask_RUNTIME {
+					assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, ioType)
+					require.Len(t, resolved.GetValue().GetListValue().GetValues(), 1)
+					assert.Equal(t, value, resolved.GetValue().GetListValue().GetValues()[0])
+				} else {
+					assert.Equal(t, apiv2beta1.IOType_TASK_OUTPUT_INPUT, ioType)
+					assert.Equal(t, value, resolved.GetValue())
+				}
+			})
+		}
+	}
+}
+
 func TestResolveTaskFinalStatus_FindsIterationScopedProducer(t *testing.T) {
 	parentTaskID := "loop-parent"
 	parentTask := &apiv2beta1.PipelineTask{
@@ -464,7 +499,7 @@ func TestFindParameterByProducerKeyInList_OrdersIteratorOutputs(t *testing.T) {
 		iteratorParameter("result", 1, "one"),
 	}
 
-	resolved, err := findParameterByProducerKeyInList("result", "producer", parameters)
+	resolved, err := findParameterByProducerKeyInList("result", "producer", parameters, true)
 
 	require.NoError(t, err)
 	assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, resolved.GetType())
@@ -481,6 +516,7 @@ func TestFindParameterByProducerKeyInList_WrapsSingletonIteratorOutput(t *testin
 		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			iteratorParameter("result", 0, "only"),
 		},
+		true,
 	)
 
 	require.NoError(t, err)
@@ -507,7 +543,7 @@ func TestFindParameterByProducerKeyInList_RejectsInvalidIteratorMetadata(t *test
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := findParameterByProducerKeyInList("result", "producer", test.parameters)
+			_, err := findParameterByProducerKeyInList("result", "producer", test.parameters, true)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), test.errorText)
 		})
@@ -530,7 +566,7 @@ func TestFindParameterByProducerKeyInList_PreservesOrderWithoutIterationMetadata
 		},
 	}
 
-	resolved, err := findParameterByProducerKeyInList("result", "producer", parameters)
+	resolved, err := findParameterByProducerKeyInList("result", "producer", parameters, true)
 
 	require.NoError(t, err)
 	require.Len(t, resolved.GetValue().GetListValue().GetValues(), 2)
