@@ -11,7 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { randomBytes } from 'crypto';
 import * as path from 'path';
+import { getArtifactStoreOrigin, parseArtifactStoreEndpoint } from './minio-helper.js';
 import { loadJSON } from './utils.js';
 import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts.js';
 export const BASEPATH = '/pipeline';
@@ -28,6 +30,132 @@ export enum Deployments {
 
 /** converts string to bool */
 const asBool = (value: string) => ['true', '1'].includes(value.toLowerCase());
+
+function parseOptionalPort(value: string | undefined, name: string): number | undefined {
+  if (value === undefined || value.trim() === '') {
+    return undefined;
+  }
+  const normalized = value.trim();
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error(`${name} must be an integer between 1 and 65535`);
+  }
+  const port = Number(normalized);
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`${name} must be an integer between 1 and 65535`);
+  }
+  return port;
+}
+
+function validateConfiguredEndpointPort(
+  endpoint: string | undefined,
+  port: number | undefined,
+  endpointName: string,
+  portName: string,
+): void {
+  if (!endpoint || port === undefined) {
+    return;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(endpoint.includes('://') ? endpoint : `https://${endpoint}`);
+  } catch {
+    return;
+  }
+  if (!parsed.hostname) {
+    return;
+  }
+  const authority = endpoint.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').split(/[/?#]/, 1)[0];
+  const embeddedPort = /:(\d+)$/.exec(authority)?.[1];
+  if (embeddedPort && Number(embeddedPort) !== port) {
+    throw new Error(
+      `${endpointName} port ${embeddedPort} conflicts with ${portName} value ${port}`,
+    );
+  }
+}
+
+function parseAllowedArtifactEndpoints(value: string): string[] {
+  if (!value.trim()) {
+    return [];
+  }
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((configured) => {
+      try {
+        const endpoint = new URL(configured);
+        if (
+          !['http:', 'https:'].includes(endpoint.protocol) ||
+          endpoint.username ||
+          endpoint.password ||
+          endpoint.pathname !== '/' ||
+          endpoint.search ||
+          endpoint.hash
+        ) {
+          throw new Error();
+        }
+        return endpoint.origin;
+      } catch {
+        throw new Error(
+          `ALLOWED_ARTIFACT_ENDPOINTS entry must be an absolute HTTP(S) origin: ${configured}`,
+        );
+      }
+    });
+}
+
+function getArgoArtifactRepositoryEndpoints(
+  host: string,
+  namespace: string,
+  clusterDomain: string,
+  minio: MinioConfigs,
+): string[] {
+  const dnsLabel = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/i;
+  if (!dnsLabel.test(host) || !dnsLabel.test(namespace)) {
+    return [];
+  }
+
+  // The controller manifest uses .svc; profile repositories use CLUSTER_DOMAIN.
+  // Derive exact origins only from operator settings, never workflow metadata.
+  const suffixes = new Set(['svc']);
+  const domain = clusterDomain.replace(/^\./, '');
+  if (domain.split('.').every((label) => dnsLabel.test(label))) {
+    suffixes.add(domain);
+  }
+  return [...suffixes]
+    .map((suffix) =>
+      getArtifactStoreOrigin({ ...minio, endPoint: `${host}.${namespace}.${suffix}` }),
+    )
+    .filter((endpoint): endpoint is string => endpoint !== undefined);
+}
+
+const MIN_TENSORBOARD_PROXY_SIGNING_SECRET_BYTES = 32;
+let ephemeralTensorboardProxySigningSecret: string | undefined;
+
+function resolveTensorboardProxySigningSecret(
+  configuredSecret: string | undefined,
+  minioSecret: string,
+): string {
+  if (configuredSecret === undefined) {
+    ephemeralTensorboardProxySigningSecret ??= randomBytes(
+      MIN_TENSORBOARD_PROXY_SIGNING_SECRET_BYTES,
+    ).toString('base64url');
+    return ephemeralTensorboardProxySigningSecret;
+  }
+
+  if (configuredSecret === minioSecret) {
+    throw new Error(
+      'TENSORBOARD_PROXY_SIGNING_SECRET must not reuse MINIO_SECRET_KEY. Configure a dedicated random secret.',
+    );
+  }
+
+  if (Buffer.byteLength(configuredSecret, 'utf8') < MIN_TENSORBOARD_PROXY_SIGNING_SECRET_BYTES) {
+    throw new Error(
+      `TENSORBOARD_PROXY_SIGNING_SECRET must be at least ${MIN_TENSORBOARD_PROXY_SIGNING_SECRET_BYTES} bytes.`,
+    );
+  }
+
+  return configuredSecret;
+}
 
 function parseArgs(argv: string[]) {
   if (argv.length < 3) {
@@ -62,11 +190,14 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     AWS_SECRET_ACCESS_KEY,
     AWS_REGION,
     AWS_S3_ENDPOINT,
+    AWS_S3_PORT,
     AWS_SSL = 'true',
     /** http/https base URL */
     HTTP_BASE_URL = '',
     /** By default, allowing access to all domains. Modify this flag to allow querying matching domains */
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
+    /** Additional object-store origins allowed for secret-backed provider configs. */
+    ALLOWED_ARTIFACT_ENDPOINTS = '',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
     HTTP_AUTHORIZATION_KEY = '',
     /** http/https fetch with this authorization header value by default when absent in client request at above key */
@@ -81,8 +212,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH,
     /** Tensorflow image used for tensorboard viewer */
     VIEWER_TENSORBOARD_TF_IMAGE_NAME = 'tensorflow/tensorflow',
-    /** Shared signing secret for scoped TensorBoard proxy paths */
-    TENSORBOARD_PROXY_SIGNING_SECRET = MINIO_SECRET_KEY,
+    /** Optional shared signing secret for scoped TensorBoard proxy paths */
+    TENSORBOARD_PROXY_SIGNING_SECRET,
     /** Whether custom visualizations are allowed to be generated by the frontend */
     ALLOW_CUSTOM_VISUALIZATIONS = 'false',
     /** Envoy service will listen to this host */
@@ -140,6 +271,32 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     CLUSTER_DOMAIN = '.svc.cluster.local',
   } = env;
 
+  const configuredAwsEndpoint = AWS_S3_ENDPOINT?.trim();
+  const configuredAwsPort = parseOptionalPort(AWS_S3_PORT, 'AWS_S3_PORT');
+  validateConfiguredEndpointPort(
+    configuredAwsEndpoint,
+    configuredAwsPort,
+    'AWS_S3_ENDPOINT',
+    'AWS_S3_PORT',
+  );
+  const awsUseSSL = asBool(AWS_SSL);
+  const parsedAwsEndpoint = configuredAwsEndpoint
+    ? parseArtifactStoreEndpoint(configuredAwsEndpoint, !awsUseSSL)
+    : undefined;
+  if (configuredAwsEndpoint && !parsedAwsEndpoint) {
+    throw new Error(
+      'AWS_S3_ENDPOINT must be a valid HTTP(S) origin consistent with AWS_SSL, without credentials, a path, query, or fragment',
+    );
+  }
+
+  const minio: MinioConfigs = {
+    accessKey: MINIO_ACCESS_KEY,
+    endPoint: MINIO_NAMESPACE ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST,
+    port: parseOptionalPort(MINIO_PORT, 'MINIO_PORT') ?? 9000,
+    secretKey: MINIO_SECRET_KEY,
+    useSSL: asBool(MINIO_SSL),
+  };
+
   return {
     argo: {
       archiveArtifactory: ARGO_ARCHIVE_ARTIFACTORY,
@@ -147,6 +304,12 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       archiveLogs: asBool(ARGO_ARCHIVE_LOGS),
       keyFormat: ARGO_KEYFORMAT,
       artifactRepositoriesLookup: asBool(ARGO_ARTIFACT_REPOSITORIES_LOOKUP),
+      artifactRepositoryEndpoints: getArgoArtifactRepositoryEndpoints(
+        MINIO_HOST,
+        MINIO_NAMESPACE,
+        CLUSTER_DOMAIN,
+        minio,
+      ),
     },
     pod: {
       logContainerName: POD_LOG_CONTAINER_NAME,
@@ -154,10 +317,11 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     artifacts: {
       aws: {
         accessKey: AWS_ACCESS_KEY_ID || '',
-        endPoint: AWS_S3_ENDPOINT || 's3.amazonaws.com',
+        endPoint: parsedAwsEndpoint?.endPoint || 's3.amazonaws.com',
+        port: parsedAwsEndpoint?.port ?? configuredAwsPort,
         region: AWS_REGION || 'us-east-1',
         secretKey: AWS_SECRET_ACCESS_KEY || '',
-        useSSL: asBool(AWS_SSL),
+        useSSL: awsUseSSL,
       },
       http: {
         auth: {
@@ -166,19 +330,12 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         },
         baseUrl: HTTP_BASE_URL,
       },
-      minio: {
-        accessKey: MINIO_ACCESS_KEY,
-        endPoint:
-          MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0
-            ? `${MINIO_HOST}.${MINIO_NAMESPACE}`
-            : MINIO_HOST,
-        port: parseInt(MINIO_PORT, 10),
-        secretKey: MINIO_SECRET_KEY,
-        useSSL: asBool(MINIO_SSL),
-      },
+      minio,
       proxy: loadArtifactsProxyConfig(env),
+      allowOfficialAwsEndpoints: Boolean(configuredAwsEndpoint),
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
       allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
+      allowedEndpoints: parseAllowedArtifactEndpoints(ALLOWED_ARTIFACT_ENDPOINTS),
     },
     metadata: {
       envoyService: {
@@ -215,7 +372,10 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
         podTemplateSpec: loadJSON<object>(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH),
         tfImageName: VIEWER_TENSORBOARD_TF_IMAGE_NAME,
         clusterDomain: CLUSTER_DOMAIN,
-        proxySigningSecret: TENSORBOARD_PROXY_SIGNING_SECRET,
+        proxySigningSecret: resolveTensorboardProxySigningSecret(
+          TENSORBOARD_PROXY_SIGNING_SECRET,
+          MINIO_SECRET_KEY,
+        ),
       },
     },
     visualizations: {
@@ -232,6 +392,20 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
   };
 }
 
+export function getConfigsForLogging(configs: UIConfigs) {
+  return {
+    ...configs,
+    artifacts: 'Artifacts config contains credentials, so it is omitted',
+    viewer: {
+      ...configs.viewer,
+      tensorboard: {
+        ...configs.viewer.tensorboard,
+        proxySigningSecret: 'TensorBoard proxy signing secret is omitted',
+      },
+    },
+  };
+}
+
 export interface MinioConfigs {
   accessKey: string;
   secretKey: string;
@@ -241,6 +415,7 @@ export interface MinioConfigs {
 }
 export interface AWSConfigs {
   endPoint: string;
+  port?: number;
   region: string;
   accessKey: string;
   secretKey: string;
@@ -283,6 +458,8 @@ export interface ArgoConfigs {
   archiveBucketName: string;
   keyFormat: string;
   artifactRepositoriesLookup: boolean;
+  /** Exact origins generated for operator-configured Kubernetes artifact repositories. */
+  artifactRepositoryEndpoints?: string[];
 }
 export interface ServerConfigs {
   basePath: string;
@@ -310,8 +487,10 @@ export interface UIConfigs {
     minio: MinioConfigs;
     http: HttpConfigs;
     proxy: ArtifactsProxyConfig;
+    allowOfficialAwsEndpoints: boolean;
     streamLogsFromServerApi: boolean;
     allowedDomain: string;
+    allowedEndpoints: string[];
   };
   pod: {
     logContainerName: string;

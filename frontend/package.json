@@ -121,7 +121,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.5.2",
     "@types/d3-dsv": "^3.0.7",
-    "@types/dagre": "^0.7.40",
+    "@types/dagre": "^0.7.54",
     "@types/express": "^5.0.6",
     "@types/google-protobuf": "^3.15.12",
     "@types/js-yaml": "^3.12.3",
@@ -156,7 +156,7 @@
     "tsx": "^4.23.12",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.11",
     "yaml": "^2.8.3"
   },
   "overrides": {

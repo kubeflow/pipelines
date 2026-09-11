@@ -29,13 +29,18 @@ import (
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -630,6 +635,96 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 		err.Error(),
 		"PermissionDenied: User 'user@google.com' is not authorized with reason",
 	)
+}
+
+func TestCreateJob_PrivatePipelineVersionUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	privatePipeline, err := manager.CreatePipeline(&model.Pipeline{Name: "private-pipeline", Namespace: "ns2"})
+	require.NoError(t, err)
+	pipelineStore, ok := clients.PipelineStore().(*storage.PipelineStore)
+	require.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
+	privateVersion, err := manager.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "private-version",
+		PipelineId:   privatePipeline.UUID,
+		PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, privatePipeline.UUID, privateVersion.UUID)
+
+	reviewClient := &recordingSubjectAccessReviewClient{
+		authorize: func(attributes authorizationv1.ResourceAttributes) bool {
+			return attributes.Resource != common.RbacResourceTypePipelines
+		},
+	}
+	clients.SubjectAccessReviewClientFake = reviewClient
+	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	server := createJobServer(manager)
+	_, err = server.createJob(ctx, &model.Job{
+		DisplayName:  "private-pipeline-job",
+		ExperimentId: experiment.UUID,
+		Namespace:    experiment.Namespace,
+		PipelineSpec: model.PipelineSpec{PipelineVersionId: privateVersion.UUID},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "PermissionDenied")
+	require.Len(t, reviewClient.requests, 2)
+	assert.Equal(t, authorizationv1.ResourceAttributes{
+		Namespace: "ns2",
+		Verb:      common.RbacResourceVerbGet,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypePipelines,
+		Name:      privatePipeline.Name,
+	}, reviewClient.requests[1])
+}
+
+func TestCreateJob_PrivatePipelineVersionMustMatchDestinationNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	privatePipeline, err := manager.CreatePipeline(&model.Pipeline{Name: "private-pipeline", Namespace: "ns2"})
+	require.NoError(t, err)
+	pipelineStore, ok := clients.PipelineStore().(*storage.PipelineStore)
+	require.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
+	privateVersion, err := manager.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "private-version",
+		PipelineId:   privatePipeline.UUID,
+		PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, privatePipeline.UUID, privateVersion.UUID)
+
+	// Model the scheduled-workflow controller, whose cluster-wide pipeline read
+	// permission must not let a namespaced recurring-run resource reference a
+	// different tenant's private pipeline.
+	reviewClient := &recordingSubjectAccessReviewClient{allowed: true}
+	clients.SubjectAccessReviewClientFake = reviewClient
+	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	server := createJobServer(manager)
+	_, err = server.createJob(ctx, &model.Job{
+		DisplayName:  "cross-namespace-pipeline-job",
+		ExperimentId: experiment.UUID,
+		Namespace:    experiment.Namespace,
+		PipelineSpec: model.PipelineSpec{PipelineVersionId: privateVersion.UUID},
+	})
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.PermissionDenied))
+	assert.Contains(t, err.Error(), "private pipeline can only be referenced")
+	require.Len(t, reviewClient.requests, 2)
+	assert.Equal(t, common.RbacResourceTypeJobs, reviewClient.requests[0].Resource)
+	assert.Equal(t, common.RbacResourceTypePipelines, reviewClient.requests[1].Resource)
 }
 
 func TestGetJob_Unauthorized(t *testing.T) {

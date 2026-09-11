@@ -16,8 +16,12 @@
 import copy
 import json
 import typing
+
+# SDK CI uses isort 5.10.1; pre-commit CI uses isort 9.0.1.
+# isort: off
 from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
                     Union)
+# isort: on
 import warnings
 
 from google.protobuf import json_format
@@ -721,6 +725,11 @@ def build_container_spec_for_task(
             if TaskConfigField.KUBERNETES_VOLUMES not in allowed_fields:
                 _raise_passthrough_error(
                     task, TaskConfigField.KUBERNETES_VOLUMES.name)
+
+        if _has_any(k8s_cfg, ['podResourceClaims']):
+            if TaskConfigField.KUBERNETES_RESOURCE_CLAIMS not in allowed_fields:
+                _raise_passthrough_error(
+                    task, TaskConfigField.KUBERNETES_RESOURCE_CLAIMS.name)
 
     _validate_task_config_passthroughs_for_kubernetes_settings(task)
 

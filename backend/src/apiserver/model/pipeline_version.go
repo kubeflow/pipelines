@@ -136,3 +136,13 @@ func (p *PipelineVersion) GetSortByFieldPrefix(name string) string {
 func (p *PipelineVersion) GetKeyFieldPrefix() string {
 	return "pipeline_versions."
 }
+
+var pipelineVersionCaseInsensitiveFields = map[string]struct{}{
+	"name":         {},
+	"display_name": {},
+	"description":  {},
+}
+
+func (p *PipelineVersion) CaseInsensitiveFields() map[string]struct{} {
+	return pipelineVersionCaseInsensitiveFields
+}
