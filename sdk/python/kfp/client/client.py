@@ -75,6 +75,33 @@ class _PipelineDoc:
             }
 
 
+def _pipeline_doc_from_dict(spec_dict: dict) -> _PipelineDoc:
+    """Builds a _PipelineDoc from a pipeline spec dict as returned by the
+
+    API server (e.g. via ``Client.get_pipeline_version()``).
+
+    The dict is either a flat PipelineSpec (the common case), or a
+    ``{'pipeline_spec': ..., 'platform_spec': ...}`` wrapper -- the shape
+    the API server returns when the pipeline was compiled with
+    platform-specific configuration (e.g. Kubernetes-specific config from
+    the ``kfp-kubernetes`` extension). This is the inverse of
+    ``_PipelineDoc.to_dict()``.
+    """
+    if 'pipeline_spec' in spec_dict:
+        raw_pipeline_spec = spec_dict['pipeline_spec']
+        raw_platform_spec = spec_dict.get('platform_spec', {})
+    else:
+        raw_pipeline_spec = spec_dict
+        raw_platform_spec = {}
+
+    pipeline_spec = pipeline_spec_pb2.PipelineSpec()
+    json_format.ParseDict(raw_pipeline_spec, pipeline_spec)
+    platform_spec = pipeline_spec_pb2.PlatformSpec()
+    json_format.ParseDict(raw_platform_spec, platform_spec)
+    return _PipelineDoc(
+        pipeline_spec=pipeline_spec, platform_spec=platform_spec)
+
+
 @dataclasses.dataclass
 class _JobConfig:
     pipeline_spec: dict
@@ -984,6 +1011,21 @@ class Client:
                 _override_caching_options(pipeline_doc.pipeline_spec,
                                           enable_caching, cache_key)
             pipeline_spec = pipeline_doc.to_dict()
+        elif pipeline_id is not None and version_id is not None and enable_caching is not None:
+            # A caching override can only be applied to a concrete
+            # PipelineSpec. When the pipeline is referenced by id/version
+            # rather than submitted as a local package, fetch its spec so the
+            # override actually reaches the tasks instead of being silently
+            # dropped. The fetch is skipped whenever no caching override is
+            # requested, so the common case stays a cheap reference-only
+            # request.
+            pipeline_version = self.get_pipeline_version(
+                pipeline_id=pipeline_id, pipeline_version_id=version_id)
+            fetched_doc = _pipeline_doc_from_dict(
+                pipeline_version.pipeline_spec)
+            _override_caching_options(fetched_doc.pipeline_spec, enable_caching,
+                                      cache_key)
+            pipeline_spec = fetched_doc.to_dict()
 
         pipeline_version_reference = None
         if pipeline_id is not None and version_id is not None:
