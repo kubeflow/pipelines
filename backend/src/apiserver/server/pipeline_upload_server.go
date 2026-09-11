@@ -171,6 +171,7 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		Description:   pipeline.Description,
 		PipelineSpec:  model.LargeText(pipelineFile),
 		CodeSourceUrl: r.URL.Query().Get(CodeSourceURLQueryStringKey),
+		Tags:          pipeline.Tags,
 	}
 
 	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
