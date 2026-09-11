@@ -68,7 +68,7 @@ func TestFakeExecClient_GetWorkflowCount(t *testing.T) {
 	}
 }
 
-func TestFakeExecClient_GetWorkflowKeys(t *testing.T) {
+func TestFakeExecClient_GetWorkflowKeysInNamespace(t *testing.T) {
 	client := NewFakeExecClient()
 	ctx := context.Background()
 
@@ -79,9 +79,33 @@ func TestFakeExecClient_GetWorkflowKeys(t *testing.T) {
 		t.Fatalf("setup: Create() unexpected error: %v", err)
 	}
 
-	keys := client.GetWorkflowKeys()
+	keys := client.GetWorkflowKeysInNamespace("default")
 	if !keys["key-workflow"] {
-		t.Errorf("GetWorkflowKeys() missing expected key, got: %v", keys)
+		t.Errorf("GetWorkflowKeysInNamespace() missing expected key, got: %v", keys)
+	}
+}
+
+func TestFakeExecClient_IsolatesWorkflowNamespaces(t *testing.T) {
+	client := NewFakeExecClient()
+	ctx := context.Background()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "shared-name"},
+	})
+
+	if _, err := client.Execution("ns1").Create(ctx, workflow, v1.CreateOptions{}); err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
+	if _, err := client.Execution("ns2").Get(ctx, "shared-name", v1.GetOptions{}); err == nil {
+		t.Fatal("Get() unexpectedly found a workflow from another namespace")
+	}
+	if err := client.Execution("ns2").Delete(ctx, "shared-name", v1.DeleteOptions{}); err == nil {
+		t.Fatal("Delete() unexpectedly removed a workflow from another namespace")
+	}
+	if count := client.GetWorkflowDeleteCountInNamespace("ns1", "shared-name"); count != 0 {
+		t.Fatalf("namespace-scoped delete count = %d, want 0", count)
+	}
+	if _, err := client.Execution("ns1").Get(ctx, "shared-name", v1.GetOptions{}); err != nil {
+		t.Fatalf("Get() in owning namespace returned error: %v", err)
 	}
 }
 
@@ -100,7 +124,7 @@ func TestFakeExecClient_IsTerminated(t *testing.T) {
 		t.Fatalf("setup: Create() unexpected error: %v", err)
 	}
 
-	isTerminated, err := client.IsTerminated("terminated-wf")
+	isTerminated, err := client.IsTerminatedInNamespace("default", "terminated-wf")
 	if err != nil {
 		t.Fatalf("IsTerminated() unexpected error: %v", err)
 	}
@@ -124,7 +148,7 @@ func TestFakeExecClient_IsNotTerminated(t *testing.T) {
 		t.Fatalf("setup: Create() unexpected error: %v", err)
 	}
 
-	isTerminated, err := client.IsTerminated("running-wf")
+	isTerminated, err := client.IsTerminatedInNamespace("default", "running-wf")
 	if err != nil {
 		t.Fatalf("IsTerminated() unexpected error: %v", err)
 	}
@@ -136,7 +160,7 @@ func TestFakeExecClient_IsNotTerminated(t *testing.T) {
 func TestFakeExecClient_IsTerminatedNotFound(t *testing.T) {
 	client := NewFakeExecClient()
 
-	_, err := client.IsTerminated("nonexistent")
+	_, err := client.IsTerminatedInNamespace("default", "nonexistent")
 	if err == nil {
 		t.Error("IsTerminated() expected error for nonexistent workflow, got nil")
 	}
@@ -153,7 +177,7 @@ func TestFakeExecClient_IsTerminatedNoDeadline(t *testing.T) {
 		t.Fatalf("setup: Create() unexpected error: %v", err)
 	}
 
-	_, err := client.IsTerminated("no-deadline")
+	_, err := client.IsTerminatedInNamespace("default", "no-deadline")
 	if err == nil {
 		t.Error("IsTerminated() expected error for workflow without ActiveDeadlineSeconds, got nil")
 	}

@@ -267,3 +267,13 @@ func (j *Job) GetSortByFieldPrefix(name string) string {
 func (j *Job) GetKeyFieldPrefix() string {
 	return "jobs."
 }
+
+var jobCaseInsensitiveFields = map[string]struct{}{
+	"name":         {},
+	"display_name": {},
+	"description":  {},
+}
+
+func (j *Job) CaseInsensitiveFields() map[string]struct{} {
+	return jobCaseInsensitiveFields
+}

@@ -1297,7 +1297,11 @@ type ListRunsRequest struct {
 	SortBy string `protobuf:"bytes,5,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
 	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
-	Filter        string `protobuf:"bytes,6,opt,name=filter,proto3" json:"filter,omitempty"`
+	Filter string `protobuf:"bytes,6,opt,name=filter,proto3" json:"filter,omitempty"`
+	// Optional input field. If true, the server skips computing total_size in
+	// the response, avoiding an extra count query. Defaults to false, which
+	// preserves the existing behavior of always computing total_size.
+	SkipCount     bool `protobuf:"varint,7,opt,name=skip_count,json=skipCount,proto3" json:"skip_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1374,6 +1378,13 @@ func (x *ListRunsRequest) GetFilter() string {
 	return ""
 }
 
+func (x *ListRunsRequest) GetSkipCount() bool {
+	if x != nil {
+		return x.SkipCount
+	}
+	return false
+}
+
 type TerminateRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the parent experiment.
@@ -1435,7 +1446,8 @@ type ListRunsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// List of retrieved runs.
 	Runs []*Run `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
-	// The total number of runs for the given query.
+	// The total number of runs for the given query. If the request set
+	// skip_count to true, this is -1 rather than a real count.
 	TotalSize int32 `protobuf:"varint,2,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	// The token to list the next page of runs.
 	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
@@ -1925,7 +1937,7 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\x03run\x18\x02 \x01(\v2+.kubeflow.pipelines.backend.api.v2beta1.RunR\x03run\"O\n" +
 	"\rGetRunRequest\x12'\n" +
 	"\rexperiment_id\x18\x01 \x01(\tB\x02\x18\x01R\fexperimentId\x12\x15\n" +
-	"\x06run_id\x18\x02 \x01(\tR\x05runId\"\xc1\x01\n" +
+	"\x06run_id\x18\x02 \x01(\tR\x05runId\"\xe0\x01\n" +
 	"\x0fListRunsRequest\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12#\n" +
 	"\rexperiment_id\x18\x02 \x01(\tR\fexperimentId\x12\x1d\n" +
@@ -1933,7 +1945,9 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x17\n" +
 	"\asort_by\x18\x05 \x01(\tR\x06sortBy\x12\x16\n" +
-	"\x06filter\x18\x06 \x01(\tR\x06filter\"U\n" +
+	"\x06filter\x18\x06 \x01(\tR\x06filter\x12\x1d\n" +
+	"\n" +
+	"skip_count\x18\a \x01(\bR\tskipCount\"U\n" +
 	"\x13TerminateRunRequest\x12'\n" +
 	"\rexperiment_id\x18\x01 \x01(\tB\x02\x18\x01R\fexperimentId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\"\x9a\x01\n" +

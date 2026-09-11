@@ -45,9 +45,9 @@ def split_materialized_data(
         Transform Engine.
 
   Returns:
-      materialized_train_split: Path pattern to materialized train split.
-      materialized_eval_split: Path pattern to materialized eval split.
-      materialized_test_split: Path pattern to materialized test split.
+      materialized_train_split: Path patern to materialized train split.
+      materialized_eval_split: Path patern to materialized eval split.
+      materialized_test_split: Path patern to materialized test split.
   """
   # fmt: on
 
@@ -75,10 +75,10 @@ def split_materialized_data(
               ' train, and eval splits.\n\n  Necessary adapter between FTE'
               ' pipeline and trainer.\n\n  Args:\n    materialized_data:'
               ' materialized_data dataset output by FTE.\n   '
-              ' materialized_train_split: Path pattern to'
+              ' materialized_train_split: Path patern to'
               ' materialized_train_split.\n    materialized_eval_split: Path'
-              ' pattern to materialized_eval_split.\n   '
-              ' materialized_test_split: Path pattern to'
+              ' patern to materialized_eval_split.\n   '
+              ' materialized_test_split: Path patern to'
               ' materialized_test_split.\n  """\n  # pylint:'
               ' disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n'
               '  import json\n  import tensorflow as tf\n  # pylint:'

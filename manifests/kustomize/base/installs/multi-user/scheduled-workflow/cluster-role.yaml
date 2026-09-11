@@ -22,6 +22,12 @@ rules:
   verbs:
   - create
 - apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - pipelines
+  verbs:
+  - get
+- apiGroups:
   - kubeflow.org
   resources:
   - scheduledworkflows

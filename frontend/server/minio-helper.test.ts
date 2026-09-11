@@ -20,6 +20,7 @@ import {
   isTarball,
   maybeTarball,
   getObjectStream,
+  getArtifactStoreOrigin,
   isNoSuchKeyError,
   listObjectsUnderPrefix,
   summarizeDirectoryUnderPrefix,
@@ -27,9 +28,11 @@ import {
   Credentials,
 } from './minio-helper.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { getK8sSecret } from './k8s-helper.js';
 
 vi.mock('minio');
 vi.mock('@aws-sdk/credential-providers');
+vi.mock('./k8s-helper.js');
 
 describe('minio-helper', () => {
   const MockedMinioClient: Mock = MinioClient as any;
@@ -39,7 +42,101 @@ describe('minio-helper', () => {
     vi.resetAllMocks();
   });
 
+  describe('getArtifactStoreOrigin', () => {
+    it.each([
+      [{ endPoint: 'store.example.com' }, 'https://store.example.com'],
+      [{ endPoint: 'STORE.example.com', useSSL: false }, 'http://store.example.com'],
+      [
+        { endPoint: 'store.example.com', port: 9000, useSSL: false },
+        'http://store.example.com:9000',
+      ],
+      [{ endPoint: 'store.example.com', port: 443, useSSL: true }, 'https://store.example.com'],
+      [
+        { endPoint: 'https://store.example.com:8443', useSSL: true },
+        'https://store.example.com:8443',
+      ],
+      [{ endPoint: 'http://store.example.com', useSSL: true }, undefined],
+      [{ endPoint: 'https://user@store.example.com', port: 9000 }, undefined],
+      [{ endPoint: 'https://store.example.com/path', port: 9000 }, undefined],
+      [{ endPoint: 'https://store.example.com?query=value', port: 9000 }, undefined],
+      [{ endPoint: 'https://store.example.com#fragment', port: 9000 }, undefined],
+      [{ endPoint: 'store.example.com:invalid' }, undefined],
+    ])('resolves configured client %j to %s', (config, origin) => {
+      expect(getArtifactStoreOrigin(config)).toBe(origin);
+    });
+  });
+
   describe('createMinioClient', () => {
+    it.each([
+      ['missing Params', { Provider: 's3' }],
+      ['null Params', { Params: null, Provider: 's3' }],
+      ['array Params', { Params: [], Provider: 's3' }],
+    ])('rejects provider info with %s', async (_name, providerInfo) => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify(providerInfo),
+          'kubeflow',
+        ),
+      ).rejects.toThrow('Invalid provider info');
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it.each([undefined, null, false, 1, 'yes'])(
+      'rejects invalid fromEnv value %j',
+      async (fromEnv) => {
+        await expect(
+          createMinioClient(
+            { endPoint: 's3.amazonaws.com' },
+            's3',
+            JSON.stringify({ Params: { fromEnv }, Provider: 's3' }),
+            'kubeflow',
+          ),
+        ).rejects.toThrow('Provider info fromEnv must be true or false');
+        expect(MockedMinioClient).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not mutate shared defaults when applying request provider info', async () => {
+      const defaults = {
+        accessKey: 'default-access',
+        endPoint: 's3.amazonaws.com',
+        port: 443,
+        region: 'us-east-1',
+        secretKey: 'default-secret',
+        useSSL: true,
+      };
+      (getK8sSecret as Mock).mockResolvedValue('request-secret');
+
+      await createMinioClient(
+        defaults,
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            accessKeyKey: 'access',
+            disableSSL: 'true',
+            endpoint: 'http://store.example.com:9000',
+            fromEnv: 'false',
+            region: 'custom',
+            secretKeyKey: 'secret',
+            secretName: 'credentials',
+          },
+        }),
+        'kubeflow',
+      );
+
+      expect(defaults).toEqual({
+        accessKey: 'default-access',
+        endPoint: 's3.amazonaws.com',
+        port: 443,
+        region: 'us-east-1',
+        secretKey: 'default-secret',
+        useSSL: true,
+      });
+    });
+
     it('creates a minio client with the provided configs.', async () => {
       const client = await createMinioClient(
         {
@@ -118,6 +215,102 @@ describe('minio-helper', () => {
         sessionToken: 'SessionToken',
       });
       expect(MockedMinioClient).toBeCalledTimes(1);
+    });
+
+    it.each([
+      ['s3-fips.us-gov-west-1.amazonaws.com', 'us-gov-west-1'],
+      ['s3-fips.us-gov-east-1.amazonaws.com', 'us-gov-east-1'],
+      ['s3-fips-us-gov-west-1.amazonaws.com', 'us-gov-west-1'],
+      ['s3-fips-us-gov-east-1.amazonaws.com', 'us-gov-east-1'],
+    ])('resolves AWS credentials for the GovCloud FIPS endpoint %s', async (endPoint, region) => {
+      const credentialProvider = vi.fn().mockResolvedValue({
+        accessKeyId: 'AccessKeyId',
+        secretAccessKey: 'SecretAccessKey',
+        sessionToken: 'SessionToken',
+      });
+      (fromNodeProviderChain as Mock).mockReturnValue(credentialProvider);
+
+      await createMinioClient({ endPoint, region, useSSL: true }, 's3');
+
+      expect(fromNodeProviderChain).toHaveBeenCalledExactlyOnceWith({ ignoreCache: true });
+      expect(credentialProvider).toHaveBeenCalledTimes(1);
+      expect(MockedMinioClient).toHaveBeenCalledExactlyOnceWith({
+        accessKey: 'AccessKeyId',
+        endPoint,
+        region,
+        secretKey: 'SecretAccessKey',
+        sessionToken: 'SessionToken',
+        useSSL: true,
+      });
+    });
+
+    it('uses the AWS credential chain for S3 acceleration endpoints.', async () => {
+      (fromNodeProviderChain as Mock).mockImplementation(
+        () => () =>
+          Promise.resolve({
+            accessKeyId: 'AccessKeyId',
+            secretAccessKey: 'SecretAccessKey',
+            sessionToken: 'SessionToken',
+          }),
+      );
+
+      await createMinioClient({ endPoint: 's3-accelerate.amazonaws.com' }, 's3');
+
+      expect(fromNodeProviderChain).toHaveBeenCalledWith({ ignoreCache: true });
+      expect(MockedMinioClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accessKey: 'AccessKeyId',
+          endPoint: 's3-accelerate.amazonaws.com',
+          secretKey: 'SecretAccessKey',
+        }),
+      );
+    });
+
+    it('preserves the configured AWS region when provider info omits a region.', async () => {
+      (getK8sSecret as Mock).mockResolvedValue('request-secret');
+
+      await createMinioClient(
+        { endPoint: 's3.amazonaws.com', region: 'eu-west-2' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            accessKeyKey: 'access',
+            fromEnv: 'false',
+            secretKeyKey: 'secret',
+            secretName: 'credentials',
+          },
+        }),
+        'kubeflow',
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith(
+        expect.objectContaining({ region: 'eu-west-2' }),
+      );
+    });
+
+    it('rejects an insecure AWS provider endpoint before reading its Secret', async () => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              accessKeyKey: 'access',
+              disableSSL: 'true',
+              endpoint: 'http://s3.amazonaws.com:80',
+              fromEnv: 'false',
+              secretKeyKey: 'secret',
+              secretName: 'credentials',
+            },
+          }),
+          'kubeflow',
+        ),
+      ).rejects.toThrow('AWS S3 provider endpoints must use HTTPS');
+
+      expect(getK8sSecret).not.toHaveBeenCalled();
+      expect(MockedMinioClient).not.toHaveBeenCalled();
     });
 
     it('rewrites configured in-cluster endpoints to local proxy endpoints.', async () => {
@@ -253,9 +446,11 @@ describe('minio-helper', () => {
 
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
-      });
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
     });
 
     it('unpacks a uncompressed tarball', async () => {
@@ -263,12 +458,68 @@ describe('minio-helper', () => {
       objStream.end(tarBuffer);
       mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
 
-      const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
-      expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
+      const onTransformationDetermined = vi.fn();
+      const stream = await getObjectStream({
+        bucket: 'bucket',
+        key: 'key',
+        client: minioClient,
+        onTransformationDetermined,
       });
+      expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
+      expect(onTransformationDetermined).toHaveBeenCalledWith(true);
     });
+
+    it('reports decompression even when the decompressed object is not a tarball', async () => {
+      const objStream = new PassThrough();
+      objStream.end(zlib.gzipSync(Buffer.from('hello world')));
+      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      const onTransformationDetermined = vi.fn();
+
+      const stream = await getObjectStream({
+        bucket: 'bucket',
+        key: 'key',
+        client: minioClient,
+        onTransformationDetermined,
+      });
+      const chunks: Buffer[] = [];
+      stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      await new Promise<void>((resolve, reject) => {
+        stream.once('end', resolve);
+        stream.once('error', reject);
+      });
+
+      expect(Buffer.concat(chunks).toString()).toBe('hello world');
+      expect(onTransformationDetermined).toHaveBeenCalledWith(true);
+    });
+
+    it.each([0, 6, 9])(
+      'keeps transformation detection aligned with gunzip-maybe for deflate level %i',
+      async (level) => {
+        const objStream = new PassThrough();
+        objStream.end(zlib.deflateSync(Buffer.from('hello world'), { level }));
+        mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+        const onTransformationDetermined = vi.fn();
+
+        const stream = await getObjectStream({
+          bucket: 'bucket',
+          key: 'key',
+          client: minioClient,
+          onTransformationDetermined,
+        });
+        const chunks: Buffer[] = [];
+        for await (const chunk of stream) {
+          chunks.push(Buffer.from(chunk));
+        }
+
+        expect(Buffer.concat(chunks).toString()).toBe('hello world');
+        expect(onTransformationDetermined).toHaveBeenCalledWith(true);
+      },
+    );
 
     it('returns the content as a stream', async () => {
       const objStream = new PassThrough();
@@ -277,9 +528,49 @@ describe('minio-helper', () => {
 
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
+    });
+
+    it('forwards errors from the underlying object stream', async () => {
+      const objStream = new PassThrough();
+      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      const stream = await getObjectStream({
+        bucket: 'bucket',
+        key: 'key',
+        client: minioClient,
+        tryExtract: false,
       });
+      const streamError = new Error('storage connection reset');
+      const receivedError = new Promise<Error>((resolve) => stream.once('error', resolve));
+
+      objStream.write('partial artifact');
+      objStream.destroy(streamError);
+
+      await expect(receivedError).resolves.toBe(streamError);
+    });
+
+    it('installs the supplied error handler before the source can fail', async () => {
+      const streamError = new Error('immediate storage failure');
+      mockedMinioGetObject.mockImplementationOnce(async () => {
+        const objStream = new PassThrough();
+        setImmediate(() => objStream.destroy(streamError));
+        return objStream;
+      });
+      const onError = vi.fn();
+
+      await getObjectStream({
+        bucket: 'bucket',
+        key: 'key',
+        client: minioClient,
+        onError,
+      });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+
+      expect(onError).toHaveBeenCalledWith(streamError);
     });
   });
 
@@ -424,6 +715,30 @@ describe('minio-helper', () => {
       const client = {} as unknown as MinioClient;
       const iter = listObjectsUnderPrefix(client, 'bucket', 'p/');
       await expect(iter.next()).rejects.toThrow(/listObjectsV2Query/);
+    });
+
+    it('stops waiting for a paginated listing when its signal is aborted', async () => {
+      const controller = new AbortController();
+      const listObjectsV2Query = vi
+        .fn()
+        .mockResolvedValueOnce({
+          objects: [{ name: 'page1-a', size: 1 }],
+          isTruncated: true,
+          nextContinuationToken: 'tok-1',
+        })
+        .mockImplementationOnce(() => new Promise(() => undefined));
+      const client = { listObjectsV2Query } as unknown as MinioClient;
+      const iter = listObjectsUnderPrefix(client, 'bucket', 'p/', controller.signal);
+
+      await expect(iter.next()).resolves.toEqual({
+        done: false,
+        value: { name: 'page1-a', size: 1 },
+      });
+      const next = iter.next();
+      await vi.waitFor(() => expect(listObjectsV2Query).toHaveBeenCalledTimes(2));
+      controller.abort(new Error('response closed'));
+
+      await expect(next).rejects.toThrow('response closed');
     });
   });
 

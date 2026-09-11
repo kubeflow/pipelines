@@ -81,14 +81,16 @@ describe('ArtifactPreview', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => screen.getByText('minio://bucket/key'));
-    await waitFor(() =>
-      expect(screen.getByText('View All').getAttribute('href')).toEqual(
-        'artifacts/get?source=minio&namespace=kubeflow&bucket=bucket&key=key',
-      ),
+    const downloadLink = screen.getByRole('link', { name: 'minio://bucket/key' });
+    expect(downloadLink).toHaveAttribute(
+      'href',
+      'artifacts/get?source=minio&namespace=kubeflow&bucket=bucket&key=key&download=true',
     );
+    expect(downloadLink).toHaveAttribute('download');
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
-  it('carries providerInfo from the session map into download and view links', async () => {
+  it('carries providerInfo from the session map into the download link', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValueOnce('s3 content');
     const sessionMap = new Map([['s3://bucket/key', '{"Provider":"s3"}']]);
     render(
@@ -96,14 +98,12 @@ describe('ArtifactPreview', () => {
         <ArtifactPreview value={'s3://bucket/key'} namespace={'kubeflow'} sessionMap={sessionMap} />
       </CommonTestWrapper>,
     );
-    await waitFor(() =>
-      expect(screen.getByText('View All').getAttribute('href')).toEqual(
-        'artifacts/get?source=s3&namespace=kubeflow&providerInfo=%7B%22Provider%22%3A%22s3%22%7D&bucket=bucket&key=key',
-      ),
+    await waitFor(() => screen.getByRole('link', { name: 's3://bucket/key' }));
+    expect(screen.getByRole('link', { name: 's3://bucket/key' })).toHaveAttribute(
+      'href',
+      'artifacts/get?source=s3&namespace=kubeflow&providerInfo=%7B%22Provider%22%3A%22s3%22%7D&bucket=bucket&key=key&download=true',
     );
-    expect(screen.getByText('s3://bucket/key').getAttribute('href')).toEqual(
-      'artifacts/s3/bucket/key?namespace=kubeflow&providerInfo=%7B%22Provider%22%3A%22s3%22%7D',
-    );
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
   it('handles artifact that previews with maxlines', async () => {

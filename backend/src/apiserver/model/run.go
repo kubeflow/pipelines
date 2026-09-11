@@ -400,6 +400,7 @@ var runAPIToModelFieldMap = map[string]string{
 	"state_history":    "StateHistory",            // v2beta1 API
 	"runtime_details":  "PipelineRuntimeManifest", // v2beta1 API
 	"recurring_run_id": "JobUUID",                 // v2beta1 API
+	"pipeline_id":      "PipelineId",              // v2beta1 API
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.
@@ -436,6 +437,8 @@ func (r *Run) GetFieldValue(name string) interface{} {
 	switch name {
 	case "UUID":
 		return r.UUID
+	case "PipelineId":
+		return r.PipelineId
 	case "DisplayName":
 		return r.DisplayName
 	case "CreatedAtInSec":
@@ -492,4 +495,14 @@ func (r *Run) GetSortByFieldPrefix(name string) string {
 
 func (r *Run) GetKeyFieldPrefix() string {
 	return r.GetModelName()
+}
+
+var runCaseInsensitiveFields = map[string]struct{}{
+	"name":         {},
+	"display_name": {},
+	"description":  {},
+}
+
+func (r *Run) CaseInsensitiveFields() map[string]struct{} {
+	return runCaseInsensitiveFields
 }

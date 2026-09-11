@@ -16,22 +16,25 @@ package storage
 
 import (
 	"log"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
-func closeDB(t *testing.T, db *DB) {
-	sqlDB, err := db.DB.DB()
+func closeDB(t *testing.T, db *gorm.DB) {
+	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	sqlDB.Close()
 }
 
 func createExecutionCache(cacheKey string, cacheOutput string) *model.ExecutionCache {
 	return &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: cacheKey,
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   cacheOutput,
@@ -42,10 +45,11 @@ func createExecutionCache(cacheKey string, cacheOutput string) *model.ExecutionC
 }
 
 func TestCreateExecutionCache(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheExpected := model.ExecutionCache{
+		Namespace:         "default",
 		ID:                1,
 		ExecutionCacheKey: "test",
 		ExecutionTemplate: "testTemplate",
@@ -55,6 +59,7 @@ func TestCreateExecutionCache(t *testing.T) {
 		EndedAtInSec:      1,
 	}
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "test",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
@@ -67,6 +72,7 @@ func TestCreateExecutionCache(t *testing.T) {
 
 func TestCreateExecutionCacheWithDuplicateRecord(t *testing.T) {
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ID:                1,
 		ExecutionCacheKey: "test",
 		ExecutionTemplate: "testTemplate",
@@ -75,9 +81,9 @@ func TestCreateExecutionCacheWithDuplicateRecord(t *testing.T) {
 		StartedAtInSec:    1,
 		EndedAtInSec:      1,
 	}
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheStore.CreateExecutionCache(executionCache)
 	cache, err := executionCacheStore.CreateExecutionCache(executionCache)
 	assert.Nil(t, cache)
@@ -85,12 +91,13 @@ func TestCreateExecutionCacheWithDuplicateRecord(t *testing.T) {
 }
 
 func TestGetExecutionCache(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	executionCacheExpected := model.ExecutionCache{
+		Namespace:         "default",
 		ID:                1,
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
@@ -101,32 +108,34 @@ func TestGetExecutionCache(t *testing.T) {
 	}
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, -1)
 	require.Nil(t, err)
 	require.Equal(t, &executionCacheExpected, executionCache)
 }
 
 func TestGetExecutionCacheWithEmptyCacheEntry(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("wrongKey", -1, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "wrongKey", -1, -1)
 	require.Nil(t, executionCache)
-	require.Contains(t, err.Error(), `Execution cache not found with cache key: "wrongKey"`)
+	require.ErrorIs(t, err, ErrExecutionCacheNotFound)
+	require.Contains(t, err.Error(), `"wrongKey"`)
 }
 
 func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput2"))
 
 	executionCacheExpected := model.ExecutionCache{
+		Namespace:         "default",
 		ID:                1,
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
@@ -136,16 +145,17 @@ func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
 		EndedAtInSec:      1,
 	}
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, -1)
 	require.Nil(t, err)
 	require.Equal(t, &executionCacheExpected, executionCache)
 }
 
 func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
@@ -154,16 +164,17 @@ func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
 	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
-	require.Contains(t, err.Error(), "Execution cache not found")
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, -1)
+	require.ErrorIs(t, err, ErrExecutionCacheNotFound)
 	require.Nil(t, executionCache)
 }
 
 func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
@@ -172,7 +183,7 @@ func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
 	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", 0, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", 0, -1)
 	log.Println(executionCache)
 	log.Println("error: " + err.Error())
 	require.Contains(t, err.Error(), "CacheStaleness=0, Cache is disabled.")
@@ -180,10 +191,11 @@ func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
@@ -192,9 +204,76 @@ func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
 	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, 0)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, 0)
 	log.Println(executionCache)
 	log.Println("error: " + err.Error())
-	require.Contains(t, err.Error(), "Execution cache not found")
+	require.ErrorIs(t, err, ErrExecutionCacheNotFound)
 	require.Nil(t, executionCache)
+}
+
+// Regression test: empty-key queries must not return unrelated rows.
+// If Where is mistakenly changed to struct-based (which omits zero-value fields),
+// an empty key would produce an unfiltered query and return an existing row.
+func TestGetExecutionCacheWithEmptyKey(t *testing.T) {
+	db, dialect := NewFakeDBOrFatal()
+	defer closeDB(t, db)
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
+
+	_, err := executionCacheStore.CreateExecutionCache(createExecutionCache("someKey", "output1"))
+	require.NoError(t, err)
+
+	result, err := executionCacheStore.GetExecutionCache("default", "", -1, -1)
+	require.Nil(t, result)
+	require.ErrorIs(t, err, ErrExecutionCacheNotFound)
+}
+
+// Guardrail: the WHERE predicate must use the model-tag column name
+// "ExecutionCacheKey" to maintain compatibility with various SQL dialects,
+// instead of GORM's default snake_case "execution_cache_key".
+func TestGetExecutionCache_SQLUsesTaggedColumnName(t *testing.T) {
+	db, _ := NewFakeDBOrFatal()
+	defer closeDB(t, db)
+
+	dryRun := db.Session(&gorm.Session{DryRun: true}).
+		Where(&model.ExecutionCache{ExecutionCacheKey: "anyKey"}).
+		Find(&[]model.ExecutionCache{})
+
+	sql := dryRun.Statement.SQL.String()
+	assert.True(t, strings.Contains(sql, "ExecutionCacheKey"),
+		"WHERE clause must reference the tag-declared column name 'ExecutionCacheKey', got: %s", sql)
+	assert.False(t, strings.Contains(sql, "execution_cache_key"),
+		"WHERE clause must not use GORM's default snake_case conversion, got: %s", sql)
+}
+
+// Same guardrail for the duplicate-existence check in CreateExecutionCache.
+func TestCreateExecutionCache_DuplicateCheck_SQLUsesTaggedColumnName(t *testing.T) {
+	db, _ := NewFakeDBOrFatal()
+	defer closeDB(t, db)
+
+	dryRun := db.Session(&gorm.Session{DryRun: true}).
+		Where(&model.ExecutionCache{ExecutionCacheKey: "anyKey"}).
+		Find(&[]model.ExecutionCache{})
+
+	sql := dryRun.Statement.SQL.String()
+	assert.True(t, strings.Contains(sql, "ExecutionCacheKey"),
+		"duplicate-check WHERE clause must reference the tag-declared column name 'ExecutionCacheKey', got: %s", sql)
+	assert.False(t, strings.Contains(sql, "execution_cache_key"),
+		"duplicate-check WHERE clause must not use GORM's default snake_case conversion, got: %s", sql)
+}
+
+// Regression test: empty-key creation must not falsely report a duplicate.
+// If Where is mistakenly changed to struct-based, the duplicate check becomes
+// unfiltered and any existing row would be mistaken for a duplicate.
+func TestCreateExecutionCacheWithEmptyKey(t *testing.T) {
+	db, dialect := NewFakeDBOrFatal()
+	defer closeDB(t, db)
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
+
+	_, err := executionCacheStore.CreateExecutionCache(createExecutionCache("someKey", "output1"))
+	require.NoError(t, err)
+
+	_, err = executionCacheStore.CreateExecutionCache(createExecutionCache("", "output2"))
+	if err != nil {
+		assert.NotContains(t, err.Error(), "already exists")
+	}
 }

@@ -95,6 +95,13 @@ type RunServiceListRunsParams struct {
 	// ListRuns call or can be omitted when fetching the first page.
 	PageToken *string
 
+	// SkipCount.
+	//
+	// Optional input field. If true, the server skips computing total_size in
+	// the response, avoiding an extra count query. Defaults to false, which
+	// preserves the existing behavior of always computing total_size.
+	SkipCount *bool
+
 	// SortBy.
 	//
 	// Can be format of "field_name", "field_name asc" or "field_name desc"
@@ -213,6 +220,17 @@ func (o *RunServiceListRunsParams) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
+// WithSkipCount adds the skipCount to the run service list runs params.
+func (o *RunServiceListRunsParams) WithSkipCount(skipCount *bool) *RunServiceListRunsParams {
+	o.SetSkipCount(skipCount)
+	return o
+}
+
+// SetSkipCount adds the skipCount to the run service list runs params.
+func (o *RunServiceListRunsParams) SetSkipCount(skipCount *bool) {
+	o.SkipCount = skipCount
+}
+
 // WithSortBy adds the sortBy to the run service list runs params.
 func (o *RunServiceListRunsParams) WithSortBy(sortBy *string) *RunServiceListRunsParams {
 	o.SetSortBy(sortBy)
@@ -311,6 +329,23 @@ func (o *RunServiceListRunsParams) WriteToRequest(r runtime.ClientRequest, reg s
 		if qPageToken != "" {
 
 			if err := r.SetQueryParam("page_token", qPageToken); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.SkipCount != nil {
+
+		// query param skip_count
+		var qrSkipCount bool
+
+		if o.SkipCount != nil {
+			qrSkipCount = *o.SkipCount
+		}
+		qSkipCount := conv.FormatBool(qrSkipCount)
+		if qSkipCount != "" {
+
+			if err := r.SetQueryParam("skip_count", qSkipCount); err != nil {
 				return err
 			}
 		}

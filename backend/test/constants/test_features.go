@@ -38,6 +38,8 @@ const (
 	// E2eGpuSchedulingCheck - Schedule-only NVIDIA GPU checks (e.g. Kind + FGO fake);
 	// does not require CUDA / torch.cuda.
 	E2eGpuSchedulingCheck string = "gpu-scheduling-check"
+	// E2eDraCheck - DRA (Dynamic Resource Allocation) checks (e.g. Kind + dra-example-driver).
+	E2eDraCheck string = "dra-check"
 
 	WorkflowCompiler       string = "WorkflowCompiler"
 	WorkflowCompilerVisits string = "WorkflowCompilerVisits"

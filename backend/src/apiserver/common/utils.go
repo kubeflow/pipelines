@@ -33,6 +33,10 @@ const (
 	// * Allows lowercase letters, numbers, and "-" in everywhere else
 	// * Sets max length to be 128 characters
 	pipelineNamePattern = "^[a-z0-9][a-z0-9-]{0,127}$"
+	// PipelineIDResourceNameKey identifies pipeline IDs returned by ParseResourceIdsFromFullName.
+	PipelineIDResourceNameKey = "PipelineId"
+	// PipelineVersionIDResourceNameKey identifies version IDs returned by ParseResourceIdsFromFullName.
+	PipelineVersionIDResourceNameKey = "PipelineVersionId"
 )
 
 // CreateArtifactPath creates artifact resource path.
@@ -52,14 +56,14 @@ func CreateArtifactPath(runID string, nodeID string, artifactName string) string
 func ParseResourceIdsFromFullName(p string) map[string]string {
 	p = strings.TrimPrefix(strings.TrimSuffix(p, "/"), "/")
 	results := map[string]string{
-		"Namespace":         "",
-		"ExperimentId":      "",
-		"PipelineId":        "",
-		"PipelineVersionId": "",
-		"RunID":             "",
-		"RecurringRunId":    "",
-		"ArtifactId":        "",
-		"ExecutionId":       "",
+		"Namespace":                      "",
+		"ExperimentId":                   "",
+		PipelineIDResourceNameKey:        "",
+		PipelineVersionIDResourceNameKey: "",
+		"RunID":                          "",
+		"RecurringRunId":                 "",
+		"ArtifactId":                     "",
+		"ExecutionId":                    "",
 	}
 	names := strings.Split(p, "/")
 	i := 0
@@ -69,9 +73,9 @@ func ParseResourceIdsFromFullName(p string) map[string]string {
 			case "namespaces", "namespace":
 				results["Namespace"] = names[i+1]
 			case "pipelines", "pipeline":
-				results["PipelineId"] = names[i+1]
+				results[PipelineIDResourceNameKey] = names[i+1]
 			case "versions", "version", "pipelineversions", "pipelineversion", "pipeline_versions", "pipeline_version":
-				results["PipelineVersionId"] = names[i+1]
+				results[PipelineVersionIDResourceNameKey] = names[i+1]
 			case "experiments", "experiment":
 				results["ExperimentId"] = names[i+1]
 			case "runs", "run":

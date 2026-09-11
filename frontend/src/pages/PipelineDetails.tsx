@@ -22,6 +22,7 @@ import type * as React from 'react';
 import { CircularProgress } from '@mui/material';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
+import { loadYaml } from 'src/lib/YamlLoad';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import {
@@ -56,10 +57,11 @@ import { ApiJob } from 'src/apis/job';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import type { DagreGraph } from '../lib/GraphTypes';
 
 interface PipelineDetailsState {
-  graph: dagre.graphlib.Graph | null;
-  reducedGraph: dagre.graphlib.Graph | null;
+  graph: DagreGraph | null;
+  reducedGraph: DagreGraph | null;
   graphV2: PipelineFlowElement[] | null;
   graphIsLoading: boolean;
   v1Pipeline: ApiPipeline | null;
@@ -657,7 +659,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let graphV2: PipelineFlowElement[] = [];
     if (templateString) {
       try {
-        const template = JsYaml.load(templateString);
+        const template = loadYaml(templateString);
         if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
           graph = StaticGraphParser.createGraph(template!);
 

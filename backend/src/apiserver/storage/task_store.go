@@ -21,6 +21,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -62,20 +63,39 @@ type TaskStoreInterface interface {
 
 	// Creates new tasks or updates the existing ones.
 	CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*model.Task, error)
+
+	// Creates or updates tasks only while the parent run still has the exact
+	// namespace, runtime identity, and retry generation supplied by the caller.
+	// The run is locked and checked in the same transaction as the task upsert.
+	CreateOrUpdateTasksIfRunUnchanged(
+		tasks []*model.Task,
+		runID string,
+		expectedNamespace string,
+		expectedWorkflowRuntimeManifest model.LargeText,
+		expectedPipelineRuntimeManifest model.LargeText,
+		expectedRetryGeneration int64,
+	) ([]*model.Task, bool, error)
 }
 
 type TaskStore struct {
-	db   *DB
-	time util.TimeInterface
-	uuid util.UUIDGeneratorInterface
+	db        *sql.DB
+	time      util.TimeInterface
+	uuid      util.UUIDGeneratorInterface
+	dbDialect dialect.DBDialect
+}
+
+type taskQueryExecer interface {
+	Query(query string, args ...any) (*sql.Rows, error)
+	Exec(query string, args ...any) (sql.Result, error)
 }
 
 // NewTaskStore creates a new TaskStore.
-func NewTaskStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *TaskStore {
+func NewTaskStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *TaskStore {
 	return &TaskStore{
-		db:   db,
-		time: time,
-		uuid: uuid,
+		db:        db,
+		time:      time,
+		uuid:      uuid,
+		dbDialect: d,
 	}
 }
 
@@ -112,28 +132,30 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to marshal children pods in a new run")
 	}
 
-	sql, args, err := sq.
-		Insert(table_name).
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sql, args, err := qb.
+		Insert(q(table_name)).
 		SetMap(
 			sq.Eq{
-				"UUID":              newTask.UUID,
-				"Namespace":         newTask.Namespace,
-				"PipelineName":      newTask.PipelineName,
-				"RunUUID":           newTask.RunID,
-				"PodName":           newTask.PodName,
-				"MLMDExecutionID":   newTask.MLMDExecutionID,
-				"CreatedTimestamp":  newTask.CreatedTimestamp,
-				"StartedTimestamp":  newTask.StartedTimestamp,
-				"FinishedTimestamp": newTask.FinishedTimestamp,
-				"Fingerprint":       newTask.Fingerprint,
-				"Name":              newTask.Name,
-				"ParentTaskUUID":    newTask.ParentTaskId,
-				"State":             newTask.State.ToString(),
-				"StateHistory":      stateHistoryString,
-				"MLMDInputs":        newTask.MLMDInputs,
-				"MLMDOutputs":       newTask.MLMDOutputs,
-				"ChildrenPods":      childrenPodsString,
-				"Payload":           newTask.ToString(),
+				q("UUID"):              newTask.UUID,
+				q("Namespace"):         newTask.Namespace,
+				q("PipelineName"):      newTask.PipelineName,
+				q("RunUUID"):           newTask.RunID,
+				q("PodName"):           newTask.PodName,
+				q("MLMDExecutionID"):   newTask.MLMDExecutionID,
+				q("CreatedTimestamp"):  newTask.CreatedTimestamp,
+				q("StartedTimestamp"):  newTask.StartedTimestamp,
+				q("FinishedTimestamp"): newTask.FinishedTimestamp,
+				q("Fingerprint"):       newTask.Fingerprint,
+				q("Name"):              newTask.Name,
+				q("ParentTaskUUID"):    newTask.ParentTaskId,
+				q("State"):             newTask.State.ToString(),
+				q("StateHistory"):      stateHistoryString,
+				q("MLMDInputs"):        newTask.MLMDInputs,
+				q("MLMDOutputs"):       newTask.MLMDOutputs,
+				q("ChildrenPods"):      childrenPodsString,
+				q("Payload"):           newTask.ToString(),
 			},
 		).
 		ToSql()
@@ -216,31 +238,34 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
 
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := sq.Select(taskColumns...).From("tasks")
+	sqlBuilder := qb.Select(dialect.QuoteAll(q, taskColumns)...).From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("PipelineName"): filterContext.ID})
 	}
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
-	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
+	sqlBuilder = opts.AddFilterToSelect(sqlBuilder, q)
 
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder, q, s.dbDialect.StringCollation()).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	sqlBuilder = sq.Select("count(*)").From("tasks")
+	sqlBuilder = qb.Select("count(*)").From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("PipelineName"): filterContext.ID})
 	}
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
-	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
+	sizeSQL, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -251,8 +276,9 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		glog.Errorf("Failed to start transaction to list tasks")
 		return errorF(err)
 	}
+	defer tx.Rollback()
 
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -268,7 +294,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		return errorF(err)
 	}
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -299,10 +325,13 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 }
 
 func (s *TaskStore) GetTask(id string) (*model.Task, error) {
-	sql, args, err := sq.
-		Select(taskColumns...).
-		From("tasks").
-		Where(sq.Eq{"tasks.uuid": id}).
+	q := s.dbDialect.QuoteIdentifier
+	t := dialect.QualifiedColumn(q, "tasks")
+	qb := s.dbDialect.QueryBuilder()
+	sql, args, err := qb.
+		Select(dialect.QuoteAll(q, taskColumns)...).
+		From(q("tasks")).
+		Where(sq.Eq{t("UUID"): id}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get task: %v", err.Error())
@@ -324,20 +353,22 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 }
 
 // Updates missing fields with existing data entries.
-func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) error {
+func (s *TaskStore) patchWithExistingTasks(db taskQueryExecer, tasks []*model.Task, runID string) error {
 	var podNames []string
 	for _, task := range tasks {
 		podNames = append(podNames, task.PodName)
 	}
-	sql, args, err := sq.
-		Select(taskColumns...).
-		From("tasks").
-		Where(sq.Eq{"PodName": podNames, "RunUUID": runID}).
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sql, args, err := qb.
+		Select(dialect.QuoteAll(q, taskColumns)...).
+		From(q("tasks")).
+		Where(sq.Eq{q("PodName"): podNames, q("RunUUID"): runID}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to check existing tasks")
 	}
-	r, err := s.db.Query(sql, args...)
+	r, err := db.Query(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to check existing tasks")
 	}
@@ -360,8 +391,38 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) er
 
 // Creates new entries or updates existing ones.
 func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*model.Task, error) {
+	updatedTasks, _, err := s.createOrUpdateTasks(tasks, runID, nil)
+	return updatedTasks, err
+}
+
+// CreateOrUpdateTasksIfRunUnchanged writes tasks only if the owning run still
+// matches the supplied namespace, runtime manifests, and retry generation.
+func (s *TaskStore) CreateOrUpdateTasksIfRunUnchanged(
+	tasks []*model.Task,
+	runID string,
+	expectedNamespace string,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+	expectedRetryGeneration int64,
+) ([]*model.Task, bool, error) {
+	return s.createOrUpdateTasks(tasks, runID, &runRuntimeManifestPrecondition{
+		workflow:        expectedWorkflowRuntimeManifest,
+		pipeline:        expectedPipelineRuntimeManifest,
+		retryGeneration: expectedRetryGeneration,
+		namespace:       &expectedNamespace,
+	})
+}
+
+func (s *TaskStore) createOrUpdateTasks(
+	tasks []*model.Task,
+	runID string,
+	expectedRun *runRuntimeManifestPrecondition,
+) ([]*model.Task, bool, error) {
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
-		sqlInsert := sq.Insert("tasks").Columns(taskColumnsWithPayload...)
+		q := s.dbDialect.QuoteIdentifier
+		quotedCols := dialect.QuoteAll(q, taskColumnsWithPayload)
+		sqlInsert := s.dbDialect.Upsert(table_name, []string{"UUID"}, true, taskColumnsWithPayload)
+		sqlInsert = sqlInsert.Columns(quotedCols...)
 		for _, t := range ts {
 			childrenPodsString := ""
 			if len(t.ChildrenPods) > 0 {
@@ -402,18 +463,41 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*m
 		}
 		return sqlInsert.ToSql()
 	}
+	taskDB := taskQueryExecer(s.db)
+	var tx *sql.Tx
+	if expectedRun != nil {
+		var err error
+		tx, err = s.db.Begin()
+		if err != nil {
+			return nil, false, util.NewInternalServerError(err, "Failed to start transaction for task update")
+		}
+		defer tx.Rollback()
+		runExists, preconditionMatches, err := lockRunForRuntimeManifestWrite(
+			tx,
+			s.dbDialect,
+			runID,
+			*expectedRun,
+		)
+		if err != nil {
+			return nil, false, util.NewInternalServerError(err, "Failed to lock owning run %s before updating tasks", runID)
+		}
+		if !runExists || !preconditionMatches {
+			return nil, false, nil
+		}
+		taskDB = tx
+	}
 
 	// Check for existing tasks and fill empty field with existing data.
 	// Assumes that PodName column is a unique key.
-	if err := s.patchWithExistingTasks(tasks, runID); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to check for existing tasks")
+	if err := s.patchWithExistingTasks(taskDB, tasks, runID); err != nil {
+		return nil, false, util.NewInternalServerError(err, "Failed to check for existing tasks")
 	}
 	for _, task := range tasks {
 		task.State = task.State.ToV2()
 		if task.UUID == "" {
 			id, err := s.uuid.NewRandom()
 			if err != nil {
-				return nil, util.NewInternalServerError(err, "Failed to create an task id")
+				return nil, false, util.NewInternalServerError(err, "Failed to create an task id")
 			}
 			task.UUID = id.String()
 		}
@@ -430,14 +514,18 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*m
 	// Execute the query
 	sql, arg, err := buildQuery(tasks)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to build query to update or insert tasks")
+		return nil, false, util.NewInternalServerError(err, "Failed to build query to update or insert tasks")
 	}
-	sql = s.db.Upsert(sql, "UUID", true, taskColumnsWithPayload...)
-	_, err = s.db.Exec(sql, arg...)
+	_, err = taskDB.Exec(sql, arg...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to update or insert tasks. Query: %v. Args: %v", sql, arg)
+		return nil, false, util.NewInternalServerError(err, "Failed to update or insert tasks. Query: %v. Args: %v", sql, arg)
 	}
-	return tasks, nil
+	if tx != nil {
+		if err := tx.Commit(); err != nil {
+			return nil, false, util.NewInternalServerError(err, "Failed to commit task updates for run %s", runID)
+		}
+	}
+	return tasks, true, nil
 }
 
 // Fills empty fields in a new task with the data from an existing task.

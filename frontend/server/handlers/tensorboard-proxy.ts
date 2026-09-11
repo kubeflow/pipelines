@@ -27,6 +27,7 @@ import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
+const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
 const UI_SERVER_ROUTE_PREFIXES = [
   '/apis',
   '/apps',
@@ -204,10 +205,12 @@ export function parseTensorboardProxyPayload(
   }
 
   const expectedSignature = signTensorboardProxyPayload(serializedPayload, signingSecret);
-  if (signature.length !== expectedSignature.length) {
+  if (signature.length !== expectedSignature.length || !BASE64URL_PATTERN.test(signature)) {
     return undefined;
   }
-  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  const signatureBuffer = Buffer.from(signature, 'ascii');
+  const expectedSignatureBuffer = Buffer.from(expectedSignature, 'ascii');
+  if (!timingSafeEqual(signatureBuffer, expectedSignatureBuffer)) {
     return undefined;
   }
 
@@ -342,7 +345,6 @@ export default function registerTensorboardProxy(
     proxyRoutes,
     createProxyMiddleware({
       changeOrigin: true,
-      logLevel: process.env.NODE_ENV === 'test' ? 'warn' : 'debug',
       target: 'http://127.0.0.1',
       router: (req: any) => {
         const { namespace, viewerName } = req.tensorboardProxy as TensorboardProxyPayload;

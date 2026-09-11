@@ -543,9 +543,10 @@ func readNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus,
 	}
 
 	artifactRequest := &artifactclient.ReadArtifactRequest{
-		RunID:        runID,
-		NodeID:       nodeStatus.ID,
-		ArtifactName: metricsArtifactName,
+		RunID:            runID,
+		NodeID:           nodeStatus.ID,
+		ArtifactName:     metricsArtifactName,
+		MaxResponseBytes: ArchiveWireResponseBudget(GetMaxMetricsFileBytes()),
 	}
 	artifactResponse, err := readArtifact(artifactRequest)
 	if err != nil {

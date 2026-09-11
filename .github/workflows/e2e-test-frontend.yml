@@ -11,6 +11,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'frontend/**'
+      - 'third_party/metadata_envoy/**'
       - 'manifests/kustomize/**'
       - 'test/server-integration-test/**'
       - 'test/frontend-integration-test/**'
@@ -25,6 +26,29 @@ concurrency:
 jobs:
   build:
     uses: ./.github/workflows/image-builds.yml
+
+  frontend-integration-dependency-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    name: Frontend Integration Dependency Checks
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+
+      - name: Install dependencies
+        working-directory: ./test/frontend-integration-test
+        run: npm ci
+
+      - name: Dependency compatibility checks
+        working-directory: ./test/frontend-integration-test
+        run: npm run test:dependencies
 
   frontend-integration-test:
     runs-on: ubuntu-latest
@@ -81,7 +105,7 @@ jobs:
 
       - name: Build frontend integration tests image
         working-directory: ./test/frontend-integration-test
-        run: docker build --build-arg NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc) -t kfp-frontend-integration-test:local .
+        run: docker build --build-arg "NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc)" -t kfp-frontend-integration-test:local .
 
       - name: Prepare frontend integration test artifacts
         if: ${{ steps.forward-frontend-port.outcome == 'success' }}

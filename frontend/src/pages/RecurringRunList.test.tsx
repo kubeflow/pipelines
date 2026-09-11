@@ -18,7 +18,7 @@ import * as React from 'react';
 import { act, render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import produce from 'immer';
+import { produce } from 'immer';
 import { range } from 'lodash';
 import * as Utils from 'src/lib/Utils';
 import TestUtils from 'src/TestUtils';

@@ -22,6 +22,20 @@ make ginkgo
 export PATH="$PWD/bin:$PATH"
 ```
 
+## Upgrade Go
+
+The effective compiler in the root `go.mod` is the repository-wide Go version.
+Update all managed module and builder-image pins with:
+
+```bash
+make update-go-version GO_VERSION=1.X.Y
+```
+
+Then review the diff and run `make check-go-version`. The deliberately narrow
+managed forms and explicit non-goals are documented in
+[`go-version-policy.md`](go-version-policy.md); register new locations instead
+of expanding the updater into a language interpreter.
+
 ## Local clusters
 
 | Need | Command |
@@ -111,8 +125,43 @@ configure Argo's native workflow TTL or set `ttlSecondsAfterFinished` on your
 workflow templates. The TTL should be shorter than `ARCHIVED_RUNS_RETENTION_TIME`
 so Argo cleans up the CR before GC deletes the database row.
 
+The API server only changes a run or deletes a Workflow after fetching the live
+Workflow and matching its immutable UID, resource version, run label, namespace,
+and recurring-run owner. Workflow deletion uses UID and resource-version
+preconditions so a same-name replacement or concurrently retried Workflow is
+never removed. If a one-time Workflow has no database run, the API server waits
+out the run-creation grace period and then safely deletes the UID-verified live
+orphan. A missing or inconsistent recurring-run owner remains fail-closed
+because its tenant cannot be established. If orphan propagation strips the
+owner while the recurring-run row still exists, the report is rejected
+permanently and counted as an identity mismatch instead of being retried
+indefinitely. Configure Argo's workflow TTL (one hour in the shipped
+configuration) and explicitly inspect these orphans.
+
+Rejected reports are logged and counted by
+`resource_manager_workflow_reports_rejected_total`, with
+`reason="ownership_unresolved"`, `reason="namespace_mismatch"`, or
+`reason="identity_mismatch"`. Alert on these reasons and repair legacy database
+ownership before retrying a multi-user report. Standalone single-user mode may
+recover the execution namespace from the live Workflow for old rows that have
+no persisted namespace; multi-user namespace mismatches always fail closed.
+Transient Kubernetes lookup failures and terminal reports accepted through a
+stored-identity fallback are not counted as rejections. Workflow reports do
+perform synchronous identity reads, so Kubernetes API outages delay report
+persistence until those reads succeed.
+
+New runs persist their actual Kubernetes execution namespace even in
+single-user mode. API resource references therefore expose that namespace
+instead of an empty namespace; legacy empty-namespace rows remain supported by
+resolving their namespace from the reporting Workflow.
+
 The garbage collector also does not remove rows from the `artifacts` table,
 MLMD records, or object-store artifacts; those lifecycles are managed
 separately (see `ARTIFACT_RETENTION_DAYS` for object-store artifacts).
 
-`TENSORBOARD_PROXY_SIGNING_SECRET` is optional; it defaults to `MINIO_SECRET_KEY`.
+`TENSORBOARD_PROXY_SIGNING_SECRET` controls the HMAC key for scoped TensorBoard
+proxy paths. When it is unset, the UI generates a cryptographically random,
+process-local secret at startup. Configure a dedicated random secret of at least
+32 bytes when proxy paths must remain valid across UI restarts or multiple UI
+replicas. The standard UI deployment uses `Recreate` so process-local keys never
+overlap during a rollout. The value must not reuse `MINIO_SECRET_KEY`.

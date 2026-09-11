@@ -17,10 +17,12 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -51,6 +53,45 @@ var runColumns = []string{
 	"PipelineRoot",
 	"PipelineRuntimeManifest",
 	"WorkflowRuntimeManifest",
+	"JobUUID",
+	"State",
+	"StateHistory",
+	"PluginsInput",
+	"PluginsOutput",
+	"PipelineContextId",
+	"PipelineRunContextId",
+	"RetryGeneration",
+	"RetryClaimedAtInSec",
+	"ArchivedAtInSec",
+}
+
+// runListColumns is a lightweight version of runColumns for List endpoints.
+// It explicitly omits multi-megabyte JSON/YAML blob fields (manifests) that are
+// not used by the ListRuns API. This prevents massive database over-fetching and
+// OOM crashes in the API server when requesting up to 200 runs with large pipelines.
+var runListColumns = []string{
+	"UUID",
+	"ExperimentUUID",
+	"DisplayName",
+	"Name",
+	"StorageState",
+	"Namespace",
+	"ServiceAccount",
+	"Description",
+	"CreatedAtInSec",
+	"ScheduledAtInSec",
+	"FinishedAtInSec",
+	"Conditions",
+	"PipelineId",
+	"PipelineVersionId",
+	"PipelineName",
+	"PipelineSpecManifest",
+	"WorkflowSpecManifest",
+	"Parameters",
+	"RuntimeParameters",
+	"PipelineRoot",
+	"'' AS PipelineRuntimeManifest",
+	"'' AS WorkflowRuntimeManifest",
 	"JobUUID",
 	"State",
 	"StateHistory",
@@ -131,6 +172,14 @@ var archivedStorageStateStrings = []string{
 	model.LegacyStateDisabled,
 }
 
+// NewArchivedRunRetryError is shared by the RetryRun pre-check and the recheck
+// inside ClaimRunForRetry's row lock so both report the archived run the same way.
+func NewArchivedRunRetryError(runID string) error {
+	return util.NewFailedPreconditionError(
+		errors.New("Archived runs are garbage collection candidates, so retrying one would race the collector"),
+		"Failed to retry run %s as it is archived. Unarchive the run first to allow it to be retried", runID)
+}
+
 type RunStoreInterface interface {
 	// Creates a run entry. Does not create children tasks.
 	CreateRun(run *model.Run) (*model.Run, error)
@@ -144,6 +193,28 @@ type RunStoreInterface interface {
 	// Updates a run.
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
+
+	// Updates a run only when its persisted workflow runtime manifest and retry
+	// generation still match the values loaded by the caller. Before a V2 run's
+	// first report, when that manifest is empty, its pipeline runtime manifest is
+	// also checked as an incarnation fence. Returns false without mutating the
+	// row when another writer changed any guarded value.
+	UpdateRunIfRuntimeManifestsUnchanged(
+		run *model.Run,
+		expectedWorkflowRuntimeManifest model.LargeText,
+		expectedPipelineRuntimeManifest model.LargeText,
+	) (bool, error)
+
+	// Updates a run from a nonterminal Workflow observation only when its
+	// persisted state, runtime manifests, and retry generation still match the
+	// values loaded by the reporter. Returns false when another lifecycle
+	// operation won the race.
+	UpdateRunFromWorkflow(
+		run *model.Run,
+		expectedState model.RuntimeState,
+		expectedWorkflowRuntimeManifest model.LargeText,
+		expectedPipelineRuntimeManifest model.LargeText,
+	) (bool, error)
 
 	// Updates only the PluginsOutput column for a run. Use this when plugin
 	// handlers need to persist output without touching core run fields (State,
@@ -191,9 +262,10 @@ type RunStoreInterface interface {
 }
 
 type RunStore struct {
-	db                     *DB
+	db                     *sql.DB
 	resourceReferenceStore *ResourceReferenceStore
 	time                   util.TimeInterface
+	dbDialect              dialect.DBDialect
 }
 
 // Runs two SQL queries in a transaction to return a list of matching runs, as well as their
@@ -211,22 +283,19 @@ func (s *RunStore) ListRuns(
 		return errorF(err)
 	}
 
-	sizeSql, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
-	if err != nil {
-		return errorF(err)
-	}
-
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
 		glog.Error("Failed to start transaction to list runs")
 		return errorF(err)
 	}
+	defer tx.Rollback()
 
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		return errorF(err)
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		return errorF(err)
 	}
@@ -235,23 +304,33 @@ func (s *RunStore) ListRuns(
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
+	// totalSize is -1 when the caller opted out of it via opts.SkipCount, since
+	// computing it requires a second, potentially expensive query that some
+	// callers (e.g. a paginated UI that never displays the total) don't need.
+	totalSize := -1
+	if !opts.SkipCount {
+		sizeSQL, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		defer sizeRow.Close()
+		if err := sizeRow.Err(); err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		totalSize, err = list.ScanRowToTotalSize(sizeRow)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
 	}
-	if err := sizeRow.Err(); err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -260,16 +339,33 @@ func (s *RunStore) ListRuns(
 	}
 
 	if len(runs) <= opts.PageSize {
-		return runs, total_size, "", nil
+		return runs, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], total_size, npt, err
+	return runs[:opts.PageSize], totalSize, npt, err
+}
+
+func getRunListColumns(opts *list.Options) []string {
+	columns := make([]string, len(runListColumns))
+	copy(columns, runListColumns)
+
+	if opts != nil && opts.SortByFieldName == "PipelineRuntimeManifest" {
+		for i, col := range columns {
+			if col == "'' AS PipelineRuntimeManifest" {
+				columns[i] = "PipelineRuntimeManifest"
+			}
+		}
+	}
+	return columns
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	filterContext *model.FilterContext,
 ) (string, []interface{}, error) {
+	q := s.dbDialect.QuoteIdentifier
+	// Use Question format for subqueries to ensure correct parameter numbering
+	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	var filteredSelectBuilder sq.SelectBuilder
 	var err error
 
@@ -277,30 +373,39 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
-		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", runColumns,
-			selectCount, refKey.ID)
+		filteredSelectBuilder, err = FilterByExperiment(qb, q, "run_details", getRunListColumns(opts), selectCount, refKey.ID)
 	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = list.FilterOnNamespace("run_details", runColumns,
+		filteredSelectBuilder, err = FilterByNamespace(qb, q, "run_details", getRunListColumns(opts),
 			selectCount, refKey.ID)
 	} else {
-		filteredSelectBuilder, err = list.FilterOnResourceReference("run_details", runColumns,
+		filteredSelectBuilder, err = FilterByResourceReference(qb, q, "run_details", getRunListColumns(opts),
 			model.RunResourceType, selectCount, filterContext)
 	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
-	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
+	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, q)
 
-	// If we're not just counting, then also add select columns and perform a left join
-	// to get resource reference information. Also add pagination.
 	if !selectCount {
-		sqlBuilder = s.addSortByRunMetricToSelect(sqlBuilder, opts)
-		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
-		sqlBuilder = s.addMetricsResourceReferencesAndTasks(sqlBuilder, opts)
-		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
+		// Convert metric value (string) to float64 for numeric comparison in SQL, generic for all DBs.
+		// Must happen before building the paging subquery since cursor WHERE uses this value.
+		if opts != nil && opts.IsMetricSort() && opts.GetSortByFieldValue() != nil {
+			if strVal, ok := opts.GetSortByFieldValue().(string); ok {
+				if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
+					opts = opts.WithSortByFieldValue(floatVal)
+				}
+			}
+		}
+
+		// Paginate-then-aggregate: build a lightweight subquery that pages by UUID
+		// with cursor WHERE + ORDER BY + LIMIT, then aggregate refs/tasks/metrics
+		// only for the paged rows.
+		pagedBuilder := s.buildPagedUUIDSubquery(sqlBuilder, opts)
+		sqlBuilder = s.addMetricsResourceReferencesAndTasks(pagedBuilder, opts)
+		sqlBuilder = opts.AddOrderByToSelect(sqlBuilder, q, s.dbDialect.StringCollation())
 	}
-	sql, args, err := sqlBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(sqlBuilder)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -309,12 +414,14 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 
 // GetRun Get the run manifest from Workflow CRD.
 func (s *RunStore) GetRun(runId string) (*model.Run, error) {
-	sql, args, err := s.addMetricsResourceReferencesAndTasks(
-		sq.Select(runColumns...).
-			From("run_details").
-			Where(sq.Eq{"UUID": runId}).
-			Limit(1), nil).
-		ToSql()
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	getRunBuilder := s.addMetricsResourceReferencesAndTasks(
+		qb.Select(dialect.QuoteAll(q, runColumns)...).
+			From(q("run_details")).
+			Where(sq.Eq{q("UUID"): runId}).
+			Limit(1), nil)
+	sql, args, err := s.dbDialect.FinalizeSelect(getRunBuilder)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
@@ -338,56 +445,161 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	return runs[0], nil
 }
 
-// Applies a func f to every string in a given string slice.
-func apply(f func(string) string, vs []string) []string {
-	vsm := make([]string, len(vs))
-	for i, v := range vs {
-		vsm[i] = f(v)
+// buildPagedUUIDSubquery creates a lightweight subquery that selects only the
+// UUIDs needed for the current page. It applies cursor-based keyset pagination
+// (WHERE + ORDER BY + LIMIT) so that the expensive refs/tasks/metrics
+// aggregation in addMetricsResourceReferencesAndTasks runs only over
+// PageSize+1 rows instead of the entire filtered result set.
+func (s *RunStore) buildPagedUUIDSubquery(filteredBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+	q := s.dbDialect.QuoteIdentifier
+	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
+	collation := s.dbDialect.StringCollation()
+
+	if opts.IsMetricSort() {
+		// Metric sort: LEFT JOIN run_metrics to compute sort_metric_value,
+		// then wrap in a subquery so the alias is a real column for WHERE.
+		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
+			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
+
+		metricSubQ := qb.
+			Select("filtered."+q("UUID")).
+			Column(sq.Expr(metricValueExtract, opts.SortByFieldName)).
+			FromSelect(filteredBuilder, "filtered").
+			LeftJoin(fmt.Sprintf("%s AS rm ON filtered.%s=rm.%s",
+				q("run_metrics"), q("UUID"), q("RunUUID"))).
+			GroupBy("filtered." + q("UUID"))
+
+		pageBuilder := qb.
+			Select(q("UUID"), q(model.MetricSortSQLAlias)).
+			FromSelect(metricSubQ, "metric_page")
+
+		return opts.AddPaginationToSelect(pageBuilder, q, collation)
 	}
-	return vsm
+
+	// Regular sort: select UUID (+ sort column if different from UUID).
+	columns := []string{q("UUID")}
+	if opts.SortBySQLColumn != "" && opts.SortBySQLColumn != "UUID" {
+		columns = append(columns, q(opts.SortBySQLColumn))
+	}
+	pageBuilder := qb.Select(columns...).FromSelect(filteredBuilder, "filtered")
+	return opts.AddPaginationToSelect(pageBuilder, q, collation)
 }
 
 func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
-	var r model.Run
-	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rr.Payload", ","), `"]"`}, "")
-	columnsAfterJoiningResourceReferences := append(
-		apply(func(column string) string { return "rd." + column }, runColumns), // Add prefix "rd." to runColumns
-		resourceRefConcatQuery+" AS refs")
-	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+model.MetricSortSQLAlias)
-	}
-	subQ := sq.
-		Select(columnsAfterJoiningResourceReferences...).
-		FromSelect(filteredSelectBuilder, "rd").
-		LeftJoin("resource_references AS rr ON rr.ResourceType='Run' AND rd.UUID=rr.ResourceUUID").
-		GroupBy("rd.UUID")
+	q := s.dbDialect.QuoteIdentifier
+	// All builders in this function must use Question format.
+	// Reason: squirrel's aliasExpr.ToSql() (used by FromSelect) calls each
+	// sub-builder's own ToSql() independently. If any sub-builder uses Dollar
+	// format, it replaces its own ?s with $1,$2 before the outer builder runs,
+	// causing duplicate $1 numbering and mismatched args. Question is a no-op,
+	// so the outermost caller can do one unified Dollar replacement on the
+	// complete SQL string via dbDialect.FinalizeSelect().
+	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
+	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
 
-	tasksConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("tasks.Payload", ","), `"]"`}, "")
-	columnsAfterJoiningTasks := append(
-		apply(func(column string) string { return "rdref." + column }, runColumns),
-		"rdref.refs",
-		tasksConcatQuery+" AS taskDetails")
-	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+model.MetricSortSQLAlias)
+	// Optimization: Only pass UUID and aggregated columns through the 3 LEFT JOINs,
+	// then JOIN back to run_details at the end to get all runColumns.
+	// This avoids GROUP BY on LONGTEXT columns (PipelineSpecManifest, WorkflowSpecManifest, etc.)
+	// and improves performance by reducing data transfer through intermediate queries.
+
+	// Layer 1: LEFT JOIN resource_references
+	resourceRefConcatQuery := s.dbDialect.ConcatExprs(
+		[]string{
+			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false, "rr."+q("Payload"), ",") + ", '')", "']'",
+		}, "",
+	)
+	columnsAfterJoiningResourceReferences := []string{
+		"filtered." + q("UUID"),
+		resourceRefConcatQuery + " AS " + q("refs"),
 	}
-	subQ = sq.
+	subQ := qb.
+		Select(columnsAfterJoiningResourceReferences...).
+		FromSelect(filteredSelectBuilder, "filtered").
+		LeftJoin(fmt.Sprintf("%s AS rr ON rr.%s='Run' AND filtered.%s=rr.%s",
+			q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
+		GroupBy("filtered." + q("UUID"))
+
+	// Layer 2: LEFT JOIN tasks
+	tasksConcatQuery := s.dbDialect.ConcatExprs(
+		[]string{
+			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false, "tasks."+q("Payload"), ",") + ", '')", "']'",
+		}, "",
+	)
+	columnsAfterJoiningTasks := []string{
+		"rdref." + q("UUID"),
+		"rdref." + q("refs"),
+		tasksConcatQuery + " AS " + q("taskDetails"),
+	}
+	subQ = qb.
 		Select(columnsAfterJoiningTasks...).
 		FromSelect(subQ, "rdref").
-		LeftJoin("tasks AS tasks ON rdref.UUID=tasks.RunUUID").
-		GroupBy("rdref.UUID")
+		LeftJoin(fmt.Sprintf("%s AS tasks ON rdref.%s=tasks.%s",
+			q("tasks"), q("UUID"), q("RunUUID"))).
+		GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
 
-	// TODO(jingzhang36): address the case where some runs don't have the metric used in order by.
-	metricConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rm.Payload", ","), `"]"`}, "")
-	columnsAfterJoiningRunMetrics := append(
-		apply(func(column string) string { return "subq." + column }, runColumns), // Add prefix "subq." to runColumns
-		"subq.refs",
-		"subq.taskDetails",
-		metricConcatQuery+" AS metrics")
-	return sq.
+	// Layer 3: LEFT JOIN run_metrics
+	// This layer does two things:
+	// 1. Aggregate all metrics into a JSON array for display
+	// 2. Extract the specific metric for sorting (if sortByFieldName is a metric)
+	metricConcatQuery := s.dbDialect.ConcatExprs(
+		[]string{
+			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false /* DISTINCT off */, "rm."+q("Payload"), ",") + ", '')", "']'",
+		}, "",
+	)
+	columnsAfterJoiningRunMetrics := []string{
+		"subq." + q("UUID"),
+		"subq." + q("refs"),
+		"subq." + q("taskDetails"),
+		metricConcatQuery + " AS " + q("metrics"),
+	}
+
+	// Build the metrics subquery. If sorting by a metric, add the CASE WHEN expression
+	// using a bind parameter for the metric name to prevent SQL injection.
+	// The column alias is always the fixed constant model.MetricSortSQLAlias.
+	subQWithMetrics := qb.
 		Select(columnsAfterJoiningRunMetrics...).
 		FromSelect(subQ, "subq").
-		LeftJoin("run_metrics AS rm ON subq.UUID=rm.RunUUID").
-		GroupBy("subq.UUID")
+		LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
+			q("run_metrics"), q("UUID"), q("RunUUID"))).
+		GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
+	if opts != nil && opts.IsMetricSort() {
+		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
+			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
+		subQWithMetrics = subQWithMetrics.Column(sq.Expr(metricValueExtract, opts.SortByFieldName))
+	}
+
+	// Final layer: JOIN back to run_details to get all runColumns
+	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
+	joinedColumns := append(
+		dialect.QuoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
+		"withmetrics."+q("refs"),
+		"withmetrics."+q("taskDetails"),
+		"withmetrics."+q("metrics"))
+
+	if opts != nil && opts.IsMetricSort() {
+		joinedColumns = append(joinedColumns, "withmetrics."+q(model.MetricSortSQLAlias))
+	}
+
+	joinedSubQ := qb.
+		Select(joinedColumns...).
+		FromSelect(subQWithMetrics, "withmetrics").
+		Join(fmt.Sprintf("%s AS rd ON withmetrics.%s=rd.%s",
+			q("run_details"), q("UUID"), q("UUID")))
+
+	// Wrap in final SELECT to provide clean column names without table prefixes
+	// This avoids ambiguity in ORDER BY clauses added by pagination
+	finalSelectColumns := dialect.QuoteAll(q, runColumns)
+	finalSelectColumns = append(finalSelectColumns, q("refs"), q("taskDetails"), q("metrics"))
+
+	// Include metric sort column in SELECT when sorting by metric.
+	// MySQL/PostgreSQL require WHERE-referenced columns in SELECT list.
+	if opts != nil && opts.IsMetricSort() {
+		finalSelectColumns = append(finalSelectColumns, q(model.MetricSortSQLAlias))
+	}
+
+	return qb.
+		Select(finalSelectColumns...).
+		FromSelect(joinedSubQ, "final")
 }
 
 func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
@@ -398,7 +610,15 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
-		err := rows.Scan(
+
+		// Check how many columns are in the result set
+		columns, err := rows.Columns()
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "failed to get columns from rows")
+		}
+
+		// Prepare scan destinations: 32 base columns + 3 aggregated + 1 optional metric sort
+		scanDest := []interface{}{
 			&uuid,
 			&experimentUUID,
 			&displayName,
@@ -434,7 +654,17 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&resourceReferencesInString,
 			&tasksInString,
 			&metricsInString,
-		)
+		}
+
+		// If there's an extra column (metric sort column), add a dummy variable to scan it.
+		// Base count = runColumns + 3 aggregated columns (refs, taskDetails, metrics).
+		baseColumnCount := len(runColumns) + 3
+		if len(columns) > baseColumnCount {
+			var dummyMetricValue sql.NullFloat64
+			scanDest = append(scanDest, &dummyMetricValue)
+		}
+
+		err = rows.Scan(scanDest...)
 		if err != nil {
 			glog.Errorf("Failed to scan row into a run: %v", err)
 			return nil, err
@@ -446,6 +676,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			// are invalid.
 			metrics = []*model.RunMetric{}
 		}
+		if len(metrics) == 0 {
+			metrics = nil
+		}
 		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
 		if err != nil {
 			// throw internal exception if failed to parse the resource reference.
@@ -454,6 +687,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		tasks, err := parseTaskDetails(tasksInString)
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to parse task details")
+		}
+		if len(tasks) == 0 {
+			tasks = nil
 		}
 		jID := jobID.String
 		pvID := pipelineVersionID.String
@@ -576,6 +812,9 @@ func parseTaskDetails(tasksInString sql.NullString) ([]*model.Task, error) {
 }
 
 func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
 	r = r.ToV1().ToV2()
 	if r.StorageState == "" || r.StorageState == model.StorageStateUnspecified || r.StorageState == model.StorageStateUnspecifiedV1 {
 		r.StorageState = model.StorageStateAvailable
@@ -598,36 +837,36 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	} else {
 		return nil, util.NewInternalServerError(err, "Failed to marshal state history in a new run")
 	}
-	runSql, runArgs, err := sq.
-		Insert("run_details").
+	runSQL, runArgs, err := qb.
+		Insert(q("run_details")).
 		SetMap(sq.Eq{
-			"UUID":                    r.UUID,
-			"ExperimentUUID":          r.ExperimentId,
-			"DisplayName":             r.DisplayName,
-			"Name":                    r.K8SName,
-			"StorageState":            r.StorageState.ToString(),
-			"Namespace":               r.Namespace,
-			"ServiceAccount":          r.ServiceAccount,
-			"Description":             r.Description,
-			"CreatedAtInSec":          r.RunDetails.CreatedAtInSec,
-			"ScheduledAtInSec":        r.RunDetails.ScheduledAtInSec,
-			"FinishedAtInSec":         r.RunDetails.FinishedAtInSec,
-			"Conditions":              r.RunDetails.Conditions,
-			"WorkflowRuntimeManifest": r.RunDetails.WorkflowRuntimeManifest,
-			"PipelineRuntimeManifest": r.RunDetails.PipelineRuntimeManifest,
-			"PipelineId":              r.PipelineSpec.PipelineId, //nolint:staticcheck // QF1008
-			"PipelineName":            r.PipelineSpec.PipelineName,
-			"PipelineSpecManifest":    r.PipelineSpec.PipelineSpecManifest,
-			"WorkflowSpecManifest":    r.PipelineSpec.WorkflowSpecManifest,
-			"Parameters":              r.PipelineSpec.Parameters,
-			"RuntimeParameters":       r.PipelineSpec.RuntimeConfig.Parameters,
-			"PipelineRoot":            r.PipelineSpec.RuntimeConfig.PipelineRoot,
-			"PipelineVersionId":       r.PipelineSpec.PipelineVersionId,
-			"JobUUID":                 r.RecurringRunId,
-			"State":                   r.RunDetails.State.ToString(),
-			"StateHistory":            stateHistoryString,
-			"PluginsInput":            largeTextToNullableSQL(r.PluginsInputString),
-			"PluginsOutput":           largeTextToNullableSQL(r.PluginsOutputString),
+			q("UUID"):                    r.UUID,
+			q("ExperimentUUID"):          r.ExperimentId,
+			q("DisplayName"):             r.DisplayName,
+			q("Name"):                    r.K8SName,
+			q("StorageState"):            r.StorageState.ToString(),
+			q("Namespace"):               r.Namespace,
+			q("ServiceAccount"):          r.ServiceAccount,
+			q("Description"):             r.Description,
+			q("CreatedAtInSec"):          r.RunDetails.CreatedAtInSec,
+			q("ScheduledAtInSec"):        r.RunDetails.ScheduledAtInSec,
+			q("FinishedAtInSec"):         r.RunDetails.FinishedAtInSec,
+			q("Conditions"):              r.RunDetails.Conditions,
+			q("WorkflowRuntimeManifest"): r.RunDetails.WorkflowRuntimeManifest,
+			q("PipelineRuntimeManifest"): r.RunDetails.PipelineRuntimeManifest,
+			q("PipelineId"):              r.PipelineSpec.PipelineId,
+			q("PipelineName"):            r.PipelineSpec.PipelineName,
+			q("PipelineSpecManifest"):    r.PipelineSpec.PipelineSpecManifest,
+			q("WorkflowSpecManifest"):    r.PipelineSpec.WorkflowSpecManifest,
+			q("Parameters"):              r.PipelineSpec.Parameters,
+			q("RuntimeParameters"):       r.PipelineSpec.RuntimeConfig.Parameters,
+			q("PipelineRoot"):            r.PipelineSpec.RuntimeConfig.PipelineRoot,
+			q("PipelineVersionId"):       r.PipelineSpec.PipelineVersionId,
+			q("JobUUID"):                 r.RecurringRunId,
+			q("State"):                   r.RunDetails.State.ToString(),
+			q("StateHistory"):            stateHistoryString,
+			q("PluginsInput"):            largeTextToNullableSQL(r.RunDetails.PluginsInputString),
+			q("PluginsOutput"):           largeTextToNullableSQL(r.RunDetails.PluginsOutputString),
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
@@ -639,15 +878,16 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create run")
 	}
+	defer tx.Rollback()
 
-	_, err = tx.Exec(runSql, runArgs...)
+	_, err = tx.Exec(runSQL, runArgs...)
 	if err != nil {
 		tx.Rollback()
 		// A concurrent recurring-run trigger may have already created this run. Such runs
 		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
 		// duplicate insert collides on the primary key. Resolve it idempotently by
 		// returning the already-persisted run instead of surfacing an error.
-		if r.RecurringRunId != "" && s.db.IsDuplicateError(err) {
+		if r.RecurringRunId != "" && s.dbDialect.IsDuplicateKeyError(err) {
 			existingRun, getErr := s.GetRun(r.UUID)
 			if getErr != nil {
 				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
@@ -672,53 +912,254 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	return r, nil
 }
 
-func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error) {
-	query, args, err := sq.
-		Select("UUID").
-		From("run_details").
-		Where(sq.Eq{"JobUUID": recurringRunID, "DisplayName": displayName}).
-		OrderBy("CreatedAtInSec DESC", "UUID DESC").
-		Limit(1).
-		ToSql()
-	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to build query for idempotency check")
-	}
-	rows, err := s.db.Query(query, args...)
-	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to check for existing run")
-	}
-	defer rows.Close()
-	if rows.Next() {
-		var uuid string
-		if err := rows.Scan(&uuid); err != nil {
-			return "", util.NewInternalServerError(err, "Failed to scan existing run UUID")
-		}
-		return uuid, nil
-	}
-	return "", nil
+func (s *RunStore) UpdateRun(run *model.Run) error {
+	_, err := s.updateRun(run, nil)
+	return err
 }
 
-func (s *RunStore) UpdateRun(run *model.Run) error {
-	tx, err := s.db.DB.Begin()
-	if err != nil {
-		return util.NewInternalServerError(err, "transaction creation failed")
+func (s *RunStore) UpdateRunIfRuntimeManifestsUnchanged(
+	run *model.Run,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+) (bool, error) {
+	return s.updateRun(run, &runRuntimeManifestPrecondition{
+		workflow:        expectedWorkflowRuntimeManifest,
+		pipeline:        expectedPipelineRuntimeManifest,
+		retryGeneration: run.RetryGeneration,
+	})
+}
+
+// UpdateRunFromWorkflow applies nonterminal Workflow-derived fields with a
+// database-side compare-and-set. The transition check handles the opposite
+// race ordering: when cancellation committed before the reporter read the run,
+// matching the observed CANCELING state must not authorize a stale RUNNING
+// report.
+func (s *RunStore) UpdateRunFromWorkflow(
+	run *model.Run,
+	expectedState model.RuntimeState,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+) (bool, error) {
+	expectedState = expectedState.ToV2()
+	incomingState := run.State.ToV2()
+
+	switch expectedState {
+	case model.RuntimeStateCancelling:
+		switch incomingState {
+		case model.RuntimeStateCancelling,
+			model.RuntimeStateSucceeded,
+			model.RuntimeStateSkipped,
+			model.RuntimeStateFailed,
+			model.RuntimeStateCanceled:
+			// A canceling run may remain canceling or reach a terminal state.
+		default:
+			return false, nil
+		}
+	case model.RuntimeStateSucceeded,
+		model.RuntimeStateSkipped,
+		model.RuntimeStateFailed,
+		model.RuntimeStateCanceled:
+		if incomingState != expectedState {
+			return false, nil
+		}
 	}
-	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
-		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
+
+	return s.updateRun(run, &runRuntimeManifestPrecondition{
+		workflow:        expectedWorkflowRuntimeManifest,
+		pipeline:        expectedPipelineRuntimeManifest,
+		retryGeneration: run.RetryGeneration,
+		state:           &expectedState,
+	})
+}
+
+// storedRuntimeStates returns the known raw database values that normalize to
+// state. Older rows may use v1 values or keep the value only in Conditions.
+func storedRuntimeStates(state model.RuntimeState) []string {
+	switch state.ToV2() {
+	case model.RuntimeStateUnspecified:
+		return []string{"RUNTIME_STATE_UNSPECIFIED", "UNKNOWN", "NO_STATUS"}
+	case model.RuntimeStatePending:
+		return []string{"PENDING"}
+	case model.RuntimeStateRunning:
+		return []string{"RUNNING", "ENABLED", "READY"}
+	case model.RuntimeStateSucceeded:
+		return []string{"SUCCEEDED", "DONE"}
+	case model.RuntimeStateSkipped:
+		return []string{"SKIPPED"}
+	case model.RuntimeStateFailed:
+		return []string{"FAILED", "ERROR"}
+	case model.RuntimeStateCancelling:
+		return []string{"CANCELING", "TERMINATING"}
+	case model.RuntimeStateCanceled:
+		return []string{"CANCELED", "DISABLED"}
+	case model.RuntimeStatePaused:
+		return []string{"PAUSED"}
+	default:
+		return nil
+	}
+}
+
+// effectiveStatePredicate mirrors model.Run's legacy state reconstruction:
+// State wins when present; otherwise Conditions supplies the effective state.
+// q quotes bare column identifiers so the generated expressions match the
+// case-preserving quoted columns each dialect creates its tables with.
+func effectiveStatePredicate(q dialect.QuoteFunction, states ...model.RuntimeState) sq.Sqlizer {
+	stored := make([]string, 0, len(states))
+	matchesUnspecified := false
+	for _, state := range states {
+		stored = append(stored, storedRuntimeStates(state)...)
+		if state.ToV2() == model.RuntimeStateUnspecified {
+			matchesUnspecified = true
+		}
+	}
+
+	stateAbsent := sq.Or{sq.Eq{q("State"): nil}, sq.Eq{q("State"): ""}}
+	fromConditions := sq.Or{sq.And{stateAbsent, sq.Eq{fmt.Sprintf("UPPER(%s)", q("Conditions")): stored}}}
+	if matchesUnspecified {
+		fromConditions = append(fromConditions, sq.And{
+			stateAbsent,
+			sq.Or{sq.Eq{q("Conditions"): nil}, sq.Eq{q("Conditions"): ""}},
+		})
+	}
+
+	return sq.Or{sq.Eq{fmt.Sprintf("UPPER(%s)", q("State")): stored}, fromConditions}
+}
+
+type runRuntimeManifestPrecondition struct {
+	workflow        model.LargeText
+	pipeline        model.LargeText
+	retryGeneration int64
+	namespace       *string
+	state           *model.RuntimeState
+}
+
+func lockRunForRuntimeManifestWrite(
+	tx *sql.Tx,
+	d dialect.DBDialect,
+	runID string,
+	expected runRuntimeManifestPrecondition,
+) (bool, bool, error) {
+	q := d.QuoteIdentifier
+	qb := d.QueryBuilder()
+
+	lockColumns := []string{"WorkflowRuntimeManifest"}
+	checkPipelineRuntimeManifest := expected.workflow == ""
+	if checkPipelineRuntimeManifest {
+		lockColumns = append(lockColumns, "PipelineRuntimeManifest")
+	}
+	if expected.namespace != nil {
+		lockColumns = append(lockColumns, "Namespace")
+	}
+	if expected.state != nil {
+		lockColumns = append(lockColumns, "State", "Conditions")
+	}
+	lockColumns = append(lockColumns, "RetryGeneration")
+	lockSQL, lockArgs, err := qb.
+		Select(dialect.QuoteAll(q, lockColumns)...).
+		From(q("run_details")).
+		Where(sq.Eq{q("UUID"): runID}).
+		ToSql()
+	if err != nil {
+		return false, false, err
+	}
+	var currentWorkflowRuntimeManifest model.LargeText
+	var currentPipelineRuntimeManifest model.LargeText
+	var currentNamespace string
+	var currentState sql.NullString
+	var currentConditions sql.NullString
+	var currentRetryGeneration sql.NullInt64
+	lockScanTargets := []any{&currentWorkflowRuntimeManifest}
+	if checkPipelineRuntimeManifest {
+		lockScanTargets = append(lockScanTargets, &currentPipelineRuntimeManifest)
+	}
+	if expected.namespace != nil {
+		lockScanTargets = append(lockScanTargets, &currentNamespace)
+	}
+	if expected.state != nil {
+		lockScanTargets = append(lockScanTargets, &currentState, &currentConditions)
+	}
+	lockScanTargets = append(lockScanTargets, &currentRetryGeneration)
+	if err := tx.QueryRow(d.SelectForUpdate(lockSQL), lockArgs...).Scan(lockScanTargets...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, false, nil
+		}
+		return false, false, err
+	}
+	effectiveState := model.RuntimeStateUnspecified
+	if currentState.Valid && currentState.String != "" {
+		effectiveState = model.RuntimeState(currentState.String).ToV2()
+	} else if currentConditions.Valid {
+		effectiveState = model.RuntimeState(currentConditions.String).ToV2()
+	}
+	matches := currentWorkflowRuntimeManifest == expected.workflow &&
+		(!checkPipelineRuntimeManifest || currentPipelineRuntimeManifest == expected.pipeline) &&
+		(expected.namespace == nil || currentNamespace == *expected.namespace) &&
+		(expected.state == nil || effectiveState == expected.state.ToV2()) &&
+		currentRetryGeneration.Int64 == expected.retryGeneration
+	return true, matches, nil
+}
+
+func (s *RunStore) updateRun(
+	run *model.Run,
+	expectedRuntimeManifests *runRuntimeManifestPrecondition,
+) (bool, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "transaction creation failed")
+	}
+	defer tx.Rollback()
+	if expectedRuntimeManifests != nil {
+		runExists, preconditionMatches, lockError := lockRunForRuntimeManifestWrite(
+			tx,
+			s.dbDialect,
+			run.UUID,
+			*expectedRuntimeManifests,
+		)
+		if lockError != nil {
+			tx.Rollback()
+			return false, util.NewInternalServerError(
+				lockError,
+				"Failed to lock run %s before updating",
+				run.UUID,
+			)
+		}
+		if !runExists {
+			tx.Rollback()
+			return false, util.Wrap(
+				util.NewResourceNotFoundError("Run", run.UUID),
+				"Failed to update run",
+			)
+		}
+		if !preconditionMatches {
+			tx.Rollback()
+			return false, nil
+		}
+	}
+	if len(run.StateHistory) == 0 || run.StateHistory[len(run.StateHistory)-1].State != run.State {
+		run.StateHistory = append(run.StateHistory, &model.RuntimeStatus{
 			UpdateTimeInSec: s.time.Now().Unix(),
-			State:           run.RunDetails.State,
+			State:           run.State,
 		})
 	}
 	stateHistoryString := ""
-	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
+	if historyString, err := json.Marshal(run.StateHistory); err == nil {
 		stateHistoryString = string(historyString)
 	}
 	updateFields := sq.Eq{
-		"Conditions":              run.Conditions,
-		"State":                   run.State.ToString(),
-		"StateHistory":            stateHistoryString,
-		"FinishedAtInSec":         run.FinishedAtInSec,
-		"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
+		q("Conditions"):              run.Conditions,
+		q("State"):                   run.State.ToString(),
+		q("StateHistory"):            stateHistoryString,
+		q("FinishedAtInSec"):         run.FinishedAtInSec,
+		q("WorkflowRuntimeManifest"): run.WorkflowRuntimeManifest,
+	}
+	if run.K8SName != "" {
+		updateFields[q("Name")] = run.K8SName
+	}
+	if run.Namespace != "" {
+		updateFields[q("Namespace")] = run.Namespace
 	}
 	// PluginsOutput is only updated when explicitly set by the caller (e.g.
 	// MLflow terminal sync, retry). A nil pointer means "leave unchanged" so
@@ -726,88 +1167,65 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	// Note: PluginsInput is intentionally omitted — it is immutable after
 	// run creation and never updated.
 	if run.PluginsOutputString != nil {
-		updateFields["PluginsOutput"] = largeTextToNullableSQL(run.PluginsOutputString)
+		updateFields[q("PluginsOutput")] = largeTextToNullableSQL(run.PluginsOutputString)
 	}
 	// Include RetryGeneration in the WHERE clause so that a stale workflow
 	// reporter that passed workflowStillMatchesReportedVersion before a
 	// ClaimRunForRetry increment cannot overwrite the claimed row.
-	sql, args, err := sq.
-		Update("run_details").
+	sql, args, err := qb.
+		Update(q("run_details")).
 		SetMap(updateFields).
 		Where(sq.And{
-			sq.Eq{"UUID": run.UUID},
-			sq.Eq{"RetryGeneration": run.RetryGeneration},
+			sq.Eq{q("UUID"): run.UUID},
+			sq.Eq{q("RetryGeneration"): run.RetryGeneration},
 		}).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to create query to update run %s", run.UUID)
 	}
 	result, err := tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	r, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	if r > 1 {
 		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
+		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
 	} else if r == 0 {
+		if expectedRuntimeManifests != nil {
+			tx.Rollback()
+			return false, nil
+		}
 		tx.Rollback()
-		return util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
+		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
-	return nil
-}
-
-// UpdateRunPluginsOutput updates only the PluginsOutput column for the given
-// run, leaving all other columns untouched. This avoids redundant writes of
-// core run fields (State, Conditions, WorkflowRuntimeManifest, etc.) when
-// plugin handlers need to persist their output after the run state has already
-// been committed.
-func (s *RunStore) UpdateRunPluginsOutput(runID string, pluginsOutput *model.LargeText) error {
-	sql, args, err := sq.
-		Update("run_details").
-		SetMap(sq.Eq{
-			"PluginsOutput": largeTextToNullableSQL(pluginsOutput),
-		}).
-		Where(sq.Eq{"UUID": runID}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create query to update plugins output for run %s", runID)
-	}
-	result, err := s.db.DB.Exec(sql, args...) //nolint:staticcheck // QF1008
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to update plugins output for run %s", runID)
-	}
-	r, err := result.RowsAffected()
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to update plugins output for run %s", runID)
-	}
-	if r == 0 {
-		return util.Wrap(util.NewResourceNotFoundError("Run", runID), "Failed to update plugins output for run")
-	}
-	return nil
+	return true, nil
 }
 
 func (s *RunStore) ArchiveRun(runId string) error {
-	sql, args, err := sq.
-		Update("run_details").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	sql, args, err := qb.
+		Update(q("run_details")).
 		SetMap(sq.Eq{
-			"StorageState":    model.StorageStateArchived.ToString(),
-			"ArchivedAtInSec": s.time.Now().Unix(),
+			q("StorageState"):    model.StorageStateArchived.ToString(),
+			q("ArchivedAtInSec"): s.time.Now().Unix(),
 		}).
-		Where(sq.Eq{"UUID": runId}).
+		Where(sq.Eq{q("UUID"): runId}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -824,13 +1242,16 @@ func (s *RunStore) ArchiveRun(runId string) error {
 }
 
 func (s *RunStore) UnarchiveRun(runId string) error {
-	sql, args, err := sq.
-		Update("run_details").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	sql, args, err := qb.
+		Update(q("run_details")).
 		SetMap(sq.Eq{
-			"StorageState":    model.StorageStateAvailable.ToString(),
-			"ArchivedAtInSec": 0,
+			q("StorageState"):    model.StorageStateAvailable.ToString(),
+			q("ArchivedAtInSec"): 0,
 		}).
-		Where(sq.Eq{"UUID": runId}).
+		Where(sq.Eq{q("UUID"): runId}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -847,27 +1268,31 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 }
 
 func (s *RunStore) DeleteRun(id string) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run")
 	}
+	defer tx.Rollback()
 
 	// Lock parent row first to match GC DeleteExpiredArchivedRuns lock ordering
 	// (parent → children). Without this, concurrent GC and manual deletion of
 	// the same run can deadlock: GC holds parent waiting for children, manual
 	// holds children waiting for parent.
-	lockSQL, lockArgs, err := sq.Select("UUID").From("run_details").Where(sq.Eq{"UUID": id}).ToSql()
+	lockSQL, lockArgs, err := qb.Select(q("UUID")).From(q("run_details")).Where(sq.Eq{q("UUID"): id}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to create lock query for run %s", id)
 	}
 	var lockedID string
-	if err := tx.QueryRow(s.db.SelectForUpdate(lockSQL), lockArgs...).Scan(&lockedID); err != nil && err != sql.ErrNoRows {
+	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(lockSQL), lockArgs...).Scan(&lockedID); err != nil && err != sql.ErrNoRows {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to lock run %s for deletion", id)
 	}
 
-	metricsSQL, metricsArgs, err := sq.Delete("run_metrics").Where(sq.Eq{"RunUUID": id}).ToSql()
+	metricsSQL, metricsArgs, err := qb.Delete(q("run_metrics")).Where(sq.Eq{q("RunUUID"): id}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to create query to delete run metrics for run %s", id)
@@ -878,7 +1303,7 @@ func (s *RunStore) DeleteRun(id string) error {
 		return util.NewInternalServerError(err, "Failed to delete run metrics for run %s", id)
 	}
 
-	tasksSQL, tasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": id}).ToSql()
+	tasksSQL, tasksArgs, err := qb.Delete(q("tasks")).Where(sq.Eq{q("RunUUID"): id}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to create query to delete tasks for run %s", id)
@@ -895,7 +1320,7 @@ func (s *RunStore) DeleteRun(id string) error {
 		return util.NewInternalServerError(err, "Failed to delete resource references for run %s", id)
 	}
 
-	runSQL, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
+	runSQL, runArgs, err := qb.Delete(q("run_details")).Where(sq.Eq{q("UUID"): id}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to create query to delete run %s", id)
@@ -915,29 +1340,35 @@ func (s *RunStore) DeleteRun(id string) error {
 }
 
 func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
 	}
+	defer tx.Rollback()
 
 	// Lock the row and read current state. Use sql.NullString for State
 	// because legacy runs intentionally have State NULL.
-	selectSQL, selectArgs, err := sq.
-		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration", "RetryClaimedAtInSec").
-		From("run_details").
-		Where(sq.Eq{"UUID": runID}).
+	selectSQL, selectArgs, err := qb.
+		Select(q("State"), q("Conditions"), q("FinishedAtInSec"), q("RetryGeneration"), q("RetryClaimedAtInSec"), q("StorageState")).
+		From(q("run_details")).
+		Where(sq.Eq{q("UUID"): runID}).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
 		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim select query for run %s", runID)
 	}
-	row := tx.QueryRow(s.db.SelectForUpdate(selectSQL), selectArgs...)
+	row := tx.QueryRow(s.dbDialect.SelectForUpdate(selectSQL), selectArgs...)
 	var nullableState sql.NullString
 	var originalConditions string
 	var originalFinishedAtInSec int64
 	var currentGeneration int64
 	var retryClaimedAtInSec int64
-	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec); err != nil {
+	// Legacy rows predate the column, so it can still be NULL.
+	var nullableStorageState sql.NullString
+	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec, &nullableStorageState); err != nil {
 		tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", "", 0, 0, util.NewResourceNotFoundError("Run", runID)
@@ -947,6 +1378,14 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	originalState := ""
 	if nullableState.Valid {
 		originalState = nullableState.String
+	}
+
+	// RetryRun checks this before taking the lock, but ArchiveExpiredRuns can
+	// commit ARCHIVED between that read and this one. Rejecting here, before any
+	// mutation, keeps a run from ending up RUNNING and ARCHIVED at once.
+	if model.StorageState(nullableStorageState.String).ToV2() == model.StorageStateArchived {
+		tx.Rollback()
+		return "", "", 0, 0, NewArchivedRunRetryError(runID)
 	}
 
 	// Verify the locked row is still in a terminal state. Between the
@@ -985,14 +1424,14 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	// The new generation acts as a unique claim token that fences stale
 	// workflow reporters and prevents ABA rollback.
 	newGeneration := currentGeneration + 1
-	claimSQL, claimArgs, err := sq.
-		Update("run_details").
-		Set("State", model.RuntimeStatePending.ToString()).
-		Set("Conditions", string(model.RuntimeStatePending.ToV1())).
-		Set("FinishedAtInSec", 0).
-		Set("RetryGeneration", newGeneration).
-		Set("RetryClaimedAtInSec", s.time.Now().Unix()).
-		Where(sq.Eq{"UUID": runID}).
+	claimSQL, claimArgs, err := qb.
+		Update(q("run_details")).
+		Set(q("State"), model.RuntimeStatePending.ToString()).
+		Set(q("Conditions"), string(model.RuntimeStatePending.ToV1())).
+		Set(q("FinishedAtInSec"), 0).
+		Set(q("RetryGeneration"), newGeneration).
+		Set(q("RetryClaimedAtInSec"), s.time.Now().Unix()).
+		Where(sq.Eq{q("UUID"): runID}).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
@@ -1010,17 +1449,20 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 }
 
 func (s *RunStore) RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error {
-	rollbackSQL, rollbackArgs, err := sq.
-		Update("run_details").
-		Set("State", originalState).
-		Set("Conditions", originalConditions).
-		Set("FinishedAtInSec", originalFinishedAtInSec).
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	rollbackSQL, rollbackArgs, err := qb.
+		Update(q("run_details")).
+		Set(q("State"), originalState).
+		Set(q("Conditions"), originalConditions).
+		Set(q("FinishedAtInSec"), originalFinishedAtInSec).
 		// Clear the claim timestamp so the reporter's orphaned-claim
 		// recovery does not treat this restored terminal row as claimed.
-		Set("RetryClaimedAtInSec", 0).
+		Set(q("RetryClaimedAtInSec"), 0).
 		Where(sq.And{
-			sq.Eq{"UUID": runID},
-			sq.Eq{"RetryGeneration": claimGeneration},
+			sq.Eq{q("UUID"): runID},
+			sq.Eq{q("RetryGeneration"): claimGeneration},
 		}).
 		ToSql()
 	if err != nil {
@@ -1037,31 +1479,34 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 	if batchSize <= 0 {
 		batchSize = 100
 	}
-	selectSQL, selectArgs, err := sq.
-		Select("UUID").
-		From("run_details").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	selectSQL, selectArgs, err := qb.
+		Select(q("UUID")).
+		From(q("run_details")).
 		Where(sq.And{
 			// Match terminal runs by State column, or by Conditions column
 			// for legacy v1 rows where State is NULL/empty (ToV2() derives
 			// State from Conditions at read time but does not backfill the DB).
 			sq.Or{
-				sq.Eq{"State": terminalRunStateStrings},
+				sq.Eq{q("State"): terminalRunStateStrings},
 				sq.And{
-					sq.Or{sq.Eq{"State": ""}, sq.Expr("State IS NULL")},
-					sq.Eq{"Conditions": terminalRunStateStrings},
+					sq.Or{sq.Eq{q("State"): ""}, sq.Expr(q("State") + " IS NULL")},
+					sq.Eq{q("Conditions"): terminalRunStateStrings},
 				},
 			},
-			sq.Lt{"FinishedAtInSec": archiveCutoffEpoch},
-			sq.Gt{"FinishedAtInSec": 0},
+			sq.Lt{q("FinishedAtInSec"): archiveCutoffEpoch},
+			sq.Gt{q("FinishedAtInSec"): 0},
 			// Positive match on the closed set of non-archived storage states
 			// (plus NULL for legacy rows) so idx_run_gc_lifecycle's leading
 			// StorageState column can serve this query; NOT IN cannot use it.
 			sq.Or{
-				sq.Eq{"StorageState": nonArchivedStorageStateStrings},
-				sq.Expr("StorageState IS NULL"),
+				sq.Eq{q("StorageState"): nonArchivedStorageStateStrings},
+				sq.Expr(q("StorageState") + " IS NULL"),
 			},
 		}).
-		OrderBy("FinishedAtInSec ASC").
+		OrderBy(q("FinishedAtInSec") + " ASC").
 		Limit(uint64(batchSize)).
 		ToSql()
 	if err != nil {
@@ -1072,24 +1517,24 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 	if err != nil {
 		return 0, util.NewInternalServerError(err, "Failed to start transaction for archiving expired runs")
 	}
+	defer tx.Rollback()
 
 	rows, err := tx.Query(selectSQL, selectArgs...)
 	if err != nil {
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to query expired runs for archiving")
 	}
+	defer rows.Close()
 
 	var uuids []string
 	for rows.Next() {
 		var uuid string
 		if err := rows.Scan(&uuid); err != nil {
-			rows.Close()
 			tx.Rollback()
 			return 0, util.NewInternalServerError(err, "Failed to scan run UUID during archive")
 		}
 		uuids = append(uuids, uuid)
 	}
-	rows.Close()
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to iterate expired runs for archiving")
@@ -1102,16 +1547,16 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 		return 0, nil
 	}
 
-	updateSQL, updateArgs, err := sq.
-		Update("run_details").
-		Set("StorageState", model.StorageStateArchived.ToString()).
+	updateSQL, updateArgs, err := qb.
+		Update(q("run_details")).
+		Set(q("StorageState"), model.StorageStateArchived.ToString()).
 		// Start the archived-run observation window at archival time; the
 		// delete pass measures ARCHIVED_RUNS_RETENTION_TIME from this value.
-		Set("ArchivedAtInSec", s.time.Now().Unix()).
+		Set(q("ArchivedAtInSec"), s.time.Now().Unix()).
 		Where(sq.And{
-			sq.Eq{"UUID": uuids},
-			sq.Lt{"FinishedAtInSec": archiveCutoffEpoch},
-			sq.Gt{"FinishedAtInSec": 0},
+			sq.Eq{q("UUID"): uuids},
+			sq.Lt{q("FinishedAtInSec"): archiveCutoffEpoch},
+			sq.Gt{q("FinishedAtInSec"): 0},
 		}).
 		ToSql()
 	if err != nil {
@@ -1151,38 +1596,41 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	// batch first: they are by definition the oldest rows, and draining that
 	// bounded set first ends the dual-query era instead of starving it
 	// behind a steady stream of current-format rows.
-	currentSQL, currentArgs, err := sq.
-		Select("UUID").
-		From("run_details").
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	currentSQL, currentArgs, err := qb.
+		Select(q("UUID")).
+		From(q("run_details")).
 		Where(sq.And{
-			sq.Eq{"StorageState": archivedStorageStateStrings},
+			sq.Eq{q("StorageState"): archivedStorageStateStrings},
 			// Observation window measured from archival time.
-			sq.Gt{"ArchivedAtInSec": 0},
-			sq.Lt{"ArchivedAtInSec": deleteCutoffEpoch},
+			sq.Gt{q("ArchivedAtInSec"): 0},
+			sq.Lt{q("ArchivedAtInSec"): deleteCutoffEpoch},
 			// Conservative extra bound: never deletable less than the
 			// retention period after the run finished (covers runs archived
 			// while still running). Filter only; ArchivedAtInSec drives.
-			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
-			sq.Gt{"FinishedAtInSec": 0},
+			sq.Lt{q("FinishedAtInSec"): deleteCutoffEpoch},
+			sq.Gt{q("FinishedAtInSec"): 0},
 		}).
-		OrderBy("ArchivedAtInSec ASC").
+		OrderBy(q("ArchivedAtInSec") + " ASC").
 		Limit(uint64(batchSize)).
 		ToSql()
 	if err != nil {
 		return 0, util.NewInternalServerError(err, "Failed to build query for deleting expired archived runs")
 	}
-	legacySQL, legacyArgs, err := sq.
-		Select("UUID").
-		From("run_details").
+	legacySQL, legacyArgs, err := qb.
+		Select(q("UUID")).
+		From(q("run_details")).
 		Where(sq.And{
-			sq.Eq{"StorageState": archivedStorageStateStrings},
+			sq.Eq{q("StorageState"): archivedStorageStateStrings},
 			// Rows archived before ArchivedAtInSec existed carry 0 and fall
 			// back to the finish-time bound.
-			sq.Eq{"ArchivedAtInSec": 0},
-			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
-			sq.Gt{"FinishedAtInSec": 0},
+			sq.Eq{q("ArchivedAtInSec"): 0},
+			sq.Lt{q("FinishedAtInSec"): deleteCutoffEpoch},
+			sq.Gt{q("FinishedAtInSec"): 0},
 		}).
-		OrderBy("FinishedAtInSec ASC").
+		OrderBy(q("FinishedAtInSec") + " ASC").
 		Limit(uint64(batchSize)).
 		ToSql()
 	if err != nil {
@@ -1193,6 +1641,7 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	if err != nil {
 		return 0, util.NewInternalServerError(err, "Failed to start transaction for deleting expired archived runs")
 	}
+	defer tx.Rollback()
 
 	// Lock the candidate rows for the duration of the transaction so a
 	// concurrent unarchive cannot flip StorageState between this select and the
@@ -1205,7 +1654,7 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		if len(uuids) >= batchSize {
 			break
 		}
-		lockedCandidateRows, err := tx.Query(s.db.SelectForUpdate(candidateQuery.sql), candidateQuery.args...)
+		lockedCandidateRows, err := tx.Query(s.dbDialect.SelectForUpdate(candidateQuery.sql), candidateQuery.args...)
 		if err != nil {
 			tx.Rollback()
 			return 0, util.NewInternalServerError(err, "Failed to query expired archived runs for deletion")
@@ -1239,17 +1688,17 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	// reset FinishedAtInSec to 0 (relaunching the workflow), or UnarchiveRun
 	// may have flipped StorageState back to AVAILABLE. Deleting such rows
 	// would orphan an active workflow or destroy a run the user just restored.
-	verifySQL, verifyArgs, err := sq.
-		Select("UUID").
-		From("run_details").
+	verifySQL, verifyArgs, err := qb.
+		Select(q("UUID")).
+		From(q("run_details")).
 		Where(sq.And{
-			sq.Eq{"UUID": uuids},
-			sq.Eq{"StorageState": archivedStorageStateStrings},
-			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
-			sq.Gt{"FinishedAtInSec": 0},
+			sq.Eq{q("UUID"): uuids},
+			sq.Eq{q("StorageState"): archivedStorageStateStrings},
+			sq.Lt{q("FinishedAtInSec"): deleteCutoffEpoch},
+			sq.Gt{q("FinishedAtInSec"): 0},
 			sq.Or{
-				sq.Eq{"ArchivedAtInSec": 0},
-				sq.Lt{"ArchivedAtInSec": deleteCutoffEpoch},
+				sq.Eq{q("ArchivedAtInSec"): 0},
+				sq.Lt{q("ArchivedAtInSec"): deleteCutoffEpoch},
 			},
 		}).ToSql()
 	if err != nil {
@@ -1286,7 +1735,7 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	uuids = verifiedUUIDs
 
 	// Delete from dependent tables in child-first order.
-	deleteMetricsSQL, deleteMetricsArgs, err := sq.Delete("run_metrics").Where(sq.Eq{"RunUUID": uuids}).ToSql()
+	deleteMetricsSQL, deleteMetricsArgs, err := qb.Delete(q("run_metrics")).Where(sq.Eq{q("RunUUID"): uuids}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to build delete query for run_metrics")
@@ -1296,7 +1745,7 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		return 0, util.NewInternalServerError(execError, "Failed to delete run_metrics for expired archived runs")
 	}
 
-	deleteTasksSQL, deleteTasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": uuids}).ToSql()
+	deleteTasksSQL, deleteTasksArgs, err := qb.Delete(q("tasks")).Where(sq.Eq{q("RunUUID"): uuids}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to build delete query for tasks")
@@ -1306,11 +1755,11 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		return 0, util.NewInternalServerError(execError, "Failed to delete tasks for expired archived runs")
 	}
 
-	deleteReferencesSQL, deleteReferencesArgs, err := sq.
-		Delete("resource_references").
+	deleteReferencesSQL, deleteReferencesArgs, err := qb.
+		Delete(q("resource_references")).
 		Where(sq.And{
-			sq.Eq{"ResourceType": model.RunResourceType},
-			sq.Eq{"ResourceUUID": uuids},
+			sq.Eq{q("ResourceType"): model.RunResourceType},
+			sq.Eq{q("ResourceUUID"): uuids},
 		}).ToSql()
 	if err != nil {
 		tx.Rollback()
@@ -1321,7 +1770,7 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		return 0, util.NewInternalServerError(execError, "Failed to delete resource_references for expired archived runs")
 	}
 
-	deleteRunsSQL, deleteRunsArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": uuids}).ToSql()
+	deleteRunsSQL, deleteRunsArgs, err := qb.Delete(q("run_details")).Where(sq.Eq{q("UUID"): uuids}).ToSql()
 	if err != nil {
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to build delete query for run_details")
@@ -1345,20 +1794,23 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 
 // Creates a new metric in run_metrics table if does not exist.
 func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
 	payloadBytes, err := json.Marshal(metric)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to marshal a run metric to json: %+v", metric)
 	}
-	sql, args, err := sq.
-		Insert("run_metrics").
+	sql, args, err := qb.
+		Insert(q("run_metrics")).
 		SetMap(sq.Eq{
-			"RunUUID":     metric.RunUUID,
-			"NodeID":      metric.NodeID,
-			"Name":        metric.Name,
-			"NumberValue": metric.NumberValue,
-			"Format":      metric.Format,
-			"Payload":     string(payloadBytes),
+			q("RunUUID"):     metric.RunUUID,
+			q("NodeID"):      metric.NodeID,
+			q("Name"):        metric.Name,
+			q("NumberValue"): metric.NumberValue,
+			q("Format"):      metric.Format,
+			q("Payload"):     string(payloadBytes),
 		}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
@@ -1366,7 +1818,7 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if s.db.IsDuplicateError(err) {
+		if s.dbDialect.IsDuplicateKeyError(err) {
 			return util.NewAlreadyExistError(
 				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
 		}
@@ -1376,85 +1828,116 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
 }
 
 // Returns a new RunStore.
-func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
+func NewRunStore(db *sql.DB, time util.TimeInterface, d dialect.DBDialect) *RunStore {
 	return &RunStore{
 		db:                     db,
-		resourceReferenceStore: NewResourceReferenceStore(db, nil),
+		resourceReferenceStore: NewResourceReferenceStore(db, nil, d),
 		time:                   time,
+		dbDialect:              d,
 	}
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
 	// TODO(gkcalat): append CANCELLING to StateHistory
-	result, err := s.db.Exec(`
-		UPDATE run_details
-		SET Conditions = ?, State = ?
-		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
-		string(model.RuntimeStateCancelling.ToV1()),
-		model.RuntimeStateCancelling.ToString(),
-		runId,
-		model.RuntimeStatePaused.ToString(),
-		model.RuntimeStatePending.ToString(),
-		model.RuntimeStateRunning.ToString(),
-		model.RuntimeStateUnspecified.ToString(),
-	)
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	sql, args, err := qb.
+		Update(q("run_details")).
+		SetMap(sq.Eq{
+			q("Conditions"): string(model.RuntimeStateCancelling.ToV1()),
+			q("State"):      model.RuntimeStateCancelling.ToString(),
+		}).
+		Where(sq.And{
+			sq.Eq{q("UUID"): runId},
+			effectiveStatePredicate(
+				q,
+				model.RuntimeStatePaused,
+				model.RuntimeStatePending,
+				model.RuntimeStateRunning,
+				model.RuntimeStateUnspecified,
+				model.RuntimeStateCancelling,
+			),
+		}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build query for terminating run %s", runId)
+	}
+	result, err := s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
 	}
 
-	if r, _ := result.RowsAffected(); r != 1 {
+	r, err := result.RowsAffected()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to verify termination of run %s", runId)
+	}
+	if r != 1 {
 		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
 	}
 	return nil
 }
 
-// Add a metric as a new field to the select clause by join the passed-in SQL query with run_metrics table.
-// With the metric as a field in the select clause enable sorting on this metric afterwards.
-// TODO(jingzhang36): example of resulting SQL query and explanation for it.
-func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
-	var r model.Run
-	if r.IsRegularField(opts.SortByFieldName) {
-		return sqlBuilder
+// UpdateRunPluginsOutput updates only the PluginsOutput column for the given
+// run, leaving all other columns untouched. This avoids redundant writes of
+// core run fields (State, Conditions, WorkflowRuntimeManifest, etc.) when
+// plugin handlers need to persist their output after the run state has already
+// been committed.
+func (s *RunStore) UpdateRunPluginsOutput(runID string, pluginsOutput *model.LargeText) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	sql, args, err := qb.
+		Update(q("run_details")).
+		SetMap(sq.Eq{
+			q("PluginsOutput"): largeTextToNullableSQL(pluginsOutput),
+		}).
+		Where(sq.Eq{q("UUID"): runID}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to update plugins output for run %s", runID)
 	}
-	// Use a fixed alias for the metric column so user input never reaches SQL
-	// structure. The metric name is passed as a bind parameter to the JOIN
-	// condition, preventing SQL injection.
-	return sq.
-		Select("selected_runs.*, run_metrics.numbervalue as "+model.MetricSortSQLAlias).
-		FromSelect(sqlBuilder, "selected_runs").
-		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name=?", opts.SortByFieldName)
+	result, err := s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update plugins output for run %s", runID)
+	}
+	r, err := result.RowsAffected()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update plugins output for run %s", runID)
+	}
+	if r == 0 {
+		return util.Wrap(util.NewResourceNotFoundError("Run", runID), "Failed to update plugins output for run")
+	}
+	return nil
 }
 
-func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, error) {
-	var metrics []*model.RunMetric
-	for rows.Next() {
-		var runId, nodeId, name, form, payload string
-		var val float64
-		err := rows.Scan(
-			&runId,
-			&nodeId,
-			&name,
-			&val,
-			&form,
-			&payload,
-		)
-		if err != nil {
-			glog.Errorf("Failed to scan row into a run metric: %v", err)
-			return metrics, nil
-		}
+func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
 
-		metrics = append(
-			metrics,
-			&model.RunMetric{
-				RunUUID:     runId,
-				NodeID:      nodeId,
-				Name:        name,
-				NumberValue: val,
-				Format:      form,
-				Payload:     model.LargeText(payload),
-			},
-		)
+	query, args, err := qb.
+		Select(q("UUID")).
+		From(q("run_details")).
+		Where(sq.Eq{q("JobUUID"): recurringRunID, q("DisplayName"): displayName}).
+		OrderBy(q("CreatedAtInSec")+" DESC", q("UUID")+" DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to build query for idempotency check")
 	}
-	return metrics, nil
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to check for existing run")
+	}
+	defer rows.Close()
+	if rows.Next() {
+		var uuid string
+		if err := rows.Scan(&uuid); err != nil {
+			return "", util.NewInternalServerError(err, "Failed to scan existing run UUID")
+		}
+		return uuid, nil
+	}
+	return "", nil
 }

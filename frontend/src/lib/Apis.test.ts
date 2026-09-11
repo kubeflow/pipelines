@@ -182,8 +182,26 @@ describe('Apis', () => {
         isDownload: true,
       }),
     ).toEqual(
-      'artifacts/s3/testbucket/testkey?namespace=testnamespace&providerInfo=%7B%22Provider%22%3A%22s3%22%7D',
+      'artifacts/get?source=s3&namespace=testnamespace&providerInfo=%7B%22Provider%22%3A%22s3%22%7D&bucket=testbucket&key=testkey&download=true',
     );
+  });
+
+  it('buildReadFileUrl keeps reserved characters and dot segments in the download query', () => {
+    const url = Apis.buildReadFileUrl({
+      path: {
+        bucket: 'testbucket',
+        key: 'reports/.././a?final#100%.csv',
+        source: StorageService.S3,
+      },
+      isDownload: true,
+    });
+
+    expect(url).toEqual(
+      'artifacts/get?source=s3&bucket=testbucket&key=reports%2F..%2F.%2Fa%3Ffinal%23100%25.csv&download=true',
+    );
+    const parsedUrl = new URL(url, 'https://example.test/pipeline/');
+    expect(parsedUrl.pathname).toBe('/pipeline/artifacts/get');
+    expect(parsedUrl.searchParams.get('key')).toBe('reports/.././a?final#100%.csv');
   });
 
   it('buildArtifactLinkText', () => {
