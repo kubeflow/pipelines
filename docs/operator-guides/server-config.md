@@ -7,6 +7,79 @@ customizations are available for more advanced usage.
 When deploying Kubeflow Pipelines servers, you can pass various environment variables
 to customize the behavior of servers.
 
+## API Server workflow service-account checks
+
+By default, the API server enforces the service-account policy for all identities
+it finds in a workflow before creating a run or recurring run, retrying a run, or
+re-enabling an embedded recurring workflow. It also checks again after plugins
+modify a new run. Non-default accounts must be listed in `ALLOWEDSERVICEACCOUNTS`;
+in multi-user mode, the caller must additionally have `use` permission on those
+`serviceaccounts`. The configured default pipeline runner retains its existing
+exemption.
+
+### Audit mode for rollout
+
+`WORKFLOW_SERVICE_ACCOUNT_AUDIT` defaults to `false`. Set it to `"true"` on the
+`ml-pipeline` API server deployment to observe the **additional** identity checks
+without blocking on their findings:
+
+```yaml
+env:
+  - name: WORKFLOW_SERVICE_ACCOUNT_AUDIT
+    value: "true"
+```
+
+Audit mode still enforces the workflow's main service account, including Kubernetes'
+`default` account if the main field is empty. Failures involving
+other accounts, including accounts introduced by plugins or retained retry state,
+produce `Workflow service account audit:` warning logs and execution continues.
+These accounts can therefore run without passing the expanded policy while audit
+mode is enabled. Use this option temporarily to assess compatibility, then unset
+it or set it to `"false"` to enforce the checks. It applies to both V1 and V2.
+
+Warnings include the operation, namespace, workflow name or generated-name prefix,
+run ID when available, account name when known, and one of these findings:
+
+| Finding | Meaning |
+| --- | --- |
+| `account_not_allowed` | The additional account is not allowed or its name is not literal. |
+| `account_denied` | Kubernetes denied the caller permission to use the additional account. |
+| `authorization_error` | Authorization of the additional account could not be completed. |
+| `inspection_incomplete` | The workflow's identities could not be fully collected, for example because a patch is dynamic or uses noncanonical account fields. |
+
+An inspection failure stops collection, so `inspection_incomplete` is **not** a
+complete account inventory and later violations may not be reported. Review that
+workflow's templates, pod patches and retained execution state before enabling
+enforcement. Audit warnings do not include manifests, patch contents or raw error
+payloads. Logs may repeat across lifecycle operations and the post-plugin check.
+
+Audit mode does not bypass ordinary workflow validation: fresh submissions still
+reject external template references and discard caller-supplied workflow status.
+On retained workflows checked during retry or re-enable, an external reference
+instead produces an `inspection_incomplete` warning in audit mode. Existing enabled
+embedded schedules are not automatically inspected; re-enabling them triggers the
+check. Running workloads are not retroactively reauthorized.
+
+### V1 and V2 compatibility
+
+**V1 / raw Argo workflows:** this is the main compatibility change. Enforcement
+requires literal service-account names and canonical `serviceAccountName` or
+`serviceAccount` fields in pod patches. Dynamic `podSpecPatch` expressions are
+rejected even when they only affect resources. Every declared template is checked,
+including unused templates and overridden settings. External templates must be
+inlined. Submitted workflow status is ignored, so entrypoints must be defined in
+the submitted spec. Audit mode can help identify additional-account and patch
+inspection failures, but the validation and status rules still apply.
+
+**V2 / compiler-generated workflows:** the compiler's exact
+`{{inputs.parameters.pod-spec-patch}}` placeholder remains supported because the
+KFP driver constructs the runtime patch without selecting a service account.
+Literal accounts elsewhere in the workflow are still checked. V2 creation,
+plugin processing, retries and recurring runs use the same enforcement or audit
+mode as V1. V2 recurring runs remain retryable when their persisted records contain
+both the source pipeline spec and the compiled workflow manifest. Audit mode is
+not normally needed solely for the compiler-generated patch.
+
 ## Frontend Server
 
 When deploying frontend server called `ml-pipeline-ui`, you can pass various environment

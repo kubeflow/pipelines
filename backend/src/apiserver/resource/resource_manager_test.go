@@ -47,6 +47,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	swfclientv1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/spf13/viper"
@@ -54,6 +55,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	authzv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -257,6 +259,12 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
+func testWorkflowWithoutStatus() *util.Workflow {
+	workflow := testWorkflow.DeepCopy()
+	workflow.Status = v1alpha1.WorkflowStatus{}
+	return util.NewWorkflow(workflow)
+}
+
 type retryDuringTerminalReportDispatcher struct {
 	manager  *ResourceManager
 	runID    string
@@ -299,6 +307,48 @@ func (d *countingTerminalReportDispatcher) OnRunRetry(context.Context, *apiserve
 
 func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
 	return true
+}
+
+type serviceAccountMutatingDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
+	output    *apiv2beta1.PluginOutput
+	endedRuns []*apiserverPlugins.PersistedRun
+}
+
+func (serviceAccountMutatingDispatcher) PluginsRegistered() bool {
+	return true
+}
+
+func (d *serviceAccountMutatingDispatcher) OnBeforeRunCreation(_ context.Context, run *apiserverPlugins.PendingRun, executionSpec util.ExecutionSpec) error {
+	executionSpec.SetServiceAccount("plugin-sa")
+	return apiserverPlugins.SetPendingRunPluginOutput(run, apiservermlflow.PluginName, d.output)
+}
+
+func (d *serviceAccountMutatingDispatcher) OnRunEnd(_ context.Context, run *apiserverPlugins.PersistedRun) bool {
+	d.endedRuns = append(d.endedRuns, run)
+	return true
+}
+
+type patchCountingSwfClient struct {
+	client.SwfClientInterface
+	patchCalls int
+}
+
+func (c *patchCountingSwfClient) ScheduledWorkflow(namespace string) swfclientv1beta1.ScheduledWorkflowInterface {
+	return &patchCountingScheduledWorkflowClient{
+		ScheduledWorkflowInterface: c.SwfClientInterface.ScheduledWorkflow(namespace),
+		patchCalls:                 &c.patchCalls,
+	}
+}
+
+type patchCountingScheduledWorkflowClient struct {
+	swfclientv1beta1.ScheduledWorkflowInterface
+	patchCalls *int
+}
+
+func (c *patchCountingScheduledWorkflowClient) Patch(ctx context.Context, name string, patchType types.PatchType, data []byte, subresources ...string) (*swfapi.ScheduledWorkflow, error) {
+	*c.patchCalls++
+	return c.ScheduledWorkflowInterface.Patch(ctx, name, patchType, data, subresources...)
 }
 
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
@@ -598,6 +648,7 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	runDetail, err := manager.CreateRun(ctx, apiRun)
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetServiceAccount(runDetail.ServiceAccount)
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
@@ -621,6 +672,7 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	runDetail, err := manager.CreateRun(ctx, apiRun)
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetServiceAccount(runDetail.ServiceAccount)
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	nodes := map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
@@ -647,6 +699,7 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	runDetail, err := manager.CreateRun(ctx, apiRun)
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetServiceAccount(runDetail.ServiceAccount)
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
@@ -1645,7 +1698,7 @@ func TestGetPipelineTemplate(t *testing.T) {
 	defer store.Close()
 	actualTemplate, err := manager.GetPipelineLatestTemplate(p.UUID)
 	assert.Nil(t, err)
-	assert.Equal(t, []byte(testWorkflow.ToStringForStore()), actualTemplate)
+	assert.Equal(t, []byte(testWorkflowWithoutStatus().ToStringForStore()), actualTemplate)
 }
 
 // Tests GetPipelineLatestTemplate (from PipelineSpecURI)
@@ -2496,7 +2549,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowWithoutStatus().Workflow
 	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -2521,7 +2574,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			PipelineVersionId:    version.UUID,
 			PipelineId:           p.UUID,
 			PipelineName:         "version_for_run",
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			WorkflowSpecManifest: model.LargeText(testWorkflowWithoutStatus().ToStringForStore()),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
@@ -2587,7 +2640,7 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	expectedExperimentUUID := runDetail.ExperimentId
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowWithoutStatus().Workflow
 	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -2639,7 +2692,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	viper.Set(common.DefaultBucketNameEnvVar, "test-default-bucket")
 	store, manager, runDetail := initWithPatchedRun(t)
 	expectedExperimentUUID := runDetail.ExperimentId
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowWithoutStatus().Workflow
 	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -2749,7 +2802,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowWithoutStatus().Workflow
 	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -2775,7 +2828,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			PipelineVersionId:    version.UUID,
 			PipelineId:           version.PipelineId,
 			PipelineName:         version.Name,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			WorkflowSpecManifest: model.LargeText(testWorkflowWithoutStatus().ToStringForStore()),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 		RunDetails: model.RunDetails{
@@ -2833,7 +2886,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	runDetail, err := manager.CreateRun(context.Background(), apiRun)
 	assert.Nil(t, err)
 
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow := testWorkflowWithoutStatus().Workflow
 	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -2871,7 +2924,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			PipelineId:           pipeline.UUID,
 			PipelineVersionId:    version.UUID,
 			PipelineName:         version.Name,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			WorkflowSpecManifest: model.LargeText(testWorkflowWithoutStatus().ToStringForStore()),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
@@ -3381,6 +3434,61 @@ func TestRetryRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, string(actualRunDetail.WorkflowRuntimeManifest), "Running")
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
+}
+
+func TestRetryRun_V2CompilerPodSpecPatch(t *testing.T) {
+	store, manager, run := initWithOneTimeRunV2(t)
+	defer store.Close()
+	executionSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.PipelineRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, executionSpec.Decompress())
+	workflow := executionSpec.(*util.Workflow)
+	require.Contains(t, workflow.ToStringForStore(), `{{inputs.parameters.pod-spec-patch}}`)
+	workflow.Status.Phase = v1alpha1.WorkflowFailed
+	run.WorkflowRuntimeManifest = model.LargeText(workflow.ToStringForStore())
+	run.State = model.RuntimeStateFailed
+	run.Conditions = string(model.RuntimeStateFailed.ToV1())
+	require.NoError(t, manager.runStore.UpdateRun(run))
+
+	require.NoError(t, manager.RetryRun(context.Background(), run.UUID))
+}
+
+func TestRetryRun_ServiceAccountSAR_Unauthorized_NoWorkflowMutation(t *testing.T) {
+	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	workflow := testWorkflow.DeepCopy()
+	workflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
+	workflow.Spec.Templates[0].ServiceAccountName = "nested-sa"
+	run, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(util.NewWorkflow(workflow).ToStringForStore()),
+			Parameters:           `[{"name":"param1","value":"world"}]`,
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.NoError(t, err)
+
+	failedWorkflow := util.NewWorkflow(workflow.DeepCopy())
+	failedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, run.UUID)
+	failedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	failedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
+	syncWorkflowReportWithFakeCluster(t, store, failedWorkflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), failedWorkflow)
+	require.NoError(t, err)
+
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	manager.subjectAccessReviewClient = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	err = manager.RetryRun(multiUserContext(), run.UUID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+	liveWorkflow, getErr := store.ExecClientFake.Execution("ns1").Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, getErr)
+	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(liveWorkflow.ExecutionStatus().Condition()))
 }
 
 func TestRetryRun_RefreshesDivergentWorkflowName(t *testing.T) {
@@ -4084,7 +4192,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 			PipelineId:           version.PipelineId,
 			PipelineName:         version.Name,
 			PipelineVersionId:    version.UUID,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			WorkflowSpecManifest: model.LargeText(testWorkflowWithoutStatus().ToStringForStore()),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
@@ -4139,7 +4247,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			PipelineName:         version.Name,
 			PipelineId:           pipeline.UUID,
 			PipelineVersionId:    version.UUID,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			WorkflowSpecManifest: model.LargeText(testWorkflowWithoutStatus().ToStringForStore()),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
@@ -4268,6 +4376,40 @@ func TestEnableJob(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
+}
+
+func TestEnableJob_ReauthorizesEmbeddedWorkflowServiceAccounts(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa")
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, "false")
+		viper.Set(common.AllowedServiceAccountsFlag, "")
+	})
+
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName:  "j1",
+		Enabled:      false,
+		ExperimentId: experiment.UUID,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa"),
+		},
+	})
+	require.NoError(t, err)
+
+	patchCounter := &patchCountingSwfClient{SwfClientInterface: manager.swfClient}
+	manager.swfClient = patchCounter
+	manager.subjectAccessReviewClient = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	viper.Set(common.MultiUserMode, "true")
+
+	err = manager.ChangeJobMode(multiUserContext(), job.UUID, true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+	assert.Zero(t, patchCounter.patchCalls, "the ScheduledWorkflow must not be enabled when authorization fails")
+	storedJob, getErr := manager.GetJob(job.UUID)
+	require.NoError(t, getErr)
+	assert.False(t, storedJob.Enabled)
 }
 
 func TestEnableJob_JobNotExist(t *testing.T) {
@@ -6533,6 +6675,7 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
+		Spec: v1alpha1.WorkflowSpec{ServiceAccountName: run.ServiceAccount},
 		Status: v1alpha1.WorkflowStatus{
 			Phase:      v1alpha1.WorkflowFailed,
 			FinishedAt: v1.NewTime(time.Unix(123, 0)),
@@ -9270,6 +9413,151 @@ func TestCreateRun_ServiceAccountSAR_Unauthorized_NoWorkflowCreated(t *testing.T
 	_, err := manager.CreateRun(multiUserContext(), apiRun)
 	require.NotNil(t, err)
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created when SA authorization fails")
+}
+
+func workflowManifestWithTemplateServiceAccount(serviceAccount string) model.LargeText {
+	workflow := testWorkflow.DeepCopy()
+	workflow.Spec.Templates[0].ServiceAccountName = serviceAccount
+	return model.LargeText(util.NewWorkflow(workflow).ToStringForStore())
+}
+
+func TestCreateRun_ServiceAccountSAR_TemplateSA_Unauthorized_NoWorkflowCreated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+	defer store.Close()
+
+	_, err := manager.CreateRun(multiUserContext(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa"),
+			Parameters:           `[{"name":"param1","value":"world"}]`,
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created when a template SA is unauthorized")
+}
+
+func TestCreateRun_ServiceAccountSAR_PluginMutationUnauthorized_CleansUpPlugins(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "plugin-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+	defer store.Close()
+	dispatcher := &serviceAccountMutatingDispatcher{
+		output: apiservermlflow.SuccessfulPluginOutput("exp-1", "experiment", "parent-run-1", "https://mlflow.example/runs/parent-run-1"),
+	}
+	manager.pluginDispatcher = dispatcher
+
+	run := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           `[{"name":"param1","value":"world"}]`,
+		},
+		ExperimentId: experiment.UUID,
+	}
+	_, err := manager.CreateRun(multiUserContext(), run)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created after an unauthorized plugin mutation")
+	require.NotEmpty(t, run.UUID)
+	_, err = manager.GetRun(run.UUID)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "a rejected run should not be persisted")
+	require.Len(t, dispatcher.endedRuns, 1, "plugin resources must be cleaned up after post-hook authorization fails")
+	assert.Equal(t, run.UUID, dispatcher.endedRuns[0].RunID)
+	assert.True(t, proto.Equal(dispatcher.output, dispatcher.endedRuns[0].PluginsOutput[apiservermlflow.PluginName]), "cleanup must receive the output identifying the plugin resources")
+}
+
+func TestCreateJob_ServiceAccountSAR_TemplateSA_Unauthorized_NoScheduledWorkflowCreated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	tests := []struct {
+		name, mode string
+	}{
+		{name: "pinned workflow", mode: "pinned"},
+		{name: "pinned workflow with plugins", mode: "plugins"},
+		{name: "latest pipeline version", mode: "latest"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+			defer store.Close()
+			if tt.mode == "plugins" {
+				manager.pluginDispatcher = &countingTerminalReportDispatcher{}
+			}
+			pipelineSpec := model.PipelineSpec{WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa")}
+			if tt.mode == "latest" {
+				pipeline, err := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
+				require.NoError(t, err)
+				_, err = manager.CreatePipelineVersion(createPipelineVersion(
+					pipeline.UUID, "p1/v1", "v1", "", string(pipelineSpec.WorkflowSpecManifest), "", "ns1",
+				))
+				require.NoError(t, err)
+				pipelineSpec = model.PipelineSpec{PipelineId: pipeline.UUID}
+			}
+
+			_, err := manager.CreateJob(multiUserContext(), &model.Job{
+				DisplayName:  "j1",
+				Enabled:      true,
+				PipelineSpec: pipelineSpec,
+				ExperimentId: experiment.UUID,
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "Unauthorized")
+			_, getErr := store.SwfClient().ScheduledWorkflow("ns1").Get(context.Background(), "job-", v1.GetOptions{})
+			assert.True(t, apierrors.IsNotFound(getErr), "no ScheduledWorkflow CRD should be created when a template SA is unauthorized")
+		})
+	}
+}
+
+func TestCreateRun_ParameterizedPodSpecPatch_NoWorkflowCreated(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	workflow := testWorkflow.DeepCopy()
+	workflow.Spec.PodSpecPatch = `{"serviceAccountName":"{{workflow.parameters.param1}}"}`
+	_, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(util.NewWorkflow(workflow).ToStringForStore()),
+			Parameters:           `[{"name":"param1","value":"pipeline-runner"}]`,
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "podSpecPatch contains a template expression")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created when a podSpecPatch cannot be authorized")
+}
+
+func TestCreateRun_V2ExternalTemplateReference_NoWorkflowCreated(t *testing.T) {
+	viper.Set(common.CompiledPipelineSpecPatch, `{"workflowTemplateRef":{"name":"external"}}`)
+	defer viper.Set(common.CompiledPipelineSpecPatch, "")
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	_, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "external workflow template references")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
 }
 
 // --- SA embedded in workflow spec ---

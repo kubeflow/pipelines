@@ -26,6 +26,18 @@ import (
 // NOTE: These tests use viper.Reset() which mutates the global viper singleton.
 // Do not add t.Parallel() to these subtests — the shared viper state would race.
 
+func TestIsWorkflowServiceAccountAuditEnabled(t *testing.T) {
+	for _, value := range []string{"", "false", "true"} {
+		t.Run("value="+value, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			t.Setenv(WorkflowServiceAccountAudit, value)
+			viper.AutomaticEnv()
+			assert.Equal(t, value == "true", IsWorkflowServiceAccountAuditEnabled())
+		})
+	}
+}
+
 func TestGetStringConfigWithDefault(t *testing.T) {
 	tests := []struct {
 		name     string

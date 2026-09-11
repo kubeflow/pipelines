@@ -268,7 +268,9 @@ func TestCreateRunV1_Manifest_and_pipeline_version(t *testing.T) {
 	assert.Equal(t, DefaultFakeUUID, runDetail.Run.PipelineSpec.PipelineId)
 	assert.Equal(t, apiv1beta1.ResourceType_EXPERIMENT, runDetail.Run.ResourceReferences[0].Key.Type)
 	assert.Equal(t, exp.UUID, runDetail.Run.ResourceReferences[0].Key.Id)
-	assert.Equal(t, testWorkflow.ToStringForStore(), runDetail.Run.PipelineSpec.WorkflowManifest)
+	expectedWorkflow := testWorkflow.DeepCopy()
+	expectedWorkflow.Status = v1alpha1.WorkflowStatus{}
+	assert.Equal(t, util.NewWorkflow(expectedWorkflow).ToStringForStore(), runDetail.Run.PipelineSpec.WorkflowManifest)
 }
 
 func TestCreateRunV1_V1Params(t *testing.T) {
@@ -287,6 +289,7 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Status = v1alpha1.WorkflowStatus{}
 	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
@@ -794,6 +797,7 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Status = v1alpha1.WorkflowStatus{}
 	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
