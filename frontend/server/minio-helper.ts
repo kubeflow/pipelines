@@ -428,18 +428,28 @@ function detectCompression(onCompressionDetermined: (compressed: boolean) => voi
  */
 function extractFirstTarRecordAsStream() {
   const extract = tar.extract();
+  let currentStream: NodeJS.ReadableStream | null = null;
   const transformStream = new Transform({
+    read(_size: number) {
+      if (currentStream) {
+        currentStream.resume();
+      }
+    },
     write: (chunk: any, _encoding: string, callback: (error?: Error | null) => void) => {
       extract.write(chunk, callback);
     },
   });
   extract.once('entry', function (_header, stream, next) {
-    stream.on('data', (buffer: any) => transformStream.push(buffer));
+    currentStream = stream;
+    stream.on('data', (buffer: any) => {
+      if (!transformStream.push(buffer)) {
+        stream.pause();
+      }
+    });
     stream.on('end', () => {
-      transformStream.emit('end');
+      transformStream.push(null);
       next();
     });
-    stream.resume(); // just auto drain the stream
   });
   extract.on('error', (error) => transformStream.emit('error', error));
   return transformStream;
