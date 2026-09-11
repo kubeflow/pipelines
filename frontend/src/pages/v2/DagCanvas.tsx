@@ -102,14 +102,10 @@ export default function DagCanvas({
 
   const onNodesChange = useCallback(
     (changes: NodeChange<PipelineNode>[]) => {
-      const dimensionChanges = changes.filter(
-        change => change.type === 'dimensions',
-      );
+      const dimensionChanges = changes.filter((change) => change.type === 'dimensions');
 
       if (dimensionChanges.length > 0) {
-        setNodes(currentNodes =>
-          applyNodeChanges(dimensionChanges, currentNodes),
-        );
+        setNodes((currentNodes) => applyNodeChanges(dimensionChanges, currentNodes));
       }
     },
     [setNodes],
