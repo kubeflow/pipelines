@@ -13,10 +13,12 @@
 # limitations under the License.
 """Focused tests for the bounded repository Go-version updater."""
 
+import json
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 import update_go_version as updater
 
@@ -55,6 +57,18 @@ runs:
       with:
         go-version-file: go.mod
 """
+
+
+def _image_configs(version='1.27.1'):
+    return {
+        f'linux/{architecture}': {
+            'architecture': architecture,
+            'os': 'linux',
+            'config': {
+                'Env': ['PATH=/usr/local/go/bin', f'GOLANG_VERSION={version}'],
+            },
+        } for architecture in ('amd64', 'arm64')
+    }
 
 
 class RepositoryFixture:
@@ -410,23 +424,204 @@ class GoVersionUpdaterTest(unittest.TestCase):
             fixture.read(Path('Dockerfile')),
             before[Path('Dockerfile')].decode())
 
-    def test_verify_image_digests_checks_the_registry_value(self):
+    def test_verify_image_digests_accepts_pin_after_tag_moves(self):
         fixture = RepositoryFixture(self)
-        fixture.update('1.27.1', lambda _tag: NEW_DIGESTS['1.27.1-alpine'])
+        fixture.update('1.27.1', lambda _tag: OLD_DIGEST)
+        resolver = mock.Mock(return_value={
+            'linux/amd64': '1.27.1',
+            'linux/arm64': '1.27.1',
+        })
 
         updater.verify_image_digests(
             fixture.root,
-            lambda _tag: NEW_DIGESTS['1.27.1-alpine'],
+            resolver,
             fixture.docker_pins,
             fixture.setup_actions,
         )
-        with self.assertRaisesRegex(updater.PolicyError, 'not pinned digest'):
+
+        resolver.assert_called_once_with(OLD_DIGEST)
+        self.assertIn(OLD_DIGEST, fixture.read(Path('Dockerfile')))
+
+    def test_verify_image_digests_requires_root_compiler_on_each_platform(self):
+        fixture = RepositoryFixture(self)
+        fixture.update('1.27.1', lambda _tag: OLD_DIGEST)
+        for platform in ('linux/amd64', 'linux/arm64'):
+            with self.subTest(platform=platform):
+                versions = {
+                    'linux/amd64': '1.27.1',
+                    'linux/arm64': '1.27.1',
+                }
+                versions[platform] = '1.27.0'
+                with self.assertRaisesRegex(updater.PolicyError, platform):
+                    updater.verify_image_digests(
+                        fixture.root,
+                        lambda _digest: versions,
+                        fixture.docker_pins,
+                        fixture.setup_actions,
+                    )
+
+    def test_verify_image_digests_inspects_each_distinct_pin_once(self):
+        pins = (
+            updater.DockerPin(Path('Dockerfile.default'), '', 'generator'),
+            updater.DockerPin(
+                Path('Dockerfile.alpine-a'), '-alpine', 'builder'),
+            updater.DockerPin(
+                Path('Dockerfile.alpine-b'), '-alpine', 'builder'),
+            updater.DockerPin(
+                Path('Dockerfile.bookworm'), '-bookworm', 'builder'),
+        )
+        fixture = RepositoryFixture(self, pins)
+        fixture.update(
+            '1.27.1', lambda tag:
+            (NEW_DIGESTS[tag] if tag.endswith('-bookworm') else OLD_DIGEST))
+        resolver = mock.Mock(return_value={
+            'linux/amd64': '1.27.1',
+            'linux/arm64': '1.27.1',
+        })
+
+        updater.verify_image_digests(
+            fixture.root,
+            resolver,
+            fixture.docker_pins,
+            fixture.setup_actions,
+        )
+
+        self.assertCountEqual(resolver.call_args_list, [
+            mock.call(OLD_DIGEST),
+            mock.call(NEW_DIGESTS['1.27.1-bookworm']),
+        ])
+
+    def test_verify_image_digests_keeps_same_flavor_consistency_check(self):
+        pins = (
+            updater.DockerPin(
+                Path('Dockerfile.alpine-a'), '-alpine', 'builder'),
+            updater.DockerPin(
+                Path('Dockerfile.alpine-b'), '-alpine', 'builder'),
+        )
+        fixture = RepositoryFixture(self, pins)
+        fixture.update('1.27.1', lambda _tag: OLD_DIGEST)
+        fixture.write(
+            pins[1].path,
+            _dockerfile('1.27.1', pins[1], NEW_DIGESTS['1.27.1-alpine']))
+        resolver = mock.Mock()
+
+        with self.assertRaisesRegex(updater.PolicyError, 'must use one digest'):
             updater.verify_image_digests(
                 fixture.root,
-                lambda _tag: 'sha256:' + 'f' * 64,
+                resolver,
                 fixture.docker_pins,
                 fixture.setup_actions,
             )
+        resolver.assert_not_called()
+
+    def test_resolve_image_versions_inspects_pinned_config(self):
+        result = subprocess.CompletedProcess([],
+                                             0,
+                                             stdout=json.dumps(
+                                                 _image_configs()))
+        with mock.patch.object(updater, '_run', return_value=result) as run:
+            self.assertEqual(
+                updater.resolve_image_versions(OLD_DIGEST), {
+                    'linux/amd64': '1.27.1',
+                    'linux/arm64': '1.27.1',
+                })
+
+        run.assert_called_once_with(
+            ('docker', 'buildx', 'imagetools', 'inspect',
+             f'golang@{OLD_DIGEST}', '--format', '{{json .Image}}'),
+            updater.REPOSITORY_ROOT,
+            timeout=updater.DIGEST_LOOKUP_TIMEOUT_SECONDS,
+        )
+
+    def test_resolve_image_versions_rejects_unusable_config(self):
+        cases = {
+            'invalid JSON':
+                'not JSON',
+            'non-object JSON':
+                '[]',
+            'missing platform':
+                json.dumps({
+                    'linux/amd64': _image_configs()['linux/amd64'],
+                }),
+        }
+        invalid_configs = (
+            None,
+            {},
+            {
+                'Env': None
+            },
+            {
+                'Env': 'GOLANG_VERSION=1.27.1'
+            },
+            {
+                'Env': [None, 'GOLANG_VERSION=1.27.1']
+            },
+            {
+                'Env': ['PATH=/usr/local/go/bin']
+            },
+            {
+                'Env': ['GOLANG_VERSION=1.27']
+            },
+            {
+                'Env': ['GOLANG_VERSION=1.27.1', 'GOLANG_VERSION=1.27.0']
+            },
+        )
+        for config in invalid_configs:
+            images = _image_configs()
+            images['linux/arm64']['config'] = config
+            cases[f'invalid config {config!r}'] = json.dumps(images)
+        images = _image_configs()
+        del images['linux/arm64']['config']
+        cases['missing config'] = json.dumps(images)
+        for field, value in (('os', 'windows'), ('architecture', 'amd64')):
+            images = _image_configs()
+            images['linux/arm64'][field] = value
+            cases[f'incorrect {field}'] = json.dumps(images)
+            del images['linux/arm64'][field]
+            cases[f'missing {field}'] = json.dumps(images)
+        for name, payload in cases.items():
+            with self.subTest(name=name):
+                result = subprocess.CompletedProcess([], 0, stdout=payload)
+                with mock.patch.object(updater, '_run', return_value=result), \
+                        mock.patch.object(updater.time, 'sleep'):
+                    with self.assertRaises(updater.PolicyError):
+                        updater.resolve_image_versions(OLD_DIGEST)
+
+    def test_resolve_image_versions_retries_same_digest_after_timeout(self):
+        result = subprocess.CompletedProcess([],
+                                             0,
+                                             stdout=json.dumps(
+                                                 _image_configs()))
+        timeout = subprocess.TimeoutExpired('docker', 30)
+        with mock.patch.object(
+                updater.subprocess, 'run', side_effect=[timeout,
+                                                        result]) as run:
+            self.assertEqual(
+                updater.resolve_image_versions(OLD_DIGEST), {
+                    'linux/amd64': '1.27.1',
+                    'linux/arm64': '1.27.1',
+                })
+        self.assertEqual([call.args[0][4] for call in run.call_args_list], [
+            f'golang@{OLD_DIGEST}',
+            f'mirror.gcr.io/library/golang@{OLD_DIGEST}',
+        ])
+        for call in run.call_args_list:
+            self.assertEqual(call.kwargs['timeout'],
+                             updater.DIGEST_LOOKUP_TIMEOUT_SECONDS)
+
+    def test_resolve_image_versions_bounds_registry_retries(self):
+        with mock.patch.object(
+                updater, '_run',
+                side_effect=updater.PolicyError('registry unavailable')) as run, \
+                mock.patch.object(updater.time, 'sleep'):
+            with self.assertRaisesRegex(updater.PolicyError,
+                                        'registry unavailable'):
+                updater.resolve_image_versions(OLD_DIGEST)
+
+        self.assertEqual([call.args[0][4] for call in run.call_args_list], [
+            f'golang@{OLD_DIGEST}',
+            f'mirror.gcr.io/library/golang@{OLD_DIGEST}',
+        ] * updater.DIGEST_LOOKUP_ATTEMPTS)
 
     def test_inventory_rejects_unregistered_literal_docker_source(self):
         fixture = RepositoryFixture(self)

@@ -16,12 +16,14 @@ package model
 
 type ExecutionCache struct {
 	ID                int64  `gorm:"column:ID; not null; primaryKey; AUTO_INCREMENT; index:composite_id_idx"`
-	ExecutionCacheKey string `gorm:"column:ExecutionCacheKey; not null; index:idx_cache_key;"`
+	ExecutionCacheKey string `gorm:"column:ExecutionCacheKey; not null; index:idx_cache_key; index:idx_cache_namespace_key,priority:2;"`
 	ExecutionTemplate string `gorm:"column:ExecutionTemplate; not null;"`
 	ExecutionOutput   string `gorm:"column:ExecutionOutput; not null;"`
 	MaxCacheStaleness int64  `gorm:"column:MaxCacheStaleness; not null;"`
 	StartedAtInSec    int64  `gorm:"column:StartedAtInSec; not null; index:composite_id_idx;"`
 	EndedAtInSec      int64  `gorm:"column:EndedAtInSec; not null;"`
+	// Empty namespace marks legacy rows whose tenant ownership cannot be established.
+	Namespace string `gorm:"column:Namespace; size:63; not null; default:''; index:idx_cache_namespace_key,priority:1;"`
 }
 
 // GetValueOfPrimaryKey returns the value of ExecutionCacheKey.
