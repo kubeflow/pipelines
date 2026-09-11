@@ -151,3 +151,95 @@ func TestCreateJobPluginV1PreservesAuthorizedServiceAccountOverride(t *testing.T
 		}
 	}
 }
+
+func TestAuthorizeStoredRunServiceAccount(t *testing.T) {
+	for key, value := range map[string]string{
+		common.MultiUserMode:                           "false",
+		common.DefaultPipelineRunnerServiceAccountFlag: "pipeline-runner",
+	} {
+		previous := viper.Get(key)
+		viper.Set(key, value)
+		t.Cleanup(func() { viper.Set(key, previous) })
+	}
+	manifest := func(account string) model.LargeText {
+		workflow := util.NewWorkflow(testWorkflow.DeepCopy())
+		workflow.Spec.ServiceAccountName = account
+		workflow.SetExecutionName("stored-workflow")
+		workflow.SetExecutionNamespace("ns1")
+		return model.LargeText(workflow.ToStringForStore())
+	}
+	for _, test := range []struct {
+		name             string
+		storedAccount    string
+		workflowManifest model.LargeText
+		pipelineManifest model.LargeText
+		allowedAccount   string
+		wantError        string
+	}{
+		{
+			name: "stored account takes precedence", storedAccount: "stored-runner",
+			workflowManifest: manifest("embedded-runner"), allowedAccount: "stored-runner",
+		},
+		{
+			name: "stored account cannot be bypassed by an allowed manifest account", storedAccount: "stored-runner",
+			workflowManifest: manifest("embedded-runner"), allowedAccount: "embedded-runner", wantError: "not allowed",
+		},
+		{
+			name: "stored account does not require a runtime manifest", storedAccount: "stored-runner",
+			allowedAccount: "stored-runner",
+		},
+		{
+			name: "stored account does not parse an unused manifest", storedAccount: "stored-runner",
+			workflowManifest: "{", allowedAccount: "stored-runner",
+		},
+		{
+			name: "workflow runtime account allowed", workflowManifest: manifest("embedded-runner"),
+			allowedAccount: "embedded-runner",
+		},
+		{
+			name: "workflow runtime account denied", workflowManifest: manifest("embedded-runner"),
+			wantError: "not allowed",
+		},
+		{
+			name: "pipeline runtime account allowed", pipelineManifest: manifest("embedded-runner"),
+			allowedAccount: "embedded-runner",
+		},
+		{
+			name: "pipeline runtime account denied", pipelineManifest: manifest("embedded-runner"),
+			wantError: "not allowed",
+		},
+		{
+			name:             "workflow runtime takes precedence over pipeline runtime",
+			workflowManifest: manifest("stored-runner"), pipelineManifest: manifest("embedded-runner"),
+			allowedAccount: "embedded-runner", wantError: "not allowed",
+		},
+		{name: "legitimate empty account", workflowManifest: manifest("")},
+		{name: "missing execution identity", wantError: "execution identity is missing"},
+		{name: "malformed workflow runtime", workflowManifest: "{", wantError: "stored execution account"},
+		{name: "malformed pipeline runtime", pipelineManifest: "{", wantError: "stored execution account"},
+		{name: "null execution identity", workflowManifest: "null", wantError: "execution name is missing"},
+		{name: "empty execution identity", workflowManifest: "{}", wantError: "execution name is missing"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			previous := viper.Get(common.AllowedServiceAccountsFlag)
+			viper.Set(common.AllowedServiceAccountsFlag, test.allowedAccount)
+			t.Cleanup(func() { viper.Set(common.AllowedServiceAccountsFlag, previous) })
+			run := &model.Run{
+				UUID: "stored-run", Namespace: "ns1", ServiceAccount: test.storedAccount,
+				RunDetails: model.RunDetails{
+					WorkflowRuntimeManifest: test.workflowManifest,
+					PipelineRuntimeManifest: test.pipelineManifest,
+				},
+			}
+			before := *run
+			manager := &ResourceManager{}
+			err := manager.authorizeStoredRunServiceAccount(context.Background(), run)
+			if test.wantError != "" {
+				require.ErrorContains(t, err, test.wantError)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, before, *run, "authorization must not replace retained execution metadata")
+		})
+	}
+}

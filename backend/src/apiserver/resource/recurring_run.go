@@ -91,6 +91,33 @@ func (r *ResourceManager) PrepareRecurringRun(ctx context.Context, run *model.Ru
 	return nil
 }
 
+// Replay authorizes the retained execution, not a newer template or mutable schedule.
+func (r *ResourceManager) authorizeStoredRunServiceAccount(ctx context.Context, run *model.Run) error {
+	serviceAccount, namespace := run.ServiceAccount, run.Namespace
+	if serviceAccount == "" {
+		// Persistence-agent recovery may omit the account column while retaining
+		// the execution manifest in either runtime field.
+		manifest := storedWorkflowIdentityManifest(run)
+		if manifest == "" {
+			return util.NewFailedPreconditionError(fmt.Errorf("stored execution identity is missing"),
+				"Restore the execution metadata for run %s before retrying its acknowledgement", run.UUID)
+		}
+		execution, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(manifest))
+		if err != nil {
+			return util.Wrap(err, "Failed to read the stored execution account for recurring-run acknowledgement")
+		}
+		if execution.ExecutionName() == "" {
+			return util.NewFailedPreconditionError(fmt.Errorf("stored execution name is missing"),
+				"Restore the execution metadata for run %s before retrying its acknowledgement", run.UUID)
+		}
+		serviceAccount = execution.ServiceAccount()
+		if namespace == "" {
+			namespace = execution.ExecutionNamespace()
+		}
+	}
+	return r.authorizeServiceAccount(ctx, serviceAccount, namespace)
+}
+
 // V1 workflows may carry the effective account inside their embedded Argo spec.
 func scheduledServiceAccount(swf *scheduledworkflow.ScheduledWorkflow, fallback string) (string, error) {
 	if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {

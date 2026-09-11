@@ -760,6 +760,22 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	if !common.IsMultiUserMode() && run.RecurringRunId != "" && run.DisplayName != "" {
+		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to check for an existing scheduled run")
+		}
+		if existingRunID != "" {
+			existing, err := r.runStore.GetRun(existingRunID)
+			if err != nil {
+				return nil, err
+			}
+			if err := r.authorizeStoredRunServiceAccount(ctx, existing); err != nil {
+				return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to service account authorization error")
+			}
+			return existing, nil
+		}
+	}
 	var err error
 
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
@@ -877,17 +893,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if tick != nil {
 		if err := r.claimRecurringRunTick(run, tick); err != nil {
 			return nil, err
-		}
-	}
-
-	// Replays still pass normal authorization. Kubernetes names arbitrate creation races.
-	if tick == nil && run.RecurringRunId != "" && run.DisplayName != "" {
-		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to check for existing run")
-		}
-		if existingRunID != "" {
-			return r.runStore.GetRun(existingRunID)
 		}
 	}
 
