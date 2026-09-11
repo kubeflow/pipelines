@@ -760,6 +760,10 @@ func initConfig() error {
 		glog.Fatalf("Invalid plugin limits configuration: %v", err)
 	}
 
+	if err := validateServiceAccountAuthorizationMode(); err != nil {
+		return err
+	}
+
 	// Watch for configuration change
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
@@ -768,6 +772,9 @@ func initConfig() error {
 		}
 		if _, err := common.GetPluginLimitsConfig(); err != nil {
 			glog.Fatalf("Invalid plugin limits configuration: %v", err)
+		}
+		if err := validateServiceAccountAuthorizationMode(); err != nil {
+			glog.Fatalf("Invalid service-account authorization configuration: %v", err)
 		}
 	})
 
@@ -835,4 +842,15 @@ func getPVCSpec() (*corev1.PersistentVolumeClaimSpec, error) {
 	}
 
 	return &pvcSpec, nil
+}
+
+func validateServiceAccountAuthorizationMode() error {
+	mode, err := common.GetServiceAccountAuthorizationMode()
+	if err != nil {
+		return err
+	}
+	if mode == "audit" {
+		glog.Warning("SERVICEACCOUNTAUTHORIZATIONMODE=audit: service-account policy denials are allowed; this restores the security exposure addressed by service-account authorization. Migrate to enforce before 3.0.0, when audit mode is planned for removal (https://github.com/kubeflow/pipelines/issues/14367).")
+	}
+	return nil
 }

@@ -258,6 +258,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 })
 
 type retryDuringTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	manager  *ResourceManager
 	runID    string
 	retryErr error
@@ -281,6 +282,7 @@ func (d *retryDuringTerminalReportDispatcher) PluginsRegistered() bool {
 }
 
 type countingTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunEndCalls int
 }
 
@@ -4023,9 +4025,8 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		DisplayName: "j1",
 		K8SName:     "job-",
 		Namespace:   "ns1",
-		// Since there is no pipeline version or service account specified, the API server will select the service
-		// account when compiling the run, not within the ScheduledWorkflow.
-		ServiceAccount: "",
+		// Persist the effective account authorized when the follow-latest schedule is created.
+		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -8571,6 +8572,7 @@ func TestRetryRun_ExpiredClaimWithoutWorkflowIsTakenOver(t *testing.T) {
 }
 
 type retryHookCountingDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunRetryCalls int
 }
 

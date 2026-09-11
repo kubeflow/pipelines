@@ -111,3 +111,18 @@ spec:
         - name: NO_PROXY
           value: localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,metadata-grpc-service,0,1,2,3,4,5,6,7,8,9
 ```
+
+## Recurring runs and custom service accounts
+
+See [Service accounts for recurring runs](scheduled-service-accounts.md) for
+`ALLOWEDSERVICEACCOUNTS`, scoped controller grants, multi-user upgrade requirements,
+and revoking scheduled execution.
+
+### Service-account authorization migration mode
+
+`SERVICEACCOUNTAUTHORIZATIONMODE` accepts `enforce` (default, including upgrades)
+or `audit`. Audit temporarily allows service-account policy denials and logs
+warnings, restoring the associated security exposure. It does not disable
+existing authentication or namespace authorization. See the
+[scope, rollout, and migration instructions](scheduled-service-accounts.md#temporary-audit-mode-for-migration).
+Audit mode is planned for removal in 3.0.0 ([#14367](https://github.com/kubeflow/pipelines/issues/14367)).

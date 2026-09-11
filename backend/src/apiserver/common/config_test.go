@@ -911,3 +911,35 @@ func TestValidateServiceAccountAllowList_ConfiguredDefaultAllowed(t *testing.T) 
 	err := ValidateServiceAccountAllowList("my-runner")
 	assert.Nil(t, err)
 }
+
+func TestGetServiceAccountAuthorizationMode(t *testing.T) {
+	for _, tc := range []struct {
+		name, value, want string
+		invalid           bool
+	}{
+		{name: "unset", want: "enforce"},
+		{name: "empty", want: "enforce"},
+		{name: "enforce", value: "enforce", want: "enforce"},
+		{name: "audit", value: "audit", want: "audit"},
+		{name: "typo", value: "audti", invalid: true},
+		{name: "legacy", value: "legacy", invalid: true},
+		{name: "case", value: "AUDIT", invalid: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			viper.AutomaticEnv()
+			viper.AllowEmptyEnv(true)
+			if tc.name != "unset" {
+				t.Setenv(ServiceAccountAuthorizationMode, tc.value)
+			}
+			got, err := GetServiceAccountAuthorizationMode()
+			if tc.invalid {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
