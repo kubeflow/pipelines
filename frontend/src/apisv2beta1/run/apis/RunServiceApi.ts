@@ -21,6 +21,7 @@ import {
   V2beta1ListRunsResponseToJSON,
   V2beta1RunFromJSON,
   V2beta1RunToJSON,
+  V2beta1TaskScope,
 } from '../models/index';
 
 export interface ArchiveRunRequest {
@@ -66,6 +67,20 @@ export interface TerminateRunRequest {
 export interface UnarchiveRunRequest {
   run_id: string;
   experiment_id?: string;
+}
+
+export interface ClearTaskRequest {
+  run_id: string;
+  task_id: string;
+  scope: V2beta1TaskScope;
+  invalidate_cache?: boolean;
+}
+
+export interface MarkTaskSuccessRequest {
+  run_id: string;
+  task_id: string;
+  scope: V2beta1TaskScope;
+  comment: string;
 }
 
 /**
@@ -574,6 +589,117 @@ export class RunServiceApi extends runtime.BaseAPI {
   ): Promise<object> {
     const response = await this.unarchiveRunRaw(
       { run_id: run_id, experiment_id: experiment_id },
+      initOverrides,
+    );
+    return await response.value();
+  }
+  /**
+   * Clears a task's status, causing it to re-run.
+   */
+  async clearTaskRaw(
+    requestParameters: ClearTaskRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<object>> {
+    if (requestParameters['run_id'] == null || requestParameters['task_id'] == null) {
+      throw new runtime.RequiredError(
+        'run_id/task_id',
+        'run_id and task_id are required when calling clearTask().',
+      );
+    }
+
+    const headerParameters: runtime.HTTPHeaders = { 'Content-Type': 'application/json' };
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization');
+    }
+
+    let urlPath = `/apis/v2beta1/runs/{run_id}/tasks/{task_id}:clear`;
+    urlPath = urlPath
+      .replace(`{${'run_id'}}`, encodeURIComponent(String(requestParameters['run_id'])))
+      .replace(`{${'task_id'}}`, encodeURIComponent(String(requestParameters['task_id'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        body: {
+          scope: requestParameters['scope'],
+          invalidate_cache: requestParameters['invalidate_cache'] ?? false,
+        },
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse<any>(response);
+  }
+
+  async clearTask(
+    run_id: string,
+    task_id: string,
+    scope: V2beta1TaskScope,
+    invalidate_cache?: boolean,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<object> {
+    const response = await this.clearTaskRaw(
+      { run_id, task_id, scope, invalidate_cache },
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Marks a task as succeeded, allowing downstream tasks to proceed.
+   */
+  async markTaskSuccessRaw(
+    requestParameters: MarkTaskSuccessRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<object>> {
+    if (
+      requestParameters['run_id'] == null ||
+      requestParameters['task_id'] == null ||
+      !requestParameters['comment']?.trim()
+    ) {
+      throw new runtime.RequiredError(
+        'run_id/task_id/comment',
+        'run_id, task_id and a non-empty comment are required when calling markTaskSuccess().',
+      );
+    }
+
+    const headerParameters: runtime.HTTPHeaders = { 'Content-Type': 'application/json' };
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization');
+    }
+
+    let urlPath = `/apis/v2beta1/runs/{run_id}/tasks/{task_id}:marksuccess`;
+    urlPath = urlPath
+      .replace(`{${'run_id'}}`, encodeURIComponent(String(requestParameters['run_id'])))
+      .replace(`{${'task_id'}}`, encodeURIComponent(String(requestParameters['task_id'])));
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        body: {
+          scope: requestParameters['scope'],
+          comment: requestParameters['comment'],
+        },
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse<any>(response);
+  }
+
+  async markTaskSuccess(
+    run_id: string,
+    task_id: string,
+    scope: V2beta1TaskScope,
+    comment: string,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<object> {
+    const response = await this.markTaskSuccessRaw(
+      { run_id, task_id, scope, comment },
       initOverrides,
     );
     return await response.value();

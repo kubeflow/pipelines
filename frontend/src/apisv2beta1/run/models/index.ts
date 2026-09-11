@@ -19,3 +19,4 @@ export * from './V2beta1RunStorageState';
 export * from './V2beta1RuntimeConfig';
 export * from './V2beta1RuntimeState';
 export * from './V2beta1RuntimeStatus';
+export * from './V2beta1TaskScope';

@@ -58,6 +58,8 @@ import RuntimeInputOutputTab, {
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import TaskActionDialog, { TaskActionKind } from 'src/components/tabs/TaskActionDialog';
+import { V2beta1TaskScope } from 'src/apisv2beta1/run';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
@@ -155,6 +157,37 @@ function TaskNodeDetail({
   layers,
   namespace,
 }: TaskNodeDetailProps) {
+  const [actionDialog, setActionDialog] = useState<TaskActionKind | null>(null);
+  const [actionBanner, setActionBanner] = useState<{
+    mode: 'error' | 'info';
+    message: string;
+  } | null>(null);
+
+  const executionState = execution?.getLastKnownState();
+  const canClear = !!execution;
+  const canMarkSuccess = executionState === Execution.State.FAILED;
+
+  const taskId = element?.id ? getTaskKeyFromNodeKey(element.id) : undefined;
+
+  async function handleConfirm(
+    scope: V2beta1TaskScope,
+    extra: { invalidateCache?: boolean; comment?: string },
+  ) {
+    if (!runId || !taskId) return;
+    try {
+      if (actionDialog === 'clear') {
+        await Apis.runServiceApiV2.clearTask(runId, taskId, scope, extra.invalidateCache);
+        setActionBanner({ mode: 'info', message: 'Task cleared. It will re-run shortly.' });
+      } else if (actionDialog === 'markSuccess') {
+        await Apis.runServiceApiV2.markTaskSuccess(runId, taskId, scope, extra.comment || '');
+        setActionBanner({ mode: 'info', message: 'Task marked as succeeded.' });
+      }
+    } catch (err) {
+      setActionBanner({ mode: 'error', message: await errorToMessage(err) });
+    } finally {
+      setActionDialog(null);
+    }
+  }
   const {
     data: logsInfo,
     isError: logsQueryFailed,
@@ -181,6 +214,25 @@ function TaskNodeDetail({
 
   return (
     <div className={commonCss.page}>
+      <div className={padding(20, 'lrt')}>
+        <div style={{ fontWeight: 'bold', marginBottom: 8 }}>Task Actions</div>
+        {actionBanner && <Banner message={actionBanner.message} mode={actionBanner.mode} />}
+        <Button disabled={!canClear} onClick={() => setActionDialog('clear')}>
+          Re-run Task
+        </Button>
+        <Button disabled={!canMarkSuccess} onClick={() => setActionDialog('markSuccess')}>
+          Mark Succeeded
+        </Button>
+        {actionDialog && taskId && (
+          <TaskActionDialog
+            open={true}
+            kind={actionDialog}
+            taskName={taskId}
+            onClose={() => setActionDialog(null)}
+            onConfirm={handleConfirm}
+          />
+        )}
+      </div>
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
