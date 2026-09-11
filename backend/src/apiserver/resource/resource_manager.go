@@ -823,11 +823,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 		runWorkflowOptions.RecurringRunIndex = &index
 	}
-	if tick != nil && tick.deleted {
-		// Acknowledgement cannot depend on a deleted pipeline version. The job
-		// retains its authorized effective account; the server checks pipeline
-		// and namespace access before entering CreateRun.
-		if err := r.authorizeServiceAccount(ctx, tick.replay.ServiceAccount, tick.replay.Namespace); err != nil {
+	if tick != nil && tick.replay != nil {
+		// Acknowledgement cannot depend on a deleted pipeline version. Preparation
+		// restores the job's effective account, including for reporter-recovered
+		// runs without a stored account. The server checks pipeline and namespace access.
+		if err := r.authorizeServiceAccount(ctx, run.ServiceAccount, run.Namespace); err != nil {
 			return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to service account authorization error")
 		}
 		return tick.replay, nil
@@ -875,9 +875,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 
 	if tick != nil {
-		if tick.replay != nil {
-			return tick.replay, nil
-		}
 		if err := r.claimRecurringRunTick(run, tick); err != nil {
 			return nil, err
 		}
@@ -922,6 +919,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 	}()
 
+	if run.RecurringRunId != "" {
+		if err := apiserverPlugins.SetExecutionPluginParents(pendingRun, executionSpec); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to record recurring-run plugin parents")
+		}
+	}
+
 	newExecSpec, executionCreated, err := r.createRunExecution(ctx, run, executionSpec)
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -930,8 +933,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
 	}
 	if !executionCreated {
-		// This request must not clean up plugin resources belonging to the existing execution.
+		// Cleanup must preserve the creator's parents and persisted plugin output.
 		runPersisted = true
+		if err := r.pluginDispatcher.OnRunCreationDiscarded(ctx, pendingRun, newExecSpec); err != nil {
+			glog.Warningf("Failed to clean up discarded creation for run %q: %v", run.UUID, err)
+		}
 		// The absence of local plugin output does not mean the creator had none.
 		// Only the creator or persistence agent may persist the existing execution.
 		existing, err := r.runStore.GetRun(run.UUID)

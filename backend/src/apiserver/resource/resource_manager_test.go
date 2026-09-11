@@ -258,6 +258,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 })
 
 type retryDuringTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	manager  *ResourceManager
 	runID    string
 	retryErr error
@@ -281,6 +282,7 @@ func (d *retryDuringTerminalReportDispatcher) PluginsRegistered() bool {
 }
 
 type countingTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunEndCalls int
 }
 
@@ -8570,6 +8572,7 @@ func TestRetryRun_ExpiredClaimWithoutWorkflowIsTakenOver(t *testing.T) {
 }
 
 type retryHookCountingDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunRetryCalls int
 }
 

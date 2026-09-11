@@ -35,7 +35,6 @@ type recurringRunTick struct {
 	scheduledAt   int64
 	createdAt     int64
 	replay        *model.Run
-	deleted       bool
 }
 
 func (r *ResourceManager) prepareRecurringRunTick(run *model.Run, owner *scheduledworkflow.ScheduledWorkflow, now int64) (*recurringRunTick, error) {
@@ -83,7 +82,6 @@ func (r *ResourceManager) prepareRecurringRunTick(run *model.Run, owner *schedul
 			// The controller may not have acknowledged the tick before its run was
 			// deleted. Return retained metadata without recreating either resource.
 			// CreateRun still authorizes the caller before returning this replay.
-			tick.deleted = true
 			tick.replay = &model.Run{
 				UUID:           util.NewDeterministicUUID(job.UUID + "/tick/" + strconv.FormatInt(state.LastRunIndex, 10)),
 				DisplayName:    state.RequestKey,

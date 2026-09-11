@@ -754,7 +754,7 @@ func (c *Controller) updateStatus(
 	swfCopy.UpdateStatus(submitted, nextScheduledEpoch, active, completed, c.location)
 
 	// Pre-update check: determine if the Workflow (wf) object has actually changed
-	// by comparing its Status.Conditions, Status.WorkflowHistory, and Labels
+	// by comparing its Status.Conditions, Status.WorkflowHistory, Status.Trigger, and Labels
 	// with the previous copy (swfCopy). `updated` will be true if any of these
 	// fields were modified.
 	//
@@ -763,9 +763,11 @@ func (c *Controller) updateStatus(
 	// unnecessary writes to the Kubernetes API
 	conditionsWasUpdated := !equality.Semantic.DeepEqual(swf.Status.Conditions, swfCopy.Status.Conditions)
 	workHistoryWasUpdated := !equality.Semantic.DeepEqual(swf.Status.WorkflowHistory, swfCopy.Status.WorkflowHistory)
+	triggerWasUpdated := !equality.Semantic.DeepEqual(swf.Status.Trigger, swfCopy.Status.Trigger)
 	labelsWasUpdated := !equality.Semantic.DeepEqual(swf.Labels, swfCopy.Labels)
 	var updated = conditionsWasUpdated ||
 		workHistoryWasUpdated ||
+		triggerWasUpdated ||
 		labelsWasUpdated
 
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to

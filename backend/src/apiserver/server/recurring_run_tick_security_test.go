@@ -261,8 +261,8 @@ func TestRecurringRunResumesOnlyTheAuthorizedPendingTick(t *testing.T) {
 }
 
 func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T) {
-	for _, deleted := range []bool{false, true} {
-		t.Run(fmt.Sprintf("deleted=%t", deleted), func(t *testing.T) {
+	for _, replaySource := range []string{"retained", "deleted", "reporter-recovered"} {
+		t.Run(replaySource, func(t *testing.T) {
 			for _, denial := range []string{"disabled-db", "disabled-cr", "revoked-service-account", "removed-allowlist", "denied-namespace"} {
 				t.Run(denial, func(t *testing.T) {
 					clients, manager, job, review := newAuthorizedSchedule(t)
@@ -273,15 +273,34 @@ func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T)
 					run, err := server.CreateRun(ctx, request)
 					require.NoError(t, err)
 					workflowCount := 1
-					if deleted {
+					switch replaySource {
+					case "deleted":
 						require.NoError(t, manager.DeleteRun(ctx, run.RunId))
 						workflowCount = 0
+					case "reporter-recovered":
+						stored, err := manager.GetRun(run.RunId)
+						require.NoError(t, err)
+						workflow, err := clients.ExecClientFake.Execution(job.Namespace).Get(ctx, stored.K8SName, metav1.GetOptions{})
+						require.NoError(t, err)
+						// Recover the missing row from a real Workflow report. The
+						// reporter does not populate the row's ServiceAccount field.
+						require.NoError(t, clients.RunStore().DeleteRun(run.RunId))
+						_, err = manager.ReportWorkflowResource(ctx, workflow)
+						require.NoError(t, err)
+						recovered, err := manager.GetRun(run.RunId)
+						require.NoError(t, err)
+						require.Empty(t, recovered.ServiceAccount)
+						require.Equal(t, job.UUID, recovered.RecurringRunId)
+						request.Run.DisplayName = recovered.DisplayName
 					}
 					before, err := clients.JobStore().GetRecurringRunState(job.UUID)
 					require.NoError(t, err)
+					expectedCode := codes.PermissionDenied
+					var expectedMessage string
 					switch denial {
 					case "disabled-db":
 						require.NoError(t, clients.JobStore().ChangeJobMode(job.UUID, false))
+						expectedMessage = "recurring run is disabled"
 					case "disabled-cr":
 						swfs := clients.SwfClient().ScheduledWorkflow(job.Namespace)
 						swf, err := swfs.Get(ctx, job.K8SName, metav1.GetOptions{})
@@ -289,15 +308,29 @@ func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T)
 						swf.Spec.Enabled = false
 						_, err = swfs.Update(ctx, swf)
 						require.NoError(t, err)
+						expectedMessage = "recurring run is disabled"
 					case "revoked-service-account":
 						review.controllerAllowed = false
+						expectedMessage = "service account authorization error"
 					case "removed-allowlist":
 						viper.Set(common.AllowedServiceAccountsFlag, "")
+						expectedCode = codes.InvalidArgument
+						expectedMessage = `service account "custom-sa" is not allowed`
 					case "denied-namespace":
 						review.denyRunCreation = true
+						expectedMessage = "Failed to authorize scheduled run creation"
 					}
+					review.reviews = nil
 					_, err = server.CreateRun(ctx, request)
-					require.Error(t, err)
+					require.ErrorContains(t, err, expectedMessage)
+					require.True(t, util.IsUserErrorCodeMatch(err, expectedCode), "unexpected error: %v", err)
+					if denial == "revoked-service-account" {
+						require.NotEmpty(t, review.reviews)
+						attributes := review.reviews[len(review.reviews)-1].Spec.ResourceAttributes
+						require.Equal(t, "serviceaccounts", attributes.Resource)
+						require.Equal(t, job.ServiceAccount, attributes.Name)
+						require.Equal(t, job.Namespace, attributes.Namespace)
+					}
 					require.Equal(t, workflowCount, clients.ExecClientFake.GetWorkflowCount())
 					after, err := clients.JobStore().GetRecurringRunState(job.UUID)
 					require.NoError(t, err)

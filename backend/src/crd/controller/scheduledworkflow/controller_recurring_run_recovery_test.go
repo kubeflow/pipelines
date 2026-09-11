@@ -147,7 +147,7 @@ func TestSyncHandlerAcknowledgesDeletedRunAfterStatusFailure(t *testing.T) {
 		DisplayName: "recovery", K8SName: "recovery", Namespace: "ns1", ExperimentId: experiment.UUID,
 		Enabled: true, MaxConcurrency: 1, NoCatchup: true,
 		Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
-			PeriodicScheduleStartTimeInSec: commonutil.Int64Pointer(90), IntervalSecond: commonutil.Int64Pointer(10),
+			PeriodicScheduleStartTimeInSec: commonutil.Int64Pointer(290), IntervalSecond: commonutil.Int64Pointer(10),
 		}},
 		PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(`{
    "apiVersion":"argoproj.io/v1alpha1", "kind":"Workflow",
@@ -165,7 +165,7 @@ func TestSyncHandlerAcknowledgesDeletedRunAfterStatusFailure(t *testing.T) {
 	var updated *swfapi.ScheduledWorkflow
 	fakeSWF.PrependReactor("update", "scheduledworkflows", func(action ktesting.Action) (bool, runtime.Object, error) {
 		updateCount++
-		if updateCount == 1 {
+		if updateCount == 2 {
 			return true, nil, errors.New("status temporarily unavailable")
 		}
 		updated = action.(ktesting.UpdateAction).GetObject().(*swfapi.ScheduledWorkflow).DeepCopy()
@@ -180,12 +180,20 @@ func TestSyncHandlerAcknowledgesDeletedRunAfterStatusFailure(t *testing.T) {
 		runClient:      runs, multiUser: true, location: time.UTC, time: clock,
 	}
 	key := swf.Namespace + "/" + swf.Name
+	// Establish stable conditions, labels and empty history before the first tick.
+	_, _, _, err = c.syncHandler(ctx, key)
+	require.NoError(t, err)
+	require.Equal(t, 1, updateCount)
+	require.Nil(t, runs.run)
+	require.Nil(t, updated.Status.Trigger.LastIndex)
+
+	clock.now = 300
 	_, retry, _, err := c.syncHandler(ctx, key)
 	require.ErrorContains(t, err, "status temporarily unavailable")
 	require.True(t, retry)
 	require.NotNil(t, runs.run)
 	firstRun := runs.run
-	require.Equal(t, int64(200), firstRun.ScheduledAt.Seconds)
+	require.Equal(t, int64(300), firstRun.ScheduledAt.Seconds)
 	state, err := clients.JobStore().GetRecurringRunState(job.UUID)
 	require.NoError(t, err)
 	require.False(t, state.Pending)
@@ -194,7 +202,7 @@ func TestSyncHandlerAcknowledgesDeletedRunAfterStatusFailure(t *testing.T) {
 	// Retention or a user may delete the run while the controller is recovering.
 	require.NoError(t, manager.DeleteRun(ctx, firstRun.RunId))
 
-	clock.now = 300
+	clock.now = 400
 	again, retry, _, err := c.syncHandler(ctx, key)
 	require.NoError(t, err)
 	require.True(t, again)
@@ -204,8 +212,8 @@ func TestSyncHandlerAcknowledgesDeletedRunAfterStatusFailure(t *testing.T) {
 	require.Equal(t, firstRun.ScheduledAt, runs.run.ScheduledAt)
 	require.NotNil(t, updated)
 	require.Equal(t, int64(1), *updated.Status.Trigger.LastIndex)
-	require.Equal(t, int64(200), updated.Status.Trigger.LastTriggeredTime.Unix(), "acknowledge the consumed tick's original API time")
-	require.Equal(t, 2, updateCount)
+	require.Equal(t, int64(300), updated.Status.Trigger.LastTriggeredTime.Unix(), "acknowledge the consumed tick's original API time")
+	require.Equal(t, 3, updateCount)
 	require.Equal(t, []string{runs.keys[0], runs.keys[0]}, runs.keys)
 	require.Zero(t, clients.ExecClientFake.GetWorkflowCount(), "acknowledgement must not recreate the deleted Workflow")
 	_, err = manager.GetRun(firstRun.RunId)
@@ -215,18 +223,18 @@ func TestSyncHandlerAcknowledgesDeletedRunAfterStatusFailure(t *testing.T) {
 	require.Equal(t, state, afterAcknowledgement)
 
 	// The refreshed controller cursor requests a new key for the next due tick.
-	clock.now = 400
+	clock.now = 500
 	again, retry, _, err = c.syncHandler(ctx, key)
 	require.NoError(t, err)
 	require.True(t, again)
 	require.False(t, retry)
 	require.NotEqual(t, firstRun.RunId, runs.run.RunId)
-	require.Equal(t, int64(400), runs.run.ScheduledAt.Seconds)
+	require.Equal(t, int64(500), runs.run.ScheduledAt.Seconds)
 	require.NotEqual(t, runs.keys[0], runs.keys[2])
 	require.Equal(t, 1, clients.ExecClientFake.GetWorkflowCount())
 	nextState, err := clients.JobStore().GetRecurringRunState(job.UUID)
 	require.NoError(t, err)
 	require.Equal(t, int64(2), nextState.LastRunIndex)
-	require.Equal(t, int64(400), nextState.LastScheduledAtInSec)
+	require.Equal(t, int64(500), nextState.LastScheduledAtInSec)
 	require.False(t, nextState.Pending)
 }
