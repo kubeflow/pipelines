@@ -116,7 +116,7 @@ export default function DagCanvas({
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
-          {/* onNodesChange is only used to handle ReactFlow's internal dimension changes 
+          {/* onNodesChange is only used to handle ReactFlow's internal dimension changes
               so that measurement-dependent components such as MinMap can be rendered correctly
               It emits any dimension changes when measuring nodes - DAG viewer
               does not need keyboard deletion, multi-select, or internal selection
