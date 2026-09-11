@@ -3691,6 +3691,9 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 			return reportErr
 		}
 	}
+	if !result.Status.Allowed && result.Status.EvaluationError != "" {
+		return util.NewInternalServerError(errors.New("SubjectAccessReview evaluation failed"), "Authorization could not be evaluated; try again later")
+	}
 	if !result.Status.Allowed {
 		err := util.NewPermissionDeniedError(
 			errors.New("Unauthorized access"),
@@ -3849,20 +3852,39 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 }
 
 func (r *ResourceManager) authorizeServiceAccount(ctx context.Context, serviceAccount, namespace string) error {
+	mode, err := common.GetServiceAccountAuthorizationMode()
+	if err != nil {
+		return util.NewInternalServerError(err, "Invalid service-account authorization configuration")
+	}
 	if serviceAccount == "" {
 		return nil
 	}
+	audit := mode == "audit"
 	if err := common.ValidateServiceAccountAllowList(serviceAccount); err != nil {
-		return util.NewInvalidInputError("%s", err)
+		if !audit {
+			return util.NewInvalidInputError("%s", err)
+		}
+		logServiceAccountAuditDenial("allowlist", serviceAccount, namespace)
 	}
 	defaultServiceAccount := common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount)
 	if serviceAccount == defaultServiceAccount {
 		return nil
 	}
-	return r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
+	err = r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
 		Verb:      common.RbacResourceVerbUse,
 		Namespace: namespace,
 		Resource:  "serviceaccounts",
 		Name:      serviceAccount,
 	})
+	// Only a policy denial is bypassed. Authentication and authorization-service
+	// failures must still fail closed, even during migration.
+	if audit && util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
+		logServiceAccountAuditDenial("use_permission", serviceAccount, namespace)
+		return nil
+	}
+	return err
+}
+
+func logServiceAccountAuditDenial(check, serviceAccount, namespace string) {
+	glog.Warningf("service_account_authorization_audit: check=%s namespace=%q service_account=%q would_deny=true; enforcement disabled until administrator sets SERVICEACCOUNTAUTHORIZATIONMODE=enforce", check, namespace, serviceAccount)
 }

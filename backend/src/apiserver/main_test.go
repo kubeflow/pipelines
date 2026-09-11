@@ -902,3 +902,15 @@ func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
 
 	assert.True(t, gatewayHandlerCalled, "requests to /apis/ paths not matching explicit routes should reach the gRPC gateway handler")
 }
+
+func TestInitConfigRejectsInvalidServiceAccountAuthorizationMode(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	t.Setenv(common.ServiceAccountAuthorizationMode, "audti")
+	tempDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "config.json"), []byte(`{}`), 0600))
+	original := *configPath
+	*configPath = tempDir
+	t.Cleanup(func() { *configPath = original })
+	require.ErrorContains(t, initConfig(), "SERVICEACCOUNTAUTHORIZATIONMODE must be enforce or audit")
+}

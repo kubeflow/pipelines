@@ -151,3 +151,57 @@ integration suite with the installation's usual endpoint/authentication flags an
 `-run '^TestRecurringRunApi$' -testify.m '^TestRecurringRunCustomServiceAccount$'`.
 The test requires permission to list and update ScheduledWorkflows and cleans up
 pipeline resources in the test namespace; do not run it against production.
+
+## Temporary audit mode for migration
+
+Service-account authorization is enforced by default in 2.18.0, including on
+upgrades. Administrators can temporarily set the API server environment variable
+`SERVICEACCOUNTAUTHORIZATIONMODE=audit` while configuring the allowlist and scoped
+RBAC grants described above. The only supported modes are `enforce` and `audit`;
+unset or empty configuration means `enforce`, and invalid values are rejected.
+
+**Audit mode restores the security exposure addressed by service-account
+authorization.** It evaluates the allowlist and, in multi-user mode, the caller's
+`serviceaccounts/use` permission, but allows policy denials. It logs a startup
+warning and warning events prefixed with `service_account_authorization_audit`
+containing the failed check, namespace, and requested service account. These
+events describe a bypassed check, not confirmation that the overall request
+succeeded. They do not include pipeline inputs, tokens, or the configured
+allowlist. Authentication failures and authorization-service errors still reject
+the request.
+
+This is an administrator deployment setting, not a request or ScheduledWorkflow
+field. Apply the same configuration to every API server replica and complete the
+rollout before relying on a mode change. For example, with the standard deployment:
+
+```bash
+kubectl -n kubeflow set env deployment/ml-pipeline SERVICEACCOUNTAUTHORIZATIONMODE=audit
+kubectl -n kubeflow rollout status deployment/ml-pipeline
+```
+
+Persist the setting in your deployment configuration if using GitOps. No separate
+controller audit setting is needed: the upgraded multi-user controller submits
+scheduled runs through the API server, which applies the same mode on each tick
+and replay. Keep the controller in multi-user mode. Audit does not restore
+CR-only schedules, trust CR edits to execution inputs, or bypass namespace
+permissions, schedule identity checks, or disabled-schedule checks. Single-user
+mode still evaluates the allowlist; its existing lack of user RBAC checks is
+unchanged.
+
+Use audit events to configure the required allowlist and narrowly scoped user
+and controller grants. Exercise both immediate runs and each recurring run's
+execution path, then restore enforcement:
+
+```bash
+kubectl -n kubeflow set env deployment/ml-pipeline SERVICEACCOUNTAUTHORIZATIONMODE=enforce
+kubectl -n kubeflow rollout status deployment/ml-pipeline
+```
+
+Verify both run types succeed under enforcement before completing migration.
+An absence of audit warnings alone does not prove that unexercised schedules are
+ready. Removing the opt-out does not stop runs already executing.
+
+We plan to remove audit mode in **3.0.0**, tracked in
+[#14367](https://github.com/kubeflow/pipelines/issues/14367). Deployments using audit
+mode remain exposed even though version-based vulnerability scanners may identify
+2.18.0 as patched.

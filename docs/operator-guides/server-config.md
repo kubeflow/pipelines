@@ -117,3 +117,12 @@ spec:
 See [Service accounts for recurring runs](scheduled-service-accounts.md) for
 `ALLOWEDSERVICEACCOUNTS`, scoped controller grants, multi-user upgrade requirements,
 and revoking scheduled execution.
+
+### Service-account authorization migration mode
+
+`SERVICEACCOUNTAUTHORIZATIONMODE` accepts `enforce` (default, including upgrades)
+or `audit`. Audit temporarily allows service-account policy denials and logs
+warnings, restoring the associated security exposure. It does not disable
+existing authentication or namespace authorization. See the
+[scope, rollout, and migration instructions](scheduled-service-accounts.md#temporary-audit-mode-for-migration).
+Audit mode is planned for removal in 3.0.0 ([#14367](https://github.com/kubeflow/pipelines/issues/14367)).
