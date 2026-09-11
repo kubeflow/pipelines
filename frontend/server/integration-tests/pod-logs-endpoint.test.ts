@@ -153,7 +153,12 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
         .query({ podname: podName, ...(namespace ? { podnamespace: namespace } : {}) })
         .expect(500);
 
-      expect(response.text).toContain('Artifact store endpoint is not allowed');
+      expect(response.text).toContain(
+        'Artifact store endpoint https://untrusted.example.com is not allowed.',
+      );
+      expect(response.text).toContain(
+        'Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
+      );
       expect(getPodLogs).toHaveBeenCalledWith(podName, namespace, 'main');
       expect(getArgoWorkflow).toHaveBeenCalledWith('workflow-1', namespace);
       expect(getK8sSecret).not.toHaveBeenCalled();
@@ -179,7 +184,9 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
         .query({ podname: podName, podnamespace: 'kubeflow' })
         .expect(500);
 
-      expect(response.text).toContain('Artifact store endpoint is not allowed');
+      expect(response.text).toContain(
+        'Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
+      );
       expect(getK8sSecret).not.toHaveBeenCalled();
       expect(MinioClient).not.toHaveBeenCalled();
       expect(getObject).not.toHaveBeenCalled();
@@ -356,7 +363,9 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
         .query({ podname: podName, podnamespace: 'tenant' })
         .expect(500);
 
-      expect(response.text).toContain('Artifact store endpoint is not allowed');
+      expect(response.text).toContain(
+        'Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
+      );
       expect(getK8sSecret).not.toHaveBeenCalled();
       expect(MinioClient).not.toHaveBeenCalled();
       expect(getObject).not.toHaveBeenCalled();
