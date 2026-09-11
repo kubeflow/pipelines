@@ -124,6 +124,26 @@ class LoadYamlTests(unittest.TestCase):
         #     component.component_spec.implementation.container.image,
         #     'python:3.11')
 
+    def test_load_component_from_text_description_heading_away_from_third_line(
+            self):
+        header = textwrap.dedent("""\
+            # Header line 1
+            # Header line 2
+            # Header line 3
+            # Header line 4
+            # Header line 5
+            # Description: custom component description
+            #              spanning multiple lines
+            """)
+        yaml_text = header + SAMPLE_YAML
+        component = components.load_component_from_text(yaml_text)
+        self.assertEqual(
+            component.description,
+            'custom component description\nspanning multiple lines')
+        self.assertEqual(
+            component.component_spec.description,
+            'custom component description\nspanning multiple lines')
+
 
 if __name__ == '__main__':
     unittest.main()
