@@ -78,6 +78,12 @@ type JobStoreInterface interface {
 	// Update observed status without accepting changes to the authorized recurring run specification.
 	UpdateJobStatus(swf *util.ScheduledWorkflow) error
 
+	// GetRecurringRunState fetches API-owned scheduling progress.
+	GetRecurringRunState(jobID string) (*model.RecurringRunState, error)
+
+	// ClaimRecurringRun atomically reserves the next scheduled execution.
+	ClaimRecurringRun(jobID, requestKey string, expectedIndex, scheduledAt, createdAt int64, pipelineVersionID string) (*model.RecurringRunState, error)
+
 	// Removes a recurring run entry from the database.
 	DeleteJob(id string) error
 }
@@ -351,6 +357,13 @@ func (s *JobStore) DeleteJob(id string) error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete job %s from table", id)
 	}
+	stateSQL, stateArgs, err := qb.Delete(q("recurring_run_states")).Where(sq.Eq{q("JobUUID"): id}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build scheduling-state deletion for recurring run %s", id)
+	}
+	if _, err = tx.Exec(stateSQL, stateArgs...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete scheduling state for recurring run %s", id)
+	}
 	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.JobResourceType)
 	if err != nil {
 		tx.Rollback()
@@ -421,6 +434,14 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	if err != nil {
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store job %v to table", j.DisplayName)
+	}
+	stateSQL, stateArgs, err := qb.Insert(q("recurring_run_states")).
+		Columns(q("JobUUID"), q("RequestKey"), q("PipelineVersionID")).Values(j.UUID, "", "").ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to build scheduling-state initialization for recurring run %s", j.UUID)
+	}
+	if _, err = tx.Exec(stateSQL, stateArgs...); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to initialize scheduling state for recurring run %s", j.UUID)
 	}
 
 	// TODO(gkcalat): remove this workflow once we fully deprecate resource references

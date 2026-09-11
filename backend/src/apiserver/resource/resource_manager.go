@@ -760,12 +760,7 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
-	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
-	// Update the run.PipelineSpec if an existing pipeline version is used.
-	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a run due to error fetching manifest")
-	}
+	var err error
 
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Proposed flow:
@@ -794,6 +789,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		RunAt: run.CreatedAtInSec,
 	}
 	var owner *scheduledworkflow.ScheduledWorkflow
+	var tick *recurringRunTick
 	if run.RecurringRunId != "" {
 		job, err := r.jobStore.GetJob(run.RecurringRunId)
 		if err != nil {
@@ -808,11 +804,32 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 			return nil, util.Wrap(err, "Failed to retrieve ScheduledWorkflow")
 		}
 		index := int64(1)
-		if owner.Status.Trigger.LastIndex != nil {
+		if common.IsMultiUserMode() {
+			tick, err = r.prepareRecurringRunTick(run, owner, run.CreatedAtInSec)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to prepare the authorized scheduled tick")
+			}
+			index = tick.index
+			run.UUID = util.NewDeterministicUUID(run.RecurringRunId + "/tick/" + strconv.FormatInt(index, 10))
+			if tick.replay != nil {
+				run.UUID = tick.replay.UUID
+			}
+			run.CreatedAtInSec = tick.createdAt
+			run.ScheduledAtInSec = tick.scheduledAt
+			runWorkflowOptions.RunID = run.UUID
+			runWorkflowOptions.RunAt = run.CreatedAtInSec
+		} else if owner.Status.Trigger.LastIndex != nil {
 			index = *owner.Status.Trigger.LastIndex + 1
 		}
 		runWorkflowOptions.RecurringRunIndex = &index
 	}
+	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
+	// Update the run.PipelineSpec if an existing pipeline version is used.
+	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a run due to error fetching manifest")
+	}
+
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to generate the ExecutionSpec")
@@ -848,8 +865,17 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.Wrap(err, "Failed to create a run due to service account authorization error")
 	}
 
-	// Guard against duplicate runs from concurrent recurring-run controller replicas.
-	if run.RecurringRunId != "" && run.DisplayName != "" {
+	if tick != nil {
+		if tick.replay != nil {
+			return tick.replay, nil
+		}
+		if err := r.claimRecurringRunTick(run, tick); err != nil {
+			return nil, err
+		}
+	}
+
+	// Replays still pass normal authorization. Kubernetes names arbitrate creation races.
+	if tick == nil && run.RecurringRunId != "" && run.DisplayName != "" {
 		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to check for existing run")
@@ -887,12 +913,24 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 	}()
 
-	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
+	newExecSpec, executionCreated, err := r.createRunExecution(ctx, run, executionSpec)
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return nil, util.NewUnavailableServerError(err, "Failed to create a workflow for (%s) - try again later", executionSpec.ExecutionName())
 		}
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
+	}
+	if !executionCreated {
+		// This request must not clean up plugin resources belonging to the existing execution.
+		runPersisted = true
+		if run.PluginsOutputString != nil {
+			// Only the creator can persist the plugin output matching its workflow.
+			existing, err := r.runStore.GetRun(run.UUID)
+			if err != nil {
+				return nil, util.NewUnavailableServerError(err, "Retry after the scheduled run creator finishes persistence")
+			}
+			return existing, nil
+		}
 	}
 	// Update the run with the new scheduled workflow
 	run.Namespace = k8sNamespace

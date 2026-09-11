@@ -587,7 +587,7 @@ func (c *Controller) submitNextWorkflowIfNeeded(ctx context.Context, swf *util.S
 	}
 
 	var workflowName string
-	submitted, workflowName, err = c.submitNewWorkflowIfNotAlreadySubmitted(ctx, swf, nextScheduledEpoch, nowEpoch)
+	submitted, workflowName, nextScheduledEpoch, err = c.submitNewWorkflowIfNotAlreadySubmitted(ctx, swf, nextScheduledEpoch, nowEpoch)
 	if err != nil {
 		log.WithFields(log.Fields{
 			ScheduledWorkflow: swf.Name,
@@ -608,7 +608,7 @@ func (c *Controller) submitNextWorkflowIfNeeded(ctx context.Context, swf *util.S
 func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	ctx context.Context,
 	swf *util.ScheduledWorkflow, nextScheduledEpoch int64, nowEpoch int64) (
-	bool, string, error) {
+	bool, string, int64, error) {
 
 	workflowName := swf.NextResourceName()
 
@@ -621,12 +621,12 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		// The workflow was already created by a previous iteration of this controller.
 		// Nothing to do except returning the information needed by the controller to update
 		// the ScheduledWorkflow status.
-		return true, workflowName, nil
+		return true, workflowName, nextScheduledEpoch, nil
 	}
 
 	if !isNotFoundError {
 		// There was an error while attempting to retrieve the workflow
-		return false, "", err
+		return false, "", nextScheduledEpoch, err
 	}
 
 	// If the workflow is not found, we need to create it.
@@ -634,25 +634,25 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		// V1 recurring runs bypass the API server by embedding the workflow spec directly in the ScheduledWorkflow CRD,
 		// so the V1 pipeline block needs to be enforced at the controller level as well.
 		if shouldEnforceV1Block(swf) {
-			return false, "", fmt.Errorf(
+			return false, "", nextScheduledEpoch, fmt.Errorf(
 				"namespace %s is not allowed to run v1 pipelines; please migrate to KFP v2 pipelines", swf.Namespace)
 		}
 		newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
 		if err != nil {
-			return false, "", err
+			return false, "", nextScheduledEpoch, err
 		}
 
 		createdWorkflow, err := c.workflowClient.Create(ctx, swf.Namespace, newWorkflow)
 		if err != nil {
-			return false, "", err
+			return false, "", nextScheduledEpoch, err
 		}
-		return true, createdWorkflow.ExecutionName(), nil
+		return true, createdWorkflow.ExecutionName(), nextScheduledEpoch, nil
 	}
 
 	if c.tokenSrc != nil {
 		token, err := c.tokenSrc.Token()
 		if err != nil {
-			return false, "", fmt.Errorf("Failed to get a token to communicate with the REST API: %w", err)
+			return false, "", nextScheduledEpoch, fmt.Errorf("failed to get a token to communicate with the REST API: %w", err)
 		}
 
 		ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
@@ -666,7 +666,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	if c.multiUser {
 		// ScheduledWorkflow objects are editable by namespace users. The API server
 		// restores execution inputs from the authorized, persisted recurring run.
-		return c.createRun(ctx, swf, &api.CreateRunRequest{Run: &api.Run{
+		return c.createRun(ctx, swf, nextScheduledEpoch, &api.CreateRunRequest{Run: &api.Run{
 			RecurringRunId: string(swf.UID),
 			DisplayName:    workflowName,
 			ScheduledAt:    timestamppb.New(time.Unix(nextScheduledEpoch, 0)),
@@ -686,7 +686,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 			err := val.UnmarshalJSON([]byte(param.Value))
 			if err != nil {
-				return false, "", err
+				return false, "", nextScheduledEpoch, err
 			}
 
 			runtimeConfig.Parameters[param.Name] = val
@@ -699,11 +699,11 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	if len(swf.Spec.PluginsInput) > 0 {
 		pluginsInput, err = crdPluginsInputToProto(swf.Spec.PluginsInput)
 		if err != nil {
-			return false, "", fmt.Errorf("failed to parse plugins_input from SWF spec: %w", err)
+			return false, "", nextScheduledEpoch, fmt.Errorf("failed to parse plugins_input from SWF spec: %w", err)
 		}
 	}
 
-	return c.createRun(ctx, swf, &api.CreateRunRequest{
+	return c.createRun(ctx, swf, nextScheduledEpoch, &api.CreateRunRequest{
 		ExperimentId: swf.Spec.ExperimentId,
 		Run: &api.Run{
 			ExperimentId:   swf.Spec.ExperimentId,
@@ -723,15 +723,21 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	})
 }
 
-func (c *Controller) createRun(ctx context.Context, swf *util.ScheduledWorkflow, request *api.CreateRunRequest) (bool, string, error) {
+func (c *Controller) createRun(ctx context.Context, swf *util.ScheduledWorkflow, nextScheduledEpoch int64, request *api.CreateRunRequest) (bool, string, int64, error) {
 	run, err := c.runClient.CreateRun(ctx, request)
 	if err != nil {
-		return false, "", fmt.Errorf(
+		return false, "", nextScheduledEpoch, fmt.Errorf(
 			"failed to create a run from the scheduled workflow (%s/%s): %w", swf.Namespace, swf.Name, err,
 		)
 	}
 
-	return true, run.DisplayName, nil
+	if c.multiUser {
+		if run.GetScheduledAt() == nil || run.GetScheduledAt().CheckValid() != nil {
+			return false, "", nextScheduledEpoch, fmt.Errorf("API returned no valid scheduled time for scheduled workflow (%s/%s)", swf.Namespace, swf.Name)
+		}
+		nextScheduledEpoch = run.GetScheduledAt().AsTime().Unix()
+	}
+	return true, run.DisplayName, nextScheduledEpoch, nil
 }
 
 func (c *Controller) updateStatus(

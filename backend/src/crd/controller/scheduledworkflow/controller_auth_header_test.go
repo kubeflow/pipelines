@@ -37,11 +37,15 @@ import (
 type fakeRunServiceClient struct {
 	capturedCtx     context.Context
 	capturedRequest *api.CreateRunRequest
+	response        *api.Run
 }
 
 func (f *fakeRunServiceClient) CreateRun(ctx context.Context, in *api.CreateRunRequest, opts ...grpc.CallOption) (*api.Run, error) {
 	f.capturedCtx = ctx
 	f.capturedRequest = in
+	if f.response != nil {
+		return f.response, nil
+	}
 	return &api.Run{DisplayName: "fake-run"}, nil
 }
 
@@ -117,7 +121,7 @@ func TestUserIdentityHeader_BothSet(test *testing.T) {
 	}
 
 	swf := newTestSWFForAPIPath()
-	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+	submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
 	require.NoError(test, err)
@@ -141,7 +145,7 @@ func TestUserIdentityHeader_BothEmpty(test *testing.T) {
 	}
 
 	swf := newTestSWFForAPIPath()
-	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+	submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
 	require.NoError(test, err)
@@ -185,7 +189,7 @@ func TestUserIdentityHeader_OnlyOneSet(test *testing.T) {
 			}
 
 			swf := newTestSWFForAPIPath()
-			submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+			submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 				context.Background(), swf, 100, 200)
 
 			require.NoError(test, err)
@@ -214,7 +218,7 @@ func TestUserIdentityHeader_CoexistsWithBearerToken(test *testing.T) {
 	}
 
 	swf := newTestSWFForAPIPath()
-	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+	submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
 	require.NoError(test, err)

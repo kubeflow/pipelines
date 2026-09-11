@@ -56,16 +56,33 @@ func scheduleContext(user string) context.Context {
 }
 func newAuthorizedSchedule(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Job, *scheduledAccountReview) {
 	t.Helper()
+	return newAuthorizedScheduleWithCatchupPolicy(t, false)
+}
+
+func newAuthorizedScheduleWithCatchupPolicy(t *testing.T, noCatchup bool) (*resource.FakeClientManager, *resource.ResourceManager, *model.Job, *scheduledAccountReview) {
+	t.Helper()
+	return newAuthorizedScheduleWithTrigger(t, noCatchup, model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
+		PeriodicScheduleStartTimeInSec: util.Int64Pointer(90), IntervalSecond: util.Int64Pointer(10),
+	}}, time.Unix(99, 0))
+}
+
+func newAuthorizedScheduleWithTrigger(t *testing.T, noCatchup bool, trigger model.Trigger, now time.Time) (*resource.FakeClientManager, *resource.ResourceManager, *model.Job, *scheduledAccountReview) {
+	t.Helper()
 	viper.Set(common.MultiUserMode, "true")
 	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false"); viper.Set(common.AllowedServiceAccountsFlag, "") })
-	clients, _, experiment := initWithExperiment(t)
+	initEnvVars()
+	clients := resource.NewFakeClientManagerOrFatal(util.NewFakeTime(now))
 	t.Cleanup(func() { require.NoError(t, clients.Close()) })
 	review := &scheduledAccountReview{}
 	clients.SubjectAccessReviewClientFake = review
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "exp1", Namespace: "ns1"})
+	require.NoError(t, err)
 	job, err := manager.CreateJob(scheduleContext("user@google.com"), &model.Job{
 		DisplayName: "authorized-schedule", Namespace: "ns1", ExperimentId: experiment.UUID, Enabled: true,
+		MaxConcurrency: 1, NoCatchup: noCatchup,
+		Trigger:        trigger,
 		ServiceAccount: "custom-sa", PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()), Parameters: `[{"name":"param1","value":"authorized-[[Index]]-[[ScheduledTime]]"}]`},
 	})
 	require.NoError(t, err)
@@ -99,6 +116,9 @@ func TestRecurringRunUsesStoredInputsAndStillRequiresCallerServiceAccountPermiss
 	_, err = server.CreateRun(ctx, request)
 	require.ErrorContains(t, err, "Unauthorized")
 	require.Zero(t, clients.ExecClientFake.GetWorkflowCount())
+	state, err := clients.JobStore().GetRecurringRunState(job.UUID)
+	require.NoError(t, err)
+	require.Zero(t, state.LastRunIndex, "authorization failure must not claim a tick")
 	last := review.reviews[len(review.reviews)-1]
 	require.Equal(t, scheduleControllerIdentity, last.Spec.User)
 	require.Equal(t, authv1.ResourceAttributes{Verb: "use", Namespace: "ns1", Resource: "serviceaccounts", Name: "custom-sa"}, *last.Spec.ResourceAttributes)
@@ -118,6 +138,7 @@ func TestRecurringRunUsesStoredInputsAndStillRequiresCallerServiceAccountPermiss
 	_, err = server.CreateRun(scheduleContext("unprivileged@google.com"), request)
 	require.ErrorContains(t, err, "Unauthorized")
 	require.Equal(t, 1, clients.ExecClientFake.GetWorkflowCount())
+	advanceScheduledRunClock(clients, 200)
 	review.controllerAllowed = false
 	request.Run.DisplayName = "revoked-tick"
 	_, err = server.CreateRun(ctx, request)

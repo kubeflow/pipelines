@@ -26,9 +26,22 @@ which pipeline, parameters, account, or plugin inputs the API executes. Controll
 reports update status only in multi-user mode. To change a recurring run's
 specification, recreate it through the API; use the API to enable or disable it.
 
+The API also owns durable scheduling state, initialized when a recurring run is
+created through the API. It computes the actual scheduled time from the stored
+trigger and catch-up policy, ignoring the timestamp supplied by the controller,
+and enforces the stored maximum concurrency. Editing the CR's trigger, concurrency,
+or scheduling counters may cause submissions to be rejected; it cannot authorize
+earlier or additional executions. The API records a pending tick's index and time
+before submitting it. A retry of that tick retains its index, scheduled time,
+selected pipeline version, and run identity, with a deterministic workflow name
+to prevent duplicate executions. Saving the run also completes its pending tick
+in the same database transaction.
+
 Single-user controller behavior remains unchanged. In a custom multi-user
 installation, explicitly set `--multiUser=true`; authentication headers or bearer
 tokens alone do not enable this execution mode.
+Set the same `CRON_SCHEDULE_TIMEZONE` on the API server and controller; the supplied
+manifests use `pipeline-install-config.cronScheduleTimezone` for both.
 
 ## Grant access to an approved custom account
 
@@ -95,6 +108,8 @@ Schedules created before service-account authorization, or whose inputs were
 previously changed through Kubernetes, must be reviewed and recreated through the
 API to establish authorized inputs. Multi-user schedules created only as Kubernetes
 CRs, without a corresponding API job, must also be recreated through the API.
+Existing schedules that predate API-owned scheduling state must be recreated as
+well; the API does not initialize trusted counters from an existing CR's status.
 Unresolvable namespaces or missing/replaced Kubernetes objects fail closed.
 
 A follow-latest schedule intentionally executes future versions of its referenced
@@ -116,6 +131,8 @@ required. Retain the normal permission checks when troubleshooting a denied tick
 The live integration suite includes an opt-in test for both latest and pinned
 custom-account schedules. It modifies the backing CR before activation and checks
 that the run succeeds with the original API-stored account and parameters.
+Backend regression tests also cover rejected scheduling-state tampering and
+retries that preserve the pending tick's execution identity.
 
 On a disposable multi-user test installation, provision a custom runner using the
 scoped grants above for the integration-test caller and controller. Set

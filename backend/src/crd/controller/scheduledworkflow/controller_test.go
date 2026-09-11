@@ -288,7 +288,7 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 				},
 			})
 
-			submitted, workflowName, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+			submitted, workflowName, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 				context.Background(), swf, 100, 200)
 
 			if tt.expectError != "" {
@@ -430,7 +430,7 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_MultiUserUsesPersistedRun(t *tes
 		}
 		t.Run(name, func(t *testing.T) {
 			executionClient := &fakeExecutionClient{}
-			runClient := &fakeRunServiceClient{}
+			runClient := &fakeRunServiceClient{response: &api.Run{DisplayName: "fake-run", ScheduledAt: timestamppb.New(time.Unix(80, 0))}}
 			controller := &Controller{
 				workflowClient:     client.NewWorkflowClient(executionClient, &fakeExecutionInformer{}),
 				runClient:          runClient,
@@ -454,10 +454,11 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_MultiUserUsesPersistedRun(t *tes
 				swf.Spec.Workflow.Spec = "invalid embedded workflow"
 			}
 
-			submitted, name, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
+			submitted, name, scheduledAt, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
 			require.NoError(t, err)
 			assert.True(t, submitted)
 			assert.Equal(t, "fake-run", name)
+			assert.Equal(t, int64(80), scheduledAt, "the API owns the actual scheduled time")
 			assert.Nil(t, executionClient.createdWorkflow, "multi-user schedules must never create workflows directly")
 			want := &api.CreateRunRequest{Run: &api.Run{
 				RecurringRunId: string(swf.UID),
@@ -469,6 +470,58 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_MultiUserUsesPersistedRun(t *tes
 			require.True(t, ok)
 			assert.Equal(t, []string{"Bearer controller-token"}, md.Get("authorization"))
 			assert.Equal(t, []string{controller.userIdentityValue}, md.Get("kubeflow-userid"))
+		})
+	}
+}
+
+func TestSubmitNextWorkflowUsesAPIScheduledTimeInMultiUserMode(t *testing.T) {
+	for _, multiUser := range []bool{false, true} {
+		name := "single user"
+		if multiUser {
+			name = "multi user"
+		}
+		t.Run(name, func(t *testing.T) {
+			runClient := &fakeRunServiceClient{response: &api.Run{
+				DisplayName: "scheduled-run", ScheduledAt: timestamppb.New(time.Unix(80, 0)),
+			}}
+			controller := &Controller{
+				workflowClient: client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
+				runClient:      runClient, multiUser: multiUser, location: time.UTC,
+			}
+			swf := newTestSWFForAPIPath()
+			swf.Spec.Enabled = true
+			swf.CreationTimestamp = metav1.NewTime(time.Unix(100, 0))
+			swf.Spec.PeriodicSchedule = &swfapi.PeriodicSchedule{IntervalSecond: 60}
+			submitted, scheduledAt, err := controller.submitNextWorkflowIfNeeded(context.Background(), swf, 0, 200)
+			require.NoError(t, err)
+			require.True(t, submitted)
+			wantTime := int64(160)
+			if multiUser {
+				wantTime = 80
+			}
+			require.Equal(t, wantTime, scheduledAt)
+			swf.UpdateStatus(submitted, scheduledAt, nil, nil, time.UTC)
+			require.Equal(t, wantTime, swf.Status.Trigger.LastTriggeredTime.Unix())
+		})
+	}
+}
+
+func TestMultiUserSubmissionRejectsMissingOrInvalidAPIScheduledTime(t *testing.T) {
+	for name, timestamp := range map[string]*timestamppb.Timestamp{
+		"missing": nil,
+		"invalid": {Seconds: 253402300800},
+	} {
+		t.Run(name, func(t *testing.T) {
+			controller := &Controller{
+				workflowClient: client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
+				runClient: &fakeRunServiceClient{response: &api.Run{
+					DisplayName: "scheduled-run", ScheduledAt: timestamp,
+				}},
+				multiUser: true,
+			}
+			submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), newTestSWFForAPIPath(), 100, 200)
+			require.ErrorContains(t, err, "no valid scheduled time")
+			require.False(t, submitted)
 		})
 	}
 }
