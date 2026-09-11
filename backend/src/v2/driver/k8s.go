@@ -53,6 +53,13 @@ var dummyImages = map[string]string{
 	"argostub/deletepvc": "delete PVC",
 }
 
+func validateResourceClaimTemplateName(templateName *string) error {
+	if templateName == nil || *templateName == "" {
+		return fmt.Errorf("resourceClaimTemplateName must be non-empty in resource claim")
+	}
+	return nil
+}
+
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
@@ -297,6 +304,112 @@ func extendPodSpecPatch(
 
 		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS] {
 			podSpec.Tolerations = k8sTolerations
+		}
+	}
+
+	// Get pod resource claims (DRA)
+	if podResourceClaims := kubernetesExecutorConfig.GetPodResourceClaims(); podResourceClaims != nil {
+		var k8sClaims []k8score.PodResourceClaim
+
+		for _, claim := range podResourceClaims {
+			if claim == nil {
+				continue
+			}
+			if claim.ResourceClaimJson != nil {
+				resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+					claim.GetResourceClaimJson(), inputParams)
+				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
+					return fmt.Errorf("failed to resolve resource claim: %w", err)
+				}
+
+				switch {
+				case resolvedParam.GetStructValue() != nil:
+					structVal := resolvedParam.GetStructValue()
+					if structVal != nil && len(structVal.Fields) > 0 {
+						paramJSON, err := structVal.MarshalJSON()
+						if err != nil {
+							return fmt.Errorf("failed to marshal single resource claim to json: %w", err)
+						}
+						var resolved k8score.PodResourceClaim
+						if err = json.Unmarshal(paramJSON, &resolved); err != nil {
+							return fmt.Errorf("failed to unmarshal single resource claim from JSON for task %q: %w", opts.TaskName, err)
+						}
+						if err := validateResourceClaimTemplateName(resolved.ResourceClaimTemplateName); err != nil {
+							return err
+						}
+						resolved.Name = *resolved.ResourceClaimTemplateName
+						k8sClaims = append(k8sClaims, resolved)
+					} else {
+						return fmt.Errorf("resource claim JSON must be a non-empty object")
+					}
+				case resolvedParam.GetListValue() != nil:
+					listVal := resolvedParam.GetListValue()
+					if listVal != nil && len(listVal.Values) > 0 {
+						paramJSON, err := listVal.MarshalJSON()
+						if err != nil {
+							return fmt.Errorf("failed to marshal list resource claims to json: %w", err)
+						}
+						var resolvedList []k8score.PodResourceClaim
+						if err = json.Unmarshal(paramJSON, &resolvedList); err != nil {
+							return fmt.Errorf("failed to unmarshal list resource claims from json: %w", err)
+						}
+						for i := range resolvedList {
+							if err := validateResourceClaimTemplateName(resolvedList[i].ResourceClaimTemplateName); err != nil {
+								return err
+							}
+							resolvedList[i].Name = *resolvedList[i].ResourceClaimTemplateName
+						}
+						k8sClaims = append(k8sClaims, resolvedList...)
+					}
+				default:
+					return fmt.Errorf("encountered unexpected resource claim proto value, must be either struct or list type")
+				}
+			} else {
+				templateName := claim.ResourceClaimTemplateName
+				if err := validateResourceClaimTemplateName(&templateName); err != nil {
+					return err
+				}
+				k8sClaims = append(k8sClaims, k8score.PodResourceClaim{
+					Name:                      templateName,
+					ResourceClaimTemplateName: &templateName,
+				})
+			}
+		}
+
+		seen := make(map[string]bool, len(podSpec.ResourceClaims)+len(k8sClaims))
+		for _, rc := range podSpec.ResourceClaims {
+			seen[rc.Name] = true
+		}
+		for _, rc := range k8sClaims {
+			if seen[rc.Name] {
+				return fmt.Errorf("duplicate resource claim name %q", rc.Name)
+			}
+			seen[rc.Name] = true
+		}
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS] {
+			taskConfig.ResourceClaims = k8sClaims
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS] {
+			podSpec.ResourceClaims = append(podSpec.ResourceClaims, k8sClaims...)
+			existingContainerClaims := make(map[string]bool, len(podSpec.Containers[0].Resources.Claims))
+			for _, claim := range podSpec.Containers[0].Resources.Claims {
+				existingContainerClaims[claim.Name] = true
+			}
+			for _, rc := range k8sClaims {
+				if existingContainerClaims[rc.Name] {
+					continue
+				}
+				podSpec.Containers[0].Resources.Claims = append(
+					podSpec.Containers[0].Resources.Claims,
+					k8score.ResourceClaim{Name: rc.Name},
+				)
+				existingContainerClaims[rc.Name] = true
+			}
 		}
 	}
 

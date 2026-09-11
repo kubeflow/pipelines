@@ -44,13 +44,68 @@ async function getIAMInstanceProfile(): Promise<string | undefined> {
   }
 }
 
+function awsEndpointServiceName(endpoint: string): string | undefined {
+  let hostname: string;
+  try {
+    hostname = new URL(endpoint.includes('://') ? endpoint : `https://${endpoint}`).hostname;
+  } catch {
+    return undefined;
+  }
+
+  const normalized = hostname.toLowerCase().replace(/\.$/, '');
+  const suffix = normalized.endsWith('.amazonaws.com.cn')
+    ? '.amazonaws.com.cn'
+    : normalized.endsWith('.amazonaws.com')
+      ? '.amazonaws.com'
+      : '';
+  if (!suffix) {
+    return undefined;
+  }
+
+  return normalized.slice(0, -suffix.length);
+}
+
+/** Returns true only for AWS-operated regional/global S3 service origins. */
+export function isOfficialAWSS3ServiceEndpoint(endpoint: string = ''): boolean {
+  const serviceName = awsEndpointServiceName(endpoint);
+  if (!serviceName) {
+    return false;
+  }
+  const region = '[a-z]{2}(?:-[a-z0-9]+)+-[0-9]+';
+  return new RegExp(
+    `^(?:s3|s3[.-]${region}|s3(?:-fips)?\\.dualstack\\.${region}|s3-fips[.-]${region})$`,
+  ).test(serviceName);
+}
+
 /**
- * Check if the provided string is an S3 endpoint (can be any region).
+ * Check whether an endpoint is supported by the AWS credential chain.
  *
- * @param endpoint minio endpoint to check.
+ * This includes AWS-operated S3 service, bucket, access point, Object Lambda,
+ * Outposts, and PrivateLink hostnames across commercial, GovCloud, and China
+ * partitions.
  */
 export function isAWSS3Endpoint(endpoint: string = ''): boolean {
-  return !!endpoint.match(/s3.{0,}\.amazonaws\.com\.?.{0,}/i);
+  const serviceName = awsEndpointServiceName(endpoint);
+  if (!serviceName) {
+    return false;
+  }
+
+  const region = '[a-z]{2}(?:-[a-z0-9]+)+-[0-9]+';
+  const bucket = '[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?';
+  const publicEndpoint = new RegExp(
+    `^(?:${bucket}\\.)?(?:s3|s3[.-]${region}|s3(?:-fips)?\\.dualstack\\.${region}|s3-fips[.-]${region})$`,
+  );
+  const specializedPublicEndpoint = new RegExp(
+    `^(?:${bucket}\\.)?(?:s3-accelerate(?:\\.dualstack)?|s3-external-1|s3-accesspoint(?:\\.dualstack)?\\.${region}|s3-object-lambda\\.${region}|s3-outposts\\.${region})$`,
+  );
+  const privateLinkEndpoint = new RegExp(
+    `^(?:${bucket}\\.)?vpce-[a-z0-9-]+\\.s3(?:-accesspoint)?\\.${region}\\.vpce$`,
+  );
+  return (
+    publicEndpoint.test(serviceName) ||
+    specializedPublicEndpoint.test(serviceName) ||
+    privateLinkEndpoint.test(serviceName)
+  );
 }
 
 /**

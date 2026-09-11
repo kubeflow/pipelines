@@ -5,6 +5,10 @@ metadata:
     app: ml-pipeline-ui
   name: ml-pipeline-ui
 spec:
+  # The default process-local TensorBoard proxy key is intentionally not shared across pods.
+  # Avoid overlapping UI pods unless a shared TENSORBOARD_PROXY_SIGNING_SECRET is configured.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: ml-pipeline-ui
@@ -107,6 +111,12 @@ spec:
               configMapKeyRef:
                 name: pipeline-install-config
                 key: ARTIFACTS_PROXY_ENABLED
+                optional: true
+          - name: ALLOWED_ARTIFACT_ENDPOINTS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ALLOWED_ARTIFACT_ENDPOINTS
                 optional: true
         readinessProbe:
           httpGet:

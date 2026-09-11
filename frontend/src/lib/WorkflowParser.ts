@@ -28,6 +28,7 @@ import { isS3Endpoint } from './AwsHelper';
 import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { isV2Pipeline } from './v2/WorkflowUtils';
 import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
+import type { DagreGraph, GraphNodeData, GraphNodeInput } from './GraphTypes';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -48,9 +49,9 @@ export default class WorkflowParser {
   public static createRuntimeGraph(
     workflow: Workflow,
     executions: metadataStorePb.Execution[] | undefined,
-  ): dagre.graphlib.Graph {
+  ): DagreGraph {
     const nodeStateMap = buildNodeToExecutionStateMap(executions);
-    const g = new dagre.graphlib.Graph();
+    const g = new dagre.graphlib.Graph<GraphNodeData>();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
 
@@ -111,7 +112,7 @@ export default class WorkflowParser {
         statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
         width: Constants.NODE_WIDTH,
         ...node,
-      });
+      } satisfies GraphNodeInput);
 
       if (!hasFinished(node.phase as NodePhase) && !this.isVirtual(node)) {
         g.setNode(node.id + runningNodeSuffix, {
@@ -125,7 +126,7 @@ export default class WorkflowParser {
           }),
           isPlaceholder: true,
           width: PLACEHOLDER_NODE_DIMENSION,
-        });
+        } satisfies GraphNodeInput);
         g.setEdge(node.id, node.id + runningNodeSuffix, { color: color.weak, isPlaceholder: true });
       }
     });

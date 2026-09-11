@@ -1,0 +1,49 @@
+# PIPELINE DEFINITION
+# Name: dra-json-input-check
+# Description: Verifies a task with a runtime-resolved DRA ResourceClaim (via pipeline parameter) can schedule and complete.
+# Inputs:
+#    resource_claim: dict [Default: {'resourceClaimTemplateName': 'dra-test-claim'}]
+components:
+  comp-verify-dra-json:
+    executorLabel: exec-verify-dra-json
+deploymentSpec:
+  executors:
+    exec-verify-dra-json:
+      container:
+        args:
+        - 'echo "DRA JSON input check: PASS"'
+        command:
+        - sh
+        - -c
+        image: python:3.11
+pipelineInfo:
+  description: Verifies a task with a runtime-resolved DRA ResourceClaim (via pipeline
+    parameter) can schedule and complete.
+  name: dra-json-input-check
+root:
+  dag:
+    tasks:
+      verify-dra-json:
+        cachingOptions: {}
+        componentRef:
+          name: comp-verify-dra-json
+        taskInfo:
+          name: verify-dra-json
+  inputDefinitions:
+    parameters:
+      resource_claim:
+        defaultValue:
+          resourceClaimTemplateName: dra-test-claim
+        isOptional: true
+        parameterType: STRUCT
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-verify-dra-json:
+          podResourceClaims:
+          - resourceClaimJson:
+              componentInputParameter: resource_claim

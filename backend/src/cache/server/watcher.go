@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -41,71 +40,84 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 		}
 
 		for event := range watcher.ResultChan() {
-			pod := reflect.ValueOf(event.Object).Interface().(*corev1.Pod)
 			if event.Type == watch.Error {
+				continue
+			}
+			pod, ok := event.Object.(*corev1.Pod)
+			if !ok {
 				continue
 			}
 			log.Printf("%s", (*pod).GetName())
 
-			if !isPodCompletedAndSucceeded(pod) {
-				log.Printf("Pod %s is not completed or not in successful status.", pod.ObjectMeta.Name)
-				continue
-			}
-
-			if isCacheWriten(pod.ObjectMeta.Labels) {
-				continue
-			}
-
-			executionKey, exists := pod.ObjectMeta.Annotations[ExecutionKey]
-			if !exists {
-				continue
-			}
-
-			executionOutput, exists := pod.ObjectMeta.Annotations[ArgoWorkflowOutputs]
-
-			executionOutputMap := make(map[string]interface{})
-			executionOutputMap[ArgoWorkflowOutputs] = executionOutput
-			executionOutputMap[MetadataExecutionIDKey] = pod.ObjectMeta.Labels[MetadataExecutionIDKey]
-			executionOutputJSON, _ := json.Marshal(executionOutputMap)
-
-			executionstaleness, exists := pod.ObjectMeta.Annotations[MaxCacheStalenessKey]
-			var cacheStalenessInSeconds int64 = -1
-			if exists {
-				cacheStalenessInSeconds = stalenessToSeconds(executionstaleness)
-			}
-
-			var maximumCacheStalenessInSeconds int64 = -1
-			maximumCacheStaleness, exists := os.LookupEnv("MAXIMUM_CACHE_STALENESS")
-			if exists {
-				log.Printf("maximumCacheStaleness: %s", maximumCacheStaleness)
-				maximumCacheStalenessInSeconds = stalenessToSeconds(maximumCacheStaleness)
-				log.Printf("maximumCacheStalenessInSeconds: %d", maximumCacheStalenessInSeconds)
-			}
-			if maximumCacheStalenessInSeconds >= 0 && cacheStalenessInSeconds > maximumCacheStalenessInSeconds {
-				cacheStalenessInSeconds = maximumCacheStalenessInSeconds
-			}
-			log.Printf("Creating cachedb entry with cacheStalenessInSeconds: %d", cacheStalenessInSeconds)
-
-			executionTemplate, _ := getArgoTemplate(pod)
-
-			executionToPersist := model.ExecutionCache{
-				ExecutionCacheKey: executionKey,
-				ExecutionTemplate: executionTemplate,
-				ExecutionOutput:   string(executionOutputJSON),
-				MaxCacheStaleness: cacheStalenessInSeconds,
-			}
-
-			cacheEntryCreated, err := clientManager.CacheStore().CreateExecutionCache(&executionToPersist)
-			if err != nil {
-				log.Println("Unable to create cache entry.")
-				continue
-			}
-			err = patchCacheID(ctx, k8sCore, pod, namespaceToWatch, cacheEntryCreated.ID)
-			if err != nil {
+			if err := cacheCompletedPod(ctx, pod, clientManager); err != nil {
 				log.Printf("%s", err.Error())
 			}
 		}
 	}
+}
+
+// cacheCompletedPod validates a watched pod's cache identity before publishing its outputs.
+func cacheCompletedPod(ctx context.Context, pod *corev1.Pod, clientManager ClientManagerInterface) error {
+	if !isKFPCacheEnabled(pod) || isTFXPod(pod) || isV2Pod(pod) || !isPodCompletedAndSucceeded(pod) {
+		log.Printf("Pod %s is not eligible for a cache write.", pod.Name)
+		return nil
+	}
+
+	if isCacheWriten(pod.Labels) {
+		return nil
+	}
+
+	executionTemplate, exists := getArgoTemplate(pod)
+	if !exists {
+		return nil
+	}
+	executionKey, err := generateCacheKeyFromTemplate(executionTemplate, pod.Namespace)
+	if err != nil {
+		return fmt.Errorf("cannot determine cache identity for pod %s/%s: %w", pod.Namespace, pod.Name, err)
+	}
+	// The cache-key annotation is mutable and must not select another tenant's row.
+	if pod.Annotations[ExecutionKey] != executionKey {
+		return fmt.Errorf("skipping cache write for pod %s/%s: execution cache key does not match namespace and template", pod.Namespace, pod.Name)
+	}
+
+	executionOutput := pod.Annotations[ArgoWorkflowOutputs]
+
+	executionOutputMap := make(map[string]interface{})
+	executionOutputMap[ArgoWorkflowOutputs] = executionOutput
+	executionOutputMap[MetadataExecutionIDKey] = pod.Labels[MetadataExecutionIDKey]
+	executionOutputJSON, _ := json.Marshal(executionOutputMap)
+
+	executionstaleness, exists := pod.Annotations[MaxCacheStalenessKey]
+	var cacheStalenessInSeconds int64 = -1
+	if exists {
+		cacheStalenessInSeconds = stalenessToSeconds(executionstaleness)
+	}
+
+	var maximumCacheStalenessInSeconds int64 = -1
+	maximumCacheStaleness, exists := os.LookupEnv("MAXIMUM_CACHE_STALENESS")
+	if exists {
+		log.Printf("maximumCacheStaleness: %s", maximumCacheStaleness)
+		maximumCacheStalenessInSeconds = stalenessToSeconds(maximumCacheStaleness)
+		log.Printf("maximumCacheStalenessInSeconds: %d", maximumCacheStalenessInSeconds)
+	}
+	if maximumCacheStalenessInSeconds >= 0 && cacheStalenessInSeconds > maximumCacheStalenessInSeconds {
+		cacheStalenessInSeconds = maximumCacheStalenessInSeconds
+	}
+	log.Printf("Creating cachedb entry with cacheStalenessInSeconds: %d", cacheStalenessInSeconds)
+
+	executionToPersist := model.ExecutionCache{
+		Namespace:         pod.Namespace,
+		ExecutionCacheKey: executionKey,
+		ExecutionTemplate: executionTemplate,
+		ExecutionOutput:   string(executionOutputJSON),
+		MaxCacheStaleness: cacheStalenessInSeconds,
+	}
+
+	cacheEntryCreated, err := clientManager.CacheStore().CreateExecutionCache(&executionToPersist)
+	if err != nil {
+		return fmt.Errorf("unable to create cache entry: %w", err)
+	}
+	return patchCacheID(ctx, clientManager.KubernetesCoreClient(), pod, cacheEntryCreated.ID)
 }
 
 func isPodCompletedAndSucceeded(pod *corev1.Pod) bool {
@@ -117,7 +129,7 @@ func isCacheWriten(labels map[string]string) bool {
 	return cacheID != ""
 }
 
-func patchCacheID(ctx context.Context, k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod, namespaceToWatch string, id int64) error {
+func patchCacheID(ctx context.Context, k8sCore client.KubernetesCoreInterface, podToPatch *corev1.Pod, id int64) error {
 	labels := podToPatch.ObjectMeta.Labels
 	labels[CacheIDLabelKey] = strconv.FormatInt(id, 10)
 	log.Println(id)
@@ -131,7 +143,7 @@ func patchCacheID(ctx context.Context, k8sCore client.KubernetesCoreInterface, p
 	if err != nil {
 		return fmt.Errorf("Unable to patch cache_id to pod: %s", podToPatch.ObjectMeta.Name)
 	}
-	_, err = k8sCore.PodClient(namespaceToWatch).Patch(ctx, podToPatch.ObjectMeta.Name, types.JSONPatchType, patchBytes, metav1.PatchOptions{})
+	_, err = k8sCore.PodClient(podToPatch.Namespace).Patch(ctx, podToPatch.Name, types.JSONPatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
@@ -150,6 +162,9 @@ func stalenessToSeconds(staleness string) int64 {
 
 // Get Argo workflow template from container env.
 func getArgoTemplate(pod *corev1.Pod) (string, bool) {
+	if len(pod.Spec.Containers) == 0 {
+		return "", false
+	}
 	for _, env := range pod.Spec.Containers[0].Env {
 		if ArgoWorkflowTemplateEnvKey == env.Name {
 			return env.Value, true

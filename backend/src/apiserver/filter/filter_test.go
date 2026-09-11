@@ -16,6 +16,7 @@ package filter
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"google.golang.org/protobuf/encoding/prototext"
@@ -30,6 +31,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/testing/protocmp"
 )
+
+func testQuote(s string) string { return `"` + s + `"` }
 
 func TestValidNewFiltersV1(t *testing.T) {
 	opts := []cmp.Option{
@@ -338,6 +341,8 @@ func TestInvalidFiltersV1(t *testing.T) {
 		{
 			`predicates { key: "total" op: IN }`,
 		},
+		// Note: empty IN lists (int_values {}, long_values {}, string_values {})
+		// are intentionally NOT errors. They produce a match-nothing predicate.
 	}
 
 	for _, test := range tests {
@@ -411,6 +416,9 @@ func TestInvalidFilters(t *testing.T) {
 		{
 			`predicates { key: "total" operation: IN }`,
 		},
+		// Note: empty IN lists (int_values {}, long_values {}, string_values {})
+		// are intentionally NOT errors. They produce a match-nothing predicate;
+		// see the empty-list cases in TestAddToSelect.
 	}
 
 	for _, test := range tests {
@@ -427,6 +435,60 @@ func TestInvalidFilters(t *testing.T) {
 	}
 }
 
+func TestQualifyIdentifier(t *testing.T) {
+	mysqlQuote := func(s string) string { return "`" + s + "`" }
+	pgQuote := func(s string) string { return `"` + s + `"` }
+
+	t.Run("Nil quoter panics", func(t *testing.T) {
+		assert.Panics(t, func() { QualifyIdentifier(nil, "table.column") })
+	})
+
+	testCases := []struct {
+		name  string
+		key   string
+		quote func(string) string
+		want  string
+	}{
+		{
+			name:  "Simple identifier with mysql quote",
+			key:   "my_column",
+			quote: mysqlQuote,
+			want:  "`my_column`",
+		},
+		{
+			name:  "Qualified identifier with mysql quote",
+			key:   "my_table.my_column",
+			quote: mysqlQuote,
+			want:  "`my_table`.`my_column`",
+		},
+		{
+			name:  "Simple identifier with pg quote",
+			key:   "my_column",
+			quote: pgQuote,
+			want:  `"my_column"`,
+		},
+		{
+			name:  "Qualified identifier with pg quote",
+			key:   "my_table.my_column",
+			quote: pgQuote,
+			want:  `"my_table"."my_column"`,
+		},
+		{
+			name:  "Empty key",
+			key:   "",
+			quote: pgQuote,
+			want:  `""`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := QualifyIdentifier(tc.quote, tc.key)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
 func TestAddToSelectV1(t *testing.T) {
 	tests := []struct {
 		protoStr string
@@ -435,62 +497,62 @@ func TestAddToSelectV1(t *testing.T) {
 	}{
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
-			"SELECT mycolumn WHERE status = ?",
+			`SELECT mycolumn WHERE ("status" = ?)`,
 			[]interface{}{"Running"},
 		},
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }
 			 predicates { key: "status" op: EQUALS string_value: "Stopped" }`,
-			"SELECT mycolumn WHERE status = ? AND status = ?",
+			`SELECT mycolumn WHERE ("status" = ? AND "status" = ?)`,
 			[]interface{}{"Running", "Stopped"},
 		},
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
-			"SELECT mycolumn WHERE status = ?",
+			`SELECT mycolumn WHERE ("status" = ?)`,
 			[]interface{}{"Running"},
 		},
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }
 		   predicates { key: "total" op: GREATER_THAN_EQUALS  long_value: 100 }`,
-			"SELECT mycolumn WHERE status = ? AND total >= ?",
+			`SELECT mycolumn WHERE ("status" = ? AND "total" >= ?)`,
 			[]interface{}{"Running", int64(100)},
 		},
 		{
 			`predicates { key: "status" op: NOT_EQUALS string_value: "Running" }
 		   predicates { key: "total" op: GREATER_THAN  long_value: 100 }`,
-			"SELECT mycolumn WHERE status <> ? AND total > ?",
+			`SELECT mycolumn WHERE ("status" <> ? AND "total" > ?)`,
 			[]interface{}{"Running", int64(100)},
 		},
 		{
 			`predicates { key: "date" op: LESS_THAN timestamp_value { seconds: 10 } }
 		   predicates { key: "total" op: LESS_THAN_EQUALS  int_value: 100 }`,
-			"SELECT mycolumn WHERE date < ? AND total <= ?",
+			`SELECT mycolumn WHERE ("date" < ? AND "total" <= ?)`,
 			[]interface{}{int64(10), int32(100)},
 		},
 		{
 			`predicates { key: "total" op: IN int_values {values: 1 values: 2 values: 3} }`,
-			"SELECT mycolumn WHERE total IN (?,?,?)",
+			`SELECT mycolumn WHERE ("total" IN (?,?,?))`,
 			[]interface{}{int32(1), int32(2), int32(3)},
 		},
 		{
 			`predicates { key: "runs" op: IN  long_values {values: 100 values: 200}}`,
-			"SELECT mycolumn WHERE runs IN (?,?)",
+			`SELECT mycolumn WHERE ("runs" IN (?,?))`,
 			[]interface{}{int64(100), int64(200)},
 		},
 		{
 			`predicates { key: "label" op: IN  string_values {values: "l1" values: "l2"}}`,
-			"SELECT mycolumn WHERE label IN (?,?)",
+			`SELECT mycolumn WHERE ("label" IN (?,?))`,
 			[]interface{}{"l1", "l2"},
 		},
 		{
 			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring" }`,
-			"SELECT mycolumn WHERE label LIKE ?",
+			`SELECT mycolumn WHERE (LOWER("label") LIKE LOWER(?))`,
 			[]interface{}{"%label_substring%"},
 		},
 		{
 			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring1" }
 			 predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring2" }`,
-			"SELECT mycolumn WHERE label LIKE ? AND label LIKE ?",
+			`SELECT mycolumn WHERE (LOWER("label") LIKE LOWER(?) AND LOWER("label") LIKE LOWER(?))`,
 			[]interface{}{"%label_substring1%", "%label_substring2%"},
 		},
 	}
@@ -509,7 +571,7 @@ func TestAddToSelectV1(t *testing.T) {
 		}
 
 		sb := squirrel.Select("mycolumn")
-		gotSQL, gotArgs, err := filter.AddToSelect(sb).ToSql()
+		gotSQL, gotArgs, err := filter.AddToSelect(sb, testQuote).ToSql()
 		if !cmp.Equal(gotSQL, test.wantSQL) || !cmp.Equal(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("Filter.AddToSelect(%+v).ToSql() =\nGot: %+v, %v, %v\nWant: %+v, %+v, <nil>", filter, gotSQL, gotArgs, err, test.wantSQL, test.wantArgs)
 		}
@@ -524,62 +586,80 @@ func TestAddToSelect(t *testing.T) {
 	}{
 		{
 			`predicates { key: "status" operation: EQUALS string_value: "Running" }`,
-			"SELECT mycolumn WHERE status = ?",
+			`SELECT mycolumn WHERE ("status" = ?)`,
 			[]interface{}{"Running"},
 		},
 		{
 			`predicates { key: "status" operation: EQUALS string_value: "Running" }
 			 predicates { key: "status" operation: EQUALS string_value: "Stopped" }`,
-			"SELECT mycolumn WHERE status = ? AND status = ?",
+			`SELECT mycolumn WHERE ("status" = ? AND "status" = ?)`,
 			[]interface{}{"Running", "Stopped"},
 		},
 		{
 			`predicates { key: "status" operation: EQUALS string_value: "Running" }`,
-			"SELECT mycolumn WHERE status = ?",
+			`SELECT mycolumn WHERE ("status" = ?)`,
 			[]interface{}{"Running"},
 		},
 		{
 			`predicates { key: "status" operation: EQUALS string_value: "Running" }
 		   predicates { key: "total" operation: GREATER_THAN_EQUALS  long_value: 100 }`,
-			"SELECT mycolumn WHERE status = ? AND total >= ?",
+			`SELECT mycolumn WHERE ("status" = ? AND "total" >= ?)`,
 			[]interface{}{"Running", int64(100)},
 		},
 		{
 			`predicates { key: "status" operation: NOT_EQUALS string_value: "Running" }
 		   predicates { key: "total" operation: GREATER_THAN  long_value: 100 }`,
-			"SELECT mycolumn WHERE status <> ? AND total > ?",
+			`SELECT mycolumn WHERE ("status" <> ? AND "total" > ?)`,
 			[]interface{}{"Running", int64(100)},
 		},
 		{
 			`predicates { key: "date" operation: LESS_THAN timestamp_value { seconds: 10 } }
 		   predicates { key: "total" operation: LESS_THAN_EQUALS  int_value: 100 }`,
-			"SELECT mycolumn WHERE date < ? AND total <= ?",
+			`SELECT mycolumn WHERE ("date" < ? AND "total" <= ?)`,
 			[]interface{}{int64(10), int32(100)},
 		},
 		{
 			`predicates { key: "total" operation: IN int_values {values: 1 values: 2 values: 3} }`,
-			"SELECT mycolumn WHERE total IN (?,?,?)",
+			`SELECT mycolumn WHERE ("total" IN (?,?,?))`,
 			[]interface{}{int32(1), int32(2), int32(3)},
 		},
 		{
 			`predicates { key: "runs" operation: IN  long_values {values: 100 values: 200}}`,
-			"SELECT mycolumn WHERE runs IN (?,?)",
+			`SELECT mycolumn WHERE ("runs" IN (?,?))`,
 			[]interface{}{int64(100), int64(200)},
 		},
 		{
 			`predicates { key: "label" operation: IN  string_values {values: "l1" values: "l2"}}`,
-			"SELECT mycolumn WHERE label IN (?,?)",
+			`SELECT mycolumn WHERE ("label" IN (?,?))`,
 			[]interface{}{"l1", "l2"},
+		},
+		// Empty IN lists must produce a match-nothing predicate ("1 = 0"),
+		// never invalid SQL such as "IN ()". This preserves the historical
+		// behavior of returning an empty result page for empty selections.
+		{
+			`predicates { key: "label" operation: IN string_values {} }`,
+			"SELECT mycolumn WHERE (1 = 0)",
+			nil,
+		},
+		{
+			`predicates { key: "total" operation: IN int_values {} }`,
+			"SELECT mycolumn WHERE ((1=0))",
+			nil,
+		},
+		{
+			`predicates { key: "runs" operation: IN long_values {} }`,
+			"SELECT mycolumn WHERE ((1=0))",
+			nil,
 		},
 		{
 			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring" }`,
-			"SELECT mycolumn WHERE label LIKE ?",
+			`SELECT mycolumn WHERE (LOWER("label") LIKE LOWER(?))`,
 			[]interface{}{"%label_substring%"},
 		},
 		{
 			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring1" }
 			 predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring2" }`,
-			"SELECT mycolumn WHERE label LIKE ? AND label LIKE ?",
+			`SELECT mycolumn WHERE (LOWER("label") LIKE LOWER(?) AND LOWER("label") LIKE LOWER(?))`,
 			[]interface{}{"%label_substring1%", "%label_substring2%"},
 		},
 	}
@@ -598,7 +678,7 @@ func TestAddToSelect(t *testing.T) {
 		}
 
 		sb := squirrel.Select("mycolumn")
-		gotSQL, gotArgs, err := filter.AddToSelect(sb).ToSql()
+		gotSQL, gotArgs, err := filter.AddToSelect(sb, testQuote).ToSql()
 		if !cmp.Equal(gotSQL, test.wantSQL) || !cmp.Equal(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("Filter.AddToSelect(%+v).ToSql() =\nGot: %+v, %v, %v\nWant: %+v, %+v, <nil>", filter, gotSQL, gotArgs, err, test.wantSQL, test.wantArgs)
 		}
@@ -629,6 +709,79 @@ func TestUnmarshalJSON(t *testing.T) {
 	err := json.Unmarshal([]byte(in), got)
 	if err != nil || !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(Filter{})) {
 		t.Errorf("json.Unmarshal(%+v):\nGot: %v, Error: %v\nWant:\n%+v, Error: nil\nDiff:%s\n", in, got, err, want, cmp.Diff(want, got, cmp.AllowUnexported(Filter{})))
+	}
+}
+
+func TestINFilterPageTokenRoundTrip(t *testing.T) {
+	// Simulate what happens when a Filter with IN string values is serialized
+	// into a page token and then deserialized back. json.Unmarshal decodes
+	// []string as []interface{} when the target type is interface{}, which
+	// must be normalized back to []string so the correct SQL path is taken.
+	original := &Filter{
+		in: map[string][]interface{}{
+			"label": {[]string{"Foo", "Bar"}},
+		},
+		caseInsensitiveKeys: map[string]struct{}{"label": {}},
+	}
+
+	b, err := json.Marshal(original)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+
+	roundTripped := &Filter{}
+	if err := json.Unmarshal(b, roundTripped); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+
+	// The value must be []string, not []interface{}, after round-trip.
+	vals := roundTripped.in["label"]
+	if len(vals) != 1 {
+		t.Fatalf("expected 1 value in f.in[label], got %d", len(vals))
+	}
+	if _, ok := vals[0].([]string); !ok {
+		t.Errorf("after JSON round-trip, f.in[label][0] type = %T, want []string", vals[0])
+	}
+
+	// caseInsensitiveKeys should survive the round-trip
+	assert.True(t, roundTripped.isCaseInsensitive("label"))
+
+	// AddToSelect must still emit LOWER() for case-insensitive keys.
+	sb := squirrel.Select("mycolumn")
+	gotSQL, _, err := roundTripped.AddToSelect(sb, testQuote).ToSql()
+	if err != nil {
+		t.Fatalf("AddToSelect: %v", err)
+	}
+	if !strings.Contains(gotSQL, "LOWER") {
+		t.Errorf("expected LOWER in SQL after round-trip, got: %s", gotSQL)
+	}
+}
+
+func TestINFilterPageTokenRoundTrip_NoCaseInsensitive(t *testing.T) {
+	// Without caseInsensitiveKeys, string IN should NOT produce LOWER() after round-trip.
+	original := &Filter{
+		in: map[string][]interface{}{
+			"status": {[]string{"Running", "Stopped"}},
+		},
+	}
+
+	b, err := json.Marshal(original)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+
+	roundTripped := &Filter{}
+	if err := json.Unmarshal(b, roundTripped); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+
+	sb := squirrel.Select("mycolumn")
+	gotSQL, _, err := roundTripped.AddToSelect(sb, testQuote).ToSql()
+	if err != nil {
+		t.Fatalf("AddToSelect: %v", err)
+	}
+	if strings.Contains(gotSQL, "LOWER") {
+		t.Errorf("expected no LOWER in SQL for non-case-insensitive field, got: %s", gotSQL)
 	}
 }
 
@@ -723,8 +876,11 @@ func TestFilterK8sPipelines_EQ_NEQ(t *testing.T) {
 		t.Fatalf("expected AND filter not to match when one predicate fails")
 	}
 
-	// EQ case-insensitive: "MY-PIPELINE" should match "my-pipeline"
-	eqCaseInsensitive := &Filter{eq: map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}}}
+	// EQ case-insensitive: "MY-PIPELINE" should match "my-pipeline" when caseInsensitiveKeys is set
+	eqCaseInsensitive := &Filter{
+		eq:                  map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}},
+		caseInsensitiveKeys: map[string]struct{}{"pipelines.Name": {}},
+	}
 	found, err = eqCaseInsensitive.FilterK8sPipelines(k8sPipeline)
 	if err != nil {
 		t.Fatalf("unexpected error for EQ case-insensitive: %v", err)
@@ -734,13 +890,26 @@ func TestFilterK8sPipelines_EQ_NEQ(t *testing.T) {
 	}
 
 	// NEQ case-insensitive: "MY-PIPELINE" should be considered equal, so NEQ should not match
-	neqCaseInsensitive := &Filter{neq: map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}}}
+	neqCaseInsensitive := &Filter{
+		neq:                 map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}},
+		caseInsensitiveKeys: map[string]struct{}{"pipelines.Name": {}},
+	}
 	found, err = neqCaseInsensitive.FilterK8sPipelines(k8sPipeline)
 	if err != nil {
 		t.Fatalf("unexpected error for NEQ case-insensitive: %v", err)
 	}
 	if found {
 		t.Fatalf("expected NEQ filter not to match when value matches case-insensitively")
+	}
+
+	// EQ exact: without caseInsensitiveKeys, "MY-PIPELINE" should NOT match "my-pipeline"
+	eqExact := &Filter{eq: map[string][]interface{}{"pipelines.Name": {"MY-PIPELINE"}}}
+	found, err = eqExact.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for EQ exact: %v", err)
+	}
+	if found {
+		t.Fatalf("expected EQ filter not to match without case-insensitive flag")
 	}
 }
 
@@ -789,14 +958,27 @@ func TestFilterK8sPipelines_IN(t *testing.T) {
 		t.Fatalf("expected IN multi to match when present in all lists")
 	}
 
-	// IN case-insensitive: "MY-PIPELINE" should match "my-pipeline"
-	inCaseInsensitive := &Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"a", "MY-PIPELINE"}}}}
+	// IN case-insensitive: "MY-PIPELINE" should match "my-pipeline" when caseInsensitiveKeys is set
+	inCaseInsensitive := &Filter{
+		in:                  map[string][]interface{}{"pipelines.Name": {[]string{"a", "MY-PIPELINE"}}},
+		caseInsensitiveKeys: map[string]struct{}{"pipelines.Name": {}},
+	}
 	found, err = inCaseInsensitive.FilterK8sPipelines(k8sPipeline)
 	if err != nil {
 		t.Fatalf("unexpected error for IN case-insensitive: %v", err)
 	}
 	if !found {
 		t.Fatalf("expected IN filter to match case-insensitively")
+	}
+
+	// IN exact: without caseInsensitiveKeys, "MY-PIPELINE" should NOT match "my-pipeline"
+	inExact := &Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"a", "MY-PIPELINE"}}}}
+	found, err = inExact.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for IN exact: %v", err)
+	}
+	if found {
+		t.Fatalf("expected IN filter not to match without case-insensitive flag")
 	}
 }
 
@@ -1024,11 +1206,97 @@ func TestFilter_ReplaceKeys(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.filter.ReplaceKeys(tt.replaceMap, tt.prefix)
+			err := tt.filter.ReplaceKeys(tt.replaceMap, tt.prefix, nil)
 			assert.Nil(t, err)
 			if err != nil || !cmp.Equal(tt.filter, tt.want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(Filter{})) {
 				t.Errorf("ReplaceKeys: Got: %v, Error: %v Want: %v", tt.filter, err.Error(), tt.want)
 			}
 		})
 	}
+}
+
+func TestFilter_ReplaceKeys_WithCaseInsensitive(t *testing.T) {
+	f := &Filter{
+		eq: map[string][]interface{}{
+			"name":      {"MyPipeline"},
+			"namespace": {"kubeflow"},
+		},
+	}
+
+	keyMap := map[string]string{
+		"name":      "Name",
+		"namespace": "Namespace",
+	}
+	caseInsensitive := map[string]struct{}{
+		"name": {},
+	}
+
+	err := f.ReplaceKeys(keyMap, "pipelines", caseInsensitive)
+	assert.Nil(t, err)
+
+	// "name" maps to "pipelines.Name" and should be case-insensitive
+	assert.True(t, f.isCaseInsensitive("pipelines.Name"))
+	// "namespace" maps to "pipelines.Namespace" and should NOT be case-insensitive
+	assert.False(t, f.isCaseInsensitive("pipelines.Namespace"))
+}
+
+func TestAddToSelect_WithQuoting(t *testing.T) {
+	protoFilter := &apiv2beta1.Filter{
+		Predicates: []*apiv2beta1.Predicate{
+			{Key: "CreatedAtInSec", Operation: apiv2beta1.Predicate_GREATER_THAN, Value: &apiv2beta1.Predicate_LongValue{LongValue: 100}},
+			{Key: "name", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_StringValue{StringValue: "test"}},
+		},
+	}
+	filter, err := New(protoFilter)
+	assert.NoError(t, err)
+
+	sb := squirrel.Select("mycolumn")
+	// pgx style quoting
+	quote := func(s string) string { return `"` + s + `"` }
+
+	gotSQL, gotArgs, err := filter.AddToSelect(sb, quote).ToSql()
+	assert.NoError(t, err)
+
+	// Without caseInsensitiveKeys, string EQ uses exact comparison (no LOWER)
+	wantSQL := `SELECT mycolumn WHERE ("name" = ? AND "CreatedAtInSec" > ?)`
+	wantArgs := []interface{}{"test", int64(100)}
+
+	assert.Equal(t, wantSQL, gotSQL)
+	assert.Equal(t, wantArgs, gotArgs)
+}
+
+func TestAddToSelect_CaseInsensitiveKeys(t *testing.T) {
+	// Whitelist fields should use LOWER(); non-whitelist fields should not
+	f := &Filter{
+		eq:                  map[string][]interface{}{"pipelines.Name": {"MyPipeline"}, "pipelines.UUID": {"abc-123"}},
+		neq:                 map[string][]interface{}{"pipelines.Description": {"old"}},
+		in:                  map[string][]interface{}{"pipelines.Name": {[]string{"a", "b"}}},
+		caseInsensitiveKeys: map[string]struct{}{"pipelines.Name": {}, "pipelines.Description": {}},
+	}
+
+	sb := squirrel.Select("mycolumn")
+	gotSQL, gotArgs, err := f.AddToSelect(sb, testQuote).ToSql()
+	assert.NoError(t, err)
+
+	// Name (whitelist): LOWER(), UUID (not whitelist): exact
+	assert.Contains(t, gotSQL, `LOWER("pipelines"."Name") = LOWER(?)`)
+	assert.Contains(t, gotSQL, `"pipelines"."UUID" = ?`)
+	assert.Contains(t, gotSQL, `LOWER("pipelines"."Description") <> LOWER(?)`)
+	assert.Contains(t, gotSQL, `LOWER("pipelines"."Name") IN (LOWER(?), LOWER(?))`)
+
+	assert.Equal(t, 5, len(gotArgs))
+}
+
+func TestAddToSelect_StringIN_NoCaseInsensitive(t *testing.T) {
+	// String IN without caseInsensitiveKeys should use exact comparison
+	f := &Filter{
+		in: map[string][]interface{}{"status": {[]string{"Running", "Stopped"}}},
+	}
+
+	sb := squirrel.Select("mycolumn")
+	gotSQL, gotArgs, err := f.AddToSelect(sb, testQuote).ToSql()
+	assert.NoError(t, err)
+
+	assert.Equal(t, `SELECT mycolumn WHERE ("status" IN (?,?))`, gotSQL)
+	assert.Equal(t, []interface{}{"Running", "Stopped"}, gotArgs)
 }
