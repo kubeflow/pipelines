@@ -16,6 +16,7 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -29,6 +30,7 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -156,16 +158,19 @@ func (c fixedRecurringTime) Now() time.Time { return time.Unix(c.epoch, 0) }
 
 type pausedRecurringRunDispatcher struct {
 	apiserverPlugins.NoOpDispatcher
-	calls       atomic.Int32
-	endCalls    atomic.Int32
-	outputs     bool
-	firstHook   chan struct{}
-	resumeFirst chan struct{}
+	calls           atomic.Int32
+	endCalls        atomic.Int32
+	outputs         bool
+	onlyFirstOutput bool
+	firstHook       chan struct{}
+	resumeFirst     chan struct{}
 }
+
+func (d *pausedRecurringRunDispatcher) PluginsRegistered() bool { return d.outputs }
 
 func (d *pausedRecurringRunDispatcher) OnBeforeRunCreation(_ context.Context, run *apiserverPlugins.PendingRun, execution util.ExecutionSpec) error {
 	call := d.calls.Add(1)
-	if d.outputs {
+	if d.outputs && (!d.onlyFirstOutput || call == 1) {
 		output := fmt.Sprintf(`{"test":{"entries":{"id":{"value":"parent-%d"}}}}`, call)
 		run.PluginsOutput = &output
 		execution.SetAnnotations("test/plugin-parent", fmt.Sprintf("parent-%d", call))
@@ -265,6 +270,139 @@ func TestCreateRunConcurrentAuthorizedTickCreatesOneWorkflow(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, int64(1), state.LastRunIndex)
 			require.False(t, state.Pending)
+		})
+	}
+}
+
+// Pause the creator after Kubernetes accepts its Workflow but before the API
+// persists the run. A lost response leaves recovery to the persistence agent.
+type pausedRecurringExecutionClient struct {
+	util.ExecutionInterface
+	calls        atomic.Int32
+	created      chan util.ExecutionSpec
+	resume       chan struct{}
+	loseResponse bool
+}
+
+func (c *pausedRecurringExecutionClient) Create(ctx context.Context, execution util.ExecutionSpec, options metav1.CreateOptions) (util.ExecutionSpec, error) {
+	call := c.calls.Add(1)
+	created, err := c.ExecutionInterface.Create(ctx, execution, options)
+	if call == 1 && err == nil {
+		c.created <- created
+		<-c.resume
+		if c.loseResponse {
+			return nil, errors.New("workflow creation response was lost")
+		}
+	}
+	return created, err
+}
+
+func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		plugins      bool
+		loseResponse bool
+	}{
+		{name: "fixed-name V1 with differing plugin configurations", plugins: true},
+		{name: "V2 without plugins"},
+		{name: "V2 recovered by the persistence agent", loseResponse: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			store, manager, experiment := initWithExperiment(t)
+			defer store.Close()
+			for key, value := range map[string]string{common.MultiUserMode: "true", v1AllowedNamespaces: "ns1"} {
+				previous := viper.Get(key)
+				viper.Set(key, value)
+				t.Cleanup(func() { viper.Set(key, previous) })
+			}
+			manager.time = fixedRecurringTime{epoch: 200}
+			ctx := multiUserContext()
+			dispatcher := &pausedRecurringRunDispatcher{outputs: test.plugins, onlyFirstOutput: true}
+			manager.pluginDispatcher = dispatcher
+			pipeline := model.PipelineSpec{
+				PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+				RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"},
+			}
+			if test.plugins {
+				workflow := util.NewWorkflow(testWorkflow.DeepCopy())
+				workflow.SetExecutionName("fixed-plugin-workflow")
+				pipeline = model.PipelineSpec{WorkflowSpecManifest: model.LargeText(workflow.ToStringForStore())}
+			}
+			job, err := manager.CreateJob(ctx, &model.Job{
+				DisplayName: "pending-creator", Namespace: "ns1", ExperimentId: experiment.UUID,
+				Enabled: true, MaxConcurrency: 1, PipelineSpec: pipeline,
+				Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
+					PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
+				}},
+			})
+			require.NoError(t, err)
+			client := &pausedRecurringExecutionClient{
+				ExecutionInterface: &uniqueRecurringWorkflowClient{ExecutionInterface: store.ExecClientFake.Execution(job.Namespace)},
+				created:            make(chan util.ExecutionSpec, 1), resume: make(chan struct{}), loseResponse: test.loseResponse,
+			}
+			manager.execClient = &retryWorkflowExecClient{workflowClient: client}
+			resumeCreator := sync.OnceFunc(func() { close(client.resume) })
+			defer resumeCreator()
+			makeRun := func() *model.Run {
+				run := &model.Run{DisplayName: "same-tick", RecurringRunId: job.UUID}
+				require.NoError(t, manager.PrepareRecurringRun(ctx, run))
+				return run
+			}
+			firstInput, secondInput := makeRun(), makeRun()
+			type result struct {
+				run *model.Run
+				err error
+			}
+			firstDone := make(chan result, 1)
+			go func() {
+				run, err := manager.CreateRun(ctx, firstInput)
+				firstDone <- result{run, err}
+			}()
+			var workflow util.ExecutionSpec
+			select {
+			case workflow = <-client.created:
+			case first := <-firstDone:
+				t.Fatalf("creator did not submit its Workflow: %v", first.err)
+			case <-time.After(10 * time.Second):
+				t.Fatal("creator did not submit its Workflow")
+			}
+			second, err := manager.CreateRun(ctx, secondInput)
+			require.Nil(t, second)
+			require.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "error: %v", err)
+			_, err = manager.GetRun(firstInput.UUID)
+			require.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "the loser must not insert a run: %v", err)
+			require.Zero(t, dispatcher.endCalls.Load(), "the loser must not end the creator's plugin resources")
+			pending, err := store.JobStore().GetRecurringRunState(job.UUID)
+			require.NoError(t, err)
+			require.True(t, pending.Pending)
+
+			resumeCreator()
+			first := <-firstDone
+			if test.loseResponse {
+				require.ErrorContains(t, first.err, "workflow creation response was lost")
+				_, err = manager.ReportWorkflowResource(ctx, workflow)
+				require.NoError(t, err)
+			} else {
+				require.NoError(t, first.err)
+			}
+			retried, err := manager.CreateRun(ctx, makeRun())
+			require.NoError(t, err)
+			require.Equal(t, firstInput.UUID, retried.UUID)
+			require.Equal(t, workflow.ExecutionName(), retried.K8SName)
+			require.Equal(t, "same-tick", retried.DisplayName)
+			require.Equal(t, int64(110), retried.ScheduledAtInSec)
+			require.Equal(t, int64(200), retried.CreatedAtInSec)
+			require.Equal(t, 1, store.ExecClientFake.GetWorkflowCount())
+			if test.plugins {
+				require.NotNil(t, retried.PluginsOutputString)
+				require.Equal(t, first.run.PluginsOutputString, retried.PluginsOutputString)
+				require.Contains(t, string(*retried.PluginsOutputString), "parent-1")
+				require.Equal(t, "parent-1", workflow.ExecutionObjectMeta().Annotations["test/plugin-parent"])
+			}
+			state, err := store.JobStore().GetRecurringRunState(job.UUID)
+			require.NoError(t, err)
+			require.False(t, state.Pending)
+			require.Equal(t, int64(1), state.LastRunIndex)
 		})
 	}
 }

@@ -823,6 +823,15 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 		runWorkflowOptions.RecurringRunIndex = &index
 	}
+	if tick != nil && tick.deleted {
+		// Acknowledgement cannot depend on a deleted pipeline version. The job
+		// retains its authorized effective account; the server checks pipeline
+		// and namespace access before entering CreateRun.
+		if err := r.authorizeServiceAccount(ctx, tick.replay.ServiceAccount, tick.replay.Namespace); err != nil {
+			return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to service account authorization error")
+		}
+		return tick.replay, nil
+	}
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
 	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
@@ -923,14 +932,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	if !executionCreated {
 		// This request must not clean up plugin resources belonging to the existing execution.
 		runPersisted = true
-		if run.PluginsOutputString != nil {
-			// Only the creator can persist the plugin output matching its workflow.
-			existing, err := r.runStore.GetRun(run.UUID)
-			if err != nil {
-				return nil, util.NewUnavailableServerError(err, "Retry after the scheduled run creator finishes persistence")
-			}
-			return existing, nil
+		// The absence of local plugin output does not mean the creator had none.
+		// Only the creator or persistence agent may persist the existing execution.
+		existing, err := r.runStore.GetRun(run.UUID)
+		if err != nil {
+			return nil, util.NewUnavailableServerError(err, "Retry after the scheduled run creator or persistence agent finishes persistence")
 		}
+		return existing, nil
 	}
 	// Update the run with the new scheduled workflow
 	run.Namespace = k8sNamespace

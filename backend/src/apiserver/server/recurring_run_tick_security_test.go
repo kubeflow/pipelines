@@ -16,6 +16,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -131,9 +133,39 @@ func TestRecurringRunIgnoresCRSchedulingStateAndClientScheduledAt(t *testing.T) 
 	// The latest completed key remains consumed after its run is deleted.
 	require.NoError(t, manager.DeleteRun(ctx, second.RunId))
 	request.Run.DisplayName = "second-tick"
-	_, err = server.CreateRun(ctx, request)
-	require.ErrorContains(t, err, "already dispatched")
+	acknowledged, err := server.CreateRun(ctx, request)
+	require.NoError(t, err)
+	require.Equal(t, second.RunId, acknowledged.RunId)
+	require.Equal(t, second.CreatedAt, acknowledged.CreatedAt)
+	require.Equal(t, second.ScheduledAt, acknowledged.ScheduledAt)
+	require.Equal(t, "custom-sa", acknowledged.ServiceAccount)
+	require.Zero(t, acknowledged.State)
+	_, err = manager.GetRun(second.RunId)
+	require.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	stateAfterAcknowledgement, err := clients.JobStore().GetRecurringRunState(job.UUID)
+	require.NoError(t, err)
+	require.Equal(t, afterReplay, stateAfterAcknowledgement)
 	require.Equal(t, 1, clients.ExecClientFake.GetWorkflowCount())
+}
+
+func TestRecurringRunRejectsOverlongRequestKeyBeforeClaim(t *testing.T) {
+	clients, manager, job, review := newAuthorizedSchedule(t)
+	review.controllerAllowed = true
+	ctx := scheduleContext(scheduleControllerIdentity)
+	server := createRunServer(manager)
+	before, err := clients.JobStore().GetRecurringRunState(job.UUID)
+	require.NoError(t, err)
+	request := &api.CreateRunRequest{Run: &api.Run{DisplayName: strings.Repeat("x", 256), RecurringRunId: job.UUID}}
+	_, err = server.CreateRun(ctx, request)
+	require.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument))
+	after, err := clients.JobStore().GetRecurringRunState(job.UUID)
+	require.NoError(t, err)
+	require.Equal(t, before, after)
+	require.Zero(t, clients.ExecClientFake.GetWorkflowCount())
+	request.Run.DisplayName = "valid-tick"
+	run, err := server.CreateRun(ctx, request)
+	require.NoError(t, err)
+	requireScheduledRunParameters(t, manager, run, 1, 100)
 }
 
 func TestRecurringRunUsesStoredNoCatchupPolicy(t *testing.T) {
@@ -229,40 +261,49 @@ func TestRecurringRunResumesOnlyTheAuthorizedPendingTick(t *testing.T) {
 }
 
 func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T) {
-	for _, denial := range []string{"disabled-db", "disabled-cr", "revoked-service-account", "removed-allowlist", "denied-namespace"} {
-		t.Run(denial, func(t *testing.T) {
-			clients, manager, job, review := newAuthorizedSchedule(t)
-			review.controllerAllowed = true
-			ctx := scheduleContext(scheduleControllerIdentity)
-			server := createRunServer(manager)
-			request := &api.CreateRunRequest{Run: &api.Run{DisplayName: "same-tick", RecurringRunId: job.UUID}}
-			_, err := server.CreateRun(ctx, request)
-			require.NoError(t, err)
-			before, err := clients.JobStore().GetRecurringRunState(job.UUID)
-			require.NoError(t, err)
-			switch denial {
-			case "disabled-db":
-				require.NoError(t, clients.JobStore().ChangeJobMode(job.UUID, false))
-			case "disabled-cr":
-				swfs := clients.SwfClient().ScheduledWorkflow(job.Namespace)
-				swf, err := swfs.Get(ctx, job.K8SName, metav1.GetOptions{})
-				require.NoError(t, err)
-				swf.Spec.Enabled = false
-				_, err = swfs.Update(ctx, swf)
-				require.NoError(t, err)
-			case "revoked-service-account":
-				review.controllerAllowed = false
-			case "removed-allowlist":
-				viper.Set(common.AllowedServiceAccountsFlag, "")
-			case "denied-namespace":
-				review.denyRunCreation = true
+	for _, deleted := range []bool{false, true} {
+		t.Run(fmt.Sprintf("deleted=%t", deleted), func(t *testing.T) {
+			for _, denial := range []string{"disabled-db", "disabled-cr", "revoked-service-account", "removed-allowlist", "denied-namespace"} {
+				t.Run(denial, func(t *testing.T) {
+					clients, manager, job, review := newAuthorizedSchedule(t)
+					review.controllerAllowed = true
+					ctx := scheduleContext(scheduleControllerIdentity)
+					server := createRunServer(manager)
+					request := &api.CreateRunRequest{Run: &api.Run{DisplayName: "same-tick", RecurringRunId: job.UUID}}
+					run, err := server.CreateRun(ctx, request)
+					require.NoError(t, err)
+					workflowCount := 1
+					if deleted {
+						require.NoError(t, manager.DeleteRun(ctx, run.RunId))
+						workflowCount = 0
+					}
+					before, err := clients.JobStore().GetRecurringRunState(job.UUID)
+					require.NoError(t, err)
+					switch denial {
+					case "disabled-db":
+						require.NoError(t, clients.JobStore().ChangeJobMode(job.UUID, false))
+					case "disabled-cr":
+						swfs := clients.SwfClient().ScheduledWorkflow(job.Namespace)
+						swf, err := swfs.Get(ctx, job.K8SName, metav1.GetOptions{})
+						require.NoError(t, err)
+						swf.Spec.Enabled = false
+						_, err = swfs.Update(ctx, swf)
+						require.NoError(t, err)
+					case "revoked-service-account":
+						review.controllerAllowed = false
+					case "removed-allowlist":
+						viper.Set(common.AllowedServiceAccountsFlag, "")
+					case "denied-namespace":
+						review.denyRunCreation = true
+					}
+					_, err = server.CreateRun(ctx, request)
+					require.Error(t, err)
+					require.Equal(t, workflowCount, clients.ExecClientFake.GetWorkflowCount())
+					after, err := clients.JobStore().GetRecurringRunState(job.UUID)
+					require.NoError(t, err)
+					require.Equal(t, before, after)
+				})
 			}
-			_, err = server.CreateRun(ctx, request)
-			require.Error(t, err)
-			require.Equal(t, 1, clients.ExecClientFake.GetWorkflowCount())
-			after, err := clients.JobStore().GetRecurringRunState(job.UUID)
-			require.NoError(t, err)
-			require.Equal(t, before, after)
 		})
 	}
 }

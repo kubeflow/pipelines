@@ -23,6 +23,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -62,8 +63,8 @@ func (s *JobStore) getRecurringRunState(db recurringRunStateQueryer, jobID strin
 // ClaimRecurringRun serializes reservations with enable/disable and other claims.
 // The caller computes scheduledAt from the stored schedule and expectedIndex.
 func (s *JobStore) ClaimRecurringRun(jobID, requestKey string, expectedIndex, scheduledAt, createdAt int64, pipelineVersionID string) (*model.RecurringRunState, error) {
-	if requestKey == "" {
-		return nil, util.NewInvalidInputError("Provide an idempotency key when claiming a recurring run")
+	if err := validation.ValidateRecurringRunRequestKey(requestKey); err != nil {
+		return nil, err
 	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()

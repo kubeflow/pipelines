@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -312,6 +313,52 @@ func TestCreateRunDoesNotReleaseAnotherRecurringClaim(t *testing.T) {
 			state, err := store.GetRecurringRunState("1")
 			require.NoError(t, err)
 			require.Equal(t, claim, state)
+		})
+	}
+}
+
+func TestRecurringRunClaimValidatesRequestKeyBeforeReservation(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		key   string
+		valid bool
+	}{
+		{"ascii-at-limit", strings.Repeat("a", 255), true},
+		{"ascii-over-limit", strings.Repeat("a", 256), false},
+		{"multibyte-at-limit", strings.Repeat("é", 255), true},
+		{"multibyte-over-limit", strings.Repeat("é", 256), false},
+		{"mixed-at-limit", strings.Repeat("a", 254) + "界", true},
+		{"mixed-over-limit", strings.Repeat("a", 255) + "界", false},
+		{"invalid-utf8", "invalid\xff", false},
+		{"empty", "", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, d, store := initializeDBAndStore()
+			t.Cleanup(func() { require.NoError(t, db.Close()) })
+			before, err := store.GetRecurringRunState("1")
+			require.NoError(t, err)
+			claim, err := store.ClaimRecurringRun("1", tc.key, 0, 100, 110, "version-a")
+			if !tc.valid {
+				require.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument), "%v", err)
+				require.Nil(t, claim)
+				after, getErr := store.GetRecurringRunState("1")
+				require.NoError(t, getErr)
+				require.Equal(t, before, after)
+				claim, err = store.ClaimRecurringRun("1", "valid-next-attempt", 0, 100, 110, "version-a")
+			}
+			require.NoError(t, err)
+			require.Equal(t, int64(1), claim.LastRunIndex)
+			require.True(t, claim.Pending)
+			run, err := NewRunStore(db, util.NewFakeTimeForEpoch(), d).CreateRun(&model.Run{
+				UUID: util.NewDeterministicUUID("1/tick/1"), DisplayName: claim.RequestKey,
+				RecurringRunId: "1", ExperimentId: defaultFakeExpId, Namespace: "n1",
+				RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded},
+			})
+			require.NoError(t, err)
+			require.Equal(t, claim.RequestKey, run.DisplayName)
+			state, err := store.GetRecurringRunState("1")
+			require.NoError(t, err)
+			require.False(t, state.Pending)
 		})
 	}
 }

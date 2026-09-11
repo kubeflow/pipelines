@@ -16,10 +16,12 @@ package resource
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduleutil "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -33,9 +35,13 @@ type recurringRunTick struct {
 	scheduledAt   int64
 	createdAt     int64
 	replay        *model.Run
+	deleted       bool
 }
 
 func (r *ResourceManager) prepareRecurringRunTick(run *model.Run, owner *scheduledworkflow.ScheduledWorkflow, now int64) (*recurringRunTick, error) {
+	if err := validation.ValidateRecurringRunRequestKey(run.DisplayName); err != nil {
+		return nil, err
+	}
 	job, err := r.jobStore.GetJob(run.RecurringRunId)
 	if err != nil {
 		return nil, err
@@ -68,15 +74,32 @@ func (r *ResourceManager) prepareRecurringRunTick(run *model.Run, owner *schedul
 		}, nil
 	}
 	if state.LastRunIndex > 0 && state.RequestKey == run.DisplayName {
-		if !state.Pending {
-			return nil, util.NewFailedPreconditionError(fmt.Errorf("the scheduled run was already dispatched"),
-				"This tick has already executed; wait for the next scheduled tick")
-		}
 		run.PipelineVersionId = state.PipelineVersionID
-		return &recurringRunTick{
+		tick := &recurringRunTick{
 			previousIndex: state.LastRunIndex - 1, index: state.LastRunIndex,
 			scheduledAt: state.LastScheduledAtInSec, createdAt: state.LastCreatedAtInSec,
-		}, nil
+		}
+		if !state.Pending {
+			// The controller may not have acknowledged the tick before its run was
+			// deleted. Return retained metadata without recreating either resource.
+			// CreateRun still authorizes the caller before returning this replay.
+			tick.deleted = true
+			tick.replay = &model.Run{
+				UUID:           util.NewDeterministicUUID(job.UUID + "/tick/" + strconv.FormatInt(state.LastRunIndex, 10)),
+				DisplayName:    state.RequestKey,
+				RecurringRunId: job.UUID,
+				Namespace:      run.Namespace,
+				ExperimentId:   job.ExperimentId,
+				ServiceAccount: job.ServiceAccount,
+				PipelineSpec:   run.PipelineSpec,
+				RunDetails: model.RunDetails{
+					CreatedAtInSec:   state.LastCreatedAtInSec,
+					ScheduledAtInSec: state.LastScheduledAtInSec,
+					State:            model.RuntimeStateUnspecified,
+				},
+			}
+		}
+		return tick, nil
 	}
 	if state.Pending {
 		return nil, util.NewFailedPreconditionError(fmt.Errorf("a previous tick is still pending"),

@@ -37,6 +37,13 @@ selected pipeline version, and run identity, with a deterministic workflow name
 to prevent duplicate executions. Saving the run also completes its pending tick
 in the same database transaction.
 
+If that run is deleted before the controller records the successful submission,
+retrying the same tick returns its retained identity and timestamps with an
+unspecified runtime state. This acknowledgement advances the controller without
+recreating the deleted run or workflow, and still requires the normal permissions.
+Recurring-run request keys (the run display names) must contain at most 255
+characters so the run and its scheduling state can both be stored.
+
 Single-user controller behavior remains unchanged. In a custom multi-user
 installation, explicitly set `--multiUser=true`; authentication headers or bearer
 tokens alone do not enable this execution mode.
