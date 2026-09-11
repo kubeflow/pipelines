@@ -1,0 +1,118 @@
+# PIPELINE DEFINITION
+# Name: parallel-retry-demo
+# Inputs:
+#    exit_codes: str [Default: '0,1,2,3']
+#    workers: list [Default: ['A', 'B', 'C', 'D', 'E']]
+components:
+  comp-for-loop-1:
+    dag:
+      tasks:
+        random-failure-op:
+          cachingOptions: {}
+          componentRef:
+            name: comp-random-failure-op
+          inputs:
+            parameters:
+              exit_codes:
+                componentInputParameter: pipelinechannel--exit_codes
+              worker_id:
+                componentInputParameter: pipelinechannel--workers-loop-item
+          retryPolicy:
+            backoffDuration: 0s
+            backoffFactor: 2.0
+            backoffMaxDuration: 3600s
+            maxRetryCount: 20
+          taskInfo:
+            name: random-failure-op
+    inputDefinitions:
+      parameters:
+        pipelinechannel--exit_codes:
+          parameterType: STRING
+        pipelinechannel--workers:
+          parameterType: LIST
+        pipelinechannel--workers-loop-item:
+          parameterType: STRING
+  comp-random-failure-op:
+    executorLabel: exec-random-failure-op
+    inputDefinitions:
+      parameters:
+        exit_codes:
+          description: Comma-separated list of integer exit codes, e.g. "0,1,2".
+          parameterType: STRING
+        worker_id:
+          description: Label to identify the parallel worker in logs.
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-random-failure-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - random_failure_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef random_failure_op(exit_codes: str, worker_id: str):\n    \"\"\
+          \"Randomly exits with one of the provided exit codes.\n\n    Args:\n   \
+          \     exit_codes: Comma-separated list of integer exit codes, e.g. \"0,1,2\"\
+          .\n        worker_id: Label to identify the parallel worker in logs.\n \
+          \   \"\"\"\n    import random\n    import sys\n    import time\n\n    code\
+          \ = int(random.choice(exit_codes.split(\",\")))\n    print(f\"[{worker_id}]\
+          \ picked exit code: {code}\")\n    time.sleep(1.0)\n    sys.exit(code)\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  name: parallel-retry-demo
+root:
+  dag:
+    tasks:
+      for-loop-1:
+        componentRef:
+          name: comp-for-loop-1
+        inputs:
+          parameters:
+            pipelinechannel--exit_codes:
+              componentInputParameter: exit_codes
+            pipelinechannel--workers:
+              componentInputParameter: workers
+        parameterIterator:
+          itemInput: pipelinechannel--workers-loop-item
+          items:
+            inputParameter: pipelinechannel--workers
+        taskInfo:
+          name: for-loop-1
+  inputDefinitions:
+    parameters:
+      exit_codes:
+        defaultValue: 0,1,2,3
+        isOptional: true
+        parameterType: STRING
+      workers:
+        defaultValue:
+        - A
+        - B
+        - C
+        - D
+        - E
+        isOptional: true
+        parameterType: LIST
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
