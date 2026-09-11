@@ -14,8 +14,6 @@ spec:
     ports:
     - port: 3000
       protocol: TCP
-    - port: 8080
-      protocol: TCP
     - port: 9000
       protocol: TCP
     - port: 8888
@@ -27,12 +25,6 @@ spec:
       podSelector:
         matchLabels:
           app: ml-pipeline
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kubeflow
-      podSelector:
-        matchLabels:
-          component: metadata-grpc-server
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: kubeflow

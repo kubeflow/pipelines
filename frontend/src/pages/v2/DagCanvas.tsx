@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { MouseEvent as ReactMouseEvent, useCallback, useMemo } from 'react';
+import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -24,6 +24,7 @@ import {
   MiniMap,
   Node,
   OnNodeDrag,
+  ReactFlowInstance,
 } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
@@ -45,6 +46,8 @@ export interface DagCanvasProps {
   onLayersUpdate: (layers: string[]) => void;
   onElementClick: (event: ReactMouseEvent, element: PipelineFlowElement) => void;
   nodesDraggable?: boolean;
+  selectedNodeId?: string;
+  focusNodeId?: string;
 }
 
 export default function DagCanvas({
@@ -54,7 +57,11 @@ export default function DagCanvas({
   setFlowElements,
   onElementClick,
   nodesDraggable = true,
+  selectedNodeId,
+  focusNodeId,
 }: DagCanvasProps) {
+  const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
+  const lastFocusedNodeId = useRef<string | null>(null);
   const subDagExpand = useCallback(
     (nodeKey: string) => {
       const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
@@ -65,14 +72,13 @@ export default function DagCanvas({
 
   const nodes = useMemo(
     () =>
-      elements
-        .filter(isNode)
-        .map((node) =>
-          node.type === NodeTypeNames.SUB_DAG && node.data
-            ? { ...node, data: { ...node.data, expand: subDagExpand } }
-            : node,
-        ),
-    [elements, subDagExpand],
+      elements.filter(isNode).map((node) => {
+        const selectedNode = { ...node, selected: node.id === selectedNodeId };
+        return selectedNode.type === NodeTypeNames.SUB_DAG && selectedNode.data
+          ? { ...selectedNode, data: { ...selectedNode.data, expand: subDagExpand } }
+          : selectedNode;
+      }),
+    [elements, selectedNodeId, subDagExpand],
   );
   const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
 
@@ -96,6 +102,27 @@ export default function DagCanvas({
     [onElementClick],
   );
 
+  const fitCurrentView = useCallback(
+    (instance: ReactFlowInstance<PipelineNode, Edge>) => {
+      const focusedNodes = focusNodeId
+        ? nodes.filter((node) => node.id === focusNodeId)
+        : undefined;
+      void instance.fitView(focusedNodes?.length ? { nodes: focusedNodes } : undefined);
+    },
+    [focusNodeId, nodes],
+  );
+
+  useEffect(() => {
+    if (!focusNodeId) {
+      lastFocusedNodeId.current = null;
+      return;
+    }
+    if (reactFlowInstance.current && lastFocusedNodeId.current !== focusNodeId) {
+      lastFocusedNodeId.current = focusNodeId;
+      fitCurrentView(reactFlowInstance.current);
+    }
+  }, [fitCurrentView, focusNodeId]);
+
   return (
     <>
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
@@ -110,7 +137,11 @@ export default function DagCanvas({
             edges={edges}
             snapToGrid={true}
             nodesDraggable={nodesDraggable}
-            onInit={(instance) => instance.fitView()}
+            onInit={(instance) => {
+              reactFlowInstance.current = instance;
+              lastFocusedNodeId.current = focusNodeId || null;
+              fitCurrentView(instance);
+            }}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
             onNodeClick={handleNodeClick}

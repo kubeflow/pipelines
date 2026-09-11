@@ -6,6 +6,10 @@ on:
       - master
   pull_request:
     paths:
+      - '.github/workflows/presubmit-backend.yml'
+      - '.github/actions/setup-go/**'
+      - 'go.mod'
+      - 'go.sum'
       - 'backend/**'
       - 'test/cache-deployer/**'
       - 'test/presubmit-backend-test.sh'
@@ -18,6 +22,20 @@ concurrency:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kfp_test
+          POSTGRES_PASSWORD: kfp_test
+          POSTGRES_DB: kfp_native_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U kfp_test -d kfp_native_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
 
     steps:
     - name: Checkout code
@@ -28,6 +46,7 @@ jobs:
 
     - name: Run Backend Tests
       env:
+        KFP_NATIVE_POSTGRES_TEST_DSN: postgres://kfp_test:kfp_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/kfp_native_test?sslmode=disable
         GIT_BRANCH: ${{ github.head_ref || github.ref_name }}
         GIT_REPO: ${{ github.event.pull_request.head.repo.full_name }}
       run: |

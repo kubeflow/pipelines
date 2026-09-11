@@ -55,6 +55,10 @@ func Int32Pointer(i int32) *int32 {
 	return &i
 }
 
+func IntPointer(i int) *int {
+	return &i
+}
+
 func StringNilOrValue(s *string) string {
 	if s == nil {
 		return "<nil>"

@@ -72,6 +72,19 @@ type RunServiceGetRunParams struct {
 	// The ID of the run to be retrieved.
 	RunID string
 
+	// View.
+	//
+	// Optional view mode. This field can be used to adjust
+	// how detailed the Run object that is returned will be.
+	//
+	//  - DEFAULT: By default `tasks` field is omitted.
+	// This provides a faster and leaner run object.
+	//  - FULL: This view mode displays all the tasks for this run
+	// with all its fields populated.
+	//
+	// Default: "DEFAULT"
+	View *string
+
 	HTTPClient *http.Client
 
 	inner innerParams
@@ -89,7 +102,18 @@ func (o *RunServiceGetRunParams) WithDefaults() *RunServiceGetRunParams {
 //
 // All values with no default are reset to their zero value.
 func (o *RunServiceGetRunParams) SetDefaults() {
-	// no default values defined for this parameter
+	var (
+		viewDefault = string("DEFAULT")
+	)
+
+	val := RunServiceGetRunParams{
+		View: &viewDefault,
+	}
+
+	val.inner.timeout = o.inner.timeout
+	val.inner.ctx = o.inner.ctx
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the run service get run params.
@@ -151,6 +175,17 @@ func (o *RunServiceGetRunParams) SetRunID(runID string) {
 	o.RunID = runID
 }
 
+// WithView adds the view to the run service get run params.
+func (o *RunServiceGetRunParams) WithView(view *string) *RunServiceGetRunParams {
+	o.SetView(view)
+	return o
+}
+
+// SetView adds the view to the run service get run params.
+func (o *RunServiceGetRunParams) SetView(view *string) {
+	o.View = view
+}
+
 // WriteToRequest writes these params to a [runtime.ClientRequest].
 func (o *RunServiceGetRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 	if err := r.SetTimeout(o.inner.timeout); err != nil {
@@ -178,6 +213,23 @@ func (o *RunServiceGetRunParams) WriteToRequest(r runtime.ClientRequest, reg str
 	// path param run_id
 	if err := r.SetPathParam("run_id", o.RunID); err != nil {
 		return err
+	}
+
+	if o.View != nil {
+
+		// query param view
+		var qrView string
+
+		if o.View != nil {
+			qrView = *o.View
+		}
+		qView := qrView
+		if qView != "" {
+
+			if err := r.SetQueryParam("view", qView); err != nil {
+				return err
+			}
+		}
 	}
 
 	if len(res) > 0 {

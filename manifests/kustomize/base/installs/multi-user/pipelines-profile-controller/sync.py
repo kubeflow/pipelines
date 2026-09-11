@@ -36,8 +36,10 @@ def _normalize_domain(domain):
     return domain if domain.startswith('.') else '.' + domain
 
 
-def artifact_server_environment(namespace, cluster_domain,
-                                allowed_artifact_endpoints):
+def artifact_server_environment(namespace,
+                                cluster_domain,
+                                allowed_artifact_endpoints,
+                                allowed_gcs_universe_domains="googleapis.com"):
     return [
         {
             "name": "MINIO_ACCESS_KEY",
@@ -77,6 +79,10 @@ def artifact_server_environment(namespace, cluster_domain,
             "name": "ALLOWED_ARTIFACT_ENDPOINTS",
             "value": allowed_artifact_endpoints,
         },
+        {
+            "name": "ALLOWED_GCS_UNIVERSE_DOMAINS",
+            "value": allowed_gcs_universe_domains,
+        },
     ]
 
 
@@ -104,6 +110,7 @@ def get_settings_from_env(controller_port=None,
                           disable_istio_sidecar=None,
                           artifacts_proxy_enabled=None,
                           allowed_artifact_endpoints=None,
+                          allowed_gcs_universe_domains=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None):
@@ -135,6 +142,9 @@ def get_settings_from_env(controller_port=None,
     settings["allowed_artifact_endpoints"] = \
         allowed_artifact_endpoints if allowed_artifact_endpoints is not None \
             else os.environ.get("ALLOWED_ARTIFACT_ENDPOINTS", "")
+    settings["allowed_gcs_universe_domains"] = \
+        allowed_gcs_universe_domains if allowed_gcs_universe_domains is not None \
+            else os.environ.get("ALLOWED_GCS_UNIVERSE_DOMAINS", "googleapis.com")
 
     settings["artifact_retention_days"] = \
         artifact_retention_days or \
@@ -171,6 +181,7 @@ def server_factory(frontend_image,
                    allowed_artifact_endpoints="",
                    cluster_domain=".svc.cluster.local",
                    object_store_host="seaweedfs",
+                   allowed_gcs_universe_domains="googleapis.com",
                    url="",
                    controller_port=8080):
     """Returns an HTTPServer populated with Handler with customized
@@ -362,7 +373,7 @@ def server_factory(frontend_image,
             desired_status = {
                 "kubeflow-pipelines-ready":
                     len(attachments["Secret.v1"]) == 1 and
-                    len(attachments["ConfigMap.v1"]) == 3 and
+                    len(attachments["ConfigMap.v1"]) == 2 and
                     len(attachments["Deployment.apps/v1"]) ==
                     (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     len(attachments["Service.v1"]) ==
@@ -384,20 +395,6 @@ def server_factory(frontend_image,
                             f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
                         "clusterDomain":
                             cluster_domain,
-                    },
-                },
-                {
-                    "apiVersion": "v1",
-                    "kind": "ConfigMap",
-                    "metadata": {
-                        "name": "metadata-grpc-configmap",
-                        "namespace": namespace,
-                    },
-                    "data": {
-                        "METADATA_GRPC_SERVICE_HOST":
-                            "metadata-grpc-service.kubeflow",
-                        "METADATA_GRPC_SERVICE_PORT":
-                            "8080",
                     },
                 },
                 {
@@ -488,6 +485,7 @@ def server_factory(frontend_image,
                                                 namespace,
                                                 cluster_domain,
                                                 allowed_artifact_endpoints,
+                                                allowed_gcs_universe_domains,
                                             ),
                                         "resources": {
                                             "requests": {

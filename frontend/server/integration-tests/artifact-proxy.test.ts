@@ -8,6 +8,21 @@ import { PassThrough } from 'stream';
 import express, { type RequestHandler } from 'express';
 import { Server } from 'http';
 import * as artifactsHandler from '../handlers/artifacts.js';
+import { getConfigMap } from '../k8s-helper.js';
+import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
+import {
+  buildArtifactCoordinateUri,
+  resolveArtifactCoordinates,
+} from '../helpers/artifact-coordinates.js';
+
+vi.mock('../k8s-helper.js', () => ({
+  getArgoWorkflow: vi.fn(),
+  getConfigMap: vi.fn().mockResolvedValue([undefined, { message: 'not found' }]),
+  getK8sSecret: vi.fn(),
+  getPod: vi.fn(),
+  getPodLogs: vi.fn(),
+  getServerNamespace: vi.fn(),
+}));
 
 beforeEach(() => {
   vi.spyOn(global.console, 'info').mockImplementation(() => {});
@@ -24,6 +39,11 @@ const commonParams = {
 describe('/artifacts/get namespaced proxy', () => {
   let app: UIServer;
   const { argv } = commonSetup();
+
+  beforeEach(() => {
+    launcherConfigTestOnly.clearLauncherConfigurationCache();
+    vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
+  });
 
   afterEach(async () => {
     if (app) {
@@ -255,7 +275,7 @@ describe('/artifacts/get namespaced proxy', () => {
     );
   });
 
-  it('translates query downloads to the legacy tenant route without normalizing keys', async () => {
+  it('translates query downloads to the legacy tenant route with canonical multi-segment keys', async () => {
     const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
     const configs = loadConfigs(argv, {
       ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
@@ -266,7 +286,7 @@ describe('/artifacts/get namespaced proxy', () => {
       .get(
         `/artifacts/get${buildQuery({
           ...commonParams,
-          key: 'reports/../secret.txt',
+          key: 'reports/daily/report.txt',
           namespace: 'ns2',
           download: 'true',
         })}`,
@@ -274,48 +294,192 @@ describe('/artifacts/get namespaced proxy', () => {
       .expect(200);
     expect(response.body.toString()).toBe('artifact service in ns2');
 
-    expect(receivedUrls).toEqual(['/artifacts/minio/ml-pipeline/reports%2F..%2Fsecret.txt']);
+    expect(receivedUrls).toEqual(['/artifacts/minio/ml-pipeline/reports/daily/report.txt']);
   });
 
-  it('returns raw archives from a previous-version tenant artifact handler', async () => {
-    const rawArchive = Buffer.from('raw archive bytes');
-    const receivedKeys: string[] = [];
-    const previousVersionHandler = express.Router();
-    previousVersionHandler.get('/artifacts/get', (_req, res) => {
-      res.status(200).send('extracted first archive member');
-    });
-    previousVersionHandler.get('/artifacts/:source/:bucket/*', (req, res) => {
-      receivedKeys.push(req.params[0]);
-      res.status(200).end(rawArchive);
-    });
-    const { receivedUrls } = await setUpNamespacedArtifactService({
-      namespace: 'ns2',
-      requestHandler: previousVersionHandler,
-    });
-    const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
-    app = new UIServer(configs);
+  it.each([
+    { key: 'archives/run.tar.gz', keyEncoding: 'storage', storageKey: 'archives/run.tar.gz' },
+    {
+      key: 'archives%20dir/run:1.tar.gz',
+      keyEncoding: 'uri',
+      storageKey: 'archives dir/run:1.tar.gz',
+    },
+    {
+      key: 'archives%20dir/run:1.tar.gz',
+      keyEncoding: 'storage',
+      storageKey: 'archives%20dir/run:1.tar.gz',
+    },
+  ])(
+    'returns raw archives from a previous-version tenant for $keyEncoding key $key',
+    async ({ key, keyEncoding, storageKey }) => {
+      const rawArchive = Buffer.from('raw archive bytes');
+      const receivedKeys: string[] = [];
+      const previousVersionHandler = express.Router();
+      previousVersionHandler.get('/artifacts/get', (_req, res) => {
+        res.status(200).send('extracted first archive member');
+      });
+      previousVersionHandler.get('/artifacts/:source/:bucket/*', (req, res) => {
+        receivedKeys.push(req.params[0]);
+        res.status(200).end(rawArchive);
+      });
+      const { receivedUrls } = await setUpNamespacedArtifactService({
+        namespace: 'ns2',
+        requestHandler: previousVersionHandler,
+      });
+      const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
+      app = new UIServer(configs);
 
-    const response = await requests(app.app)
+      const response = await requests(app.app)
+        .get(
+          `/artifacts/get${buildQuery({
+            ...commonParams,
+            key,
+            keyEncoding,
+            namespace: 'ns2',
+            providerInfo: '{"Provider":"minio"}',
+            download: 'true',
+          })}`,
+        )
+        .expect(200);
+
+      expect(response.body).toEqual(rawArchive);
+      expect(receivedUrls).toEqual([`/artifacts/minio/ml-pipeline/${encodeURI(storageKey)}`]);
+      expect(receivedKeys).toEqual([storageKey]);
+    },
+  );
+
+  it.each([
+    {
+      key: 'models%20dir/run:1.tar.gz',
+      keyEncoding: 'uri',
+      uriKey: undefined,
+      storageKey: 'models dir/run:1.tar.gz',
+    },
+    {
+      key: 'models%20dir/run:1.tar.gz',
+      keyEncoding: 'storage',
+      uriKey: 'models%2520dir/run:1.tar.gz',
+      storageKey: 'models%20dir/run:1.tar.gz',
+    },
+  ])(
+    'returns raw archives through an upgraded tenant for $keyEncoding keys',
+    async ({ key, keyEncoding, uriKey, storageKey }) => {
+      const rawArchive = Buffer.from('unchanged archive bytes');
+      const readObject = vi
+        .spyOn(minioHelper, 'getObjectStream')
+        .mockImplementation(async (options) => {
+          options.onTransformationDetermined?.(false);
+          const stream = new PassThrough();
+          stream.end(rawArchive);
+          return stream;
+        });
+      const tenantConfigs = loadConfigs(argv, {});
+      const tenant = express.Router();
+      const identities: string[] = [];
+      tenant.get(
+        '/artifacts/:source/:bucket/*',
+        (req, _res, next) => {
+          const coordinates = resolveArtifactCoordinates(req);
+          expect(coordinates).toBeTruthy();
+          identities.push(buildArtifactCoordinateUri(coordinates!));
+          next();
+        },
+        artifactsHandler.getArtifactsHandler({
+          artifactsConfigs: tenantConfigs.artifacts,
+          options: tenantConfigs,
+          tryExtract: false,
+          useParameter: true,
+        }),
+      );
+      await setUpNamespacedArtifactService({ namespace: 'ns2', requestHandler: tenant });
+      app = new UIServer(loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' }));
+      const response = await requests(app.app)
+        .get(
+          `/artifacts/get${buildQuery({
+            ...commonParams,
+            key,
+            keyEncoding,
+            uriKey,
+            artifactUriQuery: 'anonymous=true',
+            namespace: 'ns2',
+            download: 'true',
+          })}`,
+        )
+        .expect(200);
+      expect(response.body).toEqual(rawArchive);
+      expect(response.headers['content-disposition']).toContain('attachment');
+      expect(response.headers['x-content-type-options']).toBe('nosniff');
+      expect(readObject).toHaveBeenCalledWith(
+        expect.objectContaining({ key: storageKey, tryExtract: false }),
+      );
+      expect(identities).toEqual([`minio://ml-pipeline/${uriKey ?? key}?anonymous=true`]);
+    },
+  );
+
+  it('retains volume identity when the legacy download path removes harmless dot segments', async () => {
+    const tenant = express.Router();
+    tenant.get('/artifacts/:source/:bucket/*', (req, res) => {
+      const coordinates = resolveArtifactCoordinates(req);
+      expect(coordinates?.key).toBe('outputs/report.txt');
+      expect(buildArtifactCoordinateUri(coordinates!)).toBe(
+        'volume://artifact/outputs/./report.txt',
+      );
+      res.end('volume bytes');
+    });
+    await setUpNamespacedArtifactService({ namespace: 'ns2', requestHandler: tenant });
+    app = new UIServer(loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' }));
+    await requests(app.app)
       .get(
         `/artifacts/get${buildQuery({
-          ...commonParams,
-          key: 'archives/run.tar.gz',
+          source: 'volume',
+          bucket: 'artifact',
+          key: 'outputs/./report.txt',
           namespace: 'ns2',
-          providerInfo: '{"Provider":"minio"}',
           download: 'true',
         })}`,
       )
-      .expect(200);
-
-    expect(response.body).toEqual(rawArchive);
-    expect(receivedUrls).toEqual([
-      '/artifacts/minio/ml-pipeline/archives%2Frun.tar.gz' +
-        '?providerInfo=%7B%22Provider%22%3A%22minio%22%7D',
-    ]);
-    expect(receivedKeys).toEqual(['archives/run.tar.gz']);
+      .expect(200)
+      .expect((response) => expect(response.body.toString()).toBe('volume bytes'));
   });
 
-  it('preserves providerInfo when proxying a download request (issue #13717)', async () => {
+  it('proxies authenticated volume access to the namespace-isolated artifact service', async () => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+    } as Response);
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+      KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
+      KUBEFLOW_USERID_PREFIX: '',
+      ML_PIPELINE_SERVICE_HOST: 'localhost',
+      ML_PIPELINE_SERVICE_PORT: '8888',
+    });
+    configs.auth.enabled = true;
+    app = new UIServer(configs);
+
+    await requests(app.app)
+      .get(
+        `/artifacts/get${buildQuery({
+          source: 'volume',
+          bucket: 'artifact',
+          key: 'outputs/result.txt',
+          namespace: 'ns2',
+          providerInfo: '{"Provider":"s3","Params":{"endpoint":"https://attacker.example"}}',
+        })}`,
+      )
+      .set('kubeflow-userid', 'user@example.com')
+      .expect(200)
+      .expect((response) => expect(response.body.toString()).toBe('artifact service in ns2'));
+
+    expect(receivedUrls).toEqual([
+      '/artifacts/get?source=volume&bucket=artifact&key=outputs%2Fresult.txt',
+    ]);
+  });
+
+  it('discards caller-supplied providerInfo when proxying a download request', async () => {
     const { receivedUrls } = await setUpNamespacedArtifactService({
       namespace: 'ns2',
     });
@@ -332,12 +496,141 @@ describe('/artifacts/get namespaced proxy', () => {
           providerInfo: '{"Provider":"s3"}',
         })}`,
       )
-      .expect(200);
-    expect(response.body.toString()).toBe('artifact service in ns2');
-    expect(receivedUrls).toEqual(
-      // same url, except the namespace query is omitted and providerInfo is kept
-      ['/artifacts/s3/mlpipeline/model?providerInfo=%7B%22Provider%22%3A%22s3%22%7D'],
+      .expect(200)
+      .expect((response) => expect(response.body.toString()).toBe('artifact service in ns2'));
+    expect(receivedUrls).toEqual(['/artifacts/s3/mlpipeline/model']);
+  });
+
+  it('replaces caller providerInfo with trusted launcher-root query settings', async () => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
+    vi.mocked(getConfigMap).mockResolvedValueOnce([
+      {
+        data: {
+          defaultPipelineRoot:
+            's3://mlpipeline/models?endpoint=https%3A%2F%2Ftrusted.example&region=trusted',
+        },
+      },
+      undefined,
+    ]);
+    const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
+    app = new UIServer(configs);
+
+    await requests(app.app)
+      .get(
+        `/artifacts/s3/mlpipeline/models/model${buildQuery({
+          namespace: 'ns2',
+          providerInfo: '{"Provider":"s3","Params":{"endpoint":"https://attacker.example"}}',
+        })}`,
+      )
+      .expect(200)
+      .expect((response) => expect(response.body.toString()).toBe('artifact service in ns2'));
+
+    const received = new URL(receivedUrls[0], 'http://artifact.test');
+    expect(JSON.parse(received.searchParams.get('providerInfo') || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        endpoint: 'https://trusted.example',
+        fromEnv: 'true',
+        nativeQuery: 'true',
+        region: 'trusted',
+      },
+    });
+  });
+
+  it('applies trusted launcher-root settings to URI-escaped preview keys', async () => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
+    vi.mocked(getConfigMap).mockResolvedValueOnce([
+      {
+        data: {
+          defaultPipelineRoot:
+            's3://mlpipeline/models%20dir?endpoint=https%3A%2F%2Ftrusted.example&region=trusted',
+        },
+      },
+      undefined,
+    ]);
+    const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
+    app = new UIServer(configs);
+
+    await requests(app.app)
+      .get(
+        `/artifacts/get${buildQuery({
+          source: 's3',
+          bucket: 'mlpipeline',
+          key: 'models%20dir/model',
+          keyEncoding: 'uri',
+          namespace: 'ns2',
+        })}`,
+      )
+      .expect(200)
+      .expect((response) => expect(response.body.toString()).toBe('artifact service in ns2'));
+
+    const received = new URL(receivedUrls[0], 'http://artifact.test');
+    expect(received.searchParams.get('key')).toBe('models%20dir/model');
+    expect(JSON.parse(received.searchParams.get('providerInfo') || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        endpoint: 'https://trusted.example',
+        fromEnv: 'true',
+        nativeQuery: 'true',
+        region: 'trusted',
+      },
+    });
+  });
+
+  it.each([
+    ['providers YAML is malformed', [{ data: { providers: 's3: [unterminated' } }, undefined]],
+    [
+      'the ConfigMap read fails',
+      [
+        undefined,
+        {
+          additionalInfo: { code: 403, reason: 'Forbidden' },
+          message: 'Could not read kfp-launcher',
+        },
+      ],
+    ],
+    [
+      'the provider configuration is invalid',
+      [
+        {
+          data: {
+            providers: `
+s3:
+  Overrides:
+    - bucketName: another-bucket
+      credentials:
+        fromEnv: true
+`,
+          },
+        },
+        undefined,
+      ],
+    ],
+  ] as const)('forwards without providerInfo when %s', async (_description, configMapResult) => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
+    vi.mocked(getConfigMap).mockResolvedValueOnce(
+      configMapResult as unknown as Awaited<ReturnType<typeof getConfigMap>>,
     );
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_NAME: 'artifact-svc',
+      ARTIFACTS_SERVICE_PROXY_PORT: '80',
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    app = new UIServer(configs);
+
+    await requests(app.app)
+      .get(
+        `/artifacts/get${buildQuery({
+          source: 's3',
+          bucket: 'ml-pipeline',
+          key: 'hello.txt',
+          namespace: 'ns2',
+        })}`,
+      )
+      .expect(200)
+      .expect((response) => expect(response.body.toString()).toBe('artifact service in ns2'));
+
+    expect(receivedUrls).toEqual(['/artifacts/get?source=s3&bucket=ml-pipeline&key=hello.txt']);
   });
 
   it('does not proxy requests without namespace argument', async () => {
@@ -347,7 +640,9 @@ describe('/artifacts/get namespaced proxy', () => {
     await requests(app.app)
       .get(
         `/artifacts/get${buildQuery({
-          ...commonParams,
+          source: 'minio',
+          bucket: 'mlpipeline',
+          key: 'v2/artifacts/hello.txt',
           namespace: undefined,
         })}`,
       )
@@ -369,31 +664,42 @@ describe('/artifacts/get namespaced proxy', () => {
     expect(res.text).not.toContain('stack');
   });
 
-  it.each(['source', 'bucket', 'key', 'providerInfo', 'namespace', 'peek', 'download'])(
-    'rejects ambiguous %s query parameters before proxying',
-    async (parameterName) => {
-      const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns-a' });
-      const configs = loadConfigs(argv, {
-        ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
-      });
-      app = new UIServer(configs);
-      const query = new URLSearchParams({
-        source: 'minio',
-        bucket: 'ml-pipeline',
-        key: 'hello.txt',
-        providerInfo: '{}',
-        namespace: 'ns-a',
-        peek: '10',
-        download: 'true',
-      });
-      query.append(parameterName, 'duplicate');
+  it.each([
+    'source',
+    'bucket',
+    'key',
+    'keyEncoding',
+    'uriKey',
+    'download',
+    'artifactUriQuery',
+    'providerInfo',
+    'namespace',
+    'peek',
+  ])('rejects ambiguous %s query parameters before proxying', async (parameterName) => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns-a' });
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    app = new UIServer(configs);
+    const query = new URLSearchParams({
+      source: 'minio',
+      bucket: 'ml-pipeline',
+      key: 'hello.txt',
+      keyEncoding: 'storage',
+      uriKey: 'hello.txt',
+      download: 'true',
+      artifactUriQuery: 'region=first',
+      providerInfo: '{}',
+      namespace: 'ns-a',
+      peek: '10',
+    });
+    query.append(parameterName, 'duplicate');
 
-      await requests(app.app)
-        .get(`/artifacts/get?${query.toString()}`)
-        .expect(400, `${parameterName} must be a single string value`);
-      expect(receivedUrls).toEqual([]);
-    },
-  );
+    await requests(app.app)
+      .get(`/artifacts/get?${query.toString()}`)
+      .expect(400, `${parameterName} must be a single string value`);
+    expect(receivedUrls).toEqual([]);
+  });
 
   it('proxies a request with basePath too', async () => {
     const { receivedUrls, response } = await setUpNamespacedArtifactService({});

@@ -18,7 +18,7 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import SubDagNode from './SubDagNode';
-import { Execution } from 'src/third_party/mlmd';
+import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
 describe('SubDagNode', () => {
@@ -29,7 +29,7 @@ describe('SubDagNode', () => {
   const defaultData = {
     label: 'sub-pipeline',
     expand: vi.fn(),
-    state: undefined as Execution.State | undefined,
+    state: undefined as PipelineTaskTaskState | undefined,
   };
 
   beforeEach(() => {
@@ -46,16 +46,19 @@ describe('SubDagNode', () => {
     expect(screen.getByRole('button', { name: 'sub-pipeline' })).toBeInTheDocument();
   });
 
-  it('renders COMPLETE state icon', () => {
+  it('renders SUCCEEDED state icon', () => {
     renderWithProvider(
-      <SubDagNode id='subdag-1' data={{ ...defaultData, state: Execution.State.COMPLETE }} />,
+      <SubDagNode
+        id='subdag-1'
+        data={{ ...defaultData, state: PipelineTaskTaskState.SUCCEEDED }}
+      />,
     );
     expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
   });
 
   it('renders RUNNING state icon', () => {
     renderWithProvider(
-      <SubDagNode id='subdag-1' data={{ ...defaultData, state: Execution.State.RUNNING }} />,
+      <SubDagNode id='subdag-1' data={{ ...defaultData, state: PipelineTaskTaskState.RUNNING }} />,
     );
     expect(screen.getByTestId('RefreshIcon')).toBeInTheDocument();
   });

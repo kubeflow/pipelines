@@ -111,6 +111,14 @@ else
         -c recurring_run_client \
         -m recurring_run_model \
         -t backend/api/${API_VERSION}/go_http_client
+
+    swagger generate client \
+        -f backend/api/${API_VERSION}/swagger/artifact.swagger.json \
+        -A artifact \
+        --principal models.Principal \
+        -c artifact_client \
+        -m artifact_model \
+        -t backend/api/${API_VERSION}/go_http_client
 fi
 swagger generate client \
     -f backend/api/${API_VERSION}/swagger/run.swagger.json \

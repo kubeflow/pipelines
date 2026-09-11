@@ -22,6 +22,8 @@ const (
 	RunResourceType             ResourceType = "Run"
 	PipelineResourceType        ResourceType = "pipeline"
 	PipelineVersionResourceType ResourceType = "PipelineVersion"
+	ArtifactResourceType        ResourceType = "Artifact"
+	TaskResourceType            ResourceType = "Task"
 )
 
 const (

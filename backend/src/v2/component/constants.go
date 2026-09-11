@@ -21,11 +21,8 @@ const (
 	// Env var names
 	EnvPodName    = "KFP_POD_NAME"
 	EnvPodUID     = "KFP_POD_UID"
+	EnvNamespace  = "NAMESPACE"
 	EnvRetryIndex = "KFP_RETRY_INDEX"
-
-	// Env vars in metadata-grpc-configmap
-	EnvMetadataHost = "METADATA_GRPC_SERVICE_HOST"
-	EnvMetadataPort = "METADATA_GRPC_SERVICE_PORT"
 
 	// Workspace-related constants
 	WorkspaceVolumeName = "kfp-workspace"

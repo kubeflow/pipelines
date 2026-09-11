@@ -10,7 +10,8 @@ repos:
       - id: check-json
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        exclude: ^manifests/gcp_marketplace/test/
+        # Snapshot whitespace represents rendered text and is owned by Vitest.
+        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$)
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test

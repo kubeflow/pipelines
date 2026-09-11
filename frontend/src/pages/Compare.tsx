@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useEffectEvent } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { CircularProgress } from '@mui/material';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
@@ -46,45 +46,53 @@ export default function Compare(props: PageProps) {
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
-  // Retrieves run details, set page version on success.
-  const { isLoading, isError, error, data } = useQuery<ApiRunDetail[], Error>({
-    queryKey: queryKeys.runDetails(runIds),
-    queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApi.getRun(id))),
-    staleTime: Infinity,
+  // Route each run independently so one rejection is not cached as successful aggregate data.
+  const runLoadQueries = useQueries({
+    queries: runIds.map((id) => ({
+      queryKey: queryKeys.runDetailForComparisonRouting(id),
+      queryFn: () => Apis.runServiceApi.getRun(id),
+      retry: 1,
+      retryDelay: 0,
+      staleTime: Infinity,
+    })),
   });
 
-  const compareVersion = !data
+  const isLoading = runLoadQueries.some((query) => query.isPending);
+  const successfulRuns = runLoadQueries.flatMap((query) =>
+    query.data ? [query.data as ApiRunDetail] : [],
+  );
+  const failedRunError = runLoadQueries.find((query) => query.isError)?.error;
+  const compareVersion = isLoading
     ? CompareVersion.Unknown
-    : data.length < 2 || data.length > 10
+    : runIds.length < 2 || runIds.length > 10
       ? CompareVersion.InvalidRunCount
-      : (() => {
-          const v2runs = data.filter(
-            (run) => 'pipeline_manifest' in (run.run?.pipeline_spec ?? {}),
-          );
-          if (v2runs.length === 0) {
-            return CompareVersion.V1;
-          }
-          if (v2runs.length === data.length) {
-            return CompareVersion.V2;
-          }
-          return CompareVersion.Mixed;
-        })();
+      : !successfulRuns?.length
+        ? CompareVersion.Unknown
+        : (() => {
+            const v2runs = successfulRuns.filter(
+              (run) => 'pipeline_manifest' in (run.run?.pipeline_spec ?? {}),
+            );
+            if (v2runs.length === 0) {
+              return CompareVersion.V1;
+            }
+            if (v2runs.length === successfulRuns.length) {
+              return CompareVersion.V2;
+            }
+            return CompareVersion.Mixed;
+          })();
+  const routeCannotRenderPartialResults =
+    !!failedRunError &&
+    (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2);
 
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
+  const updateComparisonBanner = useEffectEvent(async () => {
     // Update banner based on error, feature flag, run versions, and run count.
-    if (isError) {
-      (async function () {
-        const errorMessage = await errorToMessage(error);
-        updateBanner({
-          additionalInfo: errorMessage ? errorMessage : undefined,
-          message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
-          mode: 'error',
-        });
-      })();
+    if (routeCannotRenderPartialResults) {
+      const errorMessage = await errorToMessage(failedRunError);
+      updateBanner({
+        additionalInfo: errorMessage ? errorMessage : undefined,
+        message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
+        mode: 'error',
+      });
     } else if (
       isFeatureEnabled(FeatureKey.V2_ALPHA) &&
       compareVersion === CompareVersion.InvalidRunCount
@@ -105,11 +113,21 @@ export default function Compare(props: PageProps) {
           'Error: failed loading the Run Comparison page. Click Details for more information.',
         mode: 'error',
       });
-    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA) && compareVersion !== CompareVersion.V1) {
+    } else if (
+      isFeatureEnabled(FeatureKey.V2_ALPHA) &&
+      compareVersion !== CompareVersion.V1 &&
+      compareVersion !== CompareVersion.V2
+    ) {
       // Clear the banner unless the V1 page is shown, as that page handles its own banner state.
       updateBanner({});
     }
-  }, [compareVersion, isError, error, isLoading, updateBanner, runIds.length]);
+  });
+
+  useEffect(() => {
+    if (!isLoading) {
+      void updateComparisonBanner();
+    }
+  }, [compareVersion, failedRunError, isLoading, runIds.length]);
 
   if (isLoading) {
     return (
@@ -119,7 +137,7 @@ export default function Compare(props: PageProps) {
     );
   }
 
-  if (isError) {
+  if (routeCannotRenderPartialResults) {
     return <></>;
   }
 

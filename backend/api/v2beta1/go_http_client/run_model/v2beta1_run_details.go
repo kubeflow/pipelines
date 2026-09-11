@@ -4,13 +4,9 @@ package run_model
 
 import (
 	"context"
-	stderrors "errors"
-	"strconv"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
-	"github.com/go-openapi/swag/typeutils"
 )
 
 // V2beta1RunDetails Runtime details of a run.
@@ -23,95 +19,15 @@ type V2beta1RunDetails struct {
 
 	// Pipeline run context ID of a run.
 	PipelineRunContextID string `json:"pipeline_run_context_id,omitempty"`
-
-	// Runtime details of the tasks that belong to the run.
-	TaskDetails []*V2beta1PipelineTaskDetail `json:"task_details"`
 }
 
 // Validate validates this v2beta1 run details
-func (m *V2beta1RunDetails) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateTaskDetails(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
+func (m *V2beta1RunDetails) Validate(_ strfmt.Registry) error {
 	return nil
 }
 
-func (m *V2beta1RunDetails) validateTaskDetails(formats strfmt.Registry) error {
-	if typeutils.IsZero(m.TaskDetails) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.TaskDetails); i++ {
-		if typeutils.IsZero(m.TaskDetails[i]) { // not required
-			continue
-		}
-
-		if m.TaskDetails[i] != nil {
-			if err := m.TaskDetails[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
-					return ve.ValidateName("task_details" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
-					return ce.ValidateName("task_details" + "." + strconv.Itoa(i))
-				}
-
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
-
-// ContextValidate validate this v2beta1 run details based on the context it is used
-func (m *V2beta1RunDetails) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.contextValidateTaskDetails(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *V2beta1RunDetails) contextValidateTaskDetails(ctx context.Context, formats strfmt.Registry) error {
-
-	for i := 0; i < len(m.TaskDetails); i++ {
-
-		if m.TaskDetails[i] != nil {
-
-			if typeutils.IsZero(m.TaskDetails[i]) { // not required
-				return nil
-			}
-
-			if err := m.TaskDetails[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
-					return ve.ValidateName("task_details" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
-					return ce.ValidateName("task_details" + "." + strconv.Itoa(i))
-				}
-
-				return err
-			}
-		}
-
-	}
-
+// ContextValidate validates this v2beta1 run details based on context it is used
+func (m *V2beta1RunDetails) ContextValidate(_ context.Context, _ strfmt.Registry) error {
 	return nil
 }
 

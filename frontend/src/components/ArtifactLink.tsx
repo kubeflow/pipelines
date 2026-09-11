@@ -15,30 +15,34 @@
  */
 
 import * as React from 'react';
-import {
-  generateGcsConsoleUri,
-  generateS3ArtifactUrl,
-  generateMinioArtifactUrl,
-} from '../lib/Utils';
+import { Apis } from '../lib/Apis';
+import { generateGcsConsoleUri } from '../lib/Utils';
+import { parseArtifactFileLocation } from '../lib/v2/ArtifactFileUtils';
+import { StorageService } from '../lib/WorkflowParser';
+
+interface ArtifactLinkProps {
+  artifactUri?: string;
+  namespace?: string;
+}
 
 /**
  * A component that renders an artifact URL as clickable link if URL is correct
  */
-export const ArtifactLink: React.FC<{ artifactUri?: string }> = ({ artifactUri }) => {
+export const ArtifactLink: React.FC<ArtifactLinkProps> = ({ artifactUri, namespace }) => {
   let clickableUrl: string | undefined;
   if (artifactUri) {
     if (artifactUri.startsWith('gs:')) {
-      const gcsConsoleUrl = generateGcsConsoleUri(artifactUri);
+      const gcsConsoleUrl = generateGcsConsoleUri(artifactUri.split('?', 1)[0]);
       if (gcsConsoleUrl) {
         clickableUrl = gcsConsoleUrl;
       }
     }
     if (artifactUri.startsWith('s3:')) {
-      clickableUrl = generateS3ArtifactUrl(artifactUri);
+      clickableUrl = generateArtifactDownloadUrl(artifactUri, namespace, StorageService.S3);
     } else if (artifactUri.startsWith('http:') || artifactUri.startsWith('https:')) {
       clickableUrl = artifactUri;
     } else if (artifactUri.startsWith('minio:')) {
-      clickableUrl = generateMinioArtifactUrl(artifactUri);
+      clickableUrl = generateArtifactDownloadUrl(artifactUri, namespace, StorageService.MINIO);
     }
   }
 
@@ -53,3 +57,25 @@ export const ArtifactLink: React.FC<{ artifactUri?: string }> = ({ artifactUri }
     return <>{artifactUri}</>;
   }
 };
+
+function generateArtifactDownloadUrl(
+  artifactUri: string,
+  namespace: string | undefined,
+  expectedSource: StorageService,
+): string | undefined {
+  let location: ReturnType<typeof parseArtifactFileLocation>;
+  try {
+    location = parseArtifactFileLocation(artifactUri);
+  } catch {
+    return undefined;
+  }
+  if (location.path.source !== expectedSource || !location.path.bucket || !location.path.key) {
+    return undefined;
+  }
+  return Apis.buildReadFileUrl({
+    path: location.path,
+    namespace,
+    artifactUriQuery: location.artifactUriQuery,
+    isDownload: true,
+  });
+}

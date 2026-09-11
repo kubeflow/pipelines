@@ -17,14 +17,15 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
         <tr>
           <td>
             <div
-              class="ylabel_fx8icwu"
+              class="ylabel_f1bjr6qr"
+              style="line-height: 79px; min-width: 79px;"
             >
               label
             </div>
           </td>
           <td
-            class="cell_f1i7lfy8"
-            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255);"
+            class="cell_fkzbx8g"
+            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"
@@ -34,18 +35,24 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
           </td>
         </tr>
         <tr>
+          <th />
           <th
-            class="xlabel_fhd09ev"
-          />
-          <th>
+            class="xlabel_f1fd2jjv"
+            scope="col"
+          >
             <div
-              class="xlabel_fhd09ev"
+              class=""
+              style="overflow-wrap: anywhere; width: 79px;"
             >
               label
             </div>
           </th>
+        </tr>
+        <tr>
+          <td />
           <td
-            class="xAxisLabel_f1uf2ce"
+            class="xAxisLabel_f1kt7c7r"
+            colspan="1"
           >
             x
           </td>

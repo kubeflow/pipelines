@@ -307,46 +307,6 @@ exports[`Router > initial render 1`] = `
               />
             </button>
           </a>
-          <div
-            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-          />
-          <a
-            aria-label="Executions List"
-            class="unstyled_f1ikaigl"
-            data-mui-internal-clone-element="true"
-            href="/executions"
-            id="executionsBtn"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-              tabindex="0"
-              type="button"
-            >
-              <div
-                class="flex flex-row flex-shrink-0"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="PlayArrowIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M8 5v14l11-7z"
-                  />
-                </svg>
-                <span
-                  class="label_f15zusur"
-                >
-                  Executions
-                </span>
-              </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </a>
           <hr
             class="separator_furuwhr"
           />

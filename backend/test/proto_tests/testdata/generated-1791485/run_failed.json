@@ -19,5 +19,8 @@
   "recurring_run_id": "",
   "state_history": [],
   "plugins_input": {},
-  "plugins_output": {}
+  "plugins_output": {},
+  "pipeline_reference": null,
+  "task_count": 0,
+  "tasks": []
 }

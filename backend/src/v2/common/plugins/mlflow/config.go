@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
@@ -93,15 +94,15 @@ func BuildMLflowTaskRequestContext(runtimeCfg commonmlflow.MLflowRuntimeConfig) 
 	)
 }
 
-// ExecutionStateToMLflowTerminalStatus converts a string representing an MLMD Execution_State to an MLflow
-// terminal status.
-func ExecutionStateToMLflowTerminalStatus(state string) string {
+// TaskStateToMLflowTerminalStatus converts a PipelineTask_TaskState to an MLflow
+// terminal status string. Returns an error for unrecognized states.
+func TaskStateToMLflowTerminalStatus(state apiV2beta1.PipelineTask_TaskState) (string, error) {
 	switch state {
-	case "COMPLETE", "CACHED":
-		return "FINISHED"
-	case "CANCELED":
-		return "KILLED"
+	case apiV2beta1.PipelineTask_SUCCEEDED, apiV2beta1.PipelineTask_CACHED, apiV2beta1.PipelineTask_SKIPPED:
+		return "FINISHED", nil
+	case apiV2beta1.PipelineTask_FAILED:
+		return "FAILED", nil
 	default:
-		return "FAILED"
+		return "", fmt.Errorf("unsupported task state for MLflow terminal status: %v", state)
 	}
 }

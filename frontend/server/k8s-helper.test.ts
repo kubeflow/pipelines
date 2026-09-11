@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { vi, describe, it, expect, afterEach, beforeEach, Mock, SpyInstance } from 'vitest';
+import { ApiException } from '@kubernetes/client-node';
 import {
   TEST_ONLY as K8S_TEST_EXPORT,
   getPodLogs,
@@ -361,13 +362,33 @@ describe('k8s-helper', () => {
     });
 
     it('returns error when configmap not found', async () => {
-      readNamespacedConfigMapSpy.mockRejectedValue({ body: { message: 'not found' } });
+      readNamespacedConfigMapSpy.mockRejectedValue({
+        code: 404,
+        body: { code: 404, message: 'not found', reason: 'NotFound' },
+      });
 
       const [configMap, error] = await getConfigMap('nonexistent', 'test-namespace');
 
       expect(configMap).toBeUndefined();
       expect(error).toEqual({
+        additionalInfo: { code: 404, message: 'not found', reason: 'NotFound' },
         message: 'Could not get configMap nonexistent in namespace test-namespace',
+        statusCode: 404,
+      });
+    });
+
+    it('preserves status when the Kubernetes client returns a raw response body', async () => {
+      readNamespacedConfigMapSpy.mockRejectedValue(
+        new ApiException(404, 'Unknown API Status Code!', '{"reason":"NotFound"}', {}),
+      );
+
+      const [configMap, error] = await getConfigMap('nonexistent', 'test-namespace');
+
+      expect(configMap).toBeUndefined();
+      expect(error).toEqual({
+        additionalInfo: '{"reason":"NotFound"}',
+        message: 'Could not get configMap nonexistent in namespace test-namespace',
+        statusCode: 404,
       });
     });
 
