@@ -689,7 +689,8 @@ func convertArtifactsToArtifactList(artifacts []*apiV2beta1.Artifact, downloaded
 
 			// Merge metadata fields: each artifact's metadata contains the metric key/value
 			if artifact.GetMetadata() != nil {
-				for key, value := range artifact.GetMetadata() {
+				_, metadata := component.RuntimeArtifactSchemaAndMetadata(artifact.GetType(), artifact.GetMetadata())
+				for key, value := range metadata {
 					mergedMetadata[key] = value
 				}
 			}
@@ -705,14 +706,11 @@ func convertArtifactsToArtifactList(artifacts []*apiV2beta1.Artifact, downloaded
 		}
 
 		// Create single RuntimeArtifact with merged metadata
+		schema, _ := component.RuntimeArtifactSchemaAndMetadata(artifacts[0].GetType(), artifacts[0].GetMetadata())
 		mergedRuntimeArtifact := &pipelinespec.RuntimeArtifact{
 			Name:       firstName,
 			ArtifactId: firstArtifactID,
-			Type: &pipelinespec.ArtifactTypeSchema{
-				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
-					SchemaTitle: apiV2beta1.Artifact_Metric.String(),
-				},
-			},
+			Type:       schema,
 			Metadata: &structpb.Struct{
 				Fields: mergedMetadata,
 			},
@@ -755,15 +753,11 @@ func convertArtifactToRuntimeArtifact(
 	if artifact.GetName() == "" && artifact.GetUri() == "" {
 		return nil, fmt.Errorf("artifact name or uri cannot be empty")
 	}
-	schemaTitle, metadata := component.RuntimeArtifactSchemaTitleAndMetadata(artifact.GetType(), artifact.GetMetadata())
+	schema, metadata := component.RuntimeArtifactSchemaAndMetadata(artifact.GetType(), artifact.GetMetadata())
 	runtimeArtifact := &pipelinespec.RuntimeArtifact{
 		Name:       artifact.GetName(),
 		ArtifactId: artifact.GetArtifactId(),
-		Type: &pipelinespec.ArtifactTypeSchema{
-			Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{
-				SchemaTitle: schemaTitle,
-			},
-		},
+		Type:       schema,
 	}
 	if artifact.GetUri() != "" {
 		runtimeArtifact.Uri = artifact.GetUri()

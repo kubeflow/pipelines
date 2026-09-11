@@ -111,7 +111,7 @@ func TestConvertArtifactsToArtifactList_SingleMetric(t *testing.T) {
 
 	runtimeArtifact := artifactList.Artifacts[0]
 	assert.Equal(t, "accuracy", runtimeArtifact.Name)
-	assert.Equal(t, "Metric", runtimeArtifact.Type.GetSchemaTitle())
+	assert.Equal(t, "system.Metrics", runtimeArtifact.Type.GetSchemaTitle())
 }
 
 // TestConvertArtifactsToArtifactList_NonMetrics tests that non-metric artifacts
@@ -146,7 +146,7 @@ func TestConvertArtifactsToArtifactList_NonMetrics(t *testing.T) {
 	names := make(map[string]bool)
 	for _, artifact := range artifactList.Artifacts {
 		names[artifact.Name] = true
-		assert.Equal(t, "Dataset", artifact.Type.GetSchemaTitle())
+		assert.Equal(t, "system.Dataset", artifact.Type.GetSchemaTitle())
 	}
 
 	assert.True(t, names["dataset1"], "Should have dataset1")
@@ -286,8 +286,9 @@ func TestConvertArtifactToRuntimeArtifact_RestoresCustomSchemaTitle(t *testing.T
 		Name:       "vertex-model",
 		Type:       apiV2beta1.Artifact_Artifact,
 		Metadata: map[string]*structpb.Value{
-			"_kfp_schema_title": structpb.NewStringValue("google.VertexModel"),
-			"region":            structpb.NewStringValue("us-east1"),
+			"_kfp_schema_title":   structpb.NewStringValue("google.VertexModel"),
+			"_kfp_schema_version": structpb.NewStringValue("0.0.7"),
+			"region":              structpb.NewStringValue("us-east1"),
 		},
 	}
 
@@ -298,7 +299,62 @@ func TestConvertArtifactToRuntimeArtifact_RestoresCustomSchemaTitle(t *testing.T
 	require.NotNil(t, runtimeArtifact.Metadata)
 
 	assert.Equal(t, "google.VertexModel", runtimeArtifact.Type.GetSchemaTitle())
+	assert.Equal(t, "0.0.7", runtimeArtifact.Type.GetSchemaVersion())
 	assert.Equal(t, "us-east1", runtimeArtifact.Metadata.Fields["region"].GetStringValue())
 	assert.NotContains(t, runtimeArtifact.Metadata.Fields, "_kfp_schema_title")
+	assert.NotContains(t, runtimeArtifact.Metadata.Fields, "_kfp_schema_version")
 	assert.Contains(t, artifact.GetMetadata(), "_kfp_schema_title")
+}
+
+func TestConvertArtifactsToArtifactList_MetricSchemaMetadata(t *testing.T) {
+	artifacts := []*apiV2beta1.Artifact{}
+	for _, name := range []string{"accuracy", "precision"} {
+		artifacts = append(artifacts, &apiV2beta1.Artifact{
+			Name: name,
+			Type: apiV2beta1.Artifact_Metric,
+			Metadata: map[string]*structpb.Value{
+				"_kfp_schema_version": structpb.NewStringValue("0.0.1"),
+				name:                  structpb.NewNumberValue(0.9),
+			},
+		})
+	}
+	list, err := convertArtifactsToArtifactList(artifacts, false)
+	require.NoError(t, err)
+	require.Len(t, list.Artifacts, 1)
+	require.Equal(t, "system.Metrics", list.Artifacts[0].Type.GetSchemaTitle())
+	require.Equal(t, "0.0.1", list.Artifacts[0].Type.GetSchemaVersion())
+	require.Len(t, list.Artifacts[0].Metadata.Fields, 2)
+	require.NotContains(t, list.Artifacts[0].Metadata.Fields, "_kfp_schema_version")
+}
+
+func TestCachedArtifactSchemaReconstruction(t *testing.T) {
+	for _, title := range []string{"system.Dataset", "example.CustomDataset"} {
+		t.Run(title, func(t *testing.T) {
+			nativeType := apiV2beta1.Artifact_Dataset
+			metadata := map[string]*structpb.Value{
+				"_kfp_schema_version": structpb.NewStringValue("1.2.3"),
+			}
+			if title != "system.Dataset" {
+				nativeType = apiV2beta1.Artifact_Artifact
+				metadata["_kfp_schema_title"] = structpb.NewStringValue(title)
+			}
+			original := &apiV2beta1.PipelineTask_InputOutputs{
+				Artifacts: []*apiV2beta1.PipelineTask_InputOutputs_IOArtifact{{
+					ArtifactKey: "Output",
+					Artifacts: []*apiV2beta1.Artifact{{
+						Name: "dataset", Type: nativeType, Metadata: metadata,
+					}},
+				}},
+			}
+			iteration := 2
+			cached, err := cloneCachedOutputsForTask(original, "cached-producer", &iteration)
+			require.NoError(t, err)
+			list, err := convertArtifactsToArtifactList(cached.Artifacts[0].Artifacts, false)
+			require.NoError(t, err)
+			require.Equal(t, title, list.Artifacts[0].Type.GetSchemaTitle())
+			require.Equal(t, "1.2.3", list.Artifacts[0].Type.GetSchemaVersion())
+			require.Nil(t, list.Artifacts[0].Metadata)
+			require.Contains(t, original.Artifacts[0].Artifacts[0].Metadata, "_kfp_schema_version")
+		})
+	}
 }

@@ -1023,6 +1023,53 @@ func Test_compileCmdAndArgs_ReplacesCommandAndComplexArgsPlaceholders(t *testing
 	}, args)
 }
 
+func Test_compileCmdAndArgs_CollectedArtifacts(t *testing.T) {
+	artifact := &pipelinespec.RuntimeArtifact{
+		Name: "dataset",
+		Uri:  "gs://bucket/iteration-0/data",
+		Type: &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+			SchemaVersion: "0.0.1",
+		},
+		Metadata: &structpb.Struct{Fields: map[string]*structpb.Value{
+			"description": structpb.NewStringValue("quoted \"value\"\nnext line"),
+		}},
+	}
+	for _, tc := range []struct {
+		name      string
+		artifacts []*pipelinespec.RuntimeArtifact
+	}{
+		{name: "empty"},
+		{name: "singleton", artifacts: []*pipelinespec.RuntimeArtifact{artifact}},
+		{name: "multiple", artifacts: []*pipelinespec.RuntimeArtifact{artifact, {Name: "other", Uri: "gs://bucket/iteration-1/data"}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			input := &pipelinespec.ExecutorInput{Inputs: &pipelinespec.ExecutorInput_Inputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{"in_datasets": {Artifacts: tc.artifacts}},
+			}}
+			_, args, err := compileCmdAndArgs(input, "python", []string{
+				`{{$.inputs.artifacts['in_datasets']}}`,
+				`{{$.inputs.artifacts['in_datasets'].uri}}`,
+				`{{$.inputs.artifacts['in_datasets'].path}}`,
+			})
+			require.NoError(t, err)
+			var decoded []map[string]interface{}
+			require.NoError(t, json.Unmarshal([]byte(args[0]), &decoded))
+			require.NotNil(t, decoded, "empty collections must serialize as [] rather than null")
+			require.Len(t, decoded, len(tc.artifacts))
+			for i, expected := range tc.artifacts {
+				assert.Equal(t, expected.Uri, decoded[i]["uri"])
+			}
+			if len(tc.artifacts) > 0 {
+				assert.Equal(t, map[string]interface{}{"schemaTitle": "system.Dataset", "schemaVersion": "0.0.1"}, decoded[0]["type"])
+				assert.Equal(t, map[string]interface{}{"description": "quoted \"value\"\nnext line"}, decoded[0]["metadata"])
+				assert.Equal(t, artifact.Uri, args[1])
+				assert.Equal(t, "/gcs/bucket/iteration-0/data", args[2])
+			}
+		})
+	}
+}
+
 // Tests executeV2 flow including parameter collection, artifact uploads, and task updates
 func Test_executeV2(t *testing.T) {
 	// Create component spec with input/output parameters and artifacts

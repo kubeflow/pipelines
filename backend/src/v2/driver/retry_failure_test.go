@@ -256,7 +256,7 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 			expectedType: apiv2beta1.PipelineTask_LOOP,
 		},
 		{
-			name: "DAG default - has ParameterIterator but IterationIndex >= 0 (iteration body)",
+			name: "LOOP - nested coordinator inherits outer iteration index",
 			opts: common.Options{
 				Task: &pipelinespec.PipelineTaskSpec{
 					Iterator: &pipelinespec.PipelineTaskSpec_ParameterIterator{
@@ -270,7 +270,7 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 				},
 				IterationIndex: 0,
 			},
-			expectedType: apiv2beta1.PipelineTask_DAG,
+			expectedType: apiv2beta1.PipelineTask_LOOP,
 		},
 		{
 			name: "CONDITION_BRANCH - has trigger condition",

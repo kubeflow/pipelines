@@ -661,6 +661,45 @@ func TestDagDriver_PersistsIterationIndexForNestedDagTasks(t *testing.T) {
 	require.NotNil(t, task.GetTypeAttributes())
 	require.NotNil(t, task.GetTypeAttributes().IterationIndex)
 	assert.EqualValues(t, 1, *task.GetTypeAttributes().IterationIndex)
+	assert.Equal(t, apiv2beta1.PipelineTask_DAG, task.GetType())
+}
+
+func TestDagDriver_NestedLoopRetainsOuterIndexAndInnerIterations(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/nested_naming_conflicts.yaml")
+	require.NoError(t, tc.Push("pipeline-b"))
+	taskSpec := proto.Clone(tc.GetLast().GetTaskSpec()).(*pipelinespec.PipelineTaskSpec)
+	taskSpec.Inputs = &pipelinespec.TaskInputsSpec{}
+	taskSpec.Iterator = &pipelinespec.PipelineTaskSpec_ParameterIterator{
+		ParameterIterator: &pipelinespec.ParameterIteratorSpec{
+			ItemInput: "inner-item",
+			Items: &pipelinespec.ParameterIteratorSpec_ItemsSpec{
+				Kind: &pipelinespec.ParameterIteratorSpec_ItemsSpec_Raw{Raw: "[8,10,12]"},
+			},
+		},
+	}
+	opts := tc.setupDagOptions(tc.RootTask, taskSpec, nil)
+	// The compiler forwards the enclosing iteration to the inner coordinator,
+	// while the inner body gets a new index from its own WithSequence.
+	opts.IterationIndex = 1
+	execution, err := DAG(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution.IterationCount)
+	assert.Equal(t, 3, *execution.IterationCount)
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	require.NoError(t, err)
+	assert.Equal(t, apiv2beta1.PipelineTask_LOOP, task.GetType())
+	require.NotNil(t, task.GetTypeAttributes().IterationIndex)
+	assert.EqualValues(t, 1, *task.GetTypeAttributes().IterationIndex)
+	require.NotNil(t, task.GetTypeAttributes().IterationCount)
+	assert.EqualValues(t, 3, *task.GetTypeAttributes().IterationCount)
+	var values []float64
+	for _, parameter := range task.GetInputs().GetParameters() {
+		if parameter.GetType() == apiv2beta1.IOType_ITERATOR_INPUT {
+			assert.EqualValues(t, len(values), parameter.GetProducer().GetIteration())
+			values = append(values, parameter.GetValue().GetNumberValue())
+		}
+	}
+	assert.Equal(t, []float64{8, 10, 12}, values)
 }
 
 func TestParameterTaskOutput(t *testing.T) {
@@ -1325,7 +1364,7 @@ func TestContainerComponentInputsAndRuntimeConstants(t *testing.T) {
 
 	// Verify Executor Input has the correct artifact
 	artifact := analyzeInputsExecution.ExecutorInput.Inputs.Artifacts["input_text"].Artifacts[0]
-	require.Equal(t, apiv2beta1.Artifact_Dataset.String(), artifact.Type.GetSchemaTitle())
+	require.Equal(t, "system.Dataset", artifact.Type.GetSchemaTitle())
 	require.Equal(t, "output_text", artifact.Name)
 }
 

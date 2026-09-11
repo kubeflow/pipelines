@@ -954,6 +954,7 @@ func (l *LauncherV2) uploadOutputArtifacts(
 						},
 						Namespace: l.options.Namespace,
 					}
+					artifact.Metadata = preserveArtifactSchema(artifact.Metadata, schemaTitleForMetadata, outputArtifact.GetType().GetSchemaVersion())
 					artifactsMap[artifactKey] = append(artifactsMap[artifactKey], artifact)
 				}
 			} else {
@@ -967,7 +968,7 @@ func (l *LauncherV2) uploadOutputArtifacts(
 					CreatedAt:   timestamppb.Now(),
 					Namespace:   l.options.Namespace,
 				}
-				artifact.Metadata = preserveArtifactSchemaTitle(artifact.Metadata, schemaTitleForMetadata)
+				artifact.Metadata = preserveArtifactSchema(artifact.Metadata, schemaTitleForMetadata, outputArtifact.GetType().GetSchemaVersion())
 
 				// In the Classification metric case, the metric data is stored in metadata and
 				// not object store
@@ -1264,6 +1265,45 @@ func propagateOutputsUpDAG(
 	}
 
 	for parentTask != nil {
+		currentTaskOutputs = proto.Clone(currentTaskOutputs).(*apiV2beta1.PipelineTask_InputOutputs)
+		// A nested loop contributes one list per enclosing iteration, not its
+		// individual leaves tagged with the inner iteration indices.
+		if currentTask.GetType() == apiV2beta1.PipelineTask_LOOP &&
+			currentTask.GetTypeAttributes() != nil &&
+			currentTask.GetTypeAttributes().IterationIndex != nil {
+			grouped := make(map[string]map[int64]*structpb.Value)
+			for _, output := range currentTaskOutputs.Parameters {
+				grouped[output.GetParameterKey()] = make(map[int64]*structpb.Value)
+			}
+			for _, output := range currentTask.GetOutputs().GetParameters() {
+				values, changed := grouped[output.GetParameterKey()]
+				if !changed {
+					continue
+				}
+				if output.GetProducer() == nil || output.GetProducer().Iteration == nil {
+					return fmt.Errorf("nested loop output %s has no iteration index", output.GetParameterKey())
+				}
+				values[output.GetProducer().GetIteration()] = output.GetValue()
+			}
+			currentTaskOutputs.Parameters = nil
+			for key, byIteration := range grouped {
+				indices := make([]int64, 0, len(byIteration))
+				for index := range byIteration {
+					indices = append(indices, index)
+				}
+				sort.Slice(indices, func(i, j int) bool { return indices[i] < indices[j] })
+				values := make([]*structpb.Value, 0, len(indices))
+				for _, index := range indices {
+					values = append(values, byIteration[index])
+				}
+				currentTaskOutputs.Parameters = append(currentTaskOutputs.Parameters, &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
+					ParameterKey: key,
+					Value:        structpb.NewListValue(&structpb.ListValue{Values: values}),
+					Type:         apiV2beta1.IOType_OUTPUT,
+					Producer:     &apiV2beta1.IOProducer{TaskName: currentTask.GetName(), Iteration: util.Int64Pointer(currentTask.GetTypeAttributes().GetIterationIndex())},
+				})
+			}
+		}
 		if parentTask.GetTaskId() != "" {
 			refreshedParentTask, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
 				TaskId: parentTask.GetTaskId(),
@@ -1387,6 +1427,10 @@ func propagateOutputsUpDAG(
 					true, // isParameter = true
 				)
 				paramProducer := propagatedProducer(childTaskName, ioType, paramIO.GetProducer())
+				if parentTask.GetType() == apiV2beta1.PipelineTask_LOOP && currentTask.GetTypeAttributes() != nil &&
+					currentTask.GetTypeAttributes().IterationIndex != nil {
+					paramProducer.Iteration = util.Int64Pointer(currentTask.GetTypeAttributes().GetIterationIndex())
+				}
 				newParam := &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
 					ParameterKey: matchingParentKey,
 					Value:        paramIO.GetValue(),
@@ -1395,7 +1439,15 @@ func propagateOutputsUpDAG(
 				}
 
 				alreadyPropagated := false
-				for _, existingParameter := range currentParentTask.Outputs.GetParameters() {
+				for index, existingParameter := range currentParentTask.Outputs.GetParameters() {
+					if paramProducer.Iteration != nil && existingParameter.GetParameterKey() == matchingParentKey &&
+						existingParameter.GetType() == ioType && proto.Equal(existingParameter.GetProducer(), paramProducer) {
+						// A growing nested collection replaces this iteration's prior
+						// snapshot, matching the task store's iteration identity.
+						currentParentTask.Outputs.Parameters[index] = newParam
+						alreadyPropagated = true
+						break
+					}
 					if proto.Equal(existingParameter, newParam) {
 						alreadyPropagated = true
 						break
@@ -1747,6 +1799,21 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 
 	// Read input artifact metadata.
 	for name, artifactList := range executorInput.GetInputs().GetArtifacts() {
+		// Whole-list placeholders use the same artifact JSON representation as ExecutorInput,
+		// including camel-case schema fields, and retain an array even for zero or one item.
+		artifactsJSON := make([]json.RawMessage, 0, len(artifactList.GetArtifacts()))
+		for _, artifact := range artifactList.GetArtifacts() {
+			artifactJSON, err := protojson.Marshal(artifact)
+			if err != nil {
+				return nil, fmt.Errorf("failed to JSON-marshal input artifact %q: %w", name, err)
+			}
+			artifactsJSON = append(artifactsJSON, artifactJSON)
+		}
+		listJSON, err := json.Marshal(artifactsJSON)
+		if err != nil {
+			return nil, fmt.Errorf("failed to JSON-marshal input artifact list %q: %w", name, err)
+		}
+		placeholders[fmt.Sprintf(`{{$.inputs.artifacts['%s']}}`, name)] = string(listJSON)
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}

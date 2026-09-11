@@ -212,13 +212,14 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		return execution, err
 	}
 
-	// Dispatch a plugin task for each loop DAG driver, but not the loop's individual iteration DAG drivers.
+	// A nested loop coordinator carries its enclosing loop's iteration index.
+	// It still owns a separate loop lifecycle, unlike ordinary iteration body DAGs.
 	var taskPluginInfo *plugins.TaskInfo
 	dispatcher := opts.PluginDispatcher
 	if dispatcher == nil {
 		dispatcher = plugins.NoOpDispatcher{}
 	}
-	if opts.IterationIndex < 0 {
+	if opts.IterationIndex < 0 || opts.Task.GetParameterIterator() != nil {
 		applyParentPluginCustomProperties(dispatcher, opts.ParentTask)
 		taskPluginInfo = &plugins.TaskInfo{Name: taskName}
 		pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
@@ -265,7 +266,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		err = fmt.Errorf("ArtifactIterator is not implemented")
 		return execution, err
 	}
-	isIterator := opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0
+	isIterator := opts.Task.GetParameterIterator() != nil
 	if execution.WillTrigger() && isIterator {
 		iterator := opts.Task.GetParameterIterator()
 		report := func(err error) error {
@@ -408,7 +409,9 @@ func applyInferredDAGTaskType(opts common.Options, task *gc.PipelineTask) {
 		condition = opts.Task.GetTriggerPolicy().GetCondition()
 	}
 	switch {
-	case opts.Task != nil && opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0:
+	// The compiler invokes iteration bodies directly; a task with an iterator
+	// is always its coordinator, even when it inherits an outer iteration index.
+	case opts.Task != nil && opts.Task.GetParameterIterator() != nil:
 		task.Type = gc.PipelineTask_LOOP
 		task.DisplayName = "Loop"
 	case condition != "":
