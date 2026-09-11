@@ -283,7 +283,7 @@ describe('workflow-helper', () => {
                 namespace,
               ),
             ).rejects.toThrow(
-              'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+              'Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
             );
 
             expect(getK8sSecret).not.toHaveBeenCalled();
@@ -306,7 +306,9 @@ describe('workflow-helper', () => {
           '2024-07-09',
           'kubeflow',
         ),
-      ).rejects.toThrow('Artifact store endpoint is not allowed');
+      ).rejects.toThrow(
+        'Artifact store endpoint http://seaweedfs.kubeflow is not allowed. Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
+      );
 
       expect(getK8sSecret).not.toHaveBeenCalled();
       expect(minioHelper.createMinioClient).not.toHaveBeenCalled();

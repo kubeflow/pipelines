@@ -26,7 +26,10 @@ import {
   getObjectStream,
   parseArtifactStoreEndpoint,
 } from './minio-helper.js';
-import { isTrustedArtifactEndpoint } from './handlers/domain-checker.js';
+import {
+  formatUntrustedArtifactEndpointError,
+  isTrustedArtifactEndpoint,
+} from './handlers/domain-checker.js';
 import { CORE_SCHEMA, load as jsYamlLoad, mergeTag } from 'js-yaml';
 
 export interface PartialArgoWorkflow {
@@ -360,9 +363,7 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
     );
   }
   if (!isTrustedArtifactEndpoint(endpoint.origin, trustedEndpoints)) {
-    throw new Error(
-      'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
-    );
+    throw new Error(formatUntrustedArtifactEndpointError(endpoint.origin));
   }
   // Security: Only read the object-store credential Secret from the server's own
   // namespace. In multi-user deployments the run namespace is a customer/user

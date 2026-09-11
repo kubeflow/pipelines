@@ -11,7 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { isAllowedDomain, isTrustedArtifactEndpoint } from './domain-checker.js';
+import {
+  formatUntrustedArtifactEndpointError,
+  isAllowedDomain,
+  isTrustedArtifactEndpoint,
+} from './domain-checker.js';
 
 describe('isAllowedDomain', () => {
   it('matches a host-only allowlist for a plain https URL', () => {
@@ -50,6 +54,14 @@ describe('isAllowedDomain', () => {
 
   it('rejects non-http schemes before applying the allowlist', () => {
     expect(isAllowedDomain('file:///etc/passwd', '^.*$')).toBe(false);
+  });
+});
+
+describe('formatUntrustedArtifactEndpointError', () => {
+  it('includes the rejected origin and directs the reader to a cluster operator', () => {
+    expect(formatUntrustedArtifactEndpointError('https://objects.example.com:9443')).toBe(
+      'Artifact store endpoint https://objects.example.com:9443 is not allowed. Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
+    );
   });
 });
 
