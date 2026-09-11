@@ -705,7 +705,7 @@ def watch_latest_workflow_run(
     raise RuntimeError(f'Could not find workflow run for {workflow} on {branch}.')
   run_id, run_url, _ = run_info.split('\t', 2)
   print(underline_links(f'Workflow run: {run_url}'))
-  runner.run(['gh', 'run', 'watch', run_id])
+  runner.run(['gh', 'run', 'watch', run_id, '--exit-status'])
 
 
 def prompt_choice(question: str, choices: list[str], default: str | None = None) -> str:

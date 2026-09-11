@@ -208,7 +208,7 @@ class PublishImagesStepTest(unittest.TestCase):
 
       output = '\n'.join(str(call.args[0]) for call in print_mock.call_args_list)
       self.assertIn('Workflow run: \033[4mhttps://github.com/kubeflow/pipelines/actions/runs/12345\033[0m', output)
-      self.assertIn(['gh', 'run', 'watch', '12345'], context.runner.commands)
+      self.assertIn(['gh', 'run', 'watch', '12345', '--exit-status'], context.runner.commands)
 
 
 class CreateSdkReleaseStepTest(unittest.TestCase):
