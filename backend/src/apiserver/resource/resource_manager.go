@@ -847,7 +847,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 
 	allowCompilerPodSpecPatch := tmpl.GetTemplateType() == template.V2
-	if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace); err != nil {
+	if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a run due to service account authorization error")
 	}
 
@@ -880,7 +880,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}()
 
 	if r.pluginDispatcher.PluginsRegistered() {
-		if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace); err != nil {
+		if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run_after_plugins"); err != nil {
 			return nil, util.Wrap(err, "Failed to create a run due to service account authorization error after plugin processing")
 		}
 	}
@@ -1312,7 +1312,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 		allowCompilerPodSpecPatch = retryTemplate.GetTemplateType() == template.V2
 	}
-	if err := r.authorizeExecutionServiceAccounts(ctx, newExecSpec, allowCompilerPodSpecPatch, namespace); err != nil {
+	if err := r.authorizeExecutionServiceAccounts(ctx, newExecSpec, allowCompilerPodSpecPatch, namespace, "retry_run"); err != nil {
 		return util.Wrapf(err, "Failed to retry run %s due to service account authorization error", runId)
 	}
 
@@ -1752,7 +1752,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to inspect the recurring run's service accounts")
 	}
-	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace); err != nil {
+	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
 
@@ -1820,7 +1820,7 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 				return util.Wrapf(err, "Failed to enable recurring run %v because its workflow could not be inspected", jobId)
 			}
 			allowCompilerPodSpecPatch := job.WorkflowSpecManifest == "" && job.PipelineSpecManifest != ""
-			if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace); err != nil {
+			if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "enable_recurring_run"); err != nil {
 				return util.Wrapf(err, "Failed to enable recurring run %v due to service account authorization error", jobId)
 			}
 		}
@@ -3835,15 +3835,52 @@ func (r *ResourceManager) authorizeServiceAccount(ctx context.Context, serviceAc
 	})
 }
 
-func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace string) error {
+func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace, operation string) error {
+	audit := common.IsWorkflowServiceAccountAuditEnabled()
+	mainServiceAccount := executionSpec.ServiceAccount()
+	if mainServiceAccount == "" {
+		mainServiceAccount = "default"
+	}
+	if audit {
+		// Audit only the expanded checks; the main-account policy still applies,
+		// including when a dynamic patch prevents identity collection.
+		if err := r.authorizeServiceAccount(ctx, mainServiceAccount, namespace); err != nil {
+			return err
+		}
+	}
 	serviceAccounts, err := executionSpec.ServiceAccounts(allowCompilerPodSpecPatch)
 	if err != nil {
+		if audit {
+			logWorkflowServiceAccountAudit(executionSpec, namespace, operation, "", "inspection_incomplete")
+			return nil
+		}
 		return err
 	}
 	for _, serviceAccount := range serviceAccounts {
+		if audit && serviceAccount == mainServiceAccount {
+			continue
+		}
 		if err := r.authorizeServiceAccount(ctx, serviceAccount, namespace); err != nil {
+			if audit {
+				finding := "authorization_error"
+				if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
+					finding = "account_not_allowed"
+				} else if util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
+					finding = "account_denied"
+				}
+				logWorkflowServiceAccountAudit(executionSpec, namespace, operation, serviceAccount, finding)
+				continue
+			}
 			return err
 		}
 	}
 	return nil
+}
+
+func logWorkflowServiceAccountAudit(executionSpec util.ExecutionSpec, namespace, operation, serviceAccount, finding string) {
+	meta := executionSpec.ExecutionObjectMeta()
+	// Parser errors can contain patch values. Log metadata and a finding code,
+	// never the manifest, patch contents, or raw authorization error.
+	glog.Warningf("Workflow service account audit: operation=%q namespace=%q workflow=%q generate_name=%q run_id=%q service_account=%q finding=%q; continuing because %s=true",
+		operation, namespace, meta.Name, meta.GenerateName, meta.Labels[util.LabelKeyWorkflowRunId], serviceAccount, finding, common.WorkflowServiceAccountAudit)
 }

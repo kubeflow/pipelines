@@ -31,6 +31,7 @@ const (
 	CacheEnabled                            string = "CacheEnabled"
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
 	AllowedServiceAccountsFlag              string = "ALLOWEDSERVICEACCOUNTS"
+	WorkflowServiceAccountAudit             string = "WORKFLOW_SERVICE_ACCOUNT_AUDIT"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
@@ -90,6 +91,11 @@ func IsPipelineVersionUpdatedByDefault() bool {
 
 func IsNamespaceRequiredForPipelines() bool {
 	return GetBoolConfigWithDefault(RequireNamespaceForPipelines, false)
+}
+
+// IsWorkflowServiceAccountAuditEnabled makes additional workflow identity checks advisory.
+func IsWorkflowServiceAccountAuditEnabled() bool {
+	return GetBoolConfigWithDefault(WorkflowServiceAccountAudit, false)
 }
 
 func GetStringConfig(configName string) string {
