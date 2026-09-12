@@ -16,6 +16,7 @@ package driver
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"testing"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -34,7 +36,7 @@ import (
 type mockCacheClient struct {
 	getExecutionCacheFunc    func(fingerPrint, pipelineName, namespace string) (string, error)
 	createExecutionCacheFunc func(ctx context.Context, task *api.Task) error
-	generateCacheKeyFunc     func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error)
+	generateCacheKeyFunc     func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string, env map[string]string) (*cachekey.CacheKey, error)
 	generateFingerPrintFunc  func(cacheKey *cachekey.CacheKey) (string, error)
 }
 
@@ -60,9 +62,10 @@ func (m *mockCacheClient) GenerateCacheKey(
 	outputParametersTypeMap map[string]string,
 	cmdArgs []string, image string,
 	pvcNames []string,
+	env map[string]string,
 ) (*cachekey.CacheKey, error) {
 	if m.generateCacheKeyFunc != nil {
-		return m.generateCacheKeyFunc(inputs, outputs, outputParametersTypeMap, cmdArgs, image, pvcNames)
+		return m.generateCacheKeyFunc(inputs, outputs, outputParametersTypeMap, cmdArgs, image, pvcNames, env)
 	}
 	return &cachekey.CacheKey{}, nil
 }
@@ -109,7 +112,7 @@ func Test_getFingerPrint(t *testing.T) {
 			},
 			pvcNames: nil,
 			mockClient: &mockCacheClient{
-				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error) {
+				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string, env map[string]string) (*cachekey.CacheKey, error) {
 					assert.Equal(t, "test-image:latest", image)
 					assert.Equal(t, []string{"python", "main.py", "--flag"}, cmdArgs)
 					return &cachekey.CacheKey{}, nil
@@ -132,7 +135,7 @@ func Test_getFingerPrint(t *testing.T) {
 			executorInput: &pipelinespec.ExecutorInput{},
 			pvcNames:      []string{"pvc-b", "pvc-a", "pvc-b", "pvc-c", "pvc-a"},
 			mockClient: &mockCacheClient{
-				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error) {
+				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string, env map[string]string) (*cachekey.CacheKey, error) {
 					// Verify PVC names are deduplicated and sorted
 					assert.Equal(t, []string{"pvc-a", "pvc-b", "pvc-c"}, pvcNames)
 					return &cachekey.CacheKey{}, nil
@@ -172,7 +175,7 @@ func Test_getFingerPrint(t *testing.T) {
 			},
 			executorInput: &pipelinespec.ExecutorInput{},
 			mockClient: &mockCacheClient{
-				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error) {
+				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string, env map[string]string) (*cachekey.CacheKey, error) {
 					return nil, fmt.Errorf("cache key generation failed")
 				},
 			},
@@ -592,4 +595,54 @@ func Test_createCache(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Tasks differing only in container env used to hash the same, so the second
+// one reused the first one's outputs.
+func Test_getFingerPrint_ConsidersContainerEnv(t *testing.T) {
+	cacheClient, err := cacheutils.NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
+	require.NoError(t, err)
+
+	optsWithEnv := func(env ...*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar) Options {
+		return Options{
+			Component: &pipelinespec.ComponentSpec{
+				OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+						"out": {ParameterType: pipelinespec.ParameterType_STRING},
+					},
+				},
+			},
+			Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+				Image:   "python:3.11",
+				Command: []string{"python", "main.py"},
+				Env:     env,
+			},
+			Task: &pipelinespec.PipelineTaskSpec{
+				CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true},
+			},
+		}
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{"in": structpb.NewStringValue("v")},
+		},
+	}
+	fingerPrint := func(env ...*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar) string {
+		fp, err := getFingerPrint(optsWithEnv(env...), executorInput, cacheClient, nil)
+		require.NoError(t, err)
+		return fp
+	}
+
+	noEnv := fingerPrint()
+	train := fingerPrint(&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{Name: "MODE", Value: "train"})
+	sameTrain := fingerPrint(&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{Name: "MODE", Value: "train"})
+	eval := fingerPrint(&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{Name: "MODE", Value: "eval"})
+
+	assert.NotEqual(t, train, eval, "MODE=train and MODE=eval must not share a cache entry")
+	assert.Equal(t, train, sameTrain)
+	assert.NotEqual(t, noEnv, train)
+
+	// The hash these options produced before env joined the key. A task with no
+	// env has to keep it, or every cached task misses once on upgrade.
+	assert.Equal(t, "2efa5f1c8059428c1e73314972fa350f45701a86837d7b037a6893828204873e", noEnv)
 }
