@@ -2105,6 +2105,36 @@ class TestBooleanInputCompiledCorrectly(unittest.TestCase):
             pipeline_spec.root.input_definitions.parameters['boolean']
             .default_value.bool_value, True)
 
+    def test_container_component_with_parameter_image(self):
+
+        @dsl.container_component
+        def say_hello(image_uri: str):
+            return dsl.ContainerSpec(
+                image=image_uri,
+                command=['echo'],
+                args=['Hello'],
+            )
+
+        @dsl.pipeline
+        def hello_pipeline(image_uri: str):
+            say_hello(image_uri=image_uri)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_pipeline,
+                package_path=pipeline_spec_path,
+            )
+            with open(pipeline_spec_path, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        executor = next(
+            iter(pipeline_spec['deploymentSpec']['executors'].values()))
+        self.assertEqual(
+            executor['container']['image'],
+            "{{$.inputs.parameters['image_uri']}}",
+        )
+
     def test_pipeline_no_input(self):
 
         @dsl.component
