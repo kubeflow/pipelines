@@ -130,3 +130,7 @@ type FakeBadPodClient struct {
 func (FakeBadPodClient) Delete(ctx context.Context, name string, options v1.DeleteOptions) error {
 	return errors.New("failed to delete pod")
 }
+
+func (FakeBadPodClient) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("failed to watch pods")
+}
