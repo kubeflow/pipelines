@@ -123,6 +123,43 @@ describe('ArtifactPreview', () => {
     await waitFor(() => screen.getByText(`012 345 ...`));
   });
 
+  it('does not truncate when line count is below maxlines', async () => {
+    const data = `012\n345`;
+    vi.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview
+          value={'minio://bucket/key'}
+          namespace={'kubeflow'}
+          maxbytes={data.length}
+          maxlines={20}
+        />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => screen.getByText('minio://bucket/key'));
+    await waitFor(() => screen.getByText('012 345'));
+    expect(screen.queryByText(/\.\.\./)).not.toBeInTheDocument();
+  });
+
+  it('does not truncate when line count exactly equals maxlines', async () => {
+    const lines = Array.from({ length: 20 }, (_, i) => `line${i}`);
+    const data = lines.join('\n');
+    vi.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview
+          value={'minio://bucket/key'}
+          namespace={'kubeflow'}
+          maxbytes={data.length}
+          maxlines={20}
+        />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => screen.getByText('minio://bucket/key'));
+    await waitFor(() => screen.getByText(lines.join(' ')));
+    expect(screen.queryByText(/\.\.\./)).not.toBeInTheDocument();
+  });
+
   it('handles artifact that previews with maxbytes', async () => {
     const data = `012\n345\n678\n910`;
     vi.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);
