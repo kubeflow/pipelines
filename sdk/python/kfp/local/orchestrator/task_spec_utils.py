@@ -202,7 +202,9 @@ def create_artifact_loop_iteration_task_spec(
     iteration_task_spec.ClearField('parameter_iterator')
     iteration_task_spec.ClearField('artifact_iterator')
 
-    for input_spec in iteration_task_spec.inputs.artifacts.values():
+    def update_artifact_input(
+            input_spec: pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
+    ) -> None:
         if input_spec.HasField('component_input_artifact'):
             artifact_name = input_spec.component_input_artifact
             if (artifact_name == artifact_item_input or
@@ -210,6 +212,12 @@ def create_artifact_loop_iteration_task_spec(
                     f'{loop_task_name}-loop-item' in artifact_name):
                 iteration_key = f'{artifact_name}-iteration-{iteration_index}'
                 input_spec.component_input_artifact = iteration_key
+        elif input_spec.HasField('artifact_sources'):
+            for source in input_spec.artifact_sources.artifacts:
+                update_artifact_input(source)
+
+    for input_spec in iteration_task_spec.inputs.artifacts.values():
+        update_artifact_input(input_spec)
 
     return iteration_task_spec
 

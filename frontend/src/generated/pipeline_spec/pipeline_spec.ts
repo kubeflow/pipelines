@@ -386,6 +386,8 @@ export interface TaskInputsSpec_InputArtifactSpec {
   taskOutputArtifact: TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec | undefined;
   /** Pass the input artifact from parent component input artifact. */
   componentInputArtifact: string | undefined;
+  /** Pass an ordered list assembled from multiple artifact sources. */
+  artifactSources: TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec | undefined;
 }
 
 export interface TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec {
@@ -396,6 +398,15 @@ export interface TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec {
   producerTask: string;
   /** The key of [TaskOutputsSpec.artifacts][] map of the producer task. */
   outputArtifactKey: string;
+}
+
+/**
+ * An ordered collection of artifact inputs. Each entry resolves through
+ * the same rules as a regular artifact input and contributes its artifacts
+ * to the resulting list.
+ */
+export interface TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec {
+  artifacts: TaskInputsSpec_InputArtifactSpec[];
 }
 
 /**
@@ -4928,6 +4939,12 @@ export const TaskInputsSpec_InputArtifactSpec = {
     if (message.componentInputArtifact !== undefined) {
       writer.uint32(34).string(message.componentInputArtifact);
     }
+    if (message.artifactSources !== undefined) {
+      TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec.encode(
+        message.artifactSources,
+        writer.uint32(50).fork(),
+      ).ldelim();
+    }
     return writer;
   },
 
@@ -4944,6 +4961,10 @@ export const TaskInputsSpec_InputArtifactSpec = {
           break;
         case 4:
           message.componentInputArtifact = reader.string();
+          break;
+        case 6:
+          message.artifactSources =
+            TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec.decode(reader, reader.uint32());
           break;
         default:
           reader.skipType(tag & 7);
@@ -4965,6 +4986,10 @@ export const TaskInputsSpec_InputArtifactSpec = {
       object.componentInputArtifact !== undefined && object.componentInputArtifact !== null
         ? String(object.componentInputArtifact)
         : undefined;
+    message.artifactSources =
+      object.artifactSources !== undefined && object.artifactSources !== null
+        ? TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec.fromJSON(object.artifactSources)
+        : undefined;
     return message;
   },
 
@@ -4976,6 +5001,10 @@ export const TaskInputsSpec_InputArtifactSpec = {
         : undefined);
     message.componentInputArtifact !== undefined &&
       (obj.componentInputArtifact = message.componentInputArtifact);
+    message.artifactSources !== undefined &&
+      (obj.artifactSources = message.artifactSources
+        ? TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec.toJSON(message.artifactSources)
+        : undefined);
     return obj;
   },
 
@@ -4990,6 +5019,10 @@ export const TaskInputsSpec_InputArtifactSpec = {
           )
         : undefined;
     message.componentInputArtifact = object.componentInputArtifact ?? undefined;
+    message.artifactSources =
+      object.artifactSources !== undefined && object.artifactSources !== null
+        ? TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec.fromPartial(object.artifactSources)
+        : undefined;
     return message;
   },
 };
@@ -5069,6 +5102,77 @@ export const TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec = {
     } as TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec;
     message.producerTask = object.producerTask ?? '';
     message.outputArtifactKey = object.outputArtifactKey ?? '';
+    return message;
+  },
+};
+
+const baseTaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec: object = {};
+
+export const TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec = {
+  encode(
+    message: TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    for (const v of message.artifacts) {
+      TaskInputsSpec_InputArtifactSpec.encode(v!, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec {
+    const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = {
+      ...baseTaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec,
+    } as TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec;
+    message.artifacts = [];
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.artifacts.push(TaskInputsSpec_InputArtifactSpec.decode(reader, reader.uint32()));
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec {
+    const message = {
+      ...baseTaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec,
+    } as TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec;
+    message.artifacts = (object.artifacts ?? []).map((e: any) =>
+      TaskInputsSpec_InputArtifactSpec.fromJSON(e),
+    );
+    return message;
+  },
+
+  toJSON(message: TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec): unknown {
+    const obj: any = {};
+    if (message.artifacts) {
+      obj.artifacts = message.artifacts.map((e) =>
+        e ? TaskInputsSpec_InputArtifactSpec.toJSON(e) : undefined,
+      );
+    } else {
+      obj.artifacts = [];
+    }
+    return obj;
+  },
+
+  fromPartial<
+    I extends Exact<DeepPartial<TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec>, I>,
+  >(object: I): TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec {
+    const message = {
+      ...baseTaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec,
+    } as TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec;
+    message.artifacts =
+      object.artifacts?.map((e) => TaskInputsSpec_InputArtifactSpec.fromPartial(e)) || [];
     return message;
   },
 };

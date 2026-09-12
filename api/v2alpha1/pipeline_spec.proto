@@ -287,12 +287,21 @@ message TaskInputsSpec {
       string output_artifact_key = 2;
     }
 
+    // An ordered collection of artifact inputs. Each entry resolves through
+    // the same rules as a regular artifact input and contributes its artifacts
+    // to the resulting list.
+    message ArtifactSourcesSpec {
+      repeated InputArtifactSpec artifacts = 1;
+    }
+
     oneof kind {
       // Pass the input artifact from another task within the same parent
       // component.
       TaskOutputArtifactSpec task_output_artifact = 3;
       // Pass the input artifact from parent component input artifact.
       string component_input_artifact = 4;
+      // Pass an ordered list assembled from multiple artifact sources.
+      ArtifactSourcesSpec artifact_sources = 6;
     }
     reserved 5;
   }

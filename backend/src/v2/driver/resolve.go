@@ -565,6 +565,28 @@ func resolveInputArtifact(
 			return nil, err
 		}
 		return artifacts, nil
+	case *pipelinespec.TaskInputsSpec_InputArtifactSpec_ArtifactSources:
+		if len(artifactSpec.GetArtifactSources().GetArtifacts()) == 0 {
+			return nil, artifactError(fmt.Errorf("artifact sources are empty"))
+		}
+		artifacts := &pipelinespec.ArtifactList{}
+		for index, source := range artifactSpec.GetArtifactSources().GetArtifacts() {
+			resolved, err := resolveInputArtifact(
+				ctx,
+				dag,
+				pipeline,
+				mlmd,
+				fmt.Sprintf("%s[%d]", name, index),
+				source,
+				inputArtifacts,
+				task,
+			)
+			if err != nil {
+				return nil, err
+			}
+			artifacts.Artifacts = append(artifacts.Artifacts, resolved.GetArtifacts()...)
+		}
+		return artifacts, nil
 	default:
 		return nil, artifactError(fmt.Errorf("artifact spec of type %T not implemented yet", t))
 	}
