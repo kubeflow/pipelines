@@ -96,11 +96,7 @@ func RootDAG(ctx context.Context, opts Options, mlmd metadata.ClientInterface) (
 	// TODO(v2): in pipeline spec, rename GCS output directory to pipeline root.
 	pipelineRoot := opts.RuntimeConfig.GetGcsOutputDirectory()
 
-	k8sClient, err := buildK8sClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-	}
-	cfg, err := config.FromConfigMap(ctx, k8sClient, opts.Namespace)
+	cfg, err := config.FromConfigMapVolume(config.KFPLauncherConfigMountPath)
 	if err != nil {
 		return nil, err
 	}

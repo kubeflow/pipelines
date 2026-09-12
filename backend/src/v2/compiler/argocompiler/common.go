@@ -20,12 +20,14 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	k8score "k8s.io/api/core/v1"
 )
 
 const (
-	MLPipelineTLSEnabledEnvVar  = "ML_PIPELINE_TLS_ENABLED"
-	DefaultMLPipelineTLSEnabled = false
+	MLPipelineTLSEnabledEnvVar     = "ML_PIPELINE_TLS_ENABLED"
+	DefaultMLPipelineTLSEnabled    = false
+	volumeNameKFPLauncherConfigMap = "kfp-launcher-config"
 )
 
 // env vars in metadata-grpc-configmap is defined in component package
@@ -73,6 +75,27 @@ func setRuntimeRole(tmpl *wfapi.Template, role util.ExecutionRuntimeRole) {
 		tmpl.Metadata.Annotations = make(map[string]string)
 	}
 	tmpl.Metadata.Annotations[util.AnnotationKeyRuntimeRole] = string(role)
+}
+
+func ConfigureKFPLauncherConfigMap(tmpl *wfapi.Template) {
+	optional := true
+	tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+		Name: volumeNameKFPLauncherConfigMap,
+		VolumeSource: k8score.VolumeSource{
+			ConfigMap: &k8score.ConfigMapVolumeSource{
+				LocalObjectReference: k8score.LocalObjectReference{
+					Name: config.KFPLauncherConfigMapName,
+				},
+				Optional: &optional,
+			},
+		},
+	})
+
+	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, k8score.VolumeMount{
+		Name:      volumeNameKFPLauncherConfigMap,
+		MountPath: config.KFPLauncherConfigMountPath,
+		ReadOnly:  true,
+	})
 }
 
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.

@@ -571,6 +571,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			Env:     commonEnvs,
 		},
 	}
+	ConfigureKFPLauncherConfigMap(executor)
 	setRuntimeRole(executor, util.ExecutionRuntimeRoleLauncher)
 	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add the custom CA bundle to the executor.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
