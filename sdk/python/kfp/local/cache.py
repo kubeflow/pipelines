@@ -19,6 +19,7 @@ import os
 import tempfile
 import threading
 from typing import Any, Dict, List, Optional
+import urllib.parse
 
 from kfp import dsl
 from kfp.dsl import executor
@@ -224,12 +225,28 @@ class _MissingArtifactError(Exception):
         self.uri = uri
 
 
-_REMOTE_URI_PREFIXES = ('gs://', 's3://', 'minio://', 'oci://', 'http://',
-                        'https://')
+_REMOTE_URI_PREFIXES = (
+    'gs://',
+    'gcs://',
+    's3://',
+    'minio://',
+    'oci://',
+    'abfs://',
+    'abfss://',
+    'wasb://',
+    'wasbs://',
+    'hdfs://',
+    'cos://',
+    'http://',
+    'https://',
+)
 
 
 def _is_remote_uri(uri: str) -> bool:
-    return uri.startswith(_REMOTE_URI_PREFIXES)
+    if uri.startswith(_REMOTE_URI_PREFIXES):
+        return True
+    scheme = urllib.parse.urlparse(uri).scheme
+    return bool(scheme and scheme.lower() not in ('file', 'c', 'd', 'e', 'f'))
 
 
 # ----- config helpers -----
