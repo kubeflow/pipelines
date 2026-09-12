@@ -1091,6 +1091,35 @@ func TestNewGenericScheduledWorkflow(t *testing.T) {
 	assert.Equal(t, int64(120), swf.Spec.PeriodicSchedule.IntervalSecond)
 }
 
+func TestNewReferenceScheduledWorkflow(t *testing.T) {
+	modelJob := &model.Job{
+		K8SName:      "my-job",
+		Enabled:      true,
+		ExperimentId: "exp-1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:        "pipe-1",
+			PipelineVersionId: "version-1",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   `{"b_param":"world","a_param":"hello","c_param":42}`,
+				PipelineRoot: "gs://my-bucket/root",
+			},
+		},
+	}
+	swf, err := NewReferenceScheduledWorkflow(modelJob)
+	assert.Nil(t, err)
+	assert.Equal(t, "pipe-1", swf.Spec.PipelineId)
+	assert.Equal(t, "version-1", swf.Spec.PipelineVersionId)
+	require.NotNil(t, swf.Spec.Workflow)
+	// No compiled workflow is embedded; only the runtime inputs are carried.
+	assert.Nil(t, swf.Spec.Workflow.Spec)
+	assert.Equal(t, "gs://my-bucket/root", swf.Spec.Workflow.PipelineRoot)
+	// Parameters are sorted by name so the spec is deterministic for reconciliation.
+	require.Len(t, swf.Spec.Workflow.Parameters, 3)
+	assert.Equal(t, scheduledworkflow.Parameter{Name: "a_param", Value: `"hello"`}, swf.Spec.Workflow.Parameters[0])
+	assert.Equal(t, scheduledworkflow.Parameter{Name: "b_param", Value: `"world"`}, swf.Spec.Workflow.Parameters[1])
+	assert.Equal(t, scheduledworkflow.Parameter{Name: "c_param", Value: `42`}, swf.Spec.Workflow.Parameters[2])
+}
+
 func TestValidateJobInputs(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")

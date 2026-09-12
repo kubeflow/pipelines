@@ -19,6 +19,7 @@ import (
 	"errors"
 	"testing"
 
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	util "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
@@ -31,6 +32,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
+
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // v1AllowedNamespaces mirrors the unexported constant in backend/src/common/util/v1_support.go.
@@ -299,6 +303,122 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 		})
 	}
 }
+
+func TestSubmitNewWorkflowIfNotAlreadySubmitted_PipelineVersionReference(t *testing.T) {
+	executionClient := &fakeExecutionClient{}
+	runClient := &fakeRunClient{}
+	controller := &Controller{
+		workflowClient: client.NewWorkflowClient(executionClient, &fakeExecutionInformer{}),
+		runClient:      runClient,
+	}
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "scheduled-workflow",
+			Namespace: "ns1",
+			UID:       "scheduled-workflow-uid",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			ExperimentId:      "experiment-id",
+			PipelineId:        "pipeline-id",
+			PipelineVersionId: "pipeline-version-id",
+			ServiceAccount:    "service-account",
+			// A pinned pipeline (version) reference: runtime inputs are present, but no
+			// compiled workflow is embedded.
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "text", Value: `"world"`},
+					{Name: "macros", Value: `"run-[[Index]]-scheduled-[[ScheduledTime]]-now-[[CurrentTime]]-uuid-[[RunUUID]]"`},
+					{Name: "number", Value: `42`},
+				},
+				PipelineRoot: "gs://my-bucket/root",
+			},
+		},
+	})
+
+	submitted, workflowName, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+		context.Background(), swf, 100, 200)
+
+	require.NoError(t, err)
+	assert.True(t, submitted)
+	// No Argo workflow may be created directly; the run must go through the CreateRun API
+	// so the pinned pipeline version is compiled fresh at trigger time.
+	assert.Nil(t, executionClient.createdWorkflow)
+	require.NotNil(t, runClient.createRunRequest)
+	request := runClient.createRunRequest
+	assert.Equal(t, "experiment-id", request.ExperimentId)
+	assert.Equal(t, string(swf.UID), request.Run.RecurringRunId)
+	assert.Equal(t, workflowName, request.Run.DisplayName)
+	assert.Equal(t, "service-account", request.Run.ServiceAccount)
+	reference := request.Run.GetPipelineVersionReference()
+	require.NotNil(t, reference)
+	assert.Equal(t, "pipeline-id", reference.PipelineId)
+	assert.Equal(t, "pipeline-version-id", reference.PipelineVersionId)
+	require.NotNil(t, request.Run.RuntimeConfig)
+	assert.Equal(t, "gs://my-bucket/root", request.Run.RuntimeConfig.PipelineRoot)
+	assert.Equal(t, "world", request.Run.RuntimeConfig.Parameters["text"].GetStringValue())
+	// Recurring-run macros are expanded with the trigger's scheduled epoch (100), the
+	// current epoch (200) and the next index (1), matching the embedded-workflow path.
+	// [[RunUUID]] is left intact for the API server, which knows the run ID.
+	assert.Equal(t,
+		"run-1-scheduled-19700101000140-now-19700101000320-uuid-[[RunUUID]]",
+		request.Run.RuntimeConfig.Parameters["macros"].GetStringValue())
+	// Non-string parameters pass through unchanged.
+	assert.Equal(t, float64(42), request.Run.RuntimeConfig.Parameters["number"].GetNumberValue())
+	// The trigger's scheduled time is recorded on the run.
+	require.NotNil(t, request.Run.ScheduledAt)
+	assert.Equal(t, int64(100), request.Run.ScheduledAt.GetSeconds())
+}
+
+type fakeRunClient struct {
+	createRunRequest *api.CreateRunRequest
+}
+
+func (f *fakeRunClient) CreateRun(ctx context.Context, in *api.CreateRunRequest,
+	opts ...grpc.CallOption) (*api.Run, error) {
+	f.createRunRequest = in
+	return &api.Run{DisplayName: in.GetRun().GetDisplayName()}, nil
+}
+
+func (f *fakeRunClient) GetRun(ctx context.Context, in *api.GetRunRequest,
+	opts ...grpc.CallOption) (*api.Run, error) {
+	return nil, nil
+}
+
+func (f *fakeRunClient) ListRuns(ctx context.Context, in *api.ListRunsRequest,
+	opts ...grpc.CallOption) (*api.ListRunsResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeRunClient) ArchiveRun(ctx context.Context, in *api.ArchiveRunRequest,
+	opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	return nil, nil
+}
+
+func (f *fakeRunClient) UnarchiveRun(ctx context.Context, in *api.UnarchiveRunRequest,
+	opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	return nil, nil
+}
+
+func (f *fakeRunClient) DeleteRun(ctx context.Context, in *api.DeleteRunRequest,
+	opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	return nil, nil
+}
+
+func (f *fakeRunClient) TerminateRun(ctx context.Context, in *api.TerminateRunRequest,
+	opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	return nil, nil
+}
+
+func (f *fakeRunClient) RetryRun(ctx context.Context, in *api.RetryRunRequest,
+	opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	return nil, nil
+}
+
+var _ api.RunServiceClient = &fakeRunClient{}
 
 type fakeExecutionClient struct {
 	createdWorkflow commonutil.ExecutionSpec
