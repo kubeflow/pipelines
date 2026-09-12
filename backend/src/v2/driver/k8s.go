@@ -149,6 +149,9 @@ func extendPodSpecPatch(
 ) error {
 	kubernetesExecutorConfig := opts.KubernetesExecutorConfig
 
+	// Shared by every name resolved below, so a DAG is read once for the patch.
+	dagTasks := newDAGTaskCache()
+
 	setOnTaskConfig, setOnPod := getTaskConfigOptions(opts.Component)
 
 	// Always set setOnTaskConfig to an empty map if taskConfig is nil to avoid nil pointer dereference.
@@ -164,7 +167,7 @@ func extendPodSpecPatch(
 	// Get volume mount information
 	if kubernetesExecutorConfig.GetPvcMount() != nil {
 		volumeMounts, volumes, err := makeVolumeMountPatch(ctx, opts, kubernetesExecutorConfig.GetPvcMount(),
-			dag, pipeline, mlmd, inputParams)
+			dag, pipeline, mlmd, inputParams, dagTasks)
 		if err != nil {
 			return fmt.Errorf("failed to extract volume mount info: %w", err)
 		}
@@ -207,7 +210,7 @@ func extendPodSpecPatch(
 		skipNodeSelector := false
 		if kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson() != nil {
 			err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
-				kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson(), inputParams, &nodeSelector)
+				kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson(), inputParams, &nodeSelector, dagTasks)
 			if err != nil {
 				if errors.Is(err, ErrResolvedParameterNull) {
 					skipNodeSelector = true
@@ -240,7 +243,7 @@ func extendPodSpecPatch(
 				k8sToleration := &k8score.Toleration{}
 				if toleration.TolerationJson != nil {
 					resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
-						toleration.GetTolerationJson(), inputParams)
+						toleration.GetTolerationJson(), inputParams, dagTasks)
 					if err != nil {
 						if errors.Is(err, ErrResolvedParameterNull) {
 							continue // Skip applying the patch for this null/optional parameter
@@ -418,7 +421,7 @@ func extendPodSpecPatch(
 		var secretName string
 		if secretAsVolume.SecretNameParameter != nil {
 			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-				secretAsVolume.SecretNameParameter, inputParams)
+				secretAsVolume.SecretNameParameter, inputParams, dagTasks)
 			if err != nil {
 				if errors.Is(err, ErrResolvedParameterNull) {
 					continue
@@ -480,7 +483,7 @@ func extendPodSpecPatch(
 			var secretName string
 			if secretAsEnv.SecretNameParameter != nil {
 				resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-					secretAsEnv.SecretNameParameter, inputParams)
+					secretAsEnv.SecretNameParameter, inputParams, dagTasks)
 				if err != nil {
 					if errors.Is(err, ErrResolvedParameterNull) {
 						continue
@@ -512,7 +515,7 @@ func extendPodSpecPatch(
 		var configMapName string
 		if configMapAsVolume.ConfigMapNameParameter != nil {
 			resolvedConfigMapName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-				configMapAsVolume.ConfigMapNameParameter, inputParams)
+				configMapAsVolume.ConfigMapNameParameter, inputParams, dagTasks)
 			if err != nil {
 				if errors.Is(err, ErrResolvedParameterNull) {
 					continue
@@ -576,7 +579,7 @@ func extendPodSpecPatch(
 			var configMapName string
 			if configMapAsEnv.ConfigMapNameParameter != nil {
 				resolvedConfigMapName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-					configMapAsEnv.ConfigMapNameParameter, inputParams)
+					configMapAsEnv.ConfigMapNameParameter, inputParams, dagTasks)
 				if err != nil {
 					if errors.Is(err, ErrResolvedParameterNull) {
 						continue
@@ -608,7 +611,7 @@ func extendPodSpecPatch(
 		var secretName string
 		if imagePullSecret.SecretNameParameter != nil {
 			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-				imagePullSecret.SecretNameParameter, inputParams)
+				imagePullSecret.SecretNameParameter, inputParams, dagTasks)
 			if err != nil {
 				if errors.Is(err, ErrResolvedParameterNull) {
 					continue
@@ -750,7 +753,7 @@ func extendPodSpecPatch(
 			if nodeAffinityTerm.GetNodeAffinityJson() != nil {
 				var k8sNodeAffinity json.RawMessage
 				err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
-					nodeAffinityTerm.GetNodeAffinityJson(), inputParams, &k8sNodeAffinity)
+					nodeAffinityTerm.GetNodeAffinityJson(), inputParams, &k8sNodeAffinity, dagTasks)
 				if err != nil {
 					if errors.Is(err, ErrResolvedParameterNull) {
 						continue
@@ -1351,6 +1354,7 @@ func makeVolumeMountPatch(
 	pipeline *metadata.Pipeline,
 	mlmd *metadata.Client,
 	inputParams map[string]*structpb.Value,
+	dagTasks *dagTaskCache,
 ) ([]k8score.VolumeMount, []k8score.Volume, error) {
 	if pvcMounts == nil {
 		return nil, nil, nil
@@ -1377,7 +1381,7 @@ func makeVolumeMountPatch(
 		}
 
 		resolvedPvcName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-			pvcNameParameter, inputParams)
+			pvcNameParameter, inputParams, dagTasks)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to resolve pvc name: %w", err)
 		}

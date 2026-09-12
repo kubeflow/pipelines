@@ -56,6 +56,40 @@ type resolveUpstreamOutputsConfig struct {
 	pipeline     *metadata.Pipeline
 	mlmd         *metadata.Client
 	err          func(error) error
+	dagTasks     *dagTaskCache
+}
+
+// dagTaskCache keeps the flattened task map of a DAG so one pass reads it once
+// instead of once per value. The producers it looks up have already finished,
+// so a second read would say the same thing. A nil cache reads every time.
+type dagTaskCache struct {
+	byDAGID map[int64]map[string]*metadata.Execution
+}
+
+func newDAGTaskCache() *dagTaskCache {
+	return &dagTaskCache{byDAGID: make(map[int64]map[string]*metadata.Execution)}
+}
+
+// tasks reads MLMD only on the first call for a given DAG.
+func (c *dagTaskCache) tasks(
+	ctx context.Context,
+	dag *metadata.DAG,
+	pipeline *metadata.Pipeline,
+	mlmd *metadata.Client,
+) (map[string]*metadata.Execution, error) {
+	if c == nil {
+		return getDAGTasks(ctx, dag, pipeline, mlmd, nil)
+	}
+	dagID := dag.Execution.GetID()
+	if cached, ok := c.byDAGID[dagID]; ok {
+		return cached, nil
+	}
+	tasks, err := getDAGTasks(ctx, dag, pipeline, mlmd, nil)
+	if err != nil {
+		return nil, err
+	}
+	c.byDAGID[dagID] = tasks
+	return tasks, nil
 }
 
 // getDAGTasks is a recursive function that returns a map of all tasks across all DAGs in the context of nested DAGs.
@@ -320,6 +354,9 @@ func resolveInputs(
 			}
 		}
 	}
+	// Shared by every input below, so a DAG is read once however many use it.
+	dagTasks := newDAGTaskCache()
+
 	// Handle parameters.
 	for name, paramSpec := range task.GetInputs().GetParameters() {
 		if compParam := opts.Component.GetInputDefinitions().GetParameters()[name]; compParam != nil {
@@ -330,7 +367,7 @@ func resolveInputs(
 			}
 		}
 
-		v, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams)
+		v, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams, dagTasks)
 		if err != nil {
 			if !errors.Is(err, ErrResolvedParameterNull) {
 				return nil, err
@@ -358,7 +395,7 @@ func resolveInputs(
 
 	// Handle artifacts.
 	for name, artifactSpec := range task.GetInputs().GetArtifacts() {
-		v, err := resolveInputArtifact(ctx, dag, pipeline, mlmd, name, artifactSpec, inputArtifacts, task)
+		v, err := resolveInputArtifact(ctx, dag, pipeline, mlmd, name, artifactSpec, inputArtifacts, task, dagTasks)
 		if err != nil {
 			return nil, err
 		}
@@ -380,6 +417,7 @@ func resolveInputParameter(
 	mlmd *metadata.Client,
 	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
 	inputParams map[string]*structpb.Value,
+	dagTasks *dagTaskCache,
 ) (*structpb.Value, error) {
 	glog.V(4).Infof("paramSpec: %v", paramSpec)
 	paramError := func(err error) error {
@@ -413,6 +451,7 @@ func resolveInputParameter(
 			pipeline:  pipeline,
 			mlmd:      mlmd,
 			err:       paramError,
+			dagTasks:  dagTasks,
 		}
 		v, err := resolveUpstreamParameters(cfg)
 		if err != nil {
@@ -456,7 +495,7 @@ func resolveInputParameter(
 			return nil, paramError(fmt.Errorf("param runtime value spec of type %T not implemented", t))
 		}
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
-		tasks, err := getDAGTasks(ctx, dag, pipeline, mlmd, nil)
+		tasks, err := dagTasks.tasks(ctx, dag, pipeline, mlmd)
 		if err != nil {
 			return nil, err
 		}
@@ -506,8 +545,9 @@ func resolveInputParameterStr(
 	mlmd *metadata.Client,
 	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
 	inputParams map[string]*structpb.Value,
+	dagTasks *dagTaskCache,
 ) (*structpb.Value, error) {
-	val, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams)
+	val, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams, dagTasks)
 	if err != nil {
 		return nil, err
 	}
@@ -534,6 +574,7 @@ func resolveInputArtifact(
 	artifactSpec *pipelinespec.TaskInputsSpec_InputArtifactSpec,
 	inputArtifacts map[string]*pipelinespec.ArtifactList,
 	task *pipelinespec.PipelineTaskSpec,
+	dagTasks *dagTaskCache,
 ) (*pipelinespec.ArtifactList, error) {
 	glog.V(4).Infof("inputs: %#v", task.GetInputs())
 	glog.V(4).Infof("artifacts: %#v", task.GetInputs().GetArtifacts())
@@ -559,6 +600,7 @@ func resolveInputArtifact(
 			pipeline:     pipeline,
 			mlmd:         mlmd,
 			err:          artifactError,
+			dagTasks:     dagTasks,
 		}
 		artifacts, err := resolveUpstreamArtifacts(cfg)
 		if err != nil {
@@ -600,7 +642,7 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 	// results in a bunch of unhandled edge cases and test failures.
 	glog.V(4).Infof("producerTaskName: %v", producerTaskName)
 	glog.V(4).Infof("outputParameterKey: %v", outputParameterKey)
-	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
+	tasks, err := cfg.dagTasks.tasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd)
 	if err != nil {
 		return nil, cfg.err(err)
 	}
@@ -721,7 +763,7 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 	// "iteration_index", the producerTaskName will be updated appropriately
 	producerTaskName = InferIndexedTaskName(producerTaskName, cfg.dag.Execution)
 	glog.V(4).Infof("producerTaskName: %v", producerTaskName)
-	tasks, err := getDAGTasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd, nil)
+	tasks, err := cfg.dagTasks.tasks(cfg.ctx, cfg.dag, cfg.pipeline, cfg.mlmd)
 	if err != nil {
 		return nil, cfg.err(err)
 	}
@@ -846,9 +888,10 @@ func resolveK8sJsonParameter[k8sResource any](
 	pipelineInputParamSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
 	inputParams map[string]*structpb.Value,
 	res *k8sResource,
+	dagTasks *dagTaskCache,
 ) error {
 	resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
-		pipelineInputParamSpec, inputParams)
+		pipelineInputParamSpec, inputParams, dagTasks)
 	if err != nil {
 		return fmt.Errorf("failed to resolve k8s parameter: %w", err)
 	}
