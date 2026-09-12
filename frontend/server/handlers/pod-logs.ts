@@ -198,6 +198,11 @@ export function getPodLogsHandler(
       }
       stream.pipe(res, { end: false });
     } catch (err) {
+      // Every log source failed. Logging the error prints the chain of causes
+      // built up by composePodLogsStreamHandler, which is the only place the
+      // earlier failures - notably why the pod itself could not be read - are
+      // still recorded. The response keeps reporting the last error alone.
+      console.error(`Could not get main container logs for pod, ${podName}.`, err);
       res.status(500).send('Could not get main container logs: ' + err);
     }
   };
