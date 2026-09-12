@@ -88,7 +88,16 @@ export default function RunDetailsRouter(
   if (getV2RunSuccess && v2Run && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
-      return <RunDetailsV2 pipeline_job={templateString} run={v2Run} {...props} />;
+      // Remount when the run id changes so graph layers / selection from the
+      // previous run (e.g. Open Child Run from a TriggerPipeline task) do not leak.
+      return (
+        <RunDetailsV2
+          key={runId}
+          pipeline_job={templateString}
+          run={v2Run}
+          {...props}
+        />
+      );
     }
   }
 

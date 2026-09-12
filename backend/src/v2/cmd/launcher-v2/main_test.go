@@ -30,6 +30,7 @@ func TestRequiredLauncherFlags(t *testing.T) {
 	}{
 		{executorType: "container", want: withCommon("execution_id", "executor_input", "ml_pipeline_server_address", "ml_pipeline_server_port")},
 		{executorType: "importer", want: withCommon("task_spec", "importer_spec", "parent_dag_id")},
+		{executorType: "trigger_pipeline", want: withCommon("task_spec", "trigger_pipeline_spec", "parent_dag_id", "ml_pipeline_server_address", "ml_pipeline_server_port")},
 	}
 	for _, tc := range tests {
 		t.Run(tc.executorType, func(t *testing.T) {
@@ -59,6 +60,10 @@ func TestValidateLauncherFlags(t *testing.T) {
 			executorType: "importer",
 		},
 		{
+			name:         "trigger_pipeline with all required flags",
+			executorType: "trigger_pipeline",
+		},
+		{
 			name:         "container missing execution_id",
 			executorType: "container",
 			omit:         []string{"execution_id"},
@@ -74,6 +79,12 @@ func TestValidateLauncherFlags(t *testing.T) {
 			name:         "importer missing importer_spec",
 			executorType: "importer",
 			omit:         []string{"importer_spec"},
+			wantErr:      true,
+		},
+		{
+			name:         "trigger_pipeline missing trigger_pipeline_spec",
+			executorType: "trigger_pipeline",
+			omit:         []string{"trigger_pipeline_spec"},
 			wantErr:      true,
 		},
 		{

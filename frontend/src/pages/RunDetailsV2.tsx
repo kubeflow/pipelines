@@ -189,7 +189,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Update buttons for managing runs.
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
-  const [runIdFromParams] = useState(props.match.params[RouteParams.runId]);
+  const runIdFromParams = props.match.params[RouteParams.runId];
   useEffect(() => {
     updateToolBarActions(
       buttons,

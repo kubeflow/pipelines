@@ -172,6 +172,7 @@ class PipelineTask:
         self._run_after: List[str] = []
 
         self.importer_spec = None
+        self.trigger_pipeline_spec = None
         self.container_spec = None
         self.pipeline_spec = None
         self._ignore_upstream_failure_tag = False
@@ -195,6 +196,9 @@ class PipelineTask:
         elif component_spec.implementation.importer is not None:
             self.importer_spec = component_spec.implementation.importer
             self.importer_spec.artifact_uri = args['uri']
+        elif component_spec.implementation.trigger_pipeline is not None:
+            self.trigger_pipeline_spec = (
+                component_spec.implementation.trigger_pipeline)
         else:
             self.pipeline_spec = self.component_spec.implementation.graph
 

@@ -37,6 +37,7 @@ import (
 type Visitor interface {
 	Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error
 	Importer(name string, component *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error
+	TriggerPipeline(name string, component *pipelinespec.ComponentSpec, trigger *pipelinespec.PipelineDeploymentConfig_TriggerPipelineSpec) error
 	Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error
 	DAG(name string, component *pipelinespec.ComponentSpec, dag *pipelinespec.DagSpec) error
 	AddKubernetesSpec(name string, kubernetesSpec *structpb.Struct) error
@@ -130,8 +131,12 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		if importer != nil {
 			return state.visitor.Importer(name, component, importer)
 		}
+		trigger := executor.GetTriggerPipeline()
+		if trigger != nil {
+			return state.visitor.TriggerPipeline(name, component, trigger)
+		}
 
-		return componentError(fmt.Errorf("executor(label=%q): non-container and non-importer executor not implemented", executorLabel))
+		return componentError(fmt.Errorf("executor(label=%q): non-container/non-importer/non-trigger-pipeline executor not implemented", executorLabel))
 	}
 	dag := component.GetDag()
 	if dag == nil { // impl can only be executor or dag

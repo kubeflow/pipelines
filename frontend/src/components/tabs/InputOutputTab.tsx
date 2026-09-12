@@ -16,6 +16,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { CircularProgress } from '@mui/material';
+import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
@@ -36,10 +37,12 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
-import { RoutePageFactory } from '../Router';
+import { RoutePage, RouteParams, RoutePageFactory } from '../Router';
 import { ExecutionTitle } from './ExecutionTitle';
 
-export type ParamList = Array<KeyValue<string>>;
+const CHILD_RUN_ID_PROPERTY = 'child_run_id';
+
+export type ParamList = Array<KeyValue<string | React.JSX.Element>>;
 export type URIToSessionInfo = Map<string, string | undefined>;
 export interface ArtifactParamsWithSessionInfo {
   params: ParamList;
@@ -81,7 +84,10 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
 
   // Restructs artifacts and parameters for visualization.
   const inputParams = extractInputFromExecution(execution);
-  const outputParams = extractOutputFromExecution(execution);
+  const outputParams = linkChildRunOutputParams(
+    extractOutputFromExecution(execution),
+    execution,
+  );
   let inputArtifactsWithSessionInfo: ArtifactParamsWithSessionInfo | undefined;
   let outputArtifactsWithSessionInfo: ArtifactParamsWithSessionInfo | undefined;
   if (isSuccess && linkedArtifacts) {
@@ -142,6 +148,7 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
                 key={`input-parameters-${executionId}`}
                 title='Input Parameters'
                 fields={inputParams}
+                valueComponent={ParamValue}
               />
             </div>
           )}
@@ -151,7 +158,7 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
               <DetailsTable<string>
                 key={`input-artifacts-${executionId}`}
                 title='Input Artifacts'
-                fields={inputArtifacts}
+                fields={inputArtifacts as Array<KeyValue<string>>}
                 valueComponent={ArtifactPreview}
                 valueComponentProps={{
                   namespace: namespace,
@@ -167,6 +174,7 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
                 key={`output-parameters-${executionId}`}
                 title='Output Parameters'
                 fields={outputParams}
+                valueComponent={ParamValue}
               />
             </div>
           )}
@@ -176,7 +184,7 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
               <DetailsTable<string>
                 key={`output-artifacts-${executionId}`}
                 title='Output Artifacts'
-                fields={outputArtifacts}
+                fields={outputArtifacts as Array<KeyValue<string>>}
                 valueComponent={ArtifactPreview}
                 valueComponentProps={{
                   namespace: namespace,
@@ -191,18 +199,48 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   );
 }
 
+function ParamValue({ value }: { value?: string | React.JSX.Element }) {
+  return <>{value ?? '-'}</>;
+}
+
 export default InputOutputTab;
 
-function extractInputFromExecution(execution: Execution): KeyValue<string>[] {
+function extractInputFromExecution(execution: Execution): ParamList {
   return extractParamFromExecution(execution, 'inputs');
 }
 
-function extractOutputFromExecution(execution: Execution): KeyValue<string>[] {
+function extractOutputFromExecution(execution: Execution): ParamList {
   return extractParamFromExecution(execution, 'outputs');
 }
 
-function extractParamFromExecution(execution: Execution, name: string): KeyValue<string>[] {
-  const result: KeyValue<string>[] = [];
+/** When TriggerPipeline published child_run_id, render run_id as an Open Run link. */
+function linkChildRunOutputParams(outputParams: ParamList, execution: Execution): ParamList {
+  const childRunId = execution
+    .getCustomPropertiesMap()
+    ?.get(CHILD_RUN_ID_PROPERTY)
+    ?.getStringValue();
+  if (!childRunId) {
+    return outputParams;
+  }
+  return outputParams.map(([key, value]) => {
+    if (key !== 'run_id') {
+      return [key, value];
+    }
+    return [
+      key,
+      <Link
+        key={childRunId}
+        className={commonCss.link}
+        to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, childRunId)}
+      >
+        {childRunId}
+      </Link>,
+    ];
+  });
+}
+
+function extractParamFromExecution(execution: Execution, name: string): ParamList {
+  const result: ParamList = [];
   execution.getCustomPropertiesMap().forEach((value, key) => {
     if (key === name) {
       const param = getMetadataValue(value);

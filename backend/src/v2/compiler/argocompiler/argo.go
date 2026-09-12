@@ -524,8 +524,9 @@ const (
 	paramTask                    = "task"           // task spec
 	paramTaskName                = "task-name"      // task name
 	paramContainer               = "container"      // container spec
-	paramImporter                = "importer"       // importer spec
-	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
+	paramImporter                = "importer"         // importer spec
+	paramTriggerPipeline         = "trigger-pipeline" // trigger pipeline spec
+	paramRuntimeConfig           = "runtime-config"   // job runtime config, pipeline level inputs
 	paramParentDagID             = "parent-dag-id"
 	paramExecutionID             = "execution-id"
 	paramIterationCount          = "iteration-count"
