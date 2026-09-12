@@ -1052,15 +1052,14 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 
 			existing, ok := executionsMap[taskName]
 			if ok {
-				// TODO: The failure to handle this results in a specific edge
-				// case which has yet to be solved for. If you have three nested
-				// pipelines: A, which calls B, which calls C, and B and C share
-				// a task that A does not have but depends on in a producer
-				// subtask, when GetExecutionsInDAG is called, it will raise
-				// this error.
-
-				// TODO(Bobgy): to support retry, we need to handle multiple tasks with the same task name.
-				return nil, fmt.Errorf("two tasks have the same task name %q, id1=%v id2=%v", taskName, existing.GetID(), execution.GetID())
+				// When Argo retries a failed child task, a new MLMD execution
+				// record is created with the same task name. Keep the newer
+				// execution (higher create_time_since_epoch) so that
+				// UpdateDAGExecutionsState sees the post-retry state.
+				if e.GetCreateTimeSinceEpoch() > existing.GetExecution().GetCreateTimeSinceEpoch() {
+					executionsMap[taskName] = execution
+				}
+				continue
 			}
 			executionsMap[taskName] = execution
 		}
