@@ -139,6 +139,38 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
             component_spec.input_definitions.parameters['input1'].default_value,
         )
 
+    def test_to_protobuf_value_with_none(self):
+        self.assertEqual(
+            pipeline_spec_builder.to_protobuf_value(None),
+            struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+        )
+
+    def test_to_protobuf_value_with_none_in_dict(self):
+        self.assertEqual(
+            pipeline_spec_builder.to_protobuf_value({
+                'key': None,
+                'threshold': 0.5
+            }),
+            struct_pb2.Value(
+                struct_value=struct_pb2.Struct(fields={
+                    'key':
+                        struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+                    'threshold':
+                        struct_pb2.Value(number_value=0.5),
+                })),
+        )
+
+    def test_to_protobuf_value_with_none_in_list(self):
+        self.assertEqual(
+            pipeline_spec_builder.to_protobuf_value([1, None, 2]),
+            struct_pb2.Value(
+                list_value=struct_pb2.ListValue(values=[
+                    struct_pb2.Value(number_value=1),
+                    struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+                    struct_pb2.Value(number_value=2),
+                ])),
+        )
+
     def test_merge_deployment_spec_and_component_spec(self):
         main_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         main_deployment_config.executors['exec-1'].CopyFrom(

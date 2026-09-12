@@ -67,8 +67,10 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     Raises:
         ValueError if the given value is not one of the parameter types.
     """
+    if value is None:
+        return struct_pb2.Value(null_value=struct_pb2.NULL_VALUE)
     # bool check must be above (int, float) check because bool is a subclass of int so isinstance(True, int) == True
-    if isinstance(value, bool):
+    elif isinstance(value, bool):
         return struct_pb2.Value(bool_value=value)
     elif isinstance(value, str):
         return struct_pb2.Value(string_value=value)
