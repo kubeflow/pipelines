@@ -878,46 +878,45 @@ def _cpu_to_float(cpu: str) -> float:
     return float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
 
 
+# Multipliers for every suffix Kubernetes accepts on a resource quantity,
+# longest first so that "Gi" is matched before "G". "K" is kept alongside "k"
+# because KFP accepted it before it was normalized away.
+_MEMORY_SUFFIX_MULTIPLIERS = (
+    ('Ei', constants._EI),
+    ('Pi', constants._PI),
+    ('Ti', constants._TI),
+    ('Gi', constants._GI),
+    ('Mi', constants._MI),
+    ('Ki', constants._KI),
+    ('E', constants._E),
+    ('P', constants._P),
+    ('T', constants._T),
+    ('G', constants._G),
+    ('M', constants._M),
+    ('K', constants._K),
+    ('k', constants._K),
+    ('m', 1e-3),
+    ('u', 1e-6),
+    ('n', 1e-9),
+)
+
+
 # Note that memory_to_float assumes the string has already been validated by the _validate_memory_request_limit method.
 def _memory_to_float(memory: str) -> float:
     """Converts the validated memory request/limit string to its numeric value.
 
     Args:
-        memory: Memory requests or limits. This string should be a number or
-            a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
-            "Gi", "M", "Mi", "K", or "Ki".
-    Returns:
-        The numeric value (float) of the memory request/limit.
-    """
-    if memory.endswith('E'):
-        memory = float(memory[:-1]) * constants._E / constants._G
-    elif memory.endswith('Ei'):
-        memory = float(memory[:-2]) * constants._EI / constants._G
-    elif memory.endswith('P'):
-        memory = float(memory[:-1]) * constants._P / constants._G
-    elif memory.endswith('Pi'):
-        memory = float(memory[:-2]) * constants._PI / constants._G
-    elif memory.endswith('T'):
-        memory = float(memory[:-1]) * constants._T / constants._G
-    elif memory.endswith('Ti'):
-        memory = float(memory[:-2]) * constants._TI / constants._G
-    elif memory.endswith('G'):
-        memory = float(memory[:-1])
-    elif memory.endswith('Gi'):
-        memory = float(memory[:-2]) * constants._GI / constants._G
-    elif memory.endswith('M'):
-        memory = float(memory[:-1]) * constants._M / constants._G
-    elif memory.endswith('Mi'):
-        memory = float(memory[:-2]) * constants._MI / constants._G
-    elif memory.endswith('K'):
-        memory = float(memory[:-1]) * constants._K / constants._G
-    elif memory.endswith('Ki'):
-        memory = float(memory[:-2]) * constants._KI / constants._G
-    else:
-        # By default interpret as a plain integer, in the unit of Bytes.
-        memory = float(memory) / constants._G
+        memory: Memory requests or limits, as a Kubernetes quantity.
 
-    return memory
+    Returns:
+        The memory request/limit in gigabytes (float).
+    """
+    for suffix, multiplier in _MEMORY_SUFFIX_MULTIPLIERS:
+        if memory.endswith(suffix):
+            return float(memory[:-len(suffix)]) * multiplier / constants._G
+    # No suffix, so the quantity is a plain byte count. This also covers the
+    # exponent form, such as "1e3", which float() reads directly.
+    return float(memory) / constants._G
 
 
 class KubernetesManifestOptions:
