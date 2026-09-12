@@ -154,6 +154,15 @@ swagger generate client \
     -c healthz_client \
     -m healthz_model \
     -t backend/api/${API_VERSION}/go_http_client
+if [[ "$API_VERSION" != "v1beta1" ]]; then
+    swagger generate client \
+        -f backend/api/${API_VERSION}/swagger/task.swagger.json \
+        -A task \
+        --principal models.Principal \
+        -c task_client \
+        -m task_model \
+        -t backend/api/${API_VERSION}/go_http_client
+fi
 
 # Hack to fix an issue with go-swagger
 # See https://github.com/go-swagger/go-swagger/issues/1381 for details.
