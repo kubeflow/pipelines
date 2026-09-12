@@ -15,7 +15,7 @@
 
 import inspect
 import json
-from typing import Any, Callable, Dict, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
 
 try:
     from typing import get_args, get_origin
@@ -357,6 +357,31 @@ def verify_type_compatibility(
         else:
             warnings.warn(InconsistentTypeWarning(error_text))
 
+    # Literal-constrained inputs: statically verify a hard-coded argument
+    # value against the expected input's allowed values. A value coming from
+    # a PipelineChannel (a pipeline input or an upstream task's output)
+    # can't be checked at compile time; that's left to the driver, which
+    # validates the resolved value at runtime (see ValidateLiteralParameter
+    # in the backend).
+    expected_literals = getattr(expected_spec, 'literals', None)
+    if types_are_compatible and expected_literals:
+        # avoid circular imports
+        from kfp.dsl import pipeline_channel
+        is_channel = isinstance(given_value, pipeline_channel.PipelineChannel)
+        # PipelineChannel.__eq__ builds a ConditionOperation rather than
+        # returning a bool, so `given_value in expected_literals` is only
+        # safe for constants, not channels.
+        if not is_channel and given_value not in expected_literals:
+            types_are_compatible = False
+            error_text = (
+                error_message_prefix +
+                f'Value {given_value!r} is not one of the allowed values '
+                f'{expected_literals!r}')
+            if raise_on_error:
+                raise InconsistentTypeException(error_text)
+            else:
+                warnings.warn(InconsistentTypeWarning(error_text))
+
     return types_are_compatible
 
 
@@ -658,6 +683,35 @@ def _pydantic_basemodel_to_type_struct(model_cls: Type) -> Any:
     return get_canonical_type_name_for_type(dict)
 
 
+def get_literal_values(
+        annotation: Any) -> Optional[Union[List[str], List[int], List[float]]]:
+    """Extracts the values out of a `typing.Literal[...]` annotation.
+
+    Args:
+        annotation: The annotation to inspect. May be wrapped in
+            `Optional[...]`.
+
+    Returns:
+        The Literal's values, or None if `annotation` is not a Literal.
+
+    Raises:
+        TypeError: If the Literal mixes value types, or uses a value type
+            other than str, int, or float (KFP supports Literals of a
+            single str/int/float type only).
+    """
+    stripped_annotation = type_annotations.maybe_strip_optional_from_annotation(
+        annotation)
+    if get_origin(stripped_annotation) is not Literal:
+        return None
+
+    values = list(get_args(stripped_annotation))
+    value_types = {type(value) for value in values}
+    if len(value_types) != 1 or next(
+            iter(value_types)) not in (str, int, float):
+        raise TypeError('KFP supports Literals of a single type only.')
+    return values
+
+
 def _annotation_to_type_struct(annotation):
     if not annotation or annotation == inspect.Parameter.empty:
         return None
@@ -675,6 +729,12 @@ def _annotation_to_type_struct(annotation):
             stripped_annotation,
             type) and is_pydantic_basemodel_subclass(stripped_annotation):
         return _pydantic_basemodel_to_type_struct(stripped_annotation)
+
+    # get_literal_values() strips Optional[...] itself, so Optional[Literal[...]]
+    # is recognized the same as a bare Literal[...].
+    literal_values = get_literal_values(annotation)
+    if literal_values is not None:
+        return get_canonical_type_name_for_type(type(literal_values[0]))
 
     origin = get_origin(annotation)
     if origin in {list, dict}:
