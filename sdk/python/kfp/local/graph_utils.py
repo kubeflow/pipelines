@@ -62,22 +62,30 @@ def topological_sort(dependency_map: Dict[str, List[str]]) -> List[str]:
         A totally ordered stack of tasks. Tasks should be executed in the order they are popped off the right side of the stack.
     """
 
+    visiting: Set[str] = set()
+    visited: Set[str] = set()
+    result = []
+
     def dfs(node: str) -> None:
-        visited.add(node)
+        if node in visiting:
+            raise ValueError(
+                f'Cyclic task dependency detected involving task {node!r}.')
+        if node in visited:
+            return
+        visiting.add(node)
         for neighbor in dependency_map[node]:
             if neighbor not in dependency_map:
                 # Neighbor is outside the subset being sorted (e.g., an exit
                 # task filtered from the body pass). Skip it here — the caller
                 # is responsible for sequencing cross-subset dependencies.
                 continue
-            if neighbor not in visited:
-                dfs(neighbor)
+            dfs(neighbor)
+        visiting.remove(node)
+        visited.add(node)
         result.append(node)
 
     # sort lists to force deterministic result
     dependency_map = {k: sorted(v) for k, v in dependency_map.items()}
-    visited: Set[str] = set()
-    result = []
     for node in dependency_map:
         if node not in visited:
             dfs(node)
