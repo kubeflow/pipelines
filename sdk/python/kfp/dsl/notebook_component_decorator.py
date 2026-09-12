@@ -28,6 +28,7 @@ def notebook_component(
     kfp_package_path: Optional[str] = None,
     install_kfp_package: bool = True,
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
+    use_local_pip_config: bool = False,
 ):
     """Decorator to define a Notebook-based KFP component.
 
@@ -47,6 +48,10 @@ def notebook_component(
         kfp_package_path: Optional KFP package path to install.
         install_kfp_package: Whether to auto-install KFP when appropriate.
         task_config_passthroughs: Optional task config passthroughs.
+        use_local_pip_config: Whether to inherit safe pip configuration settings from the user's local pip.conf/pip.ini.
+            When True, safe options (index-url, extra-index-url, trusted-host, timeout, retries, no-cache-dir,
+            disable-pip-version-check) are extracted and applied. Explicit parameters take precedence over local config.
+            Defaults to False.
 
     Parameter injection and execution:
         - The notebook bytes are embedded in the component. At runtime, the
@@ -63,7 +68,6 @@ def notebook_component(
           by the notebook to known paths, then copied or logged by the function
           after `dsl.run_notebook(...)` returns.
     """
-
     formatted_passthroughs = None
     if task_config_passthroughs is not None:
         formatted_passthroughs = [
@@ -84,6 +88,7 @@ def notebook_component(
             kfp_package_path=kfp_package_path,
             install_kfp_package=install_kfp_package,
             task_config_passthroughs=formatted_passthroughs,
+            use_local_pip_config=use_local_pip_config,
         )
 
     return component_factory.create_notebook_component_from_func(
@@ -98,4 +103,5 @@ def notebook_component(
         kfp_package_path=kfp_package_path,
         install_kfp_package=install_kfp_package,
         task_config_passthroughs=formatted_passthroughs,
+        use_local_pip_config=use_local_pip_config,
     )
