@@ -48,7 +48,7 @@ repos:
         exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/pycqa/docformatter
     # v1.7.8 corrupts continuation and blank-line tokens, conflicting with YAPF.
-    rev: v1.7.7
+    rev: v1.7.8
     hooks:
       - id: docformatter
         name: docformatter
