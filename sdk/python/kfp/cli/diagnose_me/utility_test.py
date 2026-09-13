@@ -24,50 +24,55 @@ class UtilityTest(unittest.TestCase):
 
     def test_execute_command_oserror(self):
         """Testing stdout and stderr is correctly captured upon OSError."""
-        response = utility.ExecutorResponse()
         err_msg = 'Testing handling of OSError'
 
         with patch('subprocess.run') as mock_run:
             mock_run.side_effect = MagicMock(side_effect=OSError(err_msg))
-            response.execute_command([])
+            response = utility.execute_command([])
 
-        self.assertEqual(response._stdout, '')
-        self.assertEqual(response._stderr, err_msg)
+        self.assertEqual(response.stdout, '')
+        self.assertEqual(response.stderr, err_msg)
+        # An OSError raised without an errno leaves return_code unset, which
+        # still counts as an error.
+        self.assertIsNone(response.return_code)
+        self.assertTrue(response.has_error)
 
     def test_execute_command_stdout(self):
         """Testing stdout output is correctly captured."""
         test_string = 'test string'
-        response = utility.ExecutorResponse()
-        response.execute_command(['echo', test_string])
+        response = utility.execute_command(['echo', test_string])
 
-        self.assertEqual(response._stdout, test_string + '\n')
-        self.assertEqual(response._stderr, '')
+        self.assertEqual(response.stdout, test_string + '\n')
+        self.assertEqual(response.stderr, '')
+        self.assertEqual(response.return_code, 0)
+        self.assertFalse(response.has_error)
 
     def test_execute_command_stderr(self):
         """Testing stderr output is correctly captured."""
-        response = utility.ExecutorResponse()
-        response.execute_command(['ls', 'not_a_real_dir'])
+        response = utility.execute_command(['ls', 'not_a_real_dir'])
 
-        self.assertEqual(response._stdout, '')
-        self.assertIn('No such file', response._stderr)
+        self.assertEqual(response.stdout, '')
+        self.assertIn('No such file', response.stderr)
+        self.assertTrue(response.has_error)
 
-    def test_parse_raw_input_json(self):
+    def test_parsed_output_json(self):
         """Testing json stdout is correctly parsed."""
-        response = utility.ExecutorResponse()
-        response._stdout = '{"key":"value"}'
-        response._parse_raw_input()
+        response = utility.ExecutorResponse(stdout='{"key":"value"}')
 
-        self.assertEqual(response._json, '{"key":"value"}')
-        self.assertEqual(response._parsed_output, {'key': 'value'})
+        self.assertEqual(response.parsed_output, {'key': 'value'})
+        self.assertEqual(response.json_output, {'key': 'value'})
 
-    def test_parse_raw_input_text(self):
+    def test_parsed_output_text(self):
         """Testing non-json stdout is correctly parsed."""
-        response = utility.ExecutorResponse()
-        response._stdout = 'non-json string'
-        response._parse_raw_input()
+        response = utility.ExecutorResponse(stdout='non-json string')
 
-        self.assertEqual(response._json, '"non-json string"')
-        self.assertEqual(response._parsed_output, 'non-json string')
+        self.assertEqual(response.parsed_output, 'non-json string')
+        self.assertEqual(response.json_output, 'non-json string')
+
+    def test_has_error(self):
+        """Testing has_error reflects the return code."""
+        self.assertFalse(utility.ExecutorResponse(return_code=0).has_error)
+        self.assertTrue(utility.ExecutorResponse(return_code=1).has_error)
 
 
 if __name__ == '__main__':

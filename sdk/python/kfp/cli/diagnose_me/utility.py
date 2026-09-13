@@ -13,76 +13,65 @@
 # limitations under the License.
 """Supporting tools and classes for diagnose_me."""
 
+import dataclasses
 import json
 import subprocess
-from typing import List, Text
+from typing import Any, List, Optional
 
 
-class ExecutorResponse(object):
-    """Class for keeping track of output of _executor methods.
+@dataclasses.dataclass
+class ExecutorResponse:
+    """Data model for the captured output of an executed command.
 
-    Data model for executing commands and capturing their response. This class
-    defines the data model layer for execution results, based on MVC design
-    pattern.
+    This class is a pure data container, it does not execute anything. Use
+    execute_command to run a command and obtain a populated instance.
 
-    TODO() This class should be extended to contain data structure to better
-    represent the underlying data instaed of dict for various response types.
+    Attributes:
+      stdout: Standard output captured from the executed command.
+      stderr: Standard error captured from the executed command.
+      return_code: Exit code of the executed command. This is None when the
+        command could not be started at all and the underlying OSError did not
+        carry an errno.
     """
-
-    def execute_command(self, command_list: List[Text]):
-        """Executes the command in command_list.
-
-        sets values for _stdout, _stderr, and _returncode accordingly.
-
-        TODO(): This method is kept in ExecutorResponse for simplicity, however this
-        deviates from MVP design pattern. It should be factored out in future.
-
-        Args:
-          command_list: A List of strings that represts the command and parameters
-            to be executed.
-
-        Returns:
-          Instance of utility.ExecutorResponse.
-        """
-
-        try:
-            process = subprocess.run(
-                command_list, capture_output=True, check=False)
-            self._stdout = process.stdout.decode('utf-8')
-            self._stderr = process.stderr.decode('utf-8')
-            self._returncode = process.returncode
-        except OSError as e:
-            self._stderr = str(e)
-            self._stdout = ''
-            self._returncode = e.errno
-        self._parse_raw_input()
-        return self
-
-    def _parse_raw_input(self):
-        """Parses the raw input and popluates _json and _parsed properies."""
-        try:
-            self._parsed_output = json.loads(self._stdout)
-            self._json = self._stdout
-        except json.JSONDecodeError:
-            self._json = json.dumps(self._stdout)
-            self._parsed_output = self._stdout
+    stdout: str = ''
+    stderr: str = ''
+    return_code: Optional[int] = 0
 
     @property
-    def parsed_output(self) -> Text:
+    def parsed_output(self) -> Any:
         """Json load results of stdout or raw results if stdout was not
         Json."""
-        return self._parsed_output
+        try:
+            return json.loads(self.stdout)
+        except json.JSONDecodeError:
+            return self.stdout
+
+    @property
+    def json_output(self) -> Any:
+        """Run results in stdout in json format."""
+        return self.parsed_output
 
     @property
     def has_error(self) -> bool:
         """Returns true if execution error code was not 0."""
-        return self._returncode != 0
+        return self.return_code != 0
 
-    @property
-    def json_output(self) -> Text:
-        """Run results in stdout in json format."""
-        return self._parsed_output
 
-    @property
-    def stderr(self):
-        return self._stderr
+def execute_command(command_list: List[str]) -> ExecutorResponse:
+    """Executes the command in command_list.
+
+    Args:
+      command_list: A List of strings that represts the command and parameters
+        to be executed.
+
+    Returns:
+      An ExecutorResponse populated with stdout, stderr and the return code.
+    """
+    try:
+        process = subprocess.run(command_list, capture_output=True, check=False)
+        return ExecutorResponse(
+            stdout=process.stdout.decode('utf-8'),
+            stderr=process.stderr.decode('utf-8'),
+            return_code=process.returncode)
+    except OSError as e:
+        return ExecutorResponse(stdout='', stderr=str(e), return_code=e.errno)
