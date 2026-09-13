@@ -884,7 +884,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	if err != nil {
 		tx.Rollback()
 		// A concurrent recurring-run trigger may have already created this run. Such runs
-		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
+		// use a deterministic UUID derived from their trusted tick or request key, so the
 		// duplicate insert collides on the primary key. Resolve it idempotently by
 		// returning the already-persisted run instead of surfacing an error.
 		if r.RecurringRunId != "" && s.dbDialect.IsDuplicateKeyError(err) {
@@ -903,6 +903,9 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	if err != nil {
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store resource references to table for run %v ", r.DisplayName)
+	}
+	if err := s.completeRecurringRunWithInsert(tx, r); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to complete the scheduling claim for run %s", r.UUID)
 	}
 	err = tx.Commit()
 	if err != nil {

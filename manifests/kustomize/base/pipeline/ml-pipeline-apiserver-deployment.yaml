@@ -118,6 +118,11 @@ spec:
             # Driver / launcher log level during pipeline execution
             - name: PIPELINE_LOG_LEVEL
               value: "1"
+            - name: CRON_SCHEDULE_TIMEZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: cronScheduleTimezone
             - name: AUTO_UPDATE_PIPELINE_DEFAULT_VERSION
               valueFrom:
                 configMapKeyRef:
