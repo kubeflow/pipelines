@@ -152,7 +152,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		pvcNames := []string{}
 		if opts.KubernetesExecutorConfig != nil && opts.KubernetesExecutorConfig.GetPvcMount() != nil {
 			_, volumes, err := makeVolumeMountPatch(ctx, opts, opts.KubernetesExecutorConfig.GetPvcMount(),
-				dag, pipeline, mlmd, inputParams)
+				dag, pipeline, mlmd, inputParams, newDAGTaskCache())
 			if err != nil {
 				return nil, fmt.Errorf("failed to extract volume mount info while generating fingerprint: %w", err)
 			}
