@@ -46,8 +46,8 @@ func (c *workflowCompiler) importerTask(name string, task *pipelinespec.Pipeline
 	}
 	return &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addImporterTemplate(downloadToWorkspace),
-		Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{{
+		Template: c.addImporterTemplate(downloadToWorkspace, task.GetRetryPolicy()),
+		Arguments: wfapi.Arguments{Parameters: append([]wfapi.Parameter{{
 			Name:  paramTask,
 			Value: wfapi.AnyStringPtr(taskJSON),
 		}, {
@@ -59,14 +59,21 @@ func (c *workflowCompiler) importerTask(name string, task *pipelinespec.Pipeline
 		}, {
 			Name:  paramParentDagID,
 			Value: wfapi.AnyStringPtr(parentDagID),
-		}}},
+		}}, c.getTaskRetryParametersWithValues(task)...)},
 	}, nil
 }
 
-func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string {
+// addImporterTemplate adds (or reuses) the importer template for the given
+// downloadToWorkspace/retry combination. A task with a retry policy gets a
+// "retry-" prefixed template carrying a retryStrategy, so importer tasks
+// without a retry policy keep sharing the plain template unaffected.
+func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool, taskRetrySpec *pipelinespec.PipelineTaskSpec_RetryPolicy) string {
 	name := "system-importer"
 	if downloadToWorkspace {
 		name += "-workspace"
+	}
+	if taskRetrySpec != nil {
+		name = "retry-" + name
 	}
 	if _, alreadyExists := c.templates[name]; alreadyExists {
 		return name
@@ -120,16 +127,24 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		})
 	}
 
+	inputParameters := []wfapi.Parameter{
+		{Name: paramTask},
+		{Name: paramComponent},
+		{Name: paramImporter},
+		{Name: paramParentDagID},
+	}
+	if taskRetrySpec != nil {
+		inputParameters = append(inputParameters,
+			wfapi.Parameter{Name: paramRetryMaxCount},
+			wfapi.Parameter{Name: paramRetryBackOffDuration},
+			wfapi.Parameter{Name: paramRetryBackOffFactor},
+			wfapi.Parameter{Name: paramRetryBackOffMaxDuration},
+		)
+	}
+
 	importerTemplate := &wfapi.Template{
-		Name: name,
-		Inputs: wfapi.Inputs{
-			Parameters: []wfapi.Parameter{
-				{Name: paramTask},
-				{Name: paramComponent},
-				{Name: paramImporter},
-				{Name: paramParentDagID},
-			},
-		},
+		Name:   name,
+		Inputs: wfapi.Inputs{Parameters: inputParameters},
 		Container: &k8score.Container{
 			Image:        c.launcherImage,
 			Command:      c.launcherCommand,
@@ -140,6 +155,14 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 			VolumeMounts: volumeMounts,
 		},
 		Volumes: volumes,
+	}
+	if taskRetrySpec != nil {
+		importerTemplate.RetryStrategy = c.getTaskRetryStrategyFromInput(
+			inputParameter(paramRetryMaxCount),
+			inputParameter(paramRetryBackOffDuration),
+			inputParameter(paramRetryBackOffFactor),
+			inputParameter(paramRetryBackOffMaxDuration),
+		)
 	}
 
 	setRuntimeRole(importerTemplate, util.ExecutionRuntimeRoleLauncher)
