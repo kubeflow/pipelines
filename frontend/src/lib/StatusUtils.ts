@@ -161,6 +161,8 @@ export function statusToBgColorV2(state?: V2beta1RuntimeState, nodeMessage?: str
       return statusBgColors.notStarted;
     case V2beta1RuntimeState.CANCELING:
     // fall through
+    case V2beta1RuntimeState.PAUSED:
+    // fall through
     case V2beta1RuntimeState.RUNNING:
       return statusBgColors.running;
     case V2beta1RuntimeState.PAUSED:
