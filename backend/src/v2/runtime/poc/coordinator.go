@@ -37,6 +37,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -2564,11 +2565,11 @@ func (c *Coordinator) artifactLocalRoot(run *model.Run, executorType string) str
 }
 
 func (c *Coordinator) newObjectStoreClient(namespace string) component.ObjectStoreClientInterface {
-	if c.kubernetesCoreClient == nil {
-		return nil
+	var clientSet kubernetes.Interface
+	if c.kubernetesCoreClient != nil {
+		clientSet = c.kubernetesCoreClient.GetClientSet()
 	}
-	clientSet := c.kubernetesCoreClient.GetClientSet()
-	if clientSet == nil {
+	if clientSet == nil && os.Getenv("LOCAL_API_SERVER") != "true" {
 		return nil
 	}
 	launcherConfig := &config.Config{}

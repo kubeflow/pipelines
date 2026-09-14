@@ -1403,6 +1403,9 @@ func TestCoordinatorPublishesOCIArtifactsWithoutLocalFile(t *testing.T) {
 func TestCoordinatorPublishesCustomPathArtifacts(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
+	t.Setenv("LOCAL_API_SERVER", "true")
+	artifactBucketRoot := filepath.Join(t.TempDir(), "artifacts")
+	t.Setenv("KFP_DEFAULT_PIPELINE_ROOT", "file://"+artifactBucketRoot)
 
 	fakeDB, dbDialect, err := storage.NewFakeDB()
 	require.NoError(t, err)
@@ -1412,6 +1415,7 @@ func TestCoordinatorPublishesCustomPathArtifacts(t *testing.T) {
 	coordinator := NewCoordinator(nil, nil, artifactStore, artifactTaskStore, time, nil, nil, false)
 
 	customPath := "/tmp/out_dataset"
+	artifactPath := filepath.Join(artifactBucketRoot, "run-custom-path", "out_dataset")
 	run := &model.Run{
 		UUID:      "run-custom-path",
 		Namespace: "ns1",
@@ -1431,6 +1435,7 @@ func TestCoordinatorPublishesCustomPathArtifacts(t *testing.T) {
 							Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
 							SchemaVersion: "0.0.1",
 						},
+						Uri:        "file://" + artifactPath,
 						CustomPath: &customPath,
 					}},
 				},
@@ -1451,6 +1456,9 @@ func TestCoordinatorPublishesCustomPathArtifacts(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, artifact.Metadata)
 	assert.Equal(t, customPath, artifact.Metadata[runtimeArtifactCustomPathMetadataKey])
+	content, err := os.ReadFile(artifactPath)
+	require.NoError(t, err)
+	assert.Equal(t, "Hello, World!", string(content))
 
 	runtimeArtifact := modelArtifactToRuntimeArtifact(artifact)
 	require.NotNil(t, runtimeArtifact)
