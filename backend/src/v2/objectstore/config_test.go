@@ -47,3 +47,52 @@ func TestHasStructuredS3Settings(t *testing.T) {
 		})
 	}
 }
+
+func TestParseBucketPathToConfigPercentInPrefix(t *testing.T) {
+	tests := []struct {
+		name        string
+		path        string
+		wantErr     bool
+		wantErrText string
+	}{
+		{
+			name:        "percent encoded space",
+			path:        "s3://bucket/root%20dir",
+			wantErr:     true,
+			wantErrText: "root%20dir",
+		},
+		{
+			name:    "literal space",
+			path:    "s3://bucket/root dir",
+			wantErr: false,
+		},
+		{
+			name:    "unicode",
+			path:    "s3://bucket/root/测试",
+			wantErr: false,
+		},
+		{
+			name:    "ampersand",
+			path:    "s3://bucket/root&dir",
+			wantErr: false,
+		},
+		{
+			name:    "question mark",
+			path:    "s3://bucket/root?dir",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ParseBucketPathToConfig(tt.path)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrText)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
