@@ -27,7 +27,13 @@ import { getArgoWorkflow, getK8sSecret, getPodLogs, getServerNamespace } from '.
 import type { ArtifactRepository, PartialArgoWorkflow } from '../workflow-helper.js';
 
 vi.mock('minio');
-vi.mock('../k8s-helper.js');
+vi.mock('../k8s-helper.js', () => ({
+  getArgoWorkflow: vi.fn(),
+  getK8sSecret: vi.fn(),
+  getPodLogs: vi.fn(),
+  getServerNamespace: vi.fn(),
+  getConfigMap: vi.fn(),
+}));
 
 const podName = 'workflow-1-system-container-impl-12345';
 const logContent = 'archived pod logs\n';
@@ -122,7 +128,7 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
       return stream;
     });
     vi.mocked(MinioClient).mockImplementation(function () {
-      return { getObject } as unknown as MinioClient;
+      return { getObject, listObjectsV2Query: vi.fn(), retryOptions: {} } as unknown as MinioClient;
     });
   });
 

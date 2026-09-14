@@ -45,6 +45,18 @@ describe('loadConfigs', () => {
     expect(configs.viewer.tensorboard.clusterDomain).toBe('cluster.corp');
   });
 
+  it('restricts GCS universes by default and parses explicit domains', () => {
+    const tmpdir = os.tmpdir();
+    expect(
+      loadConfigs(['node', 'dist/server.js', tmpdir], {}).artifacts.allowedGcsUniverseDomains,
+    ).toEqual(['googleapis.com']);
+    expect(
+      loadConfigs(['node', 'dist/server.js', tmpdir], {
+        ALLOWED_GCS_UNIVERSE_DOMAINS: ' googleapis.com, GDC.EXAMPLE, ',
+      }).artifacts.allowedGcsUniverseDomains,
+    ).toEqual(['googleapis.com', 'gdc.example']);
+  });
+
   it('generates a process-local tensorboard proxy signing secret when unset', () => {
     const tmpdir = os.tmpdir();
     const firstConfigs = loadConfigs(['node', 'dist/server.js', tmpdir], {

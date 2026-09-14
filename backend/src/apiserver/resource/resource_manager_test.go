@@ -54,6 +54,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 	authzv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -71,7 +72,7 @@ type duplicateRecurringRunStore struct {
 	existingRun *model.Run
 }
 
-func (s *duplicateRecurringRunStore) GetRun(string) (*model.Run, error) {
+func (s *duplicateRecurringRunStore) GetRun(string, bool) (*model.Run, error) {
 	if s.firstGet {
 		s.firstGet = false
 		return nil, util.NewResourceNotFoundError("run", "concurrent-run")
@@ -3619,6 +3620,145 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	assert.Equal(t, "", updatedOutput.StateMessage)
 }
 
+func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+	runDetail, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.NoError(t, err)
+	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	}
+	syncWorkflowReportWithFakeCluster(t, store, updatedWorkflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), updatedWorkflow)
+	require.NoError(t, err)
+
+	failedPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "old-pod", Uid: "old-uid", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	failedOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		ParameterKey: "result",
+		Value:        structpb.NewStringValue("stale"),
+		Type:         apiv2beta1.IOType_OUTPUT,
+	}})
+	require.NoError(t, err)
+	failedTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          runDetail.UUID,
+		Name:             "failed-task",
+		ScopePath:        "root.failed-task",
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Fingerprint:      "fp-failed-task",
+		Pods:             failedPods,
+		StatusMetadata:   model.JSONData{"message": "old failure"},
+		OutputParameters: failedOutputs,
+		TypeAttrs:        model.JSONData{},
+		FinishedInSec:    10,
+	})
+	require.NoError(t, err)
+
+	artifact, err := store.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		URI:       util.StringPointer("s3://bucket/stale-artifact"),
+		Name:      "stale-artifact",
+	})
+	require.NoError(t, err)
+	producer, err := model.ProtoMessageToJSONData(&apiv2beta1.IOProducer{TaskName: failedTask.Name})
+	require.NoError(t, err)
+	_, err = store.ArtifactTaskStore().CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  artifact.UUID,
+		TaskID:      failedTask.UUID,
+		RunUUID:     runDetail.UUID,
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Producer:    producer,
+		ArtifactKey: "result",
+	})
+	require.NoError(t, err)
+	_, err = store.ArtifactTaskStore().CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  artifact.UUID,
+		TaskID:      failedTask.UUID,
+		RunUUID:     runDetail.UUID,
+		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Producer:    producer,
+		ArtifactKey: "dataset",
+	})
+	require.NoError(t, err)
+
+	succeededOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+		ParameterKey: "result",
+		Value:        structpb.NewStringValue("stable"),
+		Type:         apiv2beta1.IOType_OUTPUT,
+	}})
+	require.NoError(t, err)
+	succeededTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          runDetail.UUID,
+		Name:             "succeeded-task",
+		ScopePath:        "root.succeeded-task",
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		Fingerprint:      "fp-succeeded-task",
+		OutputParameters: succeededOutputs,
+		TypeAttrs:        model.JSONData{},
+		FinishedInSec:    9,
+	})
+	require.NoError(t, err)
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	require.NoError(t, err)
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+
+	tasksByName := map[string]*model.Task{}
+	for _, task := range actualRunDetail.Tasks {
+		tasksByName[task.Name] = task
+	}
+
+	retriedFailedTask := tasksByName[failedTask.Name]
+	require.NotNil(t, retriedFailedTask)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), retriedFailedTask.State)
+	assert.Equal(t, int64(0), retriedFailedTask.FinishedInSec)
+	assert.Nil(t, retriedFailedTask.StatusMetadata)
+	assert.Empty(t, retriedFailedTask.Pods)
+	assert.Empty(t, retriedFailedTask.OutputParameters)
+	assert.Empty(t, retriedFailedTask.OutputArtifactsHydrated)
+	require.NotEmpty(t, retriedFailedTask.StateHistory)
+
+	opts, err := list.NewOptions(&model.ArtifactTask{}, 20, "", nil)
+	require.NoError(t, err)
+	links, total, _, err := store.ArtifactTaskStore().ListArtifactTasks(
+		[]*model.FilterContext{{ReferenceKey: &model.ReferenceKey{Type: model.TaskResourceType, ID: failedTask.UUID}}},
+		nil,
+		opts,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Empty(t, links)
+
+	preservedSucceededTask := tasksByName[succeededTask.Name]
+	require.NotNil(t, preservedSucceededTask)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED), preservedSucceededTask.State)
+	assert.NotEmpty(t, preservedSucceededTask.OutputParameters)
+}
+
 func TestRetryRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -3988,7 +4128,7 @@ func TestCreateJobDifferentDefaultServiceAccountName_ThroughWorkflowSpecV2(t *te
 			},
 		},
 	}
-	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
+	expectedJob.PipelineName = job.PipelineName
 	require.Equal(t, expectedJob.ToV1(), job.ToV1())
 	fetchedJob, err := manager.GetJob(job.UUID)
 	require.Nil(t, err)
@@ -5673,142 +5813,6 @@ func TestReportWorkflowResource_RecurringRunRejectsStaleWorkflowUID(t *testing.T
 		job.Namespace, liveWorkflow.ExecutionName()))
 }
 
-func TestCreateOrUpdateTasks_RejectsWorkflowNamespaceMismatch(t *testing.T) {
-	store, manager, run := initWithOneTimeRun(t)
-	defer store.Close()
-	viper.Set(common.MultiUserMode, "true")
-	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
-
-	_, err := manager.CreateOrUpdateTasks(
-		[]*model.Task{{RunID: run.UUID, Namespace: "attacker-ns", PodName: "attacker-task"}},
-		run.UUID,
-		"attacker-ns",
-	)
-	require.Error(t, err)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-}
-
-func TestCreateOrUpdateTasks_RejectsTaskRunIDMismatch(t *testing.T) {
-	store, manager, run := initWithOneTimeRun(t)
-	defer store.Close()
-
-	_, err := manager.CreateOrUpdateTasks(
-		[]*model.Task{{RunID: "another-run", Namespace: run.Namespace, PodName: "mismatched-task"}},
-		run.UUID,
-		run.Namespace,
-	)
-	require.Error(t, err)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "does not match owning run")
-}
-
-func TestCreateOrUpdateTasks_RejectsTaskNamespaceMismatch(t *testing.T) {
-	store, manager, run := initWithOneTimeRun(t)
-	defer store.Close()
-
-	_, err := manager.CreateOrUpdateTasks(
-		[]*model.Task{{RunID: run.UUID, Namespace: "attacker-ns", PodName: "mismatched-task"}},
-		run.UUID,
-		run.Namespace,
-	)
-	require.Error(t, err)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "task namespace does not match owning run")
-}
-
-func TestCreateOrUpdateTasksForRun_RejectsTasksAfterRunIDRecreation(t *testing.T) {
-	store, manager, originalRun := initWithOneTimeRunV2(t)
-	defer store.Close()
-	ctx := context.Background()
-	workflowClient := store.ExecClient().Execution(originalRun.Namespace)
-	originalWorkflow, err := workflowClient.Get(ctx, originalRun.K8SName, v1.GetOptions{})
-	require.NoError(t, err)
-
-	staleRun, err := manager.GetRun(originalRun.UUID)
-	require.NoError(t, err)
-	_, err = manager.ReportWorkflowResourceWithRun(ctx, originalWorkflow, staleRun)
-	require.NoError(t, err)
-	require.NotEmpty(t, staleRun.WorkflowRuntimeManifest)
-	staleIdentity, found := manager.storedWorkflowIdentities.load(originalRun.UUID)
-	require.True(t, found)
-	assert.Equal(t, storedWorkflowUID(t, staleRun), staleIdentity.uid)
-
-	// Recreate the run through another manager so this manager retains A's
-	// cached identity until the guarded task write detects B and refreshes it.
-	replacementManager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	require.NoError(t, replacementManager.DeleteRun(ctx, originalRun.UUID))
-
-	// Fake workflow clients allocate UIDs per namespace, while Kubernetes UIDs
-	// are cluster-wide. Advance the replacement namespace once so this fixture
-	// preserves the production invariant that recreated objects have new UIDs.
-	_, err = store.ExecClient().Execution("ns2").Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "uid-seed"},
-	}), v1.CreateOptions{})
-	require.NoError(t, err)
-	replacementRun, err := replacementManager.CreateRun(ctx, &model.Run{
-		UUID:         originalRun.UUID,
-		DisplayName:  originalRun.DisplayName,
-		ExperimentId: originalRun.ExperimentId,
-		Namespace:    "ns2",
-		PipelineSpec: model.PipelineSpec{
-			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters: "{\"text\":\"world\"}",
-			},
-		},
-	})
-	require.NoError(t, err)
-	require.NotEqual(t, storedWorkflowUID(t, staleRun), storedWorkflowUID(t, replacementRun))
-	replacementBeforeTasks, err := replacementManager.GetRun(replacementRun.UUID)
-	require.NoError(t, err)
-	replacementWorkflow, err := store.ExecClient().Execution(replacementRun.Namespace).Get(
-		ctx,
-		replacementRun.K8SName,
-		v1.GetOptions{},
-	)
-	require.NoError(t, err)
-
-	staleTask := &model.Task{
-		RunID:     staleRun.UUID,
-		Namespace: staleRun.Namespace,
-		PodName:   "stale-run-task",
-		State:     model.RuntimeStateRunning,
-	}
-	_, err = manager.CreateOrUpdateTasksForRun(
-		[]*model.Task{staleTask},
-		staleRun,
-		staleRun.Namespace,
-	)
-	require.Error(t, err)
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "got %v", err)
-	assert.Empty(t, staleTask.UUID, "a rejected task report must not mutate task identity")
-
-	var taskCount int
-	require.NoError(t, store.DB().QueryRow(
-		"SELECT COUNT(*) FROM tasks WHERE RunUUID = ?",
-		replacementRun.UUID,
-	).Scan(&taskCount))
-	assert.Zero(t, taskCount)
-	replacementAfterTasks, err := replacementManager.GetRun(replacementRun.UUID)
-	require.NoError(t, err)
-	assert.Equal(t, replacementBeforeTasks, replacementAfterTasks)
-	stillLive, err := store.ExecClient().Execution(replacementRun.Namespace).Get(
-		ctx,
-		replacementRun.K8SName,
-		v1.GetOptions{},
-	)
-	require.NoError(t, err)
-	assert.Equal(t, replacementWorkflow.ExecutionObjectMeta().UID, stillLive.ExecutionObjectMeta().UID)
-	refreshedIdentity, found := manager.storedWorkflowIdentities.load(replacementRun.UUID)
-	require.True(t, found)
-	assert.Equal(t, replacementWorkflow.ExecutionObjectMeta().UID, refreshedIdentity.uid)
-	assert.Equal(t, replacementRun.Namespace, refreshedIdentity.namespace)
-	assert.Equal(t,
-		sha256.Sum256([]byte(replacementBeforeTasks.PipelineRuntimeManifest)),
-		refreshedIdentity.manifestDigest,
-	)
-}
-
 func TestReportWorkflowResource_ScheduledWorkflowNamespaceMismatchDoesNotDeletePersistedWorkflow(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
@@ -7067,6 +7071,7 @@ func TestReconcileSwfCrs(t *testing.T) {
 	swf.Spec.Workflow.Spec = nil
 	swf, err = swfClient.Update(ctx, swf)
 	require.Nil(t, swf.Spec.Workflow.Spec)
+	require.NoError(t, err)
 
 	err = manager.ReconcileSwfCrs(ctx)
 	require.Nil(t, err)
@@ -7775,37 +7780,6 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 		StorageState:   "AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)
-}
-
-func TestCreateTask(t *testing.T) {
-	_, manager, _, _, _, runDetail := initWithExperimentAndPipelineAndRun(t)
-	task := &model.Task{
-		Namespace:         "",
-		PipelineName:      "pipeline/my-pipeline",
-		RunID:             runDetail.UUID,
-		MLMDExecutionID:   "1",
-		CreatedTimestamp:  1462875553,
-		FinishedTimestamp: 1462875663,
-		Fingerprint:       "123",
-	}
-
-	expectedTask := &model.Task{
-		UUID:              DefaultFakeUUID,
-		PipelineName:      "pipeline/my-pipeline",
-		RunID:             runDetail.UUID,
-		MLMDExecutionID:   "1",
-		CreatedTimestamp:  1462875553,
-		FinishedTimestamp: 1462875663,
-		Fingerprint:       "123",
-	}
-	createdTask, err := manager.CreateTask(task)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedTask, createdTask, "The CreateTask return has unexpected value")
-
-	// Verify the T in DB is in status PipelineVersionCreating.
-	storedTask, err := manager.taskStore.GetTask(DefaultFakeUUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value")
 }
 
 var v2SpecHelloWorld = `

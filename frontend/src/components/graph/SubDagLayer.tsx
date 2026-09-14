@@ -16,8 +16,7 @@
 
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, fonts, padding } from 'src/mlmd/Css';
-import { color as commonColor } from 'src/Css';
+import { color, commonCss, fonts, padding } from 'src/Css';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 import { grey } from '@mui/material/colors';
 
@@ -78,7 +77,7 @@ const actionBarCss = stylesheet({
     ...baseBreadcrumb,
     $nest: {
       '&:hover': {
-        color: commonColor.linkLight,
+        color: color.linkLight,
         textDecoration: 'underline',
       },
     },

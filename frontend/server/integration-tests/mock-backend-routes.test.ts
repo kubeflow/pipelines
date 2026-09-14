@@ -179,6 +179,33 @@ describe('mock backend routes', () => {
       expect(response.body.pipeline_version_reference).toBeUndefined();
     });
 
+    it('serves representative native tasks for the v2 run details graph', async () => {
+      const response = await request
+        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks')
+        .expect(200);
+
+      expect(response.body.tasks).toHaveLength(3);
+      expect(response.body.tasks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ task_id: 'mock-task-root', type: 'ROOT' }),
+          expect.objectContaining({
+            outputs: expect.objectContaining({ artifacts: expect.any(Array) }),
+            task_id: 'mock-task-producer',
+            type: 'RUNTIME',
+          }),
+          expect.objectContaining({
+            inputs: expect.objectContaining({ artifacts: expect.any(Array) }),
+            pods: expect.arrayContaining([
+              expect.objectContaining({ type: 'DRIVER' }),
+              expect.objectContaining({ type: 'EXECUTOR' }),
+            ]),
+            state: 'SUCCEEDED',
+            task_id: 'mock-task-consumer',
+          }),
+        ]),
+      );
+    });
+
     it('uses an unspecified state for an unmapped v1 run status', async () => {
       const response = await request
         .get('/apis/v2beta1/runs/47a3d09c-7db4-4788-ac55-3f8d908574aa')
@@ -188,6 +215,58 @@ describe('mock backend routes', () => {
         run_id: '47a3d09c-7db4-4788-ac55-3f8d908574aa',
         state: 'RUNTIME_STATE_UNSPECIFIED',
       });
+    });
+
+    it('lists and fetches a native artifact by id', async () => {
+      const listResponse = await request.get('/apis/v2beta1/artifacts').expect(200);
+
+      expect(listResponse.body).toMatchObject({
+        total_size: 1,
+        artifacts: [
+          {
+            artifact_id: 'mock-artifact-1',
+            name: 'mock-dataset',
+            namespace: 'kubeflow-user-example-com',
+            type: 'Dataset',
+          },
+        ],
+      });
+
+      const artifactResponse = await request
+        .get('/apis/v2beta1/artifacts/mock-artifact-1')
+        .expect(200);
+
+      expect(artifactResponse.body).toMatchObject({
+        artifact_id: 'mock-artifact-1',
+        created_at: '2026-01-01T00:00:00.000Z',
+        description: 'Representative native artifact for local frontend development.',
+        name: 'mock-dataset',
+        namespace: 'kubeflow-user-example-com',
+        type: 'Dataset',
+      });
+    });
+
+    it('returns 404 for an unknown native artifact', async () => {
+      await request
+        .get('/apis/v2beta1/artifacts/does-not-exist')
+        .expect(404, 'No artifact was found with ID: does-not-exist');
+    });
+
+    it('serves representative native artifact-task relationships', async () => {
+      const response = await request.get('/apis/v2beta1/artifact_tasks').expect(200);
+
+      expect(response.body.artifact_tasks).toEqual([
+        expect.objectContaining({
+          artifact_id: 'mock-artifact-1',
+          task_id: 'mock-task-producer',
+          type: 'OUTPUT',
+        }),
+        expect.objectContaining({
+          artifact_id: 'mock-artifact-1',
+          task_id: 'mock-task-consumer',
+          type: 'TASK_OUTPUT_INPUT',
+        }),
+      ]);
     });
 
     it('lists v2 recurring runs filtered by experiment id', async () => {

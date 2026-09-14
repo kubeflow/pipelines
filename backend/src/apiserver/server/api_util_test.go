@@ -328,27 +328,27 @@ func TestGetExperimentIDFromResourceReferences(t *testing.T) {
 }
 
 func TestValidateRunMetric_Pass(t *testing.T) {
-	metric := &model.RunMetric{
+	metric := &model.RunMetricV1{
 		Name:   "foo",
 		NodeID: "node-1",
 	}
-	err := validateRunMetric(metric)
+	err := validateRunMetricV1(metric)
 
 	assert.Nil(t, err)
 }
 
 func TestValidateRunMetric_InvalidNames(t *testing.T) {
-	metric := &model.RunMetric{
+	metric := &model.RunMetricV1{
 		NodeID: "node-1",
 	}
 
 	// Empty name
-	err := validateRunMetric(metric)
+	err := validateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 
 	// Unallowed character
 	metric.Name = "$"
-	err = validateRunMetric(metric)
+	err = validateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 
 	// Name is too long
@@ -357,22 +357,22 @@ func TestValidateRunMetric_InvalidNames(t *testing.T) {
 		bytes[i] = 'a'
 	}
 	metric.Name = string(bytes)
-	err = validateRunMetric(metric)
+	err = validateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 }
 
-func TestValidateRunMetric_InvalidNodeIDs(t *testing.T) {
-	metric := &model.RunMetric{
+func TestValidateRunMetricV1_InvalidNodeIDs(t *testing.T) {
+	metric := &model.RunMetricV1{
 		Name: "a",
 	}
 
 	// Empty node ID
-	err := validateRunMetric(metric)
+	err := validateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 
 	// Node ID is too long
 	metric.NodeID = string(make([]byte, 129))
-	err = validateRunMetric(metric)
+	err = validateRunMetricV1(metric)
 	AssertUserError(t, err, codes.InvalidArgument)
 }
 
@@ -392,7 +392,8 @@ func TestPipelineSpecStructToYamlString_DirectSpec(t *testing.T) {
 
 	splitTemplate := strings.Split(template, "\n---\n")
 	pipelineSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
-	protojson.Unmarshal(pipelineSpecJson, &pipeline)
+	err := protojson.Unmarshal(pipelineSpecJson, &pipeline)
+	assert.Nil(t, err)
 
 	actualTemplate, err := pipelineSpecStructToYamlString(&pipeline)
 	assert.Nil(t, err)
@@ -416,10 +417,13 @@ func TestPipelineSpecStructToYamlString_WithPlatform(t *testing.T) {
 
 	splitTemplate := strings.Split(template, "\n---\n")
 	pipelineSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
-	protojson.Unmarshal(pipelineSpecJson, &pipelineSpec)
+
+	err := protojson.Unmarshal(pipelineSpecJson, &pipelineSpec)
+	assert.Nil(t, err)
 
 	platformSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[1]))
-	protojson.Unmarshal(platformSpecJson, &platformSpec)
+	err = protojson.Unmarshal(platformSpecJson, &platformSpec)
+	assert.Nil(t, err)
 
 	pipelineSpecValue := structpb.NewStructValue(&pipelineSpec)
 	platformSpecValue := structpb.NewStructValue(&platformSpec)
@@ -453,7 +457,9 @@ func TestPipelineSpecStructToYamlString_NestedPipelineSpec(t *testing.T) {
 
 	splitTemplate := strings.Split(template, "\n---\n")
 	pipelineSpecJson, _ := yaml.YAMLToJSON([]byte(splitTemplate[0]))
-	protojson.Unmarshal(pipelineSpecJson, &pipelineSpec)
+	err := protojson.Unmarshal(pipelineSpecJson, &pipelineSpec)
+	assert.Nil(t, err)
+
 	pipelineSpecValue := structpb.NewStructValue(&pipelineSpec)
 
 	pipeline := structpb.Struct{
