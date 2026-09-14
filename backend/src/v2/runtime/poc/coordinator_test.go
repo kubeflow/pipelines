@@ -910,9 +910,9 @@ func TestReconcileManagedRunsCancellingRunMarksCanceled(t *testing.T) {
 	manifestJSON, err := NewRuntimeManifest(ExecutorDocker).ToJSON()
 	require.NoError(t, err)
 	run := &model.Run{
-		UUID:         "run-cancelling",
-		DisplayName:  "run-cancelling",
-		K8SName:      "run-cancelling",
+		UUID:         "run-canceling",
+		DisplayName:  "run-canceling",
+		K8SName:      "run-canceling",
 		Namespace:    "ns1",
 		StorageState: model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
@@ -927,7 +927,7 @@ func TestReconcileManagedRunsCancellingRunMarksCanceled(t *testing.T) {
 	require.NoError(t, err)
 
 	task, err := taskStore.CreateTask(&model.Task{
-		UUID:           "task-cancelling",
+		UUID:           "task-canceling",
 		Namespace:      run.Namespace,
 		RunUUID:        run.UUID,
 		Name:           "task",
@@ -1925,6 +1925,26 @@ func TestSupportsPipelineJobAcceptsCoordinatorFixtures(t *testing.T) {
 			require.NoError(t, SupportsPipelineJob(job))
 		})
 	}
+}
+
+func TestRuntimeParametersUsesRequiredParameterDefault(t *testing.T) {
+	componentSpec := &pipelinespec.ComponentSpec{
+		InputDefinitions: &pipelinespec.ComponentInputsSpec{
+			Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+				"text": {
+					ParameterType: pipelinespec.ParameterType_STRING,
+					DefaultValue:  structpb.NewStringValue("Hello KFP Containerized!"),
+				},
+			},
+		},
+	}
+	run := &model.Run{PipelineSpec: model.PipelineSpec{RuntimeConfig: model.RuntimeConfig{Parameters: "{}"}}}
+
+	parameters, err := runtimeParameters(run, componentSpec)
+
+	require.NoError(t, err)
+	require.Contains(t, parameters, "text")
+	assert.Equal(t, "Hello KFP Containerized!", parameters["text"].GetStringValue())
 }
 
 func loadPipelineJobForSupportTest(t *testing.T, relativePath string) *pipelinespec.PipelineJob {

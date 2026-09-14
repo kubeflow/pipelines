@@ -3216,7 +3216,7 @@ func TestToModelRun(t *testing.T) {
 				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
 				State:          apiv2beta1.RuntimeState_RUNNING,
-				RunDetails: &apiv2beta1.RunDetails{
+				RunDetails: &apiv2beta1.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},
@@ -3704,7 +3704,7 @@ func Test_toApiRun(t *testing.T) {
 				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
 				State:          apiv2beta1.RuntimeState_CANCELING,
-				RunDetails: &apiv2beta1.RunDetails{
+				RunDetails: &apiv2beta1.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},

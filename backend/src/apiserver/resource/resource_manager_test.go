@@ -2645,20 +2645,20 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	assert.Equal(t, "run1", runDetail.DisplayName)
 	assert.Equal(t, "pipeline-runner", runDetail.ServiceAccount)
 	assert.Equal(t, model.StorageStateAvailable, runDetail.StorageState)
-	assert.Equal(t, model.RuntimeStatePending, runDetail.RunDetails.State)
-	assert.Equal(t, "Pending", runDetail.RunDetails.Conditions)
-	assert.Equal(t, int64(2), runDetail.RunDetails.CreatedAtInSec)
-	assert.Equal(t, int64(2), runDetail.RunDetails.ScheduledAtInSec)
-	assert.NotEmpty(t, runDetail.RunDetails.PipelineRuntimeManifest)
-	assert.Empty(t, runDetail.RunDetails.WorkflowRuntimeManifest)
-	assert.Equal(t, model.LargeText(v2SpecHelloWorld), runDetail.PipelineSpec.PipelineSpecManifest)
-	assert.Equal(t, model.LargeText("{\"text\":\"world\"}"), runDetail.PipelineSpec.RuntimeConfig.Parameters)
+	assert.Equal(t, model.RuntimeStatePending, runDetail.State)
+	assert.Equal(t, "Pending", runDetail.Conditions)
+	assert.Equal(t, int64(2), runDetail.CreatedAtInSec)
+	assert.Equal(t, int64(2), runDetail.ScheduledAtInSec)
+	assert.NotEmpty(t, runDetail.PipelineRuntimeManifest)
+	assert.Empty(t, runDetail.WorkflowRuntimeManifest)
+	assert.Equal(t, model.LargeText(v2SpecHelloWorld), runDetail.PipelineSpecManifest)
+	assert.Equal(t, model.LargeText("{\"text\":\"world\"}"), runDetail.RuntimeConfig.Parameters)
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Argo workflow should be created for V2 runs by default")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
-	assert.Equal(t, model.RuntimeStatePending, runDetail.RunDetails.State)
-	assert.NotEmpty(t, runDetail.RunDetails.PipelineRuntimeManifest)
-	assert.Empty(t, runDetail.RunDetails.WorkflowRuntimeManifest)
+	assert.Equal(t, model.RuntimeStatePending, runDetail.State)
+	assert.NotEmpty(t, runDetail.PipelineRuntimeManifest)
+	assert.Empty(t, runDetail.WorkflowRuntimeManifest)
 }
 
 func TestCreateRun_ThroughWorkflowSpecV2_DefaultsToCoordinatorWhenCoordinatorRuntimeEnabled(t *testing.T) {
@@ -2674,8 +2674,8 @@ func TestCreateRun_ThroughWorkflowSpecV2_DefaultsToCoordinatorWhenCoordinatorRun
 
 	store, _, runDetail := initWithOneTimeRunV2(t)
 
-	assert.NotEmpty(t, runDetail.RunDetails.PipelineRuntimeManifest)
-	assert.Empty(t, runDetail.RunDetails.WorkflowRuntimeManifest)
+	assert.NotEmpty(t, runDetail.PipelineRuntimeManifest)
+	assert.Empty(t, runDetail.WorkflowRuntimeManifest)
 	assert.True(t, pocruntime.IsManagedRun(runDetail))
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "Argo workflow should not be created when coordinator runtime is enabled")
 }
@@ -2944,7 +2944,7 @@ func TestCreateRun_RecurringManagedRunLoadsPinnedManifestFromJob(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, job.UUID, runDetail.RecurringRunId)
 	assert.Equal(t, job.PipelineSpecManifest, runDetail.PipelineSpecManifest)
-	assert.Equal(t, `{"text":"child-world"}`, string(runDetail.PipelineSpec.RuntimeConfig.Parameters))
+	assert.Equal(t, `{"text":"child-world"}`, string(runDetail.RuntimeConfig.Parameters))
 	assert.NotEmpty(t, string(runDetail.PipelineRuntimeManifest))
 }
 

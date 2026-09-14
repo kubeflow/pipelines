@@ -112,6 +112,9 @@ func NewCoordinator(
 }
 
 func (c *Coordinator) Start() {
+	if !common.GetBoolConfigWithDefault(common.V2RuntimeAutoExecute, true) {
+		return
+	}
 	go c.runLoop(context.Background())
 }
 
@@ -400,7 +403,7 @@ func (c *Coordinator) executeRun(ctx context.Context, item *queuedRun) error {
 
 	if err := c.executeDagComponent(runCtx, item, executor, item.spec.GetRoot(), "root", rootInputs, false); err != nil {
 		if c.isCancellationError(run.UUID, err) {
-			cancelErr := c.finalizeCanceledRun(run.UUID, "run execution was cancelled")
+			cancelErr := c.finalizeCanceledRun(run.UUID, "run execution was canceled")
 			if cancelErr == nil {
 				cleanupWorkspace = true
 			}
@@ -416,7 +419,7 @@ func (c *Coordinator) executeRun(ctx context.Context, item *queuedRun) error {
 	if cancellationRequested, err := c.runCancellationRequested(run.UUID); err != nil {
 		return err
 	} else if cancellationRequested {
-		err := c.finalizeCanceledRun(run.UUID, "run execution was cancelled")
+		err := c.finalizeCanceledRun(run.UUID, "run execution was canceled")
 		if err == nil {
 			cleanupWorkspace = true
 		}
@@ -1008,7 +1011,7 @@ func (c *Coordinator) recordTaskExecutionError(runID string, taskID string, err 
 	message := err.Error()
 	if c.isCancellationError(runID, err) {
 		state = apiv2beta1.PipelineTask_SKIPPED
-		message = "run execution was cancelled"
+		message = "run execution was canceled"
 	}
 	_, _ = c.updateTaskState(taskID, state, model.JSONData{"message": message}, nil)
 }
@@ -1117,7 +1120,7 @@ func (c *Coordinator) ReconcileManagedRuns(ctx context.Context) error {
 			if err := c.deleteManagedRunPods(ctx, run.UUID, run.Namespace); err != nil {
 				return err
 			}
-			if err := c.finalizeCanceledRun(run.UUID, "coordinator run was cancelling during API server restart"); err != nil {
+			if err := c.finalizeCanceledRun(run.UUID, "coordinator run was canceling during API server restart"); err != nil {
 				return err
 			}
 			if cleanupErr := c.CleanupManagedRun(ctx, run); cleanupErr != nil {
@@ -1189,7 +1192,7 @@ func (c *Coordinator) TerminateManagedRun(ctx context.Context, run *model.Run) e
 		if cancellationRequested, err := c.runCancellationRequested(run.UUID); err != nil {
 			return err
 		} else if cancellationRequested {
-			if err := c.finalizeCanceledRun(run.UUID, "run execution was cancelled"); err != nil {
+			if err := c.finalizeCanceledRun(run.UUID, "run execution was canceled"); err != nil {
 				return err
 			}
 			if cleanupErr := c.CleanupManagedRun(ctx, run); cleanupErr != nil {
@@ -1810,7 +1813,7 @@ func (c *Coordinator) resolveInputParameters(
 			if _, ok := values[name]; ok {
 				continue
 			}
-			if inputSpec == nil || !inputSpec.GetIsOptional() || inputSpec.GetDefaultValue() == nil {
+			if inputSpec == nil || inputSpec.GetDefaultValue() == nil {
 				continue
 			}
 			values[name] = inputSpec.GetDefaultValue()
@@ -2048,7 +2051,7 @@ func mergeDefaultRuntimeParameters(
 		if _, ok := values[name]; ok {
 			continue
 		}
-		if inputSpec == nil || !inputSpec.GetIsOptional() || inputSpec.GetDefaultValue() == nil {
+		if inputSpec == nil || inputSpec.GetDefaultValue() == nil {
 			continue
 		}
 		values[name] = inputSpec.GetDefaultValue()
@@ -2331,8 +2334,8 @@ func (c *Coordinator) resolveInputArtifacts(
 }
 
 func (c *Coordinator) getPipelineRoot(run *model.Run) (string, error) {
-	if run != nil && run.RuntimeConfig.PipelineRoot != "" {
-		return string(run.RuntimeConfig.PipelineRoot), nil
+	if run != nil && run.PipelineRoot != "" {
+		return string(run.PipelineRoot), nil
 	}
 	if run == nil {
 		return "", fmt.Errorf("run is nil")

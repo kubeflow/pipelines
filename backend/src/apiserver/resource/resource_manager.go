@@ -1058,11 +1058,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 				"Failed to create a run due to invalid recurring run id",
 			)
 		}
-		run.PipelineSpec.PipelineId = recurringJob.PipelineSpec.PipelineId
-		run.PipelineSpec.PipelineVersionId = recurringJob.PipelineSpec.PipelineVersionId
-		run.PipelineSpec.PipelineName = recurringJob.PipelineSpec.PipelineName
-		run.PipelineSpec.PipelineSpecManifest = recurringJob.PipelineSpec.PipelineSpecManifest
-		run.PipelineSpec.WorkflowSpecManifest = recurringJob.PipelineSpec.WorkflowSpecManifest
+		run.PipelineId = recurringJob.PipelineId
+		run.PipelineVersionId = recurringJob.PipelineVersionId
+		run.PipelineName = recurringJob.PipelineName
+		run.PipelineSpecManifest = recurringJob.PipelineSpecManifest
+		run.WorkflowSpecManifest = recurringJob.WorkflowSpecManifest
 	}
 	manifestBytes, manifestErr := r.fetchPipelineSpecManifest(&run.PipelineSpec)
 	if manifestErr != nil {
@@ -1073,7 +1073,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		job, kubernetesSpec, jobErr := buildCoordinatorPipelineJobFromManifest(
 			manifestBytes,
 			run.DisplayName,
-			&run.PipelineSpec.RuntimeConfig,
+			&run.RuntimeConfig,
 			runWorkflowOptions.RunID,
 			runWorkflowOptions.RunAt,
 			run.ScheduledAtInSec,
@@ -1256,8 +1256,8 @@ func (r *ResourceManager) createManagedV2Run(
 	if run.ServiceAccount == "" {
 		run.ServiceAccount = common.DefaultPipelineRunnerServiceAccount
 	}
-	run.RunDetails.State = model.RuntimeStatePending
-	run.RunDetails.Conditions = string(run.RunDetails.State.ToV1())
+	run.State = model.RuntimeStatePending
+	run.Conditions = string(run.State.ToV1())
 	run.PipelineSpecManifest = model.LargeText(manifest)
 	initialRuntimeManifest, err := pocruntime.NewRuntimeManifest(pocruntime.RequestedExecutor()).ToJSON()
 	if err != nil {
@@ -1265,8 +1265,8 @@ func (r *ResourceManager) createManagedV2Run(
 	}
 	run.PipelineRuntimeManifest = model.LargeText(initialRuntimeManifest)
 	run.State = model.RuntimeStatePending
-	if run.RunDetails.ScheduledAtInSec == 0 {
-		run.RunDetails.ScheduledAtInSec = run.RunDetails.CreatedAtInSec
+	if run.ScheduledAtInSec == 0 {
+		run.ScheduledAtInSec = run.CreatedAtInSec
 	}
 
 	newRun, err := r.runStore.CreateRun(run)
@@ -1327,7 +1327,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			builtJob, _, jobErr := buildCoordinatorPipelineJobFromManifest(
 				manifestBytes,
 				jobs[i].DisplayName,
-				&jobs[i].PipelineSpec.RuntimeConfig,
+				&jobs[i].RuntimeConfig,
 				"",
 				0,
 				0,
@@ -2213,7 +2213,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			builtJob, _, jobErr := buildCoordinatorPipelineJobFromManifest(
 				manifestBytes,
 				job.DisplayName,
-				&job.PipelineSpec.RuntimeConfig,
+				&job.RuntimeConfig,
 				"",
 				0,
 				0,
@@ -2272,7 +2272,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		useCoordinatorRuntime := requestedCoordinatorRuntime(manifestBytes)
 		var validatedScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
 		if useCoordinatorRuntime {
-			builtJob, _, buildErr := buildCoordinatorPipelineJobFromManifest(manifestBytes, job.DisplayName, &job.PipelineSpec.RuntimeConfig, "", 0, 0)
+			builtJob, _, buildErr := buildCoordinatorPipelineJobFromManifest(manifestBytes, job.DisplayName, &job.RuntimeConfig, "", 0, 0)
 			if buildErr != nil {
 				return nil, util.NewBadRequestError(
 					util.NewInvalidInputError("Coordinator-managed V2 runtime requires a supported KFP v2 pipeline manifest: %v", buildErr),
