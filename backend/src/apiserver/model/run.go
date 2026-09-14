@@ -430,6 +430,8 @@ func (r *Run) GetField(name string) (string, string, bool) {
 	return "", "", false
 }
 
+// GetFieldValue resolves a model field name from runAPIToModelFieldMap. A
+// mapped field with no case here breaks paging on that sort field.
 func (r *Run) GetFieldValue(name string) interface{} {
 	// "name" could be a field in Run type or a name inside an array typed field
 	// in Run type
@@ -455,13 +457,13 @@ func (r *Run) GetFieldValue(name string) interface{} {
 		return r.RunDetails.Conditions
 	case "Namespace":
 		return r.Namespace
-	case "ExperimentId":
+	case "ExperimentUUID":
 		return r.ExperimentId
 	case "State":
 		return r.RunDetails.State
 	case "PipelineRuntimeManifest":
 		return r.RunDetails.PipelineRuntimeManifest
-	case "RecurringRunId":
+	case "JobUUID":
 		return r.RecurringRunId
 	}
 	// Second, try to find the match of "name" inside an array typed field
