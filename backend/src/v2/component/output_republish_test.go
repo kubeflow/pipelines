@@ -85,6 +85,51 @@ func TestParentNeedsOutputRepublish(t *testing.T) {
 	}, artifactDefs))
 }
 
+func TestNestedLoopParameterOrdering(t *testing.T) {
+	root := &pipelinespec.ComponentSpec{
+		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{}},
+		Implementation: &pipelinespec.ComponentSpec_Dag{Dag: &pipelinespec.DagSpec{
+			Tasks:   map[string]*pipelinespec.PipelineTaskSpec{"inner": {ComponentRef: &pipelinespec.ComponentRef{Name: "inner"}}},
+			Outputs: &pipelinespec.DagOutputsSpec{Parameters: map[string]*pipelinespec.DagOutputsSpec_DagOutputParameterSpec{}},
+		}},
+	}
+	for _, key := range []string{"zeta", "alpha", "middle"} {
+		root.OutputDefinitions.Parameters[key] = &pipelinespec.ComponentOutputsSpec_ParameterSpec{ParameterType: pipelinespec.ParameterType_LIST}
+		root.GetDag().Outputs.Parameters[key] = &pipelinespec.DagOutputsSpec_DagOutputParameterSpec{
+			Kind: &pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromParameter{ValueFromParameter: &pipelinespec.DagOutputsSpec_ParameterSelectorSpec{ProducerSubtask: "inner", OutputParameterKey: key}},
+		}
+	}
+	spec, err := pipelineSpecToStruct(t, &pipelinespec.PipelineSpec{Root: root, Components: map[string]*pipelinespec.ComponentSpec{"inner": {}}})
+	require.NoError(t, err)
+	scope, err := util.ScopePathFromDotNotation(spec, "root.inner")
+	require.NoError(t, err)
+	for attempt := 0; attempt < 32; attempt++ {
+		parent := &apiv2beta1.PipelineTask{Name: "root", ScopePath: "root", Type: apiv2beta1.PipelineTask_ROOT}
+		child := &apiv2beta1.PipelineTask{Name: "inner", Type: apiv2beta1.PipelineTask_LOOP,
+			TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(1)},
+			Outputs:        &apiv2beta1.PipelineTask_InputOutputs{},
+		}
+		for _, key := range []string{"zeta", "alpha", "middle"} {
+			for _, index := range []int64{2, 0, 1} {
+				child.Outputs.Parameters = append(child.Outputs.Parameters, &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+					ParameterKey: key, Value: structpb.NewNumberValue(float64(index)),
+					Producer: &apiv2beta1.IOProducer{Iteration: util.Int64Pointer(index)},
+				})
+			}
+		}
+		err = propagateOutputsUpDAG(context.Background(), OutputPropagationOptions{
+			Task: child, ParentTask: parent, ScopePath: scope, PipelineSpec: spec,
+		}, kfpapi.NewMockAPI(), NewBatchUpdater())
+		require.NoError(t, err)
+		require.Len(t, parent.GetOutputs().GetParameters(), 3)
+		for i, key := range []string{"alpha", "middle", "zeta"} {
+			output := parent.Outputs.Parameters[i]
+			require.Equal(t, key, output.GetParameterKey())
+			require.Equal(t, []interface{}{float64(0), float64(1), float64(2)}, output.GetValue().AsInterface())
+		}
+	}
+}
+
 func TestOmitArtifactTasksAlreadyPresentOnTasks(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
 	run := &apiv2beta1.Run{RunId: "run-omit"}

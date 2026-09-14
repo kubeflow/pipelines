@@ -1286,7 +1286,13 @@ func propagateOutputsUpDAG(
 				values[output.GetProducer().GetIteration()] = output.GetValue()
 			}
 			currentTaskOutputs.Parameters = nil
-			for key, byIteration := range grouped {
+			keys := make([]string, 0, len(grouped))
+			for key := range grouped {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+			for _, key := range keys {
+				byIteration := grouped[key]
 				indices := make([]int64, 0, len(byIteration))
 				for index := range byIteration {
 					indices = append(indices, index)
