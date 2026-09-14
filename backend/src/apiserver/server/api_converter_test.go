@@ -3090,6 +3090,93 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 	assert.Equal(t, expected, got)
 }
 
+func Test_normalizeLifecycleMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		state   string
+		want    string
+	}{
+		{"empty message", "", "Pending", ""},
+		{"transient PodInitializing", "PodInitializing", "Pending", ""},
+		{"transient ContainerCreating", "ContainerCreating", "Pending", ""},
+		{"real failure kept", `Back-off pulling image "ghcr.io/example/missing:v1"`, "Pending", `Back-off pulling image "ghcr.io/example/missing:v1"`},
+		{"succeeded node suppressed", "some leftover message", "Succeeded", ""},
+		{"skipped node suppressed", "some leftover message", "Skipped", ""},
+		{"omitted node suppressed", "some leftover message", "Omitted", ""},
+		{"failed node kept", "OOMKilled", "Failed", "OOMKilled"},
+		{"running node kept", "ImagePullBackOff", "Running", "ImagePullBackOff"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeLifecycleMessage(tt.message, tt.state)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_resolveNodeLifecycleMessages(t *testing.T) {
+	t.Run("propagates child message to parent", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"parent": {ID: "parent", State: "Running", DisplayName: "dag-node", Children: []string{"child"}},
+			"child":  {ID: "child", State: "Pending", DisplayName: "executor", Message: `Back-off pulling image "img:bad"`},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, `Back-off pulling image "img:bad"`, resolved["parent"])
+		assert.Equal(t, `Back-off pulling image "img:bad"`, resolved["child"])
+	})
+
+	t.Run("parent own message takes precedence over child", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"parent": {ID: "parent", State: "Failed", DisplayName: "dag", Message: "parent error", Children: []string{"child"}},
+			"child":  {ID: "child", State: "Pending", DisplayName: "exec", Message: "child error"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "parent error", resolved["parent"])
+		assert.Equal(t, "child error", resolved["child"])
+	})
+
+	t.Run("transient child message not propagated", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"parent": {ID: "parent", State: "Running", Children: []string{"child"}},
+			"child":  {ID: "child", State: "Pending", Message: "ContainerCreating"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["parent"])
+		assert.Equal(t, "", resolved["child"])
+	})
+
+	t.Run("succeeded child message suppressed", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"parent": {ID: "parent", State: "Running", Children: []string{"child"}},
+			"child":  {ID: "child", State: "Succeeded", Message: "leftover"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["parent"])
+	})
+
+	t.Run("handles cycles without infinite loop", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"a": {ID: "a", State: "Running", Children: []string{"b"}},
+			"b": {ID: "b", State: "Running", Children: []string{"a"}},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["a"])
+		assert.Equal(t, "", resolved["b"])
+	})
+
+	t.Run("shared descendant resolved correctly", func(t *testing.T) {
+		nodes := map[string]util.NodeStatus{
+			"p1":    {ID: "p1", State: "Running", Children: []string{"shared"}},
+			"p2":    {ID: "p2", State: "Running", Children: []string{"shared"}},
+			"shared": {ID: "shared", State: "Pending", Message: "ImagePullBackOff"},
+		}
+		resolved := resolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "ImagePullBackOff", resolved["p1"])
+		assert.Equal(t, "ImagePullBackOff", resolved["p2"])
+		assert.Equal(t, "ImagePullBackOff", resolved["shared"])
+	})
+}
 func TestToModelRun(t *testing.T) {
 	tests := []struct {
 		name    string

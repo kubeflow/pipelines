@@ -871,6 +871,7 @@ func (w *Workflow) NodeStatuses() map[string]NodeStatus {
 			CreateTime:  node.StartedAt.Unix(),
 			FinishTime:  node.FinishedAt.Unix(),
 			Children:    node.Children,
+			Message:     node.Message,
 		}
 	}
 	return rev

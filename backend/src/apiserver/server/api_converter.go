@@ -38,6 +38,78 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// transientNodeMessages are messages set by Kubernetes during normal pod
+// startup. They do not indicate a failure and should not be surfaced.
+var transientNodeMessages = map[string]bool{
+	"PodInitializing":   true,
+	"ContainerCreating": true,
+}
+
+// terminalSuccessStates are node states for which any message is irrelevant
+// because the node completed successfully.
+var terminalSuccessStates = map[string]bool{
+	"Succeeded": true,
+	"Skipped":   true,
+	"Omitted":   true,
+}
+
+// normalizeLifecycleMessage returns the node message if it represents a
+// meaningful lifecycle diagnostic. It returns empty for transient startup
+// messages (PodInitializing, ContainerCreating) and for nodes that have
+// reached a terminal success state.
+func normalizeLifecycleMessage(message string, state string) string {
+	if transientNodeMessages[message] {
+		return ""
+	}
+	if terminalSuccessStates[state] {
+		return ""
+	}
+	return message
+}
+
+// resolveNodeLifecycleMessages walks the node graph and resolves lifecycle
+// messages. For each node, the resolved message is its own normalized message
+// if non-empty, otherwise the first non-empty message from any child. This
+// propagates executor-pod failure messages up to parent task nodes.
+func resolveNodeLifecycleMessages(nodes map[string]util.NodeStatus) map[string]string {
+	resolved := make(map[string]string, len(nodes))
+	onStack := make(map[string]bool)
+
+	var resolve func(id string) string
+	resolve = func(id string) string {
+		if msg, ok := resolved[id]; ok {
+			return msg
+		}
+		if onStack[id] {
+			return ""
+		}
+		onStack[id] = true
+		defer delete(onStack, id)
+
+		node, ok := nodes[id]
+		if !ok {
+			resolved[id] = ""
+			return ""
+		}
+		msg := normalizeLifecycleMessage(node.Message, node.State)
+		if msg == "" {
+			for _, childID := range node.Children {
+				if childMsg := resolve(childID); childMsg != "" {
+					msg = childMsg
+					break
+				}
+			}
+		}
+		resolved[id] = msg
+		return msg
+	}
+
+	for id := range nodes {
+		resolve(id)
+	}
+	return resolved
+}
+
 const (
 	urlSchemeJavaScript = "javascript:"
 	urlSchemeData       = "data:"
