@@ -669,6 +669,18 @@ func (c *Coordinator) executeRuntimeTask(
 			return err
 		}
 	}
+	if iteratorOutput && executor.Type() == ExecutorKubernetes {
+		persistedTask, err := c.taskStore.GetTask(runtimeTask.TaskID)
+		if err != nil {
+			return err
+		}
+		iteratorParameters, err := iteratorOutputParameters(persistedTask.OutputParameters)
+		if err != nil {
+			return err
+		}
+		_, err = c.updateTaskState(runtimeTask.TaskID, apiv2beta1.PipelineTask_SUCCEEDED, result.StatusMetadata, iteratorParameters)
+		return err
+	}
 	_, err = c.updateTaskState(runtimeTask.TaskID, apiv2beta1.PipelineTask_SUCCEEDED, result.StatusMetadata, outputParametersToJSON(result.OutputParameters, taskSpec, iteratorOutput))
 	return err
 }
@@ -2197,15 +2209,21 @@ func (c *Coordinator) lookupTaskOutputParameterByRuntimeTask(
 	}
 	matches := make([]*structpb.Value, 0, len(outputs))
 	selfMatches := make([]*structpb.Value, 0, len(outputs))
+	iteratorMatches := make([]*structpb.Value, 0, len(outputs))
 	for _, output := range outputs {
 		if output.GetParameterKey() == outputParameterKey {
 			matches = append(matches, output.GetValue())
+			if output.GetType() == apiv2beta1.IOType_ITERATOR_OUTPUT {
+				iteratorMatches = append(iteratorMatches, output.GetValue())
+			}
 			if output.GetProducer() != nil && output.GetProducer().GetTaskName() == producerTask.Name {
 				selfMatches = append(selfMatches, output.GetValue())
 			}
 		}
 	}
-	if len(selfMatches) > 0 {
+	if len(iteratorMatches) > 0 {
+		matches = iteratorMatches
+	} else if len(selfMatches) > 0 {
 		matches = selfMatches
 	}
 	switch len(matches) {
@@ -2438,6 +2456,24 @@ func outputParametersToJSON(values map[string]*structpb.Value, taskSpec *pipelin
 	}
 	jsonSlice, _ := model.ProtoSliceToJSONSlice(parameters)
 	return jsonSlice
+}
+
+func iteratorOutputParameters(outputs model.JSONSlice) (model.JSONSlice, error) {
+	parameters, err := model.JSONSliceToProtoSlice(outputs, func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	})
+	if err != nil {
+		return nil, err
+	}
+	iteratorParameters := make([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter, 0, len(parameters))
+	for _, parameter := range parameters {
+		if parameter.GetType() != apiv2beta1.IOType_OUTPUT {
+			continue
+		}
+		parameter.Type = apiv2beta1.IOType_ITERATOR_OUTPUT
+		iteratorParameters = append(iteratorParameters, parameter)
+	}
+	return model.ProtoSliceToJSONSlice(iteratorParameters)
 }
 
 func evaluateTaskCondition(

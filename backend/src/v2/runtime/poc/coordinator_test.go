@@ -539,6 +539,67 @@ func TestCoordinatorCollectsLoopOutputsForDownstreamTasks(t *testing.T) {
 	assert.Equal(t, float64(6), addContainerNums.GetValues()[2].GetNumberValue())
 }
 
+func TestIteratorOutputParametersConvertsOnlyLatestLauncherOutputs(t *testing.T) {
+	outputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		{
+			ParameterKey: "value",
+			Value:        structpb.NewNumberValue(2),
+			Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
+		},
+		{
+			ParameterKey: "value",
+			Value:        structpb.NewNumberValue(4),
+			Type:         apiv2beta1.IOType_OUTPUT,
+		},
+	})
+	require.NoError(t, err)
+
+	converted, err := iteratorOutputParameters(outputs)
+	require.NoError(t, err)
+	parameters, err := model.JSONSliceToProtoSlice(converted, func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	})
+	require.NoError(t, err)
+	require.Len(t, parameters, 1)
+	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, parameters[0].GetType())
+	assert.Equal(t, float64(4), parameters[0].GetValue().GetNumberValue())
+}
+
+func TestLookupTaskOutputParameterPrefersIteratorOutputs(t *testing.T) {
+	fakeDB, dbDialect, err := storage.NewFakeDB()
+	require.NoError(t, err)
+	taskStore := storage.NewTaskStore(fakeDB, util.NewFakeTimeForEpoch(), util.NewUUIDGenerator(), dbDialect)
+	coordinator := &Coordinator{taskStore: taskStore}
+
+	outputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		{ParameterKey: "value", Value: structpb.NewNumberValue(6), Type: apiv2beta1.IOType_OUTPUT},
+		{ParameterKey: "value", Value: structpb.NewNumberValue(2), Type: apiv2beta1.IOType_ITERATOR_OUTPUT},
+		{ParameterKey: "value", Value: structpb.NewNumberValue(4), Type: apiv2beta1.IOType_ITERATOR_OUTPUT},
+		{ParameterKey: "value", Value: structpb.NewNumberValue(6), Type: apiv2beta1.IOType_ITERATOR_OUTPUT},
+	})
+	require.NoError(t, err)
+	createdTask, err := taskStore.CreateTask(&model.Task{
+		UUID:             "iterator-task",
+		RunUUID:          "run",
+		Namespace:        "namespace",
+		Name:             "loop-task",
+		OutputParameters: outputs,
+	})
+	require.NoError(t, err)
+
+	value, err := coordinator.lookupTaskOutputParameterByRuntimeTask(RuntimeTask{
+		TaskID: createdTask.UUID,
+		Name:   "loop-task",
+	}, "value")
+	require.NoError(t, err)
+	require.NotNil(t, value.GetListValue())
+	assert.Equal(t, []float64{2, 4, 6}, []float64{
+		value.GetListValue().GetValues()[0].GetNumberValue(),
+		value.GetListValue().GetValues()[1].GetNumberValue(),
+		value.GetListValue().GetValues()[2].GetNumberValue(),
+	})
+}
+
 func TestCoordinatorPrefersDagTaskOutputForMixedParameters(t *testing.T) {
 	viper.Set(common.V2RuntimeExecutor, ExecutorDocker)
 	viper.Set(common.V2RuntimeAutoExecute, "false")
