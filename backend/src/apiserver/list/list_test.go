@@ -310,6 +310,112 @@ func TestNextPageToken_MetricValuePresent(t *testing.T) {
 	}
 }
 
+// A nullable column is exposed as a pointer. A nil pointer is a NULL cursor, and
+// a set pointer carries its plain value.
+func TestNextPageToken_NullablePointerField(t *testing.T) {
+	parentTaskID := "parent-task"
+	numberValue := 0.5
+
+	tests := []struct {
+		name      string
+		row       Listable
+		sortBy    string
+		wantValue interface{}
+		wantNull  bool
+	}{
+		{"task without parent", &model.Task{UUID: "row-1"}, "parent_task_id", nil, true},
+		{"task with parent", &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID}, "parent_task_id", "parent-task", false},
+		{"artifact without number", &model.Artifact{UUID: "row-1"}, "number_value", nil, true},
+		{"artifact with number", &model.Artifact{UUID: "row-1", NumberValue: &numberValue}, "number_value", 0.5, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts, err := NewOptions(tt.row, 2, tt.sortBy, nil)
+			if err != nil {
+				t.Fatalf("NewOptions() unexpected error: %v", err)
+			}
+			got, err := opts.nextPageToken(tt.row)
+			if err != nil {
+				t.Fatalf("nextPageToken() unexpected error: %v", err)
+			}
+			assert.Equal(t, tt.wantNull, got.SortByFieldIsNull)
+			assert.Equal(t, tt.wantValue, got.SortByFieldValue)
+			assert.Equal(t, "row-1", got.KeyFieldValue)
+		})
+	}
+}
+
+// The cursor built from a nullable string column has to survive the page token.
+// A NULL cursor then continues inside the NULL block from the saved key.
+func TestNextPageToken_NullableStringFieldRoundTrip(t *testing.T) {
+	parentTaskID := "parent-task"
+
+	tests := []struct {
+		name     string
+		sortBy   string
+		row      *model.Task
+		wantNull bool
+		wantSQL  string
+	}{
+		{
+			name:     "no parent ascending",
+			sortBy:   "parent_task_id",
+			row:      &model.Task{UUID: "row-1"},
+			wantNull: true,
+			wantSQL:  `("tasks"."ParentTaskUUID" IS NULL AND "tasks"."UUID" >= ?)`,
+		},
+		{
+			name:     "no parent descending",
+			sortBy:   "parent_task_id desc",
+			row:      &model.Task{UUID: "row-1"},
+			wantNull: true,
+			wantSQL:  `("tasks"."ParentTaskUUID" IS NULL AND "tasks"."UUID" <= ?)`,
+		},
+		{
+			name:    "with parent ascending",
+			sortBy:  "parent_task_id",
+			row:     &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID},
+			wantSQL: `LOWER("tasks"."ParentTaskUUID") > LOWER(?)`,
+		},
+		{
+			name:    "with parent descending",
+			sortBy:  "parent_task_id desc",
+			row:     &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID},
+			wantSQL: `LOWER("tasks"."ParentTaskUUID") < LOWER(?)`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts, err := NewOptions(&model.Task{}, 2, tt.sortBy, nil)
+			if err != nil {
+				t.Fatalf("NewOptions() unexpected error: %v", err)
+			}
+			// Every page, including the first, has to order the column the same way.
+			assert.True(t, opts.SortByFieldIsString)
+
+			pageToken, err := opts.NextPageToken(tt.row)
+			if err != nil {
+				t.Fatalf("NextPageToken() unexpected error: %v", err)
+			}
+			next, err := NewOptionsFromToken(pageToken, 2)
+			if err != nil {
+				t.Fatalf("NewOptionsFromToken() unexpected error: %v", err)
+			}
+			assert.Equal(t, tt.wantNull, next.SortByFieldIsNull)
+			assert.True(t, next.SortByFieldIsString)
+			assert.Equal(t, "row-1", next.KeyFieldValue)
+
+			sql, args, err := next.AddSortingToSelect(sq.Select("*").From("tasks"), testQuote, "").ToSql()
+			if err != nil {
+				t.Fatalf("AddSortingToSelect() unexpected error: %v", err)
+			}
+			assert.Contains(t, sql, tt.wantSQL)
+			assert.Contains(t, sql, `ORDER BY ("tasks"."ParentTaskUUID" IS NULL) ASC, LOWER("tasks"."ParentTaskUUID")`)
+			assert.Contains(t, args, "row-1")
+		})
+	}
+}
+
 func TestValidatePageSize(t *testing.T) {
 	tests := []struct {
 		in   int
