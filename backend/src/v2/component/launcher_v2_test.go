@@ -918,3 +918,37 @@ func Test_retrieve_artifact_path(t *testing.T) {
 		})
 	}
 }
+
+// Tests that compileTempCABundleWithCustomCA writes the custom CA into the
+// bundle and does not leak the temp file when it returns an error.
+func Test_compileTempCABundleWithCustomCA(t *testing.T) {
+	// Success case: the returned bundle should contain the custom CA content,
+	// and the temp file should be readable (i.e. properly closed/flushed).
+	customCA, err := os.CreateTemp("", "custom-ca-*.crt")
+	assert.Nil(t, err)
+	defer os.Remove(customCA.Name())
+	_, err = customCA.WriteString("custom-ca-content")
+	assert.Nil(t, err)
+	customCA.Close()
+
+	bundlePath, err := compileTempCABundleWithCustomCA(customCA.Name())
+	assert.Nil(t, err)
+	defer os.Remove(bundlePath)
+
+	content, err := os.ReadFile(bundlePath)
+	assert.Nil(t, err)
+	assert.Contains(t, string(content), "custom-ca-content")
+
+	// Failure case: an invalid custom CA path should not leave an orphaned
+	// ca-bundle-*.crt temp file behind.
+	pattern := filepath.Join(os.TempDir(), "ca-bundle-*.crt")
+	before, err := filepath.Glob(pattern)
+	assert.Nil(t, err)
+
+	_, err = compileTempCABundleWithCustomCA(filepath.Join(os.TempDir(), "does-not-exist.crt"))
+	assert.NotNil(t, err)
+
+	after, err := filepath.Glob(pattern)
+	assert.Nil(t, err)
+	assert.Equal(t, len(before), len(after), "compileTempCABundleWithCustomCA should not leave an orphaned temp file on error")
+}
