@@ -54,7 +54,8 @@ group_type_to_dsl_class = {
 }
 
 
-def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
+def to_protobuf_value(
+        value: Optional[type_utils.PARAMETER_TYPES]) -> struct_pb2.Value:
     """Creates a google.protobuf.struct_pb2.Value message out of a provide
     value.
 

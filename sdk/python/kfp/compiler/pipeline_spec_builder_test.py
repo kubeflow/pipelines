@@ -152,12 +152,13 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
                 'threshold': 0.5
             }),
             struct_pb2.Value(
-                struct_value=struct_pb2.Struct(fields={
-                    'key':
-                        struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
-                    'threshold':
-                        struct_pb2.Value(number_value=0.5),
-                })),
+                struct_value=struct_pb2.Struct(
+                    fields={
+                        'key':
+                            struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+                        'threshold':
+                            struct_pb2.Value(number_value=0.5),
+                    })),
         )
 
     def test_to_protobuf_value_with_none_in_list(self):
