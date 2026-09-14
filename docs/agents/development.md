@@ -163,8 +163,11 @@ separately (see `ARTIFACT_RETENTION_DAYS` for object-store artifacts).
 proxy paths. The default Kustomize installation uses an initialization Job to
 populate the persistent `ml-pipeline-ui-tensorboard-proxy` Secret only when its
 key is absent, then injects the shared key into every UI replica. The UI uses
-`RollingUpdate` with `maxUnavailable: 0` and `maxSurge: 1`; preserve the Secret
-across upgrades so proxy URLs remain valid. See the
+`Recreate` by default to prevent old and shared-key UI pods from overlapping
+during the first migration. Preserve the Secret across upgrades so proxy URLs
+remain valid. After the initial rollout completes, operators can
+[enable rolling UI updates](../operator-guides/server-config.md#enabling-rolling-ui-updates)
+in a separate apply or GitOps sync. See the
 [operator guide](../operator-guides/server-config.md#tensorboard-proxy-signing-secret)
 for initialization, recovery, GitOps, and rotation guidance.
 
