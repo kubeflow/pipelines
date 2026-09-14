@@ -251,8 +251,11 @@ def step_update_version_tags(context: ReleaseContext) -> None:
             print(f'[dry-run] would write VERSION: {metadata.tag}')
         else:
             (root / 'VERSION').write_text(metadata.tag)
-        release_image_tag = 'master' if metadata.release_type in (
-            'major', 'minor') else metadata.release_branch
+        # The 2.18 branch and its tooling images are created before release preparation.
+        release_image_tag = ('master'
+                             if metadata.release_type in ('major', 'minor') and
+                             metadata.release_branch != 'release-2.18' else
+                             metadata.release_branch)
         context.runner.run(
             release_version_bump_command(root, metadata.release_branch,
                                          context.previous_release,
@@ -279,7 +282,7 @@ def step_update_version_tags(context: ReleaseContext) -> None:
          r's#^(PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\1'
          + metadata.release_branch + '#'),
         ('release/Dockerfile.release',
-         r's#^(FROM ghcr.io/kubeflow/kfp-api-generator:).*#\1' +
+         r's#^(ARG BASE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:).*#\1' +
          metadata.release_branch + '#'),
     ]:
         context.runner.run(['sed', '-i.bak', '-E', expression, path], cwd=root)

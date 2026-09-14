@@ -34,3 +34,11 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+
+## Release 2.18 stabilization
+
+- `release-2.18` preserves the MLMD-based release line. Backport selected fixes through reviewed PRs; do not merge the post-MLMD `master` branch wholesale.
+- Frontend and pre-commit workflows accept pushes and PRs targeting `release-2.18`. Backend and E2E PR workflows already accept this target subject to their path filters; their push triggers remain scoped to master.
+- Require the unconditional pre-commit check and DCO on release PRs. Path-filtered jobs must pass when applicable but should not be required unconditionally, because GitHub would wait for checks that do not run.
+- Tool-image builds publish `kfp-api-generator:release-2.18` and `kfp-release:release-2.18` on release-branch pushes. This branch uses those images for generation/release work to avoid consuming post-MLMD master tools.
+- A branch cut is not a release. Do not publish `2.18.0`, move `latest`, update documentation defaults, or sync the 2.18 version back to a divergent master as part of stabilization.

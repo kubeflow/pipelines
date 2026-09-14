@@ -1732,6 +1732,21 @@ class DryRunOutputTest(unittest.TestCase):
                     for command in flattened_commands),
                 flattened_commands,
             )
+            dockerfile = Path(
+                __file__).resolve().parents[1] / 'Dockerfile.release'
+            expression = next(command[3]
+                              for command in context.runner.commands
+                              if command[0] == 'sed' and
+                              command[-1] == 'release/Dockerfile.release')
+            rewritten = subprocess.run(['sed', '-E', expression],
+                                       input=dockerfile.read_text(),
+                                       text=True,
+                                       capture_output=True,
+                                       check=True).stdout
+            self.assertIn(
+                'ARG BASE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:release-3.2\n',
+                rewritten)
+            self.assertIn('FROM ${BASE_IMAGE}\n', rewritten)
 
     def test_update_version_tags_pins_tool_images_to_release_branch(self):
         with TemporaryDirectory() as tmpdir:
@@ -1762,7 +1777,7 @@ class DryRunOutputTest(unittest.TestCase):
                     'release-3.2' in command for command in flattened_commands),
                 flattened_commands,
             )
-            self.assertFalse(
+            self.assertTrue(
                 any('ARG BASE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:' in
                     command for command in flattened_commands),
                 flattened_commands,
@@ -1852,30 +1867,41 @@ class DryRunOutputTest(unittest.TestCase):
                 context.runner.commands,
             )
 
-    def test_update_version_tags_uses_master_release_image_for_minor_release(
-            self):
-        with TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-            context = core.ReleaseContext(
-                root=root,
-                state=core.ReleaseState(root / 'state.json'),
-                runner=core.CommandRunner(dry_run=True),
-                metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
-                fork_remote='git@github.com:testuser/pipelines.git',
-                include_backend=True,
-                include_sdk=True,
-            )
+    def test_update_version_tags_selects_available_release_tool_image(self):
+        cases = [
+            ('minor', '2.18.0', 'release-2.18'),
+            ('patch', '2.18.1', 'release-2.18'),
+            ('major', '3.0.0', 'master'),
+            ('minor', '3.2.0', 'master'),
+            ('patch', '3.2.1', 'release-3.2'),
+        ]
+        for release_type, version, image_tag in cases:
+            with self.subTest(version=version), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                metadata = core.ReleaseMetadata.from_version(
+                    release_type, version)
+                context = core.ReleaseContext(
+                    root=root,
+                    state=core.ReleaseState(root / 'state.json'),
+                    runner=core.CommandRunner(dry_run=True),
+                    metadata=metadata,
+                    fork_remote='git@github.com:testuser/pipelines.git',
+                    include_backend=True,
+                    include_sdk=True,
+                )
 
-            steps.step_update_version_tags(context)
+                steps.step_update_version_tags(context)
 
-            flattened_commands = [
-                ' '.join(command) for command in context.runner.commands
-            ]
-            self.assertTrue(
-                any('ghcr.io/kubeflow/kfp-release:master' in command
-                    for command in flattened_commands),
-                flattened_commands,
-            )
+                docker_commands = [
+                    command for command in context.runner.commands
+                    if command[0] == 'docker'
+                ]
+                self.assertEqual(len(docker_commands), 1)
+                self.assertIn(f'ghcr.io/kubeflow/kfp-release:{image_tag}',
+                              docker_commands[0])
+                if image_tag != 'master':
+                    self.assertNotIn('ghcr.io/kubeflow/kfp-release:master',
+                                     docker_commands[0])
 
     def test_manual_checkpoint_text_can_be_reused_by_status(self):
         metadata = core.ReleaseMetadata.from_version('minor', '3.2.0')

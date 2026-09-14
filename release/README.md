@@ -20,6 +20,33 @@ Without installing, run from source:
 PYTHONPATH=release python3 -m kfpr.cli --help
 ```
 
+## Stabilizing 2.18 before publication
+
+`release-2.18` preserves the MLMD-based release line while `master` moves to the next
+architecture. Stabilize it with reviewed, targeted backports; do not merge post-MLMD
+`master` wholesale into this branch. Cutting the branch does not publish a product release.
+
+Before merging the MLMD removal into `master`, verify the upstream release branch points
+to the agreed pre-removal commit, protect it, and confirm the branch's API-generator and
+release-tool image builds have succeeded. The release branch uses
+`kfp-api-generator:release-2.18` and `kfp-release:release-2.18`. Version preparation for 2.18 uses
+its prebuilt release branch tooling image, so later `master` changes cannot replace the
+tooling used to prepare 2.18. Other new major and minor release lines retain the `master`
+image for bootstrapping before their release branch images exist; patch releases use
+their existing release branch images.
+
+When publication is approved, install and run `kfpr` from the release branch. If the
+branch was created separately, initialize the release checkpoint and mark
+`prepare-release-branch` complete before resuming, as described below. Do not run the full
+release flow just to cut a stabilization branch: later steps create tags, publish images
+and packages, and update documentation defaults.
+
+Review `sync-master` separately when `master` represents a newer release line. That step
+prepares and waits for a PR to write the released version back to `master`, using master's
+tooling for major and minor releases. Do not apply a 2.18 version reset to a newer development
+line. Decide which version or changelog updates belong on `master`, handle those explicitly,
+and mark `sync-master` complete only after that reconciliation is resolved.
+
 ## Full release flow
 
 ```bash
