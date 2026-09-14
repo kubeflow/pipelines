@@ -345,6 +345,15 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				return nil, err
 			}
 			return []wfapi.DAGTask{*importer}, nil
+		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_TriggerPipeline:
+			if task.GetTriggerPolicy().GetCondition() != "" {
+				return nil, fmt.Errorf("triggerPolicy.condition on trigger_pipeline task is not supported")
+			}
+			triggerTask, err := c.triggerPipelineTask(name, task, taskSpecJson, inputs.parentDagID)
+			if err != nil {
+				return nil, err
+			}
+			return []wfapi.DAGTask{*triggerTask}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Resolver:
 			return nil, fmt.Errorf("resolver executors not implemented")
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_CustomJob:
