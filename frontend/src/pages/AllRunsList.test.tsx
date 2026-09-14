@@ -149,7 +149,9 @@ describe('AllRunsList', () => {
       await lastRunListProps.onSelectionChange(['run1', 'run2', 'run3']);
     });
     toolbarProps!.actions[ButtonKeys.COMPARE].action();
-    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.COMPARE + '?runlist=run1,run2,run3');
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.COMPARE + '?runlist=run1%2Crun2%2Crun3',
+    );
   });
 
   it('shows thrown error in error banner', async () => {

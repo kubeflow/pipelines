@@ -107,7 +107,7 @@ describe('AllRecurringRunsList', () => {
     renderAllRecurringRunsList();
     toolbarProps!.actions[ButtonKeys.NEW_RECURRING_RUN].action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(
-      `${RoutePage.NEW_RUN}?${QUERY_PARAMS.experimentId}=&${QUERY_PARAMS.isRecurring}=1&${QUERY_PARAMS.returnTo}=${RoutePage.RECURRING_RUNS}`,
+      `${RoutePage.NEW_RUN}?${QUERY_PARAMS.experimentId}=&${QUERY_PARAMS.isRecurring}=1&${QUERY_PARAMS.returnTo}=${encodeURIComponent(RoutePage.RECURRING_RUNS)}`,
     );
   });
 });
