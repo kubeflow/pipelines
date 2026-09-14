@@ -320,7 +320,7 @@ func extendPodSpecPatch(
 			}
 			if claim.ResourceClaimJson != nil {
 				resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
-					claim.GetResourceClaimJson(), inputParams)
+					claim.GetResourceClaimJson(), inputParams, dagTasks)
 				if err != nil {
 					if errors.Is(err, ErrResolvedParameterNull) {
 						continue
