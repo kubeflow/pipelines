@@ -16,6 +16,7 @@ package list
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -1327,4 +1329,78 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, sql, `WHERE ("Conditions" <> ?)`) // status is not case-insensitive; exact comparison
 	assert.Contains(t, args, "somevalue")
+}
+
+// Sorting by a mapped field that GetFieldValue cannot resolve returns a first
+// page, then fails the whole call once NextPageToken has to build a token.
+func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
+	parentTaskID := "parent-task"
+	uri := "s3://bucket/artifact"
+	numberValue := 0.5
+
+	// Optional fields are set, so a nil value below means a missing getter and
+	// not just an empty field.
+	listables := []Listable{
+		&model.Run{UUID: "run"},
+		&model.Job{UUID: "job"},
+		&model.Experiment{UUID: "experiment"},
+		&model.Pipeline{UUID: "pipeline"},
+		&model.PipelineVersion{UUID: "pipeline-version"},
+		&model.Task{
+			UUID:             "task",
+			ParentTaskUUID:   &parentTaskID,
+			StatusMetadata:   model.JSONData{"message": "done"},
+			StateHistory:     model.JSONSlice{"SUCCEEDED"},
+			InputParameters:  model.JSONSlice{"input"},
+			OutputParameters: model.JSONSlice{"output"},
+			TypeAttrs:        model.JSONData{"iteration_count": 1},
+		},
+		&model.Artifact{UUID: "artifact", URI: &uri, NumberValue: &numberValue, Metadata: model.JSONData{"key": "value"}},
+		&model.ArtifactTask{UUID: "artifact-task", Producer: model.JSONData{"task_name": "producer"}},
+	}
+
+	// JSON columns with no getter. They could not carry a page cursor anyway.
+	noGetter := map[string]bool{
+		"Run.StateHistory": true,
+		"Task.pods":        true,
+	}
+
+	for _, listable := range listables {
+		modelName := reflect.TypeOf(listable).Elem().Name()
+		for apiField, modelField := range listable.APIToModelFieldMap() {
+			t.Run(modelName+"/"+apiField, func(t *testing.T) {
+				value := listable.GetFieldValue(modelField)
+				if noGetter[modelName+"."+modelField] {
+					assert.Nil(t, value, "%s.GetFieldValue(%q) now resolves, so remove it from noGetter", modelName, modelField)
+					return
+				}
+				require.NotNil(t, value, "%s.GetFieldValue(%q) returns nil, so sorting by %q cannot build a page token", modelName, modelField, apiField)
+
+				// Only scalar values can be a sort cursor, so JSON values stop here.
+				switch reflect.Indirect(reflect.ValueOf(value)).Kind() {
+				case reflect.Map, reflect.Slice:
+					return
+				}
+
+				opts, err := NewOptions(listable, 1, apiField, nil)
+				require.NoError(t, err)
+				pageToken, err := opts.NextPageToken(listable)
+				require.NoError(t, err)
+				next, err := NewOptionsFromToken(pageToken, 1)
+				require.NoError(t, err)
+				assert.Equal(t, decodedTokenValue(t, value), next.SortByFieldValue)
+				assert.Equal(t, decodedTokenValue(t, reflect.ValueOf(listable).Elem().FieldByName("UUID").Interface()), next.KeyFieldValue)
+			})
+		}
+	}
+}
+
+// decodedTokenValue returns v the way a page token decodes it, so integers come
+// back as float64 and pointers as the value they point to.
+func decodedTokenValue(t *testing.T, v interface{}) interface{} {
+	b, err := json.Marshal(v)
+	require.NoError(t, err)
+	var decoded interface{}
+	require.NoError(t, json.Unmarshal(b, &decoded))
+	return decoded
 }

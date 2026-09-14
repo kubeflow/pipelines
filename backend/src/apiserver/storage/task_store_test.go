@@ -1619,3 +1619,84 @@ func TestGetLastTaskState(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED), getLastTaskState(history2))
 }
+
+func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	_, err = expStore.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), testDialect)
+
+	// Both sorted columns, the creation time and the UUID are each in a different
+	// order, so a sort that silently fell back to another field would be visible.
+	tasks := []struct {
+		name, taskID, runID string
+		startedInSec        int64
+	}{
+		{"task-b", testUUID1, "ts-run-b", 20},
+		{"task-c", testUUID2, "ts-run-c", 30},
+		{"task-a", testUUID3, "ts-run-a", 10},
+	}
+	for i, task := range tasks {
+		_, err := runStore.CreateRun(&model.Run{
+			UUID:         task.runID,
+			ExperimentId: defaultFakeExpId,
+			K8SName:      task.runID,
+			DisplayName:  task.runID,
+			StorageState: model.StorageStateAvailable,
+			Namespace:    "ns1",
+			RunDetails: model.RunDetails{
+				CreatedAtInSec: int64(i + 1),
+				Conditions:     "Succeeded",
+				State:          model.RuntimeStateSucceeded,
+			},
+		})
+		require.NoError(t, err)
+
+		taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(task.taskID, nil)
+		_, err = taskStore.CreateTask(&model.Task{
+			Namespace:        "ns1",
+			RunUUID:          task.runID,
+			Name:             task.name,
+			Pods:             createTaskPodsAsJSONSlice(createTaskPod(task.name, task.name, apiv2beta1.PipelineTask_EXECUTOR)),
+			CreatedAtInSec:   int64(i + 1),
+			StartedInSec:     task.startedInSec,
+			Fingerprint:      task.name,
+			State:            1,
+			StateHistory:     model.JSONSlice{},
+			InputParameters:  model.JSONSlice{},
+			OutputParameters: model.JSONSlice{},
+			TypeAttrs:        model.JSONData{},
+		})
+		require.NoError(t, err)
+	}
+
+	for _, sortBy := range []string{"start_time", "run_id"} {
+		t.Run(sortBy, func(t *testing.T) {
+			opts, err := list.NewOptions(&model.Task{}, 2, sortBy, nil)
+			require.NoError(t, err)
+
+			firstPage, totalSize, nextPageToken, err := taskStore.ListTasks(&model.FilterContext{}, opts)
+			require.NoError(t, err)
+			assert.Equal(t, 3, totalSize)
+			require.Len(t, firstPage, 2)
+			require.NotEmpty(t, nextPageToken, "a third task remains, so a page token must be issued")
+
+			opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+			require.NoError(t, err)
+			secondPage, _, _, err := taskStore.ListTasks(&model.FilterContext{}, opts)
+			require.NoError(t, err)
+			require.Len(t, secondPage, 1)
+
+			var got []string
+			for _, task := range append(firstPage, secondPage...) {
+				got = append(got, task.Name)
+			}
+			assert.Equal(t, []string{"task-a", "task-b", "task-c"}, got)
+		})
+	}
+}
