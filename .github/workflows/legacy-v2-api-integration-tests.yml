@@ -41,7 +41,8 @@ jobs:
         pipeline_store: [ "database", "kubernetes" ]
         k8s_version: [ "v1.36.1" ]
         pod_to_pod_tls_enabled: [ "true", "false" ]
-        db_type: [ "mysql", "pgx" ]
+        # PostgreSQL deployments are unsupported in 2.18; see #14353.
+        db_type: [ "mysql" ]
         # The PVC cache scenario accounts for about three minutes of the
         # otherwise serial suite. Give it a separate cluster/job so it can run
         # alongside the remaining tests without sharing cleanup state.
@@ -49,10 +50,6 @@ jobs:
         exclude:
           # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
           - pipeline_store: "kubernetes"
-            pod_to_pod_tls_enabled: "true"
-          - db_type: "pgx"
-            pipeline_store: "kubernetes"
-          - db_type: "pgx"
             pod_to_pod_tls_enabled: "true"
       fail-fast: false
 
