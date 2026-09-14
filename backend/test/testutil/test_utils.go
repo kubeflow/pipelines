@@ -80,9 +80,7 @@ func CheckIfSkipping(stringValue string) {
 	// Skip pipeline if name contains "GH-" (case-insensitive)
 	if strings.Contains(lowerName, "_gh-") {
 		issue := strings.Split(lowerName, "_gh-")[1]
-		ginkgo.Skip("Skipping pipeline run")
-		fmt.Printf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue)
-
+		ginkgo.Skip(fmt.Sprintf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue))
 	}
 	// Skip pipeline 'pipeline_submit_request' test if TLS is not enabled
 	if !*config.TLSEnabled && strings.Contains(lowerName, "pipeline_submit_request") {

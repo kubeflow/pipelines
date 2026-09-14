@@ -1285,66 +1285,15 @@ func int64Ptr(value int64) *int64 {
 	return &value
 }
 
-func insertLauncherFlag(command []string, flagName string, flagValue string) []string {
-	if len(command) == 0 {
-		return command
-	}
-	for index, value := range command {
-		if value == "--" {
-			updated := append([]string{}, command[:index]...)
-			updated = append(updated, flagName, flagValue)
-			updated = append(updated, command[index:]...)
-			return updated
-		}
-	}
-	return append(command, flagName, flagValue)
-}
-
-func applyPVCMounts(
-	podSpec *corev1.PodSpec,
-	cfg *kubernetesplatform.KubernetesExecutorConfig,
-	executorInput *pipelinespec.ExecutorInput,
-) {
-	if podSpec == nil || cfg == nil || len(podSpec.Containers) == 0 || cfg.GetPvcMount() == nil {
-		return
-	}
-	values := map[string]*structpb.Value{}
-	if executorInput != nil && executorInput.GetInputs() != nil {
-		values = executorInput.GetInputs().GetParameterValues()
-	}
-	for index, mount := range cfg.GetPvcMount() {
-		if mount == nil {
-			continue
-		}
-		pvcName := resolvePVCNameForMount(mount, values)
-		mountPath := mount.GetMountPath()
-		if pvcName == "" || mountPath == "" {
-			continue
-		}
-		volumeName := fmt.Sprintf("kfp-pvc-%d", index)
-		podSpec.Volumes = append(podSpec.Volumes, corev1.Volume{
-			Name: volumeName,
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: pvcName},
-			},
-		})
-		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, corev1.VolumeMount{
-			Name:      volumeName,
-			MountPath: mountPath,
-			SubPath:   mount.GetSubPath(),
-		})
-	}
-}
-
 func resolvePVCNameForMount(mount *kubernetesplatform.PvcMount, values map[string]*structpb.Value) string {
 	if mount == nil {
 		return ""
 	}
-	if mount.GetConstant() != "" {
-		return mount.GetConstant()
+	if mount.GetConstant() != "" { //nolint:staticcheck // SA1019: support deprecated PVC name fields
+		return mount.GetConstant() //nolint:staticcheck // SA1019
 	}
-	if mount.GetComponentInputParameter() != "" {
-		if value, ok := values[mount.GetComponentInputParameter()]; ok {
+	if mount.GetComponentInputParameter() != "" { //nolint:staticcheck // SA1019: support deprecated PVC name fields
+		if value, ok := values[mount.GetComponentInputParameter()]; ok { //nolint:staticcheck // SA1019
 			return value.GetStringValue()
 		}
 	}

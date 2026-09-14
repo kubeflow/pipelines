@@ -1,3 +1,4 @@
+// Package poc implements the experimental coordinator-managed KFP runtime.
 package poc
 
 import (
@@ -501,7 +502,8 @@ func (c *Coordinator) executeDagComponent(
 					continue
 				}
 			}
-			if taskSpec.GetParameterIterator() != nil {
+			switch {
+			case taskSpec.GetParameterIterator() != nil:
 				if _, err := c.updateTaskState(runtimeTask.TaskID, apiv2beta1.PipelineTask_RUNNING, nil, nil); err != nil {
 					return err
 				}
@@ -518,7 +520,7 @@ func (c *Coordinator) executeDagComponent(
 				if _, err := c.updateTaskState(runtimeTask.TaskID, apiv2beta1.PipelineTask_SUCCEEDED, nil, nil); err != nil {
 					return err
 				}
-			} else if childComponent.GetDag() != nil {
+			case childComponent.GetDag() != nil:
 				if _, err := c.updateTaskState(runtimeTask.TaskID, apiv2beta1.PipelineTask_RUNNING, nil, nil); err != nil {
 					return err
 				}
@@ -533,7 +535,7 @@ func (c *Coordinator) executeDagComponent(
 				if _, err := c.updateTaskState(runtimeTask.TaskID, apiv2beta1.PipelineTask_SUCCEEDED, nil, nil); err != nil {
 					return err
 				}
-			} else {
+			default:
 				if err := c.executeRuntimeTask(ctx, item, executor, runtimeTask, taskSpec, childComponent, taskInputs, forceExecute); err != nil {
 					return err
 				}
@@ -1419,18 +1421,6 @@ func shouldDownloadImporterArtifactToWorkspace(workspace *WorkspaceHandle) bool 
 	return workspace != nil && workspace.Type == WorkspaceTypeHostPath
 }
 
-func taskTypeAttributesDownloadToWorkspace(typeAttrs model.JSONData) bool {
-	if typeAttrs == nil {
-		return false
-	}
-	value, ok := typeAttrs["downloadToWorkspace"]
-	if !ok {
-		return false
-	}
-	boolValue, ok := value.(bool)
-	return ok && boolValue
-}
-
 func taskTypeAttributes(
 	task *pipelinespec.PipelineTaskSpec,
 	importerSpec *pipelinespec.PipelineDeploymentConfig_ImporterSpec,
@@ -2175,19 +2165,6 @@ func (c *Coordinator) resolveDagOutputParameter(
 	return nil, nil
 }
 
-func (c *Coordinator) lookupTaskOutputParameter(
-	item *queuedRun,
-	scopePath string,
-	producerSubtask string,
-	outputParameterKey string,
-) (*structpb.Value, error) {
-	producerTask, err := c.lookupRuntimeTaskBySubtask(item, scopePath, producerSubtask)
-	if err != nil {
-		return nil, err
-	}
-	return c.lookupTaskOutputParameterByRuntimeTask(producerTask, outputParameterKey)
-}
-
 func (c *Coordinator) lookupTaskOutputParameterInScope(
 	item *queuedRun,
 	scopePath string,
@@ -2272,23 +2249,6 @@ func (c *Coordinator) resolveDagOutputArtifacts(
 		}
 	}
 	return producerTask, filtered, nil
-}
-
-func (c *Coordinator) lookupRuntimeTaskBySubtask(
-	item *queuedRun,
-	scopePath string,
-	producerSubtask string,
-) (RuntimeTask, error) {
-	parentScope := scopePath
-	if parent := parentScopePath(scopePath); parent != "" {
-		parentScope = parent
-	}
-	producerScope := util.StringPathToDotNotation([]string{parentScope, producerSubtask})
-	runtimeTask, ok := item.runtimeManifest.taskByScope(producerScope)
-	if !ok {
-		return RuntimeTask{}, fmt.Errorf("producer subtask %q not found for scope %q", producerSubtask, scopePath)
-	}
-	return runtimeTask, nil
 }
 
 func (c *Coordinator) lookupRuntimeTaskInScope(
@@ -2515,10 +2475,6 @@ func parentScopePath(scopePath string) string {
 		return ""
 	}
 	return util.StringPathToDotNotation(segments[:len(segments)-1])
-}
-
-func sanitizePath(scopePath string) string {
-	return strings.ReplaceAll(scopePath, ".", "_")
 }
 
 func taskStateForRunState(runState model.RuntimeState) apiv2beta1.PipelineTask_TaskState {

@@ -278,9 +278,9 @@ func TestGenerateFingerPrint(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		name        string
-		cacheKey    *cachekey.CacheKey
-		wantEqual   bool
+		name      string
+		cacheKey  *cachekey.CacheKey
+		wantEqual bool
 	}{
 		{
 			name: "Generated Same FingerPrint",

@@ -604,7 +604,7 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 		ExperimentId: exp.UUID,
 	}
 	runDetail, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	return store, manager, runDetail
 }
 

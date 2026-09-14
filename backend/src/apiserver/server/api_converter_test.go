@@ -3123,7 +3123,7 @@ func TestToModelRun(t *testing.T) {
 				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
 				State:          apiv2beta1.RuntimeState_FAILED,
 				Error:          util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-				RunDetails: &apiv2beta1.RunDetails{
+				RunDetails: &apiv2beta1.RunDetails{ //nolint:staticcheck // SA1019: verifies deprecated run details conversion
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},

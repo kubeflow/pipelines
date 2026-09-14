@@ -19,7 +19,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	compiler "github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	drivercommon "github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -1791,7 +1790,7 @@ func TestBuildCoordinatorExecutorPodAppliesPodMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, pod)
 	assert.Equal(t, "annotation", pod.Annotations["task-annotation"])
-	assert.Equal(t, commonutil.AnnotationValueIstioSidecarInjectDisabled, pod.Annotations[commonutil.AnnotationKeyIstioSidecarInject])
+	assert.Equal(t, util.AnnotationValueIstioSidecarInjectDisabled, pod.Annotations[util.AnnotationKeyIstioSidecarInject])
 	assert.Equal(t, "label-1", pod.Labels["task-label-1"])
 	assert.Equal(t, "label-2", pod.Labels["task-label-2"])
 	assert.Equal(t, "run-id", pod.Labels["pipelines.kubeflow.org/run_id"])
@@ -1820,7 +1819,7 @@ func TestBuildCoordinatorExecutorPodPreservesIstioInjectionAnnotation(t *testing
 		KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			PodMetadata: &kubernetesplatform.PodMetadata{
 				Annotations: map[string]string{
-					commonutil.AnnotationKeyIstioSidecarInject: commonutil.AnnotationValueIstioSidecarInjectEnabled,
+					util.AnnotationKeyIstioSidecarInject: util.AnnotationValueIstioSidecarInjectEnabled,
 				},
 			},
 		},
@@ -1830,7 +1829,7 @@ func TestBuildCoordinatorExecutorPodPreservesIstioInjectionAnnotation(t *testing
 	})
 	require.NoError(t, err)
 	require.NotNil(t, pod)
-	assert.Equal(t, commonutil.AnnotationValueIstioSidecarInjectEnabled, pod.Annotations[commonutil.AnnotationKeyIstioSidecarInject])
+	assert.Equal(t, util.AnnotationValueIstioSidecarInjectEnabled, pod.Annotations[util.AnnotationKeyIstioSidecarInject])
 }
 
 func TestSupportsPipelineJobAcceptsCoordinatorFixtures(t *testing.T) {

@@ -14,8 +14,8 @@
 # limitations under the License.
 """Regression tests for centralized Modelcar fixture image wiring."""
 
-import unittest
 from pathlib import Path
+import unittest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 E2E_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/e2e-test.yml'

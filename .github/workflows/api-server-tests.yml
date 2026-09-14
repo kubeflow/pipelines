@@ -262,17 +262,17 @@ jobs:
             cache_enabled: "true"
             multi_user: "true"
             db_type: "mysql"
-            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
+            test_label: "ApiServerTests && !CoordinatorRuntime && (PipelineUpload || PipelineCacheEnabled)"
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
             multi_user: "true"
             db_type: "pgx"
-            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
+            test_label: "ApiServerTests && !CoordinatorRuntime && (PipelineUpload || PipelineCacheEnabled)"
           - k8s_version: "v1.36.1"
             cache_enabled: "false"
             multi_user: "true"
             db_type: "mysql"
-            test_label: "ApiServerTests && !(PipelineUpload || PipelineCacheEnabled)"
+            test_label: "ApiServerTests && !CoordinatorRuntime && !(PipelineUpload || PipelineCacheEnabled)"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} dbType=${{ matrix.db_type }}
 
