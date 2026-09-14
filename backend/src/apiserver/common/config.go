@@ -64,6 +64,8 @@ const (
 	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"
 	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
 	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
+	ArgoWorkflowControllerConfigMap         string = "ARGO_WORKFLOW_CONTROLLER_CONFIGMAP"
+	ArgoWorkflowControllerNamespace         string = "ARGO_WORKFLOW_CONTROLLER_NAMESPACE"
 
 	// Run garbage collection configuration keys.
 	// Disabled by default (zero values).
@@ -88,6 +90,14 @@ type PluginLimitsConfig struct {
 // while the run record is being written.
 func GetWorkflowGCGracePeriodSeconds() int {
 	return GetIntConfigWithDefault(WorkflowGCGracePeriodSeconds, 120)
+}
+
+func GetArgoWorkflowControllerConfigMap() string {
+	return GetStringConfigWithDefault(ArgoWorkflowControllerConfigMap, "workflow-controller-configmap")
+}
+
+func GetArgoWorkflowControllerNamespace() string {
+	return GetStringConfigWithDefault(ArgoWorkflowControllerNamespace, GetPodNamespace())
 }
 
 func IsPipelineVersionUpdatedByDefault() bool {
