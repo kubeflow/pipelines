@@ -2007,23 +2007,36 @@ func LocalPathForURI(uri string) (string, error) {
 	rootPath := os.Getenv("ARTIFACT_LOCAL_PATH")
 
 	if strings.HasPrefix(uri, "gs://") {
-		return fmt.Sprintf("%s/gcs/", rootPath) + strings.TrimPrefix(uri, "gs://"), nil
+		return localPathWithinSchemeRoot(rootPath, "gcs", strings.TrimPrefix(uri, "gs://"), uri)
 	}
 	if strings.HasPrefix(uri, "minio://") {
-		return fmt.Sprintf("%s/minio/", rootPath) + strings.TrimPrefix(uri, "minio://"), nil
+		return localPathWithinSchemeRoot(rootPath, "minio", strings.TrimPrefix(uri, "minio://"), uri)
 	}
 	if strings.HasPrefix(uri, "s3://") {
-		return fmt.Sprintf("%s/s3/", rootPath) + strings.TrimPrefix(uri, "s3://"), nil
+		return localPathWithinSchemeRoot(rootPath, "s3", strings.TrimPrefix(uri, "s3://"), uri)
 	}
 	if strings.HasPrefix(uri, "file:///") || strings.HasPrefix(uri, "file://") {
 		trimmedURI := strings.TrimPrefix(uri, "file:///")
 		trimmedURI = strings.TrimPrefix(trimmedURI, "file://")
-		return fmt.Sprintf("%s/file/", rootPath) + trimmedURI, nil
+		return localPathWithinSchemeRoot(rootPath, "file", trimmedURI, uri)
 	}
 	if strings.HasPrefix(uri, "oci://") {
 		return fmt.Sprintf("%s/oci/", rootPath) + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
+}
+
+func localPathWithinSchemeRoot(rootPath, scheme, uriPath, uri string) (string, error) {
+	if rootPath == "" {
+		rootPath = string(filepath.Separator)
+	}
+	schemeRoot := filepath.Join(rootPath, scheme)
+	localPath := filepath.Join(schemeRoot, filepath.FromSlash(uriPath))
+	relativePath, err := filepath.Rel(schemeRoot, localPath)
+	if err != nil || relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("failed to generate local path for URI %s: path escapes artifact root", uri)
+	}
+	return localPath, nil
 }
 
 func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error) {
@@ -2044,7 +2057,8 @@ func CompileCommandAndArgs(
 	args []string,
 ) ([]string, []string, error) {
 	if len(command) == 0 {
-		return nil, append([]string{}, args...), nil
+		_, compiledArgs, err := compileCmdAndArgs(executorInput, "", args)
+		return nil, compiledArgs, err
 	}
 	compiledCommand, compiledArgs, err := compileCmdAndArgs(executorInput, command[0], append(append([]string{}, command[1:]...), args...))
 	if err != nil {

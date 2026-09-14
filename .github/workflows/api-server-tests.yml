@@ -531,8 +531,6 @@ jobs:
         uses: ./.github/actions/test-and-report
         id: test-run
         if: ${{ steps.deploy.outcome == 'success' }}
-        env:
-          LOCAL_API_SERVER: "true"
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.API_TESTS_DIR }}

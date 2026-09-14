@@ -179,6 +179,7 @@ if ! curl -fsS "http://127.0.0.1:${API_SERVER_HTTP_PORT}/apis/v2beta1/healthz" >
 fi
 
 export LOCAL_API_SERVER=true
+export KFP_LOCAL_DOCKER_E2E=true
 export LOCAL_API_SERVER_SDK_PACKAGE_PATH="/kfp-local-sdk/$(basename "${SDK_WHEEL_PATH}")"
 export KFP_LOCAL_PIPELINE_ROOT="file://${ARTIFACT_BUCKET_ROOT}/v2/artifacts"
 

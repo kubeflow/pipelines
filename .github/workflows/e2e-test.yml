@@ -730,7 +730,6 @@ jobs:
         if: ${{ steps.configure.outcome == 'success' }}
         id: test-run
         env:
-          LOCAL_API_SERVER: "true"
           MULTI_USER: ${{ matrix.multi_user }}
         with:
           multi_user: ${{ matrix.multi_user }}

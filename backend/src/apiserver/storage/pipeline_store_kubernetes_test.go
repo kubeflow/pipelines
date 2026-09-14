@@ -478,7 +478,7 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 }
 
-func TestListK8sPipelineVersions_FallsBackToNoCacheWhenCacheIsStale(t *testing.T) {
+func TestListK8sPipelineVersions_UsesNoCacheWhenCacheIsPartiallyStale(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
 	defer viper.Set("POD_NAMESPACE", podNamespace)
@@ -515,14 +515,18 @@ func TestListK8sPipelineVersions_FallsBackToNoCacheWhenCacheIsStale(t *testing.T
 			PipelineSpec: getBasicPipelineSpec(),
 		},
 	}
+	cachedPipelineVersion := pipelineVersion.DeepCopy()
+	cachedPipelineVersion.Name = "test-pipeline-version-cached"
+	cachedPipelineVersion.UID = "123e4567-e89b-12d3-a456-426655440001"
+	cachedPipelineVersion.Spec.DisplayName = "test-pipeline-version-cached"
 
 	cacheClient := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(pipeline).
+		WithObjects(pipeline, cachedPipelineVersion).
 		Build()
 	noCacheClient := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(pipeline, pipelineVersion).
+		WithObjects(pipeline, cachedPipelineVersion, pipelineVersion).
 		Build()
 
 	store := NewPipelineStoreKubernetes(cacheClient, noCacheClient)
@@ -530,8 +534,11 @@ func TestListK8sPipelineVersions_FallsBackToNoCacheWhenCacheIsStale(t *testing.T
 
 	pipelineVersions, _, _, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
 	require.NoError(t, err)
-	require.Len(t, pipelineVersions, 1)
-	assert.Equal(t, "test-pipeline-version-stale", pipelineVersions[0].Name)
+	require.Len(t, pipelineVersions, 2)
+	assert.ElementsMatch(t, []string{
+		"test-pipeline-version-cached",
+		"test-pipeline-version-stale",
+	}, []string{pipelineVersions[0].Name, pipelineVersions[1].Name})
 }
 
 func TestCreatePipelineAndPipelineVersion(t *testing.T) {

@@ -671,14 +671,17 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 		listOptions = append(listOptions, ctrlclient.MatchingLabels{"pipelines.kubeflow.org/pipeline-id": pipelineId})
 	}
 
-	err := k.client.List(ctx, &pipelineVersions, listOptions...)
+	listClient := k.client
+	pipelineScopedListing := pipelineVersionId == "" && pipelineId != ""
+	if pipelineScopedListing {
+		listClient = k.clientNoCache
+	}
+	err := listClient.List(ctx, &pipelineVersions, listOptions...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "%s", errMsg)
 	}
 
-	// For pipeline-scoped listing, the cache can lag immediately after creating a version CR.
-	// Fall back to the non-cached client if the cached list is empty.
-	if pipelineVersionId == "" && (pipelineId == "" || len(pipelineVersions.Items) > 0) {
+	if pipelineVersionId == "" {
 		return &pipelineVersions, nil
 	}
 

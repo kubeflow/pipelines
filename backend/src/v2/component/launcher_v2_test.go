@@ -642,6 +642,23 @@ func TestLocalPathForURI_FileSchemes(t *testing.T) {
 	}
 }
 
+func TestLocalPathForURI_RejectsTraversal(t *testing.T) {
+	t.Setenv("ARTIFACT_LOCAL_PATH", t.TempDir())
+
+	for _, uri := range []string{
+		"file:///../../outside",
+		"gs://../../outside",
+		"minio://../../outside",
+		"s3://../../outside",
+	} {
+		t.Run(uri, func(t *testing.T) {
+			_, err := LocalPathForURI(uri)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "path escapes artifact root")
+		})
+	}
+}
+
 // TestLauncherV2_ArtifactHandling demonstrates testing artifact download and upload
 func TestLauncherV2_ArtifactHandling(t *testing.T) {
 	// Setup
@@ -1147,6 +1164,25 @@ func Test_compileCmdAndArgs_ReplacesCommandAndComplexArgsPlaceholders(t *testing
 		`--items=["a","b"]`,
 		`--config={"alpha":"beta"}`,
 	}, args)
+}
+
+func TestCompileCommandAndArgs_ResolvesArgsWithoutCommand(t *testing.T) {
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"message": structpb.NewStringValue("hello"),
+			},
+		},
+	}
+
+	command, args, err := CompileCommandAndArgs(
+		executorInput,
+		nil,
+		[]string{"--message={{$.inputs.parameters['message']}}"},
+	)
+	require.NoError(t, err)
+	assert.Nil(t, command)
+	assert.Equal(t, []string{"--message=hello"}, args)
 }
 
 func Test_compileCmdAndArgs_CollectedArtifacts(t *testing.T) {

@@ -96,7 +96,7 @@ func CheckIfSkipping(stringValue string) {
 	}
 
 	// Skip Kubernetes-specific pipelines when validating the local Docker executor path.
-	if os.Getenv("LOCAL_API_SERVER") == "true" {
+	if os.Getenv("KFP_LOCAL_DOCKER_E2E") == "true" {
 		for _, pipelineName := range []string{
 			"pipeline_with_secret_as_env",
 			"parallel_for_secret",
@@ -126,6 +126,8 @@ func WriteLogFile(specReport types.SpecReport, testName, logDirectory string) {
 		`|`, "_",
 		`*`, "_",
 		`?`, "_",
+		`/`, "_",
+		`\`, "_",
 		"\r", "_",
 		"\n", "_",
 	).Replace(testName)

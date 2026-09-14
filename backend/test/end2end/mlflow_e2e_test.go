@@ -124,7 +124,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs, pluginsInput,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateSUCCEEDED,
 				run_model.V2beta1RuntimeStateFAILED,
@@ -176,7 +176,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs, pluginsInput,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateSUCCEEDED,
 			}, &timeout)
@@ -230,7 +230,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs, pluginsInput,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateSUCCEEDED,
 				run_model.V2beta1RuntimeStateFAILED,
@@ -277,7 +277,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateSUCCEEDED,
 				run_model.V2beta1RuntimeStateFAILED,
@@ -315,7 +315,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs, pluginsInput,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateSUCCEEDED,
 				run_model.V2beta1RuntimeStateFAILED,
@@ -350,7 +350,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs, pluginsInput,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateSUCCEEDED,
 				run_model.V2beta1RuntimeStateFAILED,
@@ -429,7 +429,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs, pluginsInput,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateFAILED,
 			}, &timeout)
@@ -475,7 +475,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs, pluginsInput,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateFAILED,
 			}, &timeout)
@@ -509,7 +509,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 					}
 				}
 				return false
-			}, timeout*time.Second, 5*time.Second).Should(BeTrue(),
+			}, timeout, 5*time.Second).Should(BeTrue(),
 				"Retried pipeline run should record a RUNNING state after retry")
 
 			retriedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
@@ -555,7 +555,7 @@ var _ = Describe("MLflow Integration >", Label(MLflow, FullRegression), func() {
 				runClient, testContext, &pipelineID, &versionID, experimentID, pipelineRuntimeInputs, pluginsInput,
 			)
 
-			timeout := time.Duration(maxPipelineWaitTime)
+			timeout := time.Duration(maxPipelineWaitTime) * time.Second
 			testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
 				run_model.V2beta1RuntimeStateSUCCEEDED,
 			}, &timeout)

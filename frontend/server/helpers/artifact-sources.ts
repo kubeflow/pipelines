@@ -50,5 +50,8 @@ export function artifactProviderForSource(source: LauncherArtifactSource): Artif
 
 export function buildArtifactUri(source: string, bucket: string, key: string): string {
   const scheme = source === 'gcs' ? 'gs' : source;
+  if (scheme === 'file') {
+    return `file:///${bucket}/${key}`;
+  }
   return `${scheme}://${bucket}/${key}`;
 }
