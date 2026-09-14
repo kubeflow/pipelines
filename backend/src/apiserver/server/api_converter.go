@@ -38,25 +38,20 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// transientNodeMessages are messages set by Kubernetes during normal pod
-// startup. They do not indicate a failure and should not be surfaced.
+// transientNodeMessages are set by Kubernetes during normal pod startup and do not indicate failure.
 var transientNodeMessages = map[string]bool{
 	"PodInitializing":   true,
 	"ContainerCreating": true,
 }
 
-// terminalSuccessStates are node states for which any message is irrelevant
-// because the node completed successfully.
+// terminalSuccessStates are states for which any node message is irrelevant.
 var terminalSuccessStates = map[string]bool{
 	"Succeeded": true,
 	"Skipped":   true,
 	"Omitted":   true,
 }
 
-// normalizeLifecycleMessage returns the node message if it represents a
-// meaningful lifecycle diagnostic. It returns empty for transient startup
-// messages (PodInitializing, ContainerCreating) and for nodes that have
-// reached a terminal success state.
+// normalizeLifecycleMessage filters out transient startup messages and messages from successful nodes.
 func normalizeLifecycleMessage(message string, state string) string {
 	if transientNodeMessages[message] {
 		return ""
@@ -67,10 +62,8 @@ func normalizeLifecycleMessage(message string, state string) string {
 	return message
 }
 
-// resolveNodeLifecycleMessages walks the node graph and resolves lifecycle
-// messages. For each node, the resolved message is its own normalized message
-// if non-empty, otherwise the first non-empty message from any child. This
-// propagates executor-pod failure messages up to parent task nodes.
+// resolveNodeLifecycleMessages propagates executor-pod failure messages up to parent task nodes.
+// Each node gets its own message if non-empty, otherwise the first non-empty message from a child.
 func resolveNodeLifecycleMessages(nodes map[string]util.NodeStatus) map[string]string {
 	resolved := make(map[string]string, len(nodes))
 	onStack := make(map[string]bool)

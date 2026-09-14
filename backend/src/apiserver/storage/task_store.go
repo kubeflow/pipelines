@@ -646,7 +646,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		Insert(q(tableName)).
 		SetMap(
 			sq.Eq{
-			q("UUID"):              newTask.UUID,
+				q("UUID"):              newTask.UUID,
 				q("Namespace"):         newTask.Namespace,
 				q("RunUUID"):           newTask.RunUUID,
 				q("pods"):              podsString,
