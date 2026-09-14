@@ -5,11 +5,10 @@ metadata:
     app: ml-pipeline-ui
   name: ml-pipeline-ui
 spec:
+  # First adoption must stop pods using old keys before starting shared-key pods.
+  # Enable rolling updates after migration; see the server configuration guide.
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    type: Recreate
   selector:
     matchLabels:
       app: ml-pipeline-ui

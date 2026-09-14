@@ -131,8 +131,11 @@ The frontend signs scoped TensorBoard proxy paths with
 `TENSORBOARD_PROXY_SIGNING_SECRET`. The default Kustomize installation initializes
 a dedicated random key in the `ml-pipeline-ui-tensorboard-proxy` Secret and
 injects its `signing-secret` field into every UI replica. The UI uses
-`RollingUpdate` with `maxUnavailable: 0`, so upgrades can keep serving requests
-while a replacement pod becomes ready. Allow capacity for one additional UI pod.
+`Recreate` by default so the first upgrade cannot serve requests through old and
+new UI pods with incompatible signing keys. During Deployment upgrades,
+[Kubernetes waits for old pods to terminate before creating replacements](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#recreate-deployment).
+After adopting the shared key, operators can
+[enable rolling UI updates](#enabling-rolling-ui-updates).
 
 A separate initialization Job generates the key only if the field is absent.
 It preserves existing keys, including operator-provided keys, and concurrent
@@ -182,17 +185,60 @@ refuses to start if the configured signing secret is shorter than 32 UTF-8 bytes
 or matches `MINIO_SECRET_KEY`.
 
 **Upgrade and rotation:** the first upgrade from a storage-derived or
-process-local key invalidates existing TensorBoard proxy URLs. Reopen TensorBoard
-from the UI to obtain a new URL. Subsequent UI restarts and rolling updates keep
-URLs valid while the shared key remains unchanged. Deliberately replacing or
-losing the Secret invalidates existing URLs again. After manual rotation,
-restart every UI replica to load the new value; use a coordinated restart to
-avoid serving with different keys during the transition.
+process-local key briefly interrupts the UI and invalidates existing TensorBoard
+proxy URLs. Wait for the upgrade to complete, then reopen TensorBoard from the
+UI to obtain a new URL. Subsequent UI restarts and rolling updates keep URLs
+valid while the shared key remains unchanged. Deliberately replacing or losing
+the Secret invalidates existing URLs again. After manual rotation, restart every
+UI replica to load the new value; use a coordinated restart to avoid serving
+with different keys during the transition.
 
 Outside the default manifests, leaving `TENSORBOARD_PROXY_SIGNING_SECRET` unset
 still generates a process-local key. This supports local development, but URLs
 expire on process restart and replicas cannot share URLs. Configure a shared key
 before enabling multiple replicas or rolling updates in custom deployments.
+
+#### Enabling rolling UI updates
+
+Adopt the shared key and enable rolling updates in two separate apply or GitOps
+sync phases. Keep the same shared-key revision throughout both phases.
+
+First, remove any existing rolling-update overrides and apply the shared-key
+revision with `Recreate`. If `spec.strategy.rollingUpdate` was explicitly
+configured, remove that field as well or replace the entire strategy with
+`{type: Recreate}`. Wait for the rollout to complete for your installation's UI
+Deployment and namespace; for the default `kubeflow` installation:
+
+```bash
+kubectl -n kubeflow rollout status deployment/ml-pipeline-ui
+```
+
+Only after that command succeeds and every UI pod uses the shared key, add this
+override to your installation's `kustomization.yaml` and apply the same revision
+again:
+
+```yaml
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: ml-pipeline-ui
+    patch: |-
+      - op: replace
+        path: /spec/strategy
+        value:
+          type: RollingUpdate
+          rollingUpdate:
+            maxUnavailable: 0
+            maxSurge: 1
+```
+
+For GitOps, complete the first sync and wait for the UI rollout before starting
+the second sync with this override. Do not combine the phases or enable rolling
+updates while adoption is in progress: old and shared-key UI pods must not
+overlap during the first migration. Keep the override for future upgrades and
+allow capacity for one additional UI pod.
 
 ## Proxy
 

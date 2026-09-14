@@ -473,13 +473,14 @@
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
       "name": "KFP Manifests",
-      "header_sha256": "67309d3b37fb06ed73f641dc3de3505143d0a7a6c278f363707a4be69b01b5dc",
+      "header_sha256": "11c6ddce6b7ab467eb789df790d1b9a1134e9d3514ad417e2a9466c019ddf83a",
       "pull_request": {
         "paths": [
           ".github/workflows/kubeflow-pipelines-manifests.yml",
           "manifests/kustomize/**",
           "!**/*.md",
-          "!**/OWNERS"
+          "!**/OWNERS",
+          "docs/operator-guides/server-config.md"
         ]
       }
     },
