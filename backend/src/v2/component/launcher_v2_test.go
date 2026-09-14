@@ -918,3 +918,28 @@ func Test_retrieve_artifact_path(t *testing.T) {
 		})
 	}
 }
+
+func TestCompileCmdAndArgs_NestedPlaceholders(t *testing.T) {
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"dask_config":                  structpb.NewStringValue(`{"pvc_name": "{{$.inputs.parameters['pipelinechannel--volume_name']}}"}`),
+				"pipelinechannel--volume_name": structpb.NewStringValue("my-pvc-volume"),
+			},
+		},
+	}
+
+	args := []string{
+		"--config={{$.inputs.parameters['dask_config']}}",
+	}
+
+	// Loop 100 times to guarantee map order randomization doesn't mask failures
+	for i := 0; i < 100; i++ {
+		_, compiledArgs, err := compileCmdAndArgs(executorInput, "", args)
+		assert.NoError(t, err)
+		assert.Len(t, compiledArgs, 1)
+
+		expectedArg := `--config={"pvc_name": "my-pvc-volume"}`
+		assert.Equal(t, expectedArg, compiledArgs[0], "Nested placeholder failed to resolve due to map order randomization!")
+	}
+}
