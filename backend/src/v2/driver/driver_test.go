@@ -19,18 +19,28 @@ import (
 	"fmt"
 	"testing"
 
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
+	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 )
 
 func Test_resolveContainerCommandAndArgs_OptionalParameterDefault(t *testing.T) {
@@ -95,7 +105,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 		componentSpec    *pipelinespec.ComponentSpec
 		executorInput    *pipelinespec.ExecutorInput
-		executionID      int64
+		executionID      string
 		pipelineName     string
 		runID            string
 		pipelineLogLevel string
@@ -139,7 +149,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -180,7 +190,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -221,7 +231,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -262,7 +272,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -303,7 +313,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -323,6 +333,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.componentSpec,
 				tt.args.executorInput,
 				tt.args.executionID,
+				"",
 				tt.args.pipelineName,
 				tt.args.runID,
 				"my-run-name",
@@ -330,14 +341,14 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.publishLogs,
 				"false",
 				taskConfig,
-				false,
+				"",
+				nil,
+				"",
 				false,
 				"",
 				"ml-pipeline.kubeflow",
 				"8887",
-				"metadata-grpc-service.kubeflow.svc.local",
-				"8080",
-				map[string]string{},
+				nil,
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -446,7 +457,8 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		containerSpec,
 		componentSpec,
 		executorInput,
-		27,
+		"27",
+		"",
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"my-run-name",
@@ -454,14 +466,14 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
-		false,
+		"",
+		nil,
+		"",
 		false,
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -501,7 +513,8 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		containerSpec,
 		componentSpec,
 		executorInput,
-		27,
+		"27",
+		"",
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"my-run-name",
@@ -509,14 +522,14 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
-		false,
+		"",
+		nil,
+		"",
 		false,
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -558,7 +571,8 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		containerSpec,
 		componentSpec,
 		executorInput,
-		27,
+		"27",
+		"",
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"my-run-name",
@@ -566,14 +580,14 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
-		false,
+		"",
+		nil,
+		"",
 		false,
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
+		nil,
 	)
 	assert.Nil(t, err)
 
@@ -646,7 +660,8 @@ func Test_initPodSpecPatch_modelcarDoesNotInheritMLflowCredentialEnvVars(t *test
 		containerSpec,
 		componentSpec,
 		executorInput,
-		27,
+		"27",
+		"",
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"my-run-name",
@@ -654,13 +669,13 @@ func Test_initPodSpecPatch_modelcarDoesNotInheritMLflowCredentialEnvVars(t *test
 		"false",
 		"false",
 		taskConfig,
-		false,
+		"",
+		nil,
+		"",
 		false,
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
 		pluginEnvVars,
 	)
 	require.NoError(t, err)
@@ -700,10 +715,9 @@ func Test_initPodSpecPatch_modelcarDoesNotInheritMLflowCredentialEnvVars(t *test
 func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 	podSpec, err := initPodSpecPatch(
 		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{},
-		&pipelinespec.ComponentSpec{},
-		&pipelinespec.ExecutorInput{},
-		// executorInput,
-		27,
+		&pipelinespec.ComponentSpec{}, &pipelinespec.ExecutorInput{},
+		"27",
+		"",
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"my-run-name",
@@ -711,14 +725,14 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"true",
 		"false",
 		nil,
-		false,
+		"",
+		nil,
+		"",
 		false,
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
+		nil,
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -738,7 +752,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 		container        *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
 		componentSpec    *pipelinespec.ComponentSpec
 		executorInput    *pipelinespec.ExecutorInput
-		executionID      int64
+		executionID      string
 		pipelineName     string
 		runID            string
 		pipelineLogLevel string
@@ -779,7 +793,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -817,7 +831,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 					},
 				},
 				nil,
-				1,
+				"1",
 				"MyPipeline",
 				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
 				"1",
@@ -836,6 +850,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.componentSpec,
 				tt.args.executorInput,
 				tt.args.executionID,
+				"",
 				tt.args.pipelineName,
 				tt.args.runID,
 				"my-run-name",
@@ -843,14 +858,14 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.publishLogs,
 				"false",
 				taskConfig,
-				false,
+				"",
+				nil,
+				"",
 				false,
 				"",
 				"ml-pipeline.kubeflow",
 				"8887",
-				"metadata-grpc-service.kubeflow.svc.local",
-				"8080",
-				map[string]string{},
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -894,27 +909,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 	executorInput := &pipelinespec.ExecutorInput{}
 
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"0254beba-0be4-4065-8d97-7dc5e3adf300",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-		"ml-pipeline.kubeflow",
-		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
 	assert.Len(t, podSpec.Containers, 1)
@@ -962,28 +957,9 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 			},
 		},
 	}
+	require.NoError(t, err)
 
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"0254beba-0be4-4065-8d97-7dc5e3adf300",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		nil,
-		false,
-		false,
-		"",
-		"ml-pipeline.kubeflow",
-		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "0254beba-0be4-4065-8d97-7dc5e3adf300", "my-run-name", "1", "false", "false", nil, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	require.Nil(t, err)
 
 	expectedExecutorInput := map[string]interface{}{
@@ -998,18 +974,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 			},
 		},
 	}
-	expectedComponentSpec := map[string]interface{}{
-		"executorLabel": "exec-exit-op",
-		"inputDefinitions": map[string]interface{}{
-			"parameters": map[string]interface{}{
-				"status": map[string]interface{}{
-					"parameterType": "TASK_FINAL_STATUS",
-				},
-			},
-		},
-	}
 	actualExecutorInput := map[string]interface{}{}
-	actualComponentSpec := map[string]interface{}{}
 
 	for i, arg := range podSpec.Containers[0].Command {
 		if arg == "--executor_input" {
@@ -1017,14 +982,14 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 			fmt.Println(podSpec.Containers[0].Command[i+1])
 			require.Nil(t, err)
 		}
-		if arg == "--component_spec" {
-			err := json.Unmarshal([]byte(podSpec.Containers[0].Command[i+1]), &actualComponentSpec)
-			require.Nil(t, err)
-		}
 	}
 
 	assert.Equal(t, expectedExecutorInput, actualExecutorInput)
-	assert.Equal(t, expectedComponentSpec, actualComponentSpec)
+
+	// Verify component spec is not passed to the launcher (it's not needed in current implementation)
+	for _, arg := range podSpec.Containers[0].Command {
+		assert.NotEqual(t, "--component_spec", arg, "component_spec should not be in launcher command")
+	}
 }
 
 func TestNeedsWorkspaceMount(t *testing.T) {
@@ -1168,27 +1133,7 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	_, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run-id",
-		"", // runName intentionally empty
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-		"ml-pipeline.kubeflow",
-		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
-	)
+	_, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run-id", "", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	require.NotNil(t, err)
 }
 
@@ -1299,11 +1244,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metadata-grpc-service.kubeflow.svc.local", "8080",
-		map[string]string{},
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	assert.Nil(t, err)
 
 	// Should not mount workspace to pod (no volumes on pod), only capture to TaskConfig
@@ -1343,11 +1284,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 		},
 	}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metatadata-grpc-service.kubeflow.svc.local", "8080",
-		map[string]string{},
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
 	assert.NotEmpty(t, podSpec.Volumes)
@@ -1415,9 +1352,26 @@ func TestWorkspaceMount_TriggeredByArtifactMetadata(t *testing.T) {
 
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
-		containerSpec, componentSpec, execInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "", "ml-pipeline.kubeflow", "8887", "metadata-grpc-service.kubeflow.svc.local", "8080",
-		map[string]string{},
+		containerSpec,
+		componentSpec,
+		execInput,
+		"27",
+		"",
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		taskCfg,
+		"",
+		nil,
+		"",
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		nil,
 	)
 	assert.Nil(t, err)
 
@@ -1461,36 +1415,177 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 	}
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
+	assert.Nil(t, err)
+
+	// User-defined env should be captured to TaskConfig only, not applied to pod
+	// However, KFP env vars (KFP_POD_NAME, KFP_POD_UID, NAMESPACE) are always added to pod
+	assert.Len(t, podSpec.Containers[0].Env, 3)
+
+	// Verify KFP env vars are present in pod
+	kfpEnvVars := make(map[string]bool)
+	for _, env := range podSpec.Containers[0].Env {
+		kfpEnvVars[env.Name] = true
+	}
+	assert.True(t, kfpEnvVars["KFP_POD_NAME"])
+	assert.True(t, kfpEnvVars["KFP_POD_UID"])
+	assert.True(t, kfpEnvVars["NAMESPACE"])
+
+	// Verify user-defined FOO env is NOT in pod spec
+	assert.False(t, kfpEnvVars["FOO"])
+
+	// Verify user-defined env is captured in TaskConfig
+	if assert.Len(t, taskCfg.Env, 1) {
+		assert.Equal(t, "FOO", taskCfg.Env[0].Name)
+		assert.Equal(t, "bar", taskCfg.Env[0].Value)
+	}
+}
+
+func Test_initPodSpecPatch_RejectsReservedRuntimeEnvVar(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image: "python:3.11",
+		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
+			Name:  "NAMESPACE",
+			Value: "user-controlled",
+		}},
+	}
+
+	_, err := initPodSpecPatch(
 		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		"27",
+		"",
 		"test",
 		"run",
 		"my-run-name",
 		"1",
 		"false",
 		"false",
-		taskCfg,
-		false,
+		&TaskConfig{},
+		"",
+		nil,
+		"",
 		false,
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
+		nil,
 	)
-	assert.Nil(t, err)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+}
 
-	// Env should be captured to TaskConfig only, not applied to pod
-	assert.Empty(t, podSpec.Containers[0].Env)
+func Test_extendPodSpecPatch_RejectsReservedSecretEnvVar(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	podSpec, err := initPodSpecPatch(
+		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"},
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		"27",
+		"",
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		&TaskConfig{},
+		"",
+		nil,
+		"",
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		nil,
+	)
+	require.NoError(t, err)
 
-	if assert.Len(t, taskCfg.Env, 1) {
-		assert.Equal(t, "FOO", taskCfg.Env[0].Name)
-		assert.Equal(t, "bar", taskCfg.Env[0].Value)
-	}
+	err = extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		common.Options{
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsEnv: []*kubernetesplatform.SecretAsEnv{{
+					SecretName: "my-secret",
+					KeyToEnv: []*kubernetesplatform.SecretAsEnv_SecretKeyToEnvMap{{
+						SecretKey: "key",
+						EnvVar:    "KFP_POD_NAME",
+					}},
+				}},
+			},
+		},
+		nil,
+		&TaskConfig{},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+}
+
+func Test_extendPodSpecPatch_RejectsReservedConfigMapAndFieldPathEnvVar(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	podSpec, err := initPodSpecPatch(
+		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.11"},
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		"27",
+		"",
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		&TaskConfig{},
+		"",
+		nil,
+		"",
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		nil,
+	)
+	require.NoError(t, err)
+
+	err = extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		common.Options{
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsEnv: []*kubernetesplatform.ConfigMapAsEnv{{
+					ConfigMapName: "my-config",
+					KeyToEnv: []*kubernetesplatform.ConfigMapAsEnv_ConfigMapKeyToEnvMap{{
+						ConfigMapKey: "key",
+						EnvVar:       "KFP_POD_UID",
+					}},
+				}},
+			},
+		},
+		nil,
+		&TaskConfig{},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+
+	err = extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		common.Options{
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				FieldPathAsEnv: []*kubernetesplatform.FieldPathAsEnv{{
+					Name:      "NAMESPACE",
+					FieldPath: "metadata.annotations['user-namespace']",
+				}},
+			},
+		},
+		nil,
+		&TaskConfig{},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
 }
 
 func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *testing.T) {
@@ -1513,27 +1608,7 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 	}
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-		"ml-pipeline.kubeflow",
-		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	assert.Nil(t, err)
 	// Resources should be both on pod and in TaskConfig
 	assert.NotEmpty(t, podSpec.Containers[0].Resources.Requests)
@@ -1584,9 +1659,8 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 		}},
 	}
 
-	opts := Options{
+	opts := common.Options{
 		PipelineName:             "p",
-		RunID:                    "r",
 		Component:                componentSpec,
 		Container:                containerSpec,
 		KubernetesExecutorConfig: k8sExecCfg,
@@ -1596,37 +1670,14 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 
 	taskCfg := &TaskConfig{}
 
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-		"ml-pipeline.kubeflow",
-		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
 		context.Background(),
 		podSpec,
 		opts,
-		nil,
-		nil,
-		nil,
-		map[string]*structpb.Value{},
+		mapToIOParameters(map[string]*structpb.Value{}),
 		taskCfg,
 	)
 	assert.Nil(t, err)
@@ -1689,9 +1740,8 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 		}},
 	}
 
-	opts := Options{
+	opts := common.Options{
 		PipelineName:             "p",
-		RunID:                    "r",
 		Component:                componentSpec,
 		Container:                containerSpec,
 		KubernetesExecutorConfig: k8sExecCfg,
@@ -1700,37 +1750,14 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 	executorInput := &pipelinespec.ExecutorInput{Inputs: &pipelinespec.ExecutorInput_Inputs{ParameterValues: map[string]*structpb.Value{}}}
 	taskCfg := &TaskConfig{}
 
-	podSpec, err := initPodSpecPatch(
-		containerSpec,
-		componentSpec,
-		executorInput,
-		27,
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		taskCfg,
-		false,
-		false,
-		"",
-		"ml-pipeline.kubeflow",
-		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
-	)
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	assert.Nil(t, err)
 
 	err = extendPodSpecPatch(
 		context.Background(),
 		podSpec,
 		opts,
-		nil,
-		nil,
-		nil,
-		map[string]*structpb.Value{},
+		mapToIOParameters(map[string]*structpb.Value{}),
 		taskCfg,
 	)
 	assert.Nil(t, err)
@@ -1785,27 +1812,28 @@ func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
 
 	customAddress := "custom-ml-pipeline.custom-namespace.svc.cluster.local"
 	customPort := "9999"
-
+	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{},
 		&pipelinespec.ComponentSpec{},
 		&pipelinespec.ExecutorInput{},
-		27,
+		"27",
+		"",
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"my-run-name",
 		"1",
 		"false",
 		"false",
+		taskCfg,
+		"",
 		nil,
-		false,
+		"",
 		false,
 		"",
 		customAddress,
 		customPort,
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
-		map[string]string{},
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
@@ -1830,84 +1858,88 @@ func Test_initPodSpecPatch_mlPipelineServerConfig(t *testing.T) {
 }
 
 func Test_validateNonRoot(t *testing.T) {
+	validOpts := func() common.Options {
+		return common.Options{
+			PipelineName: "pipeline-1",
+			Run:          &apiv2beta1.Run{RunId: "run-1"},
+			Component:    &pipelinespec.ComponentSpec{},
+			Task:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
+			ParentTask:   &apiv2beta1.PipelineTask{TaskId: "parent-task", ScopePath: "root"},
+		}
+	}
 	tests := []struct {
 		name    string
-		opts    Options
+		opts    common.Options
 		wantErr bool
 		errMsg  string
 	}{
 		{
-			name: "missing pipeline name returns error",
-			opts: Options{
-				PipelineName: "",
-			},
+			name:    "missing pipeline name returns error",
+			opts:    common.Options{},
 			wantErr: true,
 			errMsg:  "pipeline name is required",
 		},
 		{
-			name: "missing run ID returns error",
-			opts: Options{
-				PipelineName: "pipeline-1",
-				RunID:        "",
-			},
+			name:    "missing run ID returns error",
+			opts:    common.Options{PipelineName: "pipeline-1"},
 			wantErr: true,
 			errMsg:  "KFP run ID is required",
 		},
 		{
 			name: "nil component spec returns error",
-			opts: Options{
+			opts: common.Options{
 				PipelineName: "pipeline-1",
-				RunID:        "run-1",
-				Component:    nil,
+				Run:          &apiv2beta1.Run{RunId: "run-1"},
 			},
 			wantErr: true,
 			errMsg:  "component spec is required",
 		},
 		{
 			name: "missing task name returns error",
-			opts: Options{
+			opts: common.Options{
 				PipelineName: "pipeline-1",
-				RunID:        "run-1",
+				Run:          &apiv2beta1.Run{RunId: "run-1"},
 				Component:    &pipelinespec.ComponentSpec{},
-				Task:         nil,
 			},
 			wantErr: true,
 			errMsg:  "task spec is required",
 		},
 		{
 			name: "runtime config present returns error",
-			opts: Options{
-				PipelineName:   "pipeline-1",
-				RunID:          "run-1",
-				Component:      &pipelinespec.ComponentSpec{},
-				Task:           &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
-				RuntimeConfig:  &pipelinespec.PipelineJob_RuntimeConfig{},
-				DAGExecutionID: 1,
-			},
+			opts: func() common.Options {
+				opts := validOpts()
+				opts.RuntimeConfig = &pipelinespec.PipelineJob_RuntimeConfig{}
+				return opts
+			}(),
 			wantErr: true,
 			errMsg:  "runtime config is unnecessary",
 		},
 		{
-			name: "zero DAG execution ID returns error",
-			opts: Options{
-				PipelineName:   "pipeline-1",
-				RunID:          "run-1",
-				Component:      &pipelinespec.ComponentSpec{},
-				Task:           &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
-				DAGExecutionID: 0,
+			name: "missing parent task returns error",
+			opts: common.Options{
+				PipelineName: "pipeline-1",
+				Run:          &apiv2beta1.Run{RunId: "run-1"},
+				Component:    &pipelinespec.ComponentSpec{},
+				Task:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
 			},
 			wantErr: true,
-			errMsg:  "DAG execution ID is required",
+			errMsg:  "parent task scope path is required for DAG",
 		},
 		{
-			name: "valid non-root options pass validation",
-			opts: Options{
-				PipelineName:   "pipeline-1",
-				RunID:          "run-1",
-				Component:      &pipelinespec.ComponentSpec{},
-				Task:           &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
-				DAGExecutionID: 1,
+			name: "missing parent task id returns error",
+			opts: common.Options{
+				PipelineName: "pipeline-1",
+				Run:          &apiv2beta1.Run{RunId: "run-1"},
+				Component:    &pipelinespec.ComponentSpec{},
+				Task:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "task-1"}},
+				ParentTask:   &apiv2beta1.PipelineTask{ScopePath: "root"},
 			},
+			wantErr: true,
+			errMsg:  "parent task is required",
+		},
+		{
+			name:    "valid non-root options pass validation",
+			opts:    validOpts(),
 			wantErr: false,
 		},
 	}
@@ -2061,4 +2093,333 @@ func Test_provisionOutputs(t *testing.T) {
 			}
 		})
 	}
+}
+
+// recordingDispatcher records plugin lifecycle calls for test assertions.
+type recordingDispatcher struct {
+	plugins.NoOpDispatcher
+	appliedProperties map[string]string
+	startCount        int
+	endCount          int
+	endStates         []apiv2beta1.PipelineTask_TaskState
+	endErr            error
+	envErr            error
+}
+
+func (r *recordingDispatcher) ApplyCustomProperties(properties map[string]string) {
+	r.appliedProperties = properties
+}
+
+func (r *recordingDispatcher) OnTaskStart(_ context.Context, _ *plugins.TaskInfo) (*plugins.TaskStartResult, error) {
+	r.startCount++
+	return &plugins.TaskStartResult{
+		CustomProperties: map[string]string{"plugins.test": "1"},
+	}, nil
+}
+
+func (r *recordingDispatcher) OnTaskEnd(_ context.Context, taskInfo *plugins.TaskInfo) error {
+	r.endCount++
+	if taskInfo != nil {
+		r.endStates = append(r.endStates, taskInfo.RunStatus)
+	}
+	return r.endErr
+}
+
+func (r *recordingDispatcher) RetrieveUserContainerEnvVars(_ *plugins.TaskInfo) ([]k8score.EnvVar, error) {
+	if r.envErr != nil {
+		return nil, r.envErr
+	}
+	return nil, nil
+}
+
+func TestApplyParentPluginCustomProperties_WithProperties(t *testing.T) {
+	parentTask := &apiv2beta1.PipelineTask{
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				"plugins.mlflow.run_id": structpb.NewStringValue("nested-run-123"),
+			},
+		},
+	}
+	recorder := &recordingDispatcher{}
+	applyParentPluginCustomProperties(recorder, parentTask)
+
+	require.NotNil(t, recorder.appliedProperties)
+	assert.Equal(t, "nested-run-123", recorder.appliedProperties["plugins.mlflow.run_id"])
+}
+
+func TestApplyParentPluginCustomProperties_NilParentTask(t *testing.T) {
+	recorder := &recordingDispatcher{}
+	applyParentPluginCustomProperties(recorder, nil)
+
+	assert.Nil(t, recorder.appliedProperties)
+}
+
+func TestApplyParentPluginCustomProperties_NoCustomProperties(t *testing.T) {
+	parentTask := &apiv2beta1.PipelineTask{}
+	recorder := &recordingDispatcher{}
+	applyParentPluginCustomProperties(recorder, parentTask)
+
+	assert.Nil(t, recorder.appliedProperties)
+}
+
+func TestContainer_PluginLifecycle_PostStartErrorEndsOnce(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{envErr: fmt.Errorf("env inject failed")}
+	opts.PluginDispatcher = recorder
+
+	_, err = Container(context.Background(), opts, tc.ClientManager)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "env inject failed")
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, recorder.endStates[0])
+}
+
+func TestContainer_PluginLifecycle_SuccessfulHandoffLeavesOpen(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 0, recorder.endCount, "launcher handoff must leave plugin task open")
+}
+
+func TestContainer_PluginLifecycle_OnTaskEndErrorDoesNotPanic(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{
+		envErr: fmt.Errorf("env inject failed"),
+		endErr: fmt.Errorf("plugin end failed"),
+	}
+	opts.PluginDispatcher = recorder
+
+	_, err = Container(context.Background(), opts, tc.ClientManager)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "env inject failed", "original execution error must be preserved when end hook also fails")
+	assert.NotContains(t, err.Error(), "plugin end failed")
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+}
+
+func TestContainer_PluginLifecycle_CacheHitEndsOnceCached(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.Task = proto.Clone(taskSpec).(*pipelinespec.PipelineTaskSpec)
+	opts.Task.CachingOptions = &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true}
+
+	cachedTask := &apiv2beta1.PipelineTask{
+		TaskId: "prior-cached-task",
+		RunId:  "prior-run",
+		Name:   "create-dataset",
+		State:  apiv2beta1.PipelineTask_SUCCEEDED,
+		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
+			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{},
+		},
+	}
+	tc.ClientManager = clientmanager.NewFakeClientManager(
+		tc.ClientManager.K8sClient(),
+		&forceCacheHitAPI{API: tc.MockAPI, cachedTask: cachedTask},
+	)
+
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	require.NotNil(t, execution.Cached)
+	assert.True(t, *execution.Cached)
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_CACHED, recorder.endStates[0])
+}
+
+// forceCacheHitAPI returns a fixed cached task for every FindCachedTask lookup.
+type forceCacheHitAPI struct {
+	kfpapi.API
+	cachedTask *apiv2beta1.PipelineTask
+}
+
+func (f *forceCacheHitAPI) FindCachedTask(
+	_ context.Context,
+	_ *apiv2beta1.FindCachedTaskRequest,
+) (*apiv2beta1.FindCachedTaskResponse, error) {
+	return &apiv2beta1.FindCachedTaskResponse{Task: f.cachedTask}, nil
+}
+
+func TestContainer_PluginLifecycle_SkippedEndsOnce(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.Task = proto.Clone(taskSpec).(*pipelinespec.PipelineTaskSpec)
+	opts.Task.TriggerPolicy = &pipelinespec.PipelineTaskSpec_TriggerPolicy{
+		Condition: "false",
+	}
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	require.NotNil(t, execution.Condition)
+	assert.False(t, *execution.Condition)
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_SKIPPED, recorder.endStates[0])
+}
+
+func TestContainer_PluginLifecycle_PreStartFailureDoesNotCallEnd(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	k8sClient := k8sfake.NewClientset()
+	k8sClient.PrependReactor("get", "configmaps", func(_ clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated configmap failure")
+	})
+	tc.ClientManager = clientmanager.NewFakeClientManager(k8sClient, tc.MockAPI)
+
+	_, err = Container(context.Background(), opts, tc.ClientManager)
+	require.Error(t, err)
+	assert.Equal(t, 0, recorder.startCount, "OnTaskStart should not run before plugin start")
+	assert.Equal(t, 0, recorder.endCount, "OnTaskEnd should not run when start never ran")
+}
+
+func TestContainer_PluginLifecycle_CustomPropertiesSetOnTask(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotEmpty(t, execution.TaskID)
+
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+		TaskId: execution.TaskID,
+		RunId:  tc.Run.GetRunId(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, task.GetStatusMetadata())
+	require.NotNil(t, task.GetStatusMetadata().GetCustomProperties())
+	assert.Equal(t, "1", task.GetStatusMetadata().GetCustomProperties()["plugins.test"].GetStringValue())
+}
+
+func TestUpdateTaskAttemptLocalFieldsAfterCreate_PreservesStatusMetadata(t *testing.T) {
+	mockAPI := kfpapi.NewMockAPI()
+	run := &apiv2beta1.Run{RunId: "run-retry"}
+	mockAPI.AddRun(run)
+
+	existingTask := &apiv2beta1.PipelineTask{
+		TaskId:    "task-1",
+		RunId:     run.GetRunId(),
+		Name:      "train",
+		Type:      apiv2beta1.PipelineTask_RUNTIME,
+		State:     apiv2beta1.PipelineTask_FAILED,
+		ScopePath: "root",
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				"plugins.mlflow.run_id": structpb.NewStringValue("old-run"),
+			},
+		},
+	}
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		Task:  existingTask,
+		RunId: run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	attemptFields := &apiv2beta1.PipelineTask{
+		State: apiv2beta1.PipelineTask_RUNNING,
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				"plugins.mlflow.run_id": structpb.NewStringValue("new-run"),
+			},
+		},
+	}
+	updated, err := updateTaskAttemptLocalFieldsAfterCreate(
+		context.Background(),
+		mockAPI,
+		existingTask,
+		attemptFields,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, updated.GetStatusMetadata())
+	require.Equal(
+		t,
+		"new-run",
+		updated.GetStatusMetadata().GetCustomProperties()["plugins.mlflow.run_id"].GetStringValue(),
+	)
+	require.Equal(t, apiv2beta1.PipelineTask_RUNNING, updated.GetState())
 }

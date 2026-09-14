@@ -21,8 +21,6 @@ import {
   enabledDisplayStringV2,
   errorToMessage,
   formatDateString,
-  generateMinioArtifactUrl,
-  generateS3ArtifactUrl,
   getRunDuration,
   getRunDurationFromWorkflow,
   logger,
@@ -314,30 +312,6 @@ describe('Utils', () => {
         },
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('-0:00:02');
-    });
-  });
-
-  describe('generateMinioArtifactUrl', () => {
-    it('handles minio:// URIs', () => {
-      expect(generateMinioArtifactUrl('minio://my-bucket/a/b/c')).toBe(
-        'artifacts/get?source=minio&bucket=my-bucket&key=a%2Fb%2Fc&download=true',
-      );
-    });
-
-    it('handles non-minio URIs', () => {
-      expect(generateMinioArtifactUrl('minio://my-bucket-a-b-c')).toBe(undefined);
-    });
-
-    it('handles broken minio URIs', () => {
-      expect(generateMinioArtifactUrl('ZZZ://my-bucket/a/b/c')).toBe(undefined);
-    });
-  });
-
-  describe('generateS3ArtifactUrl', () => {
-    it('handles s3:// URIs', () => {
-      expect(generateS3ArtifactUrl('s3://my-bucket/a/b/c')).toBe(
-        'artifacts/get?source=s3&bucket=my-bucket&key=a%2Fb%2Fc&download=true',
-      );
     });
   });
 
