@@ -38,6 +38,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 ## Release 2.18 stabilization
 
 - `release-2.18` preserves the MLMD-based release line. Backport selected fixes through reviewed PRs; do not merge the post-MLMD `master` branch wholesale.
+- Release deployment CI uses MySQL. PostgreSQL production support is deferred until 3.0 because MLMD can create duplicate metadata types under concurrent PostgreSQL runs ([#14353](https://github.com/kubeflow/pipelines/issues/14353)). Keep KFP `pgx` deployments out of the release matrices while this limitation remains. Preserve both MySQL cache variants, multi-user artifact-proxy coverage, and MLflow's own PostgreSQL backend and registry stores. The aggregate CI gate still requires all applicable jobs to pass.
 - Frontend and pre-commit workflows accept pushes and PRs targeting `release-2.18`. Backend and E2E PR workflows already accept this target subject to their path filters; their push triggers remain scoped to master.
 - Require the unconditional pre-commit check and DCO on release PRs. Path-filtered jobs must pass when applicable but should not be required unconditionally, because GitHub would wait for checks that do not run.
 - Tool-image builds publish `kfp-api-generator:release-2.18` and `kfp-release:release-2.18` on release-branch pushes. This branch uses those images for generation/release work to avoid consuming post-MLMD master tools.
