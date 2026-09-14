@@ -341,8 +341,10 @@ jobs:
           report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_dbType=${{ matrix.db_type }}"
 
   api-test-coordinator-runtime-standalone:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     env:
       KFP_USE_COORDINATOR_RUNTIME: "true"
     strategy:
@@ -350,14 +352,14 @@ jobs:
         k8s_version: [ "v1.34.0" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.3" ]
+        argo_version: [ "v3.7.18" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.34.0"
             cache_enabled: "true"
             proxy: "false"
-            argo_version: "v3.7.3"
+            argo_version: "v3.7.18"
             pipeline_store: "database"
             pod_to_pod_tls_enabled: "true"
       fail-fast: false
@@ -385,9 +387,9 @@ jobs:
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -414,8 +416,10 @@ jobs:
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
   api-test-coordinator-runtime-k8s-native:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     env:
       KFP_USE_COORDINATOR_RUNTIME: "true"
     strategy:
@@ -423,13 +427,13 @@ jobs:
         k8s_version: [ "v1.34.0" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.3" ]
+        argo_version: [ "v3.7.18" ]
         pipeline_store: [ "kubernetes" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.34.0"
             cache_enabled: "true"
-            argo_version: "v3.7.3"
+            argo_version: "v3.7.18"
             pipeline_store: "database"
             pod_to_pod_tls_enabled: "true"
             uploadPipelinesWithKubernetesClient: "false"
@@ -457,9 +461,9 @@ jobs:
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -486,8 +490,10 @@ jobs:
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
   api-test-coordinator-runtime-multi-user:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     env:
       KFP_USE_COORDINATOR_RUNTIME: "true"
     strategy:
@@ -517,9 +523,9 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
           runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -539,8 +545,10 @@ jobs:
           report_name: "CoordinatorRuntimeMultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
 
   api-test-coordinator-runtime-focused:
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     env:
       KFP_USE_COORDINATOR_RUNTIME: "true"
     strategy:
@@ -568,9 +576,9 @@ jobs:
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           runtime_mode: ${{ env.COORDINATOR_RUNTIME_MODE }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report

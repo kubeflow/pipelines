@@ -53,7 +53,7 @@ class ModelcarImageArtifactTest(unittest.TestCase):
         workflow = E2E_WORKFLOW.read_text(encoding='utf-8')
         deploy_action = DEPLOY_ACTION.read_text(encoding='utf-8')
 
-        self.assertEqual(workflow.count("load_modelcar_fixture: 'true'"), 3)
+        self.assertEqual(workflow.count("load_modelcar_fixture: 'true'"), 5)
         self.assertNotIn('Build and upload the sample Modelcar image', workflow)
         self.assertNotIn(f'--tag {MODELCAR_IMAGE}', workflow)
 

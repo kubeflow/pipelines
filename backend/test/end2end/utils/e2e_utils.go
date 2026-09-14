@@ -66,7 +66,6 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, testC
 	logger.Log("Create run for pipeline with id: '%s' and name: '%s'", pipelineID, pipelineDisplayName)
 	uploadedPipelineRun := CreatePipelineRun(runClient, testContext, &pipelineID, pipelineVersionID, experimentID, runTimeParams)
 	logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID)
-	core.GinkgoWriter.Println(fmt.Sprintf("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID))
 	timeout := runWaitTimeout(maxPipelineWaitTime)
 	testutil.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeout)
 	return uploadedPipelineRun.RunID

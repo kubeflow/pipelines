@@ -166,9 +166,9 @@ func validatePipelineRunSucceeded(runID string, pipelineFile string) {
 	for _, task := range updatedRun.Tasks {
 		Expect(task.State).NotTo(BeNil(), "Expected task state to be reported for task %s", task.Name)
 		Expect(*task.State).To(BeElementOf(
-			run_model.PipelineTaskDetailTaskStateSUCCEEDED,
-			run_model.PipelineTaskDetailTaskStateSKIPPED,
-			run_model.PipelineTaskDetailTaskStateCACHED,
+			run_model.PipelineTaskTaskStateSUCCEEDED,
+			run_model.PipelineTaskTaskStateSKIPPED,
+			run_model.PipelineTaskTaskStateCACHED,
 		), "Unexpected task state for task %s", task.Name)
 	}
 }
