@@ -96,7 +96,7 @@ HTTPS_PROXY_VALUE=""
 NO_PROXY_VALUE="127.0.0.1,localhost,${HOST_GATEWAY}"
 if [[ "${RUN_PROXY_TESTS}" == "true" ]]; then
   docker rm -f "${SQUID_CONTAINER}" >/dev/null 2>&1 || true
-  docker build -t kfp-local-squid -f "${REPO_ROOT}/.github/resources/squid/Containerfile" "${REPO_ROOT}/.github/resources/squid" >/dev/null
+  docker build -t kfp-local-squid -f "${REPO_ROOT}/.github/resources/tinyproxy/Containerfile" "${REPO_ROOT}/.github/resources/tinyproxy" >/dev/null
   docker run -d --name "${SQUID_CONTAINER}" -p "${SQUID_PORT}:3128" kfp-local-squid >/dev/null
   for _ in $(seq 1 30); do
     if python3 - "${HOST_GATEWAY}" "${SQUID_PORT}" <<'PY'
