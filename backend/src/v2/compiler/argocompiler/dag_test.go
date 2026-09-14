@@ -185,3 +185,40 @@ func TestDAGDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
 	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
 	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
 }
+
+func TestAddImplicitDependenciesFromArtifactSources(t *testing.T) {
+	artifactSource := func(producer string) *pipelinespec.TaskInputsSpec_InputArtifactSpec {
+		return &pipelinespec.TaskInputsSpec_InputArtifactSpec{
+			Kind: &pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact{
+				TaskOutputArtifact: &pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec{
+					ProducerTask: producer,
+				},
+			},
+		}
+	}
+	dag := &pipelinespec.DagSpec{
+		Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+			"train-svc": {},
+			"train-xgb": {},
+			"evaluate": {
+				Inputs: &pipelinespec.TaskInputsSpec{
+					Artifacts: map[string]*pipelinespec.TaskInputsSpec_InputArtifactSpec{
+						"models": {
+							Kind: &pipelinespec.TaskInputsSpec_InputArtifactSpec_ArtifactSources{
+								ArtifactSources: &pipelinespec.TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec{
+									Artifacts: []*pipelinespec.TaskInputsSpec_InputArtifactSpec{
+										artifactSource("train-svc"),
+										artifactSource("train-xgb"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	require.NoError(t, addImplicitDependencies(dag))
+	assert.Equal(t, []string{"train-svc", "train-xgb"}, dag.Tasks["evaluate"].DependentTasks)
+}

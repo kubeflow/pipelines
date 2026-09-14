@@ -196,17 +196,36 @@ class OrchestratorUtils:
                 raise ValueError(f'Missing input for parameter {input_name}.')
 
         # handle artifacts
-        for input_name, input_spec in task_inputs_spec.artifacts.items():
+        def get_artifact_argument(
+            input_spec: pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec
+        ) -> Any:
             if input_spec.HasField('task_output_artifact'):
-                task_arguments[input_name] = io_store.get_task_output(
+                return io_store.get_task_output(
                     input_spec.task_output_artifact.producer_task,
                     input_spec.task_output_artifact.output_artifact_key,
                 )
-            elif input_spec.HasField('component_input_artifact'):
-                task_arguments[input_name] = io_store.get_parent_input(
+            if input_spec.HasField('component_input_artifact'):
+                return io_store.get_parent_input(
                     input_spec.component_input_artifact)
-            else:
-                raise ValueError(f'Missing input for artifact {input_name}.')
+            if input_spec.HasField('artifact_sources'):
+                if not input_spec.artifact_sources.artifacts:
+                    raise ValueError('Artifact sources are empty.')
+                artifacts = []
+                for source in input_spec.artifact_sources.artifacts:
+                    resolved = get_artifact_argument(source)
+                    if isinstance(resolved, list):
+                        artifacts.extend(resolved)
+                    else:
+                        artifacts.append(resolved)
+                return artifacts
+            raise ValueError('Missing artifact source.')
+
+        for input_name, input_spec in task_inputs_spec.artifacts.items():
+            try:
+                task_arguments[input_name] = get_artifact_argument(input_spec)
+            except ValueError as error:
+                raise ValueError(
+                    f'Missing input for artifact {input_name}.') from error
 
         return task_arguments
 

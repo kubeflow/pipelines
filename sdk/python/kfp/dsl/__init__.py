@@ -298,6 +298,7 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.importer_node import importer
     from kfp.dsl.notebook_component_decorator import notebook_component
     from kfp.dsl.pipeline_channel import OneOf
+    from kfp.dsl.pipeline_channel import UnionChannel
     from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
     from kfp.dsl.pipeline_config import PipelineConfig
     from kfp.dsl.pipeline_config import WorkspaceConfig
@@ -315,8 +316,8 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     __all__.extend([
         'component', 'container_component', 'pipeline', 'importer',
         'ContainerSpec', 'Condition', 'If', 'Elif', 'Else', 'OneOf',
-        'ExitHandler', 'ParallelFor', 'Collected', 'IfPresentPlaceholder',
-        'ConcatPlaceholder', 'PipelineTask', 'PipelineConfig',
-        'WorkspaceConfig', 'KubernetesWorkspaceConfig', 'TaskConfigField',
-        'TaskConfigPassthrough', 'notebook_component'
+        'UnionChannel', 'ExitHandler', 'ParallelFor', 'Collected',
+        'IfPresentPlaceholder', 'ConcatPlaceholder', 'PipelineTask',
+        'PipelineConfig', 'WorkspaceConfig', 'KubernetesWorkspaceConfig',
+        'TaskConfigField', 'TaskConfigPassthrough', 'notebook_component'
     ])

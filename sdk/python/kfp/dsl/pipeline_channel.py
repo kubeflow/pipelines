@@ -16,6 +16,7 @@
 import abc
 import contextlib
 import dataclasses
+import hashlib
 import json
 import re
 from typing import Dict, List, Optional, Union
@@ -505,6 +506,65 @@ class OneOf:
             raise ValueError(
                 f'Got unknown input to dsl.{OneOf.__name__} with type {type(first_channel)}.'
             )
+
+
+class UnionArtifact(PipelineArtifactChannel):
+    """An ordered list assembled from independent artifact channels."""
+
+    def __init__(self, channels: List[PipelineArtifactChannel]) -> None:
+        if not channels:
+            raise ValueError(
+                f'dsl.{UnionChannel.__name__} requires at least one artifact channel.'
+            )
+        if any(not isinstance(channel, PipelineArtifactChannel)
+               for channel in channels):
+            raise TypeError(
+                f'dsl.{UnionChannel.__name__} only accepts artifact channels.')
+        if any(channel.is_artifact_list for channel in channels):
+            raise TypeError(
+                f'dsl.{UnionChannel.__name__} only accepts individual artifact channels, not lists of artifacts.'
+            )
+        if any(
+                isinstance(channel, (OneOfMixin, UnionArtifact))
+                for channel in channels):
+            raise ValueError(
+                f'dsl.{UnionChannel.__name__} does not support nested dsl.OneOf or dsl.{UnionChannel.__name__} channels.'
+            )
+
+        expected_type = channels[0].channel_type
+        for index, channel in enumerate(channels[1:], start=1):
+            if channel.channel_type != expected_type:
+                raise TypeError(
+                    f'Task outputs passed to dsl.{UnionChannel.__name__} must be the same artifact type. Got {expected_type} at index 0 and {channel.channel_type} at index {index}.'
+                )
+
+        self.channels = list(channels)
+        digest_input = '\x00'.join(
+            channel.full_name for channel in channels).encode()
+        digest = hashlib.sha256(digest_input).hexdigest()[:16]
+        super().__init__(
+            name=f'union-artifacts-{digest}',
+            channel_type=expected_type,
+            task_name=None,
+            is_artifact_list=True,
+        )
+
+
+class UnionChannel:
+    """Collects independent task artifact outputs into an ordered list.
+
+    Args:
+        channels: Individual artifact channels to collect. Channels must have
+            the same artifact type. Existing artifact-list channels are not
+            accepted.
+
+    Returns:
+        A list artifact channel suitable for an ``Input[List[Artifact]]``
+        component input.
+    """
+
+    def __new__(cls, *channels: PipelineArtifactChannel) -> UnionArtifact:
+        return UnionArtifact(channels=list(channels))
 
 
 def create_pipeline_channel(
