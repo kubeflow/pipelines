@@ -44,7 +44,11 @@ import { URL } from 'url';
 import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
 import type { GCSClient } from '../gcs-helper.js';
 
-import { isAllowedDomain, isTrustedArtifactEndpoint } from './domain-checker.js';
+import {
+  formatUntrustedArtifactEndpointError,
+  isAllowedDomain,
+  isTrustedArtifactEndpoint,
+} from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
@@ -566,11 +570,7 @@ export function getArtifactsHandler({
           console.warn(
             `Rejected artifact store origin ${providerEndpointUrl}; configure ALLOWED_ARTIFACT_ENDPOINTS to trust an additional operator-controlled origin`,
           );
-          sendArtifactError(
-            res,
-            400,
-            'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
-          );
+          sendArtifactError(res, 400, formatUntrustedArtifactEndpointError(providerEndpointUrl));
           return;
         }
       }

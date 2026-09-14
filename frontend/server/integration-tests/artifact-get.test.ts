@@ -947,7 +947,7 @@ describe('/artifacts', () => {
         )
         .expect(
           400,
-          'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+          'Artifact store endpoint https://s3.us-east-2.amazonaws.com is not allowed. Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
         );
       expect(mockedMinioClient).not.toBeCalled();
     });
@@ -1010,7 +1010,7 @@ describe('/artifacts', () => {
         )
         .expect(
           400,
-          'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+          'Artifact store endpoint https://s3-attacker-123.us-east-1.elb.amazonaws.com is not allowed. Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
         );
       expect(mockedMinioClient).not.toBeCalled();
     });
@@ -1039,7 +1039,7 @@ describe('/artifacts', () => {
         )
         .expect(
           400,
-          'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+          'Artifact store endpoint https://tenant-bucket.s3.us-east-1.amazonaws.com is not allowed. Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
         );
       expect(mockedMinioClient).not.toBeCalled();
     });
@@ -1135,7 +1135,7 @@ describe('/artifacts', () => {
         )
         .expect(
           400,
-          'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+          'Artifact store endpoint https://objects.example.com:9000 is not allowed. Ask a cluster operator to add this exact origin to the cluster-level ALLOWED_ARTIFACT_ENDPOINTS setting.',
         );
       expect(mockedMinioClient).not.toBeCalled();
     });
