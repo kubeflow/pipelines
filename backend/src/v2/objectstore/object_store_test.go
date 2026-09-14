@@ -418,6 +418,30 @@ func TestDownloadBlobRejectsTraversalKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "path traversal detected")
 }
 
+func TestDownloadBlobSkipsZeroByteDirectoryMarkers(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer func() { require.NoError(t, bucket.Close()) }()
+
+	blobDir := "artifacts/model"
+	blobDirWithTrailingSlash := blobDir + "/"
+
+	writeBlobToMemBucket(ctx, t, bucket, blobDir, "")
+	writeBlobToMemBucket(ctx, t, bucket, blobDirWithTrailingSlash, "")
+
+	localDir := t.TempDir()
+	require.NoError(t, DownloadBlob(ctx, bucket, localDir, blobDir))
+	localDirInfoNoSlash, err := os.Stat(localDir)
+	require.NoError(t, err)
+	assert.True(t, localDirInfoNoSlash.IsDir(), "marker without slash")
+
+	localDir = t.TempDir()
+	require.NoError(t, DownloadBlob(ctx, bucket, localDir, blobDirWithTrailingSlash))
+	localDirInfoWithSlash, err := os.Stat(localDir)
+	require.NoError(t, err)
+	assert.True(t, localDirInfoWithSlash.IsDir(), "marker with slash")
+}
+
 func TestIsBlobKeyUnderPrefix(t *testing.T) {
 	tests := []struct {
 		name    string
