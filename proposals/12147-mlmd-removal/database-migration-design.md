@@ -109,7 +109,7 @@ Both entry points use the same migration logic. Only how migration is triggered 
 **Phase 1 — Pre-migration validation**
 
 - Verify MLMD gRPC connectivity.
-- Verify MySQL connectivity and sufficient disk space (estimated ~2× MLMD database size).
+- Verify KFP database connectivity and sufficient disk space (estimated ~2× MLMD database size).
 - Confirm all MLMD contexts (runs) have a corresponding row in `run_details`. Orphaned MLMD records (contexts without a `run_details` counterpart) are logged as warnings and skipped rather than failing the entire migration. This handles common partial-failure states from past runs.
 
 **Phase 2 — Schema migration**
@@ -193,7 +193,7 @@ Duplicate rows (same UUID) are silently skipped. A crashed-and-resumed run encou
 
 **3. Resume by binary search**
 
-After a crash, for each insert stream (`tasks`, `artifacts`, `artifact_tasks`) the engine binary searches over ascending MLMD IDs and checks the KFP DB for the deterministic UUID. The first missing ID is the resume point, migration continues with per batch transactions from there.
+After a crash or running after a partially migrated DB through the utility script, for each insert stream (`tasks`, `artifacts`, `artifact_tasks`) the engine binary searches over ascending MLMD IDs and checks the KFP DB for the deterministic UUID. The first missing ID is the resume point, migration continues with per batch transactions from there.
 
 After execution inserts, run an **idempotent parent fixup** until no unresolved rows remain: for each child that had `parent_dag_id` in MLMD and still has `ParentTaskUUID IS NULL`, set `ParentTaskUUID = uuidv5("execution:"+parent_dag_id)` (map lookup optional). When that set is empty, the parent stage is done.
 
@@ -298,7 +298,7 @@ SELECT GET_LOCK('kfp_mlmd_migration_lock', 10);
 ```bash
 mlmd-migrate \
   --mlmd-address=metadata-grpc-service:8080 \
-  --mysql-host=mysql:3306
+  --db-uri=mysql:3306
 ```
 
 - Runs in foreground, blocks until complete.
