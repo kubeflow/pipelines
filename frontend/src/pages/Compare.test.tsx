@@ -20,12 +20,13 @@ import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { ApiRunDetail } from 'src/apis/run';
-import { V2beta1Run } from 'src/apisv2beta1/run';
 import Compare from './Compare';
 import * as features from 'src/features';
-import TestUtils, { expectErrors, flushPromisesInAct, testBestPractices } from 'src/TestUtils';
-import * as mlmdUtils from 'src/mlmd/MlmdUtils';
-import { Context } from 'src/third_party/mlmd';
+import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
+import { useCallback, useState } from 'react';
+
+vi.mock('./CompareV1', () => ({ default: () => <div>V1 Comparison</div> }));
+vi.mock('./CompareV2', () => ({ default: () => <div>Scalar Metrics</div> }));
 
 testBestPractices();
 describe('Switch between v1 and v2 Run Comparison pages', () => {
@@ -51,15 +52,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   }
 
   let runs: ApiRunDetail[] = [];
-  const v2RunContext = new Context();
-
-  function newMockV2Run(id: string): V2beta1Run {
-    return {
-      run_id: id,
-      display_name: `test run ${id}`,
-    };
-  }
-
   function newMockRun(id?: string, v2?: boolean): ApiRunDetail {
     return {
       pipeline_runtime: {
@@ -74,12 +66,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   }
 
   beforeEach(() => {
-    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockResolvedValue(v2RunContext);
-    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
-    vi.spyOn(Apis.runServiceApiV2, 'getRun').mockImplementation((id: string) => newMockV2Run(id));
+    updateBannerSpy.mockClear();
   });
 
   it('shows a loading spinner while runs are being fetched', () => {
@@ -112,6 +99,84 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     });
 
     expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('updates the routing failure banner once when its owner rerenders', async () => {
+    vi.spyOn(Apis.runServiceApi, 'getRun').mockRejectedValue(new Error('route unavailable'));
+    vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    const bannerUpdates: object[] = [];
+
+    function StatefulOwner() {
+      const [bannerUpdateCount, setBannerUpdateCount] = useState(0);
+      const updateBanner = useCallback<PageProps['updateBanner']>((banner) => {
+        bannerUpdates.push(banner);
+        if (bannerUpdates.length < 10) {
+          setBannerUpdateCount((count) => count + 1);
+        }
+      }, []);
+      return (
+        <>
+          <span data-testid='banner-update-count'>{bannerUpdateCount}</span>
+          <Compare {...generateProps()} updateBanner={updateBanner} />
+        </>
+      );
+    }
+
+    render(
+      <CommonTestWrapper>
+        <StatefulOwner />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('banner-update-count')).toHaveTextContent('1'));
+    await flushPromisesInAct();
+    expect(bannerUpdates).toHaveLength(1);
+  });
+
+  it('renders the V2 comparison when one requested run fails to load', async () => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
+    getRunSpy.mockImplementation((id: string) => {
+      if (id === MOCK_RUN_2_ID) {
+        return Promise.reject(new Error('run deleted'));
+      }
+      return Promise.resolve(newMockRun(id, true));
+    });
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByText('Scalar Metrics');
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('retries only the run whose routing request fails transiently', async () => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
+    let failedRunAttempts = 0;
+    getRunSpy.mockImplementation((id: string) => {
+      if (id === MOCK_RUN_2_ID && failedRunAttempts++ === 0) {
+        return Promise.reject(new Error('temporary outage'));
+      }
+      return Promise.resolve(newMockRun(id, true));
+    });
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByText('Scalar Metrics');
+    expect(getRunSpy.mock.calls.filter(([id]) => id === MOCK_RUN_2_ID)).toHaveLength(2);
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
   });
 
   it('getRun is called with query param IDs', async () => {
@@ -397,7 +462,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   });
 
   it('Show page error on page when getRun request fails', async () => {
-    const assertErrors = expectErrors();
     const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
     runs = [
       newMockRun(MOCK_RUN_1_ID, true),
@@ -432,6 +496,5 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         mode: 'error',
       }),
     );
-    assertErrors();
   });
 });

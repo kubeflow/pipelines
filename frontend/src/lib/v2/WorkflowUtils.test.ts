@@ -20,6 +20,7 @@ import {
   isArgoWorkflowTemplate,
   isTemplateV2,
   isV2Pipeline,
+  tryConvertYamlToV2PipelineSpec,
 } from './WorkflowUtils';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
 import * as features from 'src/features';
@@ -68,6 +69,18 @@ describe('WorkflowUtils', () => {
       (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
     );
     expect(isTemplateV2(V2_LW_YAML_TEMPLATE_STRING)).toBeTruthy();
+  });
+
+  it('validates a V2 template without performing graph layout', () => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+    const randomSpy = vi.spyOn(Math, 'random');
+
+    expect(tryConvertYamlToV2PipelineSpec(V2_LW_YAML_TEMPLATE_STRING)).toBeDefined();
+    expect(randomSpy).not.toHaveBeenCalled();
+
+    randomSpy.mockRestore();
   });
 
   it('detects v2 template (yaml file with k8s platform spec)', () => {

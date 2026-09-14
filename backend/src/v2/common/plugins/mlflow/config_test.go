@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setRuntimeCfg(runtimeCfg commonmlflow.MLflowRuntimeConfig) {
@@ -19,12 +21,30 @@ func setRuntimeCfg(runtimeCfg commonmlflow.MLflowRuntimeConfig) {
 	viper.Set(commonmlflow.EnvMLflowConfig, string(data))
 }
 
-func TestExecutionStateToMLflowTerminalStatus(t *testing.T) {
-	assert.Equal(t, "FINISHED", ExecutionStateToMLflowTerminalStatus("COMPLETE"))
-	assert.Equal(t, "FINISHED", ExecutionStateToMLflowTerminalStatus("CACHED"))
-	assert.Equal(t, "KILLED", ExecutionStateToMLflowTerminalStatus("CANCELED"))
-	assert.Equal(t, "FAILED", ExecutionStateToMLflowTerminalStatus("FAILED"))
-	assert.Equal(t, "FAILED", ExecutionStateToMLflowTerminalStatus("UNKNOWN"))
+func TestTaskStateToMLflowTerminalStatus(t *testing.T) {
+	status, err := TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_SUCCEEDED)
+	require.NoError(t, err)
+	assert.Equal(t, "FINISHED", status)
+
+	status, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_CACHED)
+	require.NoError(t, err)
+	assert.Equal(t, "FINISHED", status)
+
+	status, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_SKIPPED)
+	require.NoError(t, err)
+	assert.Equal(t, "FINISHED", status)
+
+	status, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_FAILED)
+	require.NoError(t, err)
+	assert.Equal(t, "FAILED", status)
+
+	_, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_RUNNING)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported task state")
+
+	_, err = TaskStateToMLflowTerminalStatus(apiV2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported task state")
 }
 
 func TestParseKfpMLflowRuntimeConfig_Success(t *testing.T) {

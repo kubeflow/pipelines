@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { createRef } from 'react';
 import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 import { PlotType } from './Viewer';
 import ROCCurve, { findNearestDisplayPoint, lineColors } from './ROCCurve';
@@ -66,6 +67,24 @@ describe('ROCCurve', () => {
     expect(new Set(dataLineColors).size).toBeGreaterThanOrEqual(3);
   });
 
+  it('wraps complete provenance instead of truncating compact legend labels', () => {
+    const label = 'A long run name / A long evaluation task / classification artifact';
+    render(
+      <ROCCurve
+        configs={[{ data, type: PlotType.ROC }]}
+        labels={[label]}
+        compactLegend
+        forceLegend
+      />,
+    );
+    expect(screen.getByTitle(label)).toHaveTextContent(label);
+    expect(screen.getByTitle(label)).toHaveStyle({
+      whiteSpace: 'normal',
+      overflowWrap: 'anywhere',
+      maxWidth: '220px',
+    });
+  });
+
   it('does not render a legend when there is only one config', () => {
     const config = { data, type: PlotType.ROC };
     render(<ROCCurve configs={[config]} />);
@@ -78,6 +97,70 @@ describe('ROCCurve', () => {
     expect(screen.getByText('Series #1')).toBeInTheDocument();
     expect(screen.getByText('Series #2')).toBeInTheDocument();
     expect(screen.getByText('Series #3')).toBeInTheDocument();
+  });
+
+  it('uses one descriptive legend for labeled curves', () => {
+    const config = { data, type: PlotType.ROC };
+    render(
+      <ROCCurve
+        configs={[config, config]}
+        labels={['First run / Evaluate / evaluation', 'Second run / Evaluate / evaluation']}
+        forceLegend
+      />,
+    );
+    const legend = screen.getByRole('list', { name: 'Selected ROC curve provenance' });
+    expect(within(legend).getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getAllByText('First run / Evaluate / evaluation')).toHaveLength(1);
+    expect(screen.queryByText('Series #1')).toBeNull();
+  });
+
+  it('fits a narrow container and preserves zoom when resized', () => {
+    let notifyResize: (width: number) => void = () => {};
+    class TestResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        notifyResize = (width) =>
+          callback(
+            [{ contentRect: { width, height: width * 0.65 } } as ResizeObserverEntry],
+            this as unknown as ResizeObserver,
+          );
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', TestResizeObserver);
+    try {
+      const ref = createRef<ROCCurve>();
+      const { container } = render(
+        <ROCCurve ref={ref} configs={[{ data, type: PlotType.ROC }]} responsive disableAnimation />,
+      );
+      act(() => notifyResize(420));
+      expect(container.querySelector('.recharts-surface')).toHaveAttribute('width', '420');
+      expect(
+        container.querySelectorAll('.recharts-xAxis .recharts-cartesian-axis-tick'),
+      ).toHaveLength(6);
+      act(() => ref.current?.setState({ lastDrawLocation: { left: 0.2, right: 0.8 } }));
+      act(() => notifyResize(360));
+      expect(container.querySelector('.recharts-surface')).toHaveAttribute('width', '360');
+      expect(ref.current?.state.lastDrawLocation).toEqual({ left: 0.2, right: 0.8 });
+      fireEvent.click(screen.getByRole('button', { name: 'Click to reset zoom' }));
+      expect(ref.current?.state.lastDrawLocation).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('caps chart height without remounting or resetting zoom when expanded', () => {
+    const ref = createRef<ROCCurve>();
+    const configs = [{ data, type: PlotType.ROC }];
+    const { container, rerender } = render(
+      <ROCCurve ref={ref} configs={configs} maxChartHeight={300} disableAnimation />,
+    );
+    expect(container.querySelector('.recharts-surface')).toHaveAttribute('height', '300');
+    act(() => ref.current?.setState({ lastDrawLocation: { left: 0.2, right: 0.8 } }));
+    rerender(<ROCCurve ref={ref} configs={configs} disableAnimation />);
+    expect(container.querySelector('.recharts-surface')).toHaveAttribute('height', '520');
+    expect(ref.current?.state.lastDrawLocation).toEqual({ left: 0.2, right: 0.8 });
   });
 
   it('highlights the hovered legend series', () => {

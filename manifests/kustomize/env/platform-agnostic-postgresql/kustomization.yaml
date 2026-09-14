@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - ../../base/installs/generic
-  - ../../base/metadata/base
   - ../../third-party/argo/installs/namespace
   - ../../third-party/seaweedfs/base
   - ../../third-party/postgresql/base
@@ -11,7 +10,6 @@ resources:
 patches:
   - path: apiserver-patch.yaml
   - path: cache-server-patch.yaml
-  - path: mlmd-patch.yaml
 
 configMapGenerator:
   - name: pipeline-install-config

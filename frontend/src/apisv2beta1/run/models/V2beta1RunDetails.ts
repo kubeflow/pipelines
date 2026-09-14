@@ -13,14 +13,6 @@
  */
 
 import { mapValues } from '../runtime';
-import type { V2beta1PipelineTaskDetail } from './V2beta1PipelineTaskDetail';
-import {
-  V2beta1PipelineTaskDetailFromJSON,
-  V2beta1PipelineTaskDetailFromJSONTyped,
-  V2beta1PipelineTaskDetailToJSON,
-  V2beta1PipelineTaskDetailToJSONTyped,
-} from './V2beta1PipelineTaskDetail';
-
 /**
  * Runtime details of a run.
  * @export
@@ -39,12 +31,6 @@ export interface V2beta1RunDetails {
    * @memberof V2beta1RunDetails
    */
   pipeline_run_context_id?: string;
-  /**
-   * Runtime details of the tasks that belong to the run.
-   * @type {Array<V2beta1PipelineTaskDetail>}
-   * @memberof V2beta1RunDetails
-   */
-  task_details?: Array<V2beta1PipelineTaskDetail>;
 }
 
 /**
@@ -70,10 +56,6 @@ export function V2beta1RunDetailsFromJSONTyped(
       json['pipeline_context_id'] == null ? undefined : json['pipeline_context_id'],
     pipeline_run_context_id:
       json['pipeline_run_context_id'] == null ? undefined : json['pipeline_run_context_id'],
-    task_details:
-      json['task_details'] == null
-        ? undefined
-        : (json['task_details'] as Array<any>).map(V2beta1PipelineTaskDetailFromJSON),
   };
 }
 
@@ -92,9 +74,5 @@ export function V2beta1RunDetailsToJSONTyped(
   return {
     pipeline_context_id: value['pipeline_context_id'],
     pipeline_run_context_id: value['pipeline_run_context_id'],
-    task_details:
-      value['task_details'] == null
-        ? undefined
-        : (value['task_details'] as Array<any>).map(V2beta1PipelineTaskDetailToJSON),
   };
 }

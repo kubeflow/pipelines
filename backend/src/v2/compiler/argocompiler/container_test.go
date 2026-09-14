@@ -19,11 +19,40 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	backendcommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestContainerDoesNotSaveSpecOrImplementationToWorkflowArguments(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{}},
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	componentSpec := &pipelinespec.ComponentSpec{
+		Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "exec-test"},
+	}
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.11",
+		Command: []string{"python"},
+		Args:    []string{"-c", "print('hello')"},
+	}
+
+	require.NoError(t, c.Container("comp-test", componentSpec, containerSpec))
+
+	assert.Empty(t, c.wf.Spec.Arguments.Parameters, "container tasks should not store spec or implementation workflow arguments")
+}
 
 func TestAddContainerExecutorTemplate(t *testing.T) {
 	tests := []struct {
@@ -105,9 +134,211 @@ func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {
 	}
 	assert.True(t, foundKFPPodName,
 		"system-container-driver template must include KFP_POD_NAME env var to avoid hostname truncation for long pod names")
+	assert.Equal(t, "container-driver", tmpl.Metadata.Labels[systemPodRoleLabelKey])
+	assert.Equal(t, "system-container-driver", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
 }
 
-func TestContainerDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
+func TestAddContainerExecutorTemplate_IncludesDebugMetadata(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	name := c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+	require.Equal(t, "system-container-executor", name)
+
+	tmpl, exists := c.templates["system-container-impl"]
+	require.True(t, exists, "system-container-impl template should exist")
+	assert.Equal(t, "container-executor", tmpl.Metadata.Labels[systemPodRoleLabelKey])
+	assert.Equal(t, "system-container-impl", tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey])
+}
+
+func TestAddContainerExecutorTemplate_MountsProjectedTokenInUserContainer(t *testing.T) {
+	const customAudience = "custom.pipelines.example.org"
+	c := &workflowCompiler{
+		templates:           make(map[string]*wfapi.Template),
+		tokenReviewAudience: customAudience,
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+
+	tmpl := c.templates["system-container-impl"]
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.Container)
+	require.Len(t, tmpl.InitContainers, 1)
+
+	foundUserTokenMount := false
+	for _, volumeMount := range tmpl.Container.VolumeMounts {
+		if volumeMount.Name == kfpTokenVolumeName && volumeMount.MountPath == kfpTokenMountPath {
+			foundUserTokenMount = true
+			break
+		}
+	}
+	assert.True(t, foundUserTokenMount, "user container should mount the projected KFP token volume directly")
+
+	expectedAudience := customAudience + backendcommon.TokenAudienceRunPrefix + runID()
+	assertProjectedTokenAudience(t, tmpl, expectedAudience)
+
+	foundLauncherConfigMount := false
+	for _, volumeMount := range tmpl.Container.VolumeMounts {
+		if volumeMount.Name == launcherConfigVolumeName && volumeMount.MountPath == config.LauncherConfigMountPath {
+			foundLauncherConfigMount = true
+			break
+		}
+	}
+	assert.True(t, foundLauncherConfigMount, "user container should optionally mount kfp-launcher config")
+
+	for _, env := range tmpl.Container.Env {
+		assert.NotEqual(t, "KFP_TOKEN_PATH", env.Name, "user container should not rely on a staged token path")
+	}
+}
+
+func TestProjectedTokenAudience_UsesCustomAudienceAcrossTemplates(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	const customAudience = "custom.pipelines.example.org"
+	expectedAudience := customAudience + backendcommon.TokenAudienceRunPrefix + runID()
+
+	t.Run("importer", func(t *testing.T) {
+		c := newCompilerWithCustomTokenAudience(customAudience)
+		name := c.addImporterTemplate(false)
+		assertProjectedTokenAudience(t, c.templates[name], expectedAudience)
+	})
+	t.Run("container-driver", func(t *testing.T) {
+		c := newCompilerWithCustomTokenAudience(customAudience)
+		name := c.addContainerDriverTemplate()
+		assertProjectedTokenAudience(t, c.templates[name], expectedAudience)
+	})
+	t.Run("dag-driver", func(t *testing.T) {
+		c := newCompilerWithCustomTokenAudience(customAudience)
+		name := c.addDAGDriverTemplate()
+		assertProjectedTokenAudience(t, c.templates[name], expectedAudience)
+	})
+	t.Run("container-executor", func(t *testing.T) {
+		c := newCompilerWithCustomTokenAudience(customAudience)
+		c.addContainerExecutorTemplate(
+			&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+			&kubernetesplatform.KubernetesExecutorConfig{},
+		)
+		assertProjectedTokenAudience(t, c.templates["system-container-impl"], expectedAudience)
+	})
+}
+
+func newCompilerWithCustomTokenAudience(audience string) *workflowCompiler {
+	return &workflowCompiler{
+		templates:           make(map[string]*wfapi.Template),
+		tokenReviewAudience: audience,
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
+		},
+		job: &pipelinespec.PipelineJob{DisplayName: "test-pipeline-run"},
+	}
+}
+
+func assertProjectedTokenAudience(t *testing.T, tmpl *wfapi.Template, expectedAudience string) {
+	t.Helper()
+	require.NotNil(t, tmpl)
+	foundRunScopedAudience := false
+	for _, volume := range tmpl.Volumes {
+		if volume.Name != kfpTokenVolumeName || volume.Projected == nil {
+			continue
+		}
+		for _, source := range volume.Projected.Sources {
+			if source.ServiceAccountToken == nil {
+				continue
+			}
+			assert.Equal(t, expectedAudience, source.ServiceAccountToken.Audience)
+			foundRunScopedAudience = true
+		}
+	}
+	assert.True(t, foundRunScopedAudience, "projected token should use a run-scoped custom audience")
+}
+
+func TestAddContainerExecutorTemplate_DefaultsIterationIndex(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	name := c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+	require.Equal(t, "system-container-executor", name)
+
+	tmpl, exists := c.templates[name]
+	require.True(t, exists, "system-container-executor template should exist")
+
+	var iterationIndex *wfapi.Parameter
+	for i := range tmpl.Inputs.Parameters {
+		if tmpl.Inputs.Parameters[i].Name == paramIterationIndex {
+			iterationIndex = &tmpl.Inputs.Parameters[i]
+			break
+		}
+	}
+
+	require.NotNil(t, iterationIndex, "system-container-executor must accept iteration-index")
+	require.NotNil(t, iterationIndex.Default, "iteration-index should default for non-loop callers")
+	assert.Equal(t, "-1", iterationIndex.Default.String())
+}
+
+func TestAddContainerExecutorTemplate_PropagatesGRPCBackoffEnv(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.Set(backendcommon.MLPipelineGRPCMinConnectTimeout, "30s")
+
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+
+	tmpl := c.templates["system-container-impl"]
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.Container)
+
+	found := false
+	for _, env := range tmpl.Container.Env {
+		if env.Name == apiclient.KFPAPIGRPCMinConnectTimeoutEnvVar && env.Value == "30s" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected container executor to include configured gRPC backoff env")
+}
+
+func TestContainerDriverTemplate_OmitsUnsupportedPipelineJobCreateTimeArg(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	c := &workflowCompiler{
 		templates: make(map[string]*wfapi.Template),
@@ -126,8 +357,11 @@ func TestContainerDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) 
 	tmpl, exists := c.templates[name]
 	require.True(t, exists, "system-container-driver template should exist")
 	require.NotNil(t, tmpl.Container, "template should have a container")
-	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
-	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
+	// Driver resolves create time from Run.created_at; emitting an unknown flag
+	// would cause flag.Parse() to exit before driver execution.
+	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
+	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
+	assertRegisteredDriverArgs(t, tmpl.Container.Args)
 }
 
 func Test_extendPodMetadata(t *testing.T) {

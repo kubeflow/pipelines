@@ -15,304 +15,696 @@
  */
 import { Node } from '@xyflow/react';
 import {
+  InputOutputsIOArtifact,
+  PipelineTaskTaskState,
+  PipelineTaskTaskType,
+  V2beta1PipelineTask,
+} from 'src/apisv2beta1/run';
+import {
   ArtifactFlowElementData,
   ExecutionFlowElementData,
   FlowElementDataBase,
   SubDagFlowElementData,
 } from 'src/components/graph/Constants';
-import { PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
+import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import {
   buildDag,
   buildGraphLayout,
-  getArtifactNodeKey,
+  getKeysFromArtifactNodeKey,
   getIterationIdFromNodeKey,
   getTaskKeyFromNodeKey,
-  isNode,
   getTaskNodeKey,
+  isNode,
   NodeTypeNames,
   PipelineFlowElement,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
-import { getArtifactNameFromEvent, LinkedArtifact, ExecutionHelpers } from 'src/mlmd/MlmdUtils';
-import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
-import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
+import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import {
+  formatRuntimeIterationLayer,
+  isRuntimeIterationLayer,
+  parseRuntimeIterationLayer,
+} from 'src/lib/v2/RuntimeLayerUtils';
 
-export const TASK_NAME_KEY = 'task_name';
-export const PARENT_DAG_ID_KEY = 'parent_dag_id';
-export const ITERATION_COUNT_KEY = 'iteration_count';
-export const ITERATION_INDEX_KEY = 'iteration_index';
+export interface NodeRuntimeInfo {
+  task?: V2beta1PipelineTask;
+  artifactGroup?: InputOutputsIOArtifact;
+}
+
+interface TaskIndex {
+  rootTask?: V2beta1PipelineTask;
+  tasksById: Map<string, V2beta1PipelineTask>;
+  childrenByParentId: Map<string, V2beta1PipelineTask[]>;
+  childrenByParentAndIteration: Map<string, Map<number, V2beta1PipelineTask[]>>;
+}
+
+interface RuntimeLayerContext {
+  task?: V2beta1PipelineTask;
+  iterationIndex?: number;
+}
+
+interface RuntimeFlowContext {
+  taskIndex: TaskIndex;
+  runtimeLayerContext: RuntimeLayerContext;
+  runCompletedSuccessfully: boolean;
+  runIsTerminal: boolean;
+}
+
+const NAVIGABLE_RUNTIME_CONTEXT_TYPES = new Set<PipelineTaskTaskType>([
+  PipelineTaskTaskType.CONDITION,
+  PipelineTaskTaskType.CONDITION_BRANCH,
+  PipelineTaskTaskType.DAG,
+  PipelineTaskTaskType.LOOP,
+]);
+
+function normalizeRuntimeScopePath(scopePath?: string): string | undefined {
+  if (!scopePath) return undefined;
+  const layers = scopePath.split('.').filter(Boolean);
+  if (layers[0] !== 'root') layers.unshift('root');
+  return layers.join('.');
+}
 
 export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
   layers: string[],
-  executions: Execution[],
+  tasks: V2beta1PipelineTask[],
+  runIsTerminal = false,
+  runCompletedSuccessfully = false,
 ): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
     throw new Error('root not found in pipeline spec.');
   }
 
-  const executionLayers = getExecutionLayers(layers, executions);
-
-  let isParallelForRootDag = false;
+  const taskIndex = buildTaskIndex(tasks);
+  const runtimeContext = getRuntimeLayerContext(layers, taskIndex);
   const componentsMap = spec.components;
+
   for (let index = 1; index < layers.length; index++) {
-    if (canvasIsParallelForDag(executionLayers, layers)) {
-      isParallelForRootDag = true;
-    } else {
-      isParallelForRootDag = false;
+    if (isRuntimeIterationLayer(layers[index])) {
+      continue;
     }
 
-    if (layers[index].indexOf('.') <= 0) {
-      // Regular layer. This layer is not an iteration of ParallelFor SubDAG.
-
-      const tasksMap = componentSpec.dag?.tasks || {};
-      const pipelineTaskSpec: PipelineTaskSpec = tasksMap[layers[index]];
-      const componetRef = pipelineTaskSpec.componentRef;
-      const componentName = componetRef?.name;
-      if (!componentName) {
-        throw new Error(
-          'Unable to find the component reference for task name: ' +
-            pipelineTaskSpec.taskInfo?.name || 'Task name unknown',
-        );
-      }
-      componentSpec = componentsMap[componentName];
-      if (!componentSpec) {
-        throw new Error('Component not found in pipeline spec. Component name: ' + componentName);
-      }
+    const tasksMap: Record<string, PipelineTaskSpec> = componentSpec.dag?.tasks || {};
+    const pipelineTaskSpec: PipelineTaskSpec | undefined = tasksMap[layers[index]];
+    const componentName: string | undefined = pipelineTaskSpec?.componentRef?.name;
+    if (!componentName) {
+      throw new Error(
+        'Unable to find the component reference for task name: ' +
+          (pipelineTaskSpec?.taskInfo?.name || layers[index] || 'Task name unknown'),
+      );
+    }
+    componentSpec = componentsMap[componentName] as ComponentSpec | undefined;
+    if (!componentSpec) {
+      throw new Error('Component not found in pipeline spec. Component name: ' + componentName);
     }
   }
 
-  if (isParallelForRootDag) {
-    return buildParallelForDag(executionLayers[executionLayers.length - 1]);
-    // draw subdag nodes equal to the number of iteration_count
+  if (
+    runtimeContext.task?.type === PipelineTaskTaskType.LOOP &&
+    runtimeContext.iterationIndex === undefined
+  ) {
+    const expectedTaskCount = Object.keys(componentSpec.dag?.tasks || {}).length;
+    return (
+      buildParallelForDag(
+        runtimeContext.task,
+        taskIndex,
+        expectedTaskCount,
+        runIsTerminal,
+        runCompletedSuccessfully,
+      ) || annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
+    );
   }
   return buildDag(spec, componentSpec);
 }
-function canvasIsParallelForDag(executionLayers: Execution[], layers: string[]) {
+
+export function updateFlowElementsState(
+  layers: string[],
+  elements: PipelineFlowElement[],
+  tasks: V2beta1PipelineTask[],
+  existingFlowContext?: RuntimeFlowContext,
+): PipelineFlowElement[] {
+  const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
+  const { taskIndex, runtimeLayerContext: runtimeContext } = flowContext;
+  if (!runtimeContext.task) {
+    return elements;
+  }
+
+  if (
+    runtimeContext.task.type === PipelineTaskTaskType.LOOP &&
+    runtimeContext.iterationIndex === undefined
+  ) {
+    return elements.map((element) => {
+      const updatedElement = cloneFlowElement(element);
+      if (!isNode(updatedElement) || updatedElement.type !== NodeTypeNames.SUB_DAG) {
+        return updatedElement;
+      }
+      const iterationIndex = Number(getIterationIdFromNodeKey(updatedElement.id));
+      const data = updatedElement.data as SubDagFlowElementData;
+      data.state = getIterationState(
+        getIterationTasks(taskIndex, runtimeContext.task!.task_id, iterationIndex),
+        data.expectedTaskCount,
+        runtimeContext.task!.state,
+        flowContext.runIsTerminal,
+        flowContext.runCompletedSuccessfully,
+      );
+      return updatedElement;
+    });
+  }
+
+  return elements.map((element) => {
+    const updatedElement = cloneFlowElement(element);
+    if (!isNode(updatedElement)) {
+      return updatedElement;
+    }
+
+    const runtimeInfo = getNodeRuntimeInfo(updatedElement, tasks, layers, flowContext);
+    const parentCompletedSuccessfully = taskCompletedSuccessfully(runtimeContext.task?.state);
+    if (updatedElement.type === NodeTypeNames.EXECUTION && runtimeInfo.task) {
+      const data = updatedElement.data as ExecutionFlowElementData;
+      data.state = getRuntimeTaskState(
+        runtimeInfo.task.state,
+        flowContext.runIsTerminal,
+        flowContext.runCompletedSuccessfully || parentCompletedSuccessfully,
+      );
+      data.taskId = runtimeInfo.task.task_id;
+      data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+    } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
+      const data = updatedElement.data as SubDagFlowElementData;
+      data.state = getRuntimeTaskState(
+        runtimeInfo.task.state,
+        flowContext.runIsTerminal,
+        flowContext.runCompletedSuccessfully || parentCompletedSuccessfully,
+      );
+      data.taskId = runtimeInfo.task.task_id;
+      data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+    } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
+      const data = updatedElement.data as ArtifactFlowElementData;
+      data.hasArtifact = !!runtimeInfo.artifactGroup.artifacts?.some(
+        (artifact) => artifact.artifact_id,
+      );
+    }
+    return updatedElement;
+  });
+}
+
+function taskCompletedSuccessfully(state: PipelineTaskTaskState | undefined): boolean {
   return (
-    executionLayers.length === layers.length &&
-    executionLayers[executionLayers.length - 1].getCustomPropertiesMap().has(ITERATION_COUNT_KEY)
+    state === PipelineTaskTaskState.SUCCEEDED ||
+    state === PipelineTaskTaskState.SKIPPED ||
+    state === PipelineTaskTaskState.CACHED
   );
 }
 
-function getExecutionLayers(layers: string[], executions: Execution[]) {
-  let exectuionLayers: Execution[] = [];
-  if (layers.length <= 0) {
-    return exectuionLayers;
+export function reconcileRuntimeFlowElements(
+  layers: string[],
+  elements: PipelineFlowElement[],
+  tasks: V2beta1PipelineTask[],
+  existingFlowContext?: RuntimeFlowContext,
+): PipelineFlowElement[] {
+  const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
+  const runtimeContext = flowContext.runtimeLayerContext;
+  let runtimeStructure = elements;
+  if (
+    runtimeContext.task?.type === PipelineTaskTaskType.LOOP &&
+    runtimeContext.iterationIndex === undefined &&
+    !hasParallelForStructure(elements, runtimeContext.task)
+  ) {
+    // A LOOP row can exist before the driver has persisted iteration_count (including driver
+    // failure and non-triggered paths). Keep the declarative body visible until runtime iteration
+    // structure is authoritative instead of replacing it with an empty graph.
+    runtimeStructure =
+      buildParallelForDag(
+        runtimeContext.task,
+        flowContext.taskIndex,
+        getExpectedTaskCount(elements),
+        flowContext.runIsTerminal,
+        flowContext.runCompletedSuccessfully,
+      ) || runtimeStructure;
   }
-  const taskNameToExecution = getTaskNameToExecution(executions);
 
-  // Get the root execution which doesn't have a task_name.
-  const rootExecutions = taskNameToExecution.get('');
-  if (!rootExecutions) {
-    return exectuionLayers;
+  return updateFlowElementsState(layers, runtimeStructure, tasks, flowContext);
+}
+
+function hasParallelForStructure(
+  elements: PipelineFlowElement[],
+  loopTask: V2beta1PipelineTask,
+): boolean {
+  const iterationCount = getParallelForIterationCount(loopTask);
+  if (iterationCount === undefined) {
+    return false;
   }
-  exectuionLayers.push(rootExecutions[0]);
+  if (elements.length !== iterationCount) {
+    return false;
+  }
+  const expectedNodeIds = new Set(
+    Array.from({ length: iterationCount }, (_, index) =>
+      getTaskNodeKey(`${loopTask.name}.${index}`),
+    ),
+  );
+  return elements.every(
+    (element) =>
+      isNode(element) && element.type === NodeTypeNames.SUB_DAG && expectedNodeIds.has(element.id),
+  );
+}
 
-  for (let index = 1; index < layers.length; index++) {
-    const parentExecution = exectuionLayers[index - 1];
-    const taskName = layers[index];
+export function getNodeRuntimeInfo(
+  element: PipelineFlowElement | null,
+  tasks: V2beta1PipelineTask[],
+  layers: string[],
+  existingFlowContext?: RuntimeFlowContext,
+): NodeRuntimeInfo {
+  if (!element || !isNode(element)) {
+    return {};
+  }
 
-    let executions = taskNameToExecution.get(taskName) || [];
-    // If this is an iteration of parrallelFor, remove the iteration index from layer name.
-    if (taskName.indexOf('.') > 0) {
-      const parallelForName = taskName.split('.')[0];
-      executions = taskNameToExecution.get(parallelForName) || [];
+  const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
+  const { taskIndex, runtimeLayerContext: runtimeContext } = flowContext;
+  if (!runtimeContext.task) {
+    return {};
+  }
+
+  if (element.type === NodeTypeNames.EXECUTION || element.type === NodeTypeNames.SUB_DAG) {
+    const task = findTaskForElement(element, runtimeContext, taskIndex);
+    return task ? { task } : {};
+  }
+
+  if (element.type === NodeTypeNames.ARTIFACT) {
+    return getArtifactRuntimeInfo(element, runtimeContext, taskIndex);
+  }
+  return {};
+}
+
+export function buildRuntimeFlowContext(
+  layers: string[],
+  tasks: V2beta1PipelineTask[],
+  runIsTerminal = false,
+  runCompletedSuccessfully = false,
+): RuntimeFlowContext {
+  const taskIndex = buildTaskIndex(tasks);
+  return {
+    taskIndex,
+    runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex),
+    runCompletedSuccessfully,
+    runIsTerminal,
+  };
+}
+
+export function getTaskRuntimeLayers(
+  task: V2beta1PipelineTask,
+  tasks: V2beta1PipelineTask[],
+): string[] | undefined {
+  const tasksById = new Map<string, V2beta1PipelineTask>();
+  for (const candidate of tasks) {
+    if (candidate.task_id) {
+      tasksById.set(candidate.task_id, candidate);
     }
-
-    executions = executions.filter((exec) => {
-      const customProperties = exec.getCustomPropertiesMap();
-      if (!customProperties.has(PARENT_DAG_ID_KEY)) {
-        return false;
-      }
-      const parentDagId = customProperties.get(PARENT_DAG_ID_KEY)?.getIntValue();
-      if (parentExecution.getId() !== parentDagId) {
-        return false;
-      }
-      if (taskName.indexOf('.') > 0) {
-        const iterationIndex = Number(taskName.split('.')[1]);
-        const executionIterationIndex = customProperties.get(ITERATION_INDEX_KEY)?.getIntValue();
-        return iterationIndex === executionIterationIndex;
-      }
-      return true;
-    });
-    if (executions.length <= 0) {
+  }
+  const ancestry: V2beta1PipelineTask[] = [];
+  const visited = new Set<string>();
+  let current: V2beta1PipelineTask | undefined = task;
+  while (current) {
+    ancestry.unshift(current);
+    if (current.type === PipelineTaskTaskType.ROOT || !current.parent_task_id) {
       break;
     }
-
-    exectuionLayers.push(executions[0]);
+    if (visited.has(current.parent_task_id)) {
+      break;
+    }
+    visited.add(current.parent_task_id);
+    current = tasksById.get(current.parent_task_id);
   }
-  return exectuionLayers;
+
+  if (ancestry[0]?.type !== PipelineTaskTaskType.ROOT && task.scope_path) {
+    const scopeLayers = task.scope_path.split('.').filter(Boolean).slice(0, -1);
+    const normalizedScopeLayers =
+      scopeLayers[0] === 'root' ? scopeLayers : ['root', ...scopeLayers];
+    const rawLeafIterationIndex = task.type_attributes?.iteration_index;
+    if (rawLeafIterationIndex === undefined || rawLeafIterationIndex === '') {
+      return normalizedScopeLayers;
+    }
+    // Parent IDs select one runtime instance before scope validation. Multiple context rows with
+    // the same name and scope are normal across ParallelFor iterations, so a global name lookup
+    // would reject ancestry that the linked task identifies unambiguously.
+    const resolvedContextTasks = ancestry.slice(0, -1);
+    if (resolvedContextTasks.length !== normalizedScopeLayers.length - 1) {
+      return undefined;
+    }
+    if (
+      resolvedContextTasks.some((candidate, index) => {
+        const layer = normalizedScopeLayers[index + 1];
+        const expectedScopePath = normalizedScopeLayers.slice(0, index + 2).join('.');
+        return (
+          candidate.name !== layer ||
+          candidate.type === undefined ||
+          !NAVIGABLE_RUNTIME_CONTEXT_TYPES.has(candidate.type) ||
+          normalizeRuntimeScopePath(candidate.scope_path) !== expectedScopePath
+        );
+      })
+    ) {
+      return undefined;
+    }
+    const runtimeChain = [...resolvedContextTasks, task];
+    if (
+      runtimeChain
+        .slice(1)
+        .some(
+          (childTask, index) =>
+            !runtimeChain[index].task_id ||
+            childTask.parent_task_id !== runtimeChain[index].task_id,
+        )
+    ) {
+      return undefined;
+    }
+    const runtimeLayers = ['root'];
+    for (let index = 0; index < resolvedContextTasks.length; index++) {
+      const contextTask = resolvedContextTasks[index];
+      if (!contextTask.name) return undefined;
+      runtimeLayers.push(contextTask.name);
+      if (contextTask.type !== PipelineTaskTaskType.LOOP) continue;
+
+      const rawIterationIndex = runtimeChain[index + 1]?.type_attributes?.iteration_index;
+      const iterationIndex = Number(rawIterationIndex);
+      if (
+        rawIterationIndex === undefined ||
+        rawIterationIndex === '' ||
+        !Number.isFinite(iterationIndex)
+      ) {
+        return undefined;
+      }
+      runtimeLayers.push(formatRuntimeIterationLayer(contextTask.name, iterationIndex));
+    }
+    return runtimeLayers;
+  }
+
+  const runtimeTasks =
+    ancestry[0]?.type === PipelineTaskTaskType.ROOT ? ancestry.slice(1) : ancestry;
+  const layers = ['root'];
+  for (let index = 0; index < runtimeTasks.length - 1; index++) {
+    const contextTask = runtimeTasks[index];
+    const childTask = runtimeTasks[index + 1];
+    if (!contextTask.name) {
+      continue;
+    }
+    layers.push(contextTask.name);
+    if (
+      contextTask.type === PipelineTaskTaskType.LOOP &&
+      childTask.type_attributes?.iteration_index !== undefined
+    ) {
+      layers.push(
+        formatRuntimeIterationLayer(
+          contextTask.name,
+          Number(childTask.type_attributes.iteration_index),
+        ),
+      );
+    }
+  }
+  return layers;
 }
 
-function buildParallelForDag(rootDagExecution: Execution): PipelineFlowElement[] {
-  let flowGraph: PipelineFlowElement[] = [];
-  addIterationNodes(rootDagExecution, flowGraph);
-  return buildGraphLayout(flowGraph);
+function buildTaskIndex(tasks: V2beta1PipelineTask[]): TaskIndex {
+  const tasksById = new Map<string, V2beta1PipelineTask>();
+  const childrenByParentId = new Map<string, V2beta1PipelineTask[]>();
+  const childrenByParentAndIteration = new Map<string, Map<number, V2beta1PipelineTask[]>>();
+  let rootTask: V2beta1PipelineTask | undefined;
+
+  for (const task of tasks) {
+    if (task.task_id) {
+      tasksById.set(task.task_id, task);
+    }
+    if (task.type === PipelineTaskTaskType.ROOT) {
+      rootTask = task;
+    }
+    if (task.parent_task_id) {
+      const children = childrenByParentId.get(task.parent_task_id) || [];
+      children.push(task);
+      childrenByParentId.set(task.parent_task_id, children);
+      const rawIterationIndex = task.type_attributes?.iteration_index;
+      const iterationIndex = Number(rawIterationIndex);
+      if (
+        rawIterationIndex !== undefined &&
+        rawIterationIndex !== '' &&
+        Number.isFinite(iterationIndex)
+      ) {
+        const childrenByIteration =
+          childrenByParentAndIteration.get(task.parent_task_id) ||
+          new Map<number, V2beta1PipelineTask[]>();
+        const iterationChildren = childrenByIteration.get(iterationIndex) || [];
+        iterationChildren.push(task);
+        childrenByIteration.set(iterationIndex, iterationChildren);
+        childrenByParentAndIteration.set(task.parent_task_id, childrenByIteration);
+      }
+    }
+  }
+
+  rootTask ||= tasks.find((task) => !task.parent_task_id);
+  return { rootTask, tasksById, childrenByParentId, childrenByParentAndIteration };
 }
 
-function addIterationNodes(rootDagExecution: Execution, flowGraph: PipelineFlowElement[]) {
-  const taskName = rootDagExecution.getCustomPropertiesMap().get(TASK_NAME_KEY);
-  const iterationCount = rootDagExecution.getCustomPropertiesMap().get(ITERATION_COUNT_KEY);
-  if (taskName === undefined || !taskName.getStringValue()) {
-    console.warn("Task name for the parallelFor Execution doesn't exist.");
-    return;
-  }
-  if (iterationCount === undefined || !iterationCount.getIntValue()) {
-    console.warn("Iteration Count for the parallelFor Execution doesn't exist.");
-    return;
+function getIterationTasks(
+  taskIndex: TaskIndex,
+  parentTaskId: string | undefined,
+  iterationIndex: number,
+): V2beta1PipelineTask[] {
+  return taskIndex.childrenByParentAndIteration.get(parentTaskId || '')?.get(iterationIndex) || [];
+}
+
+function getRuntimeLayerContext(layers: string[], taskIndex: TaskIndex): RuntimeLayerContext {
+  let context: RuntimeLayerContext = { task: taskIndex.rootTask };
+  if (!context.task) {
+    return context;
   }
 
-  const taskNameStr = taskName.getStringValue();
-  const iterationCountInt = iterationCount.getIntValue();
-  for (let index = 0; index < iterationCountInt; index++) {
-    const iterationNodeName = `${taskNameStr}.${index}`;
-    // One iteration is a sub-DAG instance.
+  for (let index = 1; index < layers.length; index++) {
+    const layer = layers[index];
+    const contextTask = context.task;
+    if (!contextTask) {
+      return {};
+    }
+    const iterationLayer = parseRuntimeIterationLayer(layer, contextTask.name);
+    if (iterationLayer && contextTask.type === PipelineTaskTaskType.LOOP) {
+      context = { task: contextTask, iterationIndex: iterationLayer.iterationIndex };
+      continue;
+    }
+
+    const matchedTask = getTasksUnderContext(context, taskIndex).find(
+      (task) => task.name === layer,
+    );
+    if (!matchedTask) {
+      return {};
+    }
+    context = { task: matchedTask };
+  }
+  return context;
+}
+
+function findTaskForElement(
+  element: Node<FlowElementDataBase>,
+  runtimeContext: RuntimeLayerContext,
+  taskIndex: TaskIndex,
+): V2beta1PipelineTask | undefined {
+  if (element.data?.taskId) {
+    const task = taskIndex.tasksById.get(element.data.taskId);
+    if (task) {
+      return task;
+    }
+  }
+
+  const taskName = getTaskKeyFromNodeKey(element.id);
+  return getTasksUnderContext(runtimeContext, taskIndex).find((task) => task.name === taskName);
+}
+
+function getArtifactRuntimeInfo(
+  element: Node<FlowElementDataBase>,
+  runtimeContext: RuntimeLayerContext,
+  taskIndex: TaskIndex,
+): NodeRuntimeInfo {
+  const artifactData = element.data as ArtifactFlowElementData;
+  const [taskName, artifactKey] = getKeysFromArtifactNodeKey(element.id);
+
+  if (!taskName) {
+    const artifactGroup = runtimeContext.task?.inputs?.artifacts?.find(
+      (group) => group.artifact_key === artifactKey,
+    );
+    return artifactGroup ? { task: runtimeContext.task, artifactGroup } : {};
+  }
+
+  const task = getTasksUnderContext(runtimeContext, taskIndex).find(
+    (candidate) => candidate.name === taskName,
+  );
+  if (!task) {
+    return {};
+  }
+
+  let artifactGroup = task.outputs?.artifacts?.find((group) => group.artifact_key === artifactKey);
+  if (!artifactGroup && artifactData.producerSubtask && artifactData.outputArtifactKey) {
+    const producerTask = getTasksUnderContext({ task }, taskIndex).find(
+      (candidate) => candidate.name === artifactData.producerSubtask,
+    );
+    artifactGroup = producerTask?.outputs?.artifacts?.find(
+      (group) => group.artifact_key === artifactData.outputArtifactKey,
+    );
+    return artifactGroup ? { task: producerTask, artifactGroup } : { task };
+  }
+  return artifactGroup ? { task, artifactGroup } : { task };
+}
+
+function getTasksUnderContext(
+  runtimeContext: RuntimeLayerContext,
+  taskIndex: TaskIndex,
+): V2beta1PipelineTask[] {
+  const children = taskIndex.childrenByParentId.get(runtimeContext.task?.task_id || '') || [];
+  if (runtimeContext.iterationIndex === undefined) {
+    return children;
+  }
+  return getIterationTasks(taskIndex, runtimeContext.task?.task_id, runtimeContext.iterationIndex);
+}
+
+function getParallelForIterationCount(loopTask: V2beta1PipelineTask): number | undefined {
+  const value = loopTask.type_attributes?.iteration_count;
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 0 ? count : undefined;
+}
+
+function buildParallelForDag(
+  loopTask: V2beta1PipelineTask,
+  taskIndex: TaskIndex,
+  expectedTaskCount?: number,
+  runIsTerminal = false,
+  runCompletedSuccessfully = false,
+): PipelineFlowElement[] | undefined {
+  const flowGraph: PipelineFlowElement[] = [];
+  const iterationCount = getParallelForIterationCount(loopTask);
+  if (iterationCount === undefined) {
+    return undefined;
+  }
+  for (let index = 0; index < iterationCount; index++) {
+    const iterationNodeName = formatRuntimeIterationLayer(loopTask.name || '', index);
     const node: Node<FlowElementDataBase> = {
       id: getTaskNodeKey(iterationNodeName),
-      data: { label: iterationNodeName, taskType: TaskType.DAG },
+      data: {
+        label: iterationNodeName,
+        expectedTaskCount,
+        state: getIterationState(
+          getIterationTasks(taskIndex, loopTask.task_id, index),
+          expectedTaskCount,
+          loopTask.state,
+          runIsTerminal,
+          runCompletedSuccessfully,
+        ),
+        taskType: TaskType.DAG,
+      },
       position: { x: 100, y: 200 },
       type: NodeTypeNames.SUB_DAG,
     };
     flowGraph.push(node);
   }
+  return buildGraphLayout(flowGraph);
 }
 
-// 1. Get the Pipeline Run context using run ID (FOR subDAG, we need to wait for design)
-// 2. Fetch all executions by context. Create Map for task_name => Execution
-// 3. Fetch all Events by Context. Create Map for OUTPUT events: execution_id => Events
-// 5. Fetch all Artifacts by Context.
-// 6. Create Map for artifacts: artifact_id => Artifact
-//    a. For each task in the flowElements, find its execution state.
-//    b. For each artifact node, get its task name.
-//    c. get Execution from Map, then get execution_id.
-//    d. get Events from Map, then get artifact name from path.
-//    e. for the Event which matches artifact name, get artifact_id.
-//    f. get Artifact and update the state.
+function getIterationState(
+  iterationTasks: V2beta1PipelineTask[],
+  expectedTaskCount?: number,
+  loopState?: PipelineTaskTaskState,
+  runIsTerminal = false,
+  runCompletedSuccessfully = false,
+): PipelineTaskTaskState | undefined {
+  const states = iterationTasks
+    .map((task) => task.state)
+    .filter((state): state is PipelineTaskTaskState => !!state);
+  if (!states.length) {
+    return undefined;
+  }
+  const loopCompletedSuccessfully =
+    loopState === PipelineTaskTaskState.SUCCEEDED ||
+    loopState === PipelineTaskTaskState.SKIPPED ||
+    loopState === PipelineTaskTaskState.CACHED;
+  if (
+    (runCompletedSuccessfully || loopCompletedSuccessfully) &&
+    states.includes(PipelineTaskTaskState.FAILED)
+  ) {
+    return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+  }
+  if (states.includes(PipelineTaskTaskState.FAILED)) {
+    return PipelineTaskTaskState.FAILED;
+  }
+  const loopIsTerminal = runIsTerminal || loopCompletedSuccessfully;
+  if (loopIsTerminal && states.includes(PipelineTaskTaskState.RUNNING)) {
+    return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+  }
+  if (states.includes(PipelineTaskTaskState.RUNNING)) {
+    return PipelineTaskTaskState.RUNNING;
+  }
+  const iterationIsIncomplete =
+    expectedTaskCount !== undefined && iterationTasks.length < expectedTaskCount;
+  if (iterationIsIncomplete) {
+    if (
+      !runIsTerminal &&
+      (loopState === PipelineTaskTaskState.RUNNING || loopState === PipelineTaskTaskState.FAILED)
+    ) {
+      return PipelineTaskTaskState.RUNNING;
+    }
+    if (
+      runIsTerminal &&
+      (loopState === PipelineTaskTaskState.RUNNING || loopState === PipelineTaskTaskState.FAILED)
+    ) {
+      return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+    }
+  }
+  if (states.every((state) => state === PipelineTaskTaskState.SKIPPED)) {
+    return PipelineTaskTaskState.SKIPPED;
+  }
+  if (states.every((state) => state === PipelineTaskTaskState.CACHED)) {
+    return PipelineTaskTaskState.CACHED;
+  }
+  if (
+    states.every(
+      (state) =>
+        state === PipelineTaskTaskState.SUCCEEDED ||
+        state === PipelineTaskTaskState.CACHED ||
+        state === PipelineTaskTaskState.SKIPPED,
+    )
+  ) {
+    return PipelineTaskTaskState.SUCCEEDED;
+  }
+  return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+}
 
-// Construct ArtifactNodeKey -> Artifact Map
-//    for each OUTPUT event, get execution id and artifact id
-//         get execution task_name from Execution map
-//         get artifact name from Event path
-//         get Artifact from Artifact map
-//         set ArtifactNodeKey -> Artifact.
-// Elements change to Map node key => node, edge key => edge
-// For each node: (DAG execution doesn't have design yet)
-//     If TASK:
-//         Find exeuction from using task_name
-//         Update with execution state
-//     If ARTIFACT:
-//         Get task_name and artifact_name
-//         Get artifact from Master Map
-//         Update with artifact state
-//     IF SUBDAG: (Not designed)
-//         similar to TASK, but needs to determine subDAG type.
+function getRuntimeTaskState(
+  taskState: PipelineTaskTaskState | undefined,
+  runIsTerminal: boolean,
+  enclosingScopeCompletedSuccessfully: boolean,
+): PipelineTaskTaskState | undefined {
+  return ((runIsTerminal || enclosingScopeCompletedSuccessfully) &&
+    taskState === PipelineTaskTaskState.RUNNING) ||
+    (enclosingScopeCompletedSuccessfully && taskState === PipelineTaskTaskState.FAILED)
+    ? PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED
+    : taskState;
+}
 
-// Questions:
-//    How to handle DAG state?
-//    How to handle subDAG input artifacts and parameters?
-//    How to handle if-condition? and show the state
-//    How to handle parallel-for? and list of workers.
-
-export function updateFlowElementsState(
-  layers: string[],
-  elems: PipelineFlowElement[],
-  executions: Execution[],
-  events: Event[],
-  artifacts: Artifact[],
+function annotateExpectedTaskCount(
+  elements: PipelineFlowElement[],
+  expectedTaskCount: number,
 ): PipelineFlowElement[] {
-  const executionLayers = getExecutionLayers(layers, executions);
-  if (executionLayers.length < layers.length) {
-    // This Sub DAG is not executed yet. There is no runtime information to update.
-    return elems;
-  }
-
-  const taskNameToExecution = getTaskNameToExecution(executions);
-  const executionIdToExectuion = getExectuionIdToExecution(executions);
-  const artifactIdToArtifact = getArtifactIdToArtifact(artifacts);
-  const artifactNodeKeyToArtifact = getArtifactNodeKeyToArtifact(
-    events,
-    executionIdToExectuion,
-    artifactIdToArtifact,
+  return elements.map((element) =>
+    isNode(element) ? { ...element, data: { ...element.data, expectedTaskCount } } : element,
   );
-
-  let flowGraph: PipelineFlowElement[] = [];
-
-  if (canvasIsParallelForDag(executionLayers, layers)) {
-    const parallelForDagExecution = executionLayers[executionLayers.length - 1];
-    const executions = taskNameToExecution.get(
-      parallelForDagExecution.getCustomPropertiesMap().get(TASK_NAME_KEY)?.getStringValue() ||
-        parallelForDagExecution.getName(),
-    );
-
-    for (let elem of elems) {
-      const updatedElem = cloneFlowElement(elem);
-      const iterationId = Number(getIterationIdFromNodeKey(updatedElem.id));
-      const matchedExecs = executions?.filter((exec) => {
-        const customProperties = exec.getCustomPropertiesMap();
-        const iteration_index = customProperties.get(ITERATION_INDEX_KEY)?.getIntValue();
-        const parent_dag_id = customProperties.get(PARENT_DAG_ID_KEY)?.getIntValue();
-        return parent_dag_id === parallelForDagExecution.getId() && iteration_index === iterationId;
-      });
-      if (matchedExecs && matchedExecs.length > 0) {
-        (updatedElem.data as SubDagFlowElementData).state = matchedExecs[0].getLastKnownState();
-      }
-      flowGraph.push(updatedElem);
-    }
-    return flowGraph;
-  }
-  for (let elem of elems) {
-    const updatedElem = cloneFlowElement(elem);
-    if (NodeTypeNames.EXECUTION === elem.type) {
-      const executions = getExecutionsUnderDAG(
-        taskNameToExecution,
-        getTaskLabelByPipelineFlowElement(elem),
-        executionLayers,
-      );
-      if (executions) {
-        (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
-        (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
-        // Use ExecutionHelpers.getName() which reads display_name from MLMD custom properties
-        (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(
-          executions[0],
-        );
-      }
-    } else if (NodeTypeNames.ARTIFACT === elem.type) {
-      let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
-
-      // Detect whether Artifact is an output of SubDAG, if so, search its source artifact.
-      let artifactData = elem.data as ArtifactFlowElementData;
-      if (artifactData && artifactData.outputArtifactKey && artifactData.producerSubtask) {
-        // SubDAG output artifact has reference to inner subtask and artifact.
-        const subArtifactKey = getArtifactNodeKey(
-          artifactData.producerSubtask,
-          artifactData.outputArtifactKey,
-        );
-        linkedArtifact = artifactNodeKeyToArtifact.get(subArtifactKey);
-      }
-
-      (updatedElem.data as ArtifactFlowElementData).state = linkedArtifact?.artifact?.getState();
-      (updatedElem.data as ArtifactFlowElementData).mlmdId = linkedArtifact?.artifact?.getId();
-    } else if (NodeTypeNames.SUB_DAG === elem.type) {
-      // TODO: Update sub-dag state based on future design.
-      const executions = getExecutionsUnderDAG(
-        taskNameToExecution,
-        getTaskLabelByPipelineFlowElement(elem),
-        executionLayers,
-      );
-      if (executions) {
-        (updatedElem.data as SubDagFlowElementData).state = executions[0]?.getLastKnownState();
-        (updatedElem.data as SubDagFlowElementData).mlmdId = executions[0]?.getId();
-      }
-    }
-    flowGraph.push(updatedElem);
-  }
-  return flowGraph;
 }
 
-function cloneFlowElement(elem: PipelineFlowElement): PipelineFlowElement {
-  if (isNode(elem)) {
+function getExpectedTaskCount(elements: PipelineFlowElement[]): number | undefined {
+  for (const element of elements) {
+    if (isNode(element) && typeof element.data.expectedTaskCount === 'number') {
+      return element.data.expectedTaskCount;
+    }
+  }
+  return undefined;
+}
+
+function cloneFlowElement(element: PipelineFlowElement): PipelineFlowElement {
+  if (isNode(element)) {
     const {
       data,
       dragging: _dragging,
@@ -321,175 +713,17 @@ function cloneFlowElement(elem: PipelineFlowElement): PipelineFlowElement {
       resizing: _resizing,
       selected: _selected,
       ...rest
-    } = elem;
-
+    } = element;
     return {
       ...rest,
       data: data ? { ...data } : data,
       position: { ...position },
     };
   }
-
   return {
-    id: elem.id,
-    markerEnd: elem.markerEnd,
-    source: elem.source,
-    target: elem.target,
+    id: element.id,
+    markerEnd: element.markerEnd,
+    source: element.source,
+    target: element.target,
   };
-}
-
-function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {
-  // Always use the original task name from the node ID for MLMD data lookups
-  return getTaskKeyFromNodeKey(elem.id);
-}
-
-function getExecutionsUnderDAG(
-  taskNameToExecution: Map<string, Execution[]>,
-  taskName: string,
-  executionLayers: Execution[],
-) {
-  return taskNameToExecution.get(taskName)?.filter((exec) => {
-    return (
-      exec.getCustomPropertiesMap().get(PARENT_DAG_ID_KEY)?.getIntValue() ===
-      executionLayers[executionLayers.length - 1].getId()
-    );
-  });
-}
-
-export function getNodeMlmdInfo(
-  elem: PipelineFlowElement | null,
-  executions: Execution[],
-  events: Event[],
-  artifacts: Artifact[],
-): NodeMlmdInfo {
-  if (!elem) {
-    return {};
-  }
-  const taskNameToExecution = getTaskNameToExecution(executions);
-  const executionIdToExectuion = getExectuionIdToExecution(executions);
-  const artifactIdToArtifact = getArtifactIdToArtifact(artifacts);
-  const artifactNodeKeyToArtifact = getArtifactNodeKeyToArtifact(
-    events,
-    executionIdToExectuion,
-    artifactIdToArtifact,
-  );
-
-  if (NodeTypeNames.EXECUTION === elem.type) {
-    const taskLabel = getTaskLabelByPipelineFlowElement(elem);
-    const executions = taskNameToExecution
-      .get(taskLabel)
-      ?.filter((exec) => exec.getId() === elem.data?.mlmdId);
-    return executions ? { execution: executions[0] } : {};
-  } else if (NodeTypeNames.ARTIFACT === elem.type) {
-    let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
-
-    // Detect whether Artifact is an output of SubDAG, if so, search its source artifact.
-    let artifactData = elem.data as ArtifactFlowElementData;
-    if (artifactData && artifactData.outputArtifactKey && artifactData.producerSubtask) {
-      // SubDAG output artifact has reference to inner subtask and artifact.
-      const subArtifactKey = getArtifactNodeKey(
-        artifactData.producerSubtask,
-        artifactData.outputArtifactKey,
-      );
-      linkedArtifact = artifactNodeKeyToArtifact.get(subArtifactKey);
-    }
-
-    const executionId = linkedArtifact?.event.getExecutionId();
-    const execution = executionId ? executionIdToExectuion.get(executionId) : undefined;
-    return { execution, linkedArtifact };
-  } else if (NodeTypeNames.SUB_DAG === elem.type) {
-    // TODO: Update sub-dag state based on future design.
-    const taskLabel = getTaskLabelByPipelineFlowElement(elem);
-    const executions = taskNameToExecution
-      .get(taskLabel)
-      ?.filter((exec) => exec.getId() === elem.data?.mlmdId);
-    return executions ? { execution: executions[0] } : {};
-  }
-  return {};
-}
-
-function getTaskNameToExecution(executions: Execution[]): Map<string, Execution[]> {
-  const map = new Map<string, Execution[]>();
-  for (let exec of executions) {
-    const taskName = getTaskName(exec);
-    if (!taskName) {
-      continue;
-    }
-    const taskNameStr = taskName.getStringValue();
-    const execs = map.get(taskNameStr);
-    if (execs) {
-      execs.push(exec);
-    } else {
-      map.set(taskNameStr, [exec]);
-    }
-  }
-  return map;
-}
-
-function getExectuionIdToExecution(executions: Execution[]): Map<number, Execution> {
-  const map = new Map<number, Execution>();
-  for (let exec of executions) {
-    map.set(exec.getId(), exec);
-  }
-  return map;
-}
-
-function getArtifactIdToArtifact(artifacts: Artifact[]): Map<number, Artifact> {
-  const map = new Map<number, Artifact>();
-  for (let artifact of artifacts) {
-    map.set(artifact.getId(), artifact);
-  }
-  return map;
-}
-
-function getArtifactNodeKeyToArtifact(
-  events: Event[],
-  executionIdToExectuion: Map<number, Execution>,
-  artifactIdToArtifact: Map<number, Artifact>,
-): Map<string, LinkedArtifact> {
-  const map = new Map<string, LinkedArtifact>();
-  const outputEvents = events.filter((event) => event.getType() === Event.Type.OUTPUT);
-  for (let event of outputEvents) {
-    const executionId = event.getExecutionId();
-    const execution = executionIdToExectuion.get(executionId);
-    if (!execution) {
-      console.warn("Execution doesn't exist for ID " + executionId);
-      continue;
-    }
-    const taskName = getTaskName(execution);
-    if (!taskName) {
-      continue;
-    }
-    const artifactId = event.getArtifactId();
-    const artifact = artifactIdToArtifact.get(artifactId);
-    if (!artifact) {
-      console.warn("Artifact doesn't exist for ID " + artifactId);
-      continue;
-    }
-    const artifactName = getArtifactNameFromEvent(event);
-    if (!artifactName) {
-      console.warn("Artifact name doesn't exist in Event. Artifact ID " + artifactId);
-      continue;
-    }
-    const linkedArtifact: LinkedArtifact = { event, artifact };
-    const key = getArtifactNodeKey(taskName.getStringValue(), artifactName);
-    map.set(key, linkedArtifact);
-  }
-  return map;
-}
-
-function getTaskName(exec: Execution): Value | undefined {
-  const customProperties = exec.getCustomPropertiesMap();
-  if (!customProperties.has(TASK_NAME_KEY)) {
-    console.warn("task_name key doesn't exist for custom properties of Execution " + exec.getId());
-    return undefined;
-  }
-  const taskName = customProperties.get(TASK_NAME_KEY);
-  if (!taskName) {
-    console.warn(
-      "task_name value doesn't exist for custom properties of Execution " + exec.getId(),
-    );
-    return undefined;
-  }
-  return taskName;
 }

@@ -365,10 +365,6 @@ runs:
           wait_for_local_port 9000
 
           if [ -n "${MLFLOW_PORT_FORWARD_NS:-}" ] && [ -n "${MLFLOW_PORT_FORWARD_SVC:-}" ]; then
-            if [ "${ARGO_COMPATIBILITY_TESTS:-}" = "true" ]; then
-              echo "ERROR: MLflow and MLMD both require localhost:8080 in this action"
-              exit 1
-            fi
             REMOTE_PORT="${MLFLOW_PORT_FORWARD_REMOTE_PORT:-5000}"
             start_port_forward_supervisor "mlflow" "${MLFLOW_PORT_FORWARD_NS}" "svc/${MLFLOW_PORT_FORWARD_SVC}" "8080" "${REMOTE_PORT}"
             wait_for_local_port 8080
@@ -391,11 +387,6 @@ runs:
               echo "Waiting for API server on localhost:8888... ($i/12)"
               sleep 5
             done
-          fi
-
-          if [ "${ARGO_COMPATIBILITY_TESTS:-}" = "true" ]; then
-            start_port_forward_supervisor "mlmd" "${INPUT_DEFAULT_NAMESPACE}" "service/metadata-grpc-service" "8080" "8080"
-            wait_for_local_port 8080
           fi
         fi
 
