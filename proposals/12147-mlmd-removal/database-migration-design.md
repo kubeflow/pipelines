@@ -69,9 +69,9 @@ This KEP specifies the migration subsystem that copies historic MLMD records int
 
 > As a KFP platform admin, I want to upgrade from a MLMD-backed version of KFP to a MLMD-free version without losing any historical pipeline run data or artifact lineage, so that my team can continue to audit and debug past runs after the upgrade.
 
-**Story 2: Admin preferring manual control**
+**Story 2: Admin runs the migration utility ahead of the API upgrade (primary path to minimize downtime)**
 
-> As a KFP admin who manages migration windows carefully, I want to run the migration as a standalone job on my own schedule, before or after the API server upgrade, so I can control when the extra database load occurs and verify results before proceeding.
+> As a KFP admin, I want to run the standalone migration utility against my cluster **before** (or during a controlled window ahead of) cutting over the API server, so most historical data is already in the native schema. When the new API server starts, migration is only an idempotent **true-up** of anything still missing since the script last ran, which keeps the maintenance window as short as possible.
 
 **Story 3: Recovery from a failed migration**
 
@@ -116,14 +116,14 @@ Both entry points use the same migration logic. Only how migration is triggered 
 
 Schema changes are handled differently depending on whether a table is new or pre-existing, to avoid GORM `AutoMigrate` silently reverting or corrupting manual modifications to existing tables:
 
-- **New tables** (`artifacts`, `artifact_tasks`, `mlmd_id_map`): created via manually written SQL (see [schema_changes.sql](./schema_changes.sql)), verified against GORM `AutoMigrate` in CI. No pre-existing data or schema to protect.
+- **New tables** (`artifacts`, `artifact_tasks`): created via manually written SQL (see [schema_changes.sql](./schema_changes.sql)), verified against GORM `AutoMigrate` in CI. No pre-existing data or schema to protect.
 - **Modified existing table** (`tasks` only): migrated via a table-copy-and-rename workflow rather than in-place `AutoMigrate`. The current `tasks` table stores cache fingerprints only; the post-migration schema is incompatible (see [schema_changes.sql](./schema_changes.sql)):
   1. Create a temporary copy of the table (`tasks_migration_tmp`) with the target schema, using manually written SQL (not `AutoMigrate`) as the source of truth for the DDL.
   2. Backfill `tasks_migration_tmp` from the existing `tasks` table (cache-fingerprint rows), mapping old columns into the new schema.
   3. Within a single transaction: rename the existing table to a backup name (`tasks_pre_migration`), rename the temporary table to `tasks`.
   4. After migration completes successfully, drop `tasks_pre_migration` (see [Backup and Recovery](#backup-and-recovery)).
 
-**Schema verification (CI safeguard):** To confirm the manual SQL scripts and `AutoMigrate` never diverge for the *new*-table schemas, CI generates a schema dump after running the manual migration SQL, generates a second dump after running `GORM.AutoMigrate()` against a clean database, and diffs the two. A non-empty diff fails CI. `AutoMigrate` is used here as a schema check only, not to migrate production databases. This does not apply to `tasks`, which never goes through `AutoMigrate` directly.
+**Schema verification (CI safeguard):** To confirm the manual SQL scripts and `AutoMigrate` never diverge for the *new*-table schemas, CI generates a schema dump after running the manual migration SQL, generates a second dump after running `GORM.AutoMigrate()` against a clean database, and diffs the two. A non-empty diff fails CI. `AutoMigrate` is used here as a schema check only, not to migrate production databases. For `tasks`: **new installs** still rely on `AutoMigrate` to create the post-MLMD `tasks` table from the GORM model, the table-copy-and-rename path above applies only when upgrading an existing pre-migration `tasks` table.
 
 Blocks normal API traffic until schema migration finishes. While migration is in progress the server stays in maintenance mode (see [Maintenance Mode](#maintenance-mode) and [Handling In-Flight Runs](#handling-in-flight-runs)).
 
@@ -133,16 +133,15 @@ Entities are migrated in dependency order to satisfy foreign key constraints:
 
 ```
 MLMD Executions  ──►  tasks table
-                       (deterministic UUID, state mapping, TaskType detection)
+                       (deterministic UUID v5, state mapping, TaskType detection)
 
 MLMD Artifacts   ──►  artifacts table
-                       (metrics split into separate rows, register in mlmd_id_map)
+                       (metrics split into separate rows; UUIDs via UUID v5)
 
 MLMD Events      ──►  artifact_tasks table       ← LAST: FK deps on both above
-                       (link tasks to artifacts, preserve IOType)
+                       (link tasks to artifacts via UUID v5, preserve IOType)
 
-Second pass      ──►  Resolve parent_task_uuid references via mlmd_id_map
-Cleanup         ──►  Drop mlmd_id_map
+Second pass      ──►  Resolve parent_task_uuid via uuidv5("execution:"+parent_id)
 ```
 
 Each entity type is processed in serial batches of a fixed size (define a default batch size) in ascending MLMD ID order. Each batch runs in its own transaction using `INSERT IGNORE`. After a crash, already-committed batches stay in the database; the next run binary-searches for the first MLMD ID whose deterministic UUID is missing and continues from there.
@@ -151,20 +150,7 @@ In API Server mode, Phase 3 runs while the server remains in maintenance mode. N
 
 #### New Database Tables
 
-
-**`mlmd_id_map`** — temporary map of MLMD integer IDs to KFP UUIDs for parent-task resolution during migration:
-
-```sql
-CREATE TABLE mlmd_id_map (
-    mlmd_entity_type VARCHAR(20)  NOT NULL,   -- "execution" or "artifact"
-    mlmd_id          BIGINT       NOT NULL,
-    kfp_uuid         VARCHAR(191) NOT NULL,
-    migrated_at      BIGINT       NOT NULL,
-    PRIMARY KEY (mlmd_entity_type, mlmd_id)
-);
-```
-
-`mlmd_id_map` is a temporary table and drop it only after the parent-resolution pass finishes.
+Permanent post-migration tables (`artifacts`, `artifact_tasks`) and the altered `tasks` schema are defined in [schema_changes.sql](./schema_changes.sql).
 
 #### Idempotency
 
@@ -195,19 +181,19 @@ Duplicate rows (same UUID) are silently skipped. A crashed-and-resumed run encou
 
 After a crash or running after a partially migrated DB through the utility script, for each insert stream (`tasks`, `artifacts`, `artifact_tasks`) the engine binary searches over ascending MLMD IDs and checks the KFP DB for the deterministic UUID. The first missing ID is the resume point, migration continues with per batch transactions from there.
 
-After execution inserts, run an **idempotent parent fixup** until no unresolved rows remain: for each child that had `parent_dag_id` in MLMD and still has `ParentTaskUUID IS NULL`, set `ParentTaskUUID = uuidv5("execution:"+parent_dag_id)` (map lookup optional). When that set is empty, the parent stage is done.
+After execution inserts, run an **idempotent parent fixup** until no unresolved rows remain: for each child that had `parent_dag_id` in MLMD and still has `ParentTaskUUID IS NULL`, set `ParentTaskUUID = uuidv5("execution:"+parent_dag_id)`. When that set is empty, the parent stage is done.
 
 #### Migration completion checklist
 
 On API server startup, decide whether to migrate from **schema / progress state**:
 
-1. **Migration required (always try):** the KFP schema is out of date relative to the post-MLMD-removal target **or** a migration is already in progress (for example leftover `tasks_pre_migration` / `mlmd_id_map`, or the checklist below is only partially satisfied). Enter maintenance mode and migrate/resume.
+1. **Migration required (always try):** the KFP schema is out of date relative to the post-MLMD-removal target **or** a migration is already in progress (for example leftover `tasks_pre_migration`, or the checklist below is only partially satisfied). Enter maintenance mode and migrate/resume.
 2. **MLMD connection required when migrating:** if migration is required and MLMD gRPC connection config is missing, **fail startup**. The operator/installer must supply connection info for upgrade boots (see [MLMD connection configuration](#mlmd-connection-configuration)).
 3. **Already current (skip migration):** schema is already at the target shape **and** the completion predicates below are satisfied (including no leftover temp tables). Skip migrate and serve normally. MLMD connection config is not required in this case.
 4. **Migration complete (leave maintenance):** all of:
    - Insert stages done: for executions, artifacts, and events, the first missing deterministic key is past the max migratable MLMD ID (and/or counts match migratable MLMD entities after Phase 1 skip rules).
    - Parent fixup done: zero tasks that need a parent still have `ParentTaskUUID IS NULL`.
-   - Cleanup done: `mlmd_id_map` and `tasks_pre_migration` are absent.
+   - Cleanup done: `tasks_pre_migration` is absent.
 
 #### MLMD connection configuration
 
@@ -216,10 +202,11 @@ Migration needs MLMD gRPC connection settings on the migrator entry points:
 | Setting | Purpose |
 |---|---|
 | MLMD gRPC address (host + port) | Connect to `metadata-grpc-service` (or equivalent) to read executions, artifacts, and events |
-| Optional TLS / credentials | Only if the deployment’s MLMD endpoint requires them |
+| Optional TLS | Only if the deployment’s MLMD endpoint requires TLS |
+| Optional request headers | Extra gRPC metadata to send with each MLMD call (e.g. `authorization: Bearer …`), so admins can pass whatever auth the endpoint needs |
 
 - **API server mode:** the installer/operator injects these settings into the API server for upgrade boots where migration may run. Detection is schema/progress-based as above.
-- **CLI mode:** the same connection info is passed via flags (for example `--mlmd-address`).
+- **CLI mode:** the same connection info is passed via flags (for example `--mlmd-address`, `--mlmd-header=authorization:Bearer <token>`).
 - After cutover, once migration is complete and MLMD is removed, those settings can be omitted; already-current clusters do not need them.
 
 #### MLMD Entity Transformations
@@ -243,9 +230,8 @@ Detection order is significant: specific patterns (exit-handler, condition, loop
 
 MLMD stores parent links as integer execution IDs (`parent_dag_id` on the child). KFP stores them as `ParentTaskUUID` with a self-FK on `tasks.UUID`. Because the parent must already exist as a KFP UUID before the FK can be set, parent/child wiring is done in two passes:
 
-1. **Pass 1 — Insert all executions as tasks.** For each MLMD execution: generate a deterministic UUID v5, detect `TaskType` (including whether `parent_dag_id` is present), `INSERT IGNORE` into `tasks` with `ParentTaskUUID` unset/`NULL`, and optionally register `(execution, mlmd_id) → kfp_uuid` in `mlmd_id_map`.
-2. **Pass 2 — Idempotent parent fixup.** For each migrated task that had a `parent_dag_id` in MLMD and still has `ParentTaskUUID IS NULL`, set `ParentTaskUUID` to `uuidv5("execution:"+parent_dag_id)` (or via `mlmd_id_map`). Re-run until zero unresolved rows remain.
-3. **Drop `mlmd_id_map`.** Only after Pass 2 has fully committed. Parent links then live only on `tasks.ParentTaskUUID`.
+1. **Pass 1 — Insert all executions as tasks.** For each MLMD execution: generate a deterministic UUID v5, detect `TaskType` (including whether `parent_dag_id` is present), and `INSERT IGNORE` into `tasks` with `ParentTaskUUID` unset/`NULL`.
+2. **Pass 2 — Idempotent parent fixup.** For each migrated task that had a `parent_dag_id` in MLMD and still has `ParentTaskUUID IS NULL`, set `ParentTaskUUID` to `uuidv5("execution:"+parent_dag_id)`. Re-run until zero unresolved rows remain. Parent links then live only on `tasks.ParentTaskUUID`.
 
 Example:
 
@@ -257,11 +243,9 @@ MLMD:  exec 10 (DAG, no parent)     → ROOT
 Pass 1: tasks rows uuid-10, uuid-20, uuid-30 (ParentTaskUUID NULL)
 
 Pass 2: UPDATE children SET ParentTaskUUID = uuidv5(execution:10) WHERE still NULL
-
-Then: DROP TABLE mlmd_id_map
 ```
 
-The same fixup applies to nested trees. Pass 1 may use `parent_dag_id` for TaskType classification, Pass 2 materializes the FK. Dropping the map before Pass 2 is finished would leave `ParentTaskUUID` unset only if Pass 2 still depended on the map, prefer computing parent UUIDs with UUID v5 so Pass 2 does not require the map to remain.
+The same fixup applies to nested trees. Pass 1 may use `parent_dag_id` for TaskType classification, Pass 2 materializes the FK using UUID v5.
 
 **MLMD State → KFP TaskState**
 
@@ -278,7 +262,7 @@ Cache fingerprints are copied only for `COMPLETE` or `CACHED` executions to prev
 
 **Artifacts → Artifacts (metrics splitting)**
 
-MLMD stores scalar metrics as a single artifact with multiple key-value custom properties. KFP stores each metric as a separate row with a `NumberValue` field. A single MLMD metrics artifact with N metrics produces N KFP artifact rows. Only the first metric's UUID is registered in `mlmd_id_map` — it is the UUID that `artifact_tasks` uses when linking events back to the original MLMD artifact. (See Open Questions #1.)
+MLMD stores scalar metrics as a single artifact with multiple key-value custom properties. KFP stores each metric as a separate row with a `NumberValue` field. A single MLMD metrics artifact with N metrics produces N KFP artifact rows. UUIDs are deterministic: the primary (lineage) row uses `uuidv5("artifact:"+mlmd_id)`, additional metric rows use `uuidv5("artifact:"+mlmd_id+":metric:"+name)` (or a stable metric index). Events that referenced the original MLMD artifact link via `artifact_tasks` to the primary UUID.
 
 #### Concurrent CLI and API migration
 
@@ -321,6 +305,7 @@ env:
 - Normal API traffic is not served until the [completion checklist](#migration-completion-checklist) passes.
 - On later restarts, if the schema is current and the checklist already passes, migration work is skipped and the API serves normally (MLMD env may still be present or already removed).
 - After a failure the process exits non-zero under maintenance, a restart re-runs the idempotent migrator (binary search + parent fixup).
+- When the CLI was run ahead of time, this path should be a short true-up of any remaining deltas rather than a full copy of historical data.
 
 #### Maintenance Mode
 
@@ -351,7 +336,7 @@ Wait until migration finishes successfully before retrying canceled runs.
 
 - **Before upgrade:** The admin must back up the KFP database.
 - **To reverse after a failed or undesirable upgrade:** Restore that backup and revert to the previous API server version.
-- **After successful migration:** Drop temporary objects (`tasks_pre_migration`, `mlmd_id_map`).
+- **After successful migration:** Drop temporary objects (`tasks_pre_migration`).
 
 #### Error Handling
 
@@ -389,7 +374,7 @@ Recovery: restart the API server or re-run the CLI. Migration is always idempote
 - Entity transformation functions for all TaskType detection paths, including edge cases (missing custom properties, unknown execution types, exit-handler fallback chain).
 - State mapping for all MLMD → KFP TaskState transitions including `CANCELED`.
 - Deterministic UUID v5 generation: same input always produces same UUID; execution and artifact namespaces never collide; no collision with UUID v4 space.
-- Metrics artifact splitting: N key-value pairs produce exactly N KFP artifact rows; only first UUID registered in `mlmd_id_map`.
+- Metrics artifact splitting: N key-value pairs produce exactly N KFP artifact rows with deterministic primary vs per-metric UUID v5 names.
 - Binary-search resume: first missing UUID discovery for executions, artifacts, and events.
 - Parent fixup idempotency: re-running converges to zero NULL parent links for tasks that need parents.
 - `INSERT IGNORE` idempotency: running the same entity through the engine twice produces exactly one row.
@@ -400,15 +385,28 @@ Recovery: restart the API server or re-run the CLI. Migration is always idempote
 - **Full migration:** Seed a test MLMD database with executions, artifacts, and events across all TaskTypes. Run migration. Assert KFP tables contain expected records with correct state, UUID, type, and relationships. Assert entity counts (executions ≈ tasks; events = artifact_tasks), TaskType distribution, foreign-key integrity, and that only `SUCCEEDED`/`CACHED` tasks carry cache fingerprints.
 - **Idempotent re-run:** Run migration to completion, then run it again. Assert no duplicate rows and no errors (`INSERT IGNORE` + deterministic UUIDs).
 - **Resume after crash:** Inject a failure mid-way through Phase 3. Restart migration. Assert binary search resumes at the first missing ID and the final state matches a clean run.
-- **Parent fixup resume:** Crash after execution inserts but before/during parent resolution. Restart. Assert unresolved parents are fixed and then `mlmd_id_map` is dropped.
+- **Parent fixup resume:** Crash after execution inserts but before/during parent resolution. Restart. Assert unresolved parents are fixed via UUID v5.
 - **Completion checklist:** Assert maintenance mode remains until inserts, parent fixup, and temp-table cleanup all pass, assert migrate is attempted when schema is out of date or migration is in progress, assert startup fails when migration is required but MLMD connection config is missing, assert skip when schema is already current and checklist passes.
-- **Large metrics artifacts:** Seed MLMD with multi-metric artifacts. Assert correct splitting and `mlmd_id_map` registration. Assert artifact counts stay within an expected ratio vs MLMD when metrics are split.
+- **Large metrics artifacts:** Seed MLMD with multi-metric artifacts. Assert correct splitting and deterministic UUID v5 assignment. Assert artifact counts stay within an expected ratio vs MLMD when metrics are split.
 - **Orphaned MLMD contexts:** Include MLMD contexts without matching `run_details` rows. Assert they are skipped with a warning and remaining data is migrated correctly.
+
+### API-level migration validation
+
+Automate an end-to-end CI job or integration suite that proves migrated history is still correct when read the same way operators and UIs do, through the KFP API, not only via direct SQL asserts.
+
+- Bring up a disposable environment with MLMD, KFP MySQL/Postgres, and API server images for pre- and post-migration. Include whichever migration entry point is under test (standalone CLI and/or API-server startup).
+- Use checked-in **test data** (or a small generator) for a known graph: multiple runs covering each TaskType, nested DAGs (parent links), artifacts including multi-metric splits, and events linking tasks↔artifacts. Load that data into both MLMD and any required KFP run/`run_details` rows so Phase 1 orphan rules do not skip it.
+- Capture a golden snapshot of fixed API reads (list/get runs, tasks, artifacts/lineage) before migration, run migration, replay the same requests afterward, and assert the observable results match (IDs, states, parent links, lineage, counts). Use the existing Go/Python API clients, not ad-hoc SQL.
+- Run this job on PRs that touch migration code. Keep the golden snapshot in-repo (or generate it in-job) so failures show a concrete API diff in CI logs.
+
+### Scale and duration tests
+
+Run migration against large synthetic histories (including cases where the CLI ran ahead of API startup) and record how long schema and data migration take, so operators can plan maintenance windows.
 
 ### Backup and Recovery Tests
 
-- Assert parent-resolution (Pass 2) completes and `ParentTaskUUID` links are correct **before** `mlmd_id_map` is dropped.
-- Assert that after the [completion checklist](#migration-completion-checklist) passes, `tasks_pre_migration` and `mlmd_id_map` are gone.
+- Assert parent-resolution (Pass 2) completes and `ParentTaskUUID` links are correct (UUID v5 from MLMD parent ids).
+- Assert that after the [completion checklist](#migration-completion-checklist) passes, `tasks_pre_migration` is gone.
 - Recovery path is restore from a pre-migration DB backup plus the previous API server image.
 
 ---
@@ -418,7 +416,7 @@ Recovery: restart the API server or re-run the CLI. Migration is always idempote
 1. **Migration engine** — Build shared orchestration, transforms, resume-by-binary-search, parent fixup, completion checklist, and validation used by both entry points.
 2. **Standalone CLI** — Thin wrapper that runs the engine manually.
 3. **API Server integration** — On startup, detect schema-out-of-date or migration-in-progress and always migrate under maintenance mode, require MLMD connection config when migrating (fail otherwise), resume normal serving after the completion checklist passes. Document operator-injected MLMD gRPC settings.
-4. **Schema** — Create new tables (`artifacts`, `artifact_tasks`, `mlmd_id_map`) via manual SQL, keep GORM models in sync, add a CI job that diffs manual-SQL and `AutoMigrate` schema dumps for those new-table schemas. Implement the `tasks` table-copy-and-rename path via manual SQL only (`tasks` never uses `AutoMigrate`).
+4. **Schema** — Create new tables (`artifacts`, `artifact_tasks`) via manual SQL, keep GORM models in sync, add a CI job that diffs manual-SQL and `AutoMigrate` schema dumps for those new-table schemas. Implement the `tasks` table-copy-and-rename path via manual SQL for upgrades from the pre-migration `tasks` shape, new installs continue to create `tasks` via `AutoMigrate` from the GORM model.
 5. **Unit tests** — Cover all transformation paths, UUID generation, and idempotency.
 6. **Integration tests** — Full migration, idempotent re-run, resume-after-crash via binary search, parent fixup resume, completion checklist / maintenance gating, post-success cleanup of temp tables.
 7. **Documentation** — Operator guide covering pre-upgrade DB backup, injecting MLMD connection settings for upgrade boots, maintenance mode, suspend → cancel → migrate → retry for in-flight runs, both execution modes, and restore-from-backup recovery.
