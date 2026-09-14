@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -213,6 +214,10 @@ func StringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter
 		}
 		swParams = append(swParams, swParam)
 	}
+	// Sort by name so the resulting spec is deterministic: ScheduledWorkflow
+	// reconciliation compares specs with DeepEqual, and map iteration order would
+	// otherwise produce spurious diffs.
+	sort.Slice(swParams, func(i, j int) bool { return swParams[i].Name < swParams[j].Name })
 	return swParams, nil
 }
 
