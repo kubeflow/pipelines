@@ -20,10 +20,44 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func assertKFPLauncherConfigMapMounted(t *testing.T, tmpl *wfapi.Template) {
+	t.Helper()
+
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.Container)
+
+	var foundVolume bool
+	for _, volume := range tmpl.Volumes {
+		if volume.Name != volumeNameKFPLauncherConfigMap {
+			continue
+		}
+		foundVolume = true
+		require.NotNil(t, volume.ConfigMap)
+		assert.Equal(t, config.KFPLauncherConfigMapName, volume.ConfigMap.Name)
+		require.NotNil(t, volume.ConfigMap.Optional)
+		assert.True(t, *volume.ConfigMap.Optional)
+		break
+	}
+	assert.True(t, foundVolume, "template should include kfp-launcher ConfigMap volume")
+
+	var foundMount bool
+	for _, mount := range tmpl.Container.VolumeMounts {
+		if mount.Name != volumeNameKFPLauncherConfigMap {
+			continue
+		}
+		foundMount = true
+		assert.Equal(t, config.KFPLauncherConfigMountPath, mount.MountPath)
+		assert.True(t, mount.ReadOnly)
+		break
+	}
+	assert.True(t, foundMount, "template should mount kfp-launcher ConfigMap volume")
+}
 
 func TestAddContainerExecutorTemplate(t *testing.T) {
 	tests := []struct {
@@ -68,6 +102,22 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 		})
 	}
 
+}
+
+func TestContainerExecutorTemplate_IncludesKFPLauncherConfigMapVolumeMount(t *testing.T) {
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}}, &kubernetesplatform.KubernetesExecutorConfig{})
+	tmpl, exists := c.templates["system-container-impl"]
+	require.True(t, exists, "container implementation template should exist")
+	assertKFPLauncherConfigMapMounted(t, tmpl)
 }
 
 func TestContainerDriverTemplate_IncludesKFPPodNameEnv(t *testing.T) {

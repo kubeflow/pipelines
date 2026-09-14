@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -34,7 +35,10 @@ import (
 )
 
 const (
-	configMapName                = "kfp-launcher"
+	KFPLauncherConfigMapName   = "kfp-launcher"
+	KFPLauncherConfigMountPath = "/etc/kfp-launcher-config"
+
+	configMapName                = KFPLauncherConfigMapName
 	defaultPipelineRoot          = "minio://mlpipeline/v2/artifacts"
 	configKeyDefaultPipelineRoot = "defaultPipelineRoot"
 	configBucketProviders        = "providers"
@@ -66,6 +70,31 @@ type Config struct {
 type ServerConfig struct {
 	Address string
 	Port    string
+}
+
+// FromConfigMapVolume loads config from a mounted kfp-launcher ConfigMap volume.
+func FromConfigMapVolume(path string) (*Config, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			glog.Infof("cannot find launcher configmap volume: path=%q, will use default config", path)
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read launcher configmap volume %q: %w", path, err)
+	}
+
+	data := make(map[string]string)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		value, err := os.ReadFile(filepath.Join(path, entry.Name()))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read launcher configmap volume key %q: %w", entry.Name(), err)
+		}
+		data[entry.Name()] = string(value)
+	}
+	return &Config{data: data}, nil
 }
 
 // FromConfigMap loads config from a kfp-launcher Kubernetes config map.

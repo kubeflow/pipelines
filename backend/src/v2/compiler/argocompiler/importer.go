@@ -142,6 +142,7 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		Volumes: volumes,
 	}
 
+	ConfigureKFPLauncherConfigMap(importerTemplate)
 	setRuntimeRole(importerTemplate, util.ExecutionRuntimeRoleLauncher)
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the importer template.
 	if setCABundle {
