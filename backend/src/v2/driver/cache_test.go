@@ -96,6 +96,61 @@ func TestGetFingerPrintIncludesPipelineName(t *testing.T) {
 	assert.NotEqual(t, fingerprintA, fingerprintB)
 }
 
+// Tasks differing only in container env used to hash the same, so the second
+// one reused the first one's outputs.
+func TestGetFingerPrintConsidersContainerEnv(t *testing.T) {
+	optsWithEnv := func(env ...*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar) common.Options {
+		return common.Options{
+			Component: &pipelinespec.ComponentSpec{
+				OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+						"out": {ParameterType: pipelinespec.ParameterType_STRING},
+					},
+				},
+			},
+			Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+				Image:   "python:3.11",
+				Command: []string{"python", "main.py"},
+				Env:     env,
+			},
+			Task: &pipelinespec.PipelineTaskSpec{
+				CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true},
+			},
+		}
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{"in": structpb.NewStringValue("v")},
+		},
+	}
+	fingerPrint := func(env ...*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar) string {
+		fp, err := getFingerPrint(optsWithEnv(env...), executorInput, nil)
+		require.NoError(t, err)
+		return fp
+	}
+	envVar := func(name, value string) *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar {
+		return &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{Name: name, Value: value}
+	}
+
+	noEnv := fingerPrint()
+	train := fingerPrint(envVar("MODE", "train"))
+
+	assert.NotEqual(t, train, fingerPrint(envVar("MODE", "eval")), "MODE=train and MODE=eval must not share a cache entry")
+	assert.Equal(t, train, fingerPrint(envVar("MODE", "train")))
+	assert.NotEqual(t, noEnv, train)
+
+	// B resolves to "x" when A comes first and stays "$(A)" when it comes after,
+	// so the two orders run differently and must not share a cache entry.
+	assert.NotEqual(t,
+		fingerPrint(envVar("A", "x"), envVar("B", "$(A)")),
+		fingerPrint(envVar("B", "$(A)"), envVar("A", "x")),
+		"reordering dependent env vars must change the fingerprint")
+
+	// The hash these options produced before env joined the key. A task with no
+	// env has to keep it, or every cached task misses once on upgrade.
+	assert.Equal(t, "65ce663ab1eb7d25c001075a8efa7c89344ff4f653a288f39f308aee49cf5b89", noEnv)
+}
+
 func TestGetFingerPrintsAndIDReturnsEarlyWhenCachingDisabled(t *testing.T) {
 	execution := &Execution{
 		ExecutorInput: &pipelinespec.ExecutorInput{},
