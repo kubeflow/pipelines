@@ -41,6 +41,7 @@ func GenerateCacheKey(
 	outputParametersTypeMap map[string]string,
 	cmdArgs []string, image string,
 	pvcNames []string,
+	env []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar,
 ) (*cachekey.CacheKey, error) {
 	cacheKey := cachekey.CacheKey{
 		InputArtifactNames:   make(map[string]*cachekey.ArtifactNameList),
@@ -92,6 +93,7 @@ func GenerateCacheKey(
 		Image:    image,
 		CmdArgs:  cmdArgs,
 		PvcNames: pvcNames,
+		Env:      env,
 	}
 
 	return &cacheKey, nil
