@@ -1,0 +1,26 @@
+name: Contributor Report
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  contributor-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate contributor report
+        uses: jdiegosierra/contributor-report@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          on-fail: comment
+          dry-run: 'false'
+          verbose-details: failed
+          new-account-action: require-review
+          new-account-threshold-days: '30'
+          trusted-users: >-
+            dependabot[bot],renovate[bot],github-actions[bot],codecov[bot],sonarcloud[bot],google-oss-prow
