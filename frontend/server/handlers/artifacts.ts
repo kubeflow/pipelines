@@ -342,7 +342,7 @@ export function getArtifactsAuthMiddleware(
   authEnabled: boolean,
   kubeflowUserIdHeader: string,
   apiServerAddress?: string,
-  allowNamespaceIsolatedCustomRoots = false,
+  artifactProxyEnabled = false,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     hardenArtifactResponse(response);
@@ -448,7 +448,7 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    if (coordinates.source === 'volume' && !allowNamespaceIsolatedCustomRoots) {
+    if (coordinates.source === 'volume' && !artifactProxyEnabled) {
       console.warn(
         `[SECURITY] Rejected direct volume artifact access through the shared UI server. ` +
           `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
@@ -470,7 +470,6 @@ export function getArtifactsAuthMiddleware(
           artifactUri,
           namespace,
           validationHeaders,
-          allowNamespaceIsolatedCustomRoots,
         );
 
         if (!validation.valid) {
