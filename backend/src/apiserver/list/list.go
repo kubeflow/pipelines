@@ -650,7 +650,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 // an interface{} it no longer compares equal to nil.
 func nullableFieldValue(value interface{}) (interface{}, bool) {
 	v := reflect.ValueOf(value)
-	if v.Kind() != reflect.Ptr {
+	if v.Kind() != reflect.Pointer {
 		return value, false
 	}
 	switch v.Type().Elem().Kind() {
