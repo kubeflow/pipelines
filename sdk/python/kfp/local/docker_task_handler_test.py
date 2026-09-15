@@ -327,7 +327,7 @@ class TestAddLatestTagIfNotPresent(unittest.TestCase):
         expected = 'alpine:latest'
         self.assertEqual(actual, expected)
 
-    def test_no_tag(self):
+    def test_non_latest_tag(self):
         actual = docker_task_handler.add_latest_tag_if_not_present(
             image='alpine:3.19.0')
         expected = 'alpine:3.19.0'

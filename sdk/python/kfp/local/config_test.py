@@ -86,7 +86,7 @@ class TestInitCalls(unittest.TestCase):
     def setUp(self):
         config.LocalExecutionConfig.instance = None
 
-    def test_init_more_than_once(self):
+    def test_init_once(self):
         """Tests config instance attributes with one init() call."""
         local.init(
             pipeline_root='my/local/root',
@@ -95,7 +95,8 @@ class TestInitCalls(unittest.TestCase):
 
         instance = config.LocalExecutionConfig.instance
 
-        self.assertEqual(instance.pipeline_root, 'my/local/root')
+        self.assertEqual(instance.pipeline_root,
+                         os.path.abspath('my/local/root'))
         self.assertEqual(instance.runner, local.SubprocessRunner(use_venv=True))
 
     def test_init_more_than_once(self):
