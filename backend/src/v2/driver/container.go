@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -197,6 +198,18 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 				return execution, fmt.Errorf("failed to lookup existing execution: %w", lookupErr)
 			}
 			glog.Infof("Found existing execution: %s", existing)
+			persistedPluginProperties := metadata.ExtractPluginCustomProperties(existing)
+			if len(ecfg.PluginCustomProperties) > 0 && !maps.Equal(ecfg.PluginCustomProperties, persistedPluginProperties) {
+				// Close the redundant start before restoring the persisted run. Matching
+				// properties mean this attempt's start was committed; leave that run open.
+				if endErr := opts.PluginDispatcher.OnTaskEnd(ctx, &plugins.TaskInfo{Name: opts.TaskName, RunStatus: "CANCELED"}); endErr != nil {
+					glog.Errorf("Failed to close redundant plugin task start: %v", endErr)
+				}
+				if len(persistedPluginProperties) == 0 {
+					return execution, fmt.Errorf("cannot restore plugin state for execution %q: persisted plugin properties are missing", ecfg.Name)
+				}
+			}
+			opts.PluginDispatcher.ApplyCustomProperties(persistedPluginProperties)
 			createdExecution = existing
 		} else {
 			return execution, err

@@ -16,7 +16,7 @@ type TaskPluginDispatcher interface {
 	// The dispatcher reads taskInfo and pluginConfig and returns a TaskStartResult.
 	// Individual handler errors are best-effort (logged but non-blocking); the
 	// dispatcher continues with remaining handlers. Only handlers that started
-	// successfully will have OnTaskEnd invoked.
+	// successfully or had persisted state restored will have OnTaskEnd invoked.
 	OnTaskStart(ctx context.Context, taskInfo *TaskInfo) (*TaskStartResult, error)
 
 	// OnTaskEnd is called when a task reaches a terminal state. Returns true if all plugin syncs succeeded.
@@ -144,6 +144,11 @@ func (t *TaskPluginDispatcherImpl) RetrieveUserContainerEnvVars(taskInfo *TaskIn
 
 // ApplyCustomProperties updates the custom properties for all registered task-level plugins.
 func (t *TaskPluginDispatcherImpl) ApplyCustomProperties(properties map[string]string) {
+	if len(properties) > 0 {
+		// Restored executions follow the launcher lifecycle, even if this
+		// attempt's start hooks failed.
+		t.startedHandlers = nil
+	}
 	for _, handler := range t.handlers {
 		err := handler.ApplyCustomProperties(properties)
 		if err != nil {

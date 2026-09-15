@@ -64,6 +64,21 @@ func TestNewTaskPluginDispatcherImpl_SingleHandler_Success(t *testing.T) {
 	require.Len(t, dispatcher.handlers, 1)
 }
 
+func TestApplyCustomProperties_RestoresCompletionAfterFailedStart(t *testing.T) {
+	dispatcher, err := NewTaskPluginDispatcherImpl([]TaskPluginHandler{&fakeHandler{
+		name: "restored-handler", startErr: fmt.Errorf("start failed"), endErr: fmt.Errorf("completion was called"),
+	}})
+	require.NoError(t, err)
+	ctx := context.Background()
+	info := &TaskInfo{Name: "task"}
+	_, err = dispatcher.OnTaskStart(ctx, info)
+	require.NoError(t, err)
+	dispatcher.ApplyCustomProperties(nil)
+	require.NoError(t, dispatcher.OnTaskEnd(ctx, info))
+	dispatcher.ApplyCustomProperties(map[string]string{"plugins.run_id": "original-run"})
+	require.ErrorContains(t, dispatcher.OnTaskEnd(ctx, info), "restored-handler")
+}
+
 func TestNewTaskPluginDispatcherImpl_NilHandlers_Failure(t *testing.T) {
 	dispatcher, err := NewTaskPluginDispatcherImpl(nil)
 
