@@ -184,6 +184,8 @@ spec:
     metadata: {}
     name: retry-system-container-executor
     outputs: {}
+    retryStrategy:
+      limit: 0
   - container:
       command:
       - should-be-overridden-during-runtime

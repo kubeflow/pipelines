@@ -1,11 +1,25 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  annotations:
-    workflows.argoproj.io/pod-name-format: v1
   generateName: test-pipeline-
 spec:
-  arguments: {}
+  arguments:
+    parameters:
+    - name: components-df9adcbe603768f30acc82bf916febdb4b094013d76f7f79be0fa9ab14c8fcf3
+      value: '{"executorLabel":"exec-add","inputDefinitions":{"parameters":{"a":{"parameterType":"NUMBER_DOUBLE"},"b":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_DOUBLE"}}}}'
+    - name: implementations-df9adcbe603768f30acc82bf916febdb4b094013d76f7f79be0fa9ab14c8fcf3
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        add(a: float, b: float) -\u003e float:\n    return a + b\n\n"],"image":"python:3.11"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":2,"backoffMaxDuration":"3600s","maxRetryCount":3,"policy":"POLICY_ON_ERROR"},"taskInfo":{"name":"add"}}}},"inputDefinitions":{"parameters":{"a":{"defaultValue":1,"isOptional":true,"parameterType":"NUMBER_DOUBLE"},"b":{"defaultValue":7,"isOptional":true,"parameterType":"NUMBER_DOUBLE"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -30,10 +44,18 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --parent_task_id
-      - '{{inputs.parameters.parent-dag-task-id}}'
+      - --pipeline_job_create_time_utc
+      - '{{workflow.creationTimestamp}}'
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
       - --cached_decision_path
@@ -44,8 +66,6 @@ spec:
       - '{{outputs.parameters.condition.path}}'
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
-      - --namespace
-      - $(NAMESPACE)
       - --http_proxy
       - ""
       - --https_proxy
@@ -56,12 +76,17 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       - --cache_disabled=false
       - --log_level
       - "1"
       - --publish_logs
       - "true"
       - --ml_pipeline_tls_enabled=false
+      - --metadata_tls_enabled=false
       - --ca_cert_path
       - ""
       command:
@@ -75,10 +100,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
-      - name: NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -96,17 +117,13 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      volumeMounts:
-      - mountPath: /var/run/secrets/kfp
-        name: kfp-launcher-token
-        readOnly: true
-      - mountPath: /etc/kfp/launcher-config
-        name: kfp-launcher-config
-        readOnly: true
     inputs:
       parameters:
+      - name: component
+      - name: task
+      - name: container
       - name: task-name
-      - name: parent-dag-task-id
+      - name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: ""
@@ -114,9 +131,6 @@ spec:
     metadata:
       annotations:
         pipelines.kubeflow.org/runtime-role: driver
-        pipelines.kubeflow.org/template-name: system-container-driver
-      labels:
-        pipelines.kubeflow.org/pod-role: container-driver
     name: system-container-driver
     outputs:
       parameters:
@@ -137,18 +151,6 @@ spec:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
-    volumes:
-    - name: kfp-launcher-token
-      projected:
-        sources:
-        - serviceAccountToken:
-            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
-            expirationSeconds: 7200
-            path: token
-    - configMap:
-        name: kfp-launcher
-        optional: true
-      name: kfp-launcher-config
   - dag:
       tasks:
       - arguments:
@@ -164,15 +166,13 @@ spec:
           - name: retry-backoff-max-duration
             value: '{{inputs.parameters.retry-backoff-max-duration}}'
         name: executor
-        template: retry-system-container-impl
+        template: retry-system-container-impl-onerror
         when: '{{inputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
-      - default: "-1"
-        name: iteration-index
       - default: "0"
         name: retry-max-count
       - default: "0"
@@ -182,7 +182,7 @@ spec:
       - default: "0"
         name: retry-backoff-max-duration
     metadata: {}
-    name: retry-system-container-executor
+    name: retry-system-container-executor-onerror
     outputs: {}
     retryStrategy:
       limit: 0
@@ -198,10 +198,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
-      - name: NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
       - name: KFP_RETRY_INDEX
         value: '{{retries}}'
       envFrom:
@@ -221,9 +217,6 @@ spec:
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
-      - mountPath: /var/run/secrets/kfp
-        name: kfp-launcher-token
-        readOnly: true
       - mountPath: /gcs
         name: gcs-scratch
       - mountPath: /s3
@@ -236,9 +229,6 @@ spec:
         name: dot-cache-scratch
       - mountPath: /.config
         name: dot-config-scratch
-      - mountPath: /etc/kfp/launcher-config
-        name: kfp-launcher-config
-        readOnly: true
     initContainers:
     - args:
       - --copy
@@ -274,10 +264,7 @@ spec:
     metadata:
       annotations:
         pipelines.kubeflow.org/runtime-role: launcher
-        pipelines.kubeflow.org/template-name: retry-system-container-impl
-      labels:
-        pipelines.kubeflow.org/pod-role: container-executor
-    name: retry-system-container-impl
+    name: retry-system-container-impl-onerror
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     retryStrategy:
@@ -286,19 +273,13 @@ spec:
         factor: '{{inputs.parameters.retry-backoff-factor}}'
         maxDuration: '{{inputs.parameters.retry-backoff-max-duration}}'
       limit: '{{inputs.parameters.retry-max-count}}'
+      retryPolicy: OnError
     securityContext:
       seccompProfile:
         type: RuntimeDefault
     volumes:
     - emptyDir: {}
       name: kfp-launcher
-    - name: kfp-launcher-token
-      projected:
-        sources:
-        - serviceAccountToken:
-            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
-            expirationSeconds: 7200
-            path: token
     - emptyDir: {}
       name: gcs-scratch
     - emptyDir: {}
@@ -311,18 +292,20 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
-    - configMap:
-        name: kfp-launcher
-        optional: true
-      name: kfp-launcher-config
   - dag:
       tasks:
       - arguments:
           parameters:
+          - name: component
+            value: '{{workflow.parameters.components-df9adcbe603768f30acc82bf916febdb4b094013d76f7f79be0fa9ab14c8fcf3}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":2,"backoffMaxDuration":"3600s","maxRetryCount":3,"policy":"POLICY_ON_ERROR"},"taskInfo":{"name":"add"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-df9adcbe603768f30acc82bf916febdb4b094013d76f7f79be0fa9ab14c8fcf3}}'
           - name: task-name
             value: add
-          - name: parent-dag-task-id
-            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
         name: add-driver
         template: system-container-driver
       - arguments:
@@ -342,10 +325,10 @@ spec:
             value: "3600"
         depends: add-driver.Succeeded
         name: add
-        template: retry-system-container-executor
+        template: retry-system-container-executor-onerror
     inputs:
       parameters:
-      - name: parent-dag-task-id
+      - name: parent-dag-id
     metadata: {}
     name: root
     outputs: {}
@@ -361,22 +344,26 @@ spec:
       - '{{workflow.name}}'
       - --run_display_name
       - ""
-      - --parent_task_id
-      - '{{inputs.parameters.parent-dag-task-id}}'
+      - --pipeline_job_create_time_utc
+      - '{{workflow.creationTimestamp}}'
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
       - --task_name
       - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
-      - --parent_task_id_path
-      - '{{outputs.parameters.parent-dag-task-id-path.path}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
       - --iteration_count_path
       - '{{outputs.parameters.iteration-count.path}}'
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
-      - --namespace
-      - $(NAMESPACE)
       - --http_proxy
       - ""
       - --https_proxy
@@ -387,29 +374,21 @@ spec:
       - ml-pipeline.kubeflow.svc.cluster.local
       - --ml_pipeline_server_port
       - "8887"
+      - --mlmd_server_address
+      - metadata-grpc-service.kubeflow.svc.cluster.local
+      - --mlmd_server_port
+      - "8080"
       - --cache_disabled=false
       - --log_level
       - "1"
       - --publish_logs
       - "true"
       - --ml_pipeline_tls_enabled=false
+      - --metadata_tls_enabled=false
       - --ca_cert_path
       - ""
       command:
       - driver
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      - name: NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -427,21 +406,17 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      volumeMounts:
-      - mountPath: /var/run/secrets/kfp
-        name: kfp-launcher-token
-        readOnly: true
-      - mountPath: /etc/kfp/launcher-config
-        name: kfp-launcher-config
-        readOnly: true
     inputs:
       parameters:
+      - name: component
       - default: ""
         name: runtime-config
       - default: ""
-        name: task-name
+        name: task
       - default: ""
-        name: parent-dag-task-id
+        name: task-name
+      - default: "0"
+        name: parent-dag-id
       - default: "-1"
         name: iteration-index
       - default: DAG
@@ -449,15 +424,12 @@ spec:
     metadata:
       annotations:
         pipelines.kubeflow.org/runtime-role: driver
-        pipelines.kubeflow.org/template-name: system-dag-driver
-      labels:
-        pipelines.kubeflow.org/pod-role: dag-driver
     name: system-dag-driver
     outputs:
       parameters:
-      - name: parent-dag-task-id-path
+      - name: execution-id
         valueFrom:
-          path: /tmp/outputs/task-id
+          path: /tmp/outputs/execution-id
       - name: iteration-count
         valueFrom:
           default: "0"
@@ -470,22 +442,12 @@ spec:
       runAsNonRoot: true
       seccompProfile:
         type: RuntimeDefault
-    volumes:
-    - name: kfp-launcher-token
-      projected:
-        sources:
-        - serviceAccountToken:
-            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
-            expirationSeconds: 7200
-            path: token
-    - configMap:
-        name: kfp-launcher
-        optional: true
-      name: kfp-launcher-config
   - dag:
       tasks:
       - arguments:
           parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
             value: '{"parameterValues":{"a":1,"b":7}}'
           - name: driver-type
@@ -494,8 +456,8 @@ spec:
         template: system-dag-driver
       - arguments:
           parameters:
-          - name: parent-dag-task-id
-            value: '{{tasks.root-driver.outputs.parameters.parent-dag-task-id-path}}'
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
           - name: condition
             value: ""
         depends: root-driver.Succeeded
