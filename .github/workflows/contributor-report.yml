@@ -26,6 +26,8 @@ jobs:
           on-fail: comment
           dry-run: 'false'
           verbose-details: failed
+          # Keep negative reactions informational instead of gating the report.
+          threshold-negative-reactions: '999'
           new-account-action: neutral
           new-account-threshold-days: '30'
           trusted-users: >-
