@@ -35,6 +35,7 @@ endif
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:master
 CONTAINER_ENGINE ?= docker
+PLATFORM ?= linux/$(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 # Generate clients using either pre-built image (fast) or source build (current tools).
 # Use USE_PREBUILT_IMAGE=false when pre-built image may have outdated dependencies.
@@ -126,6 +127,6 @@ push: image
 # .image-built is a local token file to help Make determine the latest successful build.
 # Uses Docker layer caching for improved performance.
 .image-built: Dockerfile ../../go.mod tools/go.mod
-	DOCKER_BUILDKIT=1 ${CONTAINER_ENGINE} build ../.. -t $(IMAGE_TAG) -f Dockerfile \
+	DOCKER_BUILDKIT=1 ${CONTAINER_ENGINE} build ../.. -t $(IMAGE_TAG) --platform $(PLATFORM) -f Dockerfile \
 		--cache-from $(IMAGE_TAG):latest
 	touch .image-built
