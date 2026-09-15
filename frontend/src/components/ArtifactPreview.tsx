@@ -15,20 +15,28 @@
  */
 
 import React from 'react';
+import { Button, CircularProgress } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
-import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
+import { StoragePath } from 'src/lib/WorkflowParser';
+import { parseArtifactFileLocation } from 'src/lib/v2/ArtifactFileUtils';
 import { stylesheet } from 'typestyle';
 import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
 import { logger } from 'src/lib/Utils';
-import { URIToSessionInfo } from './tabs/InputOutputTab';
+
+export type ArtifactPreviewValue =
+  | string
+  | {
+      uri: string;
+    };
 
 const css = stylesheet({
   root: {
+    minWidth: 0,
     width: '100%',
   },
   preview: {
@@ -39,15 +47,60 @@ const css = stylesheet({
   },
   topDiv: {
     display: 'flex',
-    justifyContent: 'space-between',
+    minWidth: 0,
+  },
+  downloadLink: {
+    display: 'block',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  fullUri: {
+    fontSize: '0.85em',
+    $nest: {
+      '& summary': { cursor: 'pointer', color: color.theme },
+    },
+  },
+  uriText: {
+    display: 'block',
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: color.lightGrey,
+    whiteSpace: 'pre-wrap',
+    overflowWrap: 'anywhere',
+    userSelect: 'text',
   },
 });
 
-export interface ArtifactPreviewProps extends ValueComponentProps<string> {
+function FullArtifactUri({ uri }: { uri: string }) {
+  const [copyStatus, setCopyStatus] = React.useState('');
+  const copyUri = async () => {
+    try {
+      await navigator.clipboard.writeText(uri);
+      setCopyStatus('URI copied.');
+    } catch {
+      setCopyStatus('Could not copy. Select the URI above and copy it manually.');
+    }
+  };
+
+  return (
+    <details className={css.fullUri}>
+      <summary>Full URI</summary>
+      <code className={css.uriText}>{uri}</code>
+      <Button size='small' onClick={copyUri}>
+        Copy URI
+      </Button>
+      <span role='status'>{copyStatus}</span>
+    </details>
+  );
+}
+
+export interface ArtifactPreviewProps extends ValueComponentProps<ArtifactPreviewValue> {
   namespace?: string;
-  sessionMap?: URIToSessionInfo;
   maxbytes?: number;
   maxlines?: number;
+  autoLoad?: boolean;
 }
 
 /**
@@ -56,31 +109,40 @@ export interface ArtifactPreviewProps extends ValueComponentProps<string> {
 const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   value,
   namespace,
-  sessionMap,
   maxbytes = 255,
   maxlines = 20,
+  autoLoad = false,
 }) => {
+  const [previewRequestedFor, setPreviewRequestedFor] = React.useState<string>();
+  const rawUri = typeof value === 'object' && value !== null ? value.uri : value;
+  const uri = typeof rawUri === 'string' ? rawUri : undefined;
   let storage: StoragePath | undefined;
-  let providerInfo: string | undefined;
+  let artifactUriQuery: string | undefined;
 
-  if (value) {
+  if (uri) {
     try {
-      providerInfo = sessionMap?.get(value);
-      storage = WorkflowParser.parseStoragePath(value);
+      const location = parseArtifactFileLocation(uri);
+      storage = location.path;
+      artifactUriQuery = location.artifactUriQuery;
     } catch (error) {
       logger.error(error);
     }
   }
 
-  const { isSuccess, isError, data, error } = useQuery<string, Error>({
-    queryKey: queryKeys.artifactPreview(value, namespace, maxbytes, maxlines),
-    queryFn: () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
+  const previewRequestKey = JSON.stringify([uri, namespace, artifactUriQuery, maxbytes, maxlines]);
+  const previewRequested = autoLoad || previewRequestedFor === previewRequestKey;
+
+  const { isSuccess, isError, isFetching, data, error, refetch } = useQuery<string, Error>({
+    queryKey: queryKeys.artifactPreview(uri, namespace, artifactUriQuery, maxbytes, maxlines),
+    queryFn: () => getPreview(storage, artifactUriQuery, namespace, maxbytes, maxlines),
+    enabled: previewRequested && !!storage,
+    retry: false,
     staleTime: Infinity,
   });
 
   if (!storage) {
     return (
-      <Banner message={'Can not retrieve storage path from artifact uri: ' + value} mode='info' />
+      <Banner message={'Can not retrieve storage path from artifact uri: ' + rawUri} mode='info' />
     );
   }
 
@@ -88,31 +150,50 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   const artifactDownloadUrl = Apis.buildReadFileUrl({
     path: storage,
     namespace,
-    providerInfo,
+    artifactUriQuery,
     isDownload: true,
   });
 
   return (
     <div className={css.root}>
       <div className={css.topDiv}>
-        <ExternalLink download href={artifactDownloadUrl} title={linkText}>
+        <ExternalLink className={css.downloadLink} download href={artifactDownloadUrl} title={uri}>
           {linkText}
         </ExternalLink>
       </div>
-      {isError && (
-        <Banner
-          message='Error in retrieving artifact preview.'
-          mode='error'
-          additionalInfo={error ? error.message : 'No error message'}
-        />
+      {uri && <FullArtifactUri key={uri} uri={uri} />}
+      {!previewRequested && (
+        <Button size='small' onClick={() => setPreviewRequestedFor(previewRequestKey)}>
+          Preview file contents
+        </Button>
       )}
-      {isSuccess && data && (
-        <div className={css.preview}>
-          <small>
-            <pre>{data}</pre>
-          </small>
-        </div>
+      {previewRequested && isFetching && (
+        <CircularProgress aria-label='Loading artifact preview' size={20} />
       )}
+      {previewRequested && isError && !isFetching && (
+        <>
+          <Banner
+            message='Error in retrieving artifact preview.'
+            mode='error'
+            additionalInfo={error ? error.message : 'No error message'}
+          />
+          <Button size='small' onClick={() => void refetch()}>
+            Retry preview
+          </Button>
+        </>
+      )}
+      {previewRequested &&
+        isSuccess &&
+        !isFetching &&
+        (data ? (
+          <div className={css.preview}>
+            <small>
+              <pre>{data}</pre>
+            </small>
+          </div>
+        ) : (
+          <small role='status'>Empty file</small>
+        ))}
     </div>
   );
 };
@@ -121,7 +202,7 @@ export default ArtifactPreview;
 
 async function getPreview(
   storagePath: StoragePath | undefined,
-  providerInfo: string | undefined,
+  artifactUriQuery: string | undefined,
   namespace: string | undefined,
   maxbytes: number,
   maxlines?: number,
@@ -132,7 +213,7 @@ async function getPreview(
   // TODO how to handle binary data (can probably use magic number to id common mime types)
   let data = await Apis.readFile({
     path: storagePath,
-    providerInfo: providerInfo,
+    artifactUriQuery,
     namespace: namespace,
     peek: maxbytes + 1,
   });

@@ -1,15 +1,13 @@
 package client_manager
 
 import (
-	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"k8s.io/client-go/kubernetes"
 )
 
 type FakeClientManager struct {
-	k8sClient      kubernetes.Interface
-	metadataClient metadata.ClientInterface
-	cacheClient    cacheutils.Client
+	k8sClient kubernetes.Interface
+	kfpAPI    kfpapi.API
 }
 
 // Ensure FakeClientManager implements ClientManagerInterface
@@ -19,18 +17,13 @@ func (f *FakeClientManager) K8sClient() kubernetes.Interface {
 	return f.k8sClient
 }
 
-func (f *FakeClientManager) MetadataClient() metadata.ClientInterface {
-	return f.metadataClient
+func (f *FakeClientManager) KFPAPIClient() kfpapi.API {
+	return f.kfpAPI
 }
 
-func (f *FakeClientManager) CacheClient() cacheutils.Client {
-	return f.cacheClient
-}
-
-func NewFakeClientManager(k8sClient kubernetes.Interface, metadataClient metadata.ClientInterface, cacheClient cacheutils.Client) *FakeClientManager {
+func NewFakeClientManager(k8sClient kubernetes.Interface, kfpAPI kfpapi.API) *FakeClientManager {
 	return &FakeClientManager{
-		k8sClient:      k8sClient,
-		metadataClient: metadataClient,
-		cacheClient:    cacheClient,
+		k8sClient: k8sClient,
+		kfpAPI:    kfpAPI,
 	}
 }

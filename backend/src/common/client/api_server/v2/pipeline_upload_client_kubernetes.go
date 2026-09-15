@@ -279,7 +279,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 	var pipeline *k8sapi.Pipeline
 
 	for _, listedPipeline := range pipelineList.Items {
-		if string(listedPipeline.ObjectMeta.UID) == *parameters.Pipelineid {
+		if string(listedPipeline.UID) == *parameters.Pipelineid {
 			pipeline = &listedPipeline
 			break
 		}

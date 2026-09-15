@@ -266,6 +266,7 @@ describe('RecurringRunDetailsV2', () => {
 
   it('shows warning banner if has experiment but experiment cannot be fetched. still loads run', async () => {
     fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
+    // Keep the outage deterministic if the router remounts or refreshes the details page.
     TestUtils.makeErrorResponse(getExperimentSpy, 'woops!');
     render(
       <CommonTestWrapper>

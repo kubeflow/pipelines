@@ -97,6 +97,70 @@ describe('OutputArtifactLoader', () => {
         ]
       `);
     });
+
+    it('uses artifact provider info for metadata and resolves referenced sources independently', async () => {
+      const metadata = { type: 'markdown', source: 's3://bucket/object/key', storage: 'gcs' };
+      fileToRead = JSON.stringify({ outputs: [metadata] });
+
+      await OutputArtifactLoader.load(storagePath, 'ns1', { providerInfo: 'provider-session' });
+
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+      expect(readFileSpy.mock.calls.map(([{ providerInfo }]) => providerInfo)).toEqual([
+        'provider-session',
+        undefined,
+      ]);
+    });
+
+    it('can surface loading failures to a query boundary', async () => {
+      readFileSpy.mockRejectedValue(new Error('metadata unavailable'));
+
+      await expect(
+        OutputArtifactLoader.load(storagePath, 'ns1', { throwOnError: true }),
+      ).rejects.toThrow('metadata unavailable');
+    });
+
+    it('keeps valid viewer configs when a sibling source fails', async () => {
+      const metadata = JSON.stringify({
+        outputs: [
+          { type: PlotType.MARKDOWN, source: 'gs://bucket/valid.md', storage: 'gcs' },
+          { type: PlotType.MARKDOWN, source: 'gs://bucket/missing.md', storage: 'gcs' },
+        ],
+      });
+      readFileSpy.mockImplementation(async ({ path }) => {
+        if (path.key === 'k') {
+          return metadata;
+        }
+        if (path.key === 'valid.md') {
+          return '# valid';
+        }
+        throw new Error('missing source');
+      });
+
+      await expect(OutputArtifactLoader.loadResult(storagePath)).resolves.toEqual({
+        configKeys: ['metadata-0'],
+        configs: [{ markdownContent: '# valid', type: PlotType.MARKDOWN }],
+        errors: ['missing source'],
+      });
+      await expect(
+        OutputArtifactLoader.load(storagePath, undefined, { throwOnError: true }),
+      ).resolves.toEqual([{ markdownContent: '# valid', type: PlotType.MARKDOWN }]);
+    });
+
+    it('surfaces referenced-source failures when a legacy caller requests errors', async () => {
+      fileToRead = JSON.stringify({
+        outputs: [{ type: PlotType.MARKDOWN, source: 'gs://bucket/missing.md', storage: 'gcs' }],
+      });
+      readFileSpy.mockImplementation(async ({ path }) => {
+        if (path.key === 'k') {
+          return fileToRead;
+        }
+        throw new Error('missing source');
+      });
+
+      await expect(
+        OutputArtifactLoader.load(storagePath, undefined, { throwOnError: true }),
+      ).rejects.toThrow('missing source');
+    });
   });
 
   describe('buildConfusionMatrixConfig', () => {

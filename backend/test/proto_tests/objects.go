@@ -50,6 +50,14 @@ func fixedTimestamp() *timestamppb.Timestamp {
 	return timestamppb.New(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC))
 }
 
+func strPTR(value string) *string {
+	return &value
+}
+
+func int64PTR(value int64) *int64 {
+	return &value
+}
+
 var completedRun = &pb.Run{
 	RunId:          "completed-run-123",
 	DisplayName:    "Production Pipeline Run",
@@ -114,6 +122,103 @@ var failedRun = &pb.Run{
 		Code:    1,
 		Message: "This was a Failed Run.",
 	},
+}
+
+var pipelineTask = &pb.PipelineTask{
+	Name:        "trainer-task",
+	DisplayName: "Trainer Task",
+	TaskId:      "task-123",
+	RunId:       "run-456",
+	Pods: []*pb.PipelineTask_TaskPod{
+		{
+			Name: "trainer-driver",
+			Uid:  "pod-uid-1",
+			Type: pb.PipelineTask_DRIVER,
+		},
+		{
+			Name: "trainer-executor",
+			Uid:  "pod-uid-2",
+			Type: pb.PipelineTask_EXECUTOR,
+		},
+	},
+	CacheFingerprint: "cache-abc123",
+	CreateTime:       fixedTimestamp(),
+	EndTime:          fixedTimestamp(),
+	State:            pb.PipelineTask_SUCCEEDED,
+	StatusMetadata: &pb.PipelineTask_StatusMetadata{
+		Message: "Task completed successfully",
+		CustomProperties: map[string]*structpb.Value{
+			"attempt": structpb.NewNumberValue(1),
+		},
+	},
+	StateHistory: []*pb.PipelineTask_TaskStatus{
+		{
+			UpdateTime: fixedTimestamp(),
+			State:      pb.PipelineTask_RUNNING,
+		},
+		{
+			UpdateTime: fixedTimestamp(),
+			State:      pb.PipelineTask_SUCCEEDED,
+		},
+	},
+	Type: pb.PipelineTask_RUNTIME,
+	TypeAttributes: &pb.PipelineTask_TypeAttributes{
+		IterationIndex: int64PTR(3),
+	},
+	ParentTaskId: strPTR("parent-task-001"),
+	Inputs: &pb.PipelineTask_InputOutputs{
+		Parameters: []*pb.PipelineTask_InputOutputs_IOParameter{
+			{
+				ParameterKey: "learning_rate",
+				Type:         pb.IOType_COMPONENT_INPUT,
+				Value:        structpb.NewNumberValue(0.1),
+			},
+		},
+	},
+	Outputs: &pb.PipelineTask_InputOutputs{
+		Parameters: []*pb.PipelineTask_InputOutputs_IOParameter{
+			{
+				ParameterKey: "model_path",
+				Type:         pb.IOType_OUTPUT,
+				Value:        structpb.NewStringValue("gs://bucket/model"),
+				Producer: &pb.IOProducer{
+					TaskName: "trainer-task",
+				},
+			},
+		},
+	},
+	ChildTasks: []*pb.PipelineTask_ChildTask{
+		{
+			TaskId: "task-124",
+			Name:   "evaluator-task",
+		},
+	},
+	ScopePath: "root.trainer-task",
+}
+
+var artifact = &pb.Artifact{
+	ArtifactId:  "artifact-123",
+	Name:        "model-artifact",
+	Description: "Trained model artifact",
+	Type:        pb.Artifact_Model,
+	Uri:         strPTR("gs://bucket/models/model-artifact"),
+	Metadata: map[string]*structpb.Value{
+		"framework": structpb.NewStringValue("xgboost"),
+	},
+	CreatedAt: fixedTimestamp(),
+	Namespace: "namespace1",
+}
+
+var artifactTask = &pb.ArtifactTask{
+	Id:         "artifact-task-123",
+	ArtifactId: artifact.ArtifactId,
+	RunId:      pipelineTask.RunId,
+	TaskId:     pipelineTask.TaskId,
+	Type:       pb.IOType_OUTPUT,
+	Producer: &pb.IOProducer{
+		TaskName: pipelineTask.Name,
+	},
+	Key: "model",
 }
 
 var pipeline = &pb.Pipeline{
