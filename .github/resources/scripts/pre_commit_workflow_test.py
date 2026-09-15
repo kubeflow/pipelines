@@ -82,7 +82,9 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 '.github/workflows/pre-commit.yml',
                 '.golangci.yaml',
                 'frontend/package.json',
+                '.github/resources/scripts/update_go_version.py',
                 'sdk/python/kfp/cli/__init__.py',
+                'sdk/python/kfp/dsl/structures.py',
                 'backend/src/common/types.go',
         ):
             with self.subTest(representative_file=representative_file):
