@@ -155,6 +155,10 @@ type Task struct {
 	TypeAttrs        JSONData   `gorm:"column:TypeAttrs; not null; type:json;"`
 	ScopePath        string     `gorm:"column:ScopePath; type:text; default:null;"`
 	LogicalKey       *string    `gorm:"column:LogicalKey; type:varchar(64); default:null; uniqueIndex:idx_tasks_logical_key;"`
+	// LifecycleMessage is the latest pod lifecycle diagnostic (e.g. "Back-off pulling image…"). Always overwritten on update, so it self-clears on recovery.
+	LifecycleMessage LargeText `gorm:"column:LifecycleMessage; default:null;"`
+	// LifecycleCategory is the classified failure category (e.g. "image-pull", "scheduling"). Empty when healthy.
+	LifecycleCategory string `gorm:"column:LifecycleCategory; default:null;"`
 
 	// Transient fields populated during hydration (not stored in DB)
 	InputArtifactsHydrated  []TaskArtifactHydrated `gorm:"-"`
@@ -213,6 +217,8 @@ var taskAPIToModelFieldMap = map[string]string{
 	"inputs":            "InputParameters",
 	"outputs":           "OutputParameters",
 	"scope_path":        "ScopePath",
+	"lifecycle_message":  "LifecycleMessage",
+	"lifecycle_category": "LifecycleCategory",
 }
 
 func (t Task) GetField(name string) (string, string, bool) {
@@ -268,6 +274,10 @@ func (t Task) GetFieldValue(name string) interface{} {
 		return t.TypeAttrs
 	case "ScopePath":
 		return t.ScopePath
+	case "LifecycleMessage":
+		return t.LifecycleMessage
+	case "LifecycleCategory":
+		return t.LifecycleCategory
 	default:
 		return nil
 	}

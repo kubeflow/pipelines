@@ -60,6 +60,8 @@ var taskColumns = []string{
 	"TypeAttrs",
 	"ScopePath",
 	"LogicalKey",
+	"LifecycleMessage",
+	"LifecycleCategory",
 }
 
 // Ensure TaskStore implements TaskStoreInterface
@@ -128,6 +130,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
 	var taskState, taskType int32
+	var lifecycleMessage, lifecycleCategory sql.NullString
 	if err := rowscanner.Scan(
 		&uuid,
 		&namespace,
@@ -149,6 +152,8 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&typeAttrs,
 		&scopePath,
 		&logicalKey,
+		&lifecycleMessage,
+		&lifecycleCategory,
 	); err != nil {
 		return nil, err
 	}
@@ -217,10 +222,12 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		StateHistory:     stateHistoryNew,
 		InputParameters:  inputParameters,
 		OutputParameters: outputParameters,
-		Type:             model.TaskType(taskType),
-		TypeAttrs:        typeAttrsData,
-		ScopePath:        scopePathStr,
-		LogicalKey:       logicalKeyNew,
+		Type:              model.TaskType(taskType),
+		TypeAttrs:         typeAttrsData,
+		ScopePath:         scopePathStr,
+		LogicalKey:        logicalKeyNew,
+		LifecycleMessage:  model.LargeText(lifecycleMessage.String),
+		LifecycleCategory: lifecycleCategory.String,
 	}, nil
 }
 
@@ -639,26 +646,28 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		Insert(q(tableName)).
 		SetMap(
 			sq.Eq{
-				q("UUID"):             newTask.UUID,
-				q("Namespace"):        newTask.Namespace,
-				q("RunUUID"):          newTask.RunUUID,
-				q("pods"):             podsString,
-				q("CreatedAtInSec"):   newTask.CreatedAtInSec,
-				q("StartedInSec"):     newTask.StartedInSec,
-				q("FinishedInSec"):    newTask.FinishedInSec,
-				q("Fingerprint"):      newTask.Fingerprint,
-				q("Name"):             newTask.Name,
-				q("DisplayName"):      newTask.DisplayName,
-				q("ParentTaskUUID"):   newTask.ParentTaskUUID,
-				q("ScopePath"):        newTask.ScopePath,
-				q("State"):            newTask.State,
-				q("StatusMetadata"):   statusMetadataString,
-				q("StateHistory"):     stateHistoryString,
-				q("InputParameters"):  inputParamsString,
-				q("OutputParameters"): outputParamsString,
-				q("Type"):             newTask.Type,
-				q("TypeAttrs"):        typeAttrsString,
-				q("LogicalKey"):       newTask.LogicalKey,
+				q("UUID"):              newTask.UUID,
+				q("Namespace"):         newTask.Namespace,
+				q("RunUUID"):           newTask.RunUUID,
+				q("pods"):              podsString,
+				q("CreatedAtInSec"):    newTask.CreatedAtInSec,
+				q("StartedInSec"):      newTask.StartedInSec,
+				q("FinishedInSec"):     newTask.FinishedInSec,
+				q("Fingerprint"):       newTask.Fingerprint,
+				q("Name"):              newTask.Name,
+				q("DisplayName"):       newTask.DisplayName,
+				q("ParentTaskUUID"):    newTask.ParentTaskUUID,
+				q("ScopePath"):         newTask.ScopePath,
+				q("State"):             newTask.State,
+				q("StatusMetadata"):    statusMetadataString,
+				q("StateHistory"):      stateHistoryString,
+				q("InputParameters"):   inputParamsString,
+				q("OutputParameters"):  outputParamsString,
+				q("Type"):              newTask.Type,
+				q("TypeAttrs"):         typeAttrsString,
+				q("LogicalKey"):        newTask.LogicalKey,
+				q("LifecycleMessage"):  newTask.LifecycleMessage,
+				q("LifecycleCategory"): newTask.LifecycleCategory,
 			},
 		).
 		ToSql()
