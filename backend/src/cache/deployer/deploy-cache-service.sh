@@ -18,6 +18,50 @@
 # Prerequisite: config kubectl to talk to your cluster. See ref below:
 # https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl
 
+detect_kubectl_arch() {
+    case "$(uname -m)" in
+        x86_64 | amd64)
+            echo "amd64"
+            ;;
+        aarch64 | arm64)
+            echo "arm64"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+install_version_matched_kubectl() {
+    # Getting correct kubectl. Kubernetes only supports kubectl versions within +/-1 minor version.
+    # kubectl has some resource version information hardcoded, so using too old kubectl can lead to errors
+    mkdir -p "$HOME/bin"
+    export PATH="$HOME/bin:$PATH"
+    {
+        server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
+        if stable_build_version=$(curl -fsSL "https://dl.k8s.io/release/stable-${server_version_major_minor}.txt"); then
+            if kubectl_arch=$(detect_kubectl_arch); then
+                kubectl_url="https://dl.k8s.io/release/${stable_build_version}/bin/linux/${kubectl_arch}/kubectl"
+                kubectl_tmp=$(mktemp "$HOME/bin/kubectl.XXXXXX")
+                if curl -fsSL -o "$kubectl_tmp" "$kubectl_url" && chmod +x "$kubectl_tmp" && "$kubectl_tmp" version --client=true >/dev/null 2>&1 && mv "$kubectl_tmp" "$HOME/bin/kubectl"; then
+                    :
+                else
+                    rm -f "$kubectl_tmp"
+                    echo "Warning: failed to download a runnable kubectl ${stable_build_version} for ${kubectl_arch}; using kubectl from PATH."
+                fi
+            else
+                echo "Warning: unsupported architecture $(uname -m); using kubectl from PATH."
+            fi
+        else
+            echo "Warning: failed to resolve stable kubectl version for Kubernetes ${server_version_major_minor}; using kubectl from PATH."
+        fi
+    } || true
+}
+
+if [ "${DEPLOY_CACHE_SERVICE_LIBRARY_MODE:-false}" = "true" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+
 set -ex
 
 # Warning: grep in this image does not support long option names like --word-regexp
@@ -28,17 +72,7 @@ NAMESPACE=${NAMESPACE_TO_WATCH:-kubeflow}
 MUTATING_WEBHOOK_CONFIGURATION_NAME="cache-webhook-${NAMESPACE}"
 WEBHOOK_SECRET_NAME=webhook-server-tls
 
-# Getting correct kubectl. Kubernetes only supports kubectl versions within +/-1 minor version.
-# kubectl has some resource version information hardcoded, so using too old kubectl can lead to errors
-mkdir -p "$HOME/bin"
-export PATH="$HOME/bin:$PATH"
-{
-    server_version_major_minor=$(kubectl version --output json | jq --raw-output '(.serverVersion.major + "." + .serverVersion.minor)' | tr -d '"+')
-    stable_build_version=$(curl -fsSL "https://dl.k8s.io/release/stable-${server_version_major_minor}.txt")
-    kubectl_url="https://dl.k8s.io/release/${stable_build_version}/bin/linux/amd64/kubectl"
-    curl -L -o "$HOME/bin/kubectl" "$kubectl_url"
-    chmod +x "$HOME/bin/kubectl"
-} || true
+install_version_matched_kubectl
 
 # This should fail if there are connectivity problems
 # Gotcha: Listing all objects requires list permission,

@@ -59,38 +59,43 @@ var (
 // inferTemplateFormat infers format from pipeline template.
 // There is no guarantee that the template is valid in inferred format, so validation
 // is still needed.
-func inferTemplateFormat(template []byte) TemplateType {
+func inferTemplateFormat(template []byte) (TemplateType, error) {
 	switch {
 	case len(template) == 0:
-		return Unknown
+		return Unknown, nil
 	case isArgoWorkflow(template):
-		return V1
-	case isV2Spec(template):
-		return V2
-	default:
-		return Unknown
+		return V1, nil
 	}
+	isV2, err := isV2Spec(template)
+	if isV2 {
+		return V2, nil
+	} else if errors.Is(err, io.EOF) {
+		return Unknown, nil
+	}
+	return Unknown, err
 }
 
 // isV2Spec returns whether template contains api/v2alpha1/PipelineSpec format.
-func isV2Spec(template []byte) bool {
+func isV2Spec(template []byte) (bool, error) {
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
 
 		err := decoder.Decode(&value)
-		// Break at end of file
-		if errors.Is(err, io.EOF) {
-			break
+		if err != nil {
+			var typeErr *goyaml.TypeError
+			if errors.As(err, &typeErr) {
+				continue
+			}
+			return false, err
 		}
 		if value == nil {
 			continue
 		}
 		if isPipelineSpec(value) {
-			return true
+			return true, nil
 		}
 	}
-	return false
 }
 
 // isArgoWorkflow returns whether template is in argo workflow spec format.
@@ -152,13 +157,16 @@ type TemplateOptions struct {
 }
 
 func New(bytes []byte, opts TemplateOptions) (Template, error) {
-	format := inferTemplateFormat(bytes)
+	format, parseErr := inferTemplateFormat(bytes)
 	switch format {
 	case V1:
 		return NewArgoTemplate(bytes)
 	case V2:
 		return NewV2SpecTemplate(bytes, opts)
 	default:
+		if parseErr != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("failed to parse pipeline spec YAML: %v", parseErr))
+		}
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "unknown template format")
 	}
 }

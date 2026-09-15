@@ -35,9 +35,22 @@ import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metad
 import { getAllowCustomVisualizationsHandler } from './handlers/vis.js';
 import { getIndexHTMLHandler } from './handlers/index-html.js';
 
-import { Server } from 'http';
+import { IncomingMessage, Server } from 'http';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts.js';
 import registerTensorboardProxy from './handlers/tensorboard-proxy.js';
+
+function hardenPodLogsProxyResponse(proxyRes: IncomingMessage): void {
+  proxyRes.headers['x-content-type-options'] = 'nosniff';
+  proxyRes.headers['content-disposition'] = 'attachment';
+  proxyRes.headers['content-type'] = 'text/plain; charset=utf-8';
+}
+
+const hardenPodLogsProxyRequest: express.Handler = (_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Disposition', 'attachment');
+  res.type('text/plain');
+  next();
+};
 
 function getRegisterHandler(app: Application, basePath: string) {
   return (
@@ -125,7 +138,6 @@ function createUIServer(options: UIConfigs) {
   const apiVersion1Prefix = options.server.apiVersion1Prefix;
   const apiVersion2Prefix = options.server.apiVersion2Prefix;
   const apiServerAddress = getAddress(options.pipeline);
-  const envoyServiceAddress = getAddress(options.metadata.envoyService);
 
   const app: Application = express();
   const registerHandler = getRegisterHandler(app, basePath);
@@ -168,7 +180,8 @@ function createUIServer(options: UIConfigs) {
     authorizeFn,
     options.auth.enabled,
     options.auth.kubeflowUserIdHeader,
-    envoyServiceAddress,
+    apiServerAddress,
+    options.artifacts.proxy.enabled,
   );
 
   /** Artifact */
@@ -252,10 +265,14 @@ function createUIServer(options: UIConfigs) {
   if (options.artifacts.streamLogsFromServerApi) {
     app.all(
       '/k8s/pod/logs',
+      hardenPodLogsProxyRequest,
       createProxyMiddleware({
         changeOrigin: true,
-        onProxyReq: (proxyReq) => {
-          console.log('Proxied log request: ', proxyReq.path);
+        on: {
+          proxyReq: (proxyReq) => {
+            console.log('Proxied log request: ', proxyReq.path);
+          },
+          proxyRes: hardenPodLogsProxyResponse,
         },
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
         pathRewrite: (pathStr: string, req: any) => {
@@ -284,10 +301,14 @@ function createUIServer(options: UIConfigs) {
   if (options.artifacts.streamLogsFromServerApi) {
     app.all(
       '/k8s/pod/logs',
+      hardenPodLogsProxyRequest,
       createProxyMiddleware({
         changeOrigin: true,
-        onProxyReq: (proxyReq) => {
-          console.log('Proxied log request: ', proxyReq.path);
+        on: {
+          proxyReq: (proxyReq) => {
+            console.log('Proxied log request: ', proxyReq.path);
+          },
+          proxyRes: hardenPodLogsProxyResponse,
         },
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
         pathRewrite: (pathStr: string, req: any) => {
@@ -329,19 +350,6 @@ function createUIServer(options: UIConfigs) {
     getAllowCustomVisualizationsHandler(options.visualizations.allowCustomVisualizations),
   );
 
-  /** Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server */
-  app.all(
-    '/ml_metadata.*',
-    createProxyMiddleware({
-      changeOrigin: true,
-      onProxyReq: (proxyReq) => {
-        console.log('Metadata proxied request: ', (proxyReq as any).path);
-      },
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      target: envoyServiceAddress,
-    }),
-  );
-
   registerHandler(
     app.use,
     [
@@ -373,8 +381,10 @@ function createUIServer(options: UIConfigs) {
     `/${apiVersion1Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: (proxyReq) => {
-        console.log('Proxied request: ', proxyReq.path);
+      on: {
+        proxyReq: (proxyReq) => {
+          console.log('Proxied request: ', proxyReq.path);
+        },
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       target: apiServerAddress,
@@ -384,8 +394,10 @@ function createUIServer(options: UIConfigs) {
     `/${apiVersion2Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: (proxyReq) => {
-        console.log('Proxied request: ', proxyReq.path);
+      on: {
+        proxyReq: (proxyReq) => {
+          console.log('Proxied request: ', proxyReq.path);
+        },
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       target: apiServerAddress,
@@ -396,8 +408,10 @@ function createUIServer(options: UIConfigs) {
     `${basePath}/${apiVersion1Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: (proxyReq) => {
-        console.log('Proxied request: ', proxyReq.path);
+      on: {
+        proxyReq: (proxyReq) => {
+          console.log('Proxied request: ', proxyReq.path);
+        },
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       pathRewrite: (pathStr) =>
@@ -409,8 +423,10 @@ function createUIServer(options: UIConfigs) {
     `${basePath}/${apiVersion2Prefix}/*`,
     createProxyMiddleware({
       changeOrigin: true,
-      onProxyReq: (proxyReq) => {
-        console.log('Proxied request: ', proxyReq.path);
+      on: {
+        proxyReq: (proxyReq) => {
+          console.log('Proxied request: ', proxyReq.path);
+        },
       },
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
       pathRewrite: (pathStr) =>

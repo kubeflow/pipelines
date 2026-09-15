@@ -16,6 +16,8 @@ package template
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -30,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -69,6 +72,7 @@ func TestParseSpecFormat(t *testing.T) {
 	tt := []struct {
 		template     string
 		templateType TemplateType
+		wantErr      bool
 	}{{
 		// standard match
 		template: `
@@ -108,14 +112,55 @@ kind: CronWorkflow`,
 	}, {
 		template:     loadYaml(t, "testdata/hello_world.yaml"),
 		templateType: V2,
+	}, {
+		// multi-document V2 pipeline (pipeline spec + platforms section)
+		template:     loadYaml(t, "testdata/pipeline_with_volume.yaml"),
+		templateType: V2,
+	}, {
+		// valid YAML scalar (not a mapping) — not a pipeline spec
+		template:     "not a valid spec",
+		templateType: Unknown,
+	}, {
+		// malformed YAML: unclosed single-quoted scalar
+		template:     "'",
+		templateType: Unknown,
+		wantErr:      true,
+	}, {
+		// malformed YAML: unclosed flow sequence
+		template:     "[",
+		templateType: Unknown,
+		wantErr:      true,
+	}, {
+		// malformed YAML: incomplete directive
+		template:     "%",
+		templateType: Unknown,
+		wantErr:      true,
 	}}
 
 	for _, test := range tt {
-		format := inferTemplateFormat([]byte(test.template))
+		format, err := inferTemplateFormat([]byte(test.template))
 		if format != test.templateType {
 			t.Errorf("InferTemplateFormat(%s)=%q, expect %q", test.template, format, test.templateType)
 		}
+		if test.wantErr {
+			require.Error(t, err)
+			assert.False(t, errors.Is(err, io.EOF))
+		} else {
+			require.NoError(t, err)
+		}
 	}
+}
+
+func TestNewTemplateMalformedYAML(t *testing.T) {
+	_, err := New([]byte("'"), TemplateOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse pipeline spec YAML")
+}
+
+func TestNewTemplateValidNonPipelineYAML(t *testing.T) {
+	_, err := New([]byte("key: value"), TemplateOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func unmarshalWf(yamlStr string) *v1alpha1.Workflow {
@@ -750,6 +795,30 @@ func TestSetDefaultServiceAccount_EmptyFallsToConfig(t *testing.T) {
 	setDefaultServiceAccount(wf, "")
 	// When no SA is set on workflow and empty is passed, it falls back to config default.
 	assert.Equal(t, common.DefaultPipelineRunnerServiceAccount, wf.ServiceAccount())
+}
+
+func TestSetDefaultServiceAccount_DefaultSAPreserved(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	wf := util.NewWorkflow(unmarshalWf(awfTemplate))
+	setDefaultServiceAccount(wf, common.DefaultPipelineRunnerServiceAccount)
+	assert.Equal(t, common.DefaultPipelineRunnerServiceAccount, wf.ServiceAccount())
+}
+
+func TestSetDefaultServiceAccount_WorkflowEmbeddedSAPreserved(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	wf := util.NewWorkflow(unmarshalWf(awfTemplate))
+	wf.SetServiceAccount("custom-sa")
+	setDefaultServiceAccount(wf, "")
+	assert.Equal(t, "custom-sa", wf.ServiceAccount())
+}
+
+func TestSetDefaultServiceAccount_ConfiguredDefaultApplied(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, "my-custom-runner")
+	defer viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, "")
+	wf := util.NewWorkflow(unmarshalWf(awfTemplate))
+	setDefaultServiceAccount(wf, "")
+	assert.Equal(t, "my-custom-runner", wf.ServiceAccount())
 }
 
 // --- validatePipelineJobInputs tests ---

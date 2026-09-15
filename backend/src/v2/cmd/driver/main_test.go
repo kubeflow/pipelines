@@ -8,9 +8,11 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +32,30 @@ func runtimeValueConstant(value string) *pipelinespec.TaskInputsSpec_InputParame
 			},
 		},
 	}
+}
+
+func TestResolveNamespace(t *testing.T) {
+	t.Run("requires explicit namespace flag", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "kubeflow")
+		t.Setenv("POD_NAMESPACE", "ignored")
+
+		got, err := resolveNamespace("flag-namespace")
+		if err != nil {
+			t.Fatalf("resolveNamespace() error = %v", err)
+		}
+		if got != "flag-namespace" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "flag-namespace")
+		}
+	})
+
+	t.Run("fails when namespace flag is missing", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "kubeflow")
+
+		got, err := resolveNamespace("")
+		if err == nil {
+			t.Fatalf("resolveNamespace() = %q, want error", got)
+		}
+	})
 }
 
 func TestSpecParsing(t *testing.T) {
@@ -63,10 +89,44 @@ func TestSpecParsing(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Logf("Running test case: %s", tc.name)
-		cfg, err := parseExecConfigJson(tc.input)
+		cfg, err := parseExecConfigJSON(tc.input)
 		assert.Equal(t, tc.wantErr, err != nil)
 		assert.True(t, proto.Equal(tc.expected, cfg))
 	}
+}
+
+func TestPodSpecPatchLogMessageDoesNotIncludePatchContent(t *testing.T) {
+	podSpecPatch := `{"containers":[{"env":[{"valueFrom":{"secretKeyRef":{"name":"mlflow-secret","key":"password"}}}]}]}`
+
+	message := podSpecPatchLogMessage(podSpecPatch)
+
+	assert.Contains(t, message, "output podSpecPatch")
+	assert.Contains(t, message, "bytes")
+	assert.NotContains(t, message, "secretKeyRef")
+	assert.NotContains(t, message, "mlflow-secret")
+	assert.NotContains(t, message, "password")
+}
+
+func TestKubernetesConfigLogMessageDoesNotIncludeConfigContent(t *testing.T) {
+	kubernetesConfig := `{"secretAsEnv":[{"secretName":"mlflow-secret","keyToEnv":[{"secretKey":"password","envVar":"PASSWORD"}]}]}`
+
+	message := kubernetesConfigLogMessage(kubernetesConfig)
+
+	assert.Contains(t, message, "input kubernetesConfig")
+	assert.Contains(t, message, "bytes")
+	assert.NotContains(t, message, "secretAsEnv")
+	assert.NotContains(t, message, "mlflow-secret")
+	assert.NotContains(t, message, "password")
+}
+
+func TestParseExecConfigJsonErrorDoesNotIncludeConfigContent(t *testing.T) {
+	kubernetesConfig := `"mlflow-secret"`
+
+	_, err := parseExecConfigJSON(&kubernetesConfig)
+
+	require.Error(t, err)
+	assert.Equal(t, "failed to unmarshal Kubernetes config", err.Error())
+	assert.NotContains(t, err.Error(), "mlflow-secret")
 }
 
 func TestGetPipelineJobTimePlaceholderUsage(t *testing.T) {
@@ -294,10 +354,168 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 	}
 }
 
-func Test_handleExecutionContainer(t *testing.T) {
-	execution := &driver.Execution{}
+func allProvided(flags []string) map[string]bool {
+	provided := make(map[string]bool, len(flags))
+	for _, name := range flags {
+		provided[name] = true
+	}
+	return provided
+}
 
-	executionPaths := &ExecutionPaths{
+func TestRequiredDriverFlags(t *testing.T) {
+	common := []string{
+		"type", "pipeline_name", "run_id", "run_name", "run_display_name",
+		"namespace", "parent_task_id", "task_name", "ml_pipeline_server_address",
+		"ml_pipeline_server_port",
+		"log_level", "publish_logs", "cache_disabled", "ml_pipeline_tls_enabled",
+		"ca_cert_path", "condition_path", "iteration_index",
+		"http_proxy", "https_proxy", "no_proxy",
+	}
+	withCommon := func(extra ...string) []string {
+		return append(append([]string{}, common...), extra...)
+	}
+	tests := []struct {
+		driverType string
+		want       []string
+	}{
+		{driverType: ROOT_DAG, want: withCommon("parent_task_id_path", "iteration_count_path", "runtime_config")},
+		{driverType: DAG, want: withCommon("parent_task_id_path", "iteration_count_path", "runtime_config")},
+		{driverType: CONTAINER, want: withCommon("kubernetes_config", "cached_decision_path", "pod_spec_patch_path")},
+	}
+	for _, tc := range tests {
+		t.Run(tc.driverType, func(t *testing.T) {
+			got, err := requiredDriverFlags(tc.driverType)
+			assert.NoError(t, err)
+			assert.ElementsMatch(t, tc.want, got)
+		})
+	}
+
+	_, err := requiredDriverFlags("UNKNOWN")
+	assert.Error(t, err)
+}
+
+func TestValidateRequiredFlags(t *testing.T) {
+	tests := []struct {
+		name       string
+		driverType string
+		omit       []string
+		wantErr    bool
+	}{
+		{
+			name:       "ROOT_DAG with all required flags",
+			driverType: ROOT_DAG,
+		},
+		{
+			name:       "DAG with all required flags",
+			driverType: DAG,
+		},
+		{
+			name:       "CONTAINER with all required flags",
+			driverType: CONTAINER,
+		},
+		{
+			name:       "ROOT_DAG missing runtime_config",
+			driverType: ROOT_DAG,
+			omit:       []string{"runtime_config"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing parent_task_id",
+			driverType: DAG,
+			omit:       []string{"parent_task_id"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing kubernetes_config",
+			driverType: CONTAINER,
+			omit:       []string{"kubernetes_config"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing common flag run_id",
+			driverType: CONTAINER,
+			omit:       []string{"run_id"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing log_level",
+			driverType: DAG,
+			omit:       []string{"log_level"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing publish_logs",
+			driverType: CONTAINER,
+			omit:       []string{"publish_logs"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing cache_disabled",
+			driverType: DAG,
+			omit:       []string{"cache_disabled"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing namespace",
+			driverType: CONTAINER,
+			omit:       []string{"namespace"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing ca_cert_path",
+			driverType: DAG,
+			omit:       []string{"ca_cert_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing http_proxy",
+			driverType: CONTAINER,
+			omit:       []string{"http_proxy"},
+			wantErr:    true,
+		},
+		{
+			name:       "ROOT_DAG missing parent_task_id_path",
+			driverType: ROOT_DAG,
+			omit:       []string{"parent_task_id_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "DAG missing iteration_count_path",
+			driverType: DAG,
+			omit:       []string{"iteration_count_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "unknown driver type",
+			driverType: "UNKNOWN",
+			wantErr:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			required, err := requiredDriverFlags(tc.driverType)
+			if err != nil {
+				assert.True(t, tc.wantErr)
+				assert.Error(t, validateRequiredFlags(map[string]bool{}, tc.driverType))
+				return
+			}
+			provided := allProvided(required)
+			for _, name := range tc.omit {
+				delete(provided, name)
+			}
+			err = validateRequiredFlags(provided, tc.driverType)
+			assert.Equal(t, tc.wantErr, err != nil, "unexpected error state: %v", err)
+		})
+	}
+}
+
+func Test_handleExecutionContainer(t *testing.T) {
+	execution := &driver.Execution{
+		TaskID: "test-task-id",
+	}
+
+	executionPaths := &TaskPaths{
 		Condition: "condition.txt",
 	}
 
@@ -313,9 +531,11 @@ func Test_handleExecutionContainer(t *testing.T) {
 }
 
 func Test_handleExecutionRootDAG(t *testing.T) {
-	execution := &driver.Execution{}
+	execution := &driver.Execution{
+		TaskID: "test-task-id",
+	}
 
-	executionPaths := &ExecutionPaths{
+	executionPaths := &TaskPaths{
 		IterationCount: "iteration_count.txt",
 		Condition:      "condition.txt",
 	}
@@ -332,29 +552,9 @@ func Test_handleExecutionRootDAG(t *testing.T) {
 	cleanup(t, executionPaths)
 }
 
-func Test_handleExecutionDAG(t *testing.T) {
-	execution := &driver.Execution{}
-
-	executionPaths := &ExecutionPaths{
-		IterationCount: "iteration_count.txt",
-		Condition:      "condition.txt",
-	}
-
-	err := handleExecution(execution, DAG, executionPaths)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	verifyFileContent(t, executionPaths.IterationCount, "0")
-	verifyFileContent(t, executionPaths.Condition, "nil")
-
-	cleanup(t, executionPaths)
-}
-
-func cleanup(t *testing.T, executionPaths *ExecutionPaths) {
+func cleanup(t *testing.T, executionPaths *TaskPaths) {
 	removeIfExists(t, executionPaths.IterationCount)
-	removeIfExists(t, executionPaths.ExecutionID)
+	removeIfExists(t, executionPaths.TaskID)
 	removeIfExists(t, executionPaths.Condition)
 	removeIfExists(t, executionPaths.PodSpecPatch)
 	removeIfExists(t, executionPaths.CachedDecision)
@@ -384,4 +584,44 @@ func verifyFileContent(t *testing.T, filePath string, expectedContent string) {
 	if string(fileContent) != expectedContent {
 		t.Errorf("Expected file fileContent to be %q, got %q", expectedContent, string(fileContent))
 	}
+}
+
+func TestParseOptionalBoolFlag(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantNil bool
+		want    bool
+		wantErr bool
+	}{
+		{name: "unset empty", value: "", wantNil: true},
+		{name: "true", value: "true", want: true},
+		{name: "false", value: "false", want: false},
+		{name: "invalid", value: "maybe", wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseOptionalBoolFlag("--default_host_users", tc.value)
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, got)
+				return
+			}
+			assert.NoError(t, err)
+			if tc.wantNil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			assert.Equal(t, tc.want, *got)
+		})
+	}
+}
+
+func TestNewPluginDispatcher_ReturnsNonNil(t *testing.T) {
+	dispatcher := newPluginDispatcher()
+	require.NotNil(t, dispatcher)
+	// With no plugins enabled in unit tests, this should be a usable no-op dispatcher.
+	_, err := dispatcher.OnTaskStart(context.Background(), &plugins.TaskInfo{Name: "unit-test"})
+	assert.NoError(t, err)
 }

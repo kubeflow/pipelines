@@ -233,7 +233,7 @@ class PipelineRemoteRunner:
             error_util.exit_with_internal_error(
                 f'Request failed after {_CONNECTION_ERROR_RETRY_LIMIT} retries.'
             )
-            return  # Not necessary, only to please the linter.
+            return  # Not necessary, only to please the linter.  # pyrefly: ignore[bad-return]
 
         if (
             get_pipeline_response.state

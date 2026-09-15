@@ -57,6 +57,8 @@ class PipelineUploadServiceApi(object):
         :type namespace: str
         :param tags: JSON-encoded map of key-value pairs for pipeline tags.
         :type tags: str
+        :param code_source_url: Optional URL to the pipeline source code.
+        :type code_source_url: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -95,6 +97,8 @@ class PipelineUploadServiceApi(object):
         :type namespace: str
         :param tags: JSON-encoded map of key-value pairs for pipeline tags.
         :type tags: str
+        :param code_source_url: Optional URL to the pipeline source code.
+        :type code_source_url: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -122,7 +126,8 @@ class PipelineUploadServiceApi(object):
             'display_name',
             'description',
             'namespace',
-            'tags'
+            'tags',
+            'code_source_url'
         ]
         all_params.extend(
             [
@@ -161,6 +166,8 @@ class PipelineUploadServiceApi(object):
             query_params.append(('namespace', local_var_params['namespace']))  # noqa: E501
         if 'tags' in local_var_params and local_var_params['tags'] is not None:  # noqa: E501
             query_params.append(('tags', local_var_params['tags']))  # noqa: E501
+        if 'code_source_url' in local_var_params and local_var_params['code_source_url'] is not None:  # noqa: E501
+            query_params.append(('code_source_url', local_var_params['code_source_url']))  # noqa: E501
 
         header_params = {}
 
@@ -218,6 +225,8 @@ class PipelineUploadServiceApi(object):
         :type description: str
         :param tags: JSON-encoded map of key-value pairs for pipeline version tags.
         :type tags: str
+        :param code_source_url: Optional URL to the pipeline source code.
+        :type code_source_url: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -256,6 +265,8 @@ class PipelineUploadServiceApi(object):
         :type description: str
         :param tags: JSON-encoded map of key-value pairs for pipeline version tags.
         :type tags: str
+        :param code_source_url: Optional URL to the pipeline source code.
+        :type code_source_url: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -283,7 +294,8 @@ class PipelineUploadServiceApi(object):
             'display_name',
             'pipelineid',
             'description',
-            'tags'
+            'tags',
+            'code_source_url'
         ]
         all_params.extend(
             [
@@ -322,6 +334,8 @@ class PipelineUploadServiceApi(object):
             query_params.append(('description', local_var_params['description']))  # noqa: E501
         if 'tags' in local_var_params and local_var_params['tags'] is not None:  # noqa: E501
             query_params.append(('tags', local_var_params['tags']))  # noqa: E501
+        if 'code_source_url' in local_var_params and local_var_params['code_source_url'] is not None:  # noqa: E501
+            query_params.append(('code_source_url', local_var_params['code_source_url']))  # noqa: E501
 
         header_params = {}
 

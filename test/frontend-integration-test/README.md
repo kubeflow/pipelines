@@ -85,3 +85,30 @@ This test gets triggered by the end-to-end testing workflows.
     ps aux | grep '[k]ubectl port-forward'
     kill <PID>
     ```
+
+## Dependency compatibility checks
+
+Use Node.js 22.12.0 or newer (the version in `frontend/.nvmrc` is recommended).
+
+```bash
+npm install
+npm run test:dependencies
+```
+
+These checks load the WebdriverIO configuration, confirm that the pinned browser
+installer exposes the API WebdriverIO calls, and confirm that our explicit
+Selenium connection skips automatic browser and driver installation. They do not
+require Selenium, a deployed KFP cluster, or a ZIP extractor. CI runs them once in
+the `frontend-integration-dependency-checks` job of `e2e-test-frontend.yml`; they
+are not part of `npm test`.
+
+`@puppeteer/browsers` is pinned to 3.2.2, and the override applies the same pin
+to `@wdio/utils`, because the 2.x line that `@wdio/utils` declares still depends
+on `extract-zip`, which has no patched release for
+[GHSA-jmr9-qjv8-65gv](https://github.com/advisories/GHSA-jmr9-qjv8-65gv).
+`@wdio/utils` does not declare support for the 3.x major; the checks above stand
+in for that support. Two consequences of 3.x are worth knowing: it requires the
+Node.js version above, and it made `proxy-agent` optional, so `HTTPS_PROXY` is
+ignored on the browser download path. That path never runs here because the
+Selenium host is explicit. Remove the pin and the override when `@wdio/utils`
+accepts the 3.x major.

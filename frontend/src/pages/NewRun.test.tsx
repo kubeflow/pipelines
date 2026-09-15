@@ -18,6 +18,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import * as React from 'react';
 import { NewRun } from 'src/pages/NewRun';
 import TestUtils, { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
+import { dataTransferWithFiles } from 'src/testUtils/dataTransfer';
 import { PageProps } from 'src/pages/Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
@@ -853,7 +854,7 @@ describe('NewRun', () => {
       const file = new File(['file contents'], 'test-pipeline.yaml', { type: 'text/yaml' });
       await invokeAndFlush(() => {
         fireEvent.drop(dropZone, {
-          dataTransfer: { files: [file], types: ['Files'] },
+          dataTransfer: dataTransferWithFiles(file),
         });
       });
 

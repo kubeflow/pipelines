@@ -57,7 +57,13 @@ def read_readme() -> str:
 _version = find_version('kfp', 'version.py')
 docker = ['docker']
 kubernetes = [f'kfp-kubernetes=={_version}']
-notebooks = ["nbclient>=0.10,<1", "ipykernel>=6,<7", "jupyter_client>=7,<9"]
+notebooks = [
+    "nbclient>=0.10,<1",
+    "ipykernel>=6,<7",
+    "jupyter_client>=7,<9",
+    # 2.22.0 uses Python 3.10 union syntax but permits Python 3.9.
+    'fastjsonschema<2.22; python_version < "3.10"',
+]
 
 setuptools.setup(
     name='kfp',

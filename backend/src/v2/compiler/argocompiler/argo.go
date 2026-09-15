@@ -27,6 +27,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -62,6 +63,15 @@ type Options struct {
 	// in a dedicated Linux user namespace: UID 0 inside the pod maps to an
 	// unprivileged host UID, so root processes in the container are not root on the host.
 	DefaultHostUsers *bool
+	// Optional: administrator-configured labels and annotations for driver pods.
+	// Nil means not set (feature disabled). The API server reads this from its own
+	// configuration and passes it in, so callers that compile outside the API server,
+	// such as the standalone compiler, simply leave it nil and get no extra metadata.
+	DriverPodConfig *common.DriverPodConfig
+	// Optional: base audience for projected service-account tokens used by runtime
+	// pods. Empty means DefaultTokenReviewAudience. The API server passes
+	// TOKEN_REVIEW_AUDIENCE so minted audiences match TokenReview.
+	TokenReviewAudience string
 }
 
 const (
@@ -154,6 +164,18 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
 			GenerateName: retrieveLastValidString(spec.GetPipelineInfo().GetName()) + "-",
+			Annotations: map[string]string{
+				// Use Argo's shorter v1 pod names so long workflow names do not inherit
+				// internal template names like system-dag-driver into the pod hostname.
+				// Some runtime paths self-look up the current pod by its exact
+				// metadata.name via the Kubernetes API before reading pod
+				// annotations, for example the launcher retry-index fallback. If
+				// the hostname is truncated, that self-lookup can fail with "pod
+				// not found" even though the pod only talks to the API server.
+				// For debugging, the system template identity now lives in pod
+				// metadata instead of the pod name itself; see addSystemPodMetadata.
+				"workflows.argoproj.io/pod-name-format": "v1",
+			},
 			// Note, uncomment the following during development to view argo inputs/outputs in KFP UI.
 			// TODO(Bobgy): figure out what annotations we should use for v2 engine.
 			// For now, comment this annotation, so that in KFP UI, it shows argo input/output params/artifacts
@@ -203,13 +225,14 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		launcherImage:   GetLauncherImage(),
-		launcherCommand: GetLauncherCommand(),
-		driverImage:     GetDriverImage(),
-		driverCommand:   GetDriverCommand(),
-		job:             job,
-		spec:            spec,
-		executors:       deploy.GetExecutors(),
+		launcherImage:     GetLauncherImage(),
+		launcherCommand:   GetLauncherCommand(),
+		driverImage:       GetDriverImage(),
+		driverCommand:     GetDriverCommand(),
+		job:               job,
+		spec:              spec,
+		executors:         deploy.GetExecutors(),
+		kubernetesConfigs: make(map[string]*kubernetesplatform.KubernetesExecutorConfig),
 	}
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
@@ -219,6 +242,8 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		c.defaultHostUsers = opts.DefaultHostUsers
+		c.driverPodConfig = opts.DriverPodConfig
+		c.tokenReviewAudience = opts.TokenReviewAudience
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -325,6 +350,38 @@ type workflowCompiler struct {
 	defaultRunAsGroup    *int64
 	defaultRunAsNonRoot  *bool
 	defaultHostUsers     *bool
+	driverPodConfig      *common.DriverPodConfig
+	tokenReviewAudience  string
+	kubernetesConfigs    map[string]*kubernetesplatform.KubernetesExecutorConfig
+}
+
+// applyDriverPodConfig applies driver pod labels and annotations to a workflow
+// template's metadata. Existing keys are kept, since admin configuration has lower
+// priority than metadata that the system already set.
+func applyDriverPodConfig(d *common.DriverPodConfig, tmpl *wfapi.Template) {
+	if d == nil || tmpl == nil {
+		return
+	}
+	if len(d.Labels) > 0 {
+		if tmpl.Metadata.Labels == nil {
+			tmpl.Metadata.Labels = make(map[string]string, len(d.Labels))
+		}
+		for k, v := range d.Labels {
+			if _, exists := tmpl.Metadata.Labels[k]; !exists {
+				tmpl.Metadata.Labels[k] = v
+			}
+		}
+	}
+	if len(d.Annotations) > 0 {
+		if tmpl.Metadata.Annotations == nil {
+			tmpl.Metadata.Annotations = make(map[string]string, len(d.Annotations))
+		}
+		for k, v := range d.Annotations {
+			if _, exists := tmpl.Metadata.Annotations[k]; !exists {
+				tmpl.Metadata.Annotations[k] = v
+			}
+		}
+	}
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
@@ -351,24 +408,30 @@ func (c *workflowCompiler) templateName(componentName string) string {
 }
 
 const (
-	argumentsComponents     = "components-"
+	systemPodRoleLabelKey           = "pipelines.kubeflow.org/pod-role"
+	systemTemplateNameAnnotationKey = "pipelines.kubeflow.org/template-name"
+)
+
+func addSystemPodMetadata(t *wfapi.Template, role, templateName string) {
+	if t == nil {
+		return
+	}
+	if t.Metadata.Labels == nil {
+		t.Metadata.Labels = make(map[string]string)
+	}
+	if t.Metadata.Annotations == nil {
+		t.Metadata.Annotations = make(map[string]string)
+	}
+	// Keep system pod identity in metadata so debugging does not depend on
+	// template names being embedded in the pod hostname.
+	t.Metadata.Labels[systemPodRoleLabelKey] = role
+	t.Metadata.Annotations[systemTemplateNameAnnotationKey] = templateName
+}
+
+const (
 	argumentsContainers     = "implementations-"
 	argumentsKubernetesSpec = "kubernetes-"
 )
-
-func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
-	hashedComponent := c.hashComponentContainer(name)
-
-	return c.saveProtoToArguments(argumentsComponents+hashedComponent, spec)
-}
-
-// useComponentSpec returns a placeholder we can refer to the component spec
-// in argo workflow fields.
-func (c *workflowCompiler) useComponentSpec(name string) (string, error) {
-	hashedComponent := c.hashComponentContainer(name)
-
-	return c.argumentsPlaceholder(argumentsComponents + hashedComponent)
-}
 
 func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) error {
 	hashedComponent := c.hashComponentContainer(name)
@@ -481,17 +544,15 @@ func hashValue(value interface{}) (string, error) {
 }
 
 const (
-	paramComponent               = "component"      // component spec
 	paramTask                    = "task"           // task spec
 	paramTaskName                = "task-name"      // task name
 	paramContainer               = "container"      // container spec
 	paramImporter                = "importer"       // importer spec
 	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
-	paramParentDagID             = "parent-dag-id"
-	paramExecutionID             = "execution-id"
+	paramParentDagTaskID         = "parent-dag-task-id"
+	paramParentDagTaskIDPath     = "parent-dag-task-id-path"
 	paramIterationCount          = "iteration-count"
 	paramIterationIndex          = "iteration-index"
-	paramExecutorInput           = "executor-input"
 	paramDriverType              = "driver-type"
 	paramCachedDecision          = "cached-decision"             // indicate hit cache or not
 	paramPodSpecPatch            = "pod-spec-patch"              // a strategic patch merged with the pod spec
@@ -515,10 +576,6 @@ func runID() string {
 func runResourceName() string {
 	// This translates to the Argo Workflow object name.
 	return "{{workflow.name}}"
-}
-
-func runCreationTimeUTC() string {
-	return "{{workflow.creationTimestamp}}"
 }
 
 func workflowParameter(name string) string {

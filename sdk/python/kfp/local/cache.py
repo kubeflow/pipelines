@@ -81,9 +81,9 @@ class LocalCache:
         different `MYVAR` can produce different outputs); caching them out
         would serve stale results.
 
-        If `custom_cache_key` is provided, it is still combined with the
-        component name so that keys from different components do not
-        collide.
+        If `custom_cache_key` is provided, it is still combined with component
+        reference identity (e.g. component name) so that keys from different
+        components do not collide.
         """
         h = hashlib.sha256()
         h.update(component_name.encode('utf-8'))

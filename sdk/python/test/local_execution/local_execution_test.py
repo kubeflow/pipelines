@@ -31,6 +31,8 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 dsl.component = functools.partial(
     dsl.component, base_image=base_image, kfp_package_path=_KFP_PACKAGE_PATH)
+dsl.notebook_component = functools.partial(
+    dsl.notebook_component, kfp_package_path=_KFP_PACKAGE_PATH)
 
 from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
     echo as arguments_echo
@@ -47,6 +49,8 @@ from test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtu
     crust as namedtuple_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.notebook_component_simple import \
     pipeline as notebook_simple_pipeline
+from test_data.sdk_compiled_pipelines.valid.critical.notebook_component_simple import \
+    run_train_notebook as run_train_notebook_component
 from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace import \
     pipeline_with_importer_workspace as importer_workspace_pipeline
 from test_data.sdk_compiled_pipelines.valid.critical.producer_consumer_param import \
@@ -288,6 +292,16 @@ pipeline_func_data = [
         expected_output='hello',
     ),
 ]
+
+
+@pytest.mark.skipif(
+    _KFP_PACKAGE_PATH is None, reason='KFP_PACKAGE_PATH is not configured')
+def test_notebook_component_uses_configured_kfp_package_path():
+    install_command = run_train_notebook_component.component_spec.implementation.container.command[
+        2]
+
+    assert _KFP_PACKAGE_PATH in install_command
+
 
 docker_specific_pipeline_funcs = [
     TestData(

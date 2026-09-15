@@ -15,14 +15,55 @@
 export function isAllowedDomain(urlStr: string, allowedDomain: string): boolean {
   const allowedRegExp = new RegExp(allowedDomain);
   const domain = domain_from_url(urlStr);
-  const allowed = allowedRegExp.test(domain);
+  const allowed = domain.length > 0 && allowedRegExp.test(domain);
   if (!allowed) {
     console.log(`Domain not allowed: ${urlStr}`);
   }
   return allowed;
 }
 
+/**
+ * Trusts an object-store endpoint only when its effective origin exactly
+ * matches an endpoint configured by the server operator.
+ */
+export function isTrustedArtifactEndpoint(
+  endpoint: string,
+  configuredEndpoints: string[],
+): boolean {
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+  if (!normalizedEndpoint) {
+    return false;
+  }
+
+  return configuredEndpoints.some(
+    (configuredEndpoint) => normalizeEndpoint(configuredEndpoint) === normalizedEndpoint,
+  );
+}
+
+function normalizeEndpoint(endpoint: string): string | undefined {
+  try {
+    const parsedUrl = new URL(endpoint.includes('://') ? endpoint : `https://${endpoint}`);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return undefined;
+    }
+    if (parsedUrl.username || parsedUrl.password) {
+      return undefined;
+    }
+    const port = parsedUrl.port || (parsedUrl.protocol === 'https:' ? '443' : '80');
+    return `${parsedUrl.protocol}//${parsedUrl.hostname.toLowerCase()}:${port}`;
+  } catch {
+    return undefined;
+  }
+}
+
 function domain_from_url(url: string): string {
-  const match = url.match(/^(?:https?:\/\/)?(?:[^@/\n]+@)?([^:/?\n]+)/);
-  return match?.[1] ?? '';
+  try {
+    const parsedUrl = new URL(url.includes('://') ? url : `http://${url}`);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return '';
+    }
+    return parsedUrl.hostname;
+  } catch {
+    return '';
+  }
 }

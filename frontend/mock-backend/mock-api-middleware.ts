@@ -31,6 +31,12 @@ import {
 } from '../src/apis/pipeline';
 import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
 import {
+  ArtifactArtifactType,
+  V2beta1Artifact,
+  V2beta1ArtifactTask,
+  V2beta1IOType,
+} from '../src/apisv2beta1/artifact';
+import {
   V2beta1Experiment,
   V2beta1ExperimentStorageState,
   V2beta1ListExperimentsResponse,
@@ -49,7 +55,11 @@ import {
   V2beta1Trigger,
 } from '../src/apisv2beta1/recurringrun';
 import {
+  PipelineTaskTaskPodType,
+  PipelineTaskTaskState,
+  PipelineTaskTaskType,
   V2beta1ListRunsResponse,
+  V2beta1PipelineTask,
   V2beta1Run,
   V2beta1RunStorageState,
   V2beta1RuntimeState,
@@ -85,6 +95,117 @@ const helloWorldBigHtmlPath = './model-output/hello-world-big.html';
 
 const v1beta1Prefix = '/apis/v1beta1';
 const v2beta1Prefix = '/apis/v2beta1';
+const mockNativeRunId = 'e0115ac1-0479-4194-a22d-01e65e09a32b';
+
+const mockV2Artifacts: V2beta1Artifact[] = [
+  {
+    artifact_id: 'mock-artifact-1',
+    created_at: new Date('2026-01-01T00:00:00.000Z'),
+    description: 'Representative native artifact for local frontend development.',
+    name: 'mock-dataset',
+    namespace: 'kubeflow-user-example-com',
+    type: ArtifactArtifactType.Dataset,
+    uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-dataset',
+  },
+];
+const mockV2Tasks: V2beta1PipelineTask[] = [
+  {
+    child_tasks: [
+      { name: 'chicago-taxi-trips-dataset', task_id: 'mock-task-producer' },
+      { name: 'convert-csv-to-apache-parquet', task_id: 'mock-task-consumer' },
+    ],
+    create_time: new Date('2026-01-01T00:00:00.000Z'),
+    display_name: 'xgboost-sample-pipeline',
+    end_time: new Date('2026-01-01T00:03:00.000Z'),
+    name: 'root',
+    run_id: mockNativeRunId,
+    scope_path: 'root',
+    state: PipelineTaskTaskState.SUCCEEDED,
+    task_id: 'mock-task-root',
+    type: PipelineTaskTaskType.ROOT,
+  },
+  {
+    create_time: new Date('2026-01-01T00:00:10.000Z'),
+    display_name: 'Chicago taxi trips dataset',
+    end_time: new Date('2026-01-01T00:01:00.000Z'),
+    name: 'chicago-taxi-trips-dataset',
+    outputs: {
+      artifacts: [
+        {
+          artifact_key: 'table',
+          artifacts: mockV2Artifacts,
+          type: V2beta1IOType.OUTPUT,
+        },
+      ],
+    },
+    parent_task_id: 'mock-task-root',
+    pods: [
+      {
+        name: 'mock-chicago-taxi-trips-dataset-executor',
+        type: PipelineTaskTaskPodType.EXECUTOR,
+        uid: 'mock-producer-pod-uid',
+      },
+    ],
+    run_id: mockNativeRunId,
+    scope_path: 'root.chicago-taxi-trips-dataset',
+    state: PipelineTaskTaskState.SUCCEEDED,
+    task_id: 'mock-task-producer',
+    type: PipelineTaskTaskType.RUNTIME,
+  },
+  {
+    create_time: new Date('2026-01-01T00:01:05.000Z'),
+    display_name: 'Convert CSV to Apache Parquet',
+    end_time: new Date('2026-01-01T00:02:00.000Z'),
+    inputs: {
+      artifacts: [
+        {
+          artifact_key: 'data',
+          artifacts: mockV2Artifacts,
+          producer: { task_name: 'chicago-taxi-trips-dataset' },
+          type: V2beta1IOType.TASK_OUTPUT_INPUT,
+        },
+      ],
+    },
+    name: 'convert-csv-to-apache-parquet',
+    parent_task_id: 'mock-task-root',
+    pods: [
+      {
+        name: 'mock-convert-csv-to-apache-parquet-driver',
+        type: PipelineTaskTaskPodType.DRIVER,
+        uid: 'mock-consumer-driver-pod-uid',
+      },
+      {
+        name: 'mock-convert-csv-to-apache-parquet-executor',
+        type: PipelineTaskTaskPodType.EXECUTOR,
+        uid: 'mock-consumer-executor-pod-uid',
+      },
+    ],
+    run_id: mockNativeRunId,
+    scope_path: 'root.convert-csv-to-apache-parquet',
+    state: PipelineTaskTaskState.SUCCEEDED,
+    task_id: 'mock-task-consumer',
+    type: PipelineTaskTaskType.RUNTIME,
+  },
+];
+const mockV2ArtifactTasks: V2beta1ArtifactTask[] = [
+  {
+    artifact_id: 'mock-artifact-1',
+    id: 'mock-artifact-task-output',
+    key: 'table',
+    run_id: mockNativeRunId,
+    task_id: 'mock-task-producer',
+    type: V2beta1IOType.OUTPUT,
+  },
+  {
+    artifact_id: 'mock-artifact-1',
+    id: 'mock-artifact-task-input',
+    key: 'data',
+    producer: { task_name: 'chicago-taxi-trips-dataset' },
+    run_id: mockNativeRunId,
+    task_id: 'mock-task-consumer',
+    type: V2beta1IOType.TASK_OUTPUT_INPUT,
+  },
+];
 
 let tensorboardPod = '';
 
@@ -253,15 +374,73 @@ function getComparableValue(value: unknown): number | string {
   return String(value || '');
 }
 
-function sortV2Resources<T extends V2FilterableResource>(
+type V1SortableResource = ApiJob | ApiExperiment | ApiRun | ApiPipeline;
+
+/**
+ * The *SortKeys enums advertise the sort keys the real backend accepts, and a
+ * few of those are not stored on the v1 models. Derive those here so sorting by
+ * them behaves like the backend instead of silently comparing undefined.
+ *
+ * `lastRunCreatedAt` is the lookup built by buildLastRunCreatedAtMap, threaded
+ * in so it is built once per request rather than per comparison.
+ */
+function getV1ResourceValue(
+  resource: V1SortableResource,
+  key: string,
+  lastRunCreatedAt: () => Map<string, Date>,
+): unknown {
+  const record = resource as Record<string, unknown>;
+  if (key === 'display_name') {
+    // PipelineSortKeys/PipelineVersionSortKeys advertise display_name, but the
+    // v1 models only carry name.
+    return record.display_name ?? record.name;
+  }
+  if (key === 'last_run_created_at') {
+    // ExperimentSortKeys advertises last_run_created_at; it is a property of the
+    // experiment's runs rather than of the experiment itself.
+    const id = record.id;
+    return typeof id === 'string' ? lastRunCreatedAt().get(id) : undefined;
+  }
+  return record[key];
+}
+
+/** Latest run creation time per experiment, in one pass over fixedData.runs. */
+function buildLastRunCreatedAtMap(): Map<string, Date> {
+  const latest = new Map<string, Date>();
+  for (const runDetail of fixedData.runs) {
+    const run = runDetail.run;
+    if (!run || !run.created_at) {
+      continue;
+    }
+    for (const reference of RunUtils.getAllExperimentReferences(run)) {
+      const experimentId = reference.key?.id;
+      if (!experimentId) {
+        continue;
+      }
+      const current = latest.get(experimentId);
+      if (!current || run.created_at > current) {
+        latest.set(experimentId, run.created_at);
+      }
+    }
+  }
+  return latest;
+}
+
+/**
+ * Sorts a copy of `resources` so repeated requests do not reorder the shared
+ * fixture data in place. The value getter is the only part that varies between
+ * the v1 and v2 models, so the comparison logic lives here only.
+ */
+function sortResources<T>(
   resources: T[],
   defaultSortKey: string,
-  queryParam?: string,
+  queryParam: string | undefined,
+  getValue: (resource: T, key: string) => unknown,
 ): T[] {
   const { desc, key } = getSortKeyAndOrder(defaultSortKey, queryParam);
   return resources.slice().sort((a, b) => {
-    const aValue = getComparableValue(getV2ResourceValue(a, key));
-    const bValue = getComparableValue(getV2ResourceValue(b, key));
+    const aValue = getComparableValue(getValue(a, key));
+    const bValue = getComparableValue(getValue(b, key));
     let result = 0;
     if (aValue < bValue) {
       result = -1;
@@ -271,6 +450,32 @@ function sortV2Resources<T extends V2FilterableResource>(
     }
     return result * (desc ? -1 : 1);
   });
+}
+
+function sortV1Resources<T extends V1SortableResource>(
+  resources: T[],
+  defaultSortKey: string,
+  queryParam?: string,
+): T[] {
+  // Built at most once per call, and only when the sort key actually needs it.
+  let lastRunCreatedAt: Map<string, Date> | undefined;
+  const getLastRunCreatedAt = () => {
+    if (!lastRunCreatedAt) {
+      lastRunCreatedAt = buildLastRunCreatedAtMap();
+    }
+    return lastRunCreatedAt;
+  };
+  return sortResources(resources, defaultSortKey, queryParam, (resource, key) =>
+    getV1ResourceValue(resource, key, getLastRunCreatedAt),
+  );
+}
+
+function sortV2Resources<T extends V2FilterableResource>(
+  resources: T[],
+  defaultSortKey: string,
+  queryParam?: string,
+): T[] {
+  return sortResources(resources, defaultSortKey, queryParam, getV2ResourceValue);
 }
 
 function filterV2Resources<T extends V2FilterableResource>(
@@ -512,7 +717,7 @@ export default (app: express.Application) => {
     res.json(toV2Pipeline(pipeline));
   });
 
-  app.get(v2beta1Prefix + '/pipelines/:pid/versions', (req, res) => {
+  app.get<{ pid: string }>(v2beta1Prefix + '/pipelines/:pid/versions', (req, res) => {
     res.header('Content-Type', 'application/json');
     const versions = sortV2Resources(
       filterV2Resources(getV2PipelineVersions(req.params.pid), getQueryString(req.query.filter)),
@@ -529,15 +734,18 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
-  app.get(v2beta1Prefix + '/pipelines/:pid/versions/:pvid', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    const version = getV2PipelineVersion(req.params.pid, req.params.pvid);
-    if (!version) {
-      res.status(404).send(`No pipeline version was found with ID: ${req.params.pvid}`);
-      return;
-    }
-    res.json(version);
-  });
+  app.get<{ pid: string; pvid: string }>(
+    v2beta1Prefix + '/pipelines/:pid/versions/:pvid',
+    (req, res) => {
+      res.header('Content-Type', 'application/json');
+      const version = getV2PipelineVersion(req.params.pid, req.params.pvid);
+      if (!version) {
+        res.status(404).send(`No pipeline version was found with ID: ${req.params.pvid}`);
+        return;
+      }
+      res.json(version);
+    },
+  );
 
   app.get(v2beta1Prefix + '/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
@@ -569,6 +777,29 @@ export default (app: express.Application) => {
       return;
     }
     res.json(toV2Run(run.run!));
+  });
+
+  app.get(v2beta1Prefix + '/runs/:rid/tasks', (req, res) => {
+    res.json({ tasks: req.params.rid === mockNativeRunId ? mockV2Tasks : [] });
+  });
+
+  app.get(v2beta1Prefix + '/artifacts', (_req, res) => {
+    res.json({ artifacts: mockV2Artifacts, total_size: mockV2Artifacts.length });
+  });
+
+  app.get(v2beta1Prefix + '/artifacts/:artifactId', (req, res) => {
+    const artifact = mockV2Artifacts.find(
+      (candidate) => candidate.artifact_id === req.params.artifactId,
+    );
+    if (!artifact) {
+      res.status(404).send(`No artifact was found with ID: ${req.params.artifactId}`);
+      return;
+    }
+    res.json(artifact);
+  });
+
+  app.get(v2beta1Prefix + '/artifact_tasks', (_req, res) => {
+    res.json({ artifact_tasks: mockV2ArtifactTasks });
   });
 
   app.get(v2beta1Prefix + '/recurringruns', (req, res) => {
@@ -623,21 +854,7 @@ export default (app: express.Application) => {
       jobs = filterResources(fixedData.jobs, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
-      ExperimentSortKeys.CREATED_AT,
-      getQueryString(req.query.sort_by),
-    );
-
-    jobs.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
+    jobs = sortV1Resources(jobs, ExperimentSortKeys.CREATED_AT, getQueryString(req.query.sort_by));
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);
@@ -664,21 +881,11 @@ export default (app: express.Application) => {
       experiments = filterResources(fixedData.experiments, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
+    experiments = sortV1Resources(
+      experiments,
       ExperimentSortKeys.NAME,
       getQueryString(req.query.sortBy),
     );
-
-    experiments.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
 
     const start = getQueryNumber(req.query.pageToken) || 0;
     const end = start + (getQueryNumber(req.query.pageSize) || 20);
@@ -794,21 +1001,7 @@ export default (app: express.Application) => {
       );
     }
 
-    const { desc, key } = getSortKeyAndOrder(
-      RunSortKeys.CREATED_AT,
-      getQueryString(req.query.sort_by),
-    );
-
-    runs.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
+    runs = sortV1Resources(runs, RunSortKeys.CREATED_AT, getQueryString(req.query.sort_by));
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);
@@ -850,7 +1043,7 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.post(v1beta1Prefix + '/runs/:rid::method', (req, res) => {
+  app.post<{ rid: string; method: string }>(v1beta1Prefix + '/runs/:rid\\::method', (req, res) => {
     if (req.params.method !== 'archive' && req.params.method !== 'unarchive') {
       res.status(500).send('Bad method');
     }
@@ -959,21 +1152,11 @@ export default (app: express.Application) => {
       pipelines = filterResources(fixedData.pipelines, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
+    pipelines = sortV1Resources(
+      pipelines,
       PipelineSortKeys.CREATED_AT,
       getQueryString(req.query.sort_by),
     );
-
-    pipelines.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);
@@ -1014,7 +1197,7 @@ export default (app: express.Application) => {
     res.json(pipeline);
   });
 
-  app.get(v1beta1Prefix + '/pipelines/:pid/templates', (req, res) => {
+  app.get<{ pid: string }>(v1beta1Prefix + '/pipelines/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
     if (!pipeline) {
@@ -1039,7 +1222,7 @@ export default (app: express.Application) => {
     res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
   });
 
-  app.get(v1beta1Prefix + '/pipeline_versions/:pid/templates', (req, res) => {
+  app.get<{ pid: string }>(v1beta1Prefix + '/pipeline_versions/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
 
     // Find v2 pipeline template
@@ -1226,7 +1409,7 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.all(v1beta1Prefix + '/_proxy/*', (_req, res) => {
+  app.all(/^\/apis\/v1beta1\/_proxy\/.*$/i, (_req, res) => {
     res.status(410).send('The generic /_proxy/ endpoint is deprecated and no longer supported.');
   });
 
@@ -1269,10 +1452,10 @@ export default (app: express.Application) => {
     res.send('mock-project-id');
   });
 
-  app.all(v1beta1Prefix + '*', (req, res) => {
+  app.all(/^\/apis\/v1beta1(?:\/.*)?$/i, (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
-  app.all(v2beta1Prefix + '*', (req, res) => {
+  app.all(/^\/apis\/v2beta1(?:\/.*)?$/i, (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
 };

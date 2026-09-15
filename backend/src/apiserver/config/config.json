@@ -6,7 +6,8 @@
       "GroupConcatMaxLen": "4194304"
     },
     "PostgreSQLConfig": {
-      "DBName": "mlpipeline"
+      "DBName": "mlpipeline",
+      "ExtraParams": {}
     },
     "ConMaxLifeTime": "120s"
   },
@@ -24,18 +25,5 @@
   "CacheEnabled": "true",
   "CRON_SCHEDULE_TIMEZONE": "UTC",
   "CACHE_IMAGE": "ghcr.io/containerd/busybox",
-  "CACHE_NODE_RESTRICTIONS": "false",
-  "plugins": {
-    "mlflow": {
-      "endpoint": "https://mlflow.opendatahub.svc.cluster.local:8443",
-      "timeout": "60s",
-      "tls": {
-        "insecureSkipVerify": false,
-        "caBundlePath": "/etc/mlflow-tracking-ca/ca.crt"
-      },
-      "settings": {
-        "workspacesEnabled": true
-      }
-    }
-  }
+  "CACHE_NODE_RESTRICTIONS": "false"
 }

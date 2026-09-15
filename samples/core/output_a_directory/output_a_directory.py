@@ -29,7 +29,7 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 
 @dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
-ddef list_dir_files_python(input_dir: Input[Artifact],
+def list_dir_files_python(input_dir: Input[Artifact],
                                 subdir: str = 'texts'):
     import os
     dir_items = os.listdir(os.path.join(input_dir.path, subdir))
@@ -49,7 +49,7 @@ def produce_dir_with_files_python_op(output_dir: Output[Artifact],
         with open(file_path, 'w') as f:
             f.write(str(i))
 
-@kfp.dsl.pipeline(name='dir-pipeline')
+@dsl.pipeline(name='dir-pipeline')
 def dir_pipeline(subdir: str = 'texts'):
     produce_dir_python_task = produce_dir_with_files_python_op(
         num_files=15,

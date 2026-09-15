@@ -1,0 +1,47 @@
+# PIPELINE DEFINITION
+# Name: nvidia-gpu-scheduling-check
+# Description: Verifies a task requesting nvidia.com/gpu with a matching toleration can schedule and complete (no CUDA/torch assertions).
+components:
+  comp-verify-gpu-scheduled:
+    executorLabel: exec-verify-gpu-scheduled
+deploymentSpec:
+  executors:
+    exec-verify-gpu-scheduled:
+      container:
+        args:
+        - 'echo "GPU scheduling check: PASS"'
+        command:
+        - sh
+        - -c
+        image: python:3.11
+        resources:
+          accelerator:
+            count: '1'
+            resourceCount: '1'
+            resourceType: nvidia.com/gpu
+            type: nvidia.com/gpu
+pipelineInfo:
+  description: Verifies a task requesting nvidia.com/gpu with a matching toleration
+    can schedule and complete (no CUDA/torch assertions).
+  name: nvidia-gpu-scheduling-check
+root:
+  dag:
+    tasks:
+      verify-gpu-scheduled:
+        cachingOptions: {}
+        componentRef:
+          name: comp-verify-gpu-scheduled
+        taskInfo:
+          name: verify-gpu-scheduled
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-verify-gpu-scheduled:
+          tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Exists

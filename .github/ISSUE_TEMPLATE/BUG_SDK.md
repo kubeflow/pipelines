@@ -1,7 +1,7 @@
 ---
 name: ⚠️ Report SDK Bug
 about: Report a SDK bug on Kubeflow Pipelines
-title: "[sdk] <Bug Name>"
+title: "bug(sdk): <Bug Name>"
 labels: kind/bug, area/sdk
 ---
 

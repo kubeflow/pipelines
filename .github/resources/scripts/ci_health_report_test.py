@@ -243,6 +243,78 @@ class JunitIngestionTest(unittest.TestCase):
         self.assertEqual(parsed, 1)
         self.assertEqual(errors, 1)  # the malformed member
 
+    def test_retry_artifact_replaces_unsuffixed_duplicate(self):
+        payload = junit_zip(self.GOOD_XML)
+        artifacts = [
+            {
+                "name": "junit-xml - lane",
+                "archive_download_url": "primary",
+                "expired": False,
+            },
+            {
+                "name": "junit-xml - lane - retry-1",
+                "archive_download_url": "retry",
+                "expired": False,
+            },
+        ]
+
+        def fake_paginate(token, url, key, max_pages=3):
+            return artifacts, False
+
+        with mock.patch.object(chr_mod, "paginate", side_effect=fake_paginate), \
+                mock.patch.object(chr_mod, "api_request", return_value=payload) as request:
+            tests, parsed, errors, scanned = chr_mod.collect_failed_tests(
+                "t", "o/r", [("2026-07-13T00:00:00Z", 1)], 5
+            )
+
+        self.assertEqual(scanned, 1)
+        self.assertEqual(tests["SuiteA :: flaky test"], 1)
+        self.assertEqual(tests["SuiteB :: flaky test"], 1)
+        self.assertEqual(parsed, 1)
+        self.assertEqual(errors, 0)
+        request.assert_called_once_with("t", "retry", raw=True)
+
+    def test_highest_retry_attempt_wins_for_each_artifact(self):
+        artifacts = [
+            {
+                "name": "junit-xml - lane",
+                "archive_download_url": "primary",
+                "expired": False,
+            },
+            {
+                "name": "junit-xml - lane - retry-2",
+                "archive_download_url": "retry-2",
+                "expired": False,
+            },
+            {
+                "name": "junit-xml - lane - retry-10",
+                "archive_download_url": "retry-10",
+                "expired": False,
+            },
+            {
+                "name": "junit-xml - lane - retry-11",
+                "archive_download_url": "expired-retry",
+                "expired": True,
+            },
+            {
+                "name": "junit-xml - primary-only",
+                "archive_download_url": "primary-only",
+                "expired": False,
+            },
+            {
+                "name": "kind-logs - lane - retry-12",
+                "archive_download_url": "unrelated",
+                "expired": False,
+            },
+        ]
+
+        selected = chr_mod.select_junit_artifacts(artifacts)
+
+        self.assertEqual(
+            [artifact["archive_download_url"] for artifact in selected],
+            ["retry-10", "primary-only"],
+        )
+
     def test_newest_failed_runs_win_the_budget_across_workflows(self):
         seen = []
 

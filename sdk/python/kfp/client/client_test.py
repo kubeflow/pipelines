@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+from logging import WARNING
 import os
 import tempfile
 import textwrap
@@ -30,6 +31,7 @@ from kfp.dsl import component
 from kfp.dsl import pipeline
 from kfp.pipeline_spec import pipeline_spec_pb2
 import kfp_server_api
+import kubernetes as k8s
 import yaml
 
 
@@ -546,6 +548,113 @@ class TestClient(parameterized.TestCase):
                 description='A test pipeline version')
 
             self.assertEqual(result, expected_result)
+
+
+class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
+    """Tests the kube config fallback path of ``Client._load_config``.
+
+    This path is only reached when no ``host`` and no explicit
+    credentials are supplied, and the SDK is not running inside a
+    cluster.
+    """
+
+    def setUp(self):
+        super().setUp()
+        # _load_config does not depend on any state set up by __init__ for the
+        # code path under test, so __init__ is bypassed to avoid contacting a
+        # cluster while constructing the client.
+        self.client = client.Client.__new__(client.Client)
+
+    def _load_config(self, **overrides):
+        kwargs = dict(
+            host=None,
+            client_id=None,
+            namespace='my-namespace',
+            other_client_id=None,
+            other_client_secret=None,
+            existing_token=None,
+            proxy=None,
+            ssl_ca_cert=None,
+            kube_context=None,
+            credentials=None,
+            verify_ssl=None,
+        )
+        kwargs.update(overrides)
+        return self.client._load_config(**kwargs)
+
+    @patch('kubernetes.config.load_incluster_config')
+    @patch('kubernetes.config.load_kube_config')
+    def test_kube_config_failure_logs_underlying_cause(
+            self, mock_load_kube_config, mock_load_incluster_config):
+        mock_load_incluster_config.side_effect = k8s.config.ConfigException(
+            'Service host/port is not set.')
+        mock_load_kube_config.side_effect = k8s.config.ConfigException(
+            'Invalid kube-config file. No configuration found.')
+
+        with self.assertLogs(level='WARNING') as logs:
+            self._load_config()
+
+        self.assertLen(logs.records, 1)
+        message = logs.records[0].getMessage()
+        self.assertIn('Failed to load kube config', message)
+        # The cause is the actionable part of the message; without it the user
+        # cannot tell a missing file from a malformed one.
+        self.assertIn('Invalid kube-config file. No configuration found.',
+                      message)
+
+    @patch('kubernetes.config.load_incluster_config')
+    @patch('kubernetes.config.load_kube_config')
+    def test_kube_config_failure_returns_config(self, mock_load_kube_config,
+                                                mock_load_incluster_config):
+        mock_load_incluster_config.side_effect = k8s.config.ConfigException(
+            'Service host/port is not set.')
+        mock_load_kube_config.side_effect = k8s.config.ConfigException(
+            'Invalid kube-config file.')
+
+        with self.assertLogs(level='WARNING'):
+            config = self._load_config()
+
+        # Loading the kube config is best effort; failing to do so must not
+        # raise, to preserve behavior for callers that recover downstream.
+        self.assertIsInstance(config, kfp_server_api.Configuration)
+
+    @patch('kubernetes.config.load_incluster_config')
+    @patch('kubernetes.config.load_kube_config')
+    def test_out_of_cluster_detection_does_not_warn(self, mock_load_kube_config,
+                                                    mock_load_incluster_config):
+        mock_load_incluster_config.side_effect = k8s.config.ConfigException(
+            'Service host/port is not set.')
+
+        with self.assertLogs(level='DEBUG') as logs:
+            self._load_config()
+
+        # Running outside a cluster is the common case and must not surface a
+        # warning, otherwise every local invocation emits a false alarm.
+        self.assertEmpty(
+            [record for record in logs.records if record.levelno >= WARNING])
+
+    @parameterized.named_parameters(
+        {
+            'testcase_name': 'from_incluster_probe',
+            'incluster_side_effect': KeyboardInterrupt(),
+        },
+        {
+            'testcase_name':
+                'from_kube_config_load',
+            'incluster_side_effect':
+                k8s.config.ConfigException('Service host/port is not set.'),
+        },
+    )
+    def test_keyboard_interrupt_is_not_swallowed(self, incluster_side_effect):
+        # KeyboardInterrupt derives from BaseException, so a bare `except:`
+        # swallows it and leaves the user unable to interrupt the client.
+        with patch('kubernetes.config.load_incluster_config') as mock_incluster:
+            with patch('kubernetes.config.load_kube_config') as mock_kube:
+                mock_incluster.side_effect = incluster_side_effect
+                mock_kube.side_effect = KeyboardInterrupt()
+
+                with self.assertRaises(KeyboardInterrupt):
+                    self._load_config()
 
 
 if __name__ == '__main__':

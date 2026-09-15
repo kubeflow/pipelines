@@ -22,7 +22,11 @@ import { SnackbarProps } from '@mui/material/Snackbar';
 import { DialogProps } from '../components/Router';
 import { errorToMessage } from '../lib/Utils';
 
-export interface PageProps extends RouteComponentProps {
+/**
+ * Route params are read by RouteParams key (see src/components/Router.tsx), so
+ * the params bag is indexed by string rather than by a fixed set of keys.
+ */
+export interface PageProps extends RouteComponentProps<{ [param: string]: string | undefined }> {
   toolbarProps: ToolbarProps;
   updateBanner: (bannerProps: BannerProps) => void;
   updateDialog: (dialogProps: DialogProps) => void;

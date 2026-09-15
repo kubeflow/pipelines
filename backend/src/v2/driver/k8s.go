@@ -19,24 +19,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	securitycontext "github.com/kubeflow/pipelines/backend/src/common/security_context"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
-	"github.com/kubeflow/pipelines/backend/src/v2/config"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 var accessModeMap = map[string]k8score.PersistentVolumeAccessMode{
@@ -51,71 +53,100 @@ var dummyImages = map[string]string{
 	"argostub/deletepvc": "delete PVC",
 }
 
+func validateResourceClaimTemplateName(templateName *string) error {
+	if templateName == nil || *templateName == "" {
+		return fmt.Errorf("resourceClaimTemplateName must be non-empty in resource claim")
+	}
+	return nil
+}
+
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
-func kubernetesPlatformOps(
-	ctx context.Context,
-	mlmd *metadata.Client,
-	cacheClient cacheutils.Client,
-	execution *Execution,
-	ecfg *metadata.ExecutionConfig,
-	opts *Options,
-) (err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("failed to %s and publish execution %s: %w", dummyImages[opts.Container.Image], opts.Task.GetTaskInfo().GetName(), err)
-		}
-	}()
-	// If we cannot create Kubernetes client, we cannot publish this execution
-	k8sClient, err := createK8sClient()
-	if err != nil {
-		return fmt.Errorf("cannot generate k8s clientset: %w", err)
+func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.ClientManagerInterface, execution *Execution, taskToCreate *apiV2beta1.PipelineTask, opts *common.Options) (err error) {
+	dispatcher := opts.PluginDispatcher
+	if dispatcher == nil {
+		dispatcher = plugins.NoOpDispatcher{}
 	}
-
-	var outputParameters map[string]*structpb.Value
-	var createdExecution *metadata.Execution
-	status := pb.Execution_FAILED
-	var pvcName string
+	applyParentPluginCustomProperties(dispatcher, opts.ParentTask)
 	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
-	defer func() {
-		// We publish the execution, no matter this operartion succeeds or not
-		perr := publishDriverExecution(k8sClient, mlmd, ctx, createdExecution, outputParameters, nil, status)
-		if perr != nil && err != nil {
-			err = fmt.Errorf("failed to publish driver execution: %s. Also failed the Kubernetes platform operation: %s", perr.Error(), err.Error())
-		} else if perr != nil {
-			err = fmt.Errorf("failed to publish driver execution: %w", perr)
-		}
-		taskPluginInfo.UpdateTaskInfoWithMetadata(status.String(), nil, nil)
-		dispatchErr := opts.PluginDispatcher.OnTaskEnd(ctx, taskPluginInfo)
-		if dispatchErr != nil {
-			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
-		}
-
-	}()
-
-	pluginStartResult, dispatchErr := opts.PluginDispatcher.OnTaskStart(ctx, taskPluginInfo)
+	pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 	if dispatchErr != nil {
 		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
 	} else if pluginStartResult != nil {
-		ecfg.PluginCustomProperties = pluginStartResult.CustomProperties
+		statusMetadata := taskToCreate.GetStatusMetadata()
+		if statusMetadata == nil {
+			statusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+		}
+		statusMetadata.CustomProperties = stringMapToStructValues(pluginStartResult.CustomProperties)
+		taskToCreate.StatusMetadata = statusMetadata
 	}
+
+	var finalizedTask *apiV2beta1.PipelineTask
+	defer func() {
+		state := apiV2beta1.PipelineTask_SUCCEEDED
+		if err != nil {
+			state = apiV2beta1.PipelineTask_FAILED
+		} else if finalizedTask != nil && finalizedTask.GetState() == apiV2beta1.PipelineTask_CACHED {
+			state = apiV2beta1.PipelineTask_CACHED
+		}
+		taskPluginInfo.UpdateTaskInfoWithMetadata(
+			state,
+			nil,
+			parameterValuesToInterfaces(execution.ExecutorInput.GetInputs().GetParameterValues()),
+		)
+		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
+			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+		}
+	}()
 	switch opts.Container.Image {
 	case "argostub/createpvc":
-		pvcName, createdExecution, status, err = createPVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg)
+		err = createPVCTask(ctx, clientManager, execution, opts, taskToCreate)
 		if err != nil {
 			return err
 		}
-		outputParameters = map[string]*structpb.Value{
-			"name": structpb.NewStringValue(pvcName),
+		var getTaskErr error
+		finalizedTask, getTaskErr = clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+			TaskId: execution.TaskID,
+			RunId:  taskToCreate.GetRunId(),
+		})
+		if getTaskErr != nil {
+			return fmt.Errorf("failed to load finalized create-PVC task: %w", getTaskErr)
+		}
+		if isSuccessfulTerminalTask(finalizedTask) && len(finalizedTask.GetOutputs().GetParameters()) > 0 {
+			if err := component.PropagateOutputsUpDAGForTask(ctx, component.OutputPropagationOptions{
+				Run:          opts.Run,
+				Task:         finalizedTask,
+				ParentTask:   opts.ParentTask,
+				ScopePath:    opts.ScopePath,
+				PipelineSpec: opts.ScopePath.GetPipelineSpecStruct(),
+			}, clientManager); err != nil {
+				return fmt.Errorf("failed to propagate create-PVC outputs: %w", err)
+			}
 		}
 	case "argostub/deletepvc":
-		if createdExecution, status, err = deletePVC(ctx, k8sClient, *execution, opts, cacheClient, mlmd, ecfg); err != nil {
+		if err = deletePVCTask(ctx, clientManager, execution, opts, taskToCreate); err != nil {
 			return err
 		}
 	default:
 		err = fmt.Errorf("unknown image name %s for Kubernetes-specific operations", opts.Container.Image)
 		return err
+	}
+	if finalizedTask == nil && execution.TaskID != "" {
+		var getTaskErr error
+		finalizedTask, getTaskErr = clientManager.KFPAPIClient().GetTask(ctx, &apiV2beta1.GetTaskRequest{
+			TaskId: execution.TaskID,
+			RunId:  taskToCreate.GetRunId(),
+		})
+		if getTaskErr != nil {
+			return fmt.Errorf("failed to load finalized Kubernetes platform task: %w", getTaskErr)
+		}
+	}
+	// Copy finalized state onto the caller's task pointer so Container's
+	// deferred UpdateStatuses sees a terminal leaf (create/delete PVC paths
+	// must not rebind their local taskToCreate away from this pointer).
+	if finalizedTask != nil {
+		overwritePipelineTask(taskToCreate, finalizedTask)
 	}
 	return nil
 }
@@ -131,11 +162,8 @@ func GetWorkspacePVCName(runName string) string {
 func extendPodSpecPatch(
 	ctx context.Context,
 	podSpec *k8score.PodSpec,
-	opts Options,
-	dag *metadata.DAG,
-	pipeline *metadata.Pipeline,
-	mlmd *metadata.Client,
-	inputParams map[string]*structpb.Value,
+	opts common.Options,
+	inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter,
 	taskConfig *TaskConfig,
 ) error {
 	kubernetesExecutorConfig := opts.KubernetesExecutorConfig
@@ -154,8 +182,7 @@ func extendPodSpecPatch(
 
 	// Get volume mount information
 	if kubernetesExecutorConfig.GetPvcMount() != nil {
-		volumeMounts, volumes, err := makeVolumeMountPatch(ctx, opts, kubernetesExecutorConfig.GetPvcMount(),
-			dag, pipeline, mlmd, inputParams)
+		volumeMounts, volumes, err := makeVolumeMountPatch(opts, kubernetesExecutorConfig.GetPvcMount(), inputParams)
 		if err != nil {
 			return fmt.Errorf("failed to extract volume mount info: %w", err)
 		}
@@ -197,10 +224,11 @@ func extendPodSpecPatch(
 		// value. In that case we avoid appending an empty selector to the pod spec.
 		skipNodeSelector := false
 		if kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson() != nil {
-			err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
-				kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson(), inputParams, &nodeSelector)
+			err := resolver.ResolveK8sJSONParameter(
+				opts, kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson(),
+				inputParams, &nodeSelector)
 			if err != nil {
-				if errors.Is(err, ErrResolvedParameterNull) {
+				if errors.Is(err, resolver.ErrResolvedParameterNull) {
 					skipNodeSelector = true
 				} else {
 					return fmt.Errorf("failed to resolve node selector: %w", err)
@@ -230,10 +258,9 @@ func extendPodSpecPatch(
 			if toleration != nil {
 				k8sToleration := &k8score.Toleration{}
 				if toleration.TolerationJson != nil {
-					resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
-						toleration.GetTolerationJson(), inputParams)
+					resolvedParam, _, err := resolver.ResolveInputParameter(opts, toleration.GetTolerationJson(), inputParams)
 					if err != nil {
-						if errors.Is(err, ErrResolvedParameterNull) {
+						if errors.Is(err, resolver.ErrResolvedParameterNull) {
 							continue // Skip applying the patch for this null/optional parameter
 						}
 						return fmt.Errorf("failed to resolve toleration: %w", err)
@@ -243,12 +270,12 @@ func extendPodSpecPatch(
 					// the field accepts both, and in both cases the tolerations are appended
 					// to the total executor pod toleration list.
 					var paramJSON []byte
-					isSingleToleration := resolvedParam.GetStructValue() != nil
-					isListToleration := resolvedParam.GetListValue() != nil
+					isSingleToleration := resolvedParam.GetValue().GetStructValue() != nil
+					isListToleration := resolvedParam.GetValue().GetListValue() != nil
 					if isSingleToleration {
-						structVal := resolvedParam.GetStructValue()
+						structVal := resolvedParam.GetValue().GetStructValue()
 						if structVal != nil && len(structVal.Fields) > 0 {
-							paramJSON, err = resolvedParam.GetStructValue().MarshalJSON()
+							paramJSON, err = resolvedParam.GetValue().GetStructValue().MarshalJSON()
 							if err != nil {
 								return err
 							}
@@ -261,9 +288,9 @@ func extendPodSpecPatch(
 							glog.V(4).Info("encountered empty tolerations struct, ignoring.")
 						}
 					} else if isListToleration {
-						listVal := resolvedParam.GetListValue()
+						listVal := resolvedParam.GetValue().GetListValue()
 						if listVal != nil && len(listVal.Values) > 0 {
-							paramJSON, err = resolvedParam.GetListValue().MarshalJSON()
+							paramJSON, err = resolvedParam.GetValue().GetListValue().MarshalJSON()
 							if err != nil {
 								return err
 							}
@@ -298,14 +325,118 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Get pod resource claims (DRA)
+	if podResourceClaims := kubernetesExecutorConfig.GetPodResourceClaims(); podResourceClaims != nil {
+		var k8sClaims []k8score.PodResourceClaim
+
+		for _, claim := range podResourceClaims {
+			if claim == nil {
+				continue
+			}
+			if claim.ResourceClaimJson != nil {
+				resolvedParam, _, err := resolver.ResolveInputParameter(opts, claim.GetResourceClaimJson(), inputParams)
+				if err != nil {
+					if errors.Is(err, resolver.ErrResolvedParameterNull) {
+						continue
+					}
+					return fmt.Errorf("failed to resolve resource claim: %w", err)
+				}
+
+				switch {
+				case resolvedParam.GetValue().GetStructValue() != nil:
+					structVal := resolvedParam.GetValue().GetStructValue()
+					if structVal != nil && len(structVal.Fields) > 0 {
+						paramJSON, err := structVal.MarshalJSON()
+						if err != nil {
+							return fmt.Errorf("failed to marshal single resource claim to json: %w", err)
+						}
+						var resolved k8score.PodResourceClaim
+						if err = json.Unmarshal(paramJSON, &resolved); err != nil {
+							return fmt.Errorf("failed to unmarshal single resource claim from JSON for task %q: %w", opts.TaskName, err)
+						}
+						if err := validateResourceClaimTemplateName(resolved.ResourceClaimTemplateName); err != nil {
+							return err
+						}
+						resolved.Name = *resolved.ResourceClaimTemplateName
+						k8sClaims = append(k8sClaims, resolved)
+					} else {
+						return fmt.Errorf("resource claim JSON must be a non-empty object")
+					}
+				case resolvedParam.GetValue().GetListValue() != nil:
+					listVal := resolvedParam.GetValue().GetListValue()
+					if listVal != nil && len(listVal.Values) > 0 {
+						paramJSON, err := listVal.MarshalJSON()
+						if err != nil {
+							return fmt.Errorf("failed to marshal list resource claims to json: %w", err)
+						}
+						var resolvedList []k8score.PodResourceClaim
+						if err = json.Unmarshal(paramJSON, &resolvedList); err != nil {
+							return fmt.Errorf("failed to unmarshal list resource claims from json: %w", err)
+						}
+						for i := range resolvedList {
+							if err := validateResourceClaimTemplateName(resolvedList[i].ResourceClaimTemplateName); err != nil {
+								return err
+							}
+							resolvedList[i].Name = *resolvedList[i].ResourceClaimTemplateName
+						}
+						k8sClaims = append(k8sClaims, resolvedList...)
+					}
+				default:
+					return fmt.Errorf("encountered unexpected resource claim proto value, must be either struct or list type")
+				}
+			} else {
+				templateName := claim.ResourceClaimTemplateName
+				if err := validateResourceClaimTemplateName(&templateName); err != nil {
+					return err
+				}
+				k8sClaims = append(k8sClaims, k8score.PodResourceClaim{
+					Name:                      templateName,
+					ResourceClaimTemplateName: &templateName,
+				})
+			}
+		}
+
+		seen := make(map[string]bool, len(podSpec.ResourceClaims)+len(k8sClaims))
+		for _, rc := range podSpec.ResourceClaims {
+			seen[rc.Name] = true
+		}
+		for _, rc := range k8sClaims {
+			if seen[rc.Name] {
+				return fmt.Errorf("duplicate resource claim name %q", rc.Name)
+			}
+			seen[rc.Name] = true
+		}
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS] {
+			taskConfig.ResourceClaims = k8sClaims
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS] {
+			podSpec.ResourceClaims = append(podSpec.ResourceClaims, k8sClaims...)
+			existingContainerClaims := make(map[string]bool, len(podSpec.Containers[0].Resources.Claims))
+			for _, claim := range podSpec.Containers[0].Resources.Claims {
+				existingContainerClaims[claim.Name] = true
+			}
+			for _, rc := range k8sClaims {
+				if existingContainerClaims[rc.Name] {
+					continue
+				}
+				podSpec.Containers[0].Resources.Claims = append(
+					podSpec.Containers[0].Resources.Claims,
+					k8score.ResourceClaim{Name: rc.Name},
+				)
+				existingContainerClaims[rc.Name] = true
+			}
+		}
+	}
+
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
 		var secretName string
 		if secretAsVolume.SecretNameParameter != nil {
-			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-				secretAsVolume.SecretNameParameter, inputParams)
+			resolvedSecretName, err := resolver.ResolveInputParameterStr(opts, secretAsVolume.SecretNameParameter, inputParams)
 			if err != nil {
-				if errors.Is(err, ErrResolvedParameterNull) {
+				if errors.Is(err, resolver.ErrResolvedParameterNull) {
 					continue
 				}
 				return fmt.Errorf("failed to resolve secret name: %w", err)
@@ -361,13 +492,15 @@ func extendPodSpecPatch(
 					SecretKeyRef: secretKeySelector,
 				},
 			}
+			if err := validateReservedRuntimeEnvVar(secretEnvVar.Name); err != nil {
+				return err
+			}
 
 			var secretName string
 			if secretAsEnv.SecretNameParameter != nil {
-				resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-					secretAsEnv.SecretNameParameter, inputParams)
+				resolvedSecretName, err := resolver.ResolveInputParameterStr(opts, secretAsEnv.SecretNameParameter, inputParams)
 				if err != nil {
-					if errors.Is(err, ErrResolvedParameterNull) {
+					if errors.Is(err, resolver.ErrResolvedParameterNull) {
 						continue
 					}
 					return fmt.Errorf("failed to resolve secret name: %w", err)
@@ -380,7 +513,7 @@ func extendPodSpecPatch(
 					"secret environment variable in executor config")
 			}
 
-			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretName
+			secretEnvVar.ValueFrom.SecretKeyRef.Name = secretName
 
 			if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
 				podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
@@ -396,10 +529,10 @@ func extendPodSpecPatch(
 	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
 		var configMapName string
 		if configMapAsVolume.ConfigMapNameParameter != nil {
-			resolvedConfigMapName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
+			resolvedConfigMapName, err := resolver.ResolveInputParameterStr(opts,
 				configMapAsVolume.ConfigMapNameParameter, inputParams)
 			if err != nil {
-				if errors.Is(err, ErrResolvedParameterNull) {
+				if errors.Is(err, resolver.ErrResolvedParameterNull) {
 					continue
 				}
 				return fmt.Errorf("failed to resolve configmap name: %w", err)
@@ -457,13 +590,16 @@ func extendPodSpecPatch(
 					ConfigMapKeyRef: configMapKeySelector,
 				},
 			}
+			if err := validateReservedRuntimeEnvVar(configMapEnvVar.Name); err != nil {
+				return err
+			}
 
 			var configMapName string
 			if configMapAsEnv.ConfigMapNameParameter != nil {
-				resolvedConfigMapName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
+				resolvedConfigMapName, err := resolver.ResolveInputParameterStr(opts,
 					configMapAsEnv.ConfigMapNameParameter, inputParams)
 				if err != nil {
-					if errors.Is(err, ErrResolvedParameterNull) {
+					if errors.Is(err, resolver.ErrResolvedParameterNull) {
 						continue
 					}
 					return fmt.Errorf("failed to resolve configmap name: %w", err)
@@ -476,7 +612,7 @@ func extendPodSpecPatch(
 					"configmap environment variable in executor config")
 			}
 
-			configMapEnvVar.ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name = configMapName
+			configMapEnvVar.ValueFrom.ConfigMapKeyRef.Name = configMapName
 
 			if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
 				podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, configMapEnvVar)
@@ -492,10 +628,10 @@ func extendPodSpecPatch(
 	for _, imagePullSecret := range kubernetesExecutorConfig.GetImagePullSecret() {
 		var secretName string
 		if imagePullSecret.SecretNameParameter != nil {
-			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
+			resolvedSecretName, err := resolver.ResolveInputParameterStr(opts,
 				imagePullSecret.SecretNameParameter, inputParams)
 			if err != nil {
-				if errors.Is(err, ErrResolvedParameterNull) {
+				if errors.Is(err, resolver.ErrResolvedParameterNull) {
 					continue
 				}
 				return fmt.Errorf("failed to resolve image pull secret name: %w", err)
@@ -526,6 +662,9 @@ func extendPodSpecPatch(
 				},
 			},
 		}
+		if err := validateReservedRuntimeEnvVar(fieldPathEnvVar.Name); err != nil {
+			return err
+		}
 
 		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
 			taskConfig.Env = append(taskConfig.Env, fieldPathEnvVar)
@@ -554,6 +693,10 @@ func extendPodSpecPatch(
 			_storageClassName := ephemeralVolumeSpec.GetStorageClassName()
 			storageClassName = &_storageClassName
 		}
+		sizeQuantity, err := k8sres.ParseQuantity(ephemeralVolumeSpec.GetSize())
+		if err != nil {
+			return fmt.Errorf("failed to parse generic ephemeral volume size %q for volume %q: %w", ephemeralVolumeSpec.GetSize(), ephemeralVolumeSpec.GetVolumeName(), err)
+		}
 		ephemeralVolume := k8score.Volume{
 			Name: ephemeralVolumeSpec.GetVolumeName(),
 			VolumeSource: k8score.VolumeSource{
@@ -567,7 +710,7 @@ func extendPodSpecPatch(
 							AccessModes: accessModes,
 							Resources: k8score.VolumeResourceRequirements{
 								Requests: k8score.ResourceList{
-									k8score.ResourceStorage: k8sres.MustParse(ephemeralVolumeSpec.GetSize()),
+									k8score.ResourceStorage: sizeQuantity,
 								},
 							},
 							StorageClassName: storageClassName,
@@ -590,7 +733,10 @@ func extendPodSpecPatch(
 	for _, emptyDirVolumeSpec := range kubernetesExecutorConfig.GetEmptyDirMounts() {
 		var sizeLimitResource *k8sres.Quantity
 		if emptyDirVolumeSpec.GetSizeLimit() != "" {
-			r := k8sres.MustParse(emptyDirVolumeSpec.GetSizeLimit())
+			r, err := k8sres.ParseQuantity(emptyDirVolumeSpec.GetSizeLimit())
+			if err != nil {
+				return fmt.Errorf("failed to parse size limit %q for emptyDir volume %q: %w", emptyDirVolumeSpec.GetSizeLimit(), emptyDirVolumeSpec.GetVolumeName(), err)
+			}
 			sizeLimitResource = &r
 		}
 
@@ -627,10 +773,14 @@ func extendPodSpecPatch(
 			}
 			if nodeAffinityTerm.GetNodeAffinityJson() != nil {
 				var k8sNodeAffinity json.RawMessage
-				err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
-					nodeAffinityTerm.GetNodeAffinityJson(), inputParams, &k8sNodeAffinity)
+				err := resolver.ResolveK8sJSONParameter(
+					opts,
+					nodeAffinityTerm.GetNodeAffinityJson(),
+					inputParams,
+					&k8sNodeAffinity,
+				)
 				if err != nil {
-					if errors.Is(err, ErrResolvedParameterNull) {
+					if errors.Is(err, resolver.ErrResolvedParameterNull) {
 						continue
 					}
 					return fmt.Errorf("failed to resolve node affinity json: %w", err)
@@ -751,14 +901,14 @@ func extendPodSpecPatch(
 			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
 		}
 		existingSecurityContext := podSpec.Containers[0].SecurityContext
-		isCompilerHardened := existingSecurityContext.AllowPrivilegeEscalation != nil && !*existingSecurityContext.AllowPrivilegeEscalation
+		runAsNonRootEnforced := securitycontext.IsRunAsNonRootEffective(existingSecurityContext.RunAsNonRoot, userSecurityContext.RunAsNonRoot)
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
 				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
-				if isCompilerHardened && *userSecurityContext.RunAsUser == 0 {
-					glog.Warningf("Setting runAsUser=0 (root) on a container with hardened security context; consider using a non-root UID")
+				if *userSecurityContext.RunAsUser == 0 && runAsNonRootEnforced {
+					return fmt.Errorf("runAsUser=0 (root) is not allowed: runAsNonRoot is true; use a non-root UID instead")
 				}
 				podSpec.Containers[0].SecurityContext.RunAsUser = userSecurityContext.RunAsUser
 			}
@@ -785,10 +935,119 @@ func extendPodSpecPatch(
 		}
 	}
 
-	// Post-processing: enforce administrator hostUsers regardless of any
-	// user override. hostUsers is a pod-level field controlling Linux user
-	// namespace isolation; allowing users to silently flip it to true would
-	// defeat the administrator's security policy.
+	// Seed name set from existing containers to prevent collisions.
+	initContainerNames := make(map[string]bool)
+	for _, c := range podSpec.Containers {
+		initContainerNames[c.Name] = true
+	}
+	for _, c := range podSpec.InitContainers {
+		initContainerNames[c.Name] = true
+	}
+	for _, initContainer := range kubernetesExecutorConfig.GetInitContainers() {
+		if initContainer.GetName() == "" {
+			return fmt.Errorf("init container name must not be empty")
+		}
+		if initContainerNames[initContainer.GetName()] {
+			return fmt.Errorf("init container name %q conflicts with an existing container in the pod", initContainer.GetName())
+		}
+		initContainerNames[initContainer.GetName()] = true
+		if initContainer.GetImage() == "" {
+			return fmt.Errorf("init container %q must specify an image", initContainer.GetName())
+		}
+
+		// Apply the same PSS hardening as the compiler gives user containers.
+		allowPrivilegeEscalation := false
+		k8sInitContainer := k8score.Container{
+			Name:    initContainer.GetName(),
+			Image:   initContainer.GetImage(),
+			Command: initContainer.GetCommand(),
+			Args:    initContainer.GetArgs(),
+			SecurityContext: &k8score.SecurityContext{
+				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+				Capabilities: &k8score.Capabilities{
+					Drop: []k8score.Capability{"ALL"},
+				},
+				SeccompProfile: &k8score.SeccompProfile{
+					Type: k8score.SeccompProfileTypeRuntimeDefault,
+				},
+			},
+		}
+		// Apply administrator identity defaults.
+		if opts.DefaultRunAsUser != nil {
+			v := *opts.DefaultRunAsUser
+			k8sInitContainer.SecurityContext.RunAsUser = &v
+		}
+		if opts.DefaultRunAsGroup != nil {
+			v := *opts.DefaultRunAsGroup
+			k8sInitContainer.SecurityContext.RunAsGroup = &v
+		}
+		if opts.DefaultRunAsNonRoot != nil {
+			v := *opts.DefaultRunAsNonRoot
+			k8sInitContainer.SecurityContext.RunAsNonRoot = &v
+		}
+		// "Always" converts to a native sidecar (the only valid value).
+		if initContainer.GetRestartPolicy() != "" {
+			if initContainer.GetRestartPolicy() != string(k8score.ContainerRestartPolicyAlways) {
+				return fmt.Errorf("init container %q restart policy must be %q, got %q",
+					initContainer.GetName(), k8score.ContainerRestartPolicyAlways, initContainer.GetRestartPolicy())
+			}
+			restartPolicy := k8score.ContainerRestartPolicyAlways
+			k8sInitContainer.RestartPolicy = &restartPolicy
+		}
+		if resources := initContainer.GetResources(); resources != nil {
+			parseResourceList := func(kind string, quantities map[string]string) (k8score.ResourceList, error) {
+				if len(quantities) == 0 {
+					return nil, nil
+				}
+				resourceList := k8score.ResourceList{}
+				for resourceName, quantityValue := range quantities {
+					quantity, err := k8sres.ParseQuantity(quantityValue)
+					if err != nil {
+						return nil, fmt.Errorf("init container %q has an invalid resource %s %s=%q: %w",
+							initContainer.GetName(), kind, resourceName, quantityValue, err)
+					}
+					resourceList[k8score.ResourceName(resourceName)] = quantity
+				}
+				return resourceList, nil
+			}
+			requests, err := parseResourceList("request", resources.GetRequests())
+			if err != nil {
+				return err
+			}
+			limits, err := parseResourceList("limit", resources.GetLimits())
+			if err != nil {
+				return err
+			}
+			k8sInitContainer.Resources = k8score.ResourceRequirements{
+				Requests: requests,
+				Limits:   limits,
+			}
+		}
+		for _, envVar := range initContainer.GetEnv() {
+			if envVar.GetName() == "" {
+				return fmt.Errorf("init container %q has an environment variable with an empty name", initContainer.GetName())
+			}
+			k8sInitContainer.Env = append(k8sInitContainer.Env, k8score.EnvVar{
+				Name:  envVar.GetName(),
+				Value: envVar.GetValue(),
+			})
+		}
+		for _, volumeMount := range initContainer.GetVolumeMounts() {
+			if volumeMount.GetVolumeName() == "" {
+				return fmt.Errorf("init container %q has a volume mount with an empty volume name", initContainer.GetName())
+			}
+			if !strings.HasPrefix(volumeMount.GetMountPath(), "/") {
+				return fmt.Errorf("init container %q volume mount %q must use an absolute mount path", initContainer.GetName(), volumeMount.GetVolumeName())
+			}
+			k8sInitContainer.VolumeMounts = append(k8sInitContainer.VolumeMounts, k8score.VolumeMount{
+				Name:      volumeMount.GetVolumeName(),
+				MountPath: volumeMount.GetMountPath(),
+			})
+		}
+		podSpec.InitContainers = append(podSpec.InitContainers, k8sInitContainer)
+	}
+
+	// Enforce administrator hostUsers default regardless of user override.
 	if opts.DefaultHostUsers != nil {
 		if podSpec.HostUsers != nil && *podSpec.HostUsers != *opts.DefaultHostUsers {
 			glog.Warningf("Ignoring user-specified hostUsers=%t: administrator default hostUsers=%t takes precedence",
@@ -801,28 +1060,47 @@ func extendPodSpecPatch(
 	return nil
 }
 
-// execution is passed by value because we make changes to it to generate  fingerprint
-func createPVC(
+// execution is passed by pointer so we can update TaskID for the defer function
+func createPVCTask(
 	ctx context.Context,
-	k8sClient kubernetes.Interface,
-	execution Execution,
-	opts *Options,
-	cacheClient cacheutils.Client,
-	mlmd *metadata.Client,
-	ecfg *metadata.ExecutionConfig,
-) (pvcName string, createdExecution *metadata.Execution, status pb.Execution_State, err error) {
-	// Create execution regardless the operation succeeds or not
-	defer func() {
-		if createdExecution == nil {
-			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
-			if err != nil {
-				return
-			}
-			createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
-		}
-	}()
+	clientManager client_manager.ClientManagerInterface,
+	execution *Execution,
+	opts *common.Options,
+	taskToCreate *apiV2beta1.PipelineTask,
+) (err error) {
+	taskCreated := false
 
-	taskStartedTime := time.Now().Unix()
+	// Ensure that we update the final task state after creation, or if we fail the procedure
+	defer func() {
+		if err != nil {
+			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
+			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+				Message: err.Error(),
+			}
+		} else if taskToCreate.State == apiV2beta1.PipelineTask_RUNNING {
+			// K8s ops drivers do not have executors, we can mark them completed at the driver stage.
+			taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
+		}
+		if taskCreated {
+			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+				TaskId: execution.TaskID,
+				Task:   taskToCreate,
+				RunId:  taskToCreate.GetRunId(),
+			})
+			if updateErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
+			}
+		} else {
+			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+				Task:  taskToCreate,
+				RunId: taskToCreate.GetRunId(),
+			})
+			if createErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to create task: %w", createErr))
+			}
+		}
+		// Do not need to propagate statuses, this will be handled in the defer for Container().
+	}()
 
 	inputs := execution.ExecutorInput.Inputs
 	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
@@ -830,7 +1108,8 @@ func createPVC(
 	// Required input: access_modes
 	accessModeInput, ok := inputs.ParameterValues["access_modes"]
 	if !ok || accessModeInput == nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter access_modes not provided")
+		err = fmt.Errorf("failed to create pvc: parameter access_modes not provided")
+		return err
 	}
 	var accessModes []k8score.PersistentVolumeAccessMode
 	for _, value := range accessModeInput.GetListValue().GetValues() {
@@ -842,8 +1121,11 @@ func createPVC(
 	// If neither is provided, PVC name is a randomly generated UUID.
 	pvcNameSuffixInput := inputs.ParameterValues["pvc_name_suffix"]
 	pvcNameInput := inputs.ParameterValues["pvc_name"]
+	var pvcName string
+
 	if pvcNameInput.GetStringValue() != "" && pvcNameSuffixInput.GetStringValue() != "" {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: at most one of pvc_name and pvc_name_suffix can be non-empty")
+		err = fmt.Errorf("failed to create pvc: at most one of pvc_name and pvc_name_suffix can be non-empty")
+		return err
 	} else if pvcNameSuffixInput.GetStringValue() != "" {
 		pvcName = uuid.NewString() + pvcNameSuffixInput.GetStringValue()
 		// Add pvcName to the executor input for fingerprint generation
@@ -856,10 +1138,31 @@ func createPVC(
 		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
 	}
 
-	// Required input: size
+	if taskToCreate.Outputs == nil {
+		taskToCreate.Outputs = &apiV2beta1.PipelineTask_InputOutputs{
+			Parameters: make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0),
+		}
+	}
+	if taskToCreate.Outputs.Parameters == nil {
+		taskToCreate.Outputs.Parameters = make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0)
+	}
+	taskToCreate.Outputs.Parameters = append(
+		taskToCreate.Outputs.Parameters,
+		&apiV2beta1.PipelineTask_InputOutputs_IOParameter{
+			Value:        structpb.NewStringValue(pvcName),
+			ParameterKey: "name", // create-pvc output parameter is always "name"
+			Type:         apiV2beta1.IOType_OUTPUT,
+			Producer: &apiV2beta1.IOProducer{
+				// Producer TaskName must be the canonical DAG task key, not DisplayName.
+				TaskName: opts.TaskName,
+			},
+		})
+
+	// Size is required input.
 	volumeSizeInput, ok := inputs.ParameterValues["size"]
 	if !ok || volumeSizeInput == nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
+		err = fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
+		return err
 	}
 
 	// Optional input: storage_class_name
@@ -891,60 +1194,96 @@ func createPVC(
 	if dataSourceInput, ok := inputs.ParameterValues["data_source"]; ok && dataSourceInput != nil {
 		ds, err := buildPVCDataSource(dataSourceInput)
 		if err != nil {
-			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to build data source: %w", err)
+			return fmt.Errorf("failed to build data source: %w", err)
 		}
 		dataSource = ds
 	}
 
-	// Get execution fingerprint and MLMD ID for caching
-	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
-	// The original execution is not changed.
-	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient, nil)
+	// Create Initial Task. We will update the status later if
+	// anything fails, or the task successfully completes.
+	attemptPods := taskToCreate.GetPods()
+	attemptOutputs := taskToCreate.GetOutputs()
+	attemptInputs := taskToCreate.GetInputs()
+	attemptStatusMetadata := taskToCreate.GetStatusMetadata()
+	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
+	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+		Task:  taskToCreate,
+		RunId: taskToCreate.GetRunId(),
+	})
 	if err != nil {
-		return "", createdExecution, pb.Execution_FAILED, err
+		err = fmt.Errorf("failed to create task: %w", err)
+		return err
 	}
-	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
-	ecfg.FingerPrint = fingerPrint
-
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
-	if err != nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error getting pipeline from MLMD: %w", err)
+	glog.Infof("Created Task: %s", task.TaskId)
+	taskCreated = true
+	execution.TaskID = task.TaskId
+	if isSuccessfulTerminalTask(task) {
+		execution.Cached = util.BoolPointer(task.GetState() == apiV2beta1.PipelineTask_CACHED)
+		overwritePipelineTask(taskToCreate, task)
+		return nil
 	}
-
-	// Create execution in MLMD
-	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
-	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
-	if err != nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
+	updatedTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(
+		ctx,
+		clientManager.KFPAPIClient(),
+		task,
+		&apiV2beta1.PipelineTask{
+			Pods:           attemptPods,
+			Outputs:        attemptOutputs,
+			Inputs:         attemptInputs,
+			State:          apiV2beta1.PipelineTask_RUNNING,
+			StatusMetadata: attemptStatusMetadata,
+		},
+	)
+	if updateErr != nil {
+		err = updateErr
+		return err
 	}
-	glog.Infof("Created execution: %s", createdExecution)
-	execution.ID = createdExecution.GetID()
+	overwritePipelineTask(taskToCreate, updatedTask)
+	if persistedPVCName, ok := taskOutputParameterValue(taskToCreate, "name"); ok && persistedPVCName != pvcName {
+		delete(execution.ExecutorInput.Inputs.ParameterValues, pvcName)
+		pvcName = persistedPVCName
+		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
+	}
 	if !execution.WillTrigger() {
-		return "", createdExecution, pb.Execution_COMPLETE, nil
+		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
+		glog.Infof("Condition not met, skipping task %s", task.TaskId)
+		return nil
 	}
 
-	// Use cache and skip createpvc if all conditions met:
+	// Use cache and skip pvc creation if all conditions met:
 	// (1) Cache is enabled globally
 	// (2) Cache is enabled for the task
-	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
-	cached := false
-	execution.Cached = &cached
-	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
-		if err != nil {
-			return "", createdExecution, pb.Execution_FAILED, err
+	// (3) We had a cache hit for this Task
+	fingerPrint, cachedTask, err := getFingerPrintsAndID(ctx, execution, clientManager.KFPAPIClient(), opts, nil)
+	if err != nil {
+		return err
+	}
+	taskToCreate.CacheFingerprint = fingerPrint
+	execution.Cached = util.BoolPointer(false)
+	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && cachedTask != nil {
+		var iterationIndex *int
+		if opts.IterationIndex >= 0 {
+			iterationIndex = &opts.IterationIndex
 		}
-		// TODO(Bobgy): upload output artifacts.
-		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
-		// to publish output artifacts to the context too.
-		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
-			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to publish cached execution: %w", err)
+		cachedOutputs, cloneErr := cloneCachedOutputsForTask(
+			cachedTask.GetOutputs(),
+			opts.TaskName,
+			iterationIndex,
+		)
+		if cloneErr != nil {
+			return cloneErr
 		}
+		taskToCreate.State = apiV2beta1.PipelineTask_CACHED
+		taskToCreate.Outputs = cachedOutputs
 		*execution.Cached = true
-		return pvcName, createdExecution, pb.Execution_CACHED, nil
+		return nil
 	}
 
 	// Create a PersistentVolumeClaim object
+	pvcStorageQuantity, err := k8sres.ParseQuantity(volumeSizeInput.GetStringValue())
+	if err != nil {
+		return fmt.Errorf("failed to parse pvc size %q: %w", volumeSizeInput.GetStringValue(), err)
+	}
 	pvc := &k8score.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        pvcName,
@@ -954,7 +1293,7 @@ func createPVC(
 			AccessModes: accessModes,
 			Resources: k8score.VolumeResourceRequirements{
 				Requests: k8score.ResourceList{
-					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
+					k8score.ResourceStorage: pvcStorageQuantity,
 				},
 			},
 			StorageClassName: &storageClassName,
@@ -964,21 +1303,17 @@ func createPVC(
 	}
 
 	// Create the PVC in the cluster
-	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
+	createdPVC, err := clientManager.K8sClient().CoreV1().PersistentVolumeClaims(opts.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
 	if err != nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: %w", err)
-	}
-	glog.Infof("Created PVC %s\n", createdPVC.ObjectMeta.Name)
-
-	// Create a cache entry
-	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() {
-		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
-		if err != nil {
-			return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for create pvc: %w", err)
+		if !apierrors.IsAlreadyExists(err) {
+			err = fmt.Errorf("failed to create pvc: %w", err)
+			return err
 		}
+		createdPVC = pvc
 	}
-
-	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
+	glog.Infof("Created PVC %s\n", createdPVC.Name)
+	taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
+	return nil
 }
 
 // buildPVCDataSource converts a protobuf Value representing a PVC data source
@@ -1003,27 +1338,46 @@ func buildPVCDataSource(pvcDataSourceInput *structpb.Value) (*k8score.TypedLocal
 	return &dataSource, nil
 }
 
-func deletePVC(
+func deletePVCTask(
 	ctx context.Context,
-	k8sClient kubernetes.Interface,
-	execution Execution,
-	opts *Options,
-	cacheClient cacheutils.Client,
-	mlmd *metadata.Client,
-	ecfg *metadata.ExecutionConfig,
-) (createdExecution *metadata.Execution, status pb.Execution_State, err error) {
-	// Create execution regardless the operation succeeds or not
-	defer func() {
-		if createdExecution == nil {
-			pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
-			if err != nil {
-				return
-			}
-			createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
-		}
-	}()
+	clientManager client_manager.ClientManagerInterface,
+	execution *Execution,
+	opts *common.Options,
+	taskToCreate *apiV2beta1.PipelineTask,
+) (err error) {
+	taskCreated := false
 
-	taskStartedTime := time.Now().Unix()
+	// Ensure that we update the final task state after creation, or if we fail the procedure
+	defer func() {
+		if err != nil {
+			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
+			taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+				Message: err.Error(),
+			}
+		} else if taskToCreate.State == apiV2beta1.PipelineTask_RUNNING {
+			// K8s ops drivers do not have executors, we can mark them completed at the driver stage.
+			taskToCreate.State = apiV2beta1.PipelineTask_SUCCEEDED
+		}
+		if taskCreated {
+			_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+				TaskId: execution.TaskID,
+				Task:   taskToCreate,
+				RunId:  taskToCreate.GetRunId(),
+			})
+			if updateErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
+			}
+		} else {
+			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+				Task:  taskToCreate,
+				RunId: taskToCreate.GetRunId(),
+			})
+			if createErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to create task: %w", createErr))
+			}
+		}
+		// Do not need to propagate statuses, this will be handled in the defer for Container().
+	}()
 
 	inputs := execution.ExecutorInput.Inputs
 	glog.Infof("Input parameter values: %+v", inputs.ParameterValues)
@@ -1031,91 +1385,129 @@ func deletePVC(
 	// Required input: pvc_name
 	pvcNameInput, ok := inputs.ParameterValues["pvc_name"]
 	if !ok || pvcNameInput == nil {
-		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc: required parameter pvc_name not provided")
+		err = fmt.Errorf("failed to delete pvc: required parameter pvc_name not provided")
+		return err
 	}
 	pvcName := pvcNameInput.GetStringValue()
 
-	// Get execution fingerprint and MLMD ID for caching
-	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
-	// The original execution is not changed.
-	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient, nil)
+	// Create Initial Task. We will update the status later if
+	// anything fails, or the task successfully completes.
+	attemptPods := taskToCreate.GetPods()
+	attemptInputs := taskToCreate.GetInputs()
+	attemptStatusMetadata := taskToCreate.GetStatusMetadata()
+	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
+	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+		Task:  taskToCreate,
+		RunId: taskToCreate.GetRunId(),
+	})
 	if err != nil {
-		return createdExecution, pb.Execution_FAILED, err
+		err = fmt.Errorf("failed to create task: %w", err)
+		return err
 	}
-	ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
-	ecfg.FingerPrint = fingerPrint
-
-	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, "", "", "", "")
-	if err != nil {
-		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error getting pipeline from MLMD: %w", err)
+	glog.Infof("Created Task: %s", task.TaskId)
+	taskCreated = true
+	execution.TaskID = task.TaskId
+	if isSuccessfulTerminalTask(task) {
+		execution.Cached = util.BoolPointer(task.GetState() == apiV2beta1.PipelineTask_CACHED)
+		overwritePipelineTask(taskToCreate, task)
+		return nil
 	}
-
-	// Create execution in MLMD
-	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
-	createdExecution, err = mlmd.CreateExecution(ctx, pipeline, ecfg)
-	if err != nil {
-		return createdExecution, pb.Execution_FAILED, fmt.Errorf("error creating MLMD execution for createpvc: %w", err)
+	updatedTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(
+		ctx,
+		clientManager.KFPAPIClient(),
+		task,
+		&apiV2beta1.PipelineTask{
+			Pods:           attemptPods,
+			Inputs:         attemptInputs,
+			State:          apiV2beta1.PipelineTask_RUNNING,
+			StatusMetadata: attemptStatusMetadata,
+		},
+	)
+	if updateErr != nil {
+		err = updateErr
+		return err
 	}
-	glog.Infof("Created execution: %s", createdExecution)
-	execution.ID = createdExecution.GetID()
+	overwritePipelineTask(taskToCreate, updatedTask)
 	if !execution.WillTrigger() {
-		return createdExecution, pb.Execution_COMPLETE, nil
+		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
+		glog.Infof("Condition not met, skipping task %s", task.TaskId)
+		return nil
 	}
 
-	// Use cache and skip createpvc if all conditions met:
+	// Use cache and skip pvc creation if all conditions met:
 	// (1) Cache is enabled globally
 	// (2) Cache is enabled for the task
-	// (3) CachedMLMDExecutionID is non-empty, which means a cache entry exists
-	cached := false
-	execution.Cached = &cached
-	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-		executorOutput, outputArtifacts, err := reuseCachedOutputs(ctx, execution.ExecutorInput, mlmd, ecfg.CachedMLMDExecutionID)
-		if err != nil {
-			return createdExecution, pb.Execution_FAILED, err
-		}
-		// TODO(Bobgy): upload output artifacts.
-		// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
-		// to publish output artifacts to the context too.
-		if err := mlmd.PublishExecution(ctx, createdExecution, executorOutput.GetParameterValues(), outputArtifacts, pb.Execution_CACHED); err != nil {
-			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to publish cached execution: %w", err)
-		}
+	// (3) We had a cache hit for this Task
+	fingerPrint, cachedTask, err := getFingerPrintsAndID(ctx, execution, clientManager.KFPAPIClient(), opts, nil)
+	if err != nil {
+		return err
+	}
+	taskToCreate.CacheFingerprint = fingerPrint
+	execution.Cached = util.BoolPointer(false)
+	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && cachedTask != nil {
+		taskToCreate.State = apiV2beta1.PipelineTask_CACHED
+		taskToCreate.Outputs = cachedTask.Outputs
 		*execution.Cached = true
-		return createdExecution, pb.Execution_CACHED, nil
+		return nil
 	}
 
 	// Get the PVC you want to delete, verify that it exists.
-	_, err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
+	_, err = clientManager.K8sClient().CoreV1().PersistentVolumeClaims(opts.Namespace).Get(ctx, pvcName, metav1.GetOptions{})
 	if err != nil {
-		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		err = fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
+		return err
 	}
 
 	// Delete the PVC.
-	err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Delete(context.TODO(), pvcName, metav1.DeleteOptions{})
+	err = clientManager.K8sClient().CoreV1().PersistentVolumeClaims(opts.Namespace).Delete(ctx, pvcName, metav1.DeleteOptions{})
 	if err != nil {
-		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		err = fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
+		return err
 	}
 
-	glog.Infof("Deleted PVC %s\n", pvcName)
+	return nil
+}
 
-	// Create a cache entry
-	if !opts.CacheDisabled && opts.Task.GetCachingOptions().GetEnableCache() && ecfg.CachedMLMDExecutionID != "" {
-		err = createCache(ctx, createdExecution, opts, taskStartedTime, fingerPrint, cacheClient)
-		if err != nil {
-			return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create cache entry for delete pvc: %w", err)
+func isSuccessfulTerminalTask(task *apiV2beta1.PipelineTask) bool {
+	switch task.GetState() {
+	case apiV2beta1.PipelineTask_SUCCEEDED,
+		apiV2beta1.PipelineTask_CACHED,
+		apiV2beta1.PipelineTask_SKIPPED:
+		return true
+	default:
+		return false
+	}
+}
+
+// overwritePipelineTask replaces dst with src without copying protobuf internal
+// locks (govet copylocks).
+func overwritePipelineTask(dst, src *apiV2beta1.PipelineTask) {
+	if dst == nil || src == nil {
+		return
+	}
+	proto.Reset(dst)
+	proto.Merge(dst, src)
+}
+
+func taskOutputParameterValue(task *apiV2beta1.PipelineTask, key string) (string, bool) {
+	for _, parameter := range task.GetOutputs().GetParameters() {
+		if parameter.GetParameterKey() == key {
+			return parameter.GetValue().GetStringValue(), true
 		}
 	}
-
-	return createdExecution, pb.Execution_COMPLETE, nil
+	return "", false
 }
 
 func makeVolumeMountPatch(
-	ctx context.Context,
-	opts Options,
+	opts common.Options,
 	pvcMounts []*kubernetesplatform.PvcMount,
-	dag *metadata.DAG,
-	pipeline *metadata.Pipeline,
-	mlmd *metadata.Client,
-	inputParams map[string]*structpb.Value,
+	inputParams []*apiV2beta1.PipelineTask_InputOutputs_IOParameter,
 ) ([]k8score.VolumeMount, []k8score.Volume, error) {
 	if pvcMounts == nil {
 		return nil, nil, nil
@@ -1127,22 +1519,22 @@ func makeVolumeMountPatch(
 		if pvcMount.PvcNameParameter != nil {
 			pvcNameParameter = pvcMount.PvcNameParameter
 		} else { // Support deprecated fields
-			if pvcMount.GetConstant() != "" {
-				pvcNameParameter = inputParamConstant(pvcMount.GetConstant())
-			} else if pvcMount.GetTaskOutputParameter() != nil {
-				pvcNameParameter = inputParamTaskOutput(
-					pvcMount.GetTaskOutputParameter().GetProducerTask(),
-					pvcMount.GetTaskOutputParameter().GetOutputParameterKey(),
+			switch {
+			case pvcMount.GetConstant() != "": //nolint:staticcheck // SA1019: still support deprecated pvc name fields
+				pvcNameParameter = common.InputParamConstant(pvcMount.GetConstant()) //nolint:staticcheck // SA1019
+			case pvcMount.GetTaskOutputParameter() != nil: //nolint:staticcheck // SA1019: still support deprecated pvc name fields
+				pvcNameParameter = common.InputParamTaskOutput(
+					pvcMount.GetTaskOutputParameter().GetProducerTask(),       //nolint:staticcheck // SA1019
+					pvcMount.GetTaskOutputParameter().GetOutputParameterKey(), //nolint:staticcheck // SA1019
 				)
-			} else if pvcMount.GetComponentInputParameter() != "" {
-				pvcNameParameter = inputParamComponent(pvcMount.GetComponentInputParameter())
-			} else {
+			case pvcMount.GetComponentInputParameter() != "": //nolint:staticcheck // SA1019: still support deprecated pvc name fields
+				pvcNameParameter = common.InputParamComponent(pvcMount.GetComponentInputParameter()) //nolint:staticcheck // SA1019
+			default:
 				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume name not provided")
 			}
 		}
 
-		resolvedPvcName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
-			pvcNameParameter, inputParams)
+		resolvedPvcName, err := resolver.ResolveInputParameterStr(opts, pvcNameParameter, inputParams)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to resolve pvc name: %w", err)
 		}
@@ -1167,63 +1559,4 @@ func makeVolumeMountPatch(
 		volumes = append(volumes, volume)
 	}
 	return volumeMounts, volumes, nil
-}
-
-// Usually we publish the execution in launcher, but for Kubernetes-specific operations,
-// we skip the launcher. So this function is only used in these special cases.
-func publishDriverExecution(
-	k8sClient *kubernetes.Clientset,
-	mlmd *metadata.Client,
-	ctx context.Context,
-	execution *metadata.Execution,
-	outputParameters map[string]*structpb.Value,
-	outputArtifacts []*metadata.OutputArtifact,
-	status pb.Execution_State,
-) (err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("failed to publish driver execution %s: %w", execution.TaskName(), err)
-		}
-	}()
-	namespace, err := config.InPodNamespace()
-	if err != nil {
-		return fmt.Errorf("error getting namespace: %w", err)
-	}
-
-	podName, err := config.InPodName()
-	if err != nil {
-		return fmt.Errorf("error getting pod name: %w", err)
-	}
-
-	pod, err := k8sClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("error retrieving info for pod %s: %w", podName, err)
-	}
-
-	ecfg := &metadata.ExecutionConfig{
-		PodName:   podName,
-		PodUID:    string(pod.UID),
-		Namespace: namespace,
-	}
-	if _, err := mlmd.PrePublishExecution(ctx, execution, ecfg); err != nil {
-		return fmt.Errorf("failed to prepublish: %w", err)
-	}
-	if err = mlmd.PublishExecution(ctx, execution, outputParameters, outputArtifacts, status); err != nil {
-		return fmt.Errorf("failed to publish: %w", err)
-	}
-	glog.Infof("Published execution of Kubernetes platform task %s.", execution.TaskName())
-	return nil
-}
-
-func createK8sClient() (*kubernetes.Clientset, error) {
-	// Initialize Kubernetes client set
-	restConfig, err := util.GetKubernetesConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client: %w", err)
-	}
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
-	}
-	return k8sClient, nil
 }

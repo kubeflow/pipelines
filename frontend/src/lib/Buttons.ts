@@ -713,7 +713,7 @@ export default class Buttons {
   }
 
   private _createNewRunFromPipelineVersion(pipelineId?: string, pipelineVersionId?: string): void {
-    let searchString = '';
+    let searchString: string;
     const fromRunId = this._urlParser.get(QUERY_PARAMS.fromRunId);
 
     if (fromRunId) {

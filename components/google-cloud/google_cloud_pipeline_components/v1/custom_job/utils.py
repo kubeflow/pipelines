@@ -48,6 +48,28 @@ def _replace_executor_placeholder(
   ]
 
 
+def _get_default_boot_disk_type(machine_type: str) -> str:
+  """Get default boot disk type for a given machine type.
+
+  Args:
+    machine_type: The machine type to get the default boot disk type for.
+
+  Returns:
+    The default boot disk type for the given machine type.
+  """
+  if (
+      machine_type.startswith('a3-ultragpu-')
+      or machine_type.startswith('a4-highgpu')
+      or machine_type.startswith('a4x-highgpu')
+      or machine_type.startswith('g4-standard')
+      or machine_type.startswith('ct6e-')
+      or machine_type.startswith('tpu7x')
+      or machine_type.startswith('n4-')
+  ):
+    return 'hyperdisk-balanced'
+  return 'pd-ssd'
+
+
 # keep identical to CustomTrainingJobOp
 def create_custom_training_job_from_component(
     component_spec: Callable,
@@ -56,7 +78,7 @@ def create_custom_training_job_from_component(
     machine_type: str = 'n1-standard-4',
     accelerator_type: str = '',
     accelerator_count: int = 1,
-    boot_disk_type: str = 'pd-ssd',
+    boot_disk_type: str = '',
     boot_disk_size_gb: int = 100,
     timeout: str = '604800s',
     restart_job_on_worker_restart: bool = False,
@@ -92,7 +114,7 @@ def create_custom_training_job_from_component(
     machine_type: The type of the machine to run the CustomJob. The default value is "n1-standard-4". See [more information](https://cloud.google.com/vertex-ai/docs/training/configure-compute#machine-types).
     accelerator_type: The type of accelerator(s) that may be attached to the machine per `accelerator_count`. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype).
     accelerator_count: The number of accelerators to attach to the machine. Defaults to 1 if `accelerator_type` is set.
-    boot_disk_type: Type of the boot disk (default is "pd-ssd"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive). boot_disk_type is set as a static value and cannot be changed as a pipeline parameter.
+    boot_disk_type: Type of the boot disk (default is "pd-ssd" unless the machine type requires a different default, e.g. N4 machine types require "hyperdisk-balanced"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive), "pd-standard" (Persistent Disk Hard Disk Drive), or "hyperdisk-balanced" (Hyperdisk Balanced). boot_disk_type is set as a static value and cannot be changed as a pipeline parameter.
     boot_disk_size_gb: Size in GB of the boot disk (default is 100GB). `boot_disk_size_gb` is set as a static value and cannot be changed as a pipeline parameter.
     timeout: The maximum job running time. The default is 7 days. A duration in seconds with up to nine fractional digits, terminated by 's', for example: "3.5s".
     restart_job_on_worker_restart: Restarts the entire CustomJob if a worker gets restarted. This feature can be used by distributed training jobs that are not resilient to workers leaving and joining a job.
@@ -197,11 +219,13 @@ def create_custom_training_job_from_component(
           'values'
       ] = reservation_affinity_values
 
-  if boot_disk_type:
-    worker_pool_spec['disk_spec'] = {
-        'boot_disk_type': boot_disk_type,
-        'boot_disk_size_gb': boot_disk_size_gb,
-    }
+  if not boot_disk_type:
+    boot_disk_type = _get_default_boot_disk_type(machine_type)
+  worker_pool_spec['disk_spec'] = {
+      'boot_disk_type': boot_disk_type,
+      'boot_disk_size_gb': boot_disk_size_gb,
+  }
+
   if nfs_mounts:
     worker_pool_spec['nfs_mounts'] = nfs_mounts
 

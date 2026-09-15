@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -49,7 +50,7 @@ var taskInfoStart = &TaskInfo{
 var taskInfoEnd = &TaskInfo{
 	Name:          "test-task",
 	RunEndTime:    int64(1714400000000),
-	RunStatus:     "COMPLETED",
+	RunStatus:     apiV2beta1.PipelineTask_SUCCEEDED,
 	ScalarMetrics: map[string]float64{},
 	Parameters:    map[string]interface{}{},
 }
@@ -272,6 +273,31 @@ func TestRetrieveUserContainerEnvVars_Success(t *testing.T) {
 	}
 	dispatcher, _ := NewTaskPluginDispatcherImpl([]TaskPluginHandler{handler})
 
+	vars, err := dispatcher.RetrieveUserContainerEnvVars(taskInfoEnd)
+
+	require.NoError(t, err)
+	assert.Equal(t, expectedVars, vars)
+}
+
+func TestRetrieveUserContainerEnvVars_SkipsFailedHandler(t *testing.T) {
+	expectedVars := []corev1.EnvVar{
+		{Name: "PLUGIN_RUN_ID", Value: "fake-run-1"},
+	}
+	failedHandler := &fakeHandler{
+		name:     "FailedPlugin",
+		startErr: fmt.Errorf("plugin startup failed"),
+		envErr:   fmt.Errorf("env var retrieval should be skipped"),
+	}
+	successfulHandler := &fakeHandler{
+		name:    "SuccessfulPlugin",
+		envVars: expectedVars,
+	}
+	dispatcher, _ := NewTaskPluginDispatcherImpl(
+		[]TaskPluginHandler{failedHandler, successfulHandler},
+	)
+
+	_, err := dispatcher.OnTaskStart(context.Background(), taskInfoStart)
+	require.NoError(t, err)
 	vars, err := dispatcher.RetrieveUserContainerEnvVars(taskInfoEnd)
 
 	require.NoError(t, err)

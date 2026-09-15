@@ -25,18 +25,16 @@ import (
 	"strings"
 	"time"
 
+	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
 	recurringrunparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -51,12 +49,23 @@ const (
 	argoNodeNameAnnotation = "workflows.argoproj.io/node-name"
 	artifactTaskName       = "write-artifact"
 	artifactContainerImage = "alpine:3.23"
+	artifactOutputKey      = "output"
+	argoLifecycleTimeout   = 6 * time.Minute
 )
 
-var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, constants.APIServerTests, "ArgoCompatibility"), func() {
+var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIVE, constants.APIServerTests, "ArgoCompatibility"), func() {
+	var diagnosticRunID string
+
 	BeforeEach(func() {
+		diagnosticRunID = ""
 		if os.Getenv(argoCompatibilityTestsEnvironmentVariable) != "true" {
 			Skip("Argo compatibility tests run only in the canonical Argo 4 API test job")
+		}
+	})
+
+	AfterEach(func() {
+		if CurrentSpecReport().Failed() && diagnosticRunID != "" {
+			AddReportEntry("Argo compatibility orchestration state", collectArgoCompatibilityDiagnostics(diagnosticRunID))
 		}
 	})
 
@@ -141,8 +150,9 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			&createdExperiment.ExperimentID,
 			testutil.GetPipelineRunTimeInputs(pipelineFile),
 		)
+		diagnosticRunID = createdRun.RunID
 
-		retryTimeout := time.Duration(180)
+		retryTimeout := time.Duration(argoLifecycleTimeout / time.Second)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
@@ -166,15 +176,8 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 		Expect(runtimeStateAppearsAfter(retriedRun.StateHistory, stateHistoryLengthBeforeRetry, run_model.V2beta1RuntimeStateRUNNING)).To(BeTrue())
 	})
 
-	It("writes execution and artifact metadata and serves archived logs after pod deletion", func() {
+	It("writes task artifacts and serves archived logs after pod deletion", func() {
 		pipelineFile := filepath.Join(pipelineFilesRootDir, "argo_compatibility", "fast_artifact.yaml")
-		mlmdClient, err := testutils.NewTestMlmdClient(
-			"127.0.0.1",
-			metadata.GetMetadataConfig().Port,
-			*config.TLSEnabled,
-			*config.CaCertPath,
-		)
-		Expect(err).NotTo(HaveOccurred())
 		createdExperiment := createExperiment(experimentName)
 		createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
 		createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
@@ -184,6 +187,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			&createdExperiment.ExperimentID,
 			testutil.GetPipelineRunTimeInputs(pipelineFile),
 		)
+		diagnosticRunID = createdRun.RunID
 
 		var logPodName string
 		Eventually(func() string {
@@ -195,7 +199,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			}
 			logPodName = findArgoCompatibilityPodName(pods.Items)
 			return logPodName
-		}, "180s", "1s").ShouldNot(BeEmpty())
+		}, argoLifecycleTimeout, time.Second).ShouldNot(BeEmpty())
 
 		Eventually(func() string {
 			logContents, err := k8Client.CoreV1().Pods(testutil.GetNamespace()).
@@ -205,9 +209,9 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 				return ""
 			}
 			return string(logContents)
-		}, "180s", "1s").Should(ContainSubstring("input:  foo"))
+		}, argoLifecycleTimeout, time.Second).Should(ContainSubstring("input:  foo"))
 
-		artifactTimeout := time.Duration(300)
+		artifactTimeout := time.Duration(argoLifecycleTimeout / time.Second)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
@@ -215,50 +219,11 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 			&artifactTimeout,
 		)
 
-		Eventually(func() bool {
-			requestContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-
-			contextsFilterQuery := fmt.Sprintf("name = '%s'", createdRun.RunID)
-			contexts, err := mlmdClient.GetContexts(requestContext, &pb.GetContextsRequest{
-				Options: &pb.ListOperationOptions{FilterQuery: &contextsFilterQuery},
-			})
-			if err != nil {
-				return false
-			}
-
-			var executions []*pb.Execution
-			for _, metadataContext := range contexts.GetContexts() {
-				contextID := metadataContext.GetId()
-				executionsResponse, err := mlmdClient.GetExecutionsByContext(requestContext, &pb.GetExecutionsByContextRequest{
-					ContextId: &contextID,
-				})
-				if err != nil {
-					return false
-				}
-				executions = append(executions, executionsResponse.GetExecutions()...)
-			}
-
-			executionIDs := make([]int64, 0, len(executions))
-			for _, execution := range executions {
-				executionIDs = append(executionIDs, execution.GetId())
-			}
-			events, err := mlmdClient.GetEventsByExecutionIDs(requestContext, &pb.GetEventsByExecutionIDsRequest{
-				ExecutionIds: executionIDs,
-			})
-			if err != nil {
-				return false
-			}
-
-			executionID, artifactID := findArgoCompatibilityMetadataIDs(executions, events.GetEvents())
-			if executionID == 0 || artifactID == 0 {
-				return false
-			}
-			artifacts, err := mlmdClient.GetArtifactsByID(requestContext, &pb.GetArtifactsByIDRequest{
-				ArtifactIds: []int64{artifactID},
-			})
-			return err == nil && len(artifacts.GetArtifacts()) == 1 && artifacts.GetArtifacts()[0].GetId() == artifactID
-		}, "120s", "2s").Should(BeTrue())
+		Eventually(func(g Gomega) {
+			storedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
+			g.Expect(storedRun.Tasks).NotTo(BeEmpty())
+			g.Expect(findArgoCompatibilityTaskArtifact(storedRun.Tasks)).To(BeTrue())
+		}, "120s", "2s").Should(Succeed())
 
 		archivePipelineRun(&createdRun.RunID)
 		storedRun := testutil.GetPipelineRun(runClient, &createdRun.RunID)
@@ -266,7 +231,7 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 		Expect(*storedRun.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
 
 		zeroGracePeriod := int64(0)
-		err = k8Client.CoreV1().Pods(testutil.GetNamespace()).Delete(context.Background(), logPodName, metav1.DeleteOptions{
+		err := k8Client.CoreV1().Pods(testutil.GetNamespace()).Delete(context.Background(), logPodName, metav1.DeleteOptions{
 			GracePeriodSeconds: &zeroGracePeriod,
 		})
 		Expect(err == nil || apierrors.IsNotFound(err)).To(BeTrue())
@@ -284,6 +249,119 @@ var _ = Describe("Argo runtime compatibility >", Label(constants.POSITIVE, const
 		}, "90s", "3s").Should(ContainSubstring("input:  foo"))
 	})
 })
+
+func collectArgoCompatibilityDiagnostics(runID string) string {
+	var report strings.Builder
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	fmt.Fprintf(&report, "Run ID: %s\n", runID)
+	run, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: runID})
+	if err != nil {
+		fmt.Fprintf(&report, "Run lookup error: %v\n", err)
+	} else {
+		runState := "<unset>"
+		if run.State != nil {
+			runState = string(*run.State)
+		}
+		fmt.Fprintf(&report, "Run state: %s\n", runState)
+		fmt.Fprintln(&report, "Run state history:")
+		for _, status := range run.StateHistory {
+			if status == nil {
+				continue
+			}
+			state := "<unset>"
+			if status.State != nil {
+				state = string(*status.State)
+			}
+			fmt.Fprintf(&report, "- state=%s updated=%s error=%v\n", state, status.UpdateTime, status.Error)
+		}
+	}
+
+	restConfig, err := commonutil.GetKubernetesConfig()
+	if err != nil {
+		fmt.Fprintf(&report, "Kubernetes config error: %v\n", err)
+		return report.String()
+	}
+
+	namespace := testutil.GetNamespace()
+	selector := fmt.Sprintf("%s=%s", commonutil.LabelKeyWorkflowRunId, runID)
+	objectNames := make(map[string]struct{})
+
+	argoClient, err := argoclient.NewForConfig(restConfig)
+	if err != nil {
+		fmt.Fprintf(&report, "Argo client error: %v\n", err)
+	} else {
+		workflows, listErr := argoClient.ArgoprojV1alpha1().Workflows(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+		switch {
+		case listErr != nil:
+			fmt.Fprintf(&report, "Workflow lookup error: %v\n", listErr)
+		case len(workflows.Items) == 0:
+			fmt.Fprintln(&report, "Workflows: none")
+		default:
+			fmt.Fprintln(&report, "Workflows:")
+			for index := range workflows.Items {
+				workflow := &workflows.Items[index]
+				objectNames[workflow.Name] = struct{}{}
+				fmt.Fprintf(
+					&report,
+					"- name=%s phase=%s message=%q created=%s nodes=%d\n",
+					workflow.Name,
+					workflow.Status.Phase,
+					workflow.Status.Message,
+					workflow.CreationTimestamp.Time.UTC().Format(time.RFC3339),
+					len(workflow.Status.Nodes),
+				)
+			}
+		}
+	}
+
+	pods, err := k8Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	switch {
+	case err != nil:
+		fmt.Fprintf(&report, "Pod lookup error: %v\n", err)
+	case len(pods.Items) == 0:
+		fmt.Fprintln(&report, "Pods: none")
+	default:
+		fmt.Fprintln(&report, "Pods:")
+		for index := range pods.Items {
+			pod := &pods.Items[index]
+			objectNames[pod.Name] = struct{}{}
+			fmt.Fprintf(&report, "- name=%s phase=%s node=%s reason=%q message=%q\n", pod.Name, pod.Status.Phase, pod.Spec.NodeName, pod.Status.Reason, pod.Status.Message)
+			for _, container := range pod.Status.ContainerStatuses {
+				fmt.Fprintf(&report, "  container=%s ready=%t restarts=%d state=%v\n", container.Name, container.Ready, container.RestartCount, container.State)
+			}
+		}
+	}
+
+	events, err := k8Client.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		fmt.Fprintf(&report, "Event lookup error: %v\n", err)
+		return report.String()
+	}
+	fmt.Fprintln(&report, "Relevant events:")
+	eventCount := 0
+	for index := range events.Items {
+		event := &events.Items[index]
+		_, objectIsRelevant := objectNames[event.InvolvedObject.Name]
+		isRecentWarning := len(objectNames) == 0 && event.Type == corev1.EventTypeWarning &&
+			event.LastTimestamp.After(testContext.TestStartTimeUTC)
+		if !objectIsRelevant && !isRecentWarning {
+			continue
+		}
+		fmt.Fprintf(&report, "- type=%s reason=%s object=%s/%s count=%d message=%q\n", event.Type, event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Name, event.Count, event.Message)
+		eventCount++
+		if eventCount == 50 {
+			fmt.Fprintln(&report, "- additional events omitted")
+			break
+		}
+	}
+	if eventCount == 0 {
+		fmt.Fprintln(&report, "- none")
+	}
+
+	return report.String()
+}
 
 func runtimeStateAppearsAfter(
 	stateHistory []*run_model.V2beta1RuntimeStatus,
@@ -316,23 +394,27 @@ func findArgoCompatibilityPodName(pods []corev1.Pod) string {
 	return ""
 }
 
-func findArgoCompatibilityMetadataIDs(executions []*pb.Execution, events []*pb.Event) (int64, int64) {
-	containerExecutionIDs := make(map[int64]struct{})
-	for _, execution := range executions {
-		if execution.GetId() > 0 && execution.GetType() == string(metadata.ContainerExecutionTypeName) {
-			containerExecutionIDs[execution.GetId()] = struct{}{}
-		}
-	}
-
-	for _, event := range events {
-		if event.GetType() != pb.Event_OUTPUT || event.GetArtifactId() == 0 {
+func findArgoCompatibilityTaskArtifact(tasks []*run_model.V2beta1PipelineTask) bool {
+	for _, task := range tasks {
+		if task == nil {
 			continue
 		}
-		if _, exists := containerExecutionIDs[event.GetExecutionId()]; exists {
-			return event.GetExecutionId(), event.GetArtifactId()
+		if task.Name != artifactTaskName && !strings.HasSuffix(task.Name, "."+artifactTaskName) {
+			continue
+		}
+		if task.Outputs == nil {
+			continue
+		}
+		for _, artifactIO := range task.Outputs.Artifacts {
+			if artifactIO == nil {
+				continue
+			}
+			if artifactIO.ArtifactKey == artifactOutputKey && len(artifactIO.Artifacts) > 0 {
+				return true
+			}
 		}
 	}
-	return 0, 0
+	return false
 }
 
 func readArgoCompatibilityRunLog(runID string, nodeID string) (string, error) {

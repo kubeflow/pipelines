@@ -3391,6 +3391,37 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
             x = add(nums=dsl.Collected(t.output))
 
+    def test_parallel_for_custom_name_with_collected(self):
+        """Verifies that passing a custom name= to dsl.ParallelFor preserves
+        display name in task_info while downstream collected tasks reference
+        the stable DAG key."""
+
+        @dsl.component
+        def echo(item: str) -> str:
+            return item
+
+        @dsl.component
+        def collect(items: list) -> str:
+            return str(items)
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(
+                    items=['a', 'b'], name='My custom Loop') as item:
+                work = echo(item=item)
+            collect(items=dsl.Collected(work.output))
+
+        tasks = my_pipeline.pipeline_spec.root.dag.tasks
+
+        # 1. UI display name is preserved:
+        self.assertEqual(tasks['for-loop-2'].task_info.name, 'My custom Loop')
+
+        # 2. Downstream task references the stable DAG task key:
+        consumer_producer_task = (
+            tasks['collect'].inputs.parameters['items'].task_output_parameter
+            .producer_task)
+        self.assertEqual(consumer_producer_task, 'for-loop-2')
+
     def test_parallelfor_nested_legal_params2(self):
 
         @dsl.component

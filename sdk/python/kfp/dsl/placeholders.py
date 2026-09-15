@@ -217,7 +217,7 @@ class IfPresentPlaceholder(Placeholder):
     Args:
         input_name: Name of the input/output.
         then: If the input/output specified in name is present, the command-line argument will be replaced at run-time by the value of then.
-        else_: If the input/output specified in name is not present, the command-line argument will be replaced at run-time by the value of else_.
+        else_: If the input/output specified in name is not present, the command-line argument will be replaced at run-time by the value of ``else_``.
 
     Examples:
       ::

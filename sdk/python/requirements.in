@@ -15,7 +15,7 @@ google-cloud-storage>=2.2.1,<4
 # kfp-pipeline-spec package is released.
 # Update the lower version when kfp sdk depends on new apis/fields in
 # kfp-pipeline-spec
-kfp-pipeline-spec>=2.15.0,<3
+kfp-pipeline-spec>=2.15.2,<3
 # Update the upper version whenever a new major version of the
 # kfp-server-api package is released.
 # Update the lower version when kfp sdk depends on new apis/fields in

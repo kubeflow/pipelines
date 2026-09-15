@@ -125,6 +125,7 @@ cases:
             region: us-east-2
             disableSSL: false
             forcePathStyle: false
+            maxRetries: 9
             credentials:
               fromEnv: false
               secretRef:

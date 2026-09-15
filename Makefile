@@ -1,16 +1,42 @@
 
-# Check diff for generated files
+# Regenerate all generated files and golden test files
+.PHONY: regenerate-all
+regenerate-all:
+	@echo "==> Regenerating K8s Native API CRDs..."
+	cd backend/src/crd/kubernetes && $(MAKE) generate manifests
+	@echo "==> Regenerating backend proto code (v2beta1)..."
+	cd backend/api && API_VERSION=v2beta1 $(MAKE) generate
+	@echo "==> Regenerating backend proto code (v1beta1)..."
+	cd backend/api && API_VERSION=v1beta1 $(MAKE) generate
+	@echo "==> Regenerating kfp-server-api-package (v2beta1)..."
+	cd backend/api && API_VERSION=v2beta1 $(MAKE) generate-kfp-server-api-package
+	@echo "==> Regenerating kfp-server-api-package (v1beta1)..."
+	cd backend/api && API_VERSION=v1beta1 $(MAKE) generate-kfp-server-api-package
+	@echo "==> Updating proto test golden files..."
+	cd backend/test/proto_tests && UPDATE_EXPECTED=true go test .
+	@echo "==> Updating compiler test golden files..."
+	cd backend/test/compiler && go test . -updateCompiledFiles
+	@echo "==> All files regenerated successfully!"
+
+# Check diff for generated files. Changes confined to the generator version
+# comment that protoc-gen-go and protoc-gen-go-grpc stamp into their output are
+# reported and allowed, because those versions come from the Go module manifests
+# and so change on any module bump without the generated code differing.
 .PHONY: check-diff
 check-diff:
-	/bin/bash -c 'if [[ -n "$$(git status --porcelain)" ]]; then \
-		echo "ERROR: Generated files are out of date"; \
-		echo "Please regenerate using make clean all for api and kubernetes_platform"; \
-		echo "Changes found in the following files:"; \
-		git status; \
-		echo "Diff of changes:"; \
-		git diff; \
-		exit 1; \
-	fi'
+	python3 .github/resources/scripts/check_generated_diff.py
+
+.PHONY: check-go-version
+check-go-version:
+	python3 .github/resources/scripts/update_go_version.py --check
+
+.PHONY: update-go-version
+update-go-version:
+	@if [ -z "$(GO_VERSION)" ]; then \
+		echo "GO_VERSION is required; run make update-go-version GO_VERSION=1.X.Y" >&2; \
+		exit 2; \
+	fi
+	python3 .github/resources/scripts/update_go_version.py --version "$(GO_VERSION)"
 
 # Tools
 BIN_DIR ?= $(CURDIR)/bin

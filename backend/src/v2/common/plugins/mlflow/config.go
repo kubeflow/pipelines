@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
 )
@@ -60,7 +62,7 @@ func ParseKfpMLflowRuntimeConfig() (*commonmlflow.MLflowRuntimeConfig, error) {
 	}
 	// Only InsecureSkipVerify is propagated from the API server. Driver/launcher CA trust is configured
 	// separately (e.g., cluster-wide trusted CA injection).
-	cfg.TLS = &commonmlflow.TLSConfig{
+	cfg.TLS = &commonplugins.TLSConfig{
 		InsecureSkipVerify: cfg.InsecureSkipVerify,
 	}
 	return &cfg, nil
@@ -73,13 +75,13 @@ func IsEnabled() bool {
 }
 
 // BuildMLflowTaskRequestContext constructs a fully initialized RequestContext
-// by delegating to the common BuildRequestContext with task-specific parameters.
+// by delegating to the common BuildMLflowRequestContext with task-specific parameters.
 func BuildMLflowTaskRequestContext(runtimeCfg commonmlflow.MLflowRuntimeConfig) (*commonmlflow.RequestContext, error) {
 	credentials, err := commonmlflow.ResolveRuntimeMLflowCredentials(runtimeCfg.AuthType)
 	if err != nil {
 		return nil, err
 	}
-	pluginCfg := commonmlflow.PluginConfig{
+	pluginCfg := commonmlflow.MLflowPluginConfig{
 		Endpoint: runtimeCfg.Endpoint,
 		Timeout:  runtimeCfg.Timeout,
 		TLS:      runtimeCfg.TLS,
@@ -92,15 +94,15 @@ func BuildMLflowTaskRequestContext(runtimeCfg commonmlflow.MLflowRuntimeConfig) 
 	)
 }
 
-// ExecutionStateToMLflowTerminalStatus converts a string representing an MLMD Execution_State to an MLflow
-// terminal status.
-func ExecutionStateToMLflowTerminalStatus(state string) string {
+// TaskStateToMLflowTerminalStatus converts a PipelineTask_TaskState to an MLflow
+// terminal status string. Returns an error for unrecognized states.
+func TaskStateToMLflowTerminalStatus(state apiV2beta1.PipelineTask_TaskState) (string, error) {
 	switch state {
-	case "COMPLETE", "CACHED":
-		return "FINISHED"
-	case "CANCELED":
-		return "KILLED"
+	case apiV2beta1.PipelineTask_SUCCEEDED, apiV2beta1.PipelineTask_CACHED, apiV2beta1.PipelineTask_SKIPPED:
+		return "FINISHED", nil
+	case apiV2beta1.PipelineTask_FAILED:
+		return "FAILED", nil
 	default:
-		return "FAILED"
+		return "", fmt.Errorf("unsupported task state for MLflow terminal status: %v", state)
 	}
 }

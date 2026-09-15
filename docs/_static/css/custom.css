@@ -1,0 +1,241 @@
+/* ============================================
+   Kubeflow Pipelines documentation
+   ============================================ */
+
+body {
+    --kf-blue: var(--color-brand-primary, #2b6cb0);
+    --kf-blue-light: #4299e1;
+    --kf-blue-dark: #2c5282;
+
+    --kf-heading: var(--color-foreground-primary, #1a202c);
+    --kf-text: var(--color-foreground-secondary, #2d3748);
+    --kf-text-light: var(--color-foreground-muted, #4a5568);
+
+    --kf-bg-subtle: var(--color-background-secondary, #f7fafc);
+    --kf-border: var(--color-background-border, #e2e8f0);
+}
+
+/* ============================================
+   Top navigation bar
+   ============================================ */
+
+.announcement {
+    background: #0a1834 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 100 !important;
+}
+
+.page {
+    padding-top: 48px !important;
+}
+
+.sidebar-sticky,
+.toc-sticky,
+.mobile-header {
+    top: 48px !important;
+}
+
+.announcement-content {
+    max-width: none !important;
+    padding: 0 !important;
+}
+
+.top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0.6rem 1.5rem;
+}
+
+.top-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none !important;
+    color: #eef3fd !important;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.top-nav-brand:hover {
+    color: #6fa5ff !important;
+}
+
+.top-nav-logo {
+    height: 28px;
+    width: auto;
+}
+
+.top-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.top-nav-links a {
+    color: #cbd5e0 !important;
+    text-decoration: none !important;
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+}
+
+.top-nav-links a:hover {
+    color: #6fa5ff !important;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.top-nav-theme-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-left: 0.5rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #cbd5e0 !important;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.top-nav-theme-toggle:hover,
+.top-nav-theme-toggle:hover svg {
+    color: #6fa5ff !important;
+}
+
+.top-nav-theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.top-nav-theme-toggle svg {
+    color: #cbd5e0 !important;
+    width: 16px !important;
+    height: 16px !important;
+}
+
+.top-nav-theme-toggle svg.theme-icon-when-dark,
+.top-nav-theme-toggle svg.theme-icon-when-light {
+    display: none !important;
+}
+
+body[data-theme="dark"] .top-nav-theme-toggle svg.theme-icon-when-dark,
+body[data-theme="light"] .top-nav-theme-toggle svg.theme-icon-when-light {
+    display: block !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    body[data-theme="auto"] .top-nav-theme-toggle svg.theme-icon-when-dark {
+        display: block !important;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    body[data-theme="auto"] .top-nav-theme-toggle svg.theme-icon-when-light {
+        display: block !important;
+    }
+}
+
+.theme-toggle-container,
+.theme-toggle-content,
+.theme-toggle:not(.top-nav-theme-toggle) {
+    display: none !important;
+}
+
+.sidebar-brand {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .top-nav-links a {
+        display: none !important;
+    }
+}
+
+/* ============================================
+   Collapsible sidebar toggle
+   ============================================ */
+
+.sidebar-toggle-btn {
+    position: fixed;
+    top: 3.75rem;
+    left: 1.25rem;
+    z-index: 101;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--kf-border);
+    border-radius: 6px;
+    background: var(--color-background-primary, #fff);
+    color: var(--kf-text);
+    cursor: pointer;
+}
+
+.sidebar-toggle-btn:hover {
+    color: var(--kf-blue-light);
+    border-color: var(--kf-blue-light);
+}
+
+body.sidebar-collapsed .sidebar-drawer {
+    display: none;
+}
+
+/* ============================================
+   Sidebar navigation
+   ============================================ */
+
+.sidebar-tree .reference {
+    color: var(--color-foreground-secondary) !important;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sidebar-tree .reference:hover {
+    color: var(--color-brand-primary) !important;
+    background: rgba(59, 125, 255, 0.08);
+}
+
+.sidebar-tree .current > .reference {
+    color: var(--color-brand-primary) !important;
+    font-weight: 600;
+    background: rgba(59, 125, 255, 0.14);
+    border-radius: 6px;
+    box-shadow: inset 3px 0 0 var(--color-brand-primary);
+}
+
+.sidebar-tree .caption-text {
+    color: var(--color-foreground-muted) !important;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.6px;
+}
+
+.sidebar-tree .toctree-l1 > .reference {
+    font-weight: 600;
+}
+
+.sidebar-tree .toctree-l2 > .reference,
+.sidebar-tree .toctree-l3 > .reference {
+    font-weight: 400;
+    font-size: 0.9rem;
+}
+
+.sidebar-tree ul ul {
+    margin-left: 0.75rem;
+    padding-left: 0.6rem;
+    border-left: 1px solid var(--color-background-border, rgba(255, 255, 255, 0.12));
+}

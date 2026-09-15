@@ -28,8 +28,15 @@ The Kubeflow pipelines service has the following goals:
 
 | Dependency     | Versions         |
 | -------------- |------------------|
-| Argo Workflows | v3.7, v4.0 |
+| Argo Workflows | v3.7, v4.1 |
 | MySQL          | v8               |
+
+> **KFP 3.0 compatibility notice:** Argo Workflows 3.x remains supported for KFP 2.x, but is
+> deprecated and will not be supported by Kubeflow Pipelines 3.0. Before upgrading to KFP 3.0,
+> operators must upgrade their Argo Workflows controller to a supported 4.x release listed in this
+> matrix. Follow
+> [the KFP 3.0 compatibility tracking issue](https://github.com/kubeflow/pipelines/issues/14139)
+> for the removal and migration work.
 
 ## Documentation
 

@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +26,7 @@ var taskInfoStart = &plugins.TaskInfo{
 var taskInfoEnd = &plugins.TaskInfo{
 	Name:       "test-task",
 	RunEndTime: int64(1714400000000),
-	RunStatus:  "COMPLETED",
+	RunStatus:  apiV2beta1.PipelineTask_SUCCEEDED,
 	ScalarMetrics: map[string]float64{
 		"test-metric": 0.5,
 	},
@@ -105,6 +107,9 @@ func defaultMLflowHandlerFunc(t *testing.T) http.Handler {
 		case "/api/2.0/mlflow/runs/log-batch":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"runs":[]}`))
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -261,6 +266,9 @@ func TestOnTaskEnd_NestedRunIDFromApplyCustomProperties_Success(t *testing.T) {
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&capturedLogBatchBody))
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"runs":[]}`))
 		default:
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -323,7 +331,7 @@ func TestOnTaskEnd_EmptyMetrics_Success(t *testing.T) {
 	info := &plugins.TaskInfo{
 		Name:          "test-task",
 		RunEndTime:    int64(1714400000000),
-		RunStatus:     "COMPLETED",
+		RunStatus:     apiV2beta1.PipelineTask_SUCCEEDED,
 		ScalarMetrics: map[string]float64{},
 		Parameters: map[string]interface{}{
 			"test-param": "test-value",
@@ -350,7 +358,7 @@ func TestOnTaskEnd_NilMetrics_Success(t *testing.T) {
 	info := &plugins.TaskInfo{
 		Name:          "test-task",
 		RunEndTime:    int64(1714400000000),
-		RunStatus:     "COMPLETED",
+		RunStatus:     apiV2beta1.PipelineTask_SUCCEEDED,
 		ScalarMetrics: nil,
 		Parameters: map[string]interface{}{
 			"test-param": "test-value",
@@ -376,7 +384,7 @@ func TestOnTaskEnd_EmptyParams_Success(t *testing.T) {
 	info := &plugins.TaskInfo{
 		Name:       "test-task",
 		RunEndTime: int64(1714400000000),
-		RunStatus:  "COMPLETED",
+		RunStatus:  apiV2beta1.PipelineTask_SUCCEEDED,
 		ScalarMetrics: map[string]float64{
 			"test-metric": 0.5,
 		},
@@ -403,7 +411,7 @@ func TestOnTaskEnd_NilParams_Success(t *testing.T) {
 	info := &plugins.TaskInfo{
 		Name:       "test-task",
 		RunEndTime: int64(1714400000000),
-		RunStatus:  "COMPLETED",
+		RunStatus:  apiV2beta1.PipelineTask_SUCCEEDED,
 		ScalarMetrics: map[string]float64{
 			"test-metric": 0.5,
 		},
@@ -426,6 +434,89 @@ func TestOnTaskEnd_Success(t *testing.T) {
 	}
 	handler, _ := NewMLflowTaskHandler(runtimeCfg)
 	handler.nestedRunID = "test-run-id"
+	err := handler.OnTaskEnd(context.Background(), taskInfoEnd)
+	require.NoError(t, err)
+}
+
+func TestOnTaskEnd_ClosesOpenDirectChildRuns(t *testing.T) {
+	cleanup := setupSAToken(t)
+	defer cleanup()
+
+	var updatedRunIDs []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/runs/update":
+			var body map[string]interface{}
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			updatedRunIDs = append(updatedRunIDs, body["run_id"].(string))
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"test-run-id"}}}`))
+		case "/api/2.0/mlflow/runs/log-batch":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"runs":[
+				{"info":{"run_id":"child-open","status":"RUNNING"}},
+				{"info":{"run_id":"child-finished","status":"FINISHED"}}
+			]}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
+		Endpoint:     server.URL,
+		ParentRunID:  "test-parent-run-id",
+		ExperimentID: "test-exp",
+		AuthType:     "kubernetes",
+		Timeout:      "10s",
+	}
+	handler, _ := NewMLflowTaskHandler(runtimeCfg)
+	handler.nestedRunID = "test-run-id"
+
+	err := handler.OnTaskEnd(context.Background(), taskInfoEnd)
+
+	require.NoError(t, err)
+	// Own run closes first, then the still-open direct child; the
+	// already-finished child is left untouched.
+	assert.Equal(t, []string{"test-run-id", "child-open"}, updatedRunIDs)
+}
+
+func TestOnTaskEnd_ChildCloseFailure_DoesNotFailOwnUpdate(t *testing.T) {
+	cleanup := setupSAToken(t)
+	defer cleanup()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/runs/update":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"test-run-id"}}}`))
+		case "/api/2.0/mlflow/runs/log-batch":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"error_code":"INTERNAL_ERROR","message":"boom"}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
+		Endpoint:     server.URL,
+		ParentRunID:  "test-parent-run-id",
+		ExperimentID: "test-exp",
+		AuthType:     "kubernetes",
+		Timeout:      "10s",
+	}
+	handler, _ := NewMLflowTaskHandler(runtimeCfg)
+	handler.nestedRunID = "test-run-id"
+
+	// The task's own status update succeeds; the child-closing safety net
+	// failing must not surface as an OnTaskEnd error (best-effort).
 	err := handler.OnTaskEnd(context.Background(), taskInfoEnd)
 	require.NoError(t, err)
 }
@@ -519,7 +610,7 @@ func TestRetrieveUserContainerEnvVars_BasicAuth_InjectsCredentialSecretRefs(t *t
 		ParentRunID:       "test-parent-run-id",
 		ExperimentID:      "test-exp",
 		AuthType:          commonmlflow.AuthTypeBasicAuth,
-		CredentialSecretRef: &commonmlflow.CredentialSecretRef{
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
 			UsernameKey: "username",
 			PasswordKey: "password",
 		},
@@ -569,7 +660,7 @@ func TestRetrieveUserContainerEnvVars_BearerAuth_InjectsCredentialSecretRef(t *t
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     commonmlflow.AuthTypeBearer,
-		CredentialSecretRef: &commonmlflow.CredentialSecretRef{
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
 			TokenKey: "token",
 		},
 		Timeout:           "10s",

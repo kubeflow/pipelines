@@ -1,0 +1,66 @@
+name: "Install Fake GPU Operator (fake backend)"
+description: >
+  Install Run:ai Fake GPU Operator with the default fake backend on Kind,
+  label nodes into the simulated GPU pool, and wait until nvidia.com/gpu is allocatable.
+
+inputs:
+  chart_version:
+    description: "fake-gpu-operator Helm chart version to pin"
+    required: false
+    default: "0.0.59"
+  namespace:
+    description: "Namespace for the Fake GPU Operator release"
+    required: false
+    default: "gpu-operator"
+  node_pool:
+    description: "Value for run.ai/simulated-gpu-node-pool node label"
+    required: false
+    default: "default"
+  gpu_count:
+    description: "Fake GPU count advertised per pool node"
+    required: false
+    default: "2"
+  helm_timeout:
+    description: "Helm --wait timeout"
+    required: false
+    default: "5m"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Helm
+      uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 
+      with:
+        version: v3.17.3
+
+    # Kind already removes control-plane NoSchedule on single-node clusters
+    # (create-cluster uses default one-node Kind), so no untaint step here.
+
+    - name: Label nodes for Fake GPU Operator pool
+      shell: bash
+      env:
+        NODE_POOL: ${{ inputs.node_pool }}
+      run: |
+        kubectl label node --all \
+          "run.ai/simulated-gpu-node-pool=${NODE_POOL}" \
+          --overwrite
+
+    - name: Install Fake GPU Operator (fake backend)
+      shell: bash
+      env:
+        CHART_VERSION: ${{ inputs.chart_version }}
+        NAMESPACE: ${{ inputs.namespace }}
+        NODE_POOL: ${{ inputs.node_pool }}
+        GPU_COUNT: ${{ inputs.gpu_count }}
+        HELM_TIMEOUT: ${{ inputs.helm_timeout }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        "${ACTION_PATH}/install-fgo-fake.sh"
+
+    - name: Wait for allocatable nvidia.com/gpu
+      shell: bash
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        "${ACTION_PATH}/wait-for-allocatable-gpu.sh"

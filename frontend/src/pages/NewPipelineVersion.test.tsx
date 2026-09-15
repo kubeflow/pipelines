@@ -292,6 +292,64 @@ describe('NewPipelineVersion', () => {
         },
       });
     });
+
+    it('sends code_source_url when creating a version from file upload', async () => {
+      const uploadVersionSpy = vi
+        .spyOn(Apis, 'uploadPipelineVersionV2')
+        .mockResolvedValue(MOCK_PIPELINE_VERSION as any);
+
+      await renderExistingPipeline({ withRef: true });
+
+      const versionNameInput = screen.getByLabelText(/Pipeline Version Name/);
+      fireEvent.change(versionNameInput, { target: { value: 'test version name' } });
+
+      await userEvent.click(screen.getByLabelText(/Upload a file/i));
+
+      const file = new File(['file contents'], 'pipeline.yaml', { type: 'text/plain' });
+      await simulateFileDrop([file]);
+
+      const codeSourceInput = screen.getByLabelText(/Code Source/);
+      fireEvent.change(codeSourceInput, { target: { value: 'https://github.com/example/repo' } });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(uploadVersionSpy).toHaveBeenCalledTimes(1));
+
+      expect(uploadVersionSpy).toHaveBeenLastCalledWith(
+        'test version name',
+        '',
+        'original-run-pipeline-id',
+        file,
+        '',
+        'https://github.com/example/repo',
+      );
+    });
+
+    it('sends code_source_url when creating a version from URL with code source filled', async () => {
+      await renderExistingPipeline();
+
+      const versionNameInput = screen.getByLabelText(/Pipeline Version Name/);
+      fireEvent.change(versionNameInput, { target: { value: 'test version name' } });
+
+      const urlInput = screen.getByLabelText(/Package Url/);
+      fireEvent.change(urlInput, { target: { value: 'https://dummy_package_url' } });
+
+      const codeSourceInput = screen.getByLabelText(/Code Source/);
+      fireEvent.change(codeSourceInput, { target: { value: 'https://github.com/example/repo' } });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(createPipelineVersionSpy).toHaveBeenCalledTimes(1));
+
+      expect(createPipelineVersionSpy).toHaveBeenLastCalledWith('original-run-pipeline-id', {
+        pipeline_id: 'original-run-pipeline-id',
+        name: 'test version name',
+        display_name: '',
+        description: '',
+        package_url: {
+          pipeline_url: 'https://dummy_package_url',
+        },
+        code_source_url: 'https://github.com/example/repo',
+      });
+    });
   });
 
   describe('creating new pipeline', () => {
@@ -433,6 +491,7 @@ describe('NewPipelineVersion', () => {
         'test pipeline description',
         file,
         undefined,
+        undefined,
       );
     });
 
@@ -469,6 +528,7 @@ describe('NewPipelineVersion', () => {
         'test pipeline description',
         file,
         'ns',
+        undefined,
       );
     });
 
@@ -509,6 +569,42 @@ describe('NewPipelineVersion', () => {
         'test pipeline description',
         file,
         undefined,
+        undefined,
+      );
+    });
+
+    it('creates pipeline from local file with code source url', async () => {
+      await renderNewPipelineVersion(
+        '',
+        { buildInfo: { apiServerMultiUser: false } },
+        { withRef: true },
+      );
+
+      await userEvent.click(screen.getByLabelText(/Upload a file/i));
+      fireEvent.change(screen.getByLabelText(/Pipeline Name/), {
+        target: { value: 'test pipeline name' },
+      });
+      fireEvent.change(screen.getByLabelText(/Pipeline Description/), {
+        target: { value: 'test pipeline description' },
+      });
+
+      const file = new File(['file contents'], 'file_name', { type: 'text/plain' });
+      await simulateFileDrop([file]);
+
+      fireEvent.change(screen.getByLabelText(/Code Source/), {
+        target: { value: 'https://github.com/example/repo' },
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+      await waitFor(() => expect(uploadPipelineSpy).toHaveBeenCalled());
+
+      expect(uploadPipelineSpy).toHaveBeenLastCalledWith(
+        'test pipeline name',
+        '',
+        'test pipeline description',
+        file,
+        undefined,
+        'https://github.com/example/repo',
       );
     });
 

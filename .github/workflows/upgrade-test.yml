@@ -22,7 +22,6 @@ on:
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
-      - 'backend/metadata_writer/**'
       - 'backend/test/v2/api/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'
@@ -36,11 +35,17 @@ concurrency:
 
 jobs:
   build:
+    # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
+    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
-    needs: build
+    # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
+    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: [ "v1.36.1" ]
@@ -48,13 +53,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: ./.github/actions/setup-go
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: 3.9
 
@@ -129,9 +134,9 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
           forward_port: 'true'
 
       - name: Verify Upgrade

@@ -17,8 +17,10 @@ import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo
 import {
   convertYamlToPlatformSpec,
   getContainer,
+  isArgoWorkflowTemplate,
   isTemplateV2,
   isV2Pipeline,
+  tryConvertYamlToV2PipelineSpec,
 } from './WorkflowUtils';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
 import * as features from 'src/features';
@@ -67,6 +69,18 @@ describe('WorkflowUtils', () => {
       (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
     );
     expect(isTemplateV2(V2_LW_YAML_TEMPLATE_STRING)).toBeTruthy();
+  });
+
+  it('validates a V2 template without performing graph layout', () => {
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+    const randomSpy = vi.spyOn(Math, 'random');
+
+    expect(tryConvertYamlToV2PipelineSpec(V2_LW_YAML_TEMPLATE_STRING)).toBeDefined();
+    expect(randomSpy).not.toHaveBeenCalled();
+
+    randomSpy.mockRestore();
   });
 
   it('detects v2 template (yaml file with k8s platform spec)', () => {
@@ -178,5 +192,31 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-scr
       lifecycle: undefined,
       resources: undefined,
     });
+  });
+});
+
+describe('isArgoWorkflowTemplate', () => {
+  it('accepts an Argo workflow manifest', () => {
+    expect(
+      isArgoWorkflowTemplate({
+        kind: 'Workflow',
+        apiVersion: 'argoproj.io/v1alpha1',
+      } as any),
+    ).toBe(true);
+  });
+
+  it('rejects a non-Argo manifest', () => {
+    expect(isArgoWorkflowTemplate({ kind: 'Workflow', apiVersion: 'v1' } as any)).toBe(false);
+  });
+
+  it('returns false rather than throwing when apiVersion is not a string', () => {
+    // Parsed YAML can carry any type here, and optional chaining alone would
+    // still call startsWith on a number.
+    expect(isArgoWorkflowTemplate({ kind: 'Workflow', apiVersion: 1 })).toBe(false);
+  });
+
+  it('returns false for non-object input', () => {
+    expect(isArgoWorkflowTemplate(undefined)).toBe(false);
+    expect(isArgoWorkflowTemplate('a string')).toBe(false);
   });
 });

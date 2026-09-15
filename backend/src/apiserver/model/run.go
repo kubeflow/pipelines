@@ -211,7 +211,7 @@ type Run struct {
 	Description string `gorm:"column:Description; not null;"`
 	// Namespace is restricted to varchar(63) due to Kubernetes' naming constraints:
 	// https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
-	Namespace string `gorm:"column:Namespace; type:varchar(63); not null;index:namespace_createatinsec,priority:1;                                  index:namespace_conditions_finishedatinsec,priority:1"`
+	Namespace string `gorm:"column:Namespace; type:varchar(63); not null;index:namespace_createatinsec,priority:1; index:namespace_conditions_finishedatinsec,priority:1"`
 	// varchar(64) is carefully chosen to ensure composite index constraints remain
 	// within MySQL's 767-byte limit
 	// e.g., ExperimentId(varchar(64)) + Conditions(varchar(125)) + FinishedAtInSec(8 bytes) = 764 bytes < 767 bytes
@@ -222,7 +222,10 @@ type Run struct {
 
 	StorageState   StorageState `gorm:"column:StorageState; not null;"`
 	ServiceAccount string       `gorm:"column:ServiceAccount; not null;"`
-	Metrics        []*RunMetric `gorm:"foreignKey:RunUUID;references:UUID;constraint:run_metrics_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'has-many' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
+
+	// Deprecated: kept here for v1 report metrics backwards compatibility
+	// Remove this field from this Struct (and tag the FK in RunMetric struct, so the FK is unaffected)
+	Metrics []*RunMetricV1 `gorm:"foreignKey:RunUUID;references:UUID;constraint:run_metrics_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'has-many' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
 
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId,
 	// RecurringRunId, PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
@@ -232,6 +235,9 @@ type Run struct {
 	PipelineSpec
 
 	RunDetails
+
+	Tasks     []*Task
+	TaskCount int `gorm:"-"` // Not persisted in DB, populated from task query
 }
 
 // Converts to v1beta1-compatible internal representation of run.
@@ -298,10 +304,11 @@ func (r *Run) ToV2() *Run {
 			r.RecurringRunId = ref.ReferenceUUID
 		}
 	}
-	if r.Conditions != "" && r.State == "" {
-		r.State = RuntimeState(r.Conditions)
+	state := r.State.ToV2()
+	if r.Conditions != "" && state == RuntimeStateUnspecified {
+		state = RuntimeState(r.Conditions).ToV2()
 	}
-	r.State = r.State.ToV2()
+	r.State = state
 	r.StorageState = r.StorageState.ToV2()
 	return r
 }
@@ -329,18 +336,41 @@ type RunDetails struct {
 	PipelineContextId int64 `gorm:"column:PipelineContextId; default:0;"`
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
 	PipelineRunContextId int64 `gorm:"column:PipelineRunContextId; default:0;"`
+	// RetryGeneration is incremented by ClaimRunForRetry to fence stale
+	// workflow reporters. UpdateRun checks this value to reject terminal
+	// state writes from reporters that passed version checks before the claim.
+	RetryGeneration int64 `gorm:"column:RetryGeneration; default:0;"`
+	// RetryClaimedAtInSec records the epoch second when ClaimRunForRetry last
+	// claimed this row. It is a liveness signal only, never a correctness
+	// fence: ReportWorkflowResource uses it to detect a claim orphaned by a
+	// crash between claiming the row and updating the workflow. Both the
+	// write and the read happen on the API server's clock.
+	RetryClaimedAtInSec int64 `gorm:"column:RetryClaimedAtInSec; default:0;"`
+	// ArchivedAtInSec records the epoch second when this run entered the
+	// ARCHIVED storage state (via user action or the GC archive pass).
+	// The GC delete pass measures ARCHIVED_RUNS_RETENTION_TIME from this
+	// value; rows archived before this column existed carry 0 and fall back
+	// to FinishedAtInSec.
+	ArchivedAtInSec int64 `gorm:"column:ArchivedAtInSec; default:0;"`
 	// Add gorm:"-" so that GORM ignores TaskDetails when generating schema.
 	// This avoids GORM auto-detecting the circular relationship (RunDetails <--> Tasks) and blocking the FK on tasks.RunUUID → run_details.UUID.
 	TaskDetails []*Task `gorm:"-"`
 }
 
-type RunMetric struct {
+// RunMetricV1 represents a v1 run metric.
+//
+// Legacy v1 type — remove once v1 is removed.
+type RunMetricV1 struct {
 	RunUUID     string    `gorm:"column:RunUUID; not null; primaryKey; type:varchar(191);"`
 	NodeID      string    `gorm:"column:NodeID; not null; primaryKey; type:varchar(191);"`
 	Name        string    `gorm:"column:Name; not null; primaryKey; type:varchar(191);"`
 	NumberValue float64   `gorm:"column:NumberValue;"`
 	Format      string    `gorm:"column:Format;"`
 	Payload     LargeText `gorm:"column:Payload; not null;"`
+}
+
+func (RunMetricV1) TableName() string {
+	return "run_metrics"
 }
 
 type RuntimeStatus struct {
@@ -351,10 +381,6 @@ type RuntimeStatus struct {
 
 func (r Run) GetValueOfPrimaryKey() string {
 	return r.UUID
-}
-
-func GetRunTablePrimaryKeyColumn() string {
-	return "UUID"
 }
 
 // PrimaryKeyColumnName returns the primary key for model Run.
@@ -384,6 +410,7 @@ var runAPIToModelFieldMap = map[string]string{
 	"state_history":    "StateHistory",            // v2beta1 API
 	"runtime_details":  "PipelineRuntimeManifest", // v2beta1 API
 	"recurring_run_id": "JobUUID",                 // v2beta1 API
+	"pipeline_id":      "PipelineId",              // v2beta1 API
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.
@@ -420,6 +447,8 @@ func (r *Run) GetFieldValue(name string) interface{} {
 	switch name {
 	case "UUID":
 		return r.UUID
+	case "PipelineId":
+		return r.PipelineId
 	case "DisplayName":
 		return r.DisplayName
 	case "CreatedAtInSec":
@@ -476,4 +505,14 @@ func (r *Run) GetSortByFieldPrefix(name string) string {
 
 func (r *Run) GetKeyFieldPrefix() string {
 	return r.GetModelName()
+}
+
+var runCaseInsensitiveFields = map[string]struct{}{
+	"name":         {},
+	"display_name": {},
+	"description":  {},
+}
+
+func (r *Run) CaseInsensitiveFields() map[string]struct{} {
+	return runCaseInsensitiveFields
 }

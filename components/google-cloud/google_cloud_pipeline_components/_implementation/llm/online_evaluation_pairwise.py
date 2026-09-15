@@ -43,8 +43,8 @@ def online_evaluation_pairwise(
     judgments: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
     judgments_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
     error_messages: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
-    gcp_resources: dsl.OutputPath(str),
-    metadata: dsl.OutputPath(str),
+    gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     human_preference_column: str = '',
     judgments_format: str = 'jsonl',
     bigquery_destination_prefix: str = '',
