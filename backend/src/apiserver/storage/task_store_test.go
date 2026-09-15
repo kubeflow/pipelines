@@ -880,6 +880,126 @@ func TestListTasks_PaginationWithToken(t *testing.T) {
 	assert.Empty(t, token3)
 }
 
+// A task with no parent has a NULL ParentTaskUUID. Paging by parent_task_id has
+// to walk the tasks with a parent first and then the NULL block, in both
+// directions, without repeating or skipping a task.
+func TestListTasks_SortByParentTaskIdPaginatesThroughNulls(t *testing.T) {
+	const (
+		parentOne  = "123e4567-e89b-12d3-a456-426655442090"
+		parentTwo  = "123e4567-e89b-12d3-a456-426655442010"
+		lone       = "123e4567-e89b-12d3-a456-426655442050"
+		childOneA  = "123e4567-e89b-12d3-a456-426655442061"
+		childOneB  = "123e4567-e89b-12d3-a456-426655442071"
+		childTwoA  = "123e4567-e89b-12d3-a456-426655442021"
+		childTwoB  = "123e4567-e89b-12d3-a456-426655442031"
+		otherRunID = "123e4567-e89b-12d3-a456-426655442080"
+	)
+	type seed struct{ id, parentID, runID string }
+
+	// Seeds are created in an order that matches neither the parent order nor
+	// the UUID order. The task in run-2 must never show up.
+	scenarios := []struct {
+		name     string
+		seeds    []seed
+		wantAsc  []string
+		wantDesc []string
+	}{
+		{
+			name:     "all parentless",
+			seeds:    []seed{{testUUID3, "", "run-1"}, {testUUID1, "", "run-1"}, {otherRunID, "", "run-2"}, {testUUID2, "", "run-1"}},
+			wantAsc:  []string{testUUID1, testUUID2, testUUID3},
+			wantDesc: []string{testUUID3, testUUID2, testUUID1},
+		},
+		{
+			name: "mixed with shared parents",
+			seeds: []seed{
+				{parentOne, "", "run-1"},
+				{parentTwo, "", "run-1"},
+				{lone, "", "run-1"},
+				{childOneB, parentOne, "run-1"},
+				{childTwoA, parentTwo, "run-1"},
+				{otherRunID, "", "run-2"},
+				{childOneA, parentOne, "run-1"},
+				{childTwoB, parentTwo, "run-1"},
+			},
+			// Two children per parent, then the NULL block, which sorts last either way.
+			wantAsc:  []string{childTwoA, childTwoB, childOneA, childOneB, parentTwo, lone, parentOne},
+			wantDesc: []string{childOneB, childOneA, childTwoB, childTwoA, parentOne, lone, parentTwo},
+		},
+	}
+
+	for _, sc := range scenarios {
+		t.Run(sc.name, func(t *testing.T) {
+			db, taskStore, _ := initializeTaskStore()
+			defer db.Close()
+
+			for i, s := range sc.seeds {
+				task := &model.Task{
+					Namespace:        "ns1",
+					RunUUID:          s.runID,
+					Name:             fmt.Sprintf("task-%d", i),
+					Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+					Fingerprint:      fmt.Sprintf("fp-%d", i),
+					State:            1,
+					StateHistory:     model.JSONSlice{},
+					InputParameters:  model.JSONSlice{},
+					OutputParameters: model.JSONSlice{},
+					TypeAttrs:        model.JSONData{},
+				}
+				if s.parentID != "" {
+					parentID := s.parentID
+					task.ParentTaskUUID = &parentID
+				}
+				taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(s.id, nil)
+				_, err := taskStore.CreateTask(task)
+				require.NoError(t, err)
+			}
+
+			runOne := &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: "run-1"}}
+			for _, order := range []struct {
+				sortBy string
+				want   []string
+			}{
+				{"parent_task_id", sc.wantAsc},
+				{"parent_task_id desc", sc.wantDesc},
+			} {
+				// Page sizes 1 to 3 put the first NULL row both at the start of a
+				// page and in the middle of one.
+				for pageSize := 1; pageSize <= 3; pageSize++ {
+					t.Run(fmt.Sprintf("%s/page size %d", order.sortBy, pageSize), func(t *testing.T) {
+						got := listTaskIDs(t, taskStore, runOne, order.sortBy, pageSize, len(order.want)+1)
+						assert.Equal(t, order.want, got)
+					})
+				}
+			}
+		})
+	}
+}
+
+// listTaskIDs follows page tokens until they run out and fails if that takes
+// more than maxPages.
+func listTaskIDs(t *testing.T, taskStore *TaskStore, filterContext *model.FilterContext, sortBy string, pageSize, maxPages int) []string {
+	t.Helper()
+	opts, err := list.NewOptions(&model.Task{}, pageSize, sortBy, nil)
+	require.NoError(t, err)
+
+	var ids []string
+	for page := 0; page < maxPages; page++ {
+		tasks, _, nextPageToken, err := taskStore.ListTasks(filterContext, opts)
+		require.NoError(t, err)
+		for _, task := range tasks {
+			ids = append(ids, task.UUID)
+		}
+		if nextPageToken == "" {
+			return ids
+		}
+		opts, err = list.NewOptionsFromToken(nextPageToken, pageSize)
+		require.NoError(t, err)
+	}
+	t.Fatalf("sorting by %q with page size %d still had a page token after %d pages, got %v", sortBy, pageSize, maxPages, ids)
+	return nil
+}
+
 func TestTaskParameters_PersistAndFetch(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
