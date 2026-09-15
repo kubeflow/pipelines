@@ -16,7 +16,6 @@
 import abc
 from typing import List
 
-from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
 from kfp.dsl import structures
 from kfp.dsl.types import type_utils
@@ -98,6 +97,7 @@ class BaseComponent(abc.ABC):
                 f'{self.name}() missing {len(missing_arguments)} required '
                 f'{argument_or_arguments}: {arguments}.')
 
+        from kfp.dsl import pipeline_context
         return pipeline_task.PipelineTask(
             component_spec=self.component_spec,
             args=task_inputs,
