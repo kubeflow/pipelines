@@ -304,6 +304,44 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -781,6 +819,44 @@ exports[`SideNav > populates the display build information using the default pro
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -1241,6 +1317,44 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -1701,6 +1815,44 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -2161,6 +2313,44 @@ exports[`SideNav > renders collapsed state 1`] = `
       <hr
         class="separator_furuwhr collapsedSeparator_f1umkwuk"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d collapsedButton_f52z2lz css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="collapsedLabel_fnu5k6u label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -2621,6 +2811,44 @@ exports[`SideNav > renders expanded state 1`] = `
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -3081,6 +3309,44 @@ exports[`SideNav > renders experiments as active page 1`] = `
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -3541,6 +3807,44 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -4001,6 +4305,44 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -4461,6 +4803,44 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -4921,6 +5301,44 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -5381,6 +5799,44 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -5841,6 +6297,44 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -6301,6 +6795,44 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -6761,6 +7293,44 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -7221,6 +7791,44 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
@@ -7732,6 +8340,44 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       <hr
         class="separator_furuwhr"
       />
+      <div
+        aria-label="Dark Mode"
+        class=""
+        data-mui-internal-clone-element="true"
+      >
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+          data-testid="theme-toggle-btn"
+          id="themeToggleBtn"
+          tabindex="0"
+          type="button"
+        >
+          <div
+            class="flex flex-row flex-shrink-0"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="DarkModeIcon"
+              focusable="false"
+              style="width: 20px; height: 20px;"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1"
+              />
+            </svg>
+            <span
+              class="label_f15zusur"
+            >
+              Dark Mode
+            </span>
+          </div>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+      </div>
       <a
         aria-label="Documentation"
         class="unstyled_f1ikaigl"
