@@ -54,7 +54,10 @@ func collectValue(collector prometheus.Collector, do func(*dto.Metric)) {
 	// range across distinct label vector values
 	for x := range c {
 		m := &dto.Metric{}
-		_ = x.Write(m)
+		if err := x.Write(m); err != nil {
+			glog.Errorf("Failed to write metric: %v", err)
+			continue
+		}
 		do(m)
 	}
 }

@@ -120,7 +120,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	executionHashKey, err := generateCacheKeyFromTemplate(template, req.Namespace)
 	log.Println(executionHashKey)
 	if err != nil {
-		log.Printf("Unable to generate cache key for pod %s : %s", pod.ObjectMeta.Name, err.Error())
+		log.Printf("Unable to generate cache key for pod %s: %v. Pod will proceed without execution caching.", pod.ObjectMeta.Name, err)
 		return patches, nil
 	}
 
@@ -174,7 +174,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		}
 	}
 	if err != nil {
-		log.Println(err.Error())
+		log.Printf("Failed to get execution cache for key %q: %v", executionHashKey, err)
 	}
 	// Found cached execution, add cached output and cache_id and replace container images.
 	if cachedExecution != nil {
