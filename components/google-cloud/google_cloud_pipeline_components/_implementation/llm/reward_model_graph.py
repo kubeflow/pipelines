@@ -25,7 +25,7 @@ from google_cloud_pipeline_components._implementation.llm import rlhf_preprocess
 from google_cloud_pipeline_components._implementation.llm import upload_tensorboard_metrics
 import kfp
 
-PipelineOutput = NamedTuple(
+PipelineOutput = NamedTuple(  # pyrefly: ignore[bad-class-definition]
     'Outputs',
     reward_model_adapter_path=str,
     reward_dataset_path=str,
@@ -172,8 +172,8 @@ def pipeline(
   )
 
   return PipelineOutput(
-      reward_model_adapter_path=reward_model.outputs['output_adapter_path'],
-      reward_dataset_path=preference_dataset_importer.outputs[
+      reward_model_adapter_path=reward_model.outputs['output_adapter_path'],  # pyrefly: ignore[unexpected-keyword]
+      reward_dataset_path=preference_dataset_importer.outputs[  # pyrefly: ignore[unexpected-keyword]
           'output_dataset_path'
       ],
   )

@@ -21,7 +21,7 @@ from google_cloud_pipeline_components._implementation.llm import model_evaluatio
 from google_cloud_pipeline_components._implementation.llm import online_evaluation_pairwise
 from kfp import dsl
 
-PipelineOutput = NamedTuple(
+PipelineOutput = NamedTuple(  # pyrefly: ignore[bad-class-definition]
     'Outputs',
     model_a_evaluation_resource_name=str,
     model_b_evaluation_resource_name=str,
@@ -140,13 +140,13 @@ def autosxs_pipeline(
   )
 
   return PipelineOutput(
-      model_a_evaluation_resource_name=metrics.outputs[
+      model_a_evaluation_resource_name=metrics.outputs[  # pyrefly: ignore[unexpected-keyword]
           'model_a_evaluation_path'
       ],
-      model_b_evaluation_resource_name=metrics.outputs[
+      model_b_evaluation_resource_name=metrics.outputs[  # pyrefly: ignore[unexpected-keyword]
           'model_b_evaluation_path'
       ],
-      evaluation_count=metrics.outputs['evaluation_count_path'],
+      evaluation_count=metrics.outputs['evaluation_count_path'],  # pyrefly: ignore[unexpected-keyword]
       # Needs to be a component output
-      evaluation_dataset_path=metrics.outputs['evaluation_dataset_path'],
+      evaluation_dataset_path=metrics.outputs['evaluation_dataset_path'],  # pyrefly: ignore[unexpected-keyword]
   )

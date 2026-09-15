@@ -35,7 +35,7 @@ import { triggerDisplayString } from 'src/lib/TriggerUtils';
 export function RecurringRunDetailsV2FC(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
 
-  const recurringRunId = props.match.params[RouteParams.recurringRunId];
+  const recurringRunId = props.match.params[RouteParams.recurringRunId] ?? '';
 
   const {
     isLoading: isRecurringRunLoading,

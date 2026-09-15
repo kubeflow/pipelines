@@ -23,6 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 )
 
@@ -56,9 +57,9 @@ func createPipelineVersion(pipelineId string, name string, description string, u
 }
 
 func TestListPipelinesAndVersions_FilterOutNotReady(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create pipelines
 	p1 := createPipelineV1("pipeline1")
@@ -200,9 +201,9 @@ func TestListPipelinesAndVersions_FilterOutNotReady(t *testing.T) {
 }
 
 func TestListPipelines_WithFilter(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	pipelineStore.CreatePipeline(createPipelineV1("pipeline_foo"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipeline(createPipelineV1("pipeline_bar"))
@@ -238,9 +239,9 @@ func TestListPipelines_WithFilter(t *testing.T) {
 }
 
 func TestListPipelines_Pagination(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipeline(createPipelineV1("pipeline3"))
@@ -264,10 +265,10 @@ func TestListPipelines_Pagination(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name", nil)
 	assert.Nil(t, err)
-	pipelines, _, total_size, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	pipelines, _, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
 	expectedPipeline2 := &model.Pipeline{
@@ -287,17 +288,17 @@ func TestListPipelines_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	pipelines, _, total_size, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	pipelines, _, totalSize, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, pipelinesExpected2, pipelines)
 }
 
 func TestListPipelines_Pagination_Descend(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
 	pipelineStore.CreatePipeline(createPipelineV1("pipeline3"))
@@ -322,10 +323,10 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	pipelines, _, total_size, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	pipelines, _, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
 	expectedPipeline1 := &model.Pipeline{
@@ -344,17 +345,17 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelines, _, total_size, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	pipelines, _, totalSize, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, pipelinesExpected2, pipelines)
 }
 
 func TestListPipelinesV1_Pagination_NameAsc(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	pipelineStore.CreatePipeline(createPipelineV1("bbb"))
 
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
@@ -409,10 +410,10 @@ func TestListPipelinesV1_Pagination_NameAsc(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name asc", nil)
 	assert.Nil(t, err)
-	pipelines, pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	pipelines, pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, pipelinesExpected, pipelines)
 	assert.Equal(t, pipelineVersionsExpected, pipelineVersions)
 
@@ -427,18 +428,18 @@ func TestListPipelinesV1_Pagination_NameAsc(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelines, pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	pipelines, pipelineVersions, totalSize, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, pipelinesExpected2, pipelines)
 	assert.Equal(t, pipelineVersionsExpected2, pipelineVersions)
 }
 
 func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	p := createPipelineV1("pipeline1")
 	p1, err := pipelineStore.CreatePipeline(p)
 	assert.Nil(t, err)
@@ -471,18 +472,18 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
-	pipelines, pipelineVersions, total_size, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
+	pipelines, pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 1, total_size)
+	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, pipelinesExpected, pipelines)
 	assert.Equal(t, pipelineVersionsExpected, pipelineVersions)
 }
 
 func TestListPipelinesError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	db.Close()
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
@@ -491,9 +492,9 @@ func TestListPipelinesError(t *testing.T) {
 }
 
 func TestGetPipeline(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
 	pipelineExpected := model.Pipeline{
 		UUID:           DefaultFakePipelineId,
@@ -508,9 +509,9 @@ func TestGetPipeline(t *testing.T) {
 }
 
 func TestGetPipeline_NotFound_Creating(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	pipelineStore.CreatePipeline(
 		&model.Pipeline{
 			Name:   "pipeline3",
@@ -524,9 +525,9 @@ func TestGetPipeline_NotFound_Creating(t *testing.T) {
 }
 
 func TestGetPipeline_NotFoundError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	_, err := pipelineStore.GetPipeline(DefaultFakePipelineId)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
@@ -534,9 +535,9 @@ func TestGetPipeline_NotFoundError(t *testing.T) {
 }
 
 func TestGetPipeline_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	db.Close()
 	_, err := pipelineStore.GetPipeline("123")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
@@ -544,9 +545,9 @@ func TestGetPipeline_InternalError(t *testing.T) {
 }
 
 func TestGetPipelineByNameAndNamespace(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	p := createPipelineV1("pipeline1")
 	p.Namespace = "ns1"
 	resPipeline, err := pipelineStore.CreatePipeline(p)
@@ -556,10 +557,29 @@ func TestGetPipelineByNameAndNamespace(t *testing.T) {
 	assert.Equal(t, resPipeline, pipeline)
 }
 
-func TestGetPipelineByNameAndNamespace_NotFound(t *testing.T) {
-	db := NewFakeDBOrFatal()
+// TestGetPipelineByNameAndNamespace_CaseInsensitive guards the read-path
+// half of the fix from
+// https://github.com/kubeflow/pipelines/pull/12379#discussion_r3936849356:
+// once creation enforces LOWER(Name) uniqueness within a namespace, exact-
+// name lookups must use the same case-insensitive equivalence, otherwise a
+// lookup for "foo" would not find a record stored as "Foo".
+func TestGetPipelineByNameAndNamespace_CaseInsensitive(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+	p := createPipelineV1("Foo")
+	p.Namespace = "ns1"
+	resPipeline, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+	pipeline, err := pipelineStore.GetPipelineByNameAndNamespace("foo", "ns1")
+	assert.Nil(t, err)
+	assert.Equal(t, resPipeline, pipeline)
+}
+
+func TestGetPipelineByNameAndNamespace_NotFound(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	p := createPipelineV1("pipeline1")
 	p.Namespace = "ns1"
 	_, err := pipelineStore.CreatePipeline(p)
@@ -571,9 +591,9 @@ func TestGetPipelineByNameAndNamespace_NotFound(t *testing.T) {
 }
 
 func TestGetPipelineByNameAndNamespaceV1(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	p := createPipelineV1("pipeline1")
 	p.Namespace = "ns1"
 	resPipeline, err := pipelineStore.CreatePipeline(p)
@@ -588,9 +608,9 @@ func TestGetPipelineByNameAndNamespaceV1(t *testing.T) {
 }
 
 func TestGetPipelineByNameAndNamespaceV1_NotFound(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	p := createPipelineV1("pipeline1")
 	p.Namespace = "ns1"
 	_, err := pipelineStore.CreatePipeline(p)
@@ -743,8 +763,8 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := NewFakeDBOrFatal()
-			pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+			db, testDialect := NewFakeDBOrFatal()
+			pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 			// Create a default pipeline
 			pipelineStore.CreatePipeline(
 				&model.Pipeline{
@@ -781,9 +801,9 @@ func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 }
 
 func TestCreatePipeline(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	pipelineExpected := createPipeline("pipeline1", "pipeline one", "user1")
 	pipelineExpected.UUID = DefaultFakePipelineId
 	pipelineExpected.CreatedAtInSec = 1
@@ -793,9 +813,9 @@ func TestCreatePipeline(t *testing.T) {
 }
 
 func TestCreatePipeline_DuplicateKey(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	pipeline := createPipelineV1("pipeline1")
 	_, err := pipelineStore.CreatePipeline(pipeline)
@@ -805,13 +825,37 @@ func TestCreatePipeline_DuplicateKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "The name pipeline1 already exist")
 }
 
+// TestCreatePipeline_CaseVariantDuplicateRejected guards the scoped
+// case-insensitive uniqueness fix requested in
+// https://github.com/kubeflow/pipelines/pull/12379#discussion_r3936849356.
+// See the identical rationale on
+// TestCreateExperiment_CaseVariantDuplicateRejected in experiment_store_test.go
+// for why this builds the index directly against the SQLite fake DB instead
+// of exercising client_manager.createExpressionIndexes (pgx-only, no real
+// PostgreSQL connection available in this test package).
+func TestCreatePipeline_CaseVariantDuplicateRejected(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	_, err := db.Exec(`CREATE UNIQUE INDEX idx_pipelines_lower_name_namespace_uniq ON pipelines (LOWER(Name), Namespace)`)
+	require.NoError(t, err)
+
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+	_, err = pipelineStore.CreatePipeline(createPipeline("Foo", "", "ns1"))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	_, err = pipelineStore.CreatePipeline(createPipeline("foo", "", "ns1"))
+	require.Error(t, err)
+	assert.Equal(t, codes.AlreadyExists, err.(*util.UserError).ExternalStatusCode())
+}
+
 func TestCreatePipeline_InternalServerError(t *testing.T) {
 	pipeline := &model.Pipeline{
 		Name: "Pipeline123",
 	}
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	db.Close()
 
 	_, err := pipelineStore.CreatePipeline(pipeline)
@@ -820,9 +864,9 @@ func TestCreatePipeline_InternalServerError(t *testing.T) {
 }
 
 func TestDeletePipeline(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	_, err := pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
 	assert.Nil(t, err)
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
@@ -900,18 +944,18 @@ func TestDeletePipeline(t *testing.T) {
 }
 
 func TestDeletePipelineError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	db.Close()
 	err := pipelineStore.DeletePipeline(DefaultFakePipelineId)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestUpdatePipelineStatus(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	pipeline, err := pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
 	assert.Nil(t, err)
 	pipelineExpected := model.Pipeline{
@@ -928,21 +972,21 @@ func TestUpdatePipelineStatus(t *testing.T) {
 }
 
 func TestUpdatePipelineStatusError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 	db.Close()
 	err := pipelineStore.UpdatePipelineStatus(DefaultFakePipelineId, model.PipelineDeleting)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestCreatePipelineVersion(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect,
 	)
 
 	// Create a pipeline first.
@@ -985,12 +1029,12 @@ func TestCreatePipelineVersion(t *testing.T) {
 }
 
 func TestUpdatePipelineDefaultVersion(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect,
 	)
 
 	// Create a pipeline first.
@@ -1019,12 +1063,12 @@ func TestUpdatePipelineDefaultVersion(t *testing.T) {
 }
 
 func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline first.
 	pipelineStore.CreatePipeline(
@@ -1063,12 +1107,12 @@ func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
 }
 
 func TestCreatePipelineVersion_DuplicateKey(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1101,13 +1145,41 @@ func TestCreatePipelineVersion_DuplicateKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "The name pipeline_version_1 already exist")
 }
 
+// TestCreatePipelineVersion_CaseVariantDuplicateRejected guards the scoped
+// case-insensitive uniqueness fix requested in
+// https://github.com/kubeflow/pipelines/pull/12379#discussion_r3936849356.
+// See the identical rationale on
+// TestCreateExperiment_CaseVariantDuplicateRejected in experiment_store_test.go
+// for why this builds the index directly against the SQLite fake DB instead
+// of exercising client_manager.createExpressionIndexes (pgx-only, no real
+// PostgreSQL connection available in this test package).
+func TestCreatePipelineVersion_CaseVariantDuplicateRejected(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	_, err := db.Exec(`CREATE UNIQUE INDEX idx_pipeline_versions_lower_name_pipelineid_uniq ON pipeline_versions (LOWER(Name), PipelineId)`)
+	require.NoError(t, err)
+
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+	_, err = pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineId, "Foo", "", "", "", ""))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineId, "foo", "", "", "", ""))
+	require.Error(t, err)
+	assert.Equal(t, codes.AlreadyExists, err.(*util.UserError).ExternalStatusCode())
+}
+
 func TestCreatePipelineVersion_InternalServerError_DBClosed(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	db.Close()
 	// Try to create a new version but db is closed.
@@ -1123,12 +1195,12 @@ func TestCreatePipelineVersion_InternalServerError_DBClosed(t *testing.T) {
 }
 
 func TestDeletePipelineVersion(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1169,12 +1241,12 @@ func TestDeletePipelineVersion(t *testing.T) {
 }
 
 func TestDeletePipelineVersionError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1201,12 +1273,12 @@ func TestDeletePipelineVersionError(t *testing.T) {
 }
 
 func TestGetPipelineVersion(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1243,12 +1315,12 @@ func TestGetPipelineVersion(t *testing.T) {
 }
 
 func TestGetLatestPipelineVersion(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1325,13 +1397,66 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 		*pipelineVersion, "Got unexpected pipeline version")
 }
 
-func TestGetPipelineVersion_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+// Versions uploaded within the same second tie on CreatedAtInSec.
+func TestGetLatestPipelineVersion_SameCreationSecond(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	pipelineStore.CreatePipeline(
+		&model.Pipeline{
+			Name:   "pipeline_1",
+			Status: model.PipelineReady,
+		},
+	)
+
+	// Ascending UUID order, so insertion order and UUID order disagree: without the tiebreaker
+	// this returns the first-inserted version and the assertion below fails.
+	for _, versionID := range []string{
+		DefaultFakePipelineIdTwo,
+		DefaultFakePipelineIdThree,
+		DefaultFakePipelineIdFour,
+	} {
+		pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(versionID, nil)
+		_, err := pipelineStore.CreatePipelineVersion(
+			&model.PipelineVersion{
+				Name:       "version_" + versionID,
+				PipelineId: DefaultFakePipelineId,
+				Status:     model.PipelineVersionReady,
+			},
+		)
+		require.Nil(t, err)
+	}
+
+	// Force the tie that the fake clock's per-call increment otherwise hides.
+	_, err := db.Exec(
+		"UPDATE pipeline_versions SET CreatedAtInSec = ? WHERE PipelineId = ?",
+		100, DefaultFakePipelineId,
+	)
+	require.Nil(t, err)
+
+	for i := 0; i < 5; i++ {
+		pipelineVersion, err := pipelineStore.GetLatestPipelineVersion(DefaultFakePipelineId)
+		require.Nil(t, err)
+		require.Equal(
+			t,
+			DefaultFakePipelineIdFour,
+			pipelineVersion.UUID,
+			"a tie on CreatedAtInSec must resolve to the highest UUID on every call",
+		)
+	}
+}
+
+func TestGetPipelineVersion_InternalError(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	db.Close()
 	// Internal error because of closed DB.
@@ -1341,12 +1466,12 @@ func TestGetPipelineVersion_InternalError(t *testing.T) {
 }
 
 func TestGetPipelineVersion_NotFound_VersionStatusCreating(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1372,12 +1497,12 @@ func TestGetPipelineVersion_NotFound_VersionStatusCreating(t *testing.T) {
 }
 
 func TestGetPipelineVersion_NotFoundError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	_, err := pipelineStore.GetPipelineVersion(DefaultFakePipelineId)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
@@ -1385,12 +1510,12 @@ func TestGetPipelineVersion_NotFoundError(t *testing.T) {
 }
 
 func TestListPipelineVersion_FilterOutNotReady(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1463,12 +1588,12 @@ func TestListPipelineVersion_FilterOutNotReady(t *testing.T) {
 }
 
 func TestListPipelineVersions_Pagination(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1579,12 +1704,12 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 }
 
 func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1699,12 +1824,12 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 }
 
 func TestListPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1743,12 +1868,12 @@ func TestListPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListPipelineVersions_WithFilter(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1829,12 +1954,12 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 }
 
 func TestListPipelineVersionsError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	db.Close()
 	// Internal error because of closed DB.
@@ -1845,12 +1970,12 @@ func TestListPipelineVersionsError(t *testing.T) {
 }
 
 func TestUpdatePipelineVersionStatus(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	// Create a pipeline.
 	pipelineStore.CreatePipeline(
@@ -1890,12 +2015,12 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 }
 
 func TestUpdatePipelineVersionStatusError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	db.Close()
 	// Internal error because of closed DB.
@@ -1977,9 +2102,9 @@ spec:
       image: docker/whalesay:latest`
 
 func TestUpdatePipelineFields_DisplayNameOnly(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	p := createPipeline("test-pipeline", "desc", "")
 	created, err := pipelineStore.CreatePipeline(p)
@@ -1995,9 +2120,9 @@ func TestUpdatePipelineFields_DisplayNameOnly(t *testing.T) {
 }
 
 func TestUpdatePipelineFields_AddTags(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	p := createPipeline("test-pipeline", "desc", "")
 	created, err := pipelineStore.CreatePipeline(p)
@@ -2013,9 +2138,9 @@ func TestUpdatePipelineFields_AddTags(t *testing.T) {
 }
 
 func TestUpdatePipelineFields_ReplaceTags(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	p := createPipeline("test-pipeline", "desc", "")
 	created, err := pipelineStore.CreatePipeline(p)
@@ -2036,9 +2161,9 @@ func TestUpdatePipelineFields_ReplaceTags(t *testing.T) {
 }
 
 func TestUpdatePipelineFields_ClearTags(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	p := createPipeline("test-pipeline", "desc", "")
 	created, err := pipelineStore.CreatePipeline(p)
@@ -2058,9 +2183,9 @@ func TestUpdatePipelineFields_ClearTags(t *testing.T) {
 }
 
 func TestUpdatePipelineFields_NilTagsPreservesExisting(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	p := createPipeline("test-pipeline", "desc", "")
 	created, err := pipelineStore.CreatePipeline(p)
@@ -2085,9 +2210,9 @@ func TestUpdatePipelineFields_NilTagsPreservesExisting(t *testing.T) {
 }
 
 func TestUpdatePipelineFields_DisplayNameAndTags(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
 
 	p := createPipeline("test-pipeline", "desc", "")
 	created, err := pipelineStore.CreatePipeline(p)
@@ -2107,12 +2232,13 @@ func TestUpdatePipelineFields_DisplayNameAndTags(t *testing.T) {
 }
 
 func TestGetPipelineVersionByName_SameNameDifferentPipelines(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+		testDialect)
 
 	pipelineA, err := pipelineStore.CreatePipeline(createPipeline("pipeline-a", "", ""))
 	assert.Nil(t, err)
@@ -2142,13 +2268,42 @@ func TestGetPipelineVersionByName_SameNameDifferentPipelines(t *testing.T) {
 	assert.Equal(t, pipelineB.UUID, versionB.PipelineId)
 }
 
-func TestGetPipelineVersionByName_SQL_NotFound(t *testing.T) {
-	db := NewFakeDBOrFatal()
+// TestGetPipelineVersionByName_CaseInsensitive guards the read-path half of
+// the fix from https://github.com/kubeflow/pipelines/pull/12379#discussion_r3936849356:
+// once creation enforces LOWER(Name) uniqueness within a pipeline, exact-
+// name lookups must use the same case-insensitive equivalence, otherwise a
+// lookup for "foo" would not find a version stored as "Foo".
+func TestGetPipelineVersionByName_CaseInsensitive(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+		testDialect)
+
+	pipeline, err := pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
+	assert.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	resVersion, err := pipelineStore.CreatePipelineVersion(
+		createPipelineVersion(pipeline.UUID, "Foo", "", "", "", ""))
+	assert.Nil(t, err)
+
+	version, err := pipelineStore.GetPipelineVersionByName(pipeline.UUID, "foo")
+	assert.Nil(t, err)
+	assert.Equal(t, resVersion.UUID, version.UUID)
+	assert.Equal(t, "Foo", version.Name)
+}
+
+func TestGetPipelineVersionByName_SQL_NotFound(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+		testDialect)
 
 	_, err := pipelineStore.CreatePipeline(createPipeline("pipeline-a", "", ""))
 	assert.Nil(t, err)
@@ -2164,12 +2319,13 @@ func TestGetPipelineVersionByName_SQL_NotFound(t *testing.T) {
 }
 
 func TestGetPipelineVersionByName_WrongPipeline(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
 		db,
 		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil),
+		testDialect)
 
 	_, err := pipelineStore.CreatePipeline(createPipeline("pipeline-a", "", ""))
 	assert.Nil(t, err)
@@ -2182,4 +2338,90 @@ func TestGetPipelineVersionByName_WrongPipeline(t *testing.T) {
 	_, err = pipelineStore.GetPipelineVersionByName("nonexistent-pipeline-id", "v1.0")
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestListPipelines_WithTagFilter(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Create pipeline_foo with tag env=prod
+	p1 := createPipeline("pipeline_foo", "desc", "")
+	p1.Tags = map[string]string{"env": "prod"}
+	created1, err := pipelineStore.CreatePipeline(p1)
+	assert.Nil(t, err)
+
+	// Create pipeline_bar with tag env=dev
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	p2 := createPipeline("pipeline_bar", "desc", "")
+	p2.Tags = map[string]string{"env": "dev"}
+	_, err = pipelineStore.CreatePipeline(p2)
+	assert.Nil(t, err)
+
+	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", nil)
+	assert.Nil(t, err)
+
+	// Filter by env=prod — should return only pipeline_foo
+	pipelines, totalSize, _, err := pipelineStore.ListPipelines(&model.FilterContext{}, opts, map[string]string{"env": "prod"})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, totalSize)
+	assert.Equal(t, 1, len(pipelines))
+	assert.Equal(t, created1.UUID, pipelines[0].UUID)
+	assert.Equal(t, "pipeline_foo", pipelines[0].Name)
+
+	// Filter by env=staging — should return nothing
+	pipelines, totalSize, _, err = pipelineStore.ListPipelines(&model.FilterContext{}, opts, map[string]string{"env": "staging"})
+	assert.Nil(t, err)
+	assert.Equal(t, 0, totalSize)
+	assert.Equal(t, 0, len(pipelines))
+}
+
+func TestListPipelineVersions_WithTagFilter(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Create parent pipeline
+	p := createPipeline("pipeline_1", "desc", "")
+	_, err := pipelineStore.CreatePipeline(p)
+	assert.Nil(t, err)
+
+	// Create version_1 with tag stage=prod
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	pv1 := &model.PipelineVersion{
+		Name:       "version_1",
+		PipelineId: DefaultFakePipelineId,
+		Status:     model.PipelineVersionReady,
+		Tags:       map[string]string{"stage": "prod"},
+	}
+	created1, err := pipelineStore.CreatePipelineVersion(pv1)
+	assert.Nil(t, err)
+
+	// Create version_2 with tag stage=dev
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	pv2 := &model.PipelineVersion{
+		Name:       "version_2",
+		PipelineId: DefaultFakePipelineId,
+		Status:     model.PipelineVersionReady,
+		Tags:       map[string]string{"stage": "dev"},
+	}
+	_, err = pipelineStore.CreatePipelineVersion(pv2)
+	assert.Nil(t, err)
+
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
+	assert.Nil(t, err)
+
+	// Filter by stage=prod — should return only version_1
+	versions, totalSize, _, err := pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, map[string]string{"stage": "prod"})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, totalSize)
+	assert.Equal(t, 1, len(versions))
+	assert.Equal(t, created1.UUID, versions[0].UUID)
+	assert.Equal(t, "version_1", versions[0].Name)
+
+	// Filter by stage=staging — should return nothing
+	versions, totalSize, _, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, map[string]string{"stage": "staging"})
+	assert.Nil(t, err)
+	assert.Equal(t, 0, totalSize)
+	assert.Equal(t, 0, len(versions))
 }

@@ -30,6 +30,7 @@ import { createMemoryHistory } from 'history';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { vi } from 'vitest';
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 
 describe('ExperimentDetails', () => {
   const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => null);
@@ -150,7 +151,7 @@ describe('ExperimentDetails', () => {
     await waitForExperimentLoad();
     await screen.findByText('No available runs found for this experiment.');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('uses the experiment ID in props as the page title if the experiment has no name', async () => {
@@ -199,7 +200,7 @@ describe('ExperimentDetails', () => {
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
     await screen.findByText('No available runs found for this experiment.');
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('removes all description text after second newline and replaces with an ellipsis', async () => {
@@ -237,7 +238,7 @@ describe('ExperimentDetails', () => {
   });
 
   it('shows an error banner if fetching the experiment fails', async () => {
-    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'test error');
+    TestUtils.makeErrorResponse(getExperimentSpy, 'test error');
 
     await renderExperimentDetails();
 
@@ -297,11 +298,11 @@ describe('ExperimentDetails', () => {
     );
     screen.getByText('1 active');
     await screen.findByText('No available runs found for this experiment.');
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   }, 20000);
 
   it("shows an error banner if fetching the experiment's recurring runs fails", async () => {
-    TestUtils.makeErrorResponseOnce(listRecurringRunsSpy, 'test error');
+    TestUtils.makeErrorResponse(listRecurringRunsSpy, 'test error');
 
     await renderExperimentDetails();
 
@@ -394,7 +395,7 @@ describe('ExperimentDetails', () => {
   });
 
   it('clears the error banner on refresh', async () => {
-    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'test error');
+    TestUtils.makeErrorResponse(getExperimentSpy, 'test error');
 
     await renderExperimentDetails();
 
@@ -406,6 +407,7 @@ describe('ExperimentDetails', () => {
     const refreshAction = lastToolbarCall?.[0]?.actions?.[ButtonKeys.REFRESH];
     expect(refreshAction).toBeDefined();
 
+    getExperimentSpy.mockImplementation(() => newMockExperiment());
     await invokeAndFlush(async () => {
       await refreshAction!.action();
     });

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
@@ -25,7 +26,7 @@ var taskInfoStart = &plugins.TaskInfo{
 var taskInfoEnd = &plugins.TaskInfo{
 	Name:       "test-task",
 	RunEndTime: int64(1714400000000),
-	RunStatus:  "COMPLETED",
+	RunStatus:  apiV2beta1.PipelineTask_SUCCEEDED,
 	ScalarMetrics: map[string]float64{
 		"test-metric": 0.5,
 	},
@@ -330,7 +331,7 @@ func TestOnTaskEnd_EmptyMetrics_Success(t *testing.T) {
 	info := &plugins.TaskInfo{
 		Name:          "test-task",
 		RunEndTime:    int64(1714400000000),
-		RunStatus:     "COMPLETED",
+		RunStatus:     apiV2beta1.PipelineTask_SUCCEEDED,
 		ScalarMetrics: map[string]float64{},
 		Parameters: map[string]interface{}{
 			"test-param": "test-value",
@@ -357,7 +358,7 @@ func TestOnTaskEnd_NilMetrics_Success(t *testing.T) {
 	info := &plugins.TaskInfo{
 		Name:          "test-task",
 		RunEndTime:    int64(1714400000000),
-		RunStatus:     "COMPLETED",
+		RunStatus:     apiV2beta1.PipelineTask_SUCCEEDED,
 		ScalarMetrics: nil,
 		Parameters: map[string]interface{}{
 			"test-param": "test-value",
@@ -383,7 +384,7 @@ func TestOnTaskEnd_EmptyParams_Success(t *testing.T) {
 	info := &plugins.TaskInfo{
 		Name:       "test-task",
 		RunEndTime: int64(1714400000000),
-		RunStatus:  "COMPLETED",
+		RunStatus:  apiV2beta1.PipelineTask_SUCCEEDED,
 		ScalarMetrics: map[string]float64{
 			"test-metric": 0.5,
 		},
@@ -410,7 +411,7 @@ func TestOnTaskEnd_NilParams_Success(t *testing.T) {
 	info := &plugins.TaskInfo{
 		Name:       "test-task",
 		RunEndTime: int64(1714400000000),
-		RunStatus:  "COMPLETED",
+		RunStatus:  apiV2beta1.PipelineTask_SUCCEEDED,
 		ScalarMetrics: map[string]float64{
 			"test-metric": 0.5,
 		},

@@ -23,7 +23,7 @@ import CustomTable, {
   CustomRendererProps,
 } from 'src/components/CustomTable';
 import RunList from './RunList';
-import immerProduce from 'immer';
+import { produce as immerProduce } from 'immer';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -236,6 +236,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
                 ],
               } as V2beta1Filter),
             ),
+            /* skip_count */ true, // this page never displays the total run count
           );
           experiment.last5Runs = listRunsResponse.runs || [];
         } catch (err) {

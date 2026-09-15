@@ -63,6 +63,9 @@ rules:
   resources:
   - runs
   verbs:
+  - get
+  - list
+  - update
   - archive
   - create
   - delete
@@ -71,6 +74,7 @@ rules:
   - unarchive
   - reportMetrics
   - readArtifact
+  - readLog
 - apiGroups:
   - pipelines.kubeflow.org
   resources:
@@ -87,6 +91,13 @@ rules:
   resources:
   - scheduledworkflows
 - apiGroups:
+  - kubeflow.org
+  resources:
+  - viewers
+  verbs:
+  - create
+  - delete
+- apiGroups:
   - argoproj.io
   verbs:
   - '*'
@@ -98,6 +109,14 @@ rules:
   - workfloweventbindings
   - workflowtemplates
   - workflowtaskresults
+- apiGroups:
+    - pipelines.kubeflow.org
+  resources:
+    - artifacts
+  verbs:
+    - get
+    - list
+    - create
 
 ---
 
@@ -126,14 +145,20 @@ rules:
   - get
   - list
   - readArtifact
+  - readLog
+- apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - artifacts
+  verbs:
+  - get
+  - list
 - apiGroups:
   - kubeflow.org
   resources:
   - viewers
   verbs:
-  - create
   - get
-  - delete
 - apiGroups:
   - pipelines.kubeflow.org
   resources:

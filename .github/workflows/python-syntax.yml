@@ -1,0 +1,23 @@
+name: Python Syntax
+
+on:
+  pull_request:
+    paths:
+      - '**/*.py'
+      - '.github/workflows/python-syntax.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  python-syntax:
+    name: Check Python 3.9 syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.9'
+      - name: Check tracked Python syntax
+        run: python3 .github/resources/scripts/check_python_syntax.py

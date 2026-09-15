@@ -1,7 +1,7 @@
 .. _open-source-deployment:
 
-Deploying Kubeflow Pipelines 
-========
+Deploying Kubeflow Pipelines
+============================
 
 As an alternative to deploying Kubeflow Pipelines (KFP) as part of the
 `Kubeflow deployment <https://www.kubeflow.org/docs/started/installing-kubeflow/>`_,

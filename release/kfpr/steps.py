@@ -56,12 +56,23 @@ def manual_checklist(step_id: str, metadata) -> str:
 7. Confirm kfp-kubernetes-{metadata.major}.{metadata.minor} build succeeded.
 8. Set Default version to kfp-kubernetes-{metadata.major}.{metadata.minor}.''')
   if step_id == 'confirm-website-and-slack':
+    compatibility_steps = ''
+    slack_step = 4
+    if metadata.tag == '3.0.0':
+      compatibility_steps = '''
+4. In the same website PR, update the Kubeflow Pipelines operator installation and upgrade
+   documentation to announce that KFP 3.0 does not support Argo Workflows 3.x and requires a
+   supported Argo Workflows 4.x release.
+5. Confirm the KFP 3.0 GitHub release notes list removal of Argo Workflows 3.x support as a breaking
+   change and close https://github.com/kubeflow/pipelines/issues/14139 only after every migration and
+   documentation item is complete.'''
+      slack_step = 6
     return underline_links(f'''Manual final checkpoint:
 1. Open https://github.com/kubeflow/website/edit/master/layouts/shortcodes/pipelines/latest-version.html
 2. Write the version without a trailing newline:
    echo -n {metadata.tag} > layouts/shortcodes/pipelines/latest-version.html
-3. Open a PR titled: pipelines: release kfp {metadata.tag}
-4. After the website PR merges, announce in #kubeflow-pipelines:
+3. Open a PR titled: pipelines: release kfp {metadata.tag}{compatibility_steps}
+{slack_step}. After the website PR merges, announce in #kubeflow-pipelines:
    KFP {metadata.tag} has officially been released!
 
    Backend - https://github.com/kubeflow/pipelines/releases/tag/{metadata.tag}

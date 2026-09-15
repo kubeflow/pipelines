@@ -33,6 +33,7 @@ class TaskConfig:
                 dsl.TaskConfigField.KUBERNETES_AFFINITY,
                 dsl.TaskConfigPassthrough(field=dsl.TaskConfigField.ENV, apply_to_task=True),
                 dsl.TaskConfigPassthrough(field=dsl.TaskConfigField.KUBERNETES_VOLUMES, apply_to_task=True),
+                dsl.TaskConfigField.KUBERNETES_RESOURCE_CLAIMS,
             ],
         )
         def train(num_nodes: int, workspace_path: str, output_model: dsl.Output[dsl.Model], task_config: dsl.TaskConfig):
@@ -47,6 +48,13 @@ class TaskConfig:
                     namespace = ns_file.readline()
 
             train_job_script = "with open('/kfp-workspace/model', 'w') as f: f.write('hello')"
+
+            container_resources = dict(task_config.resources or {})
+            if task_config.resource_claims:
+                container_resources["claims"] = [
+                    {"name": claim["name"]}
+                    for claim in task_config.resource_claims
+                ]
 
             dataset_path = os.path.join(workspace_path, "dataset")
             with open(dataset_path, "w") as f:
@@ -72,10 +80,12 @@ class TaskConfig:
                                     {
                                         "name": "node",
                                         "volumeMounts": task_config.volume_mounts,
+                                        "resources": container_resources,
                                     }
                                 ],
                                 "nodeSelector": task_config.node_selector,
                                 "tolerations": task_config.tolerations,
+                                "resourceClaims": task_config.resource_claims,
                             }
                         ],
                     },
@@ -116,3 +126,4 @@ class TaskConfig:
     volumes: Optional[List[Dict[str, Any]]] = None
     volume_mounts: Optional[List[Dict[str, Any]]] = None
     resources: Optional[Dict[str, Any]] = None
+    resource_claims: Optional[List[Dict[str, Any]]] = None

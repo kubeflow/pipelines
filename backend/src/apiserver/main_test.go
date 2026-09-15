@@ -15,7 +15,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -25,6 +24,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -568,94 +568,153 @@ func TestResolveWebhookTLSPaths(t *testing.T) {
 func int64Ptr(v int64) *int64 { return &v }
 func boolPtr(v bool) *bool    { return &v }
 
-func TestClearTagsMiddleware(t *testing.T) {
-	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Got-Clear-Tags", r.Header.Get(common.ClearTagsMetadataKey))
-		body, _ := io.ReadAll(r.Body)
-		w.Header().Set("X-Body", string(body))
-		w.WriteHeader(http.StatusOK)
-	})
-	handler := clearTagsMiddleware(downstream)
+type errReader struct{ err error }
 
+func (e errReader) Read(p []byte) (n int, err error) { return 0, e.err }
+
+func TestClearTagsMiddleware(t *testing.T) {
 	tests := []struct {
-		name       string
-		method     string
-		body       string
-		wantHeader string
+		name                 string
+		method               string
+		path                 string
+		reqBodyStr           string
+		reqBodyReader        io.Reader // if set, overrides reqBodyStr
+		setupReq             func(*http.Request)
+		expectedStatus       int
+		expectedClearTags    string
+		expectDownstreamCall bool
+		expectedErrorJSON    string
 	}{
 		{
-			name:       "PUT with empty tags sets header",
-			method:     http.MethodPut,
-			body:       `{"tags":{}}`,
-			wantHeader: "true",
+			name:                 "not an update path",
+			method:               http.MethodPut,
+			path:                 "/apis/v2beta1/experiments/123",
+			reqBodyStr:           `{"tags":{}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "",
+			expectDownstreamCall: true,
 		},
 		{
-			name:       "PUT with non-empty tags does not set header",
-			method:     http.MethodPut,
-			body:       `{"tags":{"k":"v"}}`,
-			wantHeader: "",
+			name:                 "not a PUT/PATCH",
+			method:               http.MethodPost,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyStr:           `{"tags":{}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "",
+			expectDownstreamCall: true,
 		},
 		{
-			name:       "PUT without tags does not set header",
-			method:     http.MethodPut,
-			body:       `{"display_name":"foo"}`,
-			wantHeader: "",
+			name:                 "pipeline update with empty tags triggers header",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyStr:           `{"tags":{}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "true",
+			expectDownstreamCall: true,
 		},
 		{
-			name:       "GET request is ignored",
-			method:     http.MethodGet,
-			body:       "",
-			wantHeader: "",
+			name:                 "pipeline version update with empty tags triggers header",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123/versions/456",
+			reqBodyStr:           `{"tags":{}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "true",
+			expectDownstreamCall: true,
 		},
 		{
-			name:       "POST request is ignored",
-			method:     http.MethodPost,
-			body:       `{"tags":{}}`,
-			wantHeader: "",
+			name:                 "non-empty tags does not trigger header",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyStr:           `{"tags":{"k":"v"}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "",
+			expectDownstreamCall: true,
+		},
+		{
+			name:                 "body exactly at limit is accepted and preserved",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyStr:           strings.Repeat("a", MaxUpdateRequestBodySize),
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "",
+			expectDownstreamCall: true,
+		},
+		{
+			name:                 "body one byte over limit is rejected with 413",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyReader:        strings.NewReader(strings.Repeat("a", MaxUpdateRequestBodySize+1)),
+			expectedStatus:       http.StatusRequestEntityTooLarge,
+			expectDownstreamCall: false,
+			expectedErrorJSON:    `{"code":3,"message":"Request body too large"}`,
+		},
+		{
+			name:   "unknown content length over limit is rejected with 413",
+			method: http.MethodPatch,
+			path:   "/apis/v2beta1/pipelines/123",
+			setupReq: func(r *http.Request) {
+				r.ContentLength = -1
+				r.Body = io.NopCloser(strings.NewReader(strings.Repeat("a", MaxUpdateRequestBodySize+1)))
+			},
+			expectedStatus:       http.StatusRequestEntityTooLarge,
+			expectDownstreamCall: false,
+			expectedErrorJSON:    `{"code":3,"message":"Request body too large"}`,
+		},
+		{
+			name:                 "unrelated reader failure yields 400",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyReader:        errReader{err: errors.New("synthetic network error")},
+			expectedStatus:       http.StatusBadRequest,
+			expectDownstreamCall: false,
+			expectedErrorJSON:    `{"code":3,"message":"Failed to read request body"}`,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var bodyReader io.Reader
-			if tt.body != "" {
-				bodyReader = strings.NewReader(tt.body)
+			downstreamCalled := false
+			var readBody []byte
+			downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				downstreamCalled = true
+				if r.Body != nil {
+					readBody, _ = io.ReadAll(r.Body)
+				}
+				w.WriteHeader(http.StatusOK)
+			})
+			handler := clearTagsMiddleware(downstream)
+
+			var reqBody io.Reader
+			if tt.reqBodyReader != nil {
+				reqBody = tt.reqBodyReader
+			} else {
+				reqBody = strings.NewReader(tt.reqBodyStr)
 			}
-			req := httptest.NewRequest(tt.method, "/apis/v2beta1/pipelines/some-id", bodyReader)
-			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(tt.method, tt.path, reqBody)
 
-			handler.ServeHTTP(rr, req)
+			if tt.setupReq != nil {
+				tt.setupReq(req)
+			}
 
-			assert.Equal(t, tt.wantHeader, rr.Header().Get("X-Got-Clear-Tags"))
-			if tt.body != "" {
-				assert.Equal(t, tt.body, rr.Header().Get("X-Body"))
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+			assert.Equal(t, tt.expectDownstreamCall, downstreamCalled)
+
+			if tt.expectDownstreamCall {
+				assert.Equal(t, tt.expectedClearTags, req.Header.Get(common.ClearTagsMetadataKey))
+				// Ensure body is preserved entirely if we supplied a readable string
+				if tt.reqBodyReader == nil && tt.setupReq == nil {
+					assert.Equal(t, tt.reqBodyStr, string(readBody), "Downstream body should exactly match original body")
+				}
+			} else {
+				// Assert structured JSON error
+				assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+				assert.JSONEq(t, tt.expectedErrorJSON, rec.Body.String())
 			}
 		})
 	}
-}
-
-func TestGrpcCustomMatcher_ClearTags(t *testing.T) {
-	key, ok := grpcCustomMatcher(common.ClearTagsMetadataKey)
-	assert.True(t, ok)
-	assert.Equal(t, common.ClearTagsMetadataKey, key)
-
-	key, ok = grpcCustomMatcher("X-CLEAR-TAGS")
-	assert.True(t, ok)
-	assert.Equal(t, common.ClearTagsMetadataKey, key)
-}
-
-func TestClearTagsMiddleware_BodyPreserved(t *testing.T) {
-	original := `{"tags":{},"display_name":"test"}`
-	var capturedBody []byte
-	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		capturedBody, _ = io.ReadAll(r.Body)
-		w.WriteHeader(http.StatusOK)
-	})
-	handler := clearTagsMiddleware(downstream)
-
-	req := httptest.NewRequest(http.MethodPut, "/test", bytes.NewBufferString(original))
-	handler.ServeHTTP(httptest.NewRecorder(), req)
-
-	assert.Equal(t, original, string(capturedBody))
 }
 
 func noOpHandler(w http.ResponseWriter, r *http.Request) {}

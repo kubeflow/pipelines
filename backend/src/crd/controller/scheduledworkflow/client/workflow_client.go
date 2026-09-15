@@ -60,14 +60,17 @@ func (p *WorkflowClient) Get(namespace string, name string) (
 	return p.informer.Get(namespace, name)
 }
 
-// List returns a list of workflows given the name of their ScheduledWorkflow,
-// whether they are completed, and their minimum index (to avoid returning the whole list).
-func (p *WorkflowClient) List(swfName string, completed bool, minIndex int64) (
+// List returns a list of workflows in the given namespace given the name of
+// their ScheduledWorkflow, whether they are completed, and their minimum index
+// (to avoid returning the whole list). The namespace scope prevents workflows
+// in other namespaces from being counted against this ScheduledWorkflow when
+// the controller runs cluster-wide in multi-user mode.
+func (p *WorkflowClient) List(namespace string, swfName string, completed bool, minIndex int64) (
 	status []swfapi.WorkflowStatus, err error) {
 
 	labelSelector := getLabelSelectorToGetWorkflows(swfName, completed, minIndex)
 
-	workflows, err := p.informer.List(labelSelector)
+	workflows, err := p.informer.List(namespace, labelSelector)
 	if err != nil {
 		return nil, wraperror.Wrapf(err,
 			"Could not retrieve workflows for scheduled workflow (%v): %v", swfName, err)

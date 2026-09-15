@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -31,7 +32,7 @@ func TestListK8sPipelines(t *testing.T) {
 	fc := &model.FilterContext{}
 	options := list.EmptyOptions()
 
-	_, size, _, err := store.ListPipelines(fc, options, nil)
+	_, size, _, err := store.ListPipelines(fc, options)
 	require.Nil(t, err, "Failed to list all pipelines: %v")
 	require.Equalf(t, size, 1, "List size is not zero")
 
@@ -44,7 +45,7 @@ func TestListK8sPipelines(t *testing.T) {
 	_, err = store.CreatePipeline(pipeline)
 	require.Nil(t, err, "Failed to create Pipeline: %v", err)
 
-	_, size, _, err = store.ListPipelines(fc, options, nil)
+	_, size, _, err = store.ListPipelines(fc, options)
 	require.Nil(t, err, "Failed to list all pipelines: %v", err)
 	require.Equalf(t, size, 2, "List size should not be zero")
 }
@@ -77,7 +78,7 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "id", newFilter)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, _, _, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, _, _, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.Equalf(t, len(pipelines), 2, "List size should return 2")
 }
@@ -108,14 +109,14 @@ func TestListK8sPipelines_Pagination(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
 	require.Nil(t, err1, "Failed to create list options: %v")
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
 }
@@ -146,13 +147,14 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "name desc", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	require.NoError(t, err1)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
 }
@@ -183,13 +185,14 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "name", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	require.NoError(t, err1)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-1", "Pagination failed")
 }
@@ -204,7 +207,7 @@ func TestListK8sPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, pageSize, _, err := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, pageSize, _, err := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err, "Failed to list pipelines: %v")
 	require.Equalf(t, pageSize, 1, "Page size should be 1")
 	require.Equalf(t, len(pipelines), 1, "List size should be 1")
@@ -375,14 +378,14 @@ func TestListK8sPipelineVersions_Pagination(t *testing.T) {
 	options, err := list.NewOptions(&model.PipelineVersion{}, 1, "", nil)
 	require.Nil(t, err, "Failed to create list options")
 
-	pipelineVersions, _, npt, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, npt, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.NotNil(t, npt, "Npt should not be nil")
 
 	options, err = list.NewOptionsFromToken(npt, 1)
 	require.Nil(t, err, "Failed to create list options")
-	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.Equalf(t, pipelineVersions[0].Name, "test-pipeline-version-3", "Pagination did not work as expected")
@@ -414,7 +417,7 @@ func TestListK8sPipelineVersions_Pagination_Descend(t *testing.T) {
 
 	options, err := list.NewOptions(&model.PipelineVersion{}, 1, "name desc", nil)
 
-	pipelineVersions, _, _, err1 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err1 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err1, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.Equalf(t, pipelineVersions[0].Name, "test-pipeline-version-3", "Pagination did not work as expected")
@@ -430,7 +433,7 @@ func TestListK8sPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, pageSize, _, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelines, pageSize, _, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline Versions: %v")
 	require.Equalf(t, pageSize, 1, "Page size should be 1")
 	require.Equalf(t, len(pipelines), 1, "List size should be 1")
@@ -470,7 +473,7 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	options, err1 := list.NewOptions(&model.PipelineVersion{}, 1, "", newFilter)
 	require.Nil(t, err1, "Failed to list pipeline versions: %v", err)
 
-	pipelineVersions, _, _, err2 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err2 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err2, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 }
@@ -637,6 +640,96 @@ func TestGetPipelineVersionByName_NotFound(t *testing.T) {
 	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "nonexistent")
 	require.NotNil(t, err)
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.NotFound)
+}
+
+func TestIsNewerPipelineVersion(t *testing.T) {
+	earlier := metav1.Unix(1700000000, 0)
+	later := metav1.Unix(1700000001, 0)
+
+	newerVersion := func(uid string, created metav1.Time) *v2beta1.PipelineVersion {
+		return &v2beta1.PipelineVersion{
+			ObjectMeta: metav1.ObjectMeta{UID: types.UID(uid), CreationTimestamp: created},
+		}
+	}
+
+	tests := []struct {
+		name     string
+		a        *v2beta1.PipelineVersion
+		b        *v2beta1.PipelineVersion
+		expected bool
+	}{
+		{"later timestamp wins", newerVersion("aaa", later), newerVersion("zzz", earlier), true},
+		{"earlier timestamp loses", newerVersion("zzz", earlier), newerVersion("aaa", later), false},
+		{"tie broken by higher uid", newerVersion("bbb", earlier), newerVersion("aaa", earlier), true},
+		{"tie broken against lower uid", newerVersion("aaa", earlier), newerVersion("bbb", earlier), false},
+		{"identical is not newer", newerVersion("aaa", earlier), newerVersion("aaa", earlier), false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, isNewerPipelineVersion(test.a, test.b))
+		})
+	}
+}
+
+// Versions created within the same second tie on CreationTimestamp.
+func TestGetLatestK8sPipelineVersion_SameCreationSecondIsDeterministic(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	const pipelineID = "e1b2c3d4-0000-4000-8000-000000000001"
+	sameSecond := metav1.Unix(1700000000, 0)
+
+	pipeline := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{UID: pipelineID, Name: "tie-pipeline", Namespace: "Test"},
+	}
+
+	version := func(name, uid string) *v2beta1.PipelineVersion {
+		return &v2beta1.PipelineVersion{
+			ObjectMeta: metav1.ObjectMeta{
+				UID:               types.UID(uid),
+				Name:              name,
+				Namespace:         "Test",
+				CreationTimestamp: sameSecond,
+				Labels:            map[string]string{"pipelines.kubeflow.org/pipeline-id": pipelineID},
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: v2beta1.GroupVersion.String(),
+					Kind:       "Pipeline",
+					Name:       "tie-pipeline",
+					UID:        pipelineID,
+				}},
+			},
+			Spec: v2beta1.PipelineVersionSpec{
+				VersionName:  name,
+				PipelineName: "tie-pipeline",
+				PipelineSpec: getBasicPipelineSpec(),
+			},
+		}
+	}
+
+	lowUID := version("tie-version-low", "00000000-0000-4000-8000-000000000001")
+	highUID := version("tie-version-high", "ffffffff-0000-4000-8000-000000000002")
+
+	// Seed both orderings; the same version must win regardless of list order.
+	for _, ordering := range [][]client.Object{
+		{lowUID, highUID},
+		{highUID, lowUID},
+	} {
+		k8sClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(append([]client.Object{pipeline}, ordering...)...).
+			Build()
+
+		store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+		latest, err := store.GetLatestPipelineVersion(pipelineID)
+		require.NoError(t, err)
+		assert.Equal(t, "tie-version-high", latest.Name)
+	}
 }
 
 func getClient() (client.Client, client.Client) {

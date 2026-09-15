@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.26.5-bookworm@sha256:6c5605ab3a9a9fb3c4eafe5b3d63cdbf3881caf113262b67862547b54a9db599 AS builder
+FROM golang:1.27.1-bookworm@sha256:648f440f42a0958804efb24df176f806f9d353b41f1c0627f666428e40310f6b AS builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./

@@ -14,6 +14,8 @@
 # limitations under the License.
 """Detect dependency-only changes that require generated-file validation."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import PurePosixPath
 import subprocess

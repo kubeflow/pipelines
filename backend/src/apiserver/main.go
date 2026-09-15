@@ -43,6 +43,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/gc"
 	_ "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/all"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
@@ -317,6 +318,24 @@ func main() {
 
 	wg.Add(1)
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+
+	// Start run GC when a retention window is configured. The collector
+	// re-validates the required database index on every tick and skips
+	// collection until the operator has applied the index migration.
+	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
+		runGC := gc.NewRunGarbageCollector(
+			clientManager.RunStore(),
+			clientManager.KubernetesCoreClient().GetClientSet(),
+			common.GetPodNamespace(),
+			clientManager.GarbageCollectorIndexChecker(),
+		)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			runGC.Start(backgroundCtx)
+		}()
+	}
+
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
 	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)
@@ -352,18 +371,42 @@ func grpcCustomMatcher(key string) (string, bool) {
 //
 // Scoped to pipeline and pipeline version update paths to avoid interfering
 // with other endpoints that may have a top-level "tags" field.
+// MaxUpdateRequestBodySize is the maximum size (32 MiB) of the request body
+// for pipeline and version update endpoints. This ceiling prevents unbounded memory
+// buffering on mutable fields, though it allows updating full pipeline objects.
+const MaxUpdateRequestBodySize = 32 << 20
+
 func clearTagsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if (r.Method == http.MethodPut || r.Method == http.MethodPatch) && r.Body != nil &&
 			isPipelineUpdatePath(r.URL.Path) {
+			// Enforce an explicit request ceiling to bound request-body buffering
+			// and reject oversized updates.
+			r.Body = http.MaxBytesReader(w, r.Body, int64(MaxUpdateRequestBodySize))
 			body, err := io.ReadAll(r.Body)
 			r.Body.Close()
-			if err == nil {
-				var raw map[string]json.RawMessage
-				if json.Unmarshal(body, &raw) == nil {
-					if tagsVal, hasTags := raw["tags"]; hasTags && string(tagsVal) == "{}" {
-						r.Header.Set(common.ClearTagsMetadataKey, "true")
-					}
+			if err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				var maxBytesErr *http.MaxBytesError
+				if errors.As(err, &maxBytesErr) {
+					w.WriteHeader(http.StatusRequestEntityTooLarge)
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"code":    3, // InvalidArgument
+						"message": "Request body too large",
+					})
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"code":    3,
+						"message": "Failed to read request body",
+					})
+				}
+				return
+			}
+			var raw map[string]json.RawMessage
+			if json.Unmarshal(body, &raw) == nil {
+				if tagsVal, hasTags := raw["tags"]; hasTags && string(tagsVal) == "{}" {
+					r.Header.Set(common.ClearTagsMetadataKey, "true")
 				}
 			}
 			r.Body = io.NopCloser(bytes.NewReader(body))
@@ -429,13 +472,13 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	ReportServerV1 := server.NewReportServerV1(resourceManager)
 	ReportServer := server.NewReportServer(resourceManager)
 
+	ArtifactServer := server.NewArtifactServer(resourceManager)
+
 	apiv1beta1.RegisterExperimentServiceServer(s, ExperimentServerV1)
 	apiv1beta1.RegisterPipelineServiceServer(s, PipelineServerV1)
 	apiv1beta1.RegisterJobServiceServer(s, JobServerV1)
 	apiv1beta1.RegisterRunServiceServer(s, RunServerV1)
-	apiv1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
 	apiv1beta1.RegisterReportServiceServer(s, ReportServerV1)
-
 	apiv1beta1.RegisterVisualizationServiceServer(
 		s,
 		server.NewVisualizationServer(
@@ -444,12 +487,12 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 			common.GetStringConfig(cm.VisualizationServicePort),
 		))
 	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
-
 	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
 	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
 	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
 	apiv2beta1.RegisterRunServiceServer(s, RunServer)
 	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
+	apiv2beta1.RegisterArtifactServiceServer(s, ArtifactServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -497,6 +540,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
 	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
 	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
+	register(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
 
 	sharedPipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
 	runLogServer := server.NewRunLogServer(resourceManager)

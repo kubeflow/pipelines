@@ -84,8 +84,11 @@ func AllModels() []any {
 		&PipelineVersionTag{},
 		&Job{},
 		&Run{},
-		&RunMetric{},
+		&RunMetricV1{},
 		&Task{},
+		&Artifact{},
+		&ArtifactTask{},
 		&ResourceReference{},
+		&MigrationStatus{},
 	}
 }

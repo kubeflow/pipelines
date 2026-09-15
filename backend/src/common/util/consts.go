@@ -54,6 +54,12 @@ const (
 	// It captures the the name of the Run.
 	AnnotationKeyRunName = "pipelines.kubeflow.org/run_name"
 
+	// AnnotationKeyRetryGeneration is stamped on a retried Workflow with the
+	// RetryGeneration claim token from ClaimRunForRetry. ReportWorkflowResource
+	// compares it against the run's current generation to fence terminal
+	// reports from stale pre-retry workflow snapshots.
+	AnnotationKeyRetryGeneration = "pipelines.kubeflow.org/retry-generation"
+
 	AnnotationKeyIstioSidecarInject           = "sidecar.istio.io/inject"
 	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"

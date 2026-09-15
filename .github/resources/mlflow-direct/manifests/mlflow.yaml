@@ -43,8 +43,10 @@ spec:
           set -e
           auth_args=""
           if [ "${MLFLOW_AUTH_TYPE}" = "basic-auth" ]; then
+            # Only Flask-WTF is missing; mlflow[auth] would shadow the image's deps.
+            # Pinned because --no-deps bypasses MLflow's own Flask-WTF<2 constraint.
             python -m pip install --no-cache-dir --target /mlflow/python-packages \
-              "mlflow[auth]==$(python -c 'import mlflow; print(mlflow.__version__)')"
+              --no-deps "Flask-WTF==1.3.0" "WTForms==3.2.2"
             export PYTHONPATH="/mlflow/python-packages${PYTHONPATH:+:${PYTHONPATH}}"
             python -m mlflow.server.auth db upgrade --url sqlite:////mlflow/basic_auth.db
             cd /mlflow

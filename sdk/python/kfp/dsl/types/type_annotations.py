@@ -17,7 +17,12 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import Any, List, Optional, Type, TypeVar, Union
+from typing import Any, get_origin, List, Optional, Type, TypeVar, Union
+
+try:
+    from types import UnionType as _UnionType
+except ImportError:  # PEP 604 `X | Y` syntax; no types.UnionType before 3.10.
+    _UnionType = None
 
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -200,10 +205,11 @@ T = TypeVar('T')
 
 
 def maybe_strip_optional_from_annotation(annotation: T) -> T:
-    """Strips 'Optional' from 'Optional[<type>]' if applicable.
+    """Strips 'Optional' from 'Optional[<type>]' or 'X | None' if applicable.
 
     For example::
       Optional[str] -> str
+      str | None -> str
       str -> str
       List[int] -> List[int]
 
@@ -214,9 +220,17 @@ def maybe_strip_optional_from_annotation(annotation: T) -> T:
     Returns:
       The type inside Optional[] if Optional exists, otherwise the original type.
     """
-    if getattr(annotation, '__origin__',
-               None) is Union and annotation.__args__[1] is type(None):
-        return annotation.__args__[0]
+    # get_origin(), unlike '__origin__', also recognizes a PEP 604 `X | Y`
+    # union (a types.UnionType instance), which carries no '__origin__'
+    # attribute at all.
+    origin = get_origin(annotation)
+    if origin is Union or (_UnionType is not None and origin is _UnionType):
+        args = annotation.__args__
+        if len(args) == 2:
+            if args[1] is type(None):
+                return args[0]
+            if args[0] is type(None):
+                return args[1]
     return annotation
 
 

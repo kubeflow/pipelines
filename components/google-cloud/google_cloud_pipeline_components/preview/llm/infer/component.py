@@ -23,7 +23,7 @@ from google_cloud_pipeline_components._implementation.llm import preprocess_chat
 from google_cloud_pipeline_components._implementation.llm import private_text_importer
 import kfp
 
-PipelineOutput = NamedTuple('Outputs', output_prediction_gcs_path=str)
+PipelineOutput = NamedTuple('Outputs', output_prediction_gcs_path=str)  # pyrefly: ignore[bad-class-definition]
 
 
 @kfp.dsl.pipeline(
@@ -124,7 +124,7 @@ def infer_pipeline(
   ).set_display_name('Bulk Inferrer')
 
   return PipelineOutput(
-      output_prediction_gcs_path=bulk_inference.outputs[
+      output_prediction_gcs_path=bulk_inference.outputs[  # pyrefly: ignore[unexpected-keyword]
           'output_prediction_gcs_path'
       ]
   )

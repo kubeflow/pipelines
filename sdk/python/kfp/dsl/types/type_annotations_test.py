@@ -167,6 +167,21 @@ class AnnotationsTest(parameterized.TestCase):
             type_annotations.maybe_strip_optional_from_annotation(
                 original_annotation))
 
+    @unittest.skipUnless(
+        sys.version_info >= (3, 10),
+        'PEP 604 `X | Y` union syntax requires Python 3.10+; the `|` '
+        'operator on bare types is only defined from that version on, so '
+        'evaluating it on 3.9 raises TypeError rather than being skipped.')
+    def test_maybe_strip_optional_from_annotation_pep604_union(self):
+        # PEP 604 syntax (`X | None`), not just `Optional[X]`/`Union[X, None]`.
+        self.assertEqual(
+            str,
+            type_annotations.maybe_strip_optional_from_annotation(str | None))
+        # None on the other side of the `|` should also be stripped.
+        self.assertEqual(
+            str,
+            type_annotations.maybe_strip_optional_from_annotation(None | str))
+
     @parameterized.parameters(
         {
             'original_type_name': 'str',

@@ -105,7 +105,7 @@ def create_hyperparameter_tuning_job(
           'success_trials_count': len(completed_trials),
           'total_trials_count': len(get_job_response.trials),
       }
-      with open(execution_metrics, 'w') as f:
+      with open(execution_metrics, 'w') as f:  # pyrefly: ignore[no-matching-overload]
         f.write(json.dumps(execution_metrics_dict, sort_keys=True))
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

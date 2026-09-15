@@ -53,7 +53,12 @@ export default class TestUtils {
 
   /**
    * Adds a one-time mock implementation to the provided spy that mimics an error
-   * network response
+   * network response.
+   *
+   * Tests render under Strict Mode (see vitest.setup.ts), which mounts class
+   * pages twice, so a request issued from componentDidMount consumes this
+   * one-time error on the first mount and succeeds on the second. Use
+   * makeErrorResponse when the error should apply to the page under test.
    */
   public static makeErrorResponseOnce(spy: MockInstance, message: string): void {
     spy.mockImplementationOnce(() => {

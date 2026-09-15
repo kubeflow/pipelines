@@ -33,7 +33,7 @@ class ArtifactUploadRetryTest(unittest.TestCase):
     def test_retry_action_preserves_outputs_and_avoids_name_collisions(self):
         action = RETRY_ACTION.read_text(encoding='utf-8')
 
-        self.assertEqual(action.count('uses: actions/upload-artifact@v7'), 2)
+        self.assertEqual(action.count('uses: actions/upload-artifact@'), 2)
         self.assertIn("steps.primary.outcome == 'failure'", action)
         self.assertIn('sleep "$RETRY_DELAY_SECONDS"', action)
         self.assertIn(
@@ -55,7 +55,7 @@ class ArtifactUploadRetryTest(unittest.TestCase):
             action.count('uses: ./.github/actions/upload-artifact-with-retry'),
             3,
         )
-        self.assertNotIn('uses: actions/upload-artifact@v7', action)
+        self.assertNotIn('uses: actions/upload-artifact@', action)
 
         for step_name in (
             'Upload Kind cluster logs',

@@ -1,10 +1,10 @@
 module github.com/kubeflow/pipelines/api
 
-go 1.26
+go 1.27.0
 
-toolchain go1.26.3
+toolchain go1.27.1
 
 require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250715232539-7130f93afb79
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )

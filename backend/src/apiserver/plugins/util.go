@@ -135,10 +135,11 @@ func ModelToPersistedRun(m *model.Run, namespace string) (*PersistedRun, error) 
 		return nil, fmt.Errorf("failed to deserialize plugins_output for run %q: %w", m.UUID, err)
 	}
 	pr := &PersistedRun{
-		RunID:         m.UUID,
-		Namespace:     namespace,
-		State:         string(m.RunDetails.State), //nolint:staticcheck // QF1008
-		PluginsOutput: pluginsOutput,
+		RunID:           m.UUID,
+		Namespace:       namespace,
+		State:           string(m.RunDetails.State),   //nolint:staticcheck // QF1008
+		RetryGeneration: m.RunDetails.RetryGeneration, //nolint:staticcheck // QF1008
+		PluginsOutput:   pluginsOutput,
 	}
 	if m.RunDetails.FinishedAtInSec > 0 { //nolint:staticcheck // QF1008
 		t := time.Unix(m.RunDetails.FinishedAtInSec, 0) //nolint:staticcheck // QF1008

@@ -168,7 +168,7 @@ class JobRemoteRunner:
             )
             # Recreate the Python API client.
             self.job_client = aiplatform_v1beta1.JobServiceClient(
-                self.client_options, self.client_info
+                self.client_options, self.client_info  # pyrefly: ignore[bad-argument-count]
             )
             logging.info(
                 'Waiting for %s seconds for next poll.',
@@ -183,7 +183,7 @@ class JobRemoteRunner:
                 f'Request failed after {_CONNECTION_ERROR_RETRY_LIMIT} retries.'
             )
 
-        if get_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:
+        if get_job_response.state == gca_job_state.JobState.JOB_STATE_SUCCEEDED:  # pyrefly: ignore[unbound-name]
           logging.info(
               'Get%s response state =%s', self.job_type, get_job_response.state
           )

@@ -32,11 +32,17 @@ import (
 	"github.com/cenkalti/backoff"
 	mysqlStd "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
+	"github.com/google/uuid"
+	pgxStd "github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	commonsql "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql"
+	sqldrv "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -44,6 +50,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,11 +69,12 @@ const (
 	mysqlGroupConcatMaxLen = "DBConfig.MySQLConfig.GroupConcatMaxLen"
 	mysqlExtraParams       = "DBConfig.MySQLConfig.ExtraParams"
 
-	postgresHost     = "DBConfig.PostgreSQLConfig.Host"
-	postgresPort     = "DBConfig.PostgreSQLConfig.Port"
-	postgresUser     = "DBConfig.PostgreSQLConfig.User"
-	postgresPassword = "DBConfig.PostgreSQLConfig.Password"
-	postgresDBName   = "DBConfig.PostgreSQLConfig.DBName"
+	postgresHost        = "DBConfig.PostgreSQLConfig.Host"
+	postgresPort        = "DBConfig.PostgreSQLConfig.Port"
+	postgresUser        = "DBConfig.PostgreSQLConfig.User"
+	postgresPassword    = "DBConfig.PostgreSQLConfig.Password"
+	postgresDBName      = "DBConfig.PostgreSQLConfig.DBName"
+	postgresExtraParams = "DBConfig.PostgreSQLConfig.ExtraParams"
 
 	archiveLogFileName   = "ARCHIVE_CONFIG_LOG_FILE_NAME"
 	archiveLogPathPrefix = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
@@ -93,14 +101,20 @@ func init() {
 	}
 }
 
-// Container for all service clients.
+// Ensure that ClientManager implements the resource.ClientManagerInterface interface.
+var _ resource.ClientManagerInterface = &ClientManager{}
+
+// ClientManager Container for all service clients.
 type ClientManager struct {
-	db                        *storage.DB
+	db                        *sql.DB
+	dbDialect                 sqldrv.DBDialect
 	experimentStore           storage.ExperimentStoreInterface
 	pipelineStore             storage.PipelineStoreInterface
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
 	taskStore                 storage.TaskStoreInterface
+	artifactStore             storage.ArtifactStoreInterface
+	artifactTaskStore         storage.ArtifactTaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -116,6 +130,7 @@ type ClientManager struct {
 	authenticators            []auth.Authenticator
 	controllerClient          ctrlclient.Client
 	controllerClientNoCache   ctrlclient.Client
+	gcIndexChecker            func() bool
 }
 
 // Options to pass to Client Manager initialization
@@ -124,6 +139,14 @@ type Options struct {
 	GlobalKubernetesWebhookMode  bool
 	Context                      context.Context
 	WaitGroup                    *sync.WaitGroup
+}
+
+// GarbageCollectorIndexChecker returns a function that re-validates the GC
+// lifecycle index against the database catalog. The GC loop calls it on every
+// collection tick, so an operator can apply (or roll back) the index
+// migration without restarting the API server.
+func (c *ClientManager) GarbageCollectorIndexChecker() func() bool {
+	return c.gcIndexChecker
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
@@ -152,6 +175,14 @@ func (c *ClientManager) JobStore() storage.JobStoreInterface {
 
 func (c *ClientManager) RunStore() storage.RunStoreInterface {
 	return c.runStore
+}
+
+func (c *ClientManager) ArtifactStore() storage.ArtifactStoreInterface {
+	return c.artifactStore
+}
+
+func (c *ClientManager) ArtifactTaskStore() storage.ArtifactTaskStoreInterface {
+	return c.artifactTaskStore
 }
 
 func (c *ClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {
@@ -271,23 +302,36 @@ func (c *ClientManager) init(options *Options) error {
 		c.pipelineStore = storage.NewPipelineStoreKubernetes(controllerClient, controllerClientNoCache)
 		pipelineStoreForRef = c.pipelineStore
 	}
-
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
-	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db, dbDialect, gcIndexChecker := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
+	c.dbDialect = dbDialect
 	glog.Info("DB client initialized successfully")
 
 	c.db = db
+	c.gcIndexChecker = gcIndexChecker
 	if !options.UsePipelineKubernetesStorage {
-		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
+		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid, c.dbDialect)
 	}
-	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)
-	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef)
-	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid)
-	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef)
-	c.dBStatusStore = storage.NewDBStatusStore(db)
-	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
+	experimentStore, err := storage.NewExperimentStore(db, c.time, c.uuid, c.dbDialect)
+	if err != nil {
+		glog.Fatalf("Failed to initialize experiment store: %v", err)
+	}
+	c.experimentStore = experimentStore
+	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef, c.dbDialect)
+	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid, c.dbDialect)
+	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef, c.dbDialect)
+	dBStatusStore, err := storage.NewDBStatusStore(db, c.dbDialect)
+	if err != nil {
+		glog.Fatalf("Failed to initialize DB status store: %v", err)
+	}
+	c.dBStatusStore = dBStatusStore
+	defaultExperimentStore, err := storage.NewDefaultExperimentStore(db, c.dbDialect)
+	if err != nil {
+		glog.Fatalf("Failed to initialize default experiment store: %v", err)
+	}
+	c.defaultExperimentStore = defaultExperimentStore
 
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
@@ -310,8 +354,10 @@ func (c *ClientManager) init(options *Options) error {
 	c.objectStore = objectStore
 	glog.Info("Object store client initialized successfully")
 
-	runStore := storage.NewRunStore(db, c.time)
+	runStore := storage.NewRunStore(db, c.time, c.dbDialect)
 	c.runStore = runStore
+	c.artifactStore = storage.NewArtifactStore(db, c.time, c.uuid, c.dbDialect)
+	c.artifactTaskStore = storage.NewArtifactTaskStore(db, c.uuid, c.dbDialect)
 
 	// Log archive
 	c.logArchive = initLogArchive()
@@ -330,7 +376,132 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
+const garbageCollectorTableName = "run_details"
+
+// garbageCollectorIndexSpec names one index the run GC requires and the exact
+// column list it must have.
+type garbageCollectorIndexSpec struct {
+	name    string
+	columns string
+}
+
+// garbageCollectorRequiredIndexes are all indexes the run GC needs: the
+// lifecycle index drives the archive pass and the legacy delete predicate
+// (rows archived before ArchivedAtInSec existed); the archived index drives
+// the delete pass's archival-time predicate.
+var garbageCollectorRequiredIndexes = []garbageCollectorIndexSpec{
+	{name: "idx_run_gc_lifecycle", columns: "StorageState,FinishedAtInSec"},
+	{name: "idx_run_gc_archived", columns: "StorageState,ArchivedAtInSec"},
+}
+
+type garbageCollectorIndexStatus struct {
+	currentSchema string
+	tableSchema   string
+	tableName     string
+	indexName     string
+	columns       string
+	valid         bool
+	ready         bool
+	unconditional bool
+}
+
+func (status garbageCollectorIndexStatus) isReady(spec garbageCollectorIndexSpec) bool {
+	return status.currentSchema != "" &&
+		status.tableSchema == status.currentSchema &&
+		status.tableName == garbageCollectorTableName &&
+		status.indexName == spec.name &&
+		status.columns == spec.columns &&
+		status.valid && status.ready && status.unconditional
+}
+
+// validateGarbageCollectorIndexes only reads database catalog metadata. Index
+// creation is an explicit operator migration so API-server startup never runs
+// heavyweight DDL from every replica. All required indexes must be present
+// and usable.
+func validateGarbageCollectorIndexes(db *gorm.DB, dialect sqldrv.DBDialect) (bool, error) {
+	for _, spec := range garbageCollectorRequiredIndexes {
+		ready, err := validateGarbageCollectorIndex(db, dialect, spec)
+		if err != nil {
+			return false, err
+		}
+		if !ready {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func validateGarbageCollectorIndex(db *gorm.DB, dialect sqldrv.DBDialect, spec garbageCollectorIndexSpec) (bool, error) {
+	var status garbageCollectorIndexStatus
+	var row *sql.Row
+
+	switch dialect.Name() {
+	case "pgx":
+		row = db.Raw(`
+			SELECT current_schema(), table_namespace.nspname, table_class.relname,
+			       index_class.relname,
+			       string_agg(attribute.attname, ',' ORDER BY index_key.ordinality),
+			       index_metadata.indisvalid, index_metadata.indisready,
+			       bool_and(index_metadata.indpred IS NULL AND access_method.amname = 'btree')
+			FROM pg_index AS index_metadata
+			JOIN pg_class AS index_class
+			  ON index_class.oid = index_metadata.indexrelid
+			JOIN pg_class AS table_class
+			  ON table_class.oid = index_metadata.indrelid
+			JOIN pg_namespace AS table_namespace
+			  ON table_namespace.oid = table_class.relnamespace
+			JOIN pg_namespace AS index_namespace
+			  ON index_namespace.oid = index_class.relnamespace
+			JOIN pg_am AS access_method
+			  ON access_method.oid = index_class.relam
+			CROSS JOIN LATERAL unnest(index_metadata.indkey::smallint[])
+			  WITH ORDINALITY AS index_key(attnum, ordinality)
+			JOIN pg_attribute AS attribute
+			  ON attribute.attrelid = table_class.oid
+			 AND attribute.attnum = index_key.attnum
+			WHERE table_namespace.nspname = current_schema()
+			  AND index_namespace.nspname = table_namespace.nspname
+			  AND table_class.relname = ?
+			  AND index_class.relname = ?
+			  AND index_metadata.indexprs IS NULL
+			GROUP BY table_namespace.nspname, table_class.relname, index_class.relname,
+			         index_metadata.indisvalid, index_metadata.indisready`, garbageCollectorTableName, spec.name).Row()
+	case "mysql":
+		row = db.Raw(`
+			SELECT DATABASE(), TABLE_SCHEMA, TABLE_NAME, INDEX_NAME,
+			       GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR ','),
+			       TRUE, TRUE,
+			       SUM(SUB_PART IS NULL AND INDEX_TYPE = 'BTREE') = COUNT(*)
+			FROM information_schema.STATISTICS
+			WHERE TABLE_SCHEMA = DATABASE()
+			  AND TABLE_NAME = ?
+			  AND INDEX_NAME = ?
+			GROUP BY TABLE_SCHEMA, TABLE_NAME, INDEX_NAME`, garbageCollectorTableName, spec.name).Row()
+	default:
+		return false, fmt.Errorf("garbage collector index validation is not supported for dialect %q", dialect.Name())
+	}
+
+	err := row.Scan(
+		&status.currentSchema,
+		&status.tableSchema,
+		&status.tableName,
+		&status.indexName,
+		&status.columns,
+		&status.valid,
+		&status.ready,
+		&status.unconditional,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("query garbage collector index metadata: %w", err)
+	}
+
+	return status.isReady(spec), nil
+}
+
+func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialect, func() bool) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -355,8 +526,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// and maintains its own pool of idle connections.
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
-
-	dialect := GetDialect(driverName)
+	dbDialect := sqldrv.NewDBDialect(driverName)
 
 	legacy, err := isLegacySchema(db)
 	if err != nil {
@@ -365,18 +535,42 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if legacy {
 		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
 		// clean up legacy indexes/constraints, and perform backfills.
-		util.TerminateIfError(runLegacyUpgradeFlow(db, dialect))
+		util.TerminateIfError(runLegacyUpgradeFlow(db, dbDialect))
 	} else {
 		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
 		// upgrades between >=2.15 versions.
 		util.TerminateIfError(autoMigrate(db))
 	}
 
+	// Runs on both paths: a deployment that took the legacy upgrade before this
+	// backfill existed is no longer detected as legacy, but can still hold
+	// reference-only rows. Recorded in migration_statuses once complete, so
+	// later startups return before touching run_details.
+	util.TerminateIfError(backfillPipelineRefsToRunTable(db, dbDialect))
+	createExpressionIndexes(db, dbDialect)
+
+	// gcIndexChecker re-reads the catalog on demand; the gorm handle shares
+	// the connection pool with the returned *sql.DB. The GC loop calls
+	// this on every tick, so index migrations take effect without a restart.
+	gcIndexChecker := func() bool {
+		ready, indexValidationError := validateGarbageCollectorIndexes(db, dbDialect)
+		if indexValidationError != nil {
+			glog.Errorf("Failed to validate GC lifecycle index: %v", indexValidationError)
+			return false
+		}
+		return ready
+	}
+	if (common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0) && !gcIndexChecker() {
+		glog.Warning("Run GC paused: idx_run_gc_lifecycle and/or idx_run_gc_archived is missing or incompatible. " +
+			"Apply the online index migration in docs/agents/development.md; " +
+			"GC re-checks the index on every collection tick and starts automatically once it is ready.")
+	}
+
 	newdb, err := db.DB()
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	return storage.NewDB(newdb, storage.NewMySQLDialect())
+	return newdb, dbDialect, gcIndexChecker
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
@@ -385,9 +579,10 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 func initDBDriver(driverName string, initConnectionTimeout time.Duration) string {
 	var sqlConfig, dbName string
 	var mysqlConfig *mysqlStd.Config
+	var pgxConfig *pgxStd.ConnConfig
 	switch driverName {
 	case "mysql":
-		mysqlConfig = client.CreateMySQLConfig(
+		mysqlConfig = commonsql.CreateMySQLConfig(
 			common.GetStringConfigWithDefault(mysqlUser, "root"),
 			common.GetStringConfigWithDefault(mysqlPassword, ""),
 			common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
@@ -399,13 +594,19 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		sqlConfig = mysqlConfig.FormatDSN()
 		dbName = common.GetStringConfig(mysqlDBName)
 	case "pgx":
-		sqlConfig = client.CreatePostgreSQLConfig(
+		var pgxConfigErr error
+		pgxConfig, _, pgxConfigErr = commonsql.CreatePostgreSQLConfig(
 			common.GetStringConfigWithDefault(postgresUser, "user"),
 			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			"postgres",
 			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
+			common.GetMapConfig(postgresExtraParams),
 		)
+		if pgxConfigErr != nil {
+			glog.Fatalf("Failed to create PostgreSQL config: %v", pgxConfigErr)
+		}
+		sqlConfig = pgxConfig.ConnString()
 		dbName = common.GetStringConfig(postgresDBName)
 	default:
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
@@ -430,10 +631,13 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	util.TerminateIfError(err)
 
 	// Create database if not exist
-	dialect := GetDialect(driverName)
+	// TODO:1.Move DB creation out of the client manager and into the deployment/init phase (i.e. add a manifests/kustomize/third-party/postgresql/base/pg-init-configmap.yaml)
+	// 2.Introduce a dedicated restricted user for KFP components, limited to the mlpipeline database
+	// Refer to manifests/kustomize/third-party/postgresql/base/pg-secret.yaml
+	drvDialect := sqldrv.NewDBDialect(driverName)
 	operation = func() error {
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", dbName))
-		if ignoreAlreadyExistError(dialect, err) != nil {
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", drvDialect.QuoteIdentifier(dbName)))
+		if ignoreAlreadyExistError(drvDialect, err) != nil {
 			return err
 		}
 		return nil
@@ -456,13 +660,18 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	case "pgx":
 		// Note: postgreSQL does not have the option `ClientFoundRows`
 		// Config reference: https://www.postgresql.org/docs/current/libpq-connect.html
-		sqlConfig = client.CreatePostgreSQLConfig(
-			common.GetStringConfigWithDefault(postgresUser, "root"),
-			common.GetStringConfigWithDefault(postgresPassword, ""),
+		pgxCfg, _, pgxCfgErr := commonsql.CreatePostgreSQLConfig(
+			common.GetStringConfigWithDefault(postgresUser, "user"),
+			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			dbName,
 			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
+			common.GetMapConfig(postgresExtraParams),
 		)
+		if pgxCfgErr != nil {
+			glog.Fatalf("Failed to create PostgreSQL config: %v", pgxCfgErr)
+		}
+		sqlConfig = pgxCfg.ConnString()
 	default:
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
 	}
@@ -481,7 +690,7 @@ func isLegacySchema(db *gorm.DB) (bool, error) {
 	return !ok || length > 64, nil
 }
 
-func runLegacyUpgradeFlow(db *gorm.DB, dialect SQLDialect) error {
+func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	glog.Infof("Detected legacy schema. Running upgrade flow.")
 	// Step 1: decide whether to backfill pipeline_versions
 	// If pipeline_versions table is introduced into DB for the first time,
@@ -501,7 +710,7 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect SQLDialect) error {
 	}
 
 	// Step 3: drop all foreign key constraints which can block shrinking columns
-	if err := dropAllFKConstraints(db, dialect.Name); err != nil {
+	if err := dropAllFKConstraints(db, dialect.Name()); err != nil {
 		return fmt.Errorf("drop foreign key constraints failed: %w", err)
 	}
 
@@ -594,7 +803,7 @@ func getColumnLength(db *gorm.DB, mdl interface{}, column string) (length int64,
 
 // runPreflightLengthChecks scans existing data and aborts upgrade if any row exceeds the new Max length.
 // It must be called BEFORE AutoMigrate/DDL that shrinks column definitions.
-func runPreflightLengthChecks(db *gorm.DB, dialect SQLDialect, specs []validation.ColLenSpec) error {
+func runPreflightLengthChecks(db *gorm.DB, dialect sqldrv.DBDialect, specs []validation.ColLenSpec) error {
 	quote := dialect.QuoteIdentifier
 
 	for _, s := range specs {
@@ -607,7 +816,7 @@ func runPreflightLengthChecks(db *gorm.DB, dialect SQLDialect, specs []validatio
 		}
 
 		var cnt int64
-		lengthFn := dialect.LengthFunc
+		lengthFn := dialect.LengthFunc()
 		where := fmt.Sprintf("%s(%s) > ?", lengthFn, quote(dbCol))
 		if err := db.Table(tableName).Where(where, s.Max).Count(&cnt).Error; err != nil {
 			return fmt.Errorf("preflight length check failed for %s.%s (count): %w", tableName, dbCol, err)
@@ -712,15 +921,15 @@ func dropAllMySQLFKConstraints(db *gorm.DB) error {
 
 // dropLegacyIndexes removes a small, explicit set of legacy indexes that
 // conflict/duplicate with GORM tag definitions. MySQL only; PostgreSQL is no-op.
-func dropLegacyIndexes(db *gorm.DB, dialect SQLDialect) error {
-	switch dialect.Name {
+func dropLegacyIndexes(db *gorm.DB, dialect sqldrv.DBDialect) error {
+	switch dialect.Name() {
 	case "mysql":
 		return dropLegacyIndexesMySQL(db)
 	case "pgx":
 		// No legacy cleanup needed for PostgreSQL per upstream note.
 		return nil
 	default:
-		return fmt.Errorf("dropLegacyIndexes: unsupported dialect %q", dialect.Name)
+		return fmt.Errorf("dropLegacyIndexes: unsupported dialect %q", dialect.Name())
 	}
 }
 
@@ -883,7 +1092,7 @@ func ensureColumnLength(db *gorm.DB, spec validation.ColLenSpec) error {
 // addDisplayNameColumn ensures the DisplayName column exists on the given model's table,
 // backfills it from Name where missing, and then enforces NOT NULL.
 // It is safe to call multiple times (idempotent).
-func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) error {
+func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect sqldrv.DBDialect) error {
 
 	table, dbCol, err := FieldMeta(db, mdl, "DisplayName")
 	if err != nil {
@@ -908,7 +1117,7 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		var stmts []string
-		switch dialect.Name {
+		switch dialect.Name() {
 		case "mysql":
 			stmts = []string{
 				"ALTER TABLE " + quotedTable + " ADD COLUMN " + q(dbCol) + " VARCHAR(255) NULL;",
@@ -922,7 +1131,7 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 				"ALTER TABLE " + quotedTable + " ALTER COLUMN " + q(dbCol) + " SET NOT NULL;",
 			}
 		default:
-			return fmt.Errorf("unsupported driver: %s", dialect.Name)
+			return fmt.Errorf("unsupported driver: %s", dialect.Name())
 		}
 
 		for _, s := range stmts {
@@ -932,6 +1141,178 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 		}
 		return nil
 	})
+}
+
+// expressionIndexSpec names one PostgreSQL expression index this function
+// manages and the table/column its LOWER() expression covers.
+//
+// scopeColumn, if non-empty, is appended verbatim (not wrapped in LOWER())
+// after the LOWER(column) expression, so the index is scoped per (e.g.)
+// Namespace or PipelineId rather than being LOWER(column)-unique globally.
+//
+// unique marks indexes that also enforce uniqueness on LOWER(column)[,
+// scopeColumn], not just accelerate lookups.
+type expressionIndexSpec struct {
+	name        string
+	table       string
+	column      string
+	scopeColumn string
+	unique      bool
+}
+
+// expressionIndexes are PostgreSQL expression indexes on LOWER(Name) for
+// tables whose existing Name indexes are bypassed by the LOWER() wrapping in
+// filter queries.
+//
+// The last three entries additionally enforce case-insensitive uniqueness of
+// Name within their scope. The GORM-managed uniqueIndex tags on these models
+// (see model.Experiment, model.Pipeline, model.PipelineVersion) still create
+// a raw-Name unique index; on PostgreSQL that index is case-sensitive by
+// default, so "Foo" and "foo" can otherwise both be created in the same
+// scope even though case-insensitive filtering (LOWER(Name) = LOWER(?)) and
+// exact-name lookups (see e.g. ExperimentStore.GetExperimentByNameNamespace)
+// treat them as the same name. These indexes close that gap by rejecting the
+// second insert at the database level; they are left alongside the raw-Name
+// indexes rather than replacing them, since AutoMigrate manages those via
+// the GORM tags.
+var expressionIndexes = []expressionIndexSpec{
+	{name: "idx_experiments_lower_name", table: "experiments", column: "Name"},
+	{name: "idx_pipelines_lower_name", table: "pipelines", column: "Name"},
+	{name: "idx_pipeline_versions_lower_name", table: "pipeline_versions", column: "Name"},
+	{name: "idx_experiments_lower_name_namespace_uniq", table: "experiments", column: "Name", scopeColumn: "Namespace", unique: true},
+	{name: "idx_pipelines_lower_name_namespace_uniq", table: "pipelines", column: "Name", scopeColumn: "Namespace", unique: true},
+	{name: "idx_pipeline_versions_lower_name_pipelineid_uniq", table: "pipeline_versions", column: "Name", scopeColumn: "PipelineId", unique: true},
+}
+
+// createExpressionIndexes ensures the LOWER(Name) expression indexes (plain
+// and unique) exist. Only runs on PostgreSQL (pgx); other dialects are
+// no-ops.
+//
+// Unlike the run GC indexes (garbageCollectorRequiredIndexes), which are left
+// to an explicit operator migration because run_details can be a very large,
+// high-write table, these indexes track the number of pipelines/experiments,
+// not run history. Building them automatically on every startup is cheap, so
+// a best-effort self-heal here (see ensureExpressionIndex) is an acceptable
+// trade-off that would not be for run_details. Note that for the unique
+// entries, "best-effort" means a failure to build leaves the pre-existing
+// case-sensitive-only uniqueness gap in place rather than blocking apiserver
+// startup; see ensureExpressionIndex.
+func createExpressionIndexes(db *gorm.DB, dialect sqldrv.DBDialect) {
+	if dialect.Name() != "pgx" {
+		return
+	}
+	for _, spec := range expressionIndexes {
+		ensureExpressionIndex(db, dialect, spec)
+	}
+}
+
+// ensureExpressionIndex builds spec with CREATE INDEX CONCURRENTLY so the
+// build does not hold a SHARE lock that blocks writes for the duration of the
+// scan. CONCURRENTLY can leave an "invalid" index behind if the build is
+// interrupted (e.g., by a conflicting concurrent build or a canceled
+// session), and a plain IF NOT EXISTS retry only checks whether the name
+// exists, not whether it is valid, so it would never repair that state. This
+// checks pg_index.indisvalid after building; if invalid, it drops and
+// retries exactly once, then gives up with a warning (or, for a unique
+// index, an error-level log; see below). Failures here never block
+// API-server startup.
+//
+// For spec.unique indexes, a build failure most likely means a case-variant
+// duplicate name already exists within the scope (e.g. "Foo" and "foo" in
+// the same namespace, created before this uniqueness fix shipped). Retrying
+// the build will not resolve that on its own, so ensureExpressionIndex logs
+// at error level and leaves the pre-existing case-sensitive-only uniqueness
+// gap in place; it does not attempt to detect or clean up the duplicate
+// data.
+//
+// Known limitation: if multiple API-server replicas start at the same time,
+// one replica's in-progress CONCURRENTLY build looks identical to an invalid
+// index to another replica until the build finishes, so a replica can drop
+// and restart a build another replica already had underway. This does not
+// affect correctness (only how soon the index becomes available) and
+// converges on the next restart; autoMigrate/runLegacyUpgradeFlow have the
+// same lack of cross-replica coordination.
+func ensureExpressionIndex(db *gorm.DB, dialect sqldrv.DBDialect, spec expressionIndexSpec) {
+	const maxAttempts = 2
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if attempt > 1 {
+			if err := db.Exec(expressionIndexDropStmt(dialect, spec)).Error; err != nil {
+				glog.Warningf("Failed to drop invalid expression index %s before rebuild: %v", spec.name, err)
+				return
+			}
+			glog.Warningf("Expression index %s was invalid; dropped it and retrying the build once", spec.name)
+		}
+
+		if err := db.Exec(expressionIndexCreateStmt(dialect, spec)).Error; err != nil {
+			glog.Warningf("Failed to build expression index %s on %s(LOWER(%s)): %v", spec.name, spec.table, spec.column, err)
+		}
+
+		valid, err := isPostgresIndexValid(db, spec.name)
+		if err != nil {
+			glog.Warningf("Failed to check validity of expression index %s: %v", spec.name, err)
+			return
+		}
+		if valid {
+			glog.Infof("Ensured expression index %s on %s(LOWER(%s))", spec.name, spec.table, spec.column)
+			return
+		}
+	}
+	if spec.unique {
+		glog.Errorf("Unique expression index %s on %s(LOWER(%s)) is still invalid after %d attempts; leaving it as-is. "+
+			"Scoped case-insensitive uniqueness of Name is NOT enforced until this is resolved -- likely cause is "+
+			"an existing case-variant duplicate name within the same scope.",
+			spec.name, spec.table, spec.column, maxAttempts)
+		return
+	}
+	glog.Warningf("Expression index %s on %s(LOWER(%s)) is still invalid after %d attempts; leaving it as-is. "+
+		"This only affects case-insensitive name-filter query performance, not correctness.",
+		spec.name, spec.table, spec.column, maxAttempts)
+}
+
+// expressionIndexCreateStmt and expressionIndexDropStmt are pure string
+// builders so the generated DDL -- in particular, the CONCURRENTLY keyword --
+// can be asserted in unit tests without executing SQL against a real
+// PostgreSQL server.
+func expressionIndexCreateStmt(dialect sqldrv.DBDialect, spec expressionIndexSpec) string {
+	q := dialect.QuoteIdentifier
+	cols := fmt.Sprintf("LOWER(%s)", q(spec.column))
+	if spec.scopeColumn != "" {
+		cols = fmt.Sprintf("%s, %s", cols, q(spec.scopeColumn))
+	}
+	uniqueKeyword := ""
+	if spec.unique {
+		uniqueKeyword = "UNIQUE "
+	}
+	return fmt.Sprintf(
+		"CREATE %sINDEX CONCURRENTLY IF NOT EXISTS %s ON %s (%s)",
+		uniqueKeyword, q(spec.name), q(spec.table), cols,
+	)
+}
+
+func expressionIndexDropStmt(dialect sqldrv.DBDialect, spec expressionIndexSpec) string {
+	return fmt.Sprintf("DROP INDEX CONCURRENTLY IF EXISTS %s", dialect.QuoteIdentifier(spec.name))
+}
+
+// isPostgresIndexValid reports whether indexName exists in the current
+// schema and has pg_index.indisvalid = true. A CONCURRENTLY build that was
+// interrupted leaves behind a row with indisvalid = false rather than
+// removing the index, so mere existence is not sufficient.
+func isPostgresIndexValid(db *gorm.DB, indexName string) (bool, error) {
+	var valid bool
+	row := db.Raw(`
+		SELECT index_metadata.indisvalid
+		FROM pg_index AS index_metadata
+		JOIN pg_class AS index_class ON index_class.oid = index_metadata.indexrelid
+		JOIN pg_namespace AS index_namespace ON index_namespace.oid = index_class.relnamespace
+		WHERE index_namespace.nspname = current_schema()
+		  AND index_class.relname = ?`, indexName).Row()
+	if err := row.Scan(&valid); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("query index validity metadata for %s: %w", indexName, err)
+	}
+	return valid, nil
 }
 
 func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration) (storage.ObjectStore, error) {
@@ -1243,6 +1624,165 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	tx.Commit()
 }
 
+// backfillPipelineRefsMigration names the one-time data migration recorded in
+// migration_statuses.
+const backfillPipelineRefsMigration = "backfill_pipeline_refs"
+
+// backfillPipelineRefsToRunTable populates PipelineId and PipelineVersionId for
+// legacy runs and recurring jobs that recorded them only as resource references.
+// scanRowsToRuns and JobStore.scanRows reconstruct those values after the query
+// returns, so without this the stored columns and the reported values disagree.
+// Jobs are repaired too because ReportWorkflowResource copies a job's
+// PipelineSpec into every run it creates.
+//
+// migration_statuses guards the work: the UPDATEs scan whole tables, and even a
+// zero-row rerun takes locks that block concurrent writes.
+func backfillPipelineRefsToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error {
+	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
+	if err != nil {
+		return err
+	}
+	if applied {
+		return nil
+	}
+
+	// The marker is claimed inside the same transaction as the UPDATEs, so
+	// replicas starting together during a rolling upgrade do not all run the
+	// scan: the first to claim proceeds, the rest block briefly, see the
+	// conflict and skip. A crash rolls back the marker with the work, leaving
+	// the migration pending rather than recorded but incomplete.
+	return db.Transaction(func(tx *gorm.DB) error {
+		claimed, err := claimMigration(tx, backfillPipelineRefsMigration)
+		if err != nil {
+			return err
+		}
+		if !claimed {
+			return nil
+		}
+		// Statements go through tx, not tx.DB(): the latter hands back the
+		// shared pool, which would run them on another connection and outside
+		// this transaction.
+		for _, table := range []string{"run_details", "jobs"} {
+			// Direct references first: the last statement reads the column the
+			// second one writes, and only fills rows the first left empty.
+			for _, c := range []struct {
+				column  string
+				refType model.ResourceType
+			}{
+				{"PipelineId", model.PipelineResourceType},
+				{"PipelineVersionId", model.PipelineVersionResourceType},
+			} {
+				if err := tx.Exec(backfillRefColumnSQL(dialect, table, c.column, c.refType)).Error; err != nil {
+					return fmt.Errorf("backfill %s.%s: %w", table, c.column, err)
+				}
+			}
+			if err := tx.Exec(backfillPipelineIDFromVersionSQL(dialect, table)).Error; err != nil {
+				return fmt.Errorf("backfill %s.PipelineId from pipeline version: %w", table, err)
+			}
+		}
+		return nil
+	})
+}
+
+// migrationApplied reports whether a one-time data migration has already run.
+// A missing table means AutoMigrate has not created it yet, which can only
+// happen before the first run, so the migration is treated as pending.
+func migrationApplied(db *gorm.DB, name string) (bool, error) {
+	if !db.Migrator().HasTable(&model.MigrationStatus{}) {
+		return false, nil
+	}
+	// The condition goes through gorm as a map so the column is quoted for the
+	// dialect: a literal "Name" is a string, not an identifier, on MySQL.
+	var count int64
+	if err := db.Model(&model.MigrationStatus{}).Where(map[string]any{"Name": name}).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("read migration status %q: %w", name, err)
+	}
+	return count > 0, nil
+}
+
+// claimMigration records the migration and reports whether this caller won the
+// claim. The winner is identified by reading its own token back, not by the
+// affected-row count: the gorm driver compiles DoNothing to an ON DUPLICATE KEY
+// UPDATE, and MySQL runs with ClientFoundRows, so a duplicate insert reports one
+// matched row to every caller.
+func claimMigration(tx *gorm.DB, name string) (bool, error) {
+	token := uuid.NewString()
+	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.MigrationStatus{
+		Name:           name,
+		AppliedAtInSec: time.Now().Unix(),
+		ClaimToken:     token,
+	}).Error; err != nil {
+		return false, fmt.Errorf("claim migration %q: %w", name, err)
+	}
+	var stored model.MigrationStatus
+	if err := tx.Where(map[string]any{"Name": name}).First(&stored).Error; err != nil {
+		return false, fmt.Errorf("read migration claim %q: %w", name, err)
+	}
+	return stored.ClaimToken == token, nil
+}
+
+// backfillRefColumnSQL updates only the target table while its subqueries read
+// resource_references, so MySQL's restriction on selecting from the table being
+// updated does not apply. The (ResourceUUID, ResourceType, ReferenceType) key
+// means at most one row matches per record, keeping the subquery scalar.
+func backfillRefColumnSQL(dialect sqldrv.DBDialect, table, column string, refType model.ResourceType) string {
+	// Bare mixed-case identifiers fold to lower case on PostgreSQL.
+	q := dialect.QuoteIdentifier
+	resourceType := model.RunResourceType
+	if table == "jobs" {
+		resourceType = model.JobResourceType
+	}
+	refPredicate := fmt.Sprintf(
+		`rr.%s = %s.%s AND rr.%s = '%s' AND rr.%s = '%s' AND rr.%s <> ''`,
+		q("ResourceUUID"), table, q("UUID"),
+		q("ResourceType"), resourceType,
+		q("ReferenceType"), refType,
+		q("ReferenceUUID"),
+	)
+	return fmt.Sprintf(`
+		UPDATE %s
+		SET %s = (
+			SELECT rr.%s FROM resource_references rr WHERE %s
+		)
+		WHERE (%s.%s = '' OR %s.%s IS NULL)
+			AND EXISTS (
+				SELECT 1 FROM resource_references rr WHERE %s
+			)`,
+		table,
+		q(column),
+		q("ReferenceUUID"), refPredicate,
+		table, q(column), table, q(column),
+		refPredicate,
+	)
+}
+
+// backfillPipelineIDFromVersionSQL resolves the parent through
+// pipeline_versions.PipelineId, reading the PipelineVersionId column rather than
+// the resource reference so it also covers rows that only ever stored a version.
+func backfillPipelineIDFromVersionSQL(dialect sqldrv.DBDialect, table string) string {
+	q := dialect.QuoteIdentifier
+	source := fmt.Sprintf(
+		`SELECT pv.%s FROM pipeline_versions pv
+			WHERE pv.%s = %s.%s AND pv.%s <> ''`,
+		q("PipelineId"),
+		q("UUID"), table, q("PipelineVersionId"), q("PipelineId"),
+	)
+	return fmt.Sprintf(`
+		UPDATE %s
+		SET %s = (%s)
+		WHERE (%s.%s = '' OR %s.%s IS NULL)
+			AND %s.%s IS NOT NULL
+			AND %s.%s <> ''
+			AND EXISTS (%s)`,
+		table,
+		q("PipelineId"), source,
+		table, q("PipelineId"), table, q("PipelineId"),
+		table, q("PipelineVersionId"),
+		table, q("PipelineVersionId"),
+		source,
+	)
+}
+
 func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	// check if there is any row in the run table has experiment ID being empty
 	sqlDB, err := db.DB()
@@ -1277,10 +1817,8 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	return err
 }
 
-// Returns the same error, if it's not "already exists" related.
-// Otherwise, return nil.
-func ignoreAlreadyExistError(dialect SQLDialect, err error) error {
-	if err != nil && strings.Contains(err.Error(), dialect.ExistDatabaseErrHint) {
+func ignoreAlreadyExistError(dialect sqldrv.DBDialect, err error) error {
+	if err == nil || dialect.IsDuplicateDatabaseError(err) {
 		return nil
 	}
 	return err
