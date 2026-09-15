@@ -70,6 +70,22 @@ class TestTopologicalSort(unittest.TestCase):
         expected = ['A', 'C', 'B', 'D']
         self.assertEqual(actual, expected)
 
+    def test_cyclic_dependency_raises(self):
+        graph = {'A': ['B'], 'B': ['A']}
+        with self.assertRaisesRegex(
+                ValueError,
+                "Cyclic task dependency detected involving task 'A'",
+        ):
+            graph_utils.topological_sort(graph)
+
+    def test_self_cycle_raises(self):
+        graph = {'A': ['A']}
+        with self.assertRaisesRegex(
+                ValueError,
+                "Cyclic task dependency detected involving task 'A'",
+        ):
+            graph_utils.topological_sort(graph)
+
 
 class TestTopologicalSortTasks(unittest.TestCase):
 
