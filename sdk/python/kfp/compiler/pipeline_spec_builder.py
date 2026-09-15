@@ -60,7 +60,7 @@ def to_protobuf_value(
     value.
 
     Args:
-        value: The value to be converted to Value message.
+        value: The value to be converted to Value message. Must be one of: None, str, int, float, bool, dict, or list.
 
     Returns:
          A google.protobuf.struct_pb2.Value message.
@@ -88,7 +88,7 @@ def to_protobuf_value(
                 values=[to_protobuf_value(v) for v in value]))
     else:
         raise ValueError('Value must be one of the following types: '
-                         'str, int, float, bool, dict, and list. Got: '
+                         'None, str, int, float, bool, dict, and list. Got: '
                          f'"{value}" of type "{type(value)}".')
 
 
