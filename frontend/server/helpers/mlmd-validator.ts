@@ -16,7 +16,7 @@ import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
-// Lazy proto load — missing bundle (e.g. dev) fails open instead of crashing at import.
+// Lazy proto load — a missing bundle denies retrieval instead of crashing at import.
 let servicePb: any = null;
 let storePb: any = null;
 let protoLoadAttempted = false;
@@ -29,14 +29,12 @@ function loadProtos(): boolean {
     '../../src/third_party/mlmd/generated/ml_metadata/proto/',
     '../../../src/third_party/mlmd/generated/ml_metadata/proto/',
   ];
-  let lastError: unknown = null;
   for (const base of candidateBases) {
     try {
       servicePb = require(`${base}metadata_store_service_pb.js`);
       storePb = require(`${base}metadata_store_pb.js`);
       return true;
-    } catch (error) {
-      lastError = error;
+    } catch {
       servicePb = null;
       storePb = null;
     }
@@ -44,7 +42,7 @@ function loadProtos(): boolean {
   if (!protoLoadAttempted) {
     console.warn(
       `[SECURITY] MLMD proto bundle could not be loaded — namespace-ownership ` +
-        `validation will be disabled (IDOR check fails open). Error: ${lastError}`,
+        `validation cannot establish ownership; denying artifact access.`,
     );
     protoLoadAttempted = true;
   }
@@ -85,6 +83,17 @@ const NAMESPACE_OWNERSHIP_MODE = (
 const NAMESPACE_KEY_PREFIX = (process.env.ARTIFACT_NAMESPACE_KEY_PREFIX || 'private-artifacts')
   .trim()
   .replace(/^\/+|\/+$/g, '');
+
+const ARTIFACT_OWNERSHIP_ENFORCEMENT = (process.env.ARTIFACT_OWNERSHIP_ENFORCEMENT || 'enforce')
+  .trim()
+  .toLowerCase();
+if (ARTIFACT_OWNERSHIP_ENFORCEMENT === 'audit') {
+  console.warn(
+    '[SECURITY] Artifact ownership audit mode permits legacy custom-root reads with matching ' +
+      'MLMD evidence. Shared storage credentials can expose other tenants. Verify downstream ' +
+      'isolation and migrate to namespace-prefixed roots before 3.0; audit mode is temporary.',
+  );
+}
 
 export function namespaceFromArtifactUri(
   artifactUri: string,
@@ -285,15 +294,18 @@ export function decideFromContexts(
 ): ValidationResult {
   let hasNamespaceEvidence = false;
   let hadUnavailable = false;
+  let hadMissingEvidence = false;
   for (const { contexts } of contextResults) {
     if (contexts === null) {
       hadUnavailable = true;
       continue;
     }
+    let artifactHasEvidence = false;
     for (const ctx of contexts) {
       if (ctx.contextType !== PIPELINE_RUN_CONTEXT_TYPE) continue;
       if (!ctx.namespace) continue;
       hasNamespaceEvidence = true;
+      artifactHasEvidence = true;
       if (ctx.namespace !== claimedNamespace) {
         return {
           valid: false,
@@ -302,12 +314,13 @@ export function decideFromContexts(
         };
       }
     }
+    if (!artifactHasEvidence) hadMissingEvidence = true;
   }
   if (hadUnavailable) {
-    return { valid: true, reason: 'mlmd-unavailable' };
+    return { valid: false, reason: 'mlmd-unavailable' };
   }
-  if (!hasNamespaceEvidence) {
-    return { valid: true, reason: 'no-evidence' };
+  if (!hasNamespaceEvidence || hadMissingEvidence) {
+    return { valid: false, reason: 'no-evidence' };
   }
   return { valid: true };
 }
@@ -327,10 +340,6 @@ export function decideFromPrefixFallback(
   // (including typos) fails closed to the strict denial, so a misconfigured mode can
   // never silently weaken the guard.
   if (ownershipMode !== 'mlmd-then-prefix') {
-    console.warn(
-      `[SECURITY] Artifact not found in MLMD for URI "${artifactUri}", ` +
-        `denying access (no namespace ownership evidence).`,
-    );
     return { valid: false, reason: 'artifact-not-found' };
   }
   // The object key is caller-controlled and is later passed verbatim to the object
@@ -339,32 +348,37 @@ export function decideFromPrefixFallback(
   // while addressing another namespace's object on stores that normalize paths.
   // Deny non-normalized keys outright rather than trusting every backend to reject them.
   const objectKey = artifactUri.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
-  const hasUnsafeSegment = objectKey
-    .split('/')
-    .some((segment) => segment === '' || segment === '.' || segment === '..');
+  const hasUnsafeSegment = objectKey.split('/').some((segment) => {
+    try {
+      const decoded = decodeURIComponent(segment);
+      return (
+        decoded === '' ||
+        decoded === '.' ||
+        decoded === '..' ||
+        /[\\/?#]/.test(decoded) ||
+        /%[0-9a-f]{2}/i.test(decoded) ||
+        [...decoded].some(
+          (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+        )
+      );
+    } catch {
+      return true;
+    }
+  });
   if (hasUnsafeSegment) {
-    console.warn(
-      `[SECURITY] Insecure direct object reference blocked: artifact "${artifactUri}" ` +
-        `contains empty or dot path segments, so its object key cannot be trusted to ` +
-        `stay inside its owning-namespace prefix; denying access.`,
-    );
     return { valid: false, reason: 'key-not-normalized' };
   }
-  const prefixNamespace = namespaceFromArtifactUri(artifactUri);
+  const decodedKey = objectKey
+    .split('/')
+    .map((segment) => decodeURIComponent(segment))
+    .join('/');
+  const prefixNamespace = namespaceFromArtifactUri(
+    artifactUri.slice(0, artifactUri.length - objectKey.length) + decodedKey,
+  );
   if (prefixNamespace === undefined) {
-    console.warn(
-      `[SECURITY] Insecure direct object reference blocked: artifact "${artifactUri}" is ` +
-        `absent from the metadata store and carries no "${NAMESPACE_KEY_PREFIX}/<namespace>/" ` +
-        `object-key prefix, so its owning namespace cannot be derived; denying access.`,
-    );
     return { valid: false, reason: 'prefix-absent' };
   }
   if (prefixNamespace !== claimedNamespace) {
-    console.warn(
-      `[SECURITY] Insecure direct object reference blocked: object-key prefix namespace ` +
-        `"${prefixNamespace}" does not match the requested namespace "${claimedNamespace}" ` +
-        `for URI "${artifactUri}".`,
-    );
     return {
       valid: false,
       actualNamespace: prefixNamespace,
@@ -374,13 +388,37 @@ export function decideFromPrefixFallback(
   return { valid: true, reason: 'prefix-match' };
 }
 
+export function decideArtifactOwnership(
+  artifactUri: string,
+  claimedNamespace: string,
+  contextResults: { artifactId: number; contexts: ContextNamespace[] | null }[],
+  enforcementMode: string = ARTIFACT_OWNERSHIP_ENFORCEMENT,
+): ValidationResult {
+  if (enforcementMode !== 'enforce' && enforcementMode !== 'audit') {
+    return { valid: false, reason: 'invalid-enforcement-mode' };
+  }
+  const decision = decideFromContexts(contextResults, claimedNamespace);
+  if (!decision.valid) return decision;
+  // The prefix is required even when MLMD has a caller-associated record. The audit
+  // exception relaxes only an absent prefix, never a mismatch or unsafe path.
+  const prefix = decideFromPrefixFallback(artifactUri, claimedNamespace, 'mlmd-then-prefix');
+  if (prefix.valid) return prefix;
+  if (enforcementMode === 'audit' && prefix.reason === 'prefix-absent') {
+    return { valid: true, reason: 'audit-custom-root' };
+  }
+  return prefix;
+}
+
 export async function validateArtifactNamespace(
   envoyAddress: string,
   artifactUri: string,
   claimedNamespace: string,
 ): Promise<ValidationResult> {
+  if (ARTIFACT_OWNERSHIP_ENFORCEMENT !== 'enforce' && ARTIFACT_OWNERSHIP_ENFORCEMENT !== 'audit') {
+    return { valid: false, reason: 'invalid-enforcement-mode' };
+  }
   if (!loadProtos()) {
-    return { valid: true, reason: 'protos-unavailable' };
+    return { valid: false, reason: 'protos-unavailable' };
   }
 
   let artifacts: ArtifactInfo[];
@@ -388,10 +426,9 @@ export async function validateArtifactNamespace(
     artifacts = await getArtifactsByUri(envoyAddress, [artifactUri]);
   } catch (error) {
     console.warn(
-      `[SECURITY] MLMD artifact lookup failed for URI "${artifactUri}", ` +
-        `allowing access (fail-open). Error: ${error}`,
+      `[SECURITY] MLMD artifact lookup failed for URI "${artifactUri}", ` + `denying access.`,
     );
-    return { valid: true, reason: 'mlmd-unavailable' };
+    return { valid: false, reason: 'mlmd-unavailable' };
   }
 
   if (artifacts.length === 0) {
@@ -415,23 +452,20 @@ export async function validateArtifactNamespace(
       }),
     );
   } catch (error) {
-    console.warn(
-      `[SECURITY] MLMD batch context lookup failed, ` +
-        `allowing access (fail-open). Error: ${error}`,
-    );
-    return { valid: true, reason: 'mlmd-unavailable' };
+    console.warn(`[SECURITY] MLMD batch context lookup failed, ` + `denying access.`);
+    return { valid: false, reason: 'mlmd-unavailable' };
   }
 
-  const decision = decideFromContexts(contextResults, claimedNamespace);
+  const decision = decideArtifactOwnership(artifactUri, claimedNamespace, contextResults);
   if (decision.reason === 'mlmd-unavailable') {
     console.warn(
       `[SECURITY] At least one MLMD context lookup was unavailable for URI "${artifactUri}", ` +
-        `allowing access (fail-open after scanning available contexts).`,
+        `denying access.`,
     );
   } else if (decision.reason === 'no-evidence') {
     console.warn(
       `[SECURITY] No PipelineRun namespace evidence found in MLMD for URI "${artifactUri}", ` +
-        `allowing access (no ownership data to validate against).`,
+        `denying access.`,
     );
   }
   return decision;

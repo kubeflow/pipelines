@@ -246,7 +246,7 @@ export function pipePreviewResponse(
  * @param authEnabled Whether authorization is enabled
  * @param kubeflowUserIdHeader The header name containing the user identity
  * @param envoyAddress MLMD Envoy address used for namespace-ownership
- *   validation (#9889). When omitted, the IDOR check is skipped.
+ *   validation (#9889). Required in multi-user mode.
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
@@ -329,36 +329,46 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    if (envoyAddress) {
-      const coords = resolveArtifactCoordinates(request);
-      if (coords === null) {
-        console.warn(
-          `[SECURITY] Malformed percent-encoding in artifact path. ` +
-            `User: ${userId}, Path: ${request.path}`,
-        );
-        sendArtifactError(response, 400, 'Malformed URL encoding in artifact path');
+    const coords = resolveArtifactCoordinates(request);
+    if (coords === null) {
+      console.warn(
+        `[SECURITY] Malformed percent-encoding in artifact path. ` +
+          `User: ${userId}, Path: ${request.path}`,
+      );
+      sendArtifactError(response, 400, 'Malformed URL encoding in artifact path');
+      return;
+    }
+    const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
+    if (mlmdTrackedSources.has(coords.source) && coords.bucket && coords.key) {
+      if (!envoyAddress) {
+        sendArtifactError(response, 503, 'Artifact ownership validation is unavailable');
         return;
       }
-      const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
-      if (mlmdTrackedSources.has(coords.source) && coords.bucket && coords.key) {
-        const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
-        const validation = await validateArtifactNamespace(envoyAddress, artifactUri, namespace);
+      const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
+      const validation = await validateArtifactNamespace(envoyAddress, artifactUri, namespace);
 
-        if (!validation.valid) {
-          console.warn(
-            `[SECURITY] IDOR blocked: artifact namespace mismatch. ` +
-              `User: ${userId}, ` +
-              `Claimed namespace: ${namespace}, ` +
-              `Actual namespace: ${validation.actualNamespace}, ` +
-              `URI: ${artifactUri}, ` +
-              `Path: ${request.path}`,
-          );
-          sendArtifactError(response, 403, 'Artifact does not belong to the requested namespace');
-          return;
-        }
+      if (validation.valid && validation.reason === 'audit-custom-root') {
+        console.warn('[SECURITY] artifact_ownership_audit', {
+          namespace,
+          source: coords.source,
+          route: request.path.endsWith('/artifacts/get') ? 'preview-or-download' : 'download',
+          reason: 'custom-root-would-deny',
+        });
+      }
+
+      if (!validation.valid) {
+        console.warn(
+          `[SECURITY] IDOR blocked: artifact namespace mismatch. ` +
+            `User: ${userId}, ` +
+            `Claimed namespace: ${namespace}, ` +
+            `Actual namespace: ${validation.actualNamespace}, ` +
+            `URI: ${artifactUri}, ` +
+            `Path: ${request.path}`,
+        );
+        sendArtifactError(response, 403, 'Artifact does not belong to the requested namespace');
+        return;
       }
     }
-
     next();
   };
 }
