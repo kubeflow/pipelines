@@ -22,7 +22,7 @@ import { vi } from 'vitest';
 
 describe('Status', () => {
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
-  // test enviroments
+  // test environments
   const startDate = new Date('Wed Jan 2 2019 9:10:11 GMT-0800');
   const endDate = new Date('Thu Jan 3 2019 10:11:12 GMT-0800');
 
