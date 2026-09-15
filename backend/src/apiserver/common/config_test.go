@@ -329,6 +329,16 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			expected: DefaultPodNamespace,
 		},
 		{
+			name:     "GetArgoWorkflowControllerConfigMap defaults to workflow-controller-configmap",
+			getter:   func() interface{} { return GetArgoWorkflowControllerConfigMap() },
+			expected: "workflow-controller-configmap",
+		},
+		{
+			name:     "GetArgoWorkflowControllerNamespace defaults to pod namespace",
+			getter:   func() interface{} { return GetArgoWorkflowControllerNamespace() },
+			expected: DefaultPodNamespace,
+		},
+		{
 			name:     "IsCacheEnabled defaults to true string",
 			getter:   func() interface{} { return IsCacheEnabled() },
 			expected: "true",

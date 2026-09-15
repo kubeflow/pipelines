@@ -833,7 +833,10 @@ func ArgoContext() context.Context {
 
 func (w *Workflow) CanRetry() error {
 	if w.Workflow.Status.OffloadNodeStatusVersion != "" {
-		return NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
+		return NewBadRequestError(
+			errors.New("workflow cannot be retried"),
+			"Cannot retry workflow with offloaded node status. Hydrate node statuses from Argo offload storage, or clone the run instead of retrying",
+		)
 	}
 	return nil
 }
