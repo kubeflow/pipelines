@@ -438,7 +438,7 @@ describe('ExperimentList', () => {
       await compareBtn!.action();
     });
     expect(historyPushSpy).toHaveBeenLastCalledWith(
-      `${RoutePage.COMPARE}?${QUERY_PARAMS.runlist}=run1,run2,run3`,
+      `${RoutePage.COMPARE}?${QUERY_PARAMS.runlist}=run1%2Crun2%2Crun3`,
     );
   });
 
