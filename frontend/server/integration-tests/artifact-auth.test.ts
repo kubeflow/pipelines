@@ -497,6 +497,28 @@ describe('/artifacts authorization', () => {
       });
     };
 
+    it.each([
+      '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=my-namespace&token=secret',
+      '/artifacts/minio/ml-pipeline/hello/world.txt?namespace=my-namespace&token=secret',
+    ])('logs a sanitized audit event for legacy retrieval: %s', async (path) => {
+      mockAuthPass();
+      mockedValidateArtifactNamespace.mockResolvedValue({
+        valid: true,
+        reason: 'audit-custom-root',
+      });
+      const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      app = new UIServer(authEnabledConfigs());
+      await requests(app.app).get(path).set('kubeflow-userid', 'user@example.com').expect(200);
+      expect(warning).toHaveBeenCalledWith('[SECURITY] artifact_ownership_audit', {
+        namespace: 'my-namespace',
+        source: 'minio',
+        route: path.startsWith('/artifacts/get?') ? 'preview-or-download' : 'download',
+        reason: 'custom-root-would-deny',
+      });
+      expect(JSON.stringify(warning.mock.calls)).not.toContain('secret');
+      expect(JSON.stringify(warning.mock.calls)).not.toContain('hello/world.txt');
+    });
+
     it('rejects artifact access when MLMD shows namespace mismatch', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({
