@@ -132,6 +132,20 @@ class ConditionEvaluator:
         try:
             safe_condition = condition
 
+            # Resolved channel/parameter values are bound as eval() variables
+            # rather than interpolated into the expression text. A task output
+            # can carry data from outside the pipeline (a fetched URL, a file, a
+            # message), and textual substitution let such a value break out of
+            # its string literal and inject arbitrary Python into the eval'd
+            # source (`__builtins__` being empty does not contain that). Binding
+            # keeps values as opaque data that cannot alter expression structure.
+            resolved_values: Dict[str, Any] = {}
+
+            def bind_value(value: Any) -> str:
+                name = f'__kfp_value_{len(resolved_values)}'
+                resolved_values[name] = value
+                return name
+
             # Handle CEL-style inputs.parameter_values['param_name'] references
             cel_pattern = r"inputs\.parameter_values\['([^']+)'\]"
             cel_matches = re.findall(cel_pattern, condition)
@@ -139,12 +153,9 @@ class ConditionEvaluator:
                 value = ConditionEvaluator._resolve_pipeline_channel(
                     param_name, io_store)
                 if value is not None:
-                    if isinstance(value, str):
-                        replacement = f"'{value}'"
-                    else:
-                        replacement = str(value)
                     safe_condition = safe_condition.replace(
-                        f"inputs.parameter_values['{param_name}']", replacement)
+                        f"inputs.parameter_values['{param_name}']",
+                        bind_value(value))
                 else:
                     logging.warning(
                         f'Could not resolve CEL parameter: {param_name}')
@@ -157,12 +168,8 @@ class ConditionEvaluator:
                 value = ConditionEvaluator._resolve_pipeline_channel(
                     channel_ref, io_store)
                 if value is not None:
-                    if isinstance(value, str):
-                        safe_condition = safe_condition.replace(
-                            channel_ref, f"'{value}'")
-                    else:
-                        safe_condition = safe_condition.replace(
-                            channel_ref, str(value))
+                    safe_condition = safe_condition.replace(
+                        channel_ref, bind_value(value))
                 else:
                     logging.warning(
                         f'Could not resolve channel reference: {channel_ref}')
@@ -195,7 +202,7 @@ class ConditionEvaluator:
                 'max': max,
             }
 
-            result = eval(safe_condition, allowed_names, {})
+            result = eval(safe_condition, allowed_names, resolved_values)
             return bool(result)
 
         except Exception as e:
