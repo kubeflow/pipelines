@@ -43,7 +43,7 @@ KFP positions itself as a Kubernetes abstraction for data scientists and ML engi
 ### Goals
 
 1. Capture the pod lifecycle failure message from the execution engine and persist it on the KFP `Task` row. The underlying implementation uses the execution engine's node status, but the KFP API remains engine-agnostic.
-2. Expose the lifecycle failure through a dedicated field on `PipelineTaskDetail` in the v2beta1 `GetRun` response, separate from the existing terminal-only `error` field (see [Backend Changes](#backend-changes) for rationale).
+2. Expose the lifecycle failure through a dedicated field on `PipelineTask`, returned by the task-list endpoint, separate from the existing `StatusMetadata.message` field (see [Backend Changes](#backend-changes) for rationale).
 3. In the UI, when a lifecycle message is present on a task, show a warning indicator on the node and display the message in a banner inside the node detail side panel. The node only transitions to a failed state when the timeout terminates the run or the engine marks the task as failed.
 4. Avoid false positives. The execution engine emits transient messages like `PodInitializing` during normal pod startup. Healthy runs must not show a failure banner.
 5. Provide a single configurable infra-error timeout so that pipeline runs stuck in a pod lifecycle failure state (such as `ImagePullBackOff`) do not run forever.
@@ -153,7 +153,7 @@ Before persisting, the message is normalized (transient startup strings like `Po
 
 #### API exposure
 
-The lifecycle message is exposed through a **new dedicated field** on `PipelineTaskDetail` rather than through the existing `error` field. The `error` field is documented in `run.proto` as "Only populated when the task is in FAILED or CANCELED state." Lifecycle failures need to surface while the task is still in a non-terminal state (the engine may still be retrying), so reusing `error` would violate the API contract. The new field is populated whenever the lifecycle message is non-empty, regardless of task state, and clears when the pod recovers. This requires a proto addition to `PipelineTaskDetail`.
+The lifecycle message is exposed through a **new dedicated field** on `PipelineTask` rather than through the existing `StatusMetadata.message` field. `StatusMetadata.message` carries engine-level status metadata scoped to terminal or transitional task states; it is not intended for infrastructure-level diagnostics that need to surface while the task is still non-terminal (the engine may still be retrying). The new field is populated whenever the lifecycle message is non-empty, regardless of task state, and clears when the pod recovers. This requires a proto addition to `PipelineTask`.
 
 #### Storage behavior
 
@@ -161,7 +161,7 @@ The `LifecycleMessage` field always reflects the latest value from the engine, c
 
 ### Frontend Changes
 
-The run details graph reads `task_details` from the API response and maps lifecycle messages to nodes using the **task key** (not `display_name`, since the two can diverge). When a lifecycle message is present, the node shows a warning indicator and a banner is rendered in the side panel with the message. The node state is not overridden to failed; it transitions to failed only when the timeout terminates the run or the engine marks the task as terminal. Nodes without a lifecycle message are unaffected.
+The run details graph consumes `PipelineTask` objects returned by the task-list endpoint and maps lifecycle messages to nodes using the **task key** (not `display_name`, since the two can diverge). When a lifecycle message is present, the node shows a warning indicator and a banner is rendered in the side panel with the message. The node state is not overridden to failed; it transitions to failed only when the timeout terminates the run or the engine marks the task as terminal. Nodes without a lifecycle message are unaffected.
 
 ### Structured Message Classification
 
@@ -210,7 +210,7 @@ flowchart TD
     --> B["workflow.go: util.NodeStatus.Message"]
     --> C["api_converter.go: normalize / filter / resolve lifecycle messages"]
     --> D["task_store.go: Task.LifecycleMessage"]
-    --> E["api_converter.go: PipelineTaskDetail.lifecycle_failure returned in API"]
+    --> E["task API: PipelineTask.lifecycle_failure returned by task-list endpoint"]
     --> F["DynamicFlow.ts: lifecycleError set, node state overridden"]
     --> G["RuntimeNodeDetailsV2.tsx: Banner shown in side panel"]
 ```
@@ -284,9 +284,9 @@ An earlier sketch only added a global banner on the run details page when any ta
 
 The `Task` model already has a `Payload` text column carrying serialized state. Stuffing the lifecycle message into the payload was considered but rejected because the payload is a serialized blob and not a queryable field, filtering or reporting on lifecycle failures across runs would require parsing the blob, and a dedicated column makes the database semantics obvious and the `patchTask` overwrite rule (fresh value wins) easy to express. The cost is one nullable column.
 
-### Alternative 4: Reuse the existing `error` field on `PipelineTaskDetail`
+### Alternative 4: Reuse the existing `StatusMetadata.message` field on `PipelineTask`
 
-The existing `error` field on `PipelineTaskDetail` is documented as "Only populated when the task is in FAILED or CANCELED state." Lifecycle failures need to surface while the task is still in a non-terminal state (the engine may still be retrying). Reusing `error` would violate the API contract and could break existing clients that use it to determine terminal state. A dedicated lifecycle diagnostic field avoids this issue.
+The existing `StatusMetadata.message` field on `PipelineTask` carries engine-level status metadata. It is not designed for infrastructure-level diagnostics that need to surface during non-terminal states. Lifecycle failures need to be visible while the task is still running (the engine may still be retrying), and the field needs to self-clear when the pod recovers. Overloading `StatusMetadata.message` with lifecycle diagnostics would make its semantics ambiguous and could break existing clients that parse it. A dedicated lifecycle diagnostic field keeps the contract clean.
 
 ### Alternative 5: Do this entirely in the frontend by polling pods
 
