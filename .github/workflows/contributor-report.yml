@@ -1,8 +1,8 @@
 name: Contributor Report
 
 on:
-  pull_request_target:
-    types: [opened, reopened, ready_for_review]
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
 
 permissions:
   contents: read
@@ -14,13 +14,8 @@ jobs:
 
     steps:
       - name: Generate contributor report
-        # v1
+        # v1.3.3
         uses: jdiegosierra/contributor-report@9f7de3ce980ae2d00fa99a1b3d93b1477ebe0ff8
-        env:
-          # contributor-report v1 currently accepts only pull_request context.
-          # pull_request_target provides the fork-safe token permissions we need
-          # for PR comments, so present the compatible event name to the action.
-          GITHUB_EVENT_NAME: pull_request
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           on-fail: comment
