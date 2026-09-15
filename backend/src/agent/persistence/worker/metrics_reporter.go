@@ -74,7 +74,7 @@ func processReportMetricResults(
 	for _, result := range reportMetricsResponse.GetResults() {
 		err := processReportMetricResult(result)
 		if err != nil {
-			errors = append(errors, processReportMetricResult(result))
+			errors = append(errors,err)
 		}
 	}
 	return errors
