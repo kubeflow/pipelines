@@ -187,6 +187,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	}
 
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
+	ecfg.Name = fmt.Sprintf("task/%d/%s/%d", opts.DAGExecutionID, opts.TaskName, opts.IterationIndex)
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		if isAlreadyExistsErr(err) {
