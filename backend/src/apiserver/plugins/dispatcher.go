@@ -124,12 +124,18 @@ func (d *RunPluginDispatcherImpl) OnBeforeRunCreation(ctx context.Context, run *
 	if err != nil {
 		return fmt.Errorf("failed to retrieve launcher namespace plugin configs for run %q: %v", run.RunID, err)
 	}
+
 	for _, handler := range d.handlers {
-		func(ctx context.Context, run *PendingRun, executionSpec util.ExecutionSpec, handler RunPluginHandler) {
+		err := func(ctx context.Context, run *PendingRun, executionSpec util.ExecutionSpec, handler RunPluginHandler) error {
 			input := pluginInputs[handler.Name()]
 
 			launcherNamespacePluginCfgStr := launcherNamespacePluginCfgs[handler.Name()]
-			resolvedRunPluginCfg, err := handler.ResolveRunPluginConfig(ctx, d.kubeClients.GetClientSet(), launcherNamespacePluginCfgStr, run.Namespace)
+			resolvedRunPluginCfg, err := handler.ResolveRunPluginConfig(
+				ctx,
+				d.kubeClients.GetClientSet(),
+				launcherNamespacePluginCfgStr,
+				run.Namespace,
+			)
 			if err != nil {
 				message := fmt.Sprintf("%s config resolution failed; run creation will continue: ", handler.Name()) + err.Error()
 				glog.Warningf("MLflow OnBeforeRunCreation failed for run %q (%s)", run.RunID, message)
@@ -137,34 +143,59 @@ func (d *RunPluginDispatcherImpl) OnBeforeRunCreation(ctx context.Context, run *
 				if outputErr := SetPendingRunPluginOutput(run, handler.Name(), pluginOutput); outputErr != nil {
 					glog.Warningf("Failed to persist %s plugin output for run %q: %v", handler.Name(), run.RunID, outputErr)
 				}
-				return
+				return nil
 			}
+
 			if resolvedRunPluginCfg == nil {
-				return
+				return nil
 			}
-			// Size the context to several per-call timeouts so the idempotent create
-			// retries in the client can fit within the budget, while still honoring
-			// parent request cancellation.
+
 			pluginOperationBudget := handler.GetPluginOperationTimeout(resolvedRunPluginCfg)
 			pluginCtx, cancel := context.WithTimeout(ctx, pluginOperationBudget)
 			defer cancel()
-			pluginOutput, pluginRuntimeEnv, pluginErr := handler.OnBeforeRunCreation(pluginCtx, run, resolvedRunPluginCfg, input)
+
+			pluginOutput, pluginRuntimeEnv, pluginErr := handler.OnBeforeRunCreation(
+				pluginCtx,
+				run,
+				resolvedRunPluginCfg,
+				input,
+			)
 			if pluginErr != nil {
-				glog.Warningf("%s OnBeforeRunCreation failed for run %q (run creation will continue): %v", handler.Name(), run.RunID, pluginErr)
+				glog.Warningf(
+					"%s OnBeforeRunCreation failed for run %q (run creation will continue): %v",
+					handler.Name(),
+					run.RunID,
+					pluginErr,
+				)
 			}
+
 			if pluginOutput == nil {
-				return
+				return nil
 			}
+
 			if err := SetPendingRunPluginOutput(run, handler.Name(), pluginOutput); err != nil {
 				glog.Warningf("failed to persist %s plugin output for run %q: %v", handler.Name(), run.RunID, err)
 			}
+
 			if len(pluginRuntimeEnv) != 0 {
 				if err := InjectPluginRuntimeEnv(executionSpec, pluginRuntimeEnv); err != nil {
-					glog.Warningf("Failed to inject %s runtime env for run %q: %v", handler.Name(), run.RunID, err)
+					return fmt.Errorf(
+						"failed to inject %s runtime env for run %q: %w",
+						handler.Name(),
+						run.RunID,
+						err,
+					)
 				}
 			}
+
+			return nil
 		}(ctx, run, executionSpec, handler)
+
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
