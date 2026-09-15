@@ -14,6 +14,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  decideArtifactOwnership,
   decideFromContexts,
   decideFromPrefixFallback,
   decodeGrpcWebResponse,
@@ -167,7 +168,7 @@ describe('decideFromContexts', () => {
         ],
         'ns-a',
       ),
-    ).toEqual({ valid: true, reason: 'mlmd-unavailable' });
+    ).toEqual({ valid: false, reason: 'mlmd-unavailable' });
   });
 
   it('returns mlmd-unavailable when some lookups failed but others have no mismatch', () => {
@@ -179,7 +180,7 @@ describe('decideFromContexts', () => {
         ],
         'ns-a',
       ),
-    ).toEqual({ valid: true, reason: 'mlmd-unavailable' });
+    ).toEqual({ valid: false, reason: 'mlmd-unavailable' });
   });
 
   it('returns no-evidence when contexts contain no PipelineRun entry at all', () => {
@@ -193,7 +194,7 @@ describe('decideFromContexts', () => {
         ],
         'ns-b',
       ),
-    ).toEqual({ valid: true, reason: 'no-evidence' });
+    ).toEqual({ valid: false, reason: 'no-evidence' });
   });
 
   it('returns no-evidence when PipelineRun context has no namespace property', () => {
@@ -202,7 +203,7 @@ describe('decideFromContexts', () => {
         [{ artifactId: 1, contexts: [{ contextType: PIPELINE_RUN, namespace: undefined }] }],
         'ns-a',
       ),
-    ).toEqual({ valid: true, reason: 'no-evidence' });
+    ).toEqual({ valid: false, reason: 'no-evidence' });
   });
 
   it('rejects when one artifact has multiple PipelineRun contexts and any mismatches', () => {
@@ -253,6 +254,140 @@ describe('decideFromContexts', () => {
       valid: false,
       actualNamespace: 'ns-b',
       reason: 'namespace-mismatch',
+    });
+  });
+});
+
+describe('decideArtifactOwnership', () => {
+  const matchingContexts = [
+    { artifactId: 1, contexts: [{ contextType: PIPELINE_RUN, namespace: 'team-a' }] },
+  ];
+  const customRoot = 's3://bucket/shared/model';
+  const namespacedRoot = 's3://bucket/private-artifacts/team-a/model';
+
+  it('enforces namespace-prefixed paths by default even when metadata matches', () => {
+    expect(decideArtifactOwnership(customRoot, 'team-a', matchingContexts)).toEqual({
+      valid: false,
+      reason: 'prefix-absent',
+    });
+  });
+
+  it('permits a legacy custom root only through the explicit audit exception', () => {
+    expect(decideArtifactOwnership(customRoot, 'team-a', matchingContexts, 'audit')).toEqual({
+      valid: true,
+      reason: 'audit-custom-root',
+    });
+  });
+
+  it.each(['enforce', 'audit'])('rejects an encoded victim prefix in %s mode', (mode) => {
+    expect(
+      decideArtifactOwnership(
+        'https://store/private%2dartifacts/victim/model',
+        'team-a',
+        matchingContexts,
+        mode,
+      ),
+    ).toEqual({
+      valid: false,
+      actualNamespace: 'victim',
+      reason: 'prefix-namespace-mismatch',
+    });
+  });
+
+  it('requires evidence for every artifact, not just one matching record', () => {
+    expect(
+      decideArtifactOwnership(
+        customRoot,
+        'team-a',
+        [...matchingContexts, { artifactId: 2, contexts: [] }],
+        'audit',
+      ),
+    ).toEqual({ valid: false, reason: 'no-evidence' });
+  });
+
+  it('denies multiply encoded namespace prefixes in audit mode', () => {
+    expect(
+      decideArtifactOwnership(
+        'https://store/private%252dartifacts/victim/model',
+        'team-a',
+        matchingContexts,
+        'audit',
+      ),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('fails closed for an invalid enforcement mode', () => {
+    expect(decideArtifactOwnership(customRoot, 'team-a', matchingContexts, 'disabled').valid).toBe(
+      false,
+    );
+  });
+
+  describe.each(['enforce', 'audit'])('%s mode', (mode) => {
+    it('permits a matching namespace prefix and matching metadata', () => {
+      expect(decideArtifactOwnership(namespacedRoot, 'team-a', matchingContexts, mode)).toEqual({
+        valid: true,
+        reason: 'prefix-match',
+      });
+    });
+
+    it('rejects another namespace prefix even when caller-associated metadata matches', () => {
+      expect(
+        decideArtifactOwnership(
+          's3://bucket/private-artifacts/victim/model',
+          'team-a',
+          matchingContexts,
+          mode,
+        ),
+      ).toEqual({
+        valid: false,
+        actualNamespace: 'victim',
+        reason: 'prefix-namespace-mismatch',
+      });
+    });
+
+    it.each([customRoot, namespacedRoot])('rejects a metadata namespace mismatch for %s', (uri) => {
+      expect(
+        decideArtifactOwnership(
+          uri,
+          'team-a',
+          [{ artifactId: 1, contexts: [{ contextType: PIPELINE_RUN, namespace: 'victim' }] }],
+          mode,
+        ),
+      ).toEqual({ valid: false, actualNamespace: 'victim', reason: 'namespace-mismatch' });
+    });
+
+    it.each([customRoot, namespacedRoot])('rejects unavailable metadata for %s', (uri) => {
+      expect(
+        decideArtifactOwnership(uri, 'team-a', [{ artifactId: 1, contexts: null }], mode),
+      ).toEqual({ valid: false, reason: 'mlmd-unavailable' });
+    });
+
+    it.each([customRoot, namespacedRoot])('rejects missing namespace evidence for %s', (uri) => {
+      expect(
+        decideArtifactOwnership(uri, 'team-a', [{ artifactId: 1, contexts: [] }], mode),
+      ).toEqual({ valid: false, reason: 'no-evidence' });
+    });
+
+    it('does not let one successful lookup mask another failed lookup', () => {
+      expect(
+        decideArtifactOwnership(
+          customRoot,
+          'team-a',
+          [...matchingContexts, { artifactId: 2, contexts: null }],
+          mode,
+        ),
+      ).toEqual({ valid: false, reason: 'mlmd-unavailable' });
+    });
+
+    it.each([
+      'https://storage.example/private-artifacts/team-a/../victim/model',
+      'https://storage.example/private-artifacts/team-a/%2e%2e/victim/model',
+      'https://storage.example/private-artifacts/team-a%2f..%2fvictim/model',
+      'https://storage.example/shared/%2e%2e/victim/model',
+      'https://storage.example/shared/%2fprivate-artifacts/victim/model',
+      'https://storage.example/shared//model',
+    ])('rejects unsafe paths rather than treating them as legacy custom roots: %s', (uri) => {
+      expect(decideArtifactOwnership(uri, 'team-a', matchingContexts, mode).valid).toBe(false);
     });
   });
 });
