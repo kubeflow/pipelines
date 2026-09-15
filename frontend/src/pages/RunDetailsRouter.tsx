@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { NavigationProps } from 'src/lib/Navigation';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { isEqual } from 'lodash';
@@ -23,7 +24,7 @@ import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { RouteComponentProps } from 'react-router-dom';
+
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import {
   RunDetailsV2,
@@ -93,7 +94,7 @@ function isRunActive(state?: string): boolean {
 
 // This is a router to determine whether to show V1 or V2 run detail page.
 export default function RunDetailsRouter(
-  props: RunDetailsProps & RouteComponentProps<RunDetailsV2Params>,
+  props: RunDetailsProps & NavigationProps<RunDetailsV2Params>,
 ) {
   const { updateBanner } = props;
   const currentPageBanner = useRef<BannerProps>({});
@@ -104,7 +105,7 @@ export default function RunDetailsRouter(
     },
     [updateBanner],
   );
-  const runId = props.match.params[RouteParams.runId];
+  const runId = props.params[RouteParams.runId];
 
   // Retrieves v2 run detail.
   const { isLoading: runIsLoading, data: v2Run } = useQuery<V2beta1Run, Error>({
@@ -196,7 +197,7 @@ export default function RunDetailsRouter(
 }
 
 function PolledRunDetailsV2(props: RunDetailsV2Props) {
-  const runId = props.match.params[RouteParams.runId];
+  const runId = props.params[RouteParams.runId];
   const queryClient = useQueryClient();
   const runQueryKey = useMemo(() => queryKeys.v2RunDetail(runId), [runId]);
   const retryDiscoveryQueryKey = useMemo(() => queryKeys.runRetryDiscovery(runId), [runId]);

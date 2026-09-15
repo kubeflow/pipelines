@@ -16,7 +16,7 @@
 
 import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
 import { classes, stylesheet } from 'typestyle';
@@ -603,7 +603,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             <Button
               id='exitNewRunPageBtn'
               onClick={() => {
-                this.props.history.push(this._getCancelRoute());
+                this.props.navigate(this._getCancelRoute());
               }}
             >
               {isFirstRunInExperiment ? 'Skip this step' : 'Cancel'}
@@ -821,19 +821,19 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',
         });
-        this.props.history.replace(searchString);
+        this.props.navigate(searchString, { replace: true });
       } else if (experiment.id && pipeline?.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: '',
         });
-        this.props.history.replace(searchString);
+        this.props.navigate(searchString, { replace: true });
       } else if (experiment.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
         });
-        this.props.history.replace(searchString);
+        this.props.navigate(searchString, { replace: true });
       }
     }
 
@@ -901,7 +901,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           [QUERY_PARAMS.cloneFromRun]: cloneFromRunValue || '',
           [QUERY_PARAMS.isRecurring]: this.state.isRecurringRun ? '1' : '',
         });
-        this.props.history.replace(searchString);
+        this.props.navigate(searchString, { replace: true });
         this.props.handlePipelineVersionIdChange(pipelineVersion.id);
       }
     }
@@ -929,7 +929,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       [QUERY_PARAMS.pipelineVersionId]: pipelineVersionId || '',
       [QUERY_PARAMS.isRecurring]: this.state.isRecurringRun ? '1' : '',
     });
-    this.props.history.replace(searchString);
+    this.props.navigate(searchString, { replace: true });
     this.props.handlePipelineVersionIdChange(pipelineVersionId || '');
     this.props.handlePipelineIdChange(pipelineId);
   }
@@ -1234,16 +1234,16 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       }
 
       if (this.state.isRecurringRun) {
-        this.props.history.push(RoutePage.RECURRING_RUNS);
+        this.props.navigate(RoutePage.RECURRING_RUNS);
       } else if (this.state.experiment) {
-        this.props.history.push(
+        this.props.navigate(
           RoutePage.EXPERIMENT_DETAILS.replace(
             ':' + RouteParams.experimentId,
             this.state.experiment.id!,
           ),
         );
       } else {
-        this.props.history.push(RoutePage.RUNS);
+        this.props.navigate(RoutePage.RUNS);
       }
       this.props.updateSnackbar({
         message: `Successfully started new Run: ${newRun.name}`,

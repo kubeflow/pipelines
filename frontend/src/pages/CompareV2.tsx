@@ -26,7 +26,7 @@ import {
   useState,
 } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import Separator from 'src/atoms/Separator';
@@ -710,7 +710,7 @@ function EnhancedCompareV2(props: PageProps) {
   const namespace = useContext(NamespaceContext);
   const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate replace to={RoutePage.EXPERIMENTS} />;
   }
   return <CompareV2 namespace={namespace} {...props} />;
 }

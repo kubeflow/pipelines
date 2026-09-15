@@ -17,8 +17,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as JsYaml from 'js-yaml';
-import { createMemoryHistory } from 'history';
-import { Router as ReactRouter } from 'react-router';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -52,12 +51,12 @@ describe('NewRunSwitcher', () => {
 
   function generatePropsCloneRun(runId = TEST_RUN_ID): PageProps {
     return {
-      history: { push: vi.fn(), replace: vi.fn() } as any,
+      navigate: vi.fn(),
       location: {
         pathname: RoutePage.NEW_RUN,
         search: `?${QUERY_PARAMS.cloneFromRun}=${runId}`,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a run' },
       updateBanner: vi.fn(),
       updateDialog: vi.fn(),
@@ -68,12 +67,12 @@ describe('NewRunSwitcher', () => {
 
   function generatePropsCloneRecurringRun(recurringRunId = TEST_RECURRING_RUN_ID): PageProps {
     return {
-      history: { push: vi.fn(), replace: vi.fn() } as any,
+      navigate: vi.fn(),
       location: {
         pathname: RoutePage.NEW_RUN,
         search: `?${QUERY_PARAMS.cloneFromRecurringRun}=${recurringRunId}`,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a recurring run' },
       updateBanner: vi.fn(),
       updateDialog: vi.fn(),
@@ -126,20 +125,26 @@ describe('NewRunSwitcher', () => {
       });
       vi.spyOn(Apis.experimentServiceApiV2, 'createExperiment').mockResolvedValue(NEW_EXPERIMENT);
       vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(NEW_EXPERIMENT);
-      const history = createMemoryHistory({
-        initialEntries: [
-          `${RoutePage.NEW_RUN}?${QUERY_PARAMS.pipelineId}=${ORIGINAL_TEST_PIPELINE_ID}` +
-            `&${QUERY_PARAMS.pipelineVersionId}=${olderVersion.pipeline_version_id}`,
+      const router = createMemoryRouter(
+        [
+          {
+            path: '*',
+            element: <Router configs={[{ path: RoutePage.NEW_RUN, Component: NewRunSwitcher }]} />,
+          },
         ],
-      });
+        {
+          initialEntries: [
+            `${RoutePage.NEW_RUN}?${QUERY_PARAMS.pipelineId}=${ORIGINAL_TEST_PIPELINE_ID}` +
+              `&${QUERY_PARAMS.pipelineVersionId}=${olderVersion.pipeline_version_id}`,
+          ],
+        },
+      );
       const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
       });
       render(
         <QueryClientProvider client={queryClient}>
-          <ReactRouter history={history}>
-            <Router configs={[{ path: RoutePage.NEW_RUN, Component: NewRunSwitcher }]} />
-          </ReactRouter>
+          <RouterProvider router={router} />
         </QueryClientProvider>,
       );
 
@@ -152,7 +157,7 @@ describe('NewRunSwitcher', () => {
       fireEvent.click(screen.getByText('Next'));
 
       await waitFor(() =>
-        expect(history.location.search).toContain(
+        expect(router.state.location.search).toContain(
           `${QUERY_PARAMS.pipelineVersionId}=${latestVersion.pipeline_version_id}`,
         ),
       );
@@ -638,12 +643,12 @@ describe('NewRunSwitcher', () => {
       }
 
       const props: PageProps = {
-        history: { push: vi.fn(), replace: vi.fn() } as any,
+        navigate: vi.fn(),
         location: {
           pathname: RoutePage.NEW_RUN,
           search: `?${QUERY_PARAMS.cloneFromRun}=${TEST_RUN_ID}&${QUERY_PARAMS.cloneFromRecurringRun}=${TEST_RECURRING_RUN_ID}`,
         } as any,
-        match: '' as any,
+        params: {},
         toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
         updateBanner: vi.fn(),
         updateDialog: vi.fn(),

@@ -22,6 +22,7 @@ exports[`Router > initial render 1`] = `
           <a
             aria-label="Pipeline List"
             class="unstyled_f1ikaigl"
+            data-discover="true"
             data-mui-internal-clone-element="true"
             href="/pipelines"
             id="pipelinesBtn"
@@ -103,6 +104,7 @@ exports[`Router > initial render 1`] = `
           <a
             aria-label="Experiment List"
             class="unstyled_f1ikaigl"
+            data-discover="true"
             data-mui-internal-clone-element="true"
             href="/experiments"
             id="experimentsBtn"
@@ -181,6 +183,7 @@ exports[`Router > initial render 1`] = `
           <a
             aria-label="Runs List"
             class="unstyled_f1ikaigl"
+            data-discover="true"
             data-mui-internal-clone-element="true"
             href="/runs"
             id="runsBtn"
@@ -221,6 +224,7 @@ exports[`Router > initial render 1`] = `
           <a
             aria-label="Recurring Runs List"
             class="unstyled_f1ikaigl"
+            data-discover="true"
             data-mui-internal-clone-element="true"
             href="/recurringruns"
             id="recurringRunsBtn"
@@ -261,6 +265,7 @@ exports[`Router > initial render 1`] = `
           <a
             aria-label="Artifacts List"
             class="unstyled_f1ikaigl"
+            data-discover="true"
             data-mui-internal-clone-element="true"
             href="/artifacts"
             id="artifactsBtn"
@@ -481,7 +486,8 @@ exports[`Router > initial render 1`] = `
               >
                 <a
                   class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
-                  href="/"
+                  data-discover="true"
+                  href="/does-not-exist"
                 />
               </span>
             </div>

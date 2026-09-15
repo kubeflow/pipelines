@@ -18,7 +18,7 @@ import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import EnhancedCompareV1, { TEST_ONLY, TaggedViewerConfig } from './CompareV1';
-import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
+import TestUtils, { RouterLocation, flushPromisesInAct } from 'src/TestUtils';
 import * as Utils from 'src/lib/Utils';
 import { logger } from 'src/lib/Utils';
 import { Apis } from 'src/lib/Apis';
@@ -30,8 +30,7 @@ import { PlotType } from 'src/components/viewers/Viewer';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { Workflow } from 'src/third_party/argo/argo_template';
 import { ButtonKeys } from 'src/lib/Buttons';
-import { MemoryRouter, Router } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
+import { MemoryRouter } from 'react-router';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
@@ -52,7 +51,7 @@ describe('CompareV1', () => {
   let updateBannerSpy: ReturnType<typeof vi.fn>;
   let updateDialogSpy: ReturnType<typeof vi.fn>;
   let updateSnackbarSpy: ReturnType<typeof vi.fn>;
-  let historyPushSpy: ReturnType<typeof vi.fn>;
+  let navigateSpy: ReturnType<typeof vi.fn>;
 
   const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
   const outputArtifactLoaderSpy = vi.spyOn(OutputArtifactLoader, 'loadResult');
@@ -76,7 +75,7 @@ describe('CompareV1', () => {
       CompareV1,
       location,
       {} as any,
-      historyPushSpy,
+      navigateSpy,
       updateBannerSpy,
       updateDialogSpy,
       updateToolbarSpy,
@@ -192,7 +191,7 @@ describe('CompareV1', () => {
     updateBannerSpy = vi.fn();
     updateDialogSpy = vi.fn();
     updateSnackbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
+    navigateSpy = vi.fn();
 
     getRunSpy.mockReset();
     outputArtifactLoaderSpy.mockReset();
@@ -834,75 +833,75 @@ describe('CompareV1', () => {
 
   describe('EnhancedCompareV1', () => {
     it('redirects to experiments page when namespace changes', async () => {
-      const history = createMemoryHistory({
-        initialEntries: ['/does-not-matter'],
-      });
+      const initialEntries = ['/does-not-matter'];
       const { rerender } = render(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='ns1'>
             <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       await flushPromisesInAct();
-      expect(history.location.pathname).not.toEqual('/experiments');
+      expect(screen.getByTestId('router-location').textContent).not.toEqual('/experiments');
       rerender(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='ns2'>
             <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       await flushPromisesInAct();
-      expect(history.location.pathname).toEqual('/experiments');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/experiments');
     });
 
     it('does not redirect when namespace stays the same', async () => {
-      const history = createMemoryHistory({
-        initialEntries: ['/initial-path'],
-      });
+      const initialEntries = ['/initial-path'];
       const { rerender } = render(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='ns1'>
             <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       await flushPromisesInAct();
-      expect(history.location.pathname).toEqual('/initial-path');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/initial-path');
       rerender(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='ns1'>
             <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       await flushPromisesInAct();
-      expect(history.location.pathname).toEqual('/initial-path');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/initial-path');
     });
 
     it('does not redirect when namespace initializes', async () => {
-      const history = createMemoryHistory({
-        initialEntries: ['/initial-path'],
-      });
+      const initialEntries = ['/initial-path'];
       const { rerender } = render(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value={undefined}>
             <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       await flushPromisesInAct();
-      expect(history.location.pathname).toEqual('/initial-path');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/initial-path');
       rerender(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='ns1'>
             <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       await flushPromisesInAct();
-      expect(history.location.pathname).toEqual('/initial-path');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/initial-path');
     });
   });
 });

@@ -17,7 +17,7 @@
 import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 
 import {
   ArtifactArtifactType,
@@ -56,8 +56,7 @@ describe('RunDetailsV2', () => {
   let updateDialogSpy: any;
   let updateSnackbarSpy: any;
   let updateToolbarSpy: any;
-  let historyPushSpy: any;
-  let historyReplaceSpy: any;
+  let navigateSpy: any;
 
   function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -70,15 +69,10 @@ describe('RunDetailsV2', () => {
   function generateProps(): RunDetailsInternalProps &
     PageProps & { parsedPipelineSpec: PipelineSpec } {
     const pageProps: PageProps = {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      navigate: navigateSpy,
       location: '' as any,
-      match: {
-        params: {
-          [RouteParams.runId]: RUN_ID,
-        },
-        isExact: true,
-        path: '',
-        url: '',
+      params: {
+        [RouteParams.runId]: RUN_ID,
       },
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
@@ -208,8 +202,7 @@ describe('RunDetailsV2', () => {
     updateDialogSpy = vi.fn();
     updateSnackbarSpy = vi.fn();
     updateToolbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
-    historyReplaceSpy = vi.fn();
+    navigateSpy = vi.fn();
 
     vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: TEST_TASKS });
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
@@ -251,10 +244,14 @@ describe('RunDetailsV2', () => {
       expect(document.querySelector('[data-id="task.preprocess"]')).toHaveClass('selected'),
     );
     fireEvent.click(screen.getByRole('button', { name: 'close' }));
-    expect(historyReplaceSpy).toHaveBeenCalledWith({
-      ...props.location,
-      search: '?view=graph',
-    });
+    expect(navigateSpy).toHaveBeenCalledWith(
+      {
+        pathname: props.location.pathname,
+        hash: props.location.hash,
+        search: '?view=graph',
+      },
+      { replace: true, state: props.location.state },
+    );
   });
 
   it('keeps Run Details usable when a linked task scope is absent from the pipeline spec', async () => {
@@ -328,7 +325,7 @@ describe('RunDetailsV2', () => {
       expect(document.querySelector('[data-id="task.orphan"]')).not.toBeInTheDocument();
       expect(document.querySelector('[data-id="task.preprocess"]')).toBeInTheDocument();
     });
-    expect(historyReplaceSpy).toHaveBeenCalled();
+    expect(navigateSpy).toHaveBeenCalled();
   });
 
   it('recovers a fallback graph when polling supplies ancestry for the same task ID', async () => {
@@ -422,10 +419,14 @@ describe('RunDetailsV2', () => {
     await waitFor(() =>
       expect(document.querySelector('[data-id="task.train"]')).toHaveClass('selected'),
     );
-    expect(historyReplaceSpy).toHaveBeenCalledWith({
-      pathname: `/runs/details/${RUN_ID}`,
-      search: '',
-    });
+    expect(navigateSpy).toHaveBeenCalledWith(
+      {
+        pathname: `/runs/details/${RUN_ID}`,
+        hash: undefined,
+        search: '',
+      },
+      { replace: true, state: undefined },
+    );
 
     rerenderWithSearch('');
     await act(async () => {});

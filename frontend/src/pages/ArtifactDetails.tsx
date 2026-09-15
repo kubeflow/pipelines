@@ -17,7 +17,7 @@
 import { CircularProgress } from '@mui/material';
 import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
-import { Link, Route, Switch } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router';
 import {
   ArtifactArtifactType,
   V2beta1Artifact,
@@ -90,7 +90,7 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
   public state: ArtifactDetailsState = { visualizationRefreshGeneration: 0 };
 
   private get id(): string {
-    return this.props.match.params[RouteParams.ID] ?? '';
+    return this.props.params[RouteParams.ID] ?? '';
   }
 
   public async componentDidMount(): Promise<void> {
@@ -113,33 +113,44 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
 
     return (
       <div className={commonCss.page}>
-        <Switch>
-          <Route path={`${this.props.match.path}/explorer`} exact={true}>
-            <ArtifactTabs
-              selectedTab={ArtifactDetailsTab.LINEAGE_EXPLORER}
-              onSwitch={this.switchTab}
-            />
-            <NativeArtifactLineage
-              key={this.id}
-              artifactId={this.id}
-              namespace={artifact.namespace}
-            />
-          </Route>
-          <Route path={this.props.match.path} exact={true}>
-            <ArtifactOverview
-              artifact={artifact}
-              onSwitch={this.switchTab}
-              refreshGeneration={visualizationRefreshGeneration}
-            />
-          </Route>
-          <Route path={`${this.props.match.path}/${RELATED_TASKS_PATH}`} exact={true}>
-            <ArtifactRelationshipsLoader
-              artifactId={this.id}
-              onSwitch={this.switchTab}
-              tableRef={this.relationshipsTableRef}
-            />
-          </Route>
-        </Switch>
+        <Routes>
+          <Route
+            path='explorer'
+            element={
+              <>
+                <ArtifactTabs
+                  selectedTab={ArtifactDetailsTab.LINEAGE_EXPLORER}
+                  onSwitch={this.switchTab}
+                />
+                <NativeArtifactLineage
+                  key={this.id}
+                  artifactId={this.id}
+                  namespace={artifact.namespace}
+                />
+              </>
+            }
+          />
+          <Route
+            index
+            element={
+              <ArtifactOverview
+                artifact={artifact}
+                onSwitch={this.switchTab}
+                refreshGeneration={visualizationRefreshGeneration}
+              />
+            }
+          />
+          <Route
+            path={RELATED_TASKS_PATH}
+            element={
+              <ArtifactRelationshipsLoader
+                artifactId={this.id}
+                onSwitch={this.switchTab}
+                tableRef={this.relationshipsTableRef}
+              />
+            }
+          />
+        </Routes>
       </div>
     );
   }
@@ -188,15 +199,16 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
   };
 
   private switchTab = (selectedTab: number) => {
+    const artifactPath = RoutePageFactory.artifactDetails(encodeURIComponent(this.id));
     switch (selectedTab) {
       case ArtifactDetailsTab.LINEAGE_EXPLORER:
-        this.props.history.push(`${this.props.match.url}/explorer`);
+        this.props.navigate(`${artifactPath}/explorer`);
         return;
       case ArtifactDetailsTab.RELATED_TASKS:
-        this.props.history.push(`${this.props.match.url}/${RELATED_TASKS_PATH}`);
+        this.props.navigate(`${artifactPath}/${RELATED_TASKS_PATH}`);
         return;
       case ArtifactDetailsTab.OVERVIEW:
-        this.props.history.push(this.props.match.url.replace(`/${RELATED_TASKS_PATH}`, ''));
+        this.props.navigate(artifactPath);
         return;
       default:
         logger.error(`Unknown selected tab ${selectedTab}.`);
@@ -579,11 +591,7 @@ function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): st
 const EnhancedArtifactDetails = (props: PageProps) => {
   const queryClient = useQueryClient();
   return (
-    <ArtifactDetailsPage
-      {...props}
-      queryClient={queryClient}
-      key={props.match.params[RouteParams.ID]}
-    />
+    <ArtifactDetailsPage {...props} queryClient={queryClient} key={props.params[RouteParams.ID]} />
   );
 };
 
