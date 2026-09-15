@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"google.golang.org/grpc/metadata"
@@ -83,7 +84,6 @@ var (
 		Help: "The total number of DeletePipelineVersion requests",
 	})
 
-	// TODO(jingzhang36): error count and success count.
 	pipelineCount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "pipeline_server_pipeline_count",
 		Help: "The current number of pipelines in Kubeflow Pipelines instance",
@@ -240,6 +240,7 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 // Creates a pipeline and a pipeline version in a single transaction.
 // Supports v1beta1 behavior.
 func (s *PipelineServerV1) CreatePipelineV1(ctx context.Context, request *apiv1beta1.CreatePipelineRequest) (*apiv1beta1.Pipeline, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
 		createPipelineVersionRequests.Inc()
@@ -248,18 +249,28 @@ func (s *PipelineServerV1) CreatePipelineV1(ctx context.Context, request *apiv1b
 	// Convert the input request
 	pipeline, err := toModelPipeline(request.GetPipeline())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1) due to pipeline conversion error")
 	}
 
 	// Create both pipeline and pipeline version is a single transaction
 	newPipeline, newPipelineVersion, err := s.createPipelineAndPipelineVersion(ctx, pipeline, request.GetPipeline().GetUrl().GetPipelineUrl(), nil)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline (v1beta1)")
 	}
 
 	if s.options.CollectMetrics {
 		pipelineCount.Inc()
 		pipelineVersionCount.Inc()
+		requestCounter.WithLabelValues("pipeline", "CreatePipelineV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "CreatePipelineV1").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipelineV1(newPipeline, newPipelineVersion), nil
 }
@@ -267,6 +278,7 @@ func (s *PipelineServerV1) CreatePipelineV1(ctx context.Context, request *apiv1b
 // Creates a pipeline, but does not create a pipeline version.
 // Supports v2beta1 behavior.
 func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2beta1.CreatePipelineRequest) (*apiv2beta1.Pipeline, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
 	}
@@ -274,17 +286,27 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2beta1
 	// Convert the input request. Fail fast if pipeline is corrupted.
 	pipeline, err := toModelPipeline(request.GetPipeline())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline as pipeline conversion failed")
 	}
 
 	// Create pipeline
 	createdPipeline, err := s.createPipeline(ctx, pipeline)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline due to server error")
 	}
 
 	if s.options.CollectMetrics {
 		pipelineCount.Inc()
+		requestCounter.WithLabelValues("pipeline", "CreatePipeline", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "CreatePipeline").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipeline(createdPipeline), nil
 }
@@ -293,6 +315,7 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2beta1
 // Updates default pipeline version for a given pipeline.
 // Supports v1beta1 behavior.
 func (s *PipelineServerV1) UpdatePipelineDefaultVersionV1(ctx context.Context, request *apiv1beta1.UpdatePipelineDefaultVersionRequest) (*emptypb.Empty, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		updatePipelineDefaultVersionRequests.Inc()
 	}
@@ -301,11 +324,23 @@ func (s *PipelineServerV1) UpdatePipelineDefaultVersionV1(ctx context.Context, r
 	}
 	err := s.canAccessPipeline(ctx, request.GetPipelineId(), resourceAttributes)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipelineDefaultVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipelineDefaultVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to update (v1beta1) default pipeline version to %s for pipeline %s due to authorization error", request.GetVersionId(), request.GetPipelineId())
 	}
 	err = s.resourceManager.UpdatePipelineDefaultVersion(request.GetPipelineId(), request.GetVersionId())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipelineDefaultVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipelineDefaultVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to update (v1beta1) default pipeline version to %s for pipeline %s. Check error stack", request.GetVersionId(), request.GetPipelineId())
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "UpdatePipelineDefaultVersionV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "UpdatePipelineDefaultVersionV1").Observe(time.Since(startTime).Seconds())
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -331,33 +366,55 @@ func (s *BasePipelineServer) getPipeline(ctx context.Context, pipelineId string)
 // Note, the default pipeline version will be set to be the latest pipeline version.
 // Supports v1beta behavior.
 func (s *PipelineServerV1) GetPipelineV1(ctx context.Context, request *apiv1beta1.GetPipelineRequest) (*apiv1beta1.Pipeline, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
 	pipelineId := request.GetId()
 	pipeline, err := s.getPipeline(ctx, pipelineId)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s. Check error stack", pipelineId)
 	}
 
 	pipelineVersion, err := s.getLatestPipelineVersion(ctx, pipelineId)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s due to error fetching the latest pipeline version", pipelineId)
 	}
 
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "GetPipelineV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "GetPipelineV1").Observe(time.Since(startTime).Seconds())
+	}
 	return toApiPipelineV1(pipeline, pipelineVersion), nil
 }
 
 // Returns a pipeline.
 // Supports v2beta behavior.
 func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2beta1.GetPipelineRequest) (*apiv2beta1.Pipeline, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
 	pipelineId := request.GetPipelineId()
 	pipeline, err := s.getPipeline(ctx, pipelineId)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline %s. Check error stack", pipelineId)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "GetPipeline", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "GetPipeline").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipeline(pipeline), nil
 }
@@ -394,6 +451,7 @@ func (s *BasePipelineServer) getPipelineByName(ctx context.Context, name string,
 // Returns a pipeline with the default (latest) pipeline version given a name and a namespace.
 // Supports v1beta behavior.
 func (s *PipelineServerV1) GetPipelineByNameV1(ctx context.Context, request *apiv1beta1.GetPipelineByNameRequest) (*apiv1beta1.Pipeline, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
@@ -403,7 +461,15 @@ func (s *PipelineServerV1) GetPipelineByNameV1(ctx context.Context, request *api
 
 	pipeline, pipelineVersion, err := s.getPipelineByName(ctx, name, namespace, "v1beta1")
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineByNameV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineByNameV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) with name %s and namespace %s. Check error stack.", name, namespace)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "GetPipelineByNameV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "GetPipelineByNameV1").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipelineV1(pipeline, pipelineVersion), nil
 }
@@ -411,6 +477,7 @@ func (s *PipelineServerV1) GetPipelineByNameV1(ctx context.Context, request *api
 // Returns a pipeline given name and namespace.
 // Supports v2beta behavior.
 func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2beta1.GetPipelineByNameRequest) (*apiv2beta1.Pipeline, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
@@ -420,7 +487,15 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2be
 
 	pipeline, _, err := s.getPipelineByName(ctx, name, namespace, "v2beta1")
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineByName", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineByName").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline with name %s and namespace %s. Check error stack.", name, namespace)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "GetPipelineByName", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "GetPipelineByName").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipeline(pipeline), nil
 }
@@ -462,6 +537,7 @@ func (s *BasePipelineServer) listPipelines(ctx context.Context, namespace string
 // Returns pipelines with default pipeline versions for a given query.
 // Supports v1beta behavior.
 func (s *PipelineServerV1) ListPipelinesV1(ctx context.Context, request *apiv1beta1.ListPipelinesRequest) (*apiv1beta1.ListPipelinesResponse, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		listPipelineRequests.Inc()
 	}
@@ -475,10 +551,18 @@ func (s *PipelineServerV1) ListPipelinesV1(ctx context.Context, request *apiv1be
 	namespace := ""
 	filterContext, err := validateFilterV1(request.GetResourceReferenceKey())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelinesV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelinesV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to list pipelines (v1beta1) due to filter validation error")
 	}
 	refKey := filterContext.ReferenceKey
 	if refKey != nil && refKey.Type != model.NamespaceResourceType {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelinesV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelinesV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to list pipelines (v1beta1) due to invalid resource references for pipelines: %v", refKey)
 	}
 	if refKey != nil && refKey.Type == model.NamespaceResourceType {
@@ -493,14 +577,26 @@ func (s *PipelineServerV1) ListPipelinesV1(ctx context.Context, request *apiv1be
 	// Validate list options
 	opts, err := validatedListOptions(&model.Pipeline{}, pageToken, int(pageSize), sortBy, filter, "v1beta1")
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelinesV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelinesV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, filter)
 	}
 
 	pipelines, pipelineVersions, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, opts, "v1beta1", nil)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelinesV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelinesV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipelines (v1beta1) in namespace %s. Check error stack", namespace)
 	}
 
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "ListPipelinesV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "ListPipelinesV1").Observe(time.Since(startTime).Seconds())
+	}
 	apiPipelines := toApiPipelinesV1(pipelines, pipelineVersions)
 	return &apiv1beta1.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
 }
@@ -508,6 +604,7 @@ func (s *PipelineServerV1) ListPipelinesV1(ctx context.Context, request *apiv1be
 // Returns pipelines for a given query.
 // Supports v2beta1 behavior.
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.ListPipelinesRequest) (*apiv2beta1.ListPipelinesResponse, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		listPipelineRequests.Inc()
 	}
@@ -523,18 +620,34 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.
 	// the standard filter/list options which map keys to DB columns.
 	cleanedFilterSpec, tagFilters, err := extractTagFiltersFromFilterSpec(filterSpec)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelines", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelines").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipelines due to invalid tag filter in filter spec")
 	}
 
 	// Validate list options with the cleaned filter (tag predicates removed)
 	opts, err := validatedListOptions(&model.Pipeline{}, pageToken, int(pageSize), sortBy, cleanedFilterSpec, "v2beta1")
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelines", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelines").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	}
 
 	pipelines, _, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, opts, "v2beta1", tagFilters)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelines", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelines").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipelines in namespace %s. Check error stack", namespace)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "ListPipelines", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "ListPipelines").Observe(time.Since(startTime).Seconds())
 	}
 	return &apiv2beta1.ListPipelinesResponse{Pipelines: toApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
 }
@@ -622,16 +735,23 @@ func (s *BasePipelineServer) deletePipeline(ctx context.Context, pipelineId stri
 // Deletes a pipeline.
 // Supports v1beta1 behavior.
 func (s *PipelineServerV1) DeletePipelineV1(ctx context.Context, request *apiv1beta1.DeletePipelineRequest) (*emptypb.Empty, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		deletePipelineRequests.Inc()
 	}
 
 	if err := s.deletePipeline(ctx, request.GetId(), false); err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "DeletePipelineV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "DeletePipelineV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to delete pipeline (v1beta1) %s. Check error stack", request.GetId())
 	}
 
 	if s.options.CollectMetrics {
 		pipelineCount.Dec()
+		requestCounter.WithLabelValues("pipeline", "DeletePipelineV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "DeletePipelineV1").Observe(time.Since(startTime).Seconds())
 	}
 
 	return &emptypb.Empty{}, nil
@@ -640,16 +760,23 @@ func (s *PipelineServerV1) DeletePipelineV1(ctx context.Context, request *apiv1b
 // Deletes a pipeline.
 // Supports v2beta1 behavior.
 func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2beta1.DeletePipelineRequest) (*emptypb.Empty, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		deletePipelineRequests.Inc()
 	}
 
 	if err := s.deletePipeline(ctx, request.GetPipelineId(), request.GetCascade()); err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "DeletePipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "DeletePipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to delete pipeline %s. Check error stack", request.GetPipelineId())
 	}
 
 	if s.options.CollectMetrics {
 		pipelineCount.Dec()
+		requestCounter.WithLabelValues("pipeline", "DeletePipeline", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "DeletePipeline").Observe(time.Since(startTime).Seconds())
 	}
 
 	return &emptypb.Empty{}, nil
@@ -658,8 +785,13 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2beta1
 // Returns the default (latest) pipeline template for a given pipeline id.
 // Supports v1beta1 behavior.
 func (s *PipelineServerV1) GetTemplate(ctx context.Context, request *apiv1beta1.GetTemplateRequest) (*apiv1beta1.GetTemplateResponse, error) {
+	startTime := time.Now()
 	pipelineId := request.GetId()
 	if pipelineId == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetTemplate", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetTemplate").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to get the default pipeline template (v1beta1). Pipeline id cannot be empty")
 	}
 	// Check authorization
@@ -668,11 +800,23 @@ func (s *PipelineServerV1) GetTemplate(ctx context.Context, request *apiv1beta1.
 	}
 	err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetTemplate", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetTemplate").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get the default template (v1beta1) due to authorization error. Verify that you have access to pipeline id %s", pipelineId)
 	}
 	template, err := s.resourceManager.GetPipelineLatestTemplate(pipelineId)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetTemplate", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetTemplate").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get the default template (v1beta1) for pipeline %s. Check error stack", pipelineId)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "GetTemplate", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "GetTemplate").Observe(time.Since(startTime).Seconds())
 	}
 	return &apiv1beta1.GetTemplateResponse{Template: string(template)}, nil
 }
@@ -738,6 +882,7 @@ func NewPipelineServerV1(resourceManager *resource.ResourceManager, options *Pip
 // Creates a pipeline and a pipeline version in a single transaction.
 // Supports v2beta1 behavior.
 func (s *PipelineServer) CreatePipelineAndVersion(ctx context.Context, request *apiv2beta1.CreatePipelineAndVersionRequest) (*apiv2beta1.Pipeline, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
 		createPipelineVersionRequests.Inc()
@@ -746,18 +891,28 @@ func (s *PipelineServer) CreatePipelineAndVersion(ctx context.Context, request *
 	// Convert the input request
 	pipeline, err := toModelPipeline(request.GetPipeline())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineAndVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineAndVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline due to pipeline conversion error")
 	}
 
 	// Create both pipeline and pipeline version in a single transaction
 	newPipeline, _, err := s.createPipelineAndPipelineVersion(ctx, pipeline, request.GetPipelineVersion().GetPackageUrl().GetPipelineUrl(), request.GetPipelineVersion().GetTags())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineAndVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineAndVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline")
 	}
 
 	if s.options.CollectMetrics {
 		pipelineCount.Inc()
 		pipelineVersionCount.Inc()
+		requestCounter.WithLabelValues("pipeline", "CreatePipelineAndVersion", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "CreatePipelineAndVersion").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipeline(newPipeline), nil
 }
@@ -834,6 +989,7 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 // Creates a pipeline version.
 // Supports v1beta behavior.
 func (s *PipelineServerV1) CreatePipelineVersionV1(ctx context.Context, request *apiv1beta1.CreatePipelineVersionRequest) (*apiv1beta1.PipelineVersion, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		createPipelineVersionRequests.Inc()
 	}
@@ -841,12 +997,20 @@ func (s *PipelineServerV1) CreatePipelineVersionV1(ctx context.Context, request 
 	// Fail fast
 	if request.Version == nil || request.Version.PackageUrl == nil ||
 		len(request.Version.PackageUrl.PipelineUrl) == 0 {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version (v1beta1). Pipeline version is nil or pipeline's URL is empty")
 	}
 
 	// Convert to pipeline
 	pv, err := toModelPipelineVersion(request.GetVersion())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline version (v1beta1) due to conversion error")
 	}
 
@@ -858,6 +1022,10 @@ func (s *PipelineServerV1) CreatePipelineVersionV1(ctx context.Context, request 
 		}
 	}
 	if len(pipelineId) == 0 {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline version (v1beta1) due to missing pipeline id")
 	}
 	pv.PipelineId = pipelineId
@@ -865,6 +1033,10 @@ func (s *PipelineServerV1) CreatePipelineVersionV1(ctx context.Context, request 
 	// Create a pipeline version
 	newpv, err := s.createPipelineVersion(ctx, pv)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline version (v1beta1) due to internal server error")
 	}
 	if s.options.CollectMetrics {
@@ -875,7 +1047,15 @@ func (s *PipelineServerV1) CreatePipelineVersionV1(ctx context.Context, request 
 	// Note, v1beta1 PipelineVersion does not have error message. Errors in converting to API will result in error.
 	result := toApiPipelineVersionV1(newpv)
 	if result == nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal pipeline version representation to its v1beta1 API counterpart"), "Failed to create a pipeline version (v1beta1) due to error converting back to API")
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "CreatePipelineVersionV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "CreatePipelineVersionV1").Observe(time.Since(startTime).Seconds())
 	}
 	return result, nil
 }
@@ -883,24 +1063,45 @@ func (s *PipelineServerV1) CreatePipelineVersionV1(ctx context.Context, request 
 // Creates a pipeline version.
 // Supports v2beta1 behavior.
 func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *apiv2beta1.CreatePipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		createPipelineVersionRequests.Inc()
 	}
 
 	// Fail fast
 	if request.GetPipelineVersion() == nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version. Pipeline version is nil")
 	} else if request.GetPipelineVersion().GetPackageUrl() == nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version. Package URL is nil")
 	} else if request.GetPipelineVersion().GetPackageUrl().GetPipelineUrl() == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version. Package URL is empty")
 	} else if request.GetPipelineId() == "" || request.GetPipelineVersion().GetPipelineId() == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version. Parent pipeline id is empty")
 	}
 
 	// Convert to pipeline
 	pv, err := toModelPipelineVersion(request.GetPipelineVersion())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to conversion error")
 	}
 
@@ -909,16 +1110,26 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 		pv.PipelineId = request.GetPipelineId()
 	}
 	if pv.PipelineId == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to missing pipeline id")
 	}
 
 	newPipelineVersion, err := s.createPipelineVersion(ctx, pv)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "CreatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "CreatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrap(err, "Failed to create a pipeline version. Check error stack")
 	}
 
 	if s.options.CollectMetrics {
 		pipelineVersionCount.Inc()
+		requestCounter.WithLabelValues("pipeline", "CreatePipelineVersion", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "CreatePipelineVersion").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipelineVersion(newPipelineVersion), nil
 }
@@ -940,17 +1151,30 @@ func (s *BasePipelineServer) getPipelineVersion(ctx context.Context, pipelineVer
 // Returns a pipeline version.
 // Supports v1beta behavior.
 func (s *PipelineServerV1) GetPipelineVersionV1(ctx context.Context, request *apiv1beta1.GetPipelineVersionRequest) (*apiv1beta1.PipelineVersion, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		getPipelineVersionRequests.Inc()
 	}
 
 	pipelineVersion, err := s.getPipelineVersion(ctx, request.GetVersionId())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline version (v1beta1) %s", request.GetVersionId())
 	}
 	apiPipelineVersion := toApiPipelineVersionV1(pipelineVersion)
 	if apiPipelineVersion == nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline version cannot be converted to v1beta1 API"), "Failed to get a pipeline version (v1beta1) due to error converting to API counterpart")
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "GetPipelineVersionV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "GetPipelineVersionV1").Observe(time.Since(startTime).Seconds())
 	}
 	return apiPipelineVersion, nil
 }
@@ -958,13 +1182,22 @@ func (s *PipelineServerV1) GetPipelineVersionV1(ctx context.Context, request *ap
 // Returns a pipeline version.
 // Supports v2beta1 behavior.
 func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2beta1.GetPipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		getPipelineVersionRequests.Inc()
 	}
 
 	pipelineVersion, err := s.getPipelineVersion(ctx, request.GetPipelineVersionId())
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline version %s", request.GetPipelineVersionId())
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "GetPipelineVersion", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "GetPipelineVersion").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipelineVersion(pipelineVersion), nil
 }
@@ -997,12 +1230,17 @@ func (s *BasePipelineServer) listPipelineVersions(ctx context.Context, pipelineI
 // Returns an array of pipeline versions for a given query.
 // Supports v1beta1 behavior.
 func (s *PipelineServerV1) ListPipelineVersionsV1(ctx context.Context, request *apiv1beta1.ListPipelineVersionsRequest) (*apiv1beta1.ListPipelineVersionsResponse, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		listPipelineVersionRequests.Inc()
 	}
 
 	// Check if parent pipeline id is present in the request
 	if request.ResourceKey == nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelineVersionsV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelineVersionsV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to list pipeline versions (v1beta1) due to missing pipeline id")
 	}
 	pipelineId := request.GetResourceKey().GetId()
@@ -1014,16 +1252,32 @@ func (s *PipelineServerV1) ListPipelineVersionsV1(ctx context.Context, request *
 	// Validate query parameters
 	opts, err := validatedListOptions(&model.PipelineVersion{}, pageToken, int(pageSize), sortBy, filter, "v1beta1")
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelineVersionsV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelineVersionsV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipeline versions due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, filter)
 	}
 
 	pipelineVersions, totalSize, nextPageToken, err := s.listPipelineVersions(ctx, pipelineId, opts, nil)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelineVersionsV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelineVersionsV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipeline versions (v1beta1) with pipeline id %s. Check error stack", pipelineId)
 	}
 	apiPipelineVersions := toApiPipelineVersionsV1(pipelineVersions)
 	if apiPipelineVersions == nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelineVersionsV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelineVersionsV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipeline versions (v1beta1) with pipeline id %s due to conversion error", pipelineId)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "ListPipelineVersionsV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "ListPipelineVersionsV1").Observe(time.Since(startTime).Seconds())
 	}
 	return &apiv1beta1.ListPipelineVersionsResponse{
 		Versions:      apiPipelineVersions,
@@ -1035,6 +1289,7 @@ func (s *PipelineServerV1) ListPipelineVersionsV1(ctx context.Context, request *
 // Returns an array of pipeline versions for a given query.
 // Supports v2beta1 behavior.
 func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv2beta1.ListPipelineVersionsRequest) (*apiv2beta1.ListPipelineVersionsResponse, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		listPipelineVersionRequests.Inc()
 	}
@@ -1050,18 +1305,34 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 	// the standard filter/list options which map keys to DB columns.
 	cleanedFilterSpec, tagFilters, err := extractTagFiltersFromFilterSpec(filterSpec)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelineVersions", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelineVersions").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipeline versions due to invalid tag filter in filter spec")
 	}
 
 	// Validate query parameters with the cleaned filter (tag predicates removed)
 	opts, err := validatedListOptions(&model.PipelineVersion{}, pageToken, int(pageSize), sortBy, cleanedFilterSpec, "v2beta1")
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelineVersions", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelineVersions").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipeline versions due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	}
 
 	pipelineVersions, totalSize, nextPageToken, err := s.listPipelineVersions(ctx, pipelineId, opts, tagFilters)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "ListPipelineVersions", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "ListPipelineVersions").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to list pipeline versions for pipeline %s", pipelineId)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "ListPipelineVersions", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "ListPipelineVersions").Observe(time.Since(startTime).Seconds())
 	}
 	return &apiv2beta1.ListPipelineVersionsResponse{
 		PipelineVersions: toApiPipelineVersions(pipelineVersions),
@@ -1096,17 +1367,26 @@ func (s *BasePipelineServer) deletePipelineVersion(ctx context.Context, pipeline
 // Deletes a pipeline version.
 // Supports v1beta1 behavior.
 func (s *PipelineServerV1) DeletePipelineVersionV1(ctx context.Context, request *apiv1beta1.DeletePipelineVersionRequest) (*emptypb.Empty, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		deletePipelineVersionRequests.Inc()
 	}
 
 	pipelineVersionId := request.GetVersionId()
 	if pipelineVersionId == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "DeletePipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "DeletePipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to delete a pipeline version (v1beta1) due missing pipeline version id")
 	}
 
 	pipelineVersion, err := s.resourceManager.GetPipelineVersion(pipelineVersionId)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "DeletePipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "DeletePipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to delete a pipeline version (v1beta1) %s due error fetching a pipeline id", pipelineVersionId)
 	}
 
@@ -1114,11 +1394,17 @@ func (s *PipelineServerV1) DeletePipelineVersionV1(ctx context.Context, request 
 
 	err = s.deletePipelineVersion(ctx, pipelineId, pipelineVersionId)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "DeletePipelineVersionV1", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "DeletePipelineVersionV1").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to delete a pipeline version (v1beta1) %v under pipeline %v. Check error stack", pipelineVersionId, pipelineId)
 	}
 
 	if s.options.CollectMetrics {
 		pipelineVersionCount.Dec()
+		requestCounter.WithLabelValues("pipeline", "DeletePipelineVersionV1", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "DeletePipelineVersionV1").Observe(time.Since(startTime).Seconds())
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -1126,27 +1412,42 @@ func (s *PipelineServerV1) DeletePipelineVersionV1(ctx context.Context, request 
 // Deletes a pipeline version.
 // Supports v2beta1 behavior.
 func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *apiv2beta1.DeletePipelineVersionRequest) (*emptypb.Empty, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		deletePipelineVersionRequests.Inc()
 	}
 
 	pipelineVersionId := request.GetPipelineVersionId()
 	if pipelineVersionId == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "DeletePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "DeletePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to delete a pipeline version due missing pipeline version id")
 	}
 
 	pipelineId := request.GetPipelineId()
 	if pipelineId == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "DeletePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "DeletePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to delete a pipeline version %s due missing pipeline id", pipelineVersionId)
 	}
 
 	err := s.deletePipelineVersion(ctx, pipelineId, pipelineVersionId)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "DeletePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "DeletePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to delete a pipeline version id %v under pipeline id %v. Check error stack", pipelineVersionId, pipelineId)
 	}
 
 	if s.options.CollectMetrics {
 		pipelineVersionCount.Dec()
+		requestCounter.WithLabelValues("pipeline", "DeletePipelineVersion", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "DeletePipelineVersion").Observe(time.Since(startTime).Seconds())
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -1172,6 +1473,7 @@ func recoverClearTagsIntent(ctx context.Context, tags map[string]string) map[str
 // UpdatePipeline updates a pipeline's mutable fields (display_name, tags).
 // Supports v2beta1 behavior.
 func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2beta1.UpdatePipelineRequest) (*apiv2beta1.Pipeline, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		updatePipelineRequests.Inc()
 	}
@@ -1179,6 +1481,10 @@ func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2beta1
 	pipeline := request.GetPipeline()
 	pipelineID := pipeline.GetPipelineId()
 	if pipelineID == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to update a pipeline. Pipeline id cannot be empty")
 	}
 
@@ -1187,13 +1493,25 @@ func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2beta1
 		Verb: common.RbacResourceVerbUpdate,
 	}
 	if err := s.canAccessPipeline(ctx, pipelineID, resourceAttributes); err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to update pipeline %v due to authorization error", pipelineID)
 	}
 
 	tags := recoverClearTagsIntent(ctx, pipeline.GetTags())
 	updatedPipeline, err := s.resourceManager.UpdatePipeline(pipelineID, pipeline.GetDisplayName(), tags)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to update pipeline %v. Check error stack", pipelineID)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "UpdatePipeline", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "UpdatePipeline").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipeline(updatedPipeline), nil
 }
@@ -1201,6 +1519,7 @@ func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2beta1
 // UpdatePipelineVersion updates a pipeline version's mutable fields (display_name, tags).
 // Supports v2beta1 behavior.
 func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *apiv2beta1.UpdatePipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+	startTime := time.Now()
 	if s.options.CollectMetrics {
 		updatePipelineVersionRequests.Inc()
 	}
@@ -1208,11 +1527,19 @@ func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *api
 	pipelineVersion := request.GetPipelineVersion()
 	pipelineVersionID := pipelineVersion.GetPipelineVersionId()
 	if pipelineVersionID == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to update a pipeline version. Pipeline version id cannot be empty")
 	}
 
 	pipelineID := pipelineVersion.GetPipelineId()
 	if pipelineID == "" {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.NewInvalidInputError("Failed to update pipeline version %v. Pipeline id cannot be empty", pipelineVersionID)
 	}
 
@@ -1221,13 +1548,25 @@ func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *api
 		Verb: common.RbacResourceVerbUpdate,
 	}
 	if err := s.canAccessPipelineVersion(ctx, pipelineVersionID, resourceAttributes); err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to update pipeline version %v due to authorization error", pipelineVersionID)
 	}
 
 	tags := recoverClearTagsIntent(ctx, pipelineVersion.GetTags())
 	updatedVersion, err := s.resourceManager.UpdatePipelineVersion(pipelineVersionID, pipelineVersion.GetDisplayName(), tags)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "UpdatePipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "UpdatePipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to update pipeline version %v. Check error stack", pipelineVersionID)
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "UpdatePipelineVersion", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "UpdatePipelineVersion").Observe(time.Since(startTime).Seconds())
 	}
 	return toApiPipelineVersion(updatedVersion), nil
 }
@@ -1235,18 +1574,31 @@ func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *api
 // Returns pipeline template.
 // Supports v1beta1 behavior.
 func (s *PipelineServerV1) GetPipelineVersionTemplate(ctx context.Context, request *apiv1beta1.GetPipelineVersionTemplateRequest) (*apiv1beta1.GetTemplateResponse, error) {
+	startTime := time.Now()
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Verb: common.RbacResourceVerbGet,
 	}
 	err := s.canAccessPipelineVersion(ctx, request.GetVersionId(), resourceAttributes)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineVersionTemplate", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineVersionTemplate").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline template due to authorization error. Verify that you have access to pipeline version %s", request.GetVersionId())
 	}
 	template, err := s.resourceManager.GetPipelineVersionTemplate(request.VersionId)
 	if err != nil {
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline", "GetPipelineVersionTemplate", "error").Inc()
+			requestLatency.WithLabelValues("pipeline", "GetPipelineVersionTemplate").Observe(time.Since(startTime).Seconds())
+		}
 		return nil, util.Wrapf(err, "Failed to get a pipeline template for pipeline version %s", request.GetVersionId())
 	}
 
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline", "GetPipelineVersionTemplate", "success").Inc()
+		requestLatency.WithLabelValues("pipeline", "GetPipelineVersionTemplate").Observe(time.Since(startTime).Seconds())
+	}
 	return &apiv1beta1.GetTemplateResponse{Template: string(template)}, nil
 }
 
