@@ -1,0 +1,84 @@
+name: CI Gatekeeper
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: write
+  issues: write
+
+on:
+  pull_request_target:
+    types: [opened, labeled, synchronize, reopened]
+
+
+jobs:
+   check-pr-author:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if author is a Kubeflow Organisation Member
+        id: membership-check
+        env: 
+          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::group::PR Information"
+          echo "PR Number: #$PR_NUMBER"
+          echo "PR Author: $PR_AUTHOR"
+          echo "Author Association: $AUTHOR_ASSOCIATION"
+          echo "::endgroup::"
+
+          # MEMBER = org member, OWNER = org owner, COLLABORATOR = invited collaborator
+          if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" || "$AUTHOR_ASSOCIATION" == "COLLABORATOR" ]]; then
+            echo "::notice::Author '$PR_AUTHOR' is a trusted contributor (association: $AUTHOR_ASSOCIATION). Auto-approving workflow runs."
+            echo "is_member=true" >> $GITHUB_OUTPUT
+          else
+            echo "::notice::Author '$PR_AUTHOR' is not a member of Kubeflow (association: $AUTHOR_ASSOCIATION). Checking for 'ok-to-test' label."
+            echo "is_member=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Author is not a Kubeflow member, check for 'ready' label in the issue linked to the PR
+        if: steps.membership-check.outputs.is_member == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Get the issue linked to the PR via GitHub CLI using closingIssuesReferences
+          PR_JSON=$(gh pr view $PR_NUMBER --json closingIssuesReferences)
+          # Extract the linked issue number
+          ISSUE_NUMBER=$(echo "$PR_JSON" | jq -r '.closingIssuesReferences[0].number // empty')
+
+          if [[ -z "$ISSUE_NUMBER" ]]; then
+           echo "::error::No linked issue found for PR #$PR_NUMBER. Please link an issue using closing keywords (e.g., 'Fixes #123') in the PR description."
+
+           COMMENT="@${{ github.event.pull_request.user.login }}: Hey, thank you for your PR! As you are not a member of Kubeflow organization, your PR must link to an issue with '/ready' label. Please read our [CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md), closing this PR" 
+           gh pr comment "$PR_NUMBER" --body "$COMMENT"
+           gh pr close "$PR_NUMBER"
+           exit 1
+          fi
+
+          echo "Linked issue number found: #$ISSUE_NUMBER"
+
+          # Check if the found linked issue has a '/ready' label on it.
+          ISSUE_LABELS=$(gh issue view "$ISSUE_NUMBER" --json labels | jq -r '.labels[].name')
+
+          # Verify if the list of labels contains the '/ready' label
+          if echo "$ISSUE_LABELS" | grep -q "/ready"; then
+            echo "::notice::Success! Linked issue #$ISSUE_NUMBER contains the '/ready' label. Proceeding with CI. Adding 'ok-to-test' to the PR #$PR_NUMBER..."
+            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "ok-to-test"
+            echo "::notice::'ok-to-test' label added. CI can now proceed."
+          
+          else
+           echo "::error::Linked issue #$ISSUE_NUMBER does not contain the '/ready' label on it."
+
+           # Comment on the PR to inform the author about the missing label and close the PR
+            COMMENT_BODY="Hi @${{ github.event.pull_request.user.login }}, thank you for your PR! The linked issue (#$ISSUE_NUMBER) must be labeled \`/ready\` before your contribution can be reviewed. Please check our [CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) for details."
+            gh pr comment "$PR_NUMBER" --body "$COMMENT_BODY"
+            gh pr close "$PR_NUMBER"
+            exit 1
+          fi
+           
+
+          
+
