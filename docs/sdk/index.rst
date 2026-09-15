@@ -1,9 +1,11 @@
 Kubeflow Pipelines (KFP) 
 ====================================
 
-.. mdinclude:: ../../sdk/python/README.md
+.. include:: ../../sdk/python/README.md
+   :parser: myst_parser.sphinx_
 
-.. mdinclude:: ./Architecture.md
+.. include:: ./Architecture.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :caption: Contents
@@ -19,3 +21,12 @@ Kubeflow Pipelines (KFP)
 
    Usage Docs (kubeflow.org) <https://kubeflow.org/docs/pipelines/>
    Source Code <https://github.com/kubeflow/pipelines/>
+
+.. toctree::
+   :hidden:
+
+   Concepts <guides/concepts/index>
+   User Guides <guides/user-guides/index>
+   Operator Guides <guides/operator-guides/index>
+   Reference <guides/reference/index>
+   Contributor Guide <https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md>
