@@ -97,7 +97,7 @@ describe('MinioArtifactPreview', () => {
             <a
               class="link_f1fk43bf"
               download=""
-              href="artifacts/get?source=s3&bucket=foo&key=bar&download=true"
+              href="artifacts/get?source=s3&bucket=foo&key=bar&keyEncoding=storage&download=true"
               rel="noopener"
               target="_blank"
               title="s3://foo/bar"
@@ -144,7 +144,7 @@ describe('MinioArtifactPreview', () => {
             <a
               class="link_f1fk43bf"
               download=""
-              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
@@ -191,7 +191,7 @@ describe('MinioArtifactPreview', () => {
             <a
               class="link_f1fk43bf"
               download=""
-              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar&download=true"
+              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar&keyEncoding=storage&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
@@ -238,7 +238,7 @@ describe('MinioArtifactPreview', () => {
             <a
               class="link_f1fk43bf"
               download=""
-              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
@@ -279,7 +279,7 @@ describe('MinioArtifactPreview', () => {
             <a
               class="link_f1fk43bf"
               download=""
-              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
@@ -331,7 +331,7 @@ describe('MinioArtifactPreview', () => {
             <a
               class="link_f1fk43bf"
               download=""
-              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
@@ -383,7 +383,7 @@ describe('MinioArtifactPreview', () => {
             <a
               class="link_f1fk43bf"
               download=""
-              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"

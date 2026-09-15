@@ -57,6 +57,14 @@ const SPEC_TARGETS = {
     spec: 'backend/api/v2beta1/swagger/experiment.swagger.json',
     output: 'frontend/src/apisv2beta1/experiment',
   },
+  'v2beta1:artifact': {
+    spec: 'backend/api/v2beta1/swagger/artifact.swagger.json',
+    output: 'frontend/src/apisv2beta1/artifact',
+  },
+  'v2beta1:artifact-server': {
+    spec: 'backend/api/v2beta1/swagger/artifact.swagger.json',
+    output: 'frontend/server/src/generated/apisv2beta1/artifact',
+  },
   'v2beta1:recurringrun': {
     spec: 'backend/api/v2beta1/swagger/recurring_run.swagger.json',
     output: 'frontend/src/apisv2beta1/recurringrun',
@@ -294,7 +302,7 @@ function normalizeGeneratedTypeScript(outputDir, options = {}) {
 }
 
 function stripGeneratedJSDocComments(source) {
-  return source.replace(/\/\*\*[\s\S]*?\*\/\n*/g, '');
+  return source.replace(/^[ \t]*\/\*\*[\s\S]*?\*\/\n*/gm, '');
 }
 
 function createSharedOpenApiSupportSource(source) {
