@@ -349,6 +349,106 @@ class PipelineTaskTest(parameterized.TestCase):
         self.assertEqual(expected_memory,
                          task.container_spec.resources.memory_limit)
 
+    @parameterized.parameters(
+        {
+            'ephemeral_storage': '1E',
+            'expected_ephemeral_storage': '1E',
+        },
+        {
+            'ephemeral_storage': '15Ei',
+            'expected_ephemeral_storage': '15Ei',
+        },
+        {
+            'ephemeral_storage': '2P',
+            'expected_ephemeral_storage': '2P',
+        },
+        {
+            'ephemeral_storage': '25Pi',
+            'expected_ephemeral_storage': '25Pi',
+        },
+        {
+            'ephemeral_storage': '3T',
+            'expected_ephemeral_storage': '3T',
+        },
+        {
+            'ephemeral_storage': '35Ti',
+            'expected_ephemeral_storage': '35Ti',
+        },
+        {
+            'ephemeral_storage': '4G',
+            'expected_ephemeral_storage': '4G',
+        },
+        {
+            'ephemeral_storage': '45Gi',
+            'expected_ephemeral_storage': '45Gi',
+        },
+        {
+            'ephemeral_storage': '5M',
+            'expected_ephemeral_storage': '5M',
+        },
+        {
+            'ephemeral_storage': '55Mi',
+            'expected_ephemeral_storage': '55Mi',
+        },
+        {
+            'ephemeral_storage': '6K',
+            'expected_ephemeral_storage': '6K',
+        },
+        {
+            'ephemeral_storage': '65Ki',
+            'expected_ephemeral_storage': '65Ki',
+        },
+        {
+            'ephemeral_storage': '7000',
+            'expected_ephemeral_storage': '7000',
+        },
+    )
+    def test_set_ephemeral_storage_limit(self, ephemeral_storage: str,
+                                         expected_ephemeral_storage: str):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        task.set_ephemeral_storage_request(ephemeral_storage)
+        self.assertEqual(
+            expected_ephemeral_storage,
+            task.container_spec.resources.ephemeral_storage_request)
+        task.set_ephemeral_storage_limit(ephemeral_storage)
+        self.assertEqual(
+            expected_ephemeral_storage,
+            task.container_spec.resources.ephemeral_storage_limit)
+
+    @parameterized.parameters(
+        {
+            'ephemeral_storage': 'abc',
+        },
+        {
+            'ephemeral_storage': '1.5',
+        },
+        {
+            'ephemeral_storage': '-1',
+        },
+    )
+    def test_set_ephemeral_storage_invalid(self, ephemeral_storage: str):
+        task = pipeline_task.PipelineTask(
+            component_spec=structures.ComponentSpec.from_yaml_documents(
+                V2_YAML),
+            args={'input1': 'value'},
+        )
+        with self.assertRaisesRegex(
+                ValueError,
+                'Invalid ephemeral storage string. Should be a number or a '
+                'number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", '
+                '"G", "Gi", "M", "Mi", "K", "Ki".'):
+            task.set_ephemeral_storage_request(ephemeral_storage)
+        with self.assertRaisesRegex(
+                ValueError,
+                'Invalid ephemeral storage string. Should be a number or a '
+                'number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", '
+                '"G", "Gi", "M", "Mi", "K", "Ki".'):
+            task.set_ephemeral_storage_limit(ephemeral_storage)
+
     def test_set_accelerator_type_with_type_only(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.from_yaml_documents(
