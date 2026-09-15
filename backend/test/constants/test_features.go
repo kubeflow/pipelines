@@ -40,6 +40,8 @@ const (
 	E2eGpuSchedulingCheck string = "gpu-scheduling-check"
 	// E2eDraCheck - DRA (Dynamic Resource Allocation) checks (e.g. Kind + dra-example-driver).
 	E2eDraCheck string = "dra-check"
+	// CoordinatorRuntime - focused lane for explicitly selected coordinator-managed runs
+	CoordinatorRuntime string = "CoordinatorRuntime"
 
 	WorkflowCompiler       string = "WorkflowCompiler"
 	WorkflowCompilerVisits string = "WorkflowCompilerVisits"

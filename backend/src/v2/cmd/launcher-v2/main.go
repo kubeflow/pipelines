@@ -19,6 +19,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -156,6 +157,12 @@ func run() error {
 	namespace, err := resolveNamespace(*namespaceFlag)
 	if err != nil {
 		return err
+	}
+	if err := os.Setenv("KFP_API_ADDRESS", *mlPipelineServerAddress); err != nil {
+		return fmt.Errorf("failed to set KFP_API_ADDRESS: %w", err)
+	}
+	if err := os.Setenv("KFP_API_PORT", *mlPipelineServerPort); err != nil {
+		return fmt.Errorf("failed to set KFP_API_PORT: %w", err)
 	}
 
 	// Create a client manager
