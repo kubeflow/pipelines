@@ -40,6 +40,7 @@ from kfp.dsl import structures
 from kfp.dsl import task_final_status
 from kfp.dsl.component_task_config import TaskConfigPassthrough
 from kfp.dsl.task_config import TaskConfig
+from kfp.dsl.templates.safe_extract import get_safe_extract_source
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import custom_artifact_types
 from kfp.dsl.types import type_annotations
@@ -680,6 +681,7 @@ def _generate_shared_extraction_helper(embedded_archive_b64: str,
     file_assignment = ''
     if file_basename:
         file_assignment = f"\n__KFP_EMBEDDED_ASSET_FILE = __kfp_os.path.join(__KFP_EMBEDDED_ASSET_DIR, '{file_basename}')\n"
+    safe_extract_source = get_safe_extract_source()
     return f'''__KFP_EMBEDDED_ARCHIVE_B64 = '{embedded_archive_b64}'
 
 import base64 as __kfp_b64
@@ -689,13 +691,14 @@ import sys as __kfp_sys
 import tarfile as __kfp_tarfile
 import tempfile as __kfp_tempfile
 
+{safe_extract_source}
 # Extract embedded archive at import time to ensure sys.path and globals are set
 __kfp_tmpdir = __kfp_tempfile.TemporaryDirectory()
 __KFP_EMBEDDED_ASSET_DIR = __kfp_tmpdir.name
 try:
     __kfp_bytes = __kfp_b64.b64decode(__KFP_EMBEDDED_ARCHIVE_B64.encode('ascii'))
     with __kfp_tarfile.open(fileobj=__kfp_io.BytesIO(__kfp_bytes), mode='r:gz') as __kfp_tar:
-        __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)
+        __kfp_safe_extract(__kfp_tar, __KFP_EMBEDDED_ASSET_DIR)
 except Exception as __kfp_e:
     raise RuntimeError(f'Failed to extract embedded archive: {{__kfp_e}}')
 
