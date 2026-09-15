@@ -3816,7 +3816,49 @@ func TestRetryRun_OffloadedNodeStatus_Hydrated(t *testing.T) {
 	actualRunDetail, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
 	assert.Contains(t, string(actualRunDetail.WorkflowRuntimeManifest), "Running")
-	assert.Equal(t, model.RuntimeStateRunning, actualRunDetail.RunDetails.State)
+	assert.Equal(t, model.RuntimeStateRunning, actualRunDetail.State)
+}
+
+func TestRetryRun_OffloadedNodeStatus_RecreateUsesNewUID(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	// Consume the first server-assigned UID ("workflow1") so recreation cannot
+	// collide with testWorkflow.UID when the fake assigns workflowN.
+	_, err := workflowClient.Create(context.Background(), util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "seed-uid"},
+	}), v1.CreateOptions{})
+	require.NoError(t, err)
+	require.NoError(t, workflowClient.Delete(context.Background(), "seed-uid", v1.DeleteOptions{}))
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	nodes := map[string]v1alpha1.NodeStatus{
+		"node1": {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	}
+	for i := 0; i < 32; i++ {
+		name := fmt.Sprintf("retained-%d", i)
+		nodes[name] = v1alpha1.NodeStatus{ID: name, Name: name, Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeSucceeded}
+	}
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	repo.Put(string(testWorkflow.UID), "offload-hash", nodes)
+	util.SetWorkflowHydratorForTest(t, util.NewAlwaysOffloadWorkflowHydrator(repo))
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+
+	retried, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(retried.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	workflow := execSpec.(*util.Workflow)
+	assert.NotEqual(t, string(testWorkflow.UID), string(workflow.UID))
+	assert.NotEmpty(t, workflow.Status.OffloadNodeStatusVersion)
+	assert.Empty(t, workflow.Status.Nodes)
+	offloaded, err := repo.Get(context.Background(), string(workflow.UID), workflow.Status.OffloadNodeStatusVersion)
+	require.NoError(t, err)
+	assert.Contains(t, offloaded, "retained-0")
+	assert.Contains(t, offloaded, "retained-31")
+	assert.NotContains(t, offloaded, "node1")
 }
 
 func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {

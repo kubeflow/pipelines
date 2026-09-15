@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package clientmanager wires API server storage, Kubernetes, and execution-engine clients.
 package clientmanager
 
 import (
 	"context"
+	"strings"
 
 	argoconfig "github.com/argoproj/argo-workflows/v4/config"
 	"github.com/golang/glog"
@@ -41,7 +43,8 @@ func (c *ClientManager) initWorkflowHydrator(ctx context.Context) {
 		return
 	}
 	if err := util.InitWorkflowHydrator(ctx, kube, persist, secretsNamespace); err != nil {
-		glog.Warningf("Failed to initialize Argo offload hydrator: %v. Retry of offloaded workflows will fail.", err)
+		secretNames := util.ArgoPersistSecretNames(persist)
+		glog.Warningf("Failed to initialize Argo offload hydrator: %v. Grant get on Secret(s) %v in namespace %s. Retry of offloaded workflows will fail.", err, secretNames, secretsNamespace)
 		return
 	}
 	glog.Info("Argo offload hydrator initialized")
@@ -54,8 +57,11 @@ func loadArgoPersistConfig(ctx context.Context, kube kubernetes.Interface) (*arg
 	if err != nil {
 		return nil, "", err
 	}
-	persistenceYAML := []byte(configMap.Data["persistence"])
-	persist, err := util.ParseArgoPersistConfig(persistenceYAML)
+	raw, ok := configMap.Data["persistence"]
+	if !ok || strings.TrimSpace(raw) == "" {
+		return nil, namespace, nil
+	}
+	persist, err := util.ParseArgoPersistConfig([]byte(raw))
 	if err != nil {
 		return nil, "", err
 	}

@@ -122,7 +122,9 @@ function pickApiErrorMessage(body: any): string {
   if (!body || typeof body !== 'object') {
     return '';
   }
-  for (const value of [body.message, body.error, body.details?.[0]?.message]) {
+  // gRPC-gateway puts the internal wrapped error in `message` and the
+  // client-safe UserError.externalMessage in details[0].message.
+  for (const value of [body.details?.[0]?.message, body.error, body.message]) {
     if (typeof value === 'string' && value.trim()) {
       return value;
     }
