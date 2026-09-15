@@ -987,8 +987,17 @@ class Client:
 
         pipeline_version_reference = None
         if pipeline_id is not None and version_id is not None:
-            pipeline_version_reference = kfp_server_api.V2beta1PipelineVersionReference(
-                pipeline_id=pipeline_id, pipeline_version_id=version_id)
+            if enable_caching is not None:
+                pipeline_version = self.get_pipeline_version(
+                    pipeline_id, version_id)
+                pipeline_doc = _pipeline_doc_from_dict(
+                    pipeline_version.pipeline_spec)
+                _override_caching_options(pipeline_doc.pipeline_spec,
+                                          enable_caching, cache_key)
+                pipeline_spec = pipeline_doc.to_dict()
+            else:
+                pipeline_version_reference = kfp_server_api.V2beta1PipelineVersionReference(
+                    pipeline_id=pipeline_id, pipeline_version_id=version_id)
 
         runtime_config = kfp_server_api.V2beta1RuntimeConfig(
             pipeline_root=pipeline_root,
@@ -1785,6 +1794,22 @@ def _extract_pipeline_yaml(package_file: str) -> _PipelineDoc:
         raise ValueError(
             f'The package_file {package_file} should end with one of the '
             'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
+
+
+def _pipeline_doc_from_dict(pipeline_spec: dict) -> _PipelineDoc:
+    """Converts an API pipeline spec into a pipeline document."""
+    if 'pipeline_spec' in pipeline_spec:
+        pipeline_spec_dict = pipeline_spec['pipeline_spec']
+        platform_spec_dict = pipeline_spec.get('platform_spec', {})
+    else:
+        pipeline_spec_dict = pipeline_spec
+        platform_spec_dict = {}
+
+    return _PipelineDoc(
+        pipeline_spec=json_format.ParseDict(pipeline_spec_dict,
+                                            pipeline_spec_pb2.PipelineSpec()),
+        platform_spec=json_format.ParseDict(platform_spec_dict,
+                                            pipeline_spec_pb2.PlatformSpec()))
 
 
 def _override_caching_options(
