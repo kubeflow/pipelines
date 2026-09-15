@@ -17,7 +17,16 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import {
+  createMemoryRouter,
+  RouterProvider,
+  MemoryRouter,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router';
 import { ArtifactArtifactType, V2beta1Artifact, V2beta1IOType } from 'src/apisv2beta1/artifact';
 import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { PipelineTaskTaskType } from 'src/apisv2beta1/run';
@@ -28,7 +37,7 @@ import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import EnhancedArtifactDetails, { ArtifactDetailsPage } from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
-import { testBestPractices } from 'src/TestUtils';
+import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 
 vi.mock('src/components/ArtifactPreview', () => ({ default: () => <div>Artifact preview</div> }));
 
@@ -38,7 +47,7 @@ describe('ArtifactDetails', () => {
   const TEST_ARTIFACT_ID = 'artifact-42';
   const updateBannerSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const artifact: V2beta1Artifact = {
     artifact_id: TEST_ARTIFACT_ID,
     name: 'test-artifact',
@@ -52,14 +61,9 @@ describe('ArtifactDetails', () => {
 
   function generateProps(): PageProps {
     return {
-      history: { push: historyPushSpy } as any,
+      navigate: navigateSpy,
       location: { pathname: `/artifacts/${TEST_ARTIFACT_ID}` } as any,
-      match: {
-        isExact: true,
-        path: RoutePage.ARTIFACT_DETAILS,
-        url: `/artifacts/${TEST_ARTIFACT_ID}`,
-        params: { [RouteParams.ID]: TEST_ARTIFACT_ID },
-      } as any,
+      params: { [RouteParams.ID]: TEST_ARTIFACT_ID } as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: vi.fn(),
@@ -73,7 +77,12 @@ describe('ArtifactDetails', () => {
     const view = render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
-          <EnhancedArtifactDetails {...generateProps()} />
+          <Routes>
+            <Route
+              path={`${RoutePage.ARTIFACT_DETAILS}/*`}
+              element={<EnhancedArtifactDetails {...generateProps()} />}
+            />
+          </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -86,7 +95,12 @@ describe('ArtifactDetails', () => {
     const view = render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[`/artifacts/${TEST_ARTIFACT_ID}`]}>
-          <ArtifactDetailsPage {...generateProps()} ref={pageRef} />
+          <Routes>
+            <Route
+              path={`${RoutePage.ARTIFACT_DETAILS}/*`}
+              element={<ArtifactDetailsPage {...generateProps()} ref={pageRef} />}
+            />
+          </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -851,15 +865,71 @@ describe('ArtifactDetails', () => {
     expect(screen.queryByText('Consumed as dataset')).not.toBeInTheDocument();
   });
 
+  it('navigates native artifact tabs, browser Back, and encoded resource IDs', async () => {
+    mockResizeObserver();
+    function RoutedArtifactDetails() {
+      const location = useLocation();
+      const navigate = useNavigate();
+      const params = useParams();
+      return (
+        <EnhancedArtifactDetails
+          {...generateProps()}
+          location={location}
+          navigate={navigate}
+          params={params}
+        />
+      );
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const router = createMemoryRouter(
+      [{ path: `${RoutePage.ARTIFACT_DETAILS}/*`, element: <RoutedArtifactDetails /> }],
+      { initialEntries: [`/artifacts/${TEST_ARTIFACT_ID}`] },
+    );
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    try {
+      await screen.findByText('Artifact details');
+      fireEvent.click(screen.getByText('Related tasks'));
+      await screen.findByText('Produced as dataset');
+      expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+      fireEvent.click(screen.getByText('Lineage Explorer'));
+      await waitFor(() =>
+        expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}/explorer`),
+      );
+      fireEvent.click(await screen.findByText('Overview'));
+      await screen.findByText('Artifact details');
+      expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}`);
+      await act(() => router.navigate(-1));
+      expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}/explorer`);
+      expect(screen.queryByText('Artifact details')).not.toBeInTheDocument();
+      const artifactId = 'artifact/with space';
+      await act(() => router.navigate(`/artifacts/${encodeURIComponent(artifactId)}`));
+      await waitFor(() =>
+        expect(Apis.artifactServiceApiV2.artifact_1).toHaveBeenCalledWith(artifactId),
+      );
+      await screen.findByText('Artifact details');
+      fireEvent.click(screen.getByText('Related tasks'));
+      expect(router.state.location.pathname).toBe(
+        `/artifacts/${encodeURIComponent(artifactId)}/lineage`,
+      );
+    } finally {
+      view.unmount();
+      router.dispose();
+    }
+  });
+
   it('keeps the old lineage bookmark path but labels it as related tasks', async () => {
     renderPage();
     await screen.findByText('Related tasks');
 
     fireEvent.click(screen.getByText('Related tasks'));
 
-    expect(historyPushSpy).toHaveBeenCalledWith(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+    expect(navigateSpy).toHaveBeenCalledWith(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
     fireEvent.click(screen.getByText('Lineage Explorer'));
-    expect(historyPushSpy).toHaveBeenCalledWith(`/artifacts/${TEST_ARTIFACT_ID}/explorer`);
+    expect(navigateSpy).toHaveBeenCalledWith(`/artifacts/${TEST_ARTIFACT_ID}/explorer`);
   });
 
   it('shows a page error when the native service fails', async () => {

@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import { ExperimentInfo } from 'src/lib/RunUtils';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss, color } from 'src/Css';
 import { formatDateString, errorToMessage } from 'src/lib/Utils';
@@ -72,7 +73,7 @@ type MaskProps = Exclude<
 >;
 
 export type RecurringRunListProps = MaskProps &
-  RouteComponentProps & {
+  NavigationProps & {
     disablePaging?: boolean;
     disableSelection?: boolean;
     disableSorting?: boolean;

@@ -94,7 +94,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
             });
 
         setIsBeingCreated(false);
-        props.history.push(RoutePage.NEW_RUN + searchString);
+        props.navigate(RoutePage.NEW_RUN + searchString);
 
         updateSnackbar({
           autoHideDuration: 10000,
@@ -114,7 +114,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   };
 
   const onCancel = () =>
-    props.onCancel ? props.onCancel() : props.history.push(RoutePage.EXPERIMENTS);
+    props.onCancel ? props.onCancel() : props.navigate(RoutePage.EXPERIMENTS);
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
