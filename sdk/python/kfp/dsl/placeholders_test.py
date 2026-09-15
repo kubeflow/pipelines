@@ -164,6 +164,33 @@ class TestIfPresentPlaceholder(parameterized.TestCase):
             placeholder: str):
         self.assertEqual(placeholder_obj._to_string(), placeholder)
 
+    def test_v1_if_placeholder_converts_single_else_placeholder(self):
+        placeholder = placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+            {
+                'if': {
+                    'cond': {
+                        'isPresent': 'fallback'
+                    },
+                    'then': 'present',
+                    'else': {
+                        'inputValue': 'fallback'
+                    },
+                }
+            },
+            component_dict={
+                'inputs': [{
+                    'name': 'fallback',
+                    'type': 'String'
+                }],
+                'outputs': [],
+            },
+        )
+
+        self.assertEqual(
+            placeholder._to_string(),
+            """{"IfPresent": {"InputName": "fallback", "Then": "present", "Else": "{{$.inputs.parameters['fallback']}}"}}"""
+        )
+
     def test_if_present_with_single_element_simple_can_be_compiled(self):
 
         @dsl.container_component
