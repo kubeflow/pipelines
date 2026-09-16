@@ -352,7 +352,11 @@ def format_age(created_at_iso: str) -> tuple[str, int]:
 
 
 def render_table(rows: list[MarkdownRow]) -> list[str]:
-    return [*[f"| {row.metric} | {row.value} |" for row in rows]]
+    return [
+        "| Key | Value |",
+        "|---|---:|",
+        *[f"| {row.metric} | {row.value} |" for row in rows],
+    ]
 
 
 def build_user_rows(is_kubeflow_member: bool,
