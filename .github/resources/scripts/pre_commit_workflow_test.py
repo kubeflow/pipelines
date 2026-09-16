@@ -15,6 +15,7 @@
 
 import os
 from pathlib import Path
+import re
 import shlex
 import subprocess
 import tempfile
@@ -69,9 +70,24 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertNotIn('git rev-parse HEAD^', self.workflow)
 
     def test_config_changes_execute_each_applicable_hook_family(self):
+        steps = re.split(r'^      - ', self.workflow, flags=re.MULTILINE)[1:]
+        smoke_steps = [
+            step for step in steps if step.startswith(
+                'name: Smoke-test applicable hooks after configuration changes\n'
+            )
+        ]
+        self.assertEqual(len(smoke_steps), 1)
+        smoke_step = smoke_steps[0]
         self.assertIn(
             "if: steps.pre-commit-range.outputs.config-changed == 'true'",
-            self.workflow)
+            smoke_step)
+        run = re.search(r'^        run: >-\n((?:          .+\n?)+)', smoke_step,
+                        re.MULTILINE)
+        self.assertIsNotNone(run)
+        command = shlex.split(run.group(1))
+        self.assertEqual(command[:2], ['pre-commit', 'run'])
+        self.assertIn('--files', command)
+        files = command[command.index('--files') + 1:]
         self.assertIn(
             'git diff --quiet "${base_sha}" HEAD -- '
             '.pre-commit-config.yaml .golangci.yaml',
@@ -88,7 +104,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 'backend/src/common/types.go',
         ):
             with self.subTest(representative_file=representative_file):
-                self.assertIn(representative_file, self.workflow)
+                self.assertIn(representative_file, files)
 
         self.assertIn('id: golangci-lint-fmt', self.config)
         self.assertIn('id: golangci-lint-config-verify', self.config)

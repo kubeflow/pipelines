@@ -213,6 +213,23 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertTrue((REPOSITORY_ROOT / '.pre-commit-config.yaml').is_file())
         self.assertEqual(self.configured_directories('pre-commit'), {'/'})
 
+    def test_pre_commit_ignores_only_docformatter_1_7_8(self):
+        ignore_blocks = re.findall(
+            r'^    ignore:\n(.*?)(?=^    \S|\Z)',
+            self.update_block('pre-commit'),
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        self.assertEqual(len(ignore_blocks), 1)
+        rules = [
+            line.strip()
+            for line in ignore_blocks[0].splitlines()
+            if line.strip() and not line.lstrip().startswith('#')
+        ]
+        self.assertEqual(rules, [
+            '- dependency-name: "https://github.com/pycqa/docformatter"',
+            'versions: ["1.7.8"]',
+        ])
+
     def test_new_ecosystems_use_bounded_weekly_updates(self):
         for ecosystem in ('npm', 'pip', 'github-actions', 'pre-commit'):
             with self.subTest(ecosystem=ecosystem):
