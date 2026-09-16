@@ -16,10 +16,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout base workflow scripts
+      - name: Checkout trusted workflow scripts
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          # Release branches may not contain the script used by this workflow.
+          ref: ${{ github.workflow_sha }}
           sparse-checkout: |
             .github/scripts/contributor-report.py
           sparse-checkout-cone-mode: false
