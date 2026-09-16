@@ -352,11 +352,7 @@ def format_age(created_at_iso: str) -> tuple[str, int]:
 
 
 def render_table(rows: list[MarkdownRow]) -> list[str]:
-    return [
-        "| Metric | Value |",
-        "|---|---:|",
-        *[f"| {row.metric} | {row.value} |" for row in rows],
-    ]
+    return [*[f"| {row.metric} | {row.value} |" for row in rows]]
 
 
 def build_user_rows(is_kubeflow_member: bool,
@@ -402,13 +398,12 @@ def build_non_user_rows(author_type: str) -> list[MarkdownRow]:
 def build_comment(username: str,
                   rows: list[MarkdownRow],
                   title: str = "## Contributor Report") -> str:
+    table_rows = [MarkdownRow(metric="User", value=f"@{username}"), *rows]
     return "\n".join([
         REPORT_MARKER,
         title,
         "",
-        f"**User:** @{username}",
-        "",
-        *render_table(rows),
+        *render_table(table_rows),
     ])
 
 
