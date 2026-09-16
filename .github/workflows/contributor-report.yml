@@ -21,10 +21,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           sparse-checkout: |
-            .github/scripts/contributor-report.mjs
+            .github/scripts/contributor-report.py
           sparse-checkout-cone-mode: false
 
       - name: Generate contributor report
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .github/scripts/contributor-report.mjs
+        run: python3 .github/scripts/contributor-report.py
