@@ -114,7 +114,7 @@ def get_kubectl_configuration(
 
 
 def _get_kfp_runtime() -> Text:
-    """Captures the current version of kpf in k8 cluster.
+    """Captures the current version of kfp in k8 cluster.
 
     Returns:
       Returns the run-time version of kfp in as a string.
