@@ -714,6 +714,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 ),
               });
             } catch (err) {
+              if (!this._isMounted) return;
               urlParser.clear(QUERY_PARAMS.pipelineVersionId);
               await this.showPageError(
                 `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
@@ -730,6 +731,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             });
           }
         } catch (err) {
+          if (!this._isMounted) return;
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
             `Error: failed to retrieve pipeline: ${possiblePipelineId}.`,
