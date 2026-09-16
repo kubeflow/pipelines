@@ -72,7 +72,8 @@ jobs:
         argo_version: [ "v3.7.18", "v4.1.2" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
-        db_type: [ "mysql", "pgx" ]
+        # PostgreSQL deployments are unsupported in 2.18; see #14353.
+        db_type: [ "mysql" ]
         include:
           - k8s_version: "v1.33.12"
             cache_enabled: "true"
@@ -86,18 +87,6 @@ jobs:
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             db_type: "mysql"
-        exclude:
-          # PostgreSQL is intentionally scoped to the core path in this PR
-          # (cache_enabled=true, proxy=false, TLS off). The combinations below
-          # have no kustomize overlay yet and are rejected at deploy time by
-          # deploy-kfp.sh (see the pgx guard-rails), so they are unreachable
-          # rather than silently untested.
-          # TODO: add these overlays + matrix entries once PostgreSQL support
-          # is expanded beyond the core path.
-          - db_type: "pgx"
-            proxy: "true"
-          - db_type: "pgx"
-            cache_enabled: "false"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
 
@@ -250,21 +239,12 @@ jobs:
         # Complementary filters guarantee that every ApiServerTests spec runs
         # exactly once, while explicit cache labels divide the expensive run
         # matrix evenly between matching deployments.
-        # PostgreSQL is scoped to the core multi-user path (cache_enabled=true,
-        # artifact proxy off); other pgx combinations have no overlay yet and are
-        # rejected by deploy-kfp.sh.
-        # TODO: Add pgx + cache_enabled=false entry once a
-        # multiuser/postgresql/cache-disabled kustomize overlay is created.
+        # PostgreSQL deployments are unsupported in 2.18; see #14353.
         include:
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
             multi_user: "true"
             db_type: "mysql"
-            test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
-          - k8s_version: "v1.36.1"
-            cache_enabled: "true"
-            multi_user: "true"
-            db_type: "pgx"
             test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
           - k8s_version: "v1.36.1"
             cache_enabled: "false"

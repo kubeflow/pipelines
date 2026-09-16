@@ -97,16 +97,8 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
 
         self.assertIn("'[\"E2ECriticalShardA\", \"E2ECriticalShardB\"]'", job)
         self.assertNotIn('        exclude:', job)
-        self.assertIn('db_type: "pgx"', job)
-        # pgx include overrides artifact_proxy because the
-        # multiuser/postgresql/artifact-proxy overlay does not exist yet.
-        # Revert to assertIn('artifact_proxy: ${{ matrix.cache_enabled }}', job)
-        # once that overlay is added and the include can drop its override.
-        self.assertIn(
-            'artifact_proxy: ${{ matrix.artifact_proxy || matrix.cache_enabled }}',
-            job)
-        self.assertIn(
-            "(matrix.artifact_proxy || matrix.cache_enabled) == 'true'", job)
+        self.assertIn('artifact_proxy: ${{ matrix.cache_enabled }}', job)
+        self.assertIn("matrix.cache_enabled == 'true'", job)
         self.assertIn('Multi User ${{ matrix.test_label }} Tests', job)
         self.assertIn('E2EMultiUser${{ matrix.test_label }}Tests', job)
 
