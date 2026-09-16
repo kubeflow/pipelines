@@ -134,7 +134,7 @@ describe('Tensorboard', () => {
       logdir: config.url,
       namespace: config.namespace,
       image: expect.stringContaining('tensorflow/tensorflow:'),
-      podTemplateSpec: undefined,
+
     });
   });
 
@@ -163,7 +163,7 @@ describe('Tensorboard', () => {
       logdir: config.url,
       namespace: config.namespace,
       image: expect.stringContaining('tensorflow/tensorflow:'),
-      podTemplateSpec: undefined,
+
     });
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apps/tensorboard/proxy/new-token/');
   });
@@ -189,7 +189,7 @@ describe('Tensorboard', () => {
       logdir: expectedUrl,
       image: expect.stringContaining('tensorflow/tensorflow:'),
       namespace: config.namespace,
-      podTemplateSpec: undefined,
+
     });
   });
 
@@ -225,7 +225,7 @@ describe('Tensorboard', () => {
       logdir: config.url,
       image: 'tensorflow/tensorflow:1.15.5',
       namespace: config.namespace,
-      podTemplateSpec: undefined,
+
     });
   });
 

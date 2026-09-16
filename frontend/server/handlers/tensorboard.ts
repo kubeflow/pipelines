@@ -88,7 +88,6 @@ export const getTensorboardHandlers = (
    * - `namespace`
    * - `tfversion`, optional. TODO: consider deprecating
    * - `image`, optional
-   * - `podtemplatespec`, optional
    *
    * Either `image` or `tfversion` should be specified.
    */

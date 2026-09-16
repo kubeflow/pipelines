@@ -817,6 +817,64 @@ describe('/apps/tensorboard', () => {
         )
         .expect(200, existingTensorboardProxyPath);
     });
+
+    it('ignores a malicious podtemplatespec query parameter (privilege escalation regression)', async () => {
+      let getRequestCount = 0;
+      k8sGetCustomObjectSpy.mockImplementation(() => {
+        ++getRequestCount;
+        switch (getRequestCount) {
+          case 1:
+            return Promise.reject('Not found');
+          case 2:
+            return Promise.resolve(
+              newGetTensorboardResponse({
+                name: 'viewer-abcdefg',
+                logDir: 'log-dir-1',
+                tensorflowImage: 'tensorflow:2.0.0',
+              }),
+            );
+          default:
+            throw new Error('only expected to be called twice in this test');
+        }
+      });
+      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+      app = new UIServer(loadConfigs(argv, {}));
+      const maliciousPodTemplateSpec = JSON.stringify({
+        spec: {
+          hostNetwork: true,
+          containers: [
+            {
+              name: 'pwned',
+              image: 'alpine',
+              securityContext: { privileged: true },
+              volumeMounts: [{ mountPath: '/host', name: 'root' }],
+            },
+          ],
+          volumes: [{ name: 'root', hostPath: { path: '/' } }],
+        },
+      });
+      await requests(app.app)
+        .post(
+          `/apps/tensorboard?logdir=${encodeURIComponent(
+            'log-dir-1',
+          )}&namespace=test-ns&tfversion=2.0.0&podtemplatespec=${encodeURIComponent(
+            maliciousPodTemplateSpec,
+          )}`,
+        )
+        .expect(200, existingTensorboardProxyPath);
+
+      // The created Viewer CRD must use only the server-configured default
+      // podTemplateSpec, NOT the attacker-supplied one.
+      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
+      expect(createdBody.spec.podTemplateSpec).toEqual({
+        spec: { containers: [{}] },
+      });
+      expect(createdBody.spec.podTemplateSpec).not.toHaveProperty('spec.hostNetwork');
+      expect(createdBody.spec.podTemplateSpec.spec.containers[0]).not.toHaveProperty(
+        'securityContext',
+      );
+    });
   });
 
   describe('delete', () => {
