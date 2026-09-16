@@ -55,9 +55,10 @@ type token struct {
 	SortByFieldPrefix string
 
 	// SortByFieldIsNull is true when the sort field value of the next row is a
-	// genuine SQL NULL rather than an absent/invalid field. This only happens
-	// for metric sorts, where a run without the selected metric produces a NULL
-	// sort_metric_value. It exists to disambiguate a legitimate NULL sort value
+	// genuine SQL NULL rather than an absent/invalid field. This happens for
+	// metric sorts, where a run without the selected metric produces a NULL
+	// sort_metric_value, and for nullable columns exposed as pointers, such as
+	// a task with no parent. It exists to disambiguate a legitimate NULL sort value
 	// from the "field does not exist" error case: SortByFieldValue is interface{}
 	// and its nil is otherwise ambiguous. When true, SortByFieldValue is nil and
 	// the row belongs to the NULL block, which always sorts last.
@@ -295,9 +296,11 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 	// Probe the sort field type using the listable instance. SortByFieldName is
 	// the user-facing name, which GetFieldValue resolves for both regular fields
 	// and metric names. String fields return "" (string type); numeric fields
-	// return int64(0) or similar.
+	// return int64(0) or similar. Nullable string fields return a nil *string.
 	probeVal := listable.GetFieldValue(token.SortByFieldName)
-	_, token.SortByFieldIsString = probeVal.(string)
+	_, isString := probeVal.(string)
+	_, isNullableString := probeVal.(*string)
+	token.SortByFieldIsString = isString || isNullableString
 
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"
@@ -433,15 +436,14 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote dialect.
 			}
 		}
 	} else if o.SortByFieldIsNull && o.KeyFieldValue != nil {
-		// Cursor value is a genuine NULL (metric sort only). All non-NULL rows have
-		// already been paged through, so advance within the trailing NULL block
-		// using the primary key alone. Direction of the key tie-break follows the
-		// sort direction, matching the non-NULL branches above.
+		// Cursor value is a genuine NULL, from a missing metric or a nil pointer
+		// field. All non-NULL rows have already been paged through, so advance
+		// within the trailing NULL block using the primary key alone. Direction of
+		// the key tie-break follows the sort direction, matching the non-NULL
+		// branches above.
 		//
-		// This branch remains metric-only because Go model structs use value types
-		// (string, int64) and GORM maps SQL NULL to the zero value, so
-		// GetFieldValue cannot distinguish NULL from zero for non-metric fields.
-		// Extending this to all fields would require pointer types in the models.
+		// Fields with value types (string, int64) never get here, because GORM
+		// maps SQL NULL to the zero value and GetFieldValue cannot tell them apart.
 		keyCursor := sq.Sqlizer(sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue})
 		if o.IsDesc {
 			keyCursor = sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue}
@@ -607,14 +609,14 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	// SortByFieldName is the user-facing name (for metric sorts, the raw metric
 	// name), which GetFieldValue resolves directly.
 	//
-	// A nil field value is ambiguous: it can mean the field does not exist (a
-	// real error), or, for metric sorts, that this row simply has no value for
-	// the selected metric (a legitimate SQL NULL in sort_metric_value). Only the
-	// metric case is allowed to carry a NULL cursor forward; for regular fields a
-	// nil value still indicates an invalid sort field.
-	sortByField := listable.GetFieldValue(o.SortByFieldName)
-	sortByFieldIsNull := false
-	if sortByField == nil {
+	// A nil pointer comes from a nullable column, so it is a legitimate SQL NULL.
+	// An untyped nil is ambiguous. It can mean the field does not exist (a real
+	// error), or, for metric sorts, that this row simply has no value for the
+	// selected metric (a legitimate SQL NULL in sort_metric_value). Only those
+	// NULL cases carry a NULL cursor forward. For other fields an untyped nil
+	// still indicates an invalid sort field.
+	sortByField, sortByFieldIsNull := nullableFieldValue(listable.GetFieldValue(o.SortByFieldName))
+	if sortByField == nil && !sortByFieldIsNull {
 		if o.IsMetricSort() {
 			sortByFieldIsNull = true
 		} else {
@@ -641,6 +643,28 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		Filter:              o.Filter,
 		ModelName:           o.ModelName,
 	}, nil
+}
+
+// nullableFieldValue unwraps a pointer to a scalar, which is how a model exposes
+// a nullable column. A nil pointer reports isNull, because once it is boxed in
+// an interface{} it no longer compares equal to nil.
+func nullableFieldValue(value interface{}) (interface{}, bool) {
+	v := reflect.ValueOf(value)
+	if v.Kind() != reflect.Pointer {
+		return value, false
+	}
+	switch v.Type().Elem().Kind() {
+	case reflect.String, reflect.Bool,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		if v.IsNil() {
+			return nil, true
+		}
+		return v.Elem().Interface(), false
+	default:
+		return value, false
+	}
 }
 
 const (

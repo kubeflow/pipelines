@@ -34,7 +34,7 @@ describe('RecurringRunDetails', () => {
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const getJobSpy = vi.spyOn(Apis.jobServiceApi, 'getJob');
   const deleteRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'deleteRecurringRun');
   const enableRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
@@ -45,17 +45,12 @@ describe('RecurringRunDetails', () => {
   let fullTestJob: ApiJob = {};
 
   function generateProps(): PageProps {
-    const match = {
-      isExact: true,
-      params: { [RouteParams.recurringRunId]: fullTestJob.id },
-      path: '',
-      url: '',
-    };
+    const params = { [RouteParams.recurringRunId]: fullTestJob.id };
     return TestUtils.generatePageProps(
       RecurringRunDetails,
       '' as any,
-      match as any,
-      historyPushSpy,
+      params as any,
+      navigateSpy,
       updateBannerSpy,
       updateDialogSpy,
       updateToolbarSpy,
@@ -243,8 +238,8 @@ describe('RecurringRunDetails', () => {
     await act(async () => {
       await cloneBtn!.action();
     });
-    expect(historyPushSpy).toHaveBeenCalledTimes(1);
-    expect(historyPushSpy).toHaveBeenLastCalledWith(
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN +
         `?${QUERY_PARAMS.cloneFromRecurringRun}=${fullTestJob.id}` +
         `&${QUERY_PARAMS.isRecurring}=1`,
@@ -411,7 +406,7 @@ describe('RecurringRunDetails', () => {
       await cancelBtn.onClick();
     });
     expect(deleteRecurringRunSpy).not.toHaveBeenCalled();
-    expect(historyPushSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 
   it('redirects back to parent experiment after delete', async () => {
@@ -426,8 +421,8 @@ describe('RecurringRunDetails', () => {
       await confirmBtn.onClick();
     });
     expect(deleteRecurringRunSpy).toHaveBeenLastCalledWith('test-job-id');
-    expect(historyPushSpy).toHaveBeenCalledTimes(1);
-    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.EXPERIMENTS);
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenLastCalledWith(RoutePage.EXPERIMENTS);
   });
 
   it('shows snackbar after successful deletion', async () => {
@@ -469,6 +464,6 @@ describe('RecurringRunDetails', () => {
         title: 'Failed to delete recurring run config',
       }),
     );
-    expect(historyPushSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 });

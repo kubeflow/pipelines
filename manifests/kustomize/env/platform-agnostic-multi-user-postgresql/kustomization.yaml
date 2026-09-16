@@ -7,8 +7,6 @@ kind: Kustomization
 resources:
   - ../../third-party/metacontroller/base
   - ../../base/installs/multi-user
-  - ../../base/metadata/base
-  - ../../base/metadata/options/istio
   - ../../third-party/argo/installs/cluster
   - ../../third-party/postgresql/base
   - ../../third-party/postgresql/options/istio
@@ -17,7 +15,6 @@ resources:
 patches:
   - path: apiserver-patch.yaml
   - path: cache-server-patch.yaml
-  - path: mlmd-patch.yaml
 
 configMapGenerator:
   - name: pipeline-install-config

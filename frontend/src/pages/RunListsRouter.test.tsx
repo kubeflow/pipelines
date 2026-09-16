@@ -22,11 +22,11 @@ import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ApiExperiment } from 'src/apis/experiment';
 import { Apis } from 'src/lib/Apis';
 import * as Utils from 'src/lib/Utils';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { PredicateOp } from 'src/apis/filter';
 
 describe('RunListsRouter', () => {
-  let historyPushSpy: any;
+  let navigateSpy: any;
   let runStorageState = V2beta1RunStorageState.AVAILABLE;
 
   const onSelectionChangeMock = vi.fn();
@@ -61,9 +61,9 @@ describe('RunListsRouter', () => {
         }
       }),
       hideExperimentColumn: true,
-      history: { push: historyPushSpy } as any,
+      navigate: navigateSpy,
       location: '' as any,
-      match: { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any,
+      params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } as any,
       onSelectionChange: onSelectionChangeMock,
       selectedIds: [],
       storageState: runStorageState,

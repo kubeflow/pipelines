@@ -17,6 +17,14 @@ rules:
   verbs:
   - list
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames:
+  - kfp-launcher
+  verbs:
+  - get
+- apiGroups:
   - "kubeflow.org"
   resources:
   - viewers

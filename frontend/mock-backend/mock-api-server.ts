@@ -19,5 +19,3 @@ createMockApiApp().listen(port, () => {
   // tslint:disable-next-line:no-console
   console.log('Server listening at http://localhost:' + port);
 });
-
-export { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS, getAddress } from './mock-api-app';

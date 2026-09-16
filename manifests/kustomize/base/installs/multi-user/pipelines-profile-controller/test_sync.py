@@ -99,8 +99,24 @@ ENV_IMAGES_WITH_TAGS_AND_ISTIO = dict(ENV_IMAGES_WITH_TAGS, **{
 ENV_ARTIFACT_PROXY_WITH_ALLOWED_ENDPOINTS = dict(
     ENV_KFP_VERSION_ONLY, **{
         "ALLOWED_ARTIFACT_ENDPOINTS": "https://objects.example.com:9443",
+        "ALLOWED_GCS_UNIVERSE_DOMAINS": "googleapis.com,gdc.example",
         "ARTIFACTS_PROXY_ENABLED": "true",
     })
+
+
+def test_allowed_gcs_universe_domains_default_and_override():
+    with mock.patch.dict(os.environ, {"KFP_VERSION": KFP_VERSION}, clear=True):
+        assert get_settings_from_env(
+        )["allowed_gcs_universe_domains"] == "googleapis.com"
+
+    with mock.patch.dict(
+            os.environ, {
+                "KFP_VERSION": KFP_VERSION,
+                "ALLOWED_GCS_UNIVERSE_DOMAINS": "googleapis.com,gdc.example",
+            },
+            clear=True):
+        assert get_settings_from_env()["allowed_gcs_universe_domains"] == \
+            "googleapis.com,gdc.example"
 
 
 def generate_image_name(imagename, tag):
@@ -341,6 +357,11 @@ def test_artifact_proxy_receives_allowed_endpoints(sync_server):
         'name': 'ALLOWED_ARTIFACT_ENDPOINTS',
         'value': 'https://objects.example.com:9443',
     } in container_env
+    assert {
+        'name': 'ALLOWED_GCS_UNIVERSE_DOMAINS',
+        'value': 'googleapis.com,gdc.example',
+    } in container_env
+    assert not any('METADATA' in variable['name'] for variable in container_env)
 
 
 def test_create_iam_client_uses_endpoint(monkeypatch):
