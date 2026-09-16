@@ -60,15 +60,7 @@ func legacyCacheRow(t *testing.T) *model.ExecutionCache {
 }
 
 func TestLegacyCacheFallbackAdmission(t *testing.T) {
-	for _, config := range []string{cacheSecurityModeEnv, legacyCacheFallbackEnv} {
-		t.Run(config, func(t *testing.T) {
-			unsetCacheSecurityEnv(t)
-			testLegacyCacheFallbackAdmission(t, config)
-		})
-	}
-}
-
-func testLegacyCacheFallbackAdmission(t *testing.T, config string) {
+	unsetCacheSecurityEnv(t)
 	for _, tc := range []struct {
 		name         string
 		setting      string
@@ -81,29 +73,20 @@ func testLegacyCacheFallbackAdmission(t *testing.T, config string) {
 		wantRowCount int64
 	}{
 		{name: "unset by default", wantRowCount: 1},
-		{name: "explicitly disabled", setting: "false", wantRowCount: 1},
-		{name: "legacy hit", setting: "true", wantHit: true, wantRowCount: 1},
-		{name: "another namespace excluded", setting: "true", namespace: "other", wantRowCount: 1},
-		{name: "pod caching disabled", setting: "true", podTTL: "P0D", wantRowCount: 1},
-		{name: "default caching disabled", setting: "true", defaultTTL: "P0D", wantRowCount: 1},
-		{name: "pod TTL expired", setting: "true", podTTL: "PT1S", wantRowCount: 1},
-		{name: "default TTL expired", setting: "true", defaultTTL: "PT1S", wantRowCount: 1},
-		{name: "row TTL expired", setting: "true", rowExpired: true, wantRowCount: 1},
-		{name: "maximum TTL expired", setting: "true", maximumTTL: "PT1S"},
+		{name: "explicitly disabled", setting: "enforce", wantRowCount: 1},
+		{name: "legacy hit", setting: "audit", wantHit: true, wantRowCount: 1},
+		{name: "another namespace excluded", setting: "audit", namespace: "other", wantRowCount: 1},
+		{name: "pod caching disabled", setting: "audit", podTTL: "P0D", wantRowCount: 1},
+		{name: "default caching disabled", setting: "audit", defaultTTL: "P0D", wantRowCount: 1},
+		{name: "pod TTL expired", setting: "audit", podTTL: "PT1S", wantRowCount: 1},
+		{name: "default TTL expired", setting: "audit", defaultTTL: "PT1S", wantRowCount: 1},
+		{name: "row TTL expired", setting: "audit", rowExpired: true, wantRowCount: 1},
+		{name: "maximum TTL expired", setting: "audit", maximumTTL: "PT1S"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			setting := tc.setting
-			if config == cacheSecurityModeEnv {
-				switch setting {
-				case "true":
-					setting = "audit"
-				case "false":
-					setting = "enforce"
-				}
-			}
-			t.Setenv(config, setting)
+			t.Setenv(cacheSecurityModeEnv, tc.setting)
 			if tc.setting == "" {
-				require.NoError(t, os.Unsetenv(config))
+				require.NoError(t, os.Unsetenv(cacheSecurityModeEnv))
 			}
 			t.Setenv("DEFAULT_CACHE_STALENESS", tc.defaultTTL)
 			t.Setenv("MAXIMUM_CACHE_STALENESS", tc.maximumTTL)
@@ -162,14 +145,14 @@ func TestLegacyCacheFallbackPreservesScopedWritesAndHitPrecedence(t *testing.T) 
 
 func TestLegacyCacheFallbackInvalidConfiguration(t *testing.T) {
 	unsetCacheSecurityEnv(t)
-	t.Setenv("ALLOW_LEGACY_CACHE_FALLBACK", "invalid")
+	t.Setenv(cacheSecurityModeEnv, "invalid")
 	m := legacyCacheManager(t)
 	require.NoError(t, m.DB().Create(legacyCacheRow(t)).Error)
 	p := cachePod("tenant")
 	req := GetFakeRequestFromPod(p)
 	req.Namespace = p.Namespace
 	patches, err := MutatePodIfCached(req, m)
-	require.ErrorContains(t, err, "ALLOW_LEGACY_CACHE_FALLBACK")
+	require.ErrorContains(t, err, cacheSecurityModeEnv)
 	require.Empty(t, patches)
 }
 

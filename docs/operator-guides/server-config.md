@@ -117,7 +117,6 @@ spec:
 On the cache-server deployment, `KFP_SECURITY_LEGACY_CACHE_MODE` accepts `enforce`
 (default) or `audit`. Audit permits legacy cache reuse after a scoped miss and
 reports `ownership_unknown`; it weakens isolation and is planned for removal in
-3.0.0. `ALLOW_LEGACY_CACHE_FALLBACK` remains a deprecated boolean alias; conflicting
-settings are rejected. See the [cache migration guide](../../backend/src/cache/README.md#temporary-cache-audit-mode)
+3.0.0. Invalid mode values are rejected at startup. See the [cache migration guide](../../backend/src/cache/README.md#temporary-cache-audit-mode)
 for configuration, rollout, and return-to-enforcement instructions. Native V2
 caching is unaffected.

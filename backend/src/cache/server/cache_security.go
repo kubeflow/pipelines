@@ -19,36 +19,18 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 )
 
-const (
-	cacheSecurityModeEnv   = "KFP_SECURITY_LEGACY_CACHE_MODE"
-	legacyCacheFallbackEnv = "ALLOW_LEGACY_CACHE_FALLBACK"
-)
+const cacheSecurityModeEnv = "KFP_SECURITY_LEGACY_CACHE_MODE"
 
 func getCacheSecurityMode() (string, error) {
-	mode, configured := os.LookupEnv(cacheSecurityModeEnv)
+	mode := os.Getenv(cacheSecurityModeEnv)
 	switch mode {
 	case "":
 		mode = "enforce"
 	case "enforce", "audit":
 	default:
 		return "", fmt.Errorf("%s must be enforce or audit", cacheSecurityModeEnv)
-	}
-	if value, present := os.LookupEnv(legacyCacheFallbackEnv); present {
-		enabled, err := strconv.ParseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("%s must be true or false; migrate to %s=enforce or audit", legacyCacheFallbackEnv, cacheSecurityModeEnv)
-		}
-		legacyMode := "enforce"
-		if enabled {
-			legacyMode = "audit"
-		}
-		if configured && mode != legacyMode {
-			return "", fmt.Errorf("%s conflicts with %s; remove the deprecated %s setting", cacheSecurityModeEnv, legacyCacheFallbackEnv, legacyCacheFallbackEnv)
-		}
-		mode = legacyMode
 	}
 	return mode, nil
 }
@@ -58,9 +40,6 @@ func InitializeCacheSecurityMode() error {
 	mode, err := getCacheSecurityMode()
 	if err != nil {
 		return err
-	}
-	if _, present := os.LookupEnv(legacyCacheFallbackEnv); present {
-		log.Printf("WARNING: %s is deprecated; use %s=%s and remove the old setting", legacyCacheFallbackEnv, cacheSecurityModeEnv, mode)
 	}
 	if mode == "audit" {
 		log.Printf("WARNING: %s=audit permits reuse of legacy cache entries with unknown ownership, weakening namespace isolation; audit mode is planned for removal in 3.0.0 (https://github.com/kubeflow/pipelines/issues/14367)", cacheSecurityModeEnv)

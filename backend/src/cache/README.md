@@ -50,20 +50,12 @@ and cache entry ID. Events do not include cached outputs, credentials, or
 pipeline inputs. These are findings about an unknown owner, not successful
 ownership checks. No background scan or automatic cache rebuild runs at startup.
 
-The old `ALLOW_LEGACY_CACHE_FALLBACK` boolean is a **deprecated compatibility
-alias**: `true` maps to `audit`, and `false` maps to `enforce`. Existing accepted
-boolean spellings remain supported. Its use produces a startup deprecation
-warning. Invalid alias values are rejected even if the new setting is supplied;
-if both settings are present, they must agree. An explicitly empty new setting
-means `enforce` and conflicts with an old `true` value. Remove the alias when
-migrating. Do not set it to an empty string to remove it.
-
 For a deployment in the `kubeflow` namespace (adjust `NAMESPACE` as needed):
 
 ```sh
 NAMESPACE=kubeflow
 kubectl set env deployment/cache-server -n "$NAMESPACE" \
-  ALLOW_LEGACY_CACHE_FALLBACK- KFP_SECURITY_LEGACY_CACHE_MODE=audit
+  KFP_SECURITY_LEGACY_CACHE_MODE=audit
 kubectl rollout status deployment/cache-server -n "$NAMESPACE"
 ```
 
@@ -77,15 +69,14 @@ occurs. Return to enforcement after the migration period:
 
 ```sh
 kubectl set env deployment/cache-server -n "$NAMESPACE" \
-  ALLOW_LEGACY_CACHE_FALLBACK- KFP_SECURITY_LEGACY_CACHE_MODE=enforce
+  KFP_SECURITY_LEGACY_CACHE_MODE=enforce
 kubectl rollout status deployment/cache-server -n "$NAMESPACE"
 ```
 
 Tasks incur cold-cache executions as matching pipelines next run, not as a startup
 replay of historical runs. Successful executions warm the namespace-scoped cache.
 Plan for extra runtime/compute and possible queueing; historical run/artifact data
-is not deleted by disabling audit. We plan to remove audit mode and its deprecated
-alias in **3.0.0**, tracked in
+is not deleted by disabling audit. We plan to remove audit mode in **3.0.0**, tracked in
 [#14367](https://github.com/kubeflow/pipelines/issues/14367).
 
 The migration/storage regression runs with SQLite in the normal cache test suite.
