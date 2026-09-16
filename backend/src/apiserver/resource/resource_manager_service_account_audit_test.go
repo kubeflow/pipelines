@@ -30,16 +30,21 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func configureServiceAccountAuditTest(t *testing.T, audit bool) {
+func configureWorkflowIdentityAuditTest(t *testing.T, audit bool) {
 	t.Helper()
-	viper.Set(common.WorkflowServiceAccountAudit, audit)
+	mode := "enforce"
+	if audit {
+		mode = "audit"
+	}
+	viper.Set(common.WorkflowIdentityMode, mode)
 	viper.Set(common.MultiUserMode, "true")
 	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa,another-sa")
 	t.Cleanup(func() {
-		viper.Set(common.WorkflowServiceAccountAudit, nil)
+		viper.Set(common.WorkflowIdentityMode, nil)
 		viper.Set(common.MultiUserMode, "false")
 		viper.Set(common.AllowedServiceAccountsFlag, "")
 	})
@@ -94,7 +99,7 @@ func TestWorkflowServiceAccountAuditChecks(t *testing.T) {
 					mode = "audit"
 				}
 				t.Run(mode, func(t *testing.T) {
-					configureServiceAccountAuditTest(t, audit)
+					configureWorkflowIdentityAuditTest(t, audit)
 					store, manager, _ := initWithExperimentAndUnauthorizedSAR(t)
 					defer store.Close()
 					workflow := util.NewWorkflow(testWorkflow.DeepCopy())
@@ -106,22 +111,22 @@ func TestWorkflowServiceAccountAuditChecks(t *testing.T) {
 					}
 					logs := captureServiceAccountAuditLogs(t, func() {
 						err := manager.authorizeExecutionServiceAccounts(multiUserContext(), workflow, false, "ns1", "create_run")
-						if audit {
+						if audit && test.finding != "authorization_error" {
 							require.NoError(t, err)
 						} else {
 							require.Error(t, err)
 						}
 					})
-					if audit {
+					if audit && test.finding != "authorization_error" {
 						assert.Contains(t, logs, `operation="create_run" namespace="ns1" workflow="workflow-name"`)
-						assert.Contains(t, logs, `finding="`+test.finding+`"`)
-						assert.Contains(t, logs, common.WorkflowServiceAccountAudit+"=true")
+						assert.Contains(t, logs, `reason="`+test.finding+`"`)
+						assert.Contains(t, logs, "control=workflow_identity mode=audit")
 						if test.finding != "inspection_incomplete" {
 							assert.Contains(t, logs, `service_account="nested-sa"`)
 							assert.Contains(t, logs, `service_account="another-sa"`)
 						}
 					} else {
-						assert.NotContains(t, logs, "Workflow service account audit:")
+						assert.NotContains(t, logs, "security_audit")
 					}
 					assert.NotContains(t, logs, "private-patch-value")
 				})
@@ -133,7 +138,7 @@ func TestWorkflowServiceAccountAuditChecks(t *testing.T) {
 func TestWorkflowServiceAccountAuditStillEnforcesMainAccount(t *testing.T) {
 	for _, allowList := range []string{"", "main-sa"} {
 		t.Run("allowed="+allowList, func(t *testing.T) {
-			configureServiceAccountAuditTest(t, true)
+			configureWorkflowIdentityAuditTest(t, true)
 			viper.Set(common.AllowedServiceAccountsFlag, allowList)
 			store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
 			defer store.Close()
@@ -161,7 +166,7 @@ func TestWorkflowServiceAccountAuditFreshWorkflows(t *testing.T) {
 				name = version + "/external reference"
 			}
 			t.Run(name, func(t *testing.T) {
-				configureServiceAccountAuditTest(t, true)
+				configureWorkflowIdentityAuditTest(t, true)
 				store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
 				defer store.Close()
 				workflow := util.NewWorkflow(testWorkflow.DeepCopy())
@@ -198,7 +203,7 @@ func TestWorkflowServiceAccountAuditFreshWorkflows(t *testing.T) {
 						assert.Contains(t, created.ToStringForStore(), "{{inputs.parameters.pod-spec-patch}}")
 					}
 				})
-				assert.NotContains(t, logs, "Workflow service account audit:")
+				assert.NotContains(t, logs, "security_audit")
 			})
 		}
 	}
@@ -207,7 +212,7 @@ func TestWorkflowServiceAccountAuditFreshWorkflows(t *testing.T) {
 func TestWorkflowServiceAccountAuditEnforcesImplicitMainAccount(t *testing.T) {
 	for _, allowList := range []string{"", "default"} {
 		t.Run("allowed="+allowList, func(t *testing.T) {
-			configureServiceAccountAuditTest(t, true)
+			configureWorkflowIdentityAuditTest(t, true)
 			viper.Set(common.AllowedServiceAccountsFlag, allowList)
 			store, manager, _ := initWithExperimentAndUnauthorizedSAR(t)
 			defer store.Close()
@@ -221,7 +226,7 @@ func TestWorkflowServiceAccountAuditEnforcesImplicitMainAccount(t *testing.T) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "default")
 			})
-			assert.NotContains(t, logs, "Workflow service account audit:")
+			assert.NotContains(t, logs, "security_audit")
 		})
 	}
 }
@@ -229,7 +234,7 @@ func TestWorkflowServiceAccountAuditEnforcesImplicitMainAccount(t *testing.T) {
 func TestWorkflowServiceAccountAuditCreateRunAndJob(t *testing.T) {
 	for _, kind := range []string{"run", "dynamic run", "job", "job with plugins", "latest job"} {
 		t.Run(kind, func(t *testing.T) {
-			configureServiceAccountAuditTest(t, true)
+			configureWorkflowIdentityAuditTest(t, true)
 			store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
 			defer store.Close()
 			pipelineSpec := model.PipelineSpec{WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa")}
@@ -284,7 +289,7 @@ func TestWorkflowServiceAccountAuditPluginMutation(t *testing.T) {
 			name = "main account"
 		}
 		t.Run(name, func(t *testing.T) {
-			configureServiceAccountAuditTest(t, true)
+			configureWorkflowIdentityAuditTest(t, true)
 			store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
 			defer store.Close()
 			dispatcher := &auditTemplateMutatingDispatcher{serviceAccountMutatingDispatcher{output: mlflow.SuccessfulPluginOutput("exp", "experiment", "parent", "https://mlflow.example/runs/parent")}}
@@ -327,7 +332,7 @@ func TestWorkflowServiceAccountAuditRetryAndEnable(t *testing.T) {
 		run.WorkflowRuntimeManifest = model.LargeText(workflow.ToStringForStore())
 		require.NoError(t, manager.runStore.UpdateRun(run))
 		syncWorkflowReportWithFakeCluster(t, store, workflow)
-		configureServiceAccountAuditTest(t, true)
+		configureWorkflowIdentityAuditTest(t, true)
 		manager.subjectAccessReviewClient = client.NewFakeSubjectAccessReviewClientUnauthorized()
 		logs := captureServiceAccountAuditLogs(t, func() {
 			require.NoError(t, manager.RetryRun(multiUserContext(), run.UUID))
@@ -338,7 +343,7 @@ func TestWorkflowServiceAccountAuditRetryAndEnable(t *testing.T) {
 		assert.Equal(t, model.RuntimeStateRunning, after.State)
 	})
 	t.Run("enable", func(t *testing.T) {
-		configureServiceAccountAuditTest(t, true)
+		configureWorkflowIdentityAuditTest(t, true)
 		store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
 		defer store.Close()
 		job, err := manager.CreateJob(multiUserContext(), &model.Job{
@@ -354,4 +359,63 @@ func TestWorkflowServiceAccountAuditRetryAndEnable(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, after.Enabled)
 	})
+}
+
+type evaluationErrorSAR struct{ allowed bool }
+
+func (c evaluationErrorSAR) Create(context.Context, *authorizationv1.SubjectAccessReview, metav1.CreateOptions) (*authorizationv1.SubjectAccessReview, error) {
+	return &authorizationv1.SubjectAccessReview{Status: authorizationv1.SubjectAccessReviewStatus{Allowed: c.allowed, EvaluationError: "evaluation failed"}}, nil
+}
+
+func TestWorkflowIdentityAuditFailsClosed(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		sar  client.SubjectAccessReviewInterface
+		ctx  context.Context
+	}{
+		{"transport error", client.NewFakeSubjectAccessReviewClientError(), multiUserContext()},
+		{"evaluation error denied", evaluationErrorSAR{false}, multiUserContext()},
+		{"evaluation error allowed", evaluationErrorSAR{true}, multiUserContext()},
+		{"missing identity", client.NewFakeSubjectAccessReviewClient(), context.Background()},
+	} {
+		for _, allowList := range []string{"nested-sa", ""} {
+			t.Run(test.name+"/allowlist="+allowList, func(t *testing.T) {
+				configureWorkflowIdentityAuditTest(t, true)
+				viper.Set(common.AllowedServiceAccountsFlag, allowList)
+				store, manager, _ := initWithExperimentAndUnauthorizedSAR(t)
+				defer store.Close()
+				manager.subjectAccessReviewClient = test.sar
+				workflow := util.NewWorkflow(testWorkflow.DeepCopy())
+				workflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
+				workflow.Spec.Templates[0].ServiceAccountName = "nested-sa"
+				require.Error(t, manager.authorizeExecutionServiceAccounts(test.ctx, workflow, false, "ns1", "create_run"))
+			})
+		}
+	}
+}
+
+func TestWorkflowIdentityInvalidModeBlocksRequest(t *testing.T) {
+	configureWorkflowIdentityAuditTest(t, false)
+	viper.Set(common.WorkflowIdentityMode, "true")
+	store, manager, _ := initWithExperimentAndUnauthorizedSAR(t)
+	defer store.Close()
+	err := manager.authorizeExecutionServiceAccounts(multiUserContext(), util.NewWorkflow(testWorkflow.DeepCopy()), false, "ns1", "create_run")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid workflow identity configuration")
+}
+
+func TestWorkflowIdentityStartupWarning(t *testing.T) {
+	for _, mode := range []string{"", "enforce", "audit"} {
+		t.Run(mode, func(t *testing.T) {
+			configureWorkflowIdentityAuditTest(t, false)
+			viper.Set(common.WorkflowIdentityMode, mode)
+			logs := captureServiceAccountAuditLogs(t, func() { require.NoError(t, common.InitializeWorkflowIdentityMode()) })
+			if mode == "audit" {
+				assert.Contains(t, logs, "security_audit control=workflow_identity mode=audit operation=config")
+				assert.Contains(t, logs, "https://github.com/kubeflow/pipelines/issues/14367")
+			} else {
+				assert.NotContains(t, logs, "security_audit")
+			}
+		})
+	}
 }

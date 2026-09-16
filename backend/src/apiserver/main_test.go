@@ -902,3 +902,16 @@ func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
 
 	assert.True(t, gatewayHandlerCalled, "requests to /apis/ paths not matching explicit routes should reach the gRPC gateway handler")
 }
+
+func TestInitConfigRejectsInvalidWorkflowIdentityMode(t *testing.T) {
+	viper.Reset()
+	tempDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "config.json"), []byte(`{}`), 0600))
+	originalConfigPath := *configPath
+	*configPath = tempDir
+	t.Cleanup(func() { *configPath = originalConfigPath; viper.Reset() })
+	t.Setenv(common.WorkflowIdentityMode, "true")
+	err := initConfig()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), common.WorkflowIdentityMode)
+}

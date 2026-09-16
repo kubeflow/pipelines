@@ -19,32 +19,33 @@ exemption.
 
 ### Audit mode for rollout
 
-`WORKFLOW_SERVICE_ACCOUNT_AUDIT` defaults to `false`. Set it to `"true"` on the
+`KFP_SECURITY_WORKFLOW_IDENTITY_MODE` defaults to `enforce` (including empty values). Set it to `"audit"` on the
 `ml-pipeline` API server deployment to observe the **additional** identity checks
 without blocking on their findings:
 
 ```yaml
 env:
-  - name: WORKFLOW_SERVICE_ACCOUNT_AUDIT
-    value: "true"
+  - name: KFP_SECURITY_WORKFLOW_IDENTITY_MODE
+    value: "audit"
 ```
 
 Audit mode still enforces the workflow's main service account, including Kubernetes'
 `default` account if the main field is empty. Failures involving
 other accounts, including accounts introduced by plugins or retained retry state,
-produce `Workflow service account audit:` warning logs and execution continues.
+produce structured `security_audit control=workflow_identity mode=audit` warning logs and execution continues for policy denials and incomplete local identity inspection. Authentication failures, authorization transport errors, and SubjectAccessReview evaluation errors remain blocking, even if another policy violation was audited.
 These accounts can therefore run without passing the expanded policy while audit
 mode is enabled. Use this option temporarily to assess compatibility, then unset
-it or set it to `"false"` to enforce the checks. It applies to both V1 and V2.
+it or set it to `"enforce"` to enforce the checks. It applies to both V1 and V2.
+
+Invalid values fail startup, configuration reload, and request validation. Audit mode emits an exposure warning on startup/reload and is planned for removal in [3.0](https://github.com/kubeflow/pipelines/issues/14367). Apply the same mode to every API server replica and persist it in your deployment configuration.
 
 Warnings include the operation, namespace, workflow name or generated-name prefix,
 run ID when available, account name when known, and one of these findings:
 
 | Finding | Meaning |
 | --- | --- |
-| `account_not_allowed` | The additional account is not allowed or its name is not literal. |
+| `account_not_allowed` | The additional account is not allowed. |
 | `account_denied` | Kubernetes denied the caller permission to use the additional account. |
-| `authorization_error` | Authorization of the additional account could not be completed. |
 | `inspection_incomplete` | The workflow's identities could not be fully collected, for example because a patch is dynamic or uses noncanonical account fields. |
 
 An inspection failure stops collection, so `inspection_incomplete` is **not** a
