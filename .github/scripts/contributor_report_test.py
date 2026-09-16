@@ -90,13 +90,34 @@ orgs:
             issues_opened=1,
             merged_prs=2,
             pr_comments=7,
-            pr_thread_comments=3,
-            pr_review_comments=4,
         )
         rows = MODULE.build_user_rows(True, stats)
         pr_comments_row = next(
             row for row in rows if row.metric.startswith("PR comments in "))
         self.assertEqual(pr_comments_row.value, "7")
+
+    def test_is_report_comment_requires_marker_and_bot_author(self):
+        self.assertTrue(
+            MODULE.is_report_comment({
+                "body": "prefix <!-- kfp-contributor-report --> suffix",
+                "user": {
+                    "type": "Bot"
+                },
+            }))
+        self.assertFalse(
+            MODULE.is_report_comment({
+                "body": "prefix <!-- kfp-contributor-report --> suffix",
+                "user": {
+                    "type": "User"
+                },
+            }))
+        self.assertFalse(
+            MODULE.is_report_comment({
+                "body": "no marker here",
+                "user": {
+                    "type": "Bot"
+                },
+            }))
 
     def test_is_human_user_checks_github_type(self):
         self.assertTrue(MODULE.is_human_user({"type": "User"}))

@@ -19,7 +19,6 @@ REPORT_MARKER = "<!-- kfp-contributor-report -->"
 KUBEFLOW_ORG_YAML_PATH = "github-orgs/kubeflow/org.yaml"
 KUBEFLOW_INTERNAL_ACLS_REPO = "kubeflow/internal-acls"
 KFP_REPO = "kubeflow/pipelines"
-ALL_TIME_FROM = "2008-01-01T00:00:00Z"
 TRANSIENT_HTTP_STATUSES = {502, 503, 504}
 TRANSIENT_ATTEMPTS = 4
 
@@ -64,42 +63,6 @@ query ContributorReport(
 }
 """
 
-REVIEW_QUERY = """
-query ContributorReviewComments(
-  $username: String!
-  $from: DateTime!
-  $to: DateTime!
-  $reviewCursor: String
-) {
-  user(login: $username) {
-    contributionsCollection(from: $from, to: $to) {
-      pullRequestReviewContributions(first: 100, after: $reviewCursor) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        nodes {
-          pullRequestReview {
-            bodyText
-            comments(first: 1) {
-              totalCount
-            }
-            pullRequest {
-              repository {
-                owner {
-                  login
-                }
-                name
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-"""
-
 
 @dataclass(frozen=True)
 class ContributorStats:
@@ -107,8 +70,6 @@ class ContributorStats:
     issues_opened: int
     merged_prs: int
     pr_comments: int
-    pr_thread_comments: int
-    pr_review_comments: int
 
 
 @dataclass(frozen=True)
@@ -236,56 +197,6 @@ def fetch_kubeflow_org_members() -> set[str]:
     return parse_kubeflow_org_members(yaml_text)
 
 
-def yearly_windows(created_at_iso: str) -> list[tuple[str, str]]:
-    created_at = datetime.fromisoformat(created_at_iso.replace("Z", "+00:00"))
-    now = datetime.now(timezone.utc)
-    windows: list[tuple[str, str]] = []
-    for year in range(created_at.year, now.year + 1):
-        start = datetime(year, 1, 1, tzinfo=timezone.utc)
-        end = datetime(year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
-        if start < created_at:
-            start = created_at
-        if end > now:
-            end = now
-        windows.append((start.isoformat().replace("+00:00", "Z"),
-                        end.isoformat().replace("+00:00", "Z")))
-    return windows
-
-
-def count_review_comments(username: str, created_at_iso: str) -> int:
-    review_comment_count = 0
-    for start, end in yearly_windows(created_at_iso):
-        review_cursor = None
-        while True:
-            data = github_graphql(
-                REVIEW_QUERY,
-                {
-                    "username": username,
-                    "from": start,
-                    "to": end,
-                    "reviewCursor": review_cursor,
-                },
-            )
-            nodes = data["user"]["contributionsCollection"][
-                "pullRequestReviewContributions"]["nodes"]
-            for node in nodes:
-                review = node.get("pullRequestReview")
-                if not review:
-                    continue
-                repo = review["pullRequest"]["repository"]
-                if repo["owner"]["login"] == "kubeflow" and repo[
-                        "name"] == "pipelines":
-                    review_comment_count += review["comments"]["totalCount"]
-                    if review.get("bodyText", "").strip():
-                        review_comment_count += 1
-            page_info = data["user"]["contributionsCollection"][
-                "pullRequestReviewContributions"]["pageInfo"]
-            if not page_info["hasNextPage"]:
-                break
-            review_cursor = page_info["endCursor"]
-    return review_comment_count
-
-
 def fetch_contributor_stats(username: str) -> ContributorStats:
     issue_count_query = f"repo:{KFP_REPO} is:issue author:{username}"
     merged_pr_query = f"repo:{KFP_REPO} is:pr is:merged author:{username}"
@@ -332,15 +243,12 @@ def fetch_contributor_stats(username: str) -> ContributorStats:
     assert created_at is not None
     assert issues_opened is not None
     assert merged_prs is not None
-    review_comment_count = count_review_comments(username, created_at)
 
     return ContributorStats(
         created_at=created_at,
         issues_opened=issues_opened,
         merged_prs=merged_prs,
-        pr_comments=issue_comment_count + review_comment_count,
-        pr_thread_comments=issue_comment_count,
-        pr_review_comments=review_comment_count,
+        pr_comments=issue_comment_count,
     )
 
 
@@ -426,13 +334,15 @@ def list_issue_comments(owner: str, repo: str,
     return comments
 
 
+def is_report_comment(comment: dict[str, Any]) -> bool:
+    return (REPORT_MARKER in (comment.get("body") or "") and
+            comment.get("user", {}).get("type") == "Bot")
+
+
 def upsert_comment(owner: str, repo: str, issue_number: int, body: str) -> str:
     comments = list_issue_comments(owner, repo, issue_number)
     existing = next(
-        (comment for comment in comments
-         if REPORT_MARKER in (comment.get("body") or "")),
-        None,
-    )
+        (comment for comment in comments if is_report_comment(comment)), None)
     if existing:
         github_request(
             f"/repos/{owner}/{repo}/issues/comments/{existing['id']}",
