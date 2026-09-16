@@ -358,6 +358,7 @@ describe('Apis', () => {
           method: 'POST',
         },
       );
+    });
   });
 
   it('deleteTensorboardApp', async () => {
