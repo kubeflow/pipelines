@@ -45,7 +45,7 @@ orgs:
             MODULE.MarkdownRow(metric="Metric B", value="2"),
         ]
         comment = MODULE.build_comment("alice", rows)
-        self.assertIn("## Contributor Report for @alice", comment)
+        self.assertIn("#### Contributor Report for @alice", comment)
         self.assertIn("| Metric | Value |", comment)
         self.assertIn("| Metric A | 1 |", comment)
         self.assertIn("| Metric B | 2 |", comment)

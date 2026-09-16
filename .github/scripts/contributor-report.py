@@ -402,7 +402,7 @@ def build_non_user_rows(author_type: str) -> list[MarkdownRow]:
 def build_comment(username: str,
                   rows: list[MarkdownRow],
                   title: str | None = None) -> str:
-    resolved_title = title or f"## Contributor Report for @{username}"
+    resolved_title = title or f"#### Contributor Report for @{username}"
     return "\n".join([
         REPORT_MARKER,
         resolved_title,
