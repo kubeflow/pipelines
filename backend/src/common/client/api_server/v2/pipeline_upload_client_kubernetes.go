@@ -28,7 +28,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	apimodel "github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -131,7 +130,7 @@ func (c *PipelineUploadClientKubernetes) UploadFile(filePath string, parameters 
 	}
 	defer file.Close()
 
-	processedFile, err := server.ReadPipelineFile(path.Base(filePath), file, common.MaxFileLength)
+	processedFile, err := server.ReadPipelineFileWithConfiguredLimits(path.Base(filePath), file)
 	if err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to upload pipeline. Params: '%v'", parameters),
@@ -256,7 +255,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 	}
 	defer file.Close()
 
-	processedFile, err := server.ReadPipelineFile(path.Base(filePath), file, common.MaxFileLength)
+	processedFile, err := server.ReadPipelineFileWithConfiguredLimits(path.Base(filePath), file)
 	if err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to upload pipeline version. Params: '%v'", parameters),
