@@ -37,6 +37,7 @@ type Client interface {
 		outputParametersTypeMap map[string]string,
 		cmdArgs []string, image string,
 		pvcNames []string,
+		env []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar,
 	) (*cachekey.CacheKey, error)
 	GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error)
 }
@@ -52,6 +53,7 @@ func (d disabledCacheClient) GenerateCacheKey(
 	[]string,
 	string,
 	[]string,
+	[]*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar,
 ) (*cachekey.CacheKey, error) {
 	panic("GenerateCacheKey is not supposed to be called when cache is disabled")
 }
@@ -176,6 +178,7 @@ func (c *client) GenerateCacheKey(
 	outputParametersTypeMap map[string]string,
 	cmdArgs []string, image string,
 	pvcNames []string,
+	env []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar,
 ) (*cachekey.CacheKey, error) {
 	cacheKey := cachekey.CacheKey{
 		InputArtifactNames:   make(map[string]*cachekey.ArtifactNameList),
@@ -223,6 +226,7 @@ func (c *client) GenerateCacheKey(
 		Image:    image,
 		CmdArgs:  cmdArgs,
 		PvcNames: pvcNames,
+		Env:      env,
 	}
 
 	return &cacheKey, nil
