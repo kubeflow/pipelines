@@ -14,7 +14,7 @@
 import os
 import sys
 import tempfile
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 import unittest
 
 from absl.testing import parameterized
@@ -239,6 +239,100 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
                 validation_alias='foo_in', serialization_alias='foo_out')
 
         self.assertEqual('Dict', type_utils._annotation_to_type_struct(MyModel))
+
+
+class TestLiteralParameterSupport(parameterized.TestCase):
+
+    @parameterized.parameters(
+        {
+            'annotation': Literal['a', 'b', 'c'],
+            'expected': ['a', 'b', 'c'],
+        },
+        {
+            'annotation': Literal[1, 2, 3],
+            'expected': [1, 2, 3],
+        },
+        {
+            'annotation': Literal[1.0, 2.0],
+            'expected': [1.0, 2.0],
+        },
+        {
+            'annotation': Optional[Literal['a', 'b']],
+            'expected': ['a', 'b'],
+        },
+        {
+            'annotation': Literal['solo'],
+            'expected': ['solo'],
+        },
+    )
+    def test_get_literal_values(self, annotation, expected):
+        self.assertEqual(expected, type_utils.get_literal_values(annotation))
+
+    @parameterized.parameters(
+        {
+            'annotation': str,
+        },
+        {
+            'annotation': int,
+        },
+        {
+            'annotation': List[str],
+        },
+        {
+            'annotation': Optional[str],
+        },
+        {
+            'annotation': None,
+        },
+    )
+    def test_get_literal_values_returns_none_for_non_literal(self, annotation):
+        self.assertIsNone(type_utils.get_literal_values(annotation))
+
+    @parameterized.parameters(
+        {
+            'annotation': Literal['a', 1, 'b'],
+        },
+        {
+            'annotation': Literal[1, 2.0],
+        },
+        {
+            'annotation': Literal[True, False],
+        },
+        {
+            'annotation': Literal[True, 1],
+        },
+    )
+    def test_get_literal_values_raises_for_unsupported_types(self, annotation):
+        with self.assertRaisesRegex(
+                TypeError, 'KFP supports Literals of a single type only.'):
+            type_utils.get_literal_values(annotation)
+
+    @parameterized.parameters(
+        {
+            'annotation': Literal['a', 'b', 'c'],
+            'expected': 'String',
+        },
+        {
+            'annotation': Literal[1, 2, 3],
+            'expected': 'Integer',
+        },
+        {
+            'annotation': Literal[1.0, 2.0],
+            'expected': 'Float',
+        },
+        {
+            'annotation': Optional[Literal['a', 'b']],
+            'expected': 'String',
+        },
+    )
+    def test_annotation_to_type_struct_for_literal(self, annotation, expected):
+        self.assertEqual(expected,
+                         type_utils._annotation_to_type_struct(annotation))
+
+    def test_annotation_to_type_struct_raises_for_mixed_type_literal(self):
+        with self.assertRaisesRegex(
+                TypeError, 'KFP supports Literals of a single type only.'):
+            type_utils._annotation_to_type_struct(Literal['a', 1])
 
 
 class TypeUtilsTest(parameterized.TestCase):
@@ -972,6 +1066,50 @@ class TestTypeChecking(parameterized.TestCase):
             'is_compatible':
                 True,
         },
+        {
+            'argument_value':
+                'a',
+            'parameter_input_spec':
+                structures.InputSpec('String', literals=['a', 'b', 'c']),
+            'is_compatible':
+                True,
+        },
+        {
+            'argument_value':
+                'z',
+            'parameter_input_spec':
+                structures.InputSpec('String', literals=['a', 'b', 'c']),
+            'is_compatible':
+                False,
+        },
+        {
+            'argument_value':
+                1,
+            'parameter_input_spec':
+                structures.InputSpec('Integer', literals=[1, 2, 3]),
+            'is_compatible':
+                True,
+        },
+        {
+            'argument_value':
+                4,
+            'parameter_input_spec':
+                structures.InputSpec('Integer', literals=[1, 2, 3]),
+            'is_compatible':
+                False,
+        },
+        {
+            # A channel (pipeline input or task output) can't be checked
+            # against a Literal constraint at compile time; that's left to
+            # the driver, which validates the resolved value at runtime.
+            'argument_value':
+                pipeline_channel.create_pipeline_channel(
+                    'dummy_channel', 'String', task_name='upstream-task'),
+            'parameter_input_spec':
+                structures.InputSpec('String', literals=['a', 'b', 'c']),
+            'is_compatible':
+                True,
+        },
     )
     def test_verify_type_compatibility(
         self,
@@ -1115,6 +1253,134 @@ def compile_and_load_component(
         output_path = os.path.join(tempdir, 'pipeline.yaml')
         compiler.Compiler().compile(comp, output_path)
         return components.load_component_from_file(output_path)
+
+
+def _compile(comp: base_component.BaseComponent) -> None:
+    with tempfile.TemporaryDirectory() as tempdir:
+        compiler.Compiler().compile(comp, os.path.join(tempdir, 'p.yaml'))
+
+
+class TestLiteralSDKCompilerKEPScenarios(unittest.TestCase):
+    """Covers the KEP-11385 Test Plan rows marked for the SDK Compiler.
+
+    See the "SDK Compiler" column of
+    proposals/11385-literal-input-parameters/README.md#test-plan.
+    """
+
+    def test_pipeline_level_literal_valid_hardcoded_input(self):
+        # expected to pass: "Pipeline-level Literal input: valid hard-coded
+        # input"
+        @dsl.component
+        def consume(x: str) -> str:
+            return x
+
+        @dsl.pipeline
+        def sub_pipeline(x: Literal['a', 'b']):
+            consume(x=x)
+
+        @dsl.pipeline
+        def main_pipeline():
+            sub_pipeline(x='a')
+
+        _compile(main_pipeline)
+
+    def test_pipeline_level_literal_no_input(self):
+        # expected to pass: "Pipeline-level Literal input: no input (SDK
+        # only)"
+        @dsl.component
+        def consume(x: str) -> str:
+            return x
+
+        @dsl.pipeline
+        def my_pipeline(x: Literal['a', 'b']):
+            consume(x=x)
+
+        _compile(my_pipeline)
+
+    def test_component_level_literal_input(self):
+        # expected to pass: "Component-level Literal input"
+        @dsl.component
+        def pick(choice: Literal['a', 'b', 'c'] = 'a') -> str:
+            return choice
+
+        _compile(pick)
+
+    def test_pipeline_and_component_level_valid_hardcoded_input(self):
+        # expected to pass: "Pipeline & component-level: valid hard-coded
+        # input"
+        @dsl.component
+        def pick(choice: Literal['a', 'b', 'c']) -> str:
+            return choice
+
+        @dsl.pipeline
+        def my_pipeline(top: Literal['x', 'y'] = 'x'):
+            pick(choice='a')
+
+        _compile(my_pipeline)
+
+    def test_component_level_literal_input_from_task_output(self):
+        # expected to pass: "Component-level Literal input: valid input
+        # passed in from a preceding component's output"
+        @dsl.component
+        def produce() -> str:
+            return 'a'
+
+        @dsl.component
+        def pick(choice: Literal['a', 'b', 'c']) -> str:
+            return choice
+
+        @dsl.pipeline
+        def my_pipeline():
+            t = produce()
+            pick(choice=t.output)
+
+        _compile(my_pipeline)
+
+    def test_literal_elements_mismatch_across_levels_not_caught_by_sdk(self):
+        # expected to fail overall, but marked X (not caught) under SDK
+        # Compiler: "Pipeline & component-level Literal input: Literal
+        # elements do not match." Cross-checking a pipeline-level Literal's
+        # values against the component-level Literal it feeds is out of
+        # scope for #12601 and is left to the driver at runtime (see
+        # ValidateLiteralParameter in the backend); the SDK compiler
+        # succeeds here.
+        @dsl.component
+        def pick(choice: Literal['a', 'b']) -> str:
+            return choice
+
+        @dsl.pipeline
+        def my_pipeline(top: Literal['a', 'b', 'z']):
+            pick(choice=top)
+
+        _compile(my_pipeline)
+
+    def test_pipeline_level_literal_invalid_hardcoded_input(self):
+        # expected to fail: "Pipeline-level Literal input: invalid
+        # hard-coded input". NOTE: the KEP's own table marks this X (not
+        # caught) under SDK Compiler, which contradicts both the issue's
+        # acceptance criteria ("Compiler validates hard-coded input values
+        # against their Literal parameters... throws an error if input is
+        # invalid") and the KEP's Design Details prose. This implementation
+        # follows the acceptance criteria and prose: using a Literal-typed
+        # pipeline as a nested sub-pipeline task with an invalid hard-coded
+        # value raises, the same way an invalid component call does, since
+        # both go through the same PipelineTask construction path.
+        @dsl.component
+        def consume(x: str) -> str:
+            return x
+
+        @dsl.pipeline
+        def sub_pipeline(x: Literal['a', 'b']):
+            consume(x=x)
+
+        # Tracing the pipeline body (which happens at decoration time, when
+        # `sub_pipeline(x='z')` is called) is what raises here, not the
+        # later compile() call.
+        with self.assertRaises(InconsistentTypeException):
+
+            @dsl.pipeline
+            def main_pipeline():
+                sub_pipeline(x='z')
 
 
 class TestGetCanonicalNameForOuterGeneric(parameterized.TestCase):
