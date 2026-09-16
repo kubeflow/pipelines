@@ -914,3 +914,16 @@ func TestInitConfigRejectsInvalidServiceAccountAuthorizationMode(t *testing.T) {
 	t.Cleanup(func() { *configPath = original })
 	require.ErrorContains(t, initConfig(), "KFP_SECURITY_SERVICE_ACCOUNT_MODE must be enforce or audit")
 }
+
+func TestInitConfigRejectsInvalidWorkflowIdentityMode(t *testing.T) {
+	viper.Reset()
+	tempDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "config.json"), []byte(`{}`), 0600))
+	originalConfigPath := *configPath
+	*configPath = tempDir
+	t.Cleanup(func() { *configPath = originalConfigPath; viper.Reset() })
+	t.Setenv(common.WorkflowIdentityMode, "true")
+	err := initConfig()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), common.WorkflowIdentityMode)
+}

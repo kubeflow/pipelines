@@ -177,8 +177,8 @@ func TestAuthorizeStoredRunServiceAccount(t *testing.T) {
 		wantError        string
 	}{
 		{
-			name: "stored account takes precedence", storedAccount: "stored-runner",
-			workflowManifest: manifest("embedded-runner"), allowedAccount: "stored-runner",
+			name: "stored account does not hide runtime identity", storedAccount: "stored-runner",
+			workflowManifest: manifest("embedded-runner"), allowedAccount: "stored-runner", wantError: "not allowed",
 		},
 		{
 			name: "stored account cannot be bypassed by an allowed manifest account", storedAccount: "stored-runner",
@@ -189,8 +189,8 @@ func TestAuthorizeStoredRunServiceAccount(t *testing.T) {
 			allowedAccount: "stored-runner",
 		},
 		{
-			name: "stored account does not parse an unused manifest", storedAccount: "stored-runner",
-			workflowManifest: "{", allowedAccount: "stored-runner",
+			name: "stored account does not hide malformed runtime", storedAccount: "stored-runner",
+			workflowManifest: "{", allowedAccount: "stored-runner", wantError: "stored recurring-run workflow",
 		},
 		{
 			name: "workflow runtime account allowed", workflowManifest: manifest("embedded-runner"),
@@ -213,7 +213,7 @@ func TestAuthorizeStoredRunServiceAccount(t *testing.T) {
 			workflowManifest: manifest("stored-runner"), pipelineManifest: manifest("embedded-runner"),
 			allowedAccount: "embedded-runner", wantError: "not allowed",
 		},
-		{name: "legitimate empty account", workflowManifest: manifest("")},
+		{name: "legitimate empty account", workflowManifest: manifest(""), allowedAccount: "default"},
 		{name: "missing execution identity", wantError: "execution identity is missing"},
 		{name: "malformed workflow runtime", workflowManifest: "{", wantError: "stored execution account"},
 		{name: "malformed pipeline runtime", pipelineManifest: "{", wantError: "stored execution account"},

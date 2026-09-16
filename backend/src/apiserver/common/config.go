@@ -32,6 +32,7 @@ const (
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
 	AllowedServiceAccountsFlag              string = "ALLOWEDSERVICEACCOUNTS"
 	ServiceAccountAuthorizationMode         string = "KFP_SECURITY_SERVICE_ACCOUNT_MODE"
+	WorkflowIdentityMode                    string = "KFP_SECURITY_WORKFLOW_IDENTITY_MODE"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
@@ -91,6 +92,31 @@ func IsPipelineVersionUpdatedByDefault() bool {
 
 func IsNamespaceRequiredForPipelines() bool {
 	return GetBoolConfigWithDefault(RequireNamespaceForPipelines, false)
+}
+
+// GetWorkflowIdentityMode validates the temporary expanded identity policy mode.
+func GetWorkflowIdentityMode() (string, error) {
+	mode := GetStringConfigWithDefault(WorkflowIdentityMode, "enforce")
+	switch mode {
+	case "", "enforce":
+		return "enforce", nil
+	case "audit":
+		return mode, nil
+	default:
+		return "", fmt.Errorf("%s must be enforce or audit", WorkflowIdentityMode)
+	}
+}
+
+// InitializeWorkflowIdentityMode validates configuration at startup and reload.
+func InitializeWorkflowIdentityMode() error {
+	mode, err := GetWorkflowIdentityMode()
+	if err != nil {
+		return err
+	}
+	if mode == "audit" {
+		glog.Warningf("security_audit control=workflow_identity mode=audit operation=config reason=audit_enabled disposition=allow_policy_violations; %s=audit permits additional identities without enforcing their policy; restore enforce before 3.0: https://github.com/kubeflow/pipelines/issues/14367", WorkflowIdentityMode)
+	}
+	return nil
 }
 
 func GetStringConfig(configName string) string {

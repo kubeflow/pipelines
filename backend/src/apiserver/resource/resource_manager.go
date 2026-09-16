@@ -846,6 +846,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		if err := r.authorizeServiceAccount(ctx, run.ServiceAccount, run.Namespace); err != nil {
 			return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to service account authorization error")
 		}
+		if err := r.authorizeStoredRunServiceAccount(ctx, tick.replay); err != nil {
+			return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to stored workflow identity authorization error")
+		}
 		return tick.replay, nil
 	}
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
@@ -886,7 +889,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		executionSpec.SetCannonicalLabels(owner.Name, scheduledAt, *runWorkflowOptions.RecurringRunIndex)
 	}
 
-	if err := r.authorizeServiceAccount(ctx, executionSpec.ServiceAccount(), k8sNamespace); err != nil {
+	allowCompilerPodSpecPatch := tmpl.GetTemplateType() == template.V2
+	if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a run due to service account authorization error")
 	}
 
@@ -924,6 +928,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 	}()
 
+	if r.pluginDispatcher.PluginsRegistered() {
+		if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run_after_plugins"); err != nil {
+			return nil, util.Wrap(err, "Failed to create a run due to service account authorization error after plugin processing")
+		}
+	}
 	if run.RecurringRunId != "" {
 		if err := apiserverPlugins.SetExecutionPluginParents(pendingRun, executionSpec); err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to record recurring-run plugin parents")
@@ -1362,6 +1371,19 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 	}
 
+	allowCompilerPodSpecPatch := false
+	// Recurring-run reports store both the source pipeline and compiled workflow.
+	if run.PipelineSpecManifest != "" {
+		retryTemplate, templateErr := template.New([]byte(run.PipelineSpecManifest), template.TemplateOptions{})
+		if templateErr != nil {
+			return util.NewInternalServerError(templateErr, "Failed to retry run %s due to error parsing its pipeline spec", runId)
+		}
+		allowCompilerPodSpecPatch = retryTemplate.GetTemplateType() == template.V2
+	}
+	if err := r.authorizeExecutionServiceAccounts(ctx, newExecSpec, allowCompilerPodSpecPatch, namespace, "retry_run"); err != nil {
+		return util.Wrapf(err, "Failed to retry run %s due to service account authorization error", runId)
+	}
+
 	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
 	// from overwriting with a stale terminal state. The returned claimGeneration
 	// acts as a unique fence token: UpdateRun checks it to reject stale reports,
@@ -1706,6 +1728,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 	var manifest string
 	var scheduledWorkflow *scheduledworkflow.ScheduledWorkflow
+	var renderedScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
 	var tmpl template.Template
 
 	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
@@ -1723,6 +1746,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the recurring run workflow")
 		}
+		renderedScheduledWorkflow = scheduledWorkflow
 		job.ServiceAccount, err = scheduledServiceAccount(scheduledWorkflow, job.ServiceAccount)
 		if err != nil {
 			return nil, err
@@ -1755,7 +1779,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
 			DefaultHostUsers:     r.options.DefaultHostUsers,
 		}
-		tmpl, err := template.New(manifest, templateOptions)
+		tmpl, err = template.New(manifest, templateOptions)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
@@ -1783,6 +1807,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
 			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
 		}
+		renderedScheduledWorkflow = validatedScheduledWorkflow
 		scheduledWorkflow.Spec.ServiceAccount, err = scheduledServiceAccount(validatedScheduledWorkflow, job.ServiceAccount)
 		if err != nil {
 			return nil, err
@@ -1801,7 +1826,11 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		return nil, err
 	}
 	job.ServiceAccount = resolvedJobServiceAccount
-	if err := r.authorizeServiceAccount(ctx, resolvedJobServiceAccount, k8sNamespace); err != nil {
+	jobExecutionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, renderedScheduledWorkflow.Spec.Workflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to inspect the recurring run's service accounts")
+	}
+	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, tmpl.GetTemplateType() == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
 
@@ -1851,6 +1880,18 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		}
 		if scheduledWorkflow == nil || string(scheduledWorkflow.UID) != jobId {
 			return util.Wrapf(util.NewResourceNotFoundError("recurring run", job.K8SName), "Failed to enable recurring run %v. Check if its k8s resource exists", jobId)
+		}
+		// An embedded workflow is launched directly by the ScheduledWorkflow
+		// controller, so reauthorize its identities whenever a job is enabled.
+		if scheduledWorkflow.Spec.Workflow != nil && scheduledWorkflow.Spec.Workflow.Spec != nil {
+			executionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, scheduledWorkflow.Spec.Workflow)
+			if err != nil {
+				return util.Wrapf(err, "Failed to enable recurring run %v because its workflow could not be inspected", jobId)
+			}
+			allowCompilerPodSpecPatch := job.WorkflowSpecManifest == "" && job.PipelineSpecManifest != ""
+			if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "enable_recurring_run"); err != nil {
+				return util.Wrapf(err, "Failed to enable recurring run %v due to service account authorization error", jobId)
+			}
 		}
 	}
 
@@ -3691,7 +3732,7 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 			return reportErr
 		}
 	}
-	if !result.Status.Allowed && result.Status.EvaluationError != "" {
+	if result.Status.EvaluationError != "" {
 		return util.NewInternalServerError(errors.New("SubjectAccessReview evaluation failed"), "Authorization could not be evaluated; try again later")
 	}
 	if !result.Status.Allowed {
@@ -3856,35 +3897,89 @@ func (r *ResourceManager) authorizeServiceAccount(ctx context.Context, serviceAc
 	if err != nil {
 		return util.NewInternalServerError(err, "Invalid service-account authorization configuration")
 	}
+	if strings.Contains(serviceAccount, "{{") {
+		return util.NewInvalidInputError("service account %q is templated; use a literal name so it can be authorized before execution", serviceAccount)
+	}
+	return r.authorizeServiceAccountWithPolicy(ctx, serviceAccount, namespace, mode == "audit", func(reason string) { logServiceAccountAuditDenial(reason, serviceAccount, namespace) })
+}
+
+// Audit relaxes policy denials only; authorization infrastructure errors still block.
+func (r *ResourceManager) authorizeServiceAccountWithPolicy(ctx context.Context, serviceAccount, namespace string, audit bool, recordViolation func(string)) error {
 	if serviceAccount == "" {
 		return nil
 	}
-	audit := mode == "audit"
+	if strings.Contains(serviceAccount, "{{") {
+		if audit {
+			recordViolation("inspection_incomplete")
+			return nil
+		}
+		return util.NewInvalidInputError("service account %q is templated; use a literal name so it can be authorized before execution", serviceAccount)
+	}
 	if err := common.ValidateServiceAccountAllowList(serviceAccount); err != nil {
 		if !audit {
 			return util.NewInvalidInputError("%s", err)
 		}
-		logServiceAccountAuditDenial("allowlist", serviceAccount, namespace)
+		recordViolation("account_not_allowed")
 	}
 	defaultServiceAccount := common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount)
 	if serviceAccount == defaultServiceAccount {
 		return nil
 	}
-	err = r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
-		Verb:      common.RbacResourceVerbUse,
-		Namespace: namespace,
-		Resource:  "serviceaccounts",
-		Name:      serviceAccount,
+	err := r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbUse, Namespace: namespace, Resource: "serviceaccounts", Name: serviceAccount,
 	})
-	// Only a policy denial is bypassed. Authentication and authorization-service
-	// failures must still fail closed, even during migration.
 	if audit && util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
-		logServiceAccountAuditDenial("use_permission", serviceAccount, namespace)
+		recordViolation("account_denied")
 		return nil
 	}
 	return err
 }
 
-func logServiceAccountAuditDenial(check, serviceAccount, namespace string) {
-	glog.Warningf("security_audit control=service_account mode=audit operation=authorize_service_account reason=%s namespace=%q service_account=%q disposition=allow_policy_violation; enforcement disabled until administrator sets KFP_SECURITY_SERVICE_ACCOUNT_MODE=enforce", check, namespace, serviceAccount)
+func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace, operation string) error {
+	mode, err := common.GetWorkflowIdentityMode()
+	if err != nil {
+		return util.NewInternalServerError(err, "Invalid workflow identity configuration")
+	}
+	audit := mode == "audit"
+	mainServiceAccount := executionSpec.ServiceAccount()
+	if mainServiceAccount == "" {
+		mainServiceAccount = "default"
+	}
+	// Main and expanded identity policies remain independent, including when
+	// a dynamic patch prevents additional identity collection.
+	if err := r.authorizeServiceAccount(ctx, mainServiceAccount, namespace); err != nil {
+		return err
+	}
+	serviceAccounts, err := executionSpec.ServiceAccounts(allowCompilerPodSpecPatch)
+	if err != nil {
+		if audit {
+			logWorkflowServiceAccountAudit(executionSpec, namespace, operation, "", "inspection_incomplete")
+			return nil
+		}
+		return err
+	}
+	for _, serviceAccount := range serviceAccounts {
+		if serviceAccount == mainServiceAccount {
+			continue
+		}
+		recordViolation := func(reason string) {
+			logWorkflowServiceAccountAudit(executionSpec, namespace, operation, serviceAccount, reason)
+		}
+		if err := r.authorizeServiceAccountWithPolicy(ctx, serviceAccount, namespace, audit, recordViolation); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func logWorkflowServiceAccountAudit(executionSpec util.ExecutionSpec, namespace, operation, serviceAccount, finding string) {
+	meta := executionSpec.ExecutionObjectMeta()
+	// Parser errors can contain patch values. Log metadata and a finding code,
+	// never the manifest, patch contents, or raw authorization error.
+	glog.Warningf("security_audit control=workflow_identity mode=audit operation=%q namespace=%q workflow=%q generate_name=%q run_id=%q service_account=%q reason=%q disposition=allow_policy_violation",
+		operation, namespace, meta.Name, meta.GenerateName, meta.Labels[util.LabelKeyWorkflowRunId], serviceAccount, finding)
+}
+
+func logServiceAccountAuditDenial(reason, serviceAccount, namespace string) {
+	glog.Warningf("security_audit control=service_account mode=audit operation=authorize_service_account reason=%s namespace=%q service_account=%q disposition=allow_policy_violation", reason, namespace, serviceAccount)
 }

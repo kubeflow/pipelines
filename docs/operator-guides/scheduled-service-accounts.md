@@ -205,3 +205,52 @@ We plan to remove audit mode in **3.0.0**, tracked in
 [#14367](https://github.com/kubeflow/pipelines/issues/14367). Deployments using audit
 mode remain exposed even though version-based vulnerability scanners may identify
 2.18.0 as patched.
+
+### Combining main-account and workflow-identity modes
+
+The API server has two independent temporary controls:
+
+| `KFP_SECURITY_SERVICE_ACCOUNT_MODE` | `KFP_SECURITY_WORKFLOW_IDENTITY_MODE` | Behavior |
+| --- | --- | --- |
+| `enforce` | `enforce` | Enforce the main account and expanded workflow identities. This is the default. |
+| `audit` | `enforce` | Audit main-account policy denials; enforce additional identities and complete inspection. |
+| `enforce` | `audit` | Enforce the main account; audit additional-account policy denials and incomplete local inspection. |
+| `audit` | `audit` | Audit both policy scopes; authentication, authorization-service failures, namespace access, and scheduling trust checks still block. |
+
+The service-account setting does not relax additional-account enforcement, and the
+workflow-identity setting does not relax the main account. A templated main account
+remains invalid. Invalid modes fail startup and are rejected if observed during
+request handling. All SubjectAccessReview evaluation errors, including a response
+that also says `allowed`, remain blocking. Neither control is a request parameter,
+and neither disables fresh-workflow validation or permits trusting editable CR
+execution inputs. The old unreleased configuration names are not aliases.
+
+For recurring runs, grant the submitting user and the controller only the named
+accounts actually required by the workflow, including helper/template accounts.
+Extend the `resourceNames` lists in the scoped Role examples above deliberately;
+do not grant unrestricted `serviceaccounts/use` merely to silence findings. Test
+both the schedule-creation caller and the controller identity that submits ticks.
+
+Audit findings are not a complete inventory when inspection stops at a dynamic or
+malformed patch. A warning records a permitted policy violation or incomplete
+inspection, not success of the overall request. Exercise immediate runs, pinned and
+follow-latest schedules, plugin changes, retries, and re-enabling schedules. Return
+each control to enforcement independently and verify the next scheduled execution;
+changing a setting does not retroactively stop existing workloads.
+
+Both audit controls are planned for removal in 3.0 under
+[#14367](https://github.com/kubeflow/pipelines/issues/14367).
+
+Retained recurring-run acknowledgements inspect the stored runtime identities when
+the manifest is available, including persistence-agent-recovered runs. A stored main
+account does not hide additional identities in that manifest. Metadata-only
+acknowledgements, including a consumed tick whose run was deleted, still authorize
+the main account but do not recreate an execution or fetch a deleted pipeline
+version just to reconstruct an identity inventory. Malformed retained execution
+records require recovery; audit does not make invalid execution metadata valid.
+
+Additional identities are checked before a new tick is claimed and again after
+plugin mutation. A post-plugin denial can leave that tick pending, as with other
+plugin failures; correct the policy or plugin output and retry the pending tick.
+Expired-retry recovery may acknowledge an already-running execution without
+starting another execution; changing policy does not stop that running workload.

@@ -24,6 +24,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 )
@@ -115,7 +116,31 @@ func (r *ResourceManager) authorizeStoredRunServiceAccount(ctx context.Context, 
 			namespace = execution.ExecutionNamespace()
 		}
 	}
-	return r.authorizeServiceAccount(ctx, serviceAccount, namespace)
+	if err := r.authorizeServiceAccount(ctx, serviceAccount, namespace); err != nil {
+		return err
+	}
+	// A metadata-only acknowledgement cannot create an execution. Do not require
+	// a deleted run or pipeline version to be reconstructed merely to acknowledge it.
+	if _, err := common.GetWorkflowIdentityMode(); err != nil {
+		return util.NewInternalServerError(err, "Invalid workflow identity configuration")
+	}
+	manifest := storedWorkflowIdentityManifest(run)
+	if manifest == "" {
+		return nil
+	}
+	execution, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(manifest))
+	if err != nil {
+		return util.Wrap(err, "Failed to inspect the stored recurring-run workflow")
+	}
+	allowCompilerPodSpecPatch := false
+	if run.PipelineSpecManifest != "" {
+		storedTemplate, err := template.New([]byte(run.PipelineSpecManifest), template.TemplateOptions{})
+		if err != nil {
+			return util.Wrap(err, "Failed to inspect the stored recurring-run pipeline spec")
+		}
+		allowCompilerPodSpecPatch = storedTemplate.GetTemplateType() == template.V2
+	}
+	return r.authorizeExecutionServiceAccounts(ctx, execution, allowCompilerPodSpecPatch, namespace, "acknowledge_recurring_run")
 }
 
 // V1 workflows may carry the effective account inside their embedded Argo spec.
