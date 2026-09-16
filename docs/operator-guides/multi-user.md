@@ -29,9 +29,11 @@ User profiles have no additional isolation beyond what is provided by Kubernetes
 When you visit the Kubeflow Pipelines UI from the Kubeflow Dashboard, it only shows "experiments", "runs", and "recurring runs" in your chosen namespace.
 Similarly, when you create resources from the UI, they also belong to the namespace you have chosen.
 
-:::{warning}
-Pipeline definitions are not isolated right now, and are shared across all namespaces, see [Current Limitations](#current-limitations) for more details.
-:::
+Pipeline definitions can be private to a namespace or shared across namespaces.
+Private uploads use the selected namespace; shared uploads require publishing
+permission in the KFP installation namespace. See the
+[2.18 RBAC migration guide](rbac-migration-2.18.md) for SDK arguments, custom
+roles, and private pipeline references.
 
 ## When using the SDK
 
@@ -77,6 +79,7 @@ print(client.list_runs(namespace=user_namespace))
 :::{tip}
 * To set a default namespace for Pipelines SDK commands, use the {py:meth}`kfp.Client().set_user_namespace() <kfp.client.Client.set_user_namespace>` method,
   this method stores your user namespace in a configuration file at `$HOME/.config/kfp/context.json`.
+  Pipeline uploads still require an explicit `namespace=` argument for private pipelines.
 * Detailed documentation for `kfp.Client()` can be found in the [Kubeflow Pipelines SDK Reference](../sdk/source/client.rst).
 :::
 

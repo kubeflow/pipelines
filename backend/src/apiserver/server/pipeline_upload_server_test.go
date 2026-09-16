@@ -99,6 +99,20 @@ func TestUploadPipelineAuthorization(t *testing.T) {
 					handler(response, request)
 					if tc.multiUser && !tc.allowed {
 						assert.Equal(t, http.StatusBadRequest, response.Code, response.Body.String())
+						var responseError struct {
+							ErrorMessage string `json:"error_message"`
+						}
+						require.NoError(t, json.Unmarshal(response.Body.Bytes(), &responseError))
+						assert.Contains(t, responseError.ErrorMessage, "permission to create pipelines.pipelines.kubeflow.org")
+						if tc.namespace == "" || tc.namespace == model.NoNamespace {
+							assert.Contains(t, responseError.ErrorMessage, `namespace "kfp-system-test"`)
+							assert.Contains(t, responseError.ErrorMessage, "specify your user namespace")
+						} else {
+							assert.Contains(t, responseError.ErrorMessage, `namespace "tenant-ns"`)
+						}
+						assert.Contains(t, responseError.ErrorMessage, "version uploads inherit their parent pipeline's namespace")
+						assert.NotContains(t, response.Body.String(), "tenant@example.com")
+						assert.NotContains(t, response.Body.String(), "ResourceAttributes")
 					} else {
 						require.Equal(t, http.StatusOK, response.Code, response.Body.String())
 						pipelineID := fakeVersionUUID
@@ -1018,3 +1032,23 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
+
+func TestPipelineUploadAuthorizationErrorDoesNotExposeInfrastructureDetails(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"unauthenticated", util.NewUnauthenticatedError(fmt.Errorf("private authentication detail"), "private identity"), "Authenticate the client"},
+		{"unavailable", util.NewUnavailableServerError(fmt.Errorf("private infrastructure detail"), "private review endpoint"), "Retry later"},
+		{"internal", util.NewInternalServerError(fmt.Errorf("private infrastructure detail"), "private review endpoint"), "Retry later"},
+		{"unknown", fmt.Errorf("private unexpected error"), "Retry later"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := pipelineUploadAuthorizationError(util.Wrap(tc.err, "Authorization Failure"), "tenant-ns", false)
+			assert.Contains(t, err.Error(), tc.want)
+			assert.NotContains(t, err.Error(), "private")
+			assert.NotContains(t, err.Error(), "permission to create")
+		})
+	}
+}
