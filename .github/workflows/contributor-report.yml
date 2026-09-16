@@ -1,0 +1,30 @@
+name: Contributor Report
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  contributor-report:
+    concurrency:
+      group: contributor-report-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout base workflow scripts
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          sparse-checkout: |
+            .github/scripts/contributor-report.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Generate contributor report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/contributor-report.mjs
