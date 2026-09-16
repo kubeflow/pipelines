@@ -82,6 +82,20 @@ orgs:
         self.assertTrue(calls[0].endswith("page=1"))
         self.assertTrue(calls[1].endswith("page=2"))
 
+    def test_build_user_rows_uses_total_pr_comment_count_only(self):
+        stats = MODULE.ContributorStats(
+            created_at="2020-01-01T00:00:00Z",
+            issues_opened=1,
+            merged_prs=2,
+            pr_comments=7,
+            pr_thread_comments=3,
+            pr_review_comments=4,
+        )
+        rows = MODULE.build_user_rows(True, stats)
+        pr_comments_row = next(
+            row for row in rows if row.metric.startswith("PR comments in "))
+        self.assertEqual(pr_comments_row.value, "7")
+
     def test_is_human_user_checks_github_type(self):
         self.assertTrue(MODULE.is_human_user({"type": "User"}))
         self.assertFalse(MODULE.is_human_user({"type": "Bot"}))

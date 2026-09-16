@@ -382,9 +382,7 @@ def build_user_rows(is_kubeflow_member: bool,
         ),
         MarkdownRow(
             metric=f"PR comments in {KFP_REPO}",
-            value=(f"{stats.pr_comments} "
-                   f"({stats.pr_thread_comments} thread + "
-                   f"{stats.pr_review_comments} review)"),
+            value=str(stats.pr_comments),
         ),
     ]
 
