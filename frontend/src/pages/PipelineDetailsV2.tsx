@@ -68,7 +68,8 @@ function PipelineDetailsV2({
             onElementClick={(_event, element) => setSelectedNode(element)}
             setFlowElements={() => {}}
             nodesDraggable={false}
-          ></DagCanvas>
+            selectedNodeId={selectedNode?.id}
+          />
           <PipelineVersionCard
             pipeline={pipeline}
             selectedVersion={selectedVersion}
