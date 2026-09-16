@@ -134,7 +134,7 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 	err = s.canUploadVersionedPipeline(r, "", resourceAttributes)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline due to authorization error: %v", err)
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, pipelineUploadAuthorizationError(err, resourceAttributes.Namespace, s.resourceManager.IsEmptyNamespace(pipelineNamespace)))
 		return
 	}
 
@@ -309,7 +309,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	err = s.canUploadVersionedPipeline(r, pipelineID, resourceAttributes)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Authorization error: %v", err)
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, pipelineUploadAuthorizationError(err, resourceAttributes.Namespace, s.resourceManager.IsEmptyNamespace(namespace)))
 		return
 	}
 
@@ -422,6 +422,22 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 		return util.Wrap(err, "Authorization Failure")
 	}
 	return nil
+}
+
+// Keep authentication and authorization infrastructure details in the server logs.
+// The upload endpoints retain their existing HTTP status while providing a safe
+// description of the permission or client configuration that needs attention.
+func pipelineUploadAuthorizationError(err error, namespace string, shared bool) error {
+	if util.IsUserErrorCodeMatch(err, codes.Unauthenticated) {
+		return errors.New("Pipeline upload authentication failed. Authenticate the client and retry; ask your administrator to verify the authentication configuration if the problem persists")
+	}
+	if !util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
+		return errors.New("Pipeline upload authorization could not be completed. Retry later; ask your administrator to check the API server authorization logs if the problem persists")
+	}
+	if shared {
+		return fmt.Errorf("shared pipeline upload denied: permission to create pipelines.pipelines.kubeflow.org in namespace %q is required. For a private pipeline, specify your user namespace when uploading a new pipeline; version uploads inherit their parent pipeline's namespace", namespace)
+	}
+	return fmt.Errorf("pipeline upload denied: permission to create pipelines.pipelines.kubeflow.org in namespace %q is required. Check the upload namespace or ask your administrator for this permission; version uploads inherit their parent pipeline's namespace", namespace)
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {

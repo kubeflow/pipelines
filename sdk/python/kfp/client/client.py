@@ -1439,8 +1439,11 @@ class Client:
             pipeline_name: Name of the pipeline to be shown in the UI.
             description: Description of the pipeline to be shown in the UI.
             namespace: Optional. Kubernetes namespace where the pipeline should
-                be uploaded. For single user deployment, leave it as None; For
-                multi user, input a namespace where the user is authorized.
+                be uploaded. In multi-user mode, pass this explicitly for a
+                private pipeline; the client default namespace is not used.
+                None requests a shared upload and requires pipeline creation
+                permission in the KFP installation namespace. In single-user
+                mode, leave it as None.
 
         Returns:
             ``V2beta1Pipeline`` object.
@@ -1478,8 +1481,11 @@ class Client:
             pipeline_name: Name of the pipeline to be shown in the UI.
             description: Description of the pipeline to be shown in the UI.
             namespace: Optional. Kubernetes namespace where the pipeline should
-                be uploaded. For single user deployment, leave it as None; For
-                multi user, input a namespace where the user is authorized.
+                be uploaded. In multi-user mode, pass this explicitly for a
+                private pipeline; the client default namespace is not used.
+                None requests a shared upload and requires pipeline creation
+                permission in the KFP installation namespace. In single-user
+                mode, leave it as None.
 
         Returns:
             ``V2beta1Pipeline`` object.
@@ -1507,6 +1513,10 @@ class Client:
         description: Optional[str] = None,
     ) -> kfp_server_api.V2beta1PipelineVersion:
         """Uploads a new version of the pipeline.
+
+        The version inherits its parent pipeline namespace, including shared
+        visibility. Upload authorization uses that namespace, not the client
+        default namespace. Prefer pipeline_id to identify the intended parent.
 
         Args:
             pipeline_package_path: Local path to the pipeline package.
