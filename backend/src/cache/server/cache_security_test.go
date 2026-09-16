@@ -25,10 +25,8 @@ import (
 
 func unsetCacheSecurityEnv(t *testing.T) {
 	t.Helper()
-	for _, name := range []string{cacheSecurityModeEnv, legacyCacheFallbackEnv} {
-		t.Setenv(name, "")
-		require.NoError(t, os.Unsetenv(name))
-	}
+	t.Setenv(cacheSecurityModeEnv, "")
+	require.NoError(t, os.Unsetenv(cacheSecurityModeEnv))
 }
 
 func TestGetCacheSecurityMode(t *testing.T) {
@@ -42,20 +40,7 @@ func TestGetCacheSecurityMode(t *testing.T) {
 		{name: "empty", env: map[string]string{cacheSecurityModeEnv: ""}, want: "enforce"},
 		{name: "enforce", env: map[string]string{cacheSecurityModeEnv: "enforce"}, want: "enforce"},
 		{name: "audit", env: map[string]string{cacheSecurityModeEnv: "audit"}, want: "audit"},
-		{name: "legacy true", env: map[string]string{legacyCacheFallbackEnv: "true"}, want: "audit"},
-		{name: "legacy false", env: map[string]string{legacyCacheFallbackEnv: "false"}, want: "enforce"},
-		{name: "legacy numeric true", env: map[string]string{legacyCacheFallbackEnv: "1"}, want: "audit"},
-		{name: "legacy numeric false", env: map[string]string{legacyCacheFallbackEnv: "0"}, want: "enforce"},
-		{name: "matching audit", env: map[string]string{cacheSecurityModeEnv: "audit", legacyCacheFallbackEnv: "true"}, want: "audit"},
-		{name: "matching enforce", env: map[string]string{cacheSecurityModeEnv: "enforce", legacyCacheFallbackEnv: "false"}, want: "enforce"},
-		{name: "conflicting audit", env: map[string]string{cacheSecurityModeEnv: "audit", legacyCacheFallbackEnv: "false"}, invalid: true},
-		{name: "conflicting enforce", env: map[string]string{cacheSecurityModeEnv: "enforce", legacyCacheFallbackEnv: "true"}, invalid: true},
-		{name: "empty canonical conflicts", env: map[string]string{cacheSecurityModeEnv: "", legacyCacheFallbackEnv: "true"}, invalid: true},
-		{name: "invalid canonical", env: map[string]string{cacheSecurityModeEnv: "legacy"}, invalid: true},
-		{name: "invalid canonical with legacy", env: map[string]string{cacheSecurityModeEnv: "typo", legacyCacheFallbackEnv: "true"}, invalid: true},
-		{name: "invalid legacy with canonical", env: map[string]string{cacheSecurityModeEnv: "audit", legacyCacheFallbackEnv: "typo"}, invalid: true},
-		{name: "invalid legacy", env: map[string]string{legacyCacheFallbackEnv: "typo"}, invalid: true},
-		{name: "empty legacy", env: map[string]string{legacyCacheFallbackEnv: ""}, invalid: true},
+		{name: "unsupported legacy mode", env: map[string]string{cacheSecurityModeEnv: "legacy"}, invalid: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			unsetCacheSecurityEnv(t)
@@ -85,15 +70,12 @@ func TestGetCacheSecurityMode(t *testing.T) {
 
 func TestInitializeCacheSecurityModeWarnings(t *testing.T) {
 	for _, tc := range []struct {
-		name       string
-		env        map[string]string
-		audit      bool
-		deprecated bool
+		name  string
+		env   map[string]string
+		audit bool
 	}{
 		{name: "default"},
 		{name: "audit", env: map[string]string{cacheSecurityModeEnv: "audit"}, audit: true},
-		{name: "deprecated enabled", env: map[string]string{legacyCacheFallbackEnv: "true"}, audit: true, deprecated: true},
-		{name: "deprecated disabled", env: map[string]string{legacyCacheFallbackEnv: "false"}, deprecated: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			unsetCacheSecurityEnv(t)
@@ -111,11 +93,6 @@ func TestInitializeCacheSecurityModeWarnings(t *testing.T) {
 				require.Contains(t, logs.String(), "3.0")
 			} else {
 				require.NotContains(t, logs.String(), "unknown ownership")
-			}
-			if tc.deprecated {
-				require.Contains(t, logs.String(), "deprecated")
-			} else {
-				require.NotContains(t, logs.String(), "deprecated")
 			}
 		})
 	}
