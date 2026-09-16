@@ -1258,6 +1258,9 @@ func (s *RunStore) updateRun(
 		q("FinishedAtInSec"):         run.FinishedAtInSec,
 		q("WorkflowRuntimeManifest"): run.WorkflowRuntimeManifest,
 	}
+	if run.PipelineRuntimeManifest != "" {
+		updateFields[q("PipelineRuntimeManifest")] = run.PipelineRuntimeManifest
+	}
 	if run.K8SName != "" {
 		updateFields[q("Name")] = run.K8SName
 	}

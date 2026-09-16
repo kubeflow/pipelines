@@ -139,6 +139,10 @@ func (s *ScheduledWorkflow) NextResourceName() string {
 	return fmt.Sprintf("%s-%v", nextResourceID, h.Sum32())
 }
 
+func (s *ScheduledWorkflow) NextIndex() int64 {
+	return s.nextIndex()
+}
+
 func (s *ScheduledWorkflow) getWorkflowParametersAsMap() map[string]string {
 	resultAsArray := s.Spec.Workflow.Parameters
 	resultAsMap := make(map[string]string)

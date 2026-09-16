@@ -152,7 +152,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		)
 		diagnosticRunID = createdRun.RunID
 
-		retryTimeout := time.Duration(argoLifecycleTimeout / time.Second)
+		retryTimeout := argoLifecycleTimeout
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
@@ -211,7 +211,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 			return string(logContents)
 		}, argoLifecycleTimeout, time.Second).Should(ContainSubstring("input:  foo"))
 
-		artifactTimeout := time.Duration(argoLifecycleTimeout / time.Second)
+		artifactTimeout := argoLifecycleTimeout
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,

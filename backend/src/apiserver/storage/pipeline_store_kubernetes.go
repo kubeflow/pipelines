@@ -68,11 +68,11 @@ func (k *PipelineStoreKubernetes) ListPipelinesV1(filterContext *model.FilterCon
 }
 
 func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
+	k8sPipelines := v2beta1.PipelineList{}
 	var resolvedTagFilters map[string]string
 	if len(tagFilters) > 0 {
 		resolvedTagFilters = tagFilters[0]
 	}
-	k8sPipelines := v2beta1.PipelineList{}
 
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
@@ -449,16 +449,16 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionWithStatus(pipelineVersionId
 }
 
 func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
-	var resolvedTagFilters map[string]string
-	if len(tagFilters) > 0 {
-		resolvedTagFilters = tagFilters[0]
-	}
 	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineID, "")
 	if err != nil {
 		return nil, 0, "", err
 	}
 
 	pipelineVersions := make([]*model.PipelineVersion, 0, len(k8sPipelineVersions.Items))
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 
 	for _, k8sPipelineVersion := range k8sPipelineVersions.Items {
 		if opts.Filter != nil {
@@ -671,12 +671,16 @@ func (k *PipelineStoreKubernetes) getK8sPipelineVersions(
 		listOptions = append(listOptions, ctrlclient.MatchingLabels{"pipelines.kubeflow.org/pipeline-id": pipelineId})
 	}
 
-	err := k.client.List(ctx, &pipelineVersions, listOptions...)
+	listClient := k.client
+	pipelineScopedListing := pipelineVersionId == "" && pipelineId != ""
+	if pipelineScopedListing {
+		listClient = k.clientNoCache
+	}
+	err := listClient.List(ctx, &pipelineVersions, listOptions...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "%s", errMsg)
 	}
 
-	// If there is no pipeline version ID filter, then just return the results
 	if pipelineVersionId == "" {
 		return &pipelineVersions, nil
 	}

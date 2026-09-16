@@ -29,6 +29,20 @@ patches:
     apiVersion: v1
     kind: Service
     metadata:
+      name: mysql
+      namespace: kubeflow
+    spec:
+      ports:
+        - $patch: replace
+        - port: 3306
+          protocol: TCP
+          targetPort: 3306
+          nodePort: 30330
+      type: NodePort
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
       name: seaweedfs
       namespace: kubeflow
     spec:

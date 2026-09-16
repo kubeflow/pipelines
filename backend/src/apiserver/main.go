@@ -316,13 +316,16 @@ func main() {
 		}
 	}
 
-	wg.Add(1)
-	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	if clientManager.SwfClient() != nil {
+		wg.Add(1)
+		go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	}
 
 	// Start run GC when a retention window is configured. The collector
 	// re-validates the required database index on every tick and skips
 	// collection until the operator has applied the index migration.
-	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
+	if clientManager.KubernetesCoreClient() != nil &&
+		(common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0) {
 		runGC := gc.NewRunGarbageCollector(
 			clientManager.RunStore(),
 			clientManager.KubernetesCoreClient().GetClientSet(),
@@ -336,6 +339,10 @@ func main() {
 		}()
 	}
 
+	if resourceManager.CoordinatorRuntimeEnabled() {
+		wg.Add(1)
+		go reconcileCoordinatorRuns(resourceManager, backgroundCtx, &wg)
+	}
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
 	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)
@@ -348,6 +355,13 @@ func reconcileSwfCrs(resourceManager *resource.ResourceManager, ctx context.Cont
 	err := resourceManager.ReconcileSwfCrs(ctx)
 	if err != nil {
 		log.Errorf("Could not reconcile the ScheduledWorkflow Kubernetes resources: %v", err)
+	}
+}
+
+func reconcileCoordinatorRuns(resourceManager *resource.ResourceManager, ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if err := resourceManager.ReconcileManagedRuns(ctx); err != nil {
+		log.Errorf("Could not reconcile coordinator-managed runs: %v", err)
 	}
 }
 

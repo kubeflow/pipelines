@@ -985,6 +985,14 @@ func (l *LauncherV2) uploadOutputArtifacts(
 					}
 					err = l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, artifactKey)
 					if err != nil {
+						if artifactKey == "executor-logs" {
+							glog.Warningf(
+								"Failed to upload executor logs artifact to remote storage URI %q: %v. Continuing without recording executor logs artifact.",
+								outputArtifact.Uri,
+								err,
+							)
+							continue
+						}
 						if errors.Is(err, os.ErrNotExist) {
 							return fmt.Errorf(
 								"declared output artifact %q is missing at %q: %w",
@@ -1823,6 +1831,9 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
+		if artifactListJSON, err := marshalInputArtifactListPlaceholder(artifactList); err == nil {
+			placeholders[fmt.Sprintf(`{{$.inputs.artifacts['%s']}}`, name)] = artifactListJSON
+		}
 		inputArtifact := artifactList.Artifacts[0]
 
 		// Prepare input uri placeholder.
@@ -1905,6 +1916,28 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	return placeholders, nil
 }
 
+func marshalInputArtifactListPlaceholder(artifactList *pipelinespec.ArtifactList) (string, error) {
+	if artifactList == nil || len(artifactList.Artifacts) == 0 {
+		return "[]", nil
+	}
+	artifacts := make([]json.RawMessage, 0, len(artifactList.Artifacts))
+	for _, artifact := range artifactList.Artifacts {
+		if artifact == nil {
+			continue
+		}
+		artifactJSON, err := protojson.Marshal(artifact)
+		if err != nil {
+			return "", err
+		}
+		artifacts = append(artifacts, json.RawMessage(artifactJSON))
+	}
+	listJSON, err := json.Marshal(artifacts)
+	if err != nil {
+		return "", err
+	}
+	return string(listJSON), nil
+}
+
 func getArtifactSchemaType(schema *pipelinespec.ArtifactTypeSchema) (string, error) {
 	switch t := schema.Kind.(type) {
 	case *pipelinespec.ArtifactTypeSchema_InstanceSchema:
@@ -1974,18 +2007,36 @@ func LocalPathForURI(uri string) (string, error) {
 	rootPath := os.Getenv("ARTIFACT_LOCAL_PATH")
 
 	if strings.HasPrefix(uri, "gs://") {
-		return fmt.Sprintf("%s/gcs/", rootPath) + strings.TrimPrefix(uri, "gs://"), nil
+		return localPathWithinSchemeRoot(rootPath, "gcs", strings.TrimPrefix(uri, "gs://"), uri)
 	}
 	if strings.HasPrefix(uri, "minio://") {
-		return fmt.Sprintf("%s/minio/", rootPath) + strings.TrimPrefix(uri, "minio://"), nil
+		return localPathWithinSchemeRoot(rootPath, "minio", strings.TrimPrefix(uri, "minio://"), uri)
 	}
 	if strings.HasPrefix(uri, "s3://") {
-		return fmt.Sprintf("%s/s3/", rootPath) + strings.TrimPrefix(uri, "s3://"), nil
+		return localPathWithinSchemeRoot(rootPath, "s3", strings.TrimPrefix(uri, "s3://"), uri)
+	}
+	if strings.HasPrefix(uri, "file:///") || strings.HasPrefix(uri, "file://") {
+		trimmedURI := strings.TrimPrefix(uri, "file:///")
+		trimmedURI = strings.TrimPrefix(trimmedURI, "file://")
+		return localPathWithinSchemeRoot(rootPath, "file", trimmedURI, uri)
 	}
 	if strings.HasPrefix(uri, "oci://") {
 		return fmt.Sprintf("%s/oci/", rootPath) + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
+}
+
+func localPathWithinSchemeRoot(rootPath, scheme, uriPath, uri string) (string, error) {
+	if rootPath == "" {
+		rootPath = string(filepath.Separator)
+	}
+	schemeRoot := filepath.Join(rootPath, scheme)
+	localPath := filepath.Join(schemeRoot, filepath.FromSlash(uriPath))
+	relativePath, err := filepath.Rel(schemeRoot, localPath)
+	if err != nil || relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("failed to generate local path for URI %s: path escapes artifact root", uri)
+	}
+	return localPath, nil
 }
 
 func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error) {
@@ -1996,6 +2047,24 @@ func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error
 	} else {
 		return LocalPathForURI(artifact.Uri)
 	}
+}
+
+// CompileCommandAndArgs resolves placeholders in a container command/args pair
+// using the provided executor input.
+func CompileCommandAndArgs(
+	executorInput *pipelinespec.ExecutorInput,
+	command []string,
+	args []string,
+) ([]string, []string, error) {
+	if len(command) == 0 {
+		_, compiledArgs, err := compileCmdAndArgs(executorInput, "", args)
+		return nil, compiledArgs, err
+	}
+	compiledCommand, compiledArgs, err := compileCmdAndArgs(executorInput, command[0], append(append([]string{}, command[1:]...), args...))
+	if err != nil {
+		return nil, nil, err
+	}
+	return []string{compiledCommand}, compiledArgs, nil
 }
 
 // LocalWorkspacePathForURI returns the local workspace path for a given artifact URI.
