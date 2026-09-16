@@ -3886,5 +3886,5 @@ func (r *ResourceManager) authorizeServiceAccount(ctx context.Context, serviceAc
 }
 
 func logServiceAccountAuditDenial(check, serviceAccount, namespace string) {
-	glog.Warningf("service_account_authorization_audit: check=%s namespace=%q service_account=%q would_deny=true; enforcement disabled until administrator sets SERVICEACCOUNTAUTHORIZATIONMODE=enforce", check, namespace, serviceAccount)
+	glog.Warningf("security_audit control=service_account mode=audit operation=authorize_service_account reason=%s namespace=%q service_account=%q disposition=allow_policy_violation; enforcement disabled until administrator sets KFP_SECURITY_SERVICE_ACCOUNT_MODE=enforce", check, namespace, serviceAccount)
 }

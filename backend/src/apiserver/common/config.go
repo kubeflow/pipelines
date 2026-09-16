@@ -31,7 +31,7 @@ const (
 	CacheEnabled                            string = "CacheEnabled"
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
 	AllowedServiceAccountsFlag              string = "ALLOWEDSERVICEACCOUNTS"
-	ServiceAccountAuthorizationMode         string = "SERVICEACCOUNTAUTHORIZATIONMODE"
+	ServiceAccountAuthorizationMode         string = "KFP_SECURITY_SERVICE_ACCOUNT_MODE"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"

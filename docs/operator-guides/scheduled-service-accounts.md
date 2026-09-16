@@ -156,15 +156,15 @@ pipeline resources in the test namespace; do not run it against production.
 
 Service-account authorization is enforced by default in 2.18.0, including on
 upgrades. Administrators can temporarily set the API server environment variable
-`SERVICEACCOUNTAUTHORIZATIONMODE=audit` while configuring the allowlist and scoped
+`KFP_SECURITY_SERVICE_ACCOUNT_MODE=audit` while configuring the allowlist and scoped
 RBAC grants described above. The only supported modes are `enforce` and `audit`;
 unset or empty configuration means `enforce`, and invalid values are rejected.
 
 **Audit mode restores the security exposure addressed by service-account
 authorization.** It evaluates the allowlist and, in multi-user mode, the caller's
 `serviceaccounts/use` permission, but allows policy denials. It logs a startup
-warning and warning events prefixed with `service_account_authorization_audit`
-containing the failed check, namespace, and requested service account. These
+warning and structured events with `security_audit control=service_account mode=audit`,
+the failed check, namespace, and requested service account. These
 events describe a bypassed check, not confirmation that the overall request
 succeeded. They do not include pipeline inputs, tokens, or the configured
 allowlist. Authentication failures and authorization-service errors still reject
@@ -175,7 +175,7 @@ field. Apply the same configuration to every API server replica and complete the
 rollout before relying on a mode change. For example, with the standard deployment:
 
 ```bash
-kubectl -n kubeflow set env deployment/ml-pipeline SERVICEACCOUNTAUTHORIZATIONMODE=audit
+kubectl -n kubeflow set env deployment/ml-pipeline KFP_SECURITY_SERVICE_ACCOUNT_MODE=audit
 kubectl -n kubeflow rollout status deployment/ml-pipeline
 ```
 
@@ -193,7 +193,7 @@ and controller grants. Exercise both immediate runs and each recurring run's
 execution path, then restore enforcement:
 
 ```bash
-kubectl -n kubeflow set env deployment/ml-pipeline SERVICEACCOUNTAUTHORIZATIONMODE=enforce
+kubectl -n kubeflow set env deployment/ml-pipeline KFP_SECURITY_SERVICE_ACCOUNT_MODE=enforce
 kubectl -n kubeflow rollout status deployment/ml-pipeline
 ```
 

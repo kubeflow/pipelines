@@ -120,7 +120,7 @@ and revoking scheduled execution.
 
 ### Service-account authorization migration mode
 
-`SERVICEACCOUNTAUTHORIZATIONMODE` accepts `enforce` (default, including upgrades)
+`KFP_SECURITY_SERVICE_ACCOUNT_MODE` accepts `enforce` (default, including upgrades)
 or `audit`. Audit temporarily allows service-account policy denials and logs
 warnings, restoring the associated security exposure. It does not disable
 existing authentication or namespace authorization. See the

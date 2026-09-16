@@ -850,7 +850,7 @@ func validateServiceAccountAuthorizationMode() error {
 		return err
 	}
 	if mode == "audit" {
-		glog.Warning("SERVICEACCOUNTAUTHORIZATIONMODE=audit: service-account policy denials are allowed; this restores the security exposure addressed by service-account authorization. Migrate to enforce before 3.0.0, when audit mode is planned for removal (https://github.com/kubeflow/pipelines/issues/14367).")
+		glog.Warning("KFP_SECURITY_SERVICE_ACCOUNT_MODE=audit: service-account policy denials are allowed; this restores the security exposure addressed by service-account authorization. Migrate to enforce before 3.0.0, when audit mode is planned for removal (https://github.com/kubeflow/pipelines/issues/14367).")
 	}
 	return nil
 }

@@ -912,5 +912,5 @@ func TestInitConfigRejectsInvalidServiceAccountAuthorizationMode(t *testing.T) {
 	original := *configPath
 	*configPath = tempDir
 	t.Cleanup(func() { *configPath = original })
-	require.ErrorContains(t, initConfig(), "SERVICEACCOUNTAUTHORIZATIONMODE must be enforce or audit")
+	require.ErrorContains(t, initConfig(), "KFP_SECURITY_SERVICE_ACCOUNT_MODE must be enforce or audit")
 }
