@@ -93,7 +93,7 @@ export const getTensorboardHandlers = (
    * Either `image` or `tfversion` should be specified.
    */
   const create: Handler = async (req, res) => {
-    const { logdir, namespace, tfversion, image, podtemplatespec: podTemplateSpecRaw } = req.query;
+    const { logdir, namespace, tfversion, image } = req.query;
     if (!logdir) {
       res.status(400).send('logdir argument is required');
       return;
@@ -114,15 +114,6 @@ export const getTensorboardHandlers = (
       res.status(400).send('tfversion and image cannot be specified at the same time');
       return;
     }
-    let podTemplateSpec: any | undefined;
-    if (podTemplateSpecRaw) {
-      try {
-        podTemplateSpec = JSON.parse(podTemplateSpecRaw as string);
-      } catch (err) {
-        res.status(400).send(`podtemplatespec is not valid JSON: ${err}`);
-        return;
-      }
-    }
 
     try {
       const authError = await authorizeFn(
@@ -142,7 +133,7 @@ export const getTensorboardHandlers = (
         namespace as string,
         (image || tensorboardConfig.tfImageName) as string,
         (tfversion as string) || '',
-        podTemplateSpec || tensorboardConfig.podTemplateSpec,
+        tensorboardConfig.podTemplateSpec,
       );
       const viewerName = await k8sHelper.waitForTensorboardInstance(
         logdir as string,
