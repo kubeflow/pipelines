@@ -24,6 +24,7 @@ on:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/install-fgo-fake/**'
+      - '.github/actions/install-dra-driver/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'api/**'
@@ -39,6 +40,8 @@ on:
       # changes to it must trigger these lanes.
       - 'test/artifact-proxy/**'
       - 'test_data/sdk_compiled_pipelines/**'
+      - 'sdk/**'
+      - 'kubernetes_platform/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -107,8 +110,25 @@ jobs:
             proxy: "false"
             test_label: "gpu-scheduling-check"
             pod_to_pod_tls_enabled: "false"
+          # DRA (Dynamic Resource Allocation) lane (Kind + dra-example-driver).
+          - k8s_version: "v1.34.3"
+            cache_enabled: "true"
+            argo_version: "v3.7.18"
+            proxy: "false"
+            test_label: "dra-check"
+            pod_to_pod_tls_enabled: "false"
+          # PostgreSQL lane — cache_enabled=true only (no pgx overlay for
+          # cache-disabled, proxy, or TLS).
+          # TODO: expand when additional standalone/postgresql/* overlays exist.
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v4.1.2"
+            proxy: "false"
+            pod_to_pod_tls_enabled: "false"
+            db_type: "pgx"
+            test_label: "E2ECritical"
       fail-fast: false
-    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -120,15 +140,49 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
 
+      - name: Generate DRA SDK packages
+        uses: ./.github/actions/protobuf
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+        with:
+          generate_golang_proto: "true"
+
+      - name: Build DRA SDK component image
+        shell: bash
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/dra-component-build"
+          source "${RUNNER_TEMP}/dra-component-build/bin/activate"
+          python -m pip install --upgrade pip
+          python -m pip install api/v2alpha1/python/dist/*.whl
+          python -m pip install sdk/python kubernetes_platform/python docker==7.1.0
+
+          BUILD_CONTEXT=$(mktemp -d)
+          cp test_data/sdk_compiled_pipelines/valid/dra/dra_passthrough_check.py "${BUILD_CONTEXT}/"
+
+          source .github/resources/scripts/helper-functions.sh
+          retry 3 30 kfp component build "${BUILD_CONTEXT}" \
+            --component-filepattern dra_passthrough_check.py \
+            --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/api/v2alpha1/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/kubernetes_platform/python" \
+            --no-push-image
+          kind --name "${{ env.CLUSTER_NAME }}" load docker-image kfp-dra-sdk:test
+
+      - name: Install DRA Example Driver
+        uses: ./.github/actions/install-dra-driver
+        id: install-dra-driver
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+
       - name: Deploy KFP
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.create-cluster.outcome == 'success' && steps.install-dra-driver.outcome != 'failure' }}
         id: deploy
         with:
           proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          db_type: ${{ matrix.db_type }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -139,6 +193,12 @@ jobs:
         id: install-fgo-fake
         if: ${{ matrix.test_label == 'gpu-scheduling-check' && steps.deploy.outcome == 'success' }}
 
+      - name: Create DRA ResourceClaimTemplate
+        shell: bash
+        if: ${{ matrix.test_label == 'dra-check' && steps.deploy.outcome == 'success' }}
+        run: |
+          kubectl apply -n "${{ env.NAMESPACE }}" -f .github/actions/install-dra-driver/e2e-resource-claim-template.yaml
+
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
@@ -148,7 +208,7 @@ jobs:
       - name: Configure Input Variables
         shell: bash
         id: configure
-        if: ${{ steps.deploy.outcome == 'success' && steps.install-fgo-fake.outcome != 'failure' }}
+        if: ${{ steps.deploy.outcome == 'success' && steps.install-fgo-fake.outcome != 'failure' && steps.install-dra-driver.outcome != 'failure' }}
         env:
           DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
@@ -211,8 +271,19 @@ jobs:
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
         test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
+        include:
+          # PostgreSQL lane — cache_enabled=true, artifact_proxy disabled
+          # (no pgx overlay for cache-disabled or artifact-proxy).
+          # TODO: expand when multiuser/postgresql/cache-disabled and
+          # multiuser/postgresql/artifact-proxy overlays exist.
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            multi_user: "true"
+            db_type: "pgx"
+            artifact_proxy: "false"
+            test_label: "E2ECritical"
       fail-fast: false
-    name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.cache_enabled }}
+    name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy || matrix.cache_enabled }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -233,7 +304,10 @@ jobs:
           multi_user: "true"
           # The cache-enabled multi-user variant is the artifact-proxy
           # compatibility lane; both automatic Critical shards exercise it.
-          artifact_proxy: ${{ matrix.cache_enabled }}
+          # pgx include sets artifact_proxy explicitly to "false" because no
+          # multiuser/postgresql/artifact-proxy overlay exists yet.
+          artifact_proxy: ${{ matrix.artifact_proxy || matrix.cache_enabled }}
+          db_type: ${{ matrix.db_type }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -267,7 +341,7 @@ jobs:
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
-        if: ${{ steps.deploy.outcome == 'success' && matrix.cache_enabled == 'true' }}
+        if: ${{ steps.deploy.outcome == 'success' && (matrix.artifact_proxy || matrix.cache_enabled) == 'true' }}
         shell: bash
         env:
           USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
@@ -324,8 +398,23 @@ jobs:
             mlflow_auth_type: "basic-auth"
           - artifact_storage: "s3"
             mlflow_auth_type: "none"
+        include:
+          # PostgreSQL lane for KFP database — cache_enabled=true only.
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v3.7.18"
+            proxy: "false"
+            test_label: "MLflow"
+            pod_to_pod_tls_enabled: "false"
+            multi_user: "false"
+            artifact_proxy: "false"
+            artifact_storage: "file"
+            backend_store: "postgres"
+            registry_store: "postgres"
+            mlflow_auth_type: "kubernetes"
+            db_type: "pgx"
       fail-fast: false
-    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }}
+    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -347,6 +436,7 @@ jobs:
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           multi_user: ${{ matrix.multi_user }}
           artifact_proxy: ${{ matrix.artifact_proxy }}
+          db_type: ${{ matrix.db_type }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

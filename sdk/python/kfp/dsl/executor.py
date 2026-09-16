@@ -425,6 +425,7 @@ class Executor:
                     volumes=value.get('volumes'),
                     volume_mounts=value.get('volumeMounts'),
                     resources=value.get('resources'),
+                    resource_claims=value.get('resourceClaims'),
                 )
 
             elif type_annotations.is_list_of_artifacts(v):

@@ -159,4 +159,9 @@ The garbage collector also does not remove rows from the `artifacts` table,
 MLMD records, or object-store artifacts; those lifecycles are managed
 separately (see `ARTIFACT_RETENTION_DAYS` for object-store artifacts).
 
-`TENSORBOARD_PROXY_SIGNING_SECRET` is optional; it defaults to `MINIO_SECRET_KEY`.
+`TENSORBOARD_PROXY_SIGNING_SECRET` controls the HMAC key for scoped TensorBoard
+proxy paths. When it is unset, the UI generates a cryptographically random,
+process-local secret at startup. Configure a dedicated random secret of at least
+32 bytes when proxy paths must remain valid across UI restarts or multiple UI
+replicas. The standard UI deployment uses `Recreate` so process-local keys never
+overlap during a rollout. The value must not reuse `MINIO_SECRET_KEY`.

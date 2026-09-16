@@ -480,6 +480,8 @@ message TaskConfigPassthroughType {
     // This is useful when the task prepares a shared volume for the external workload or defines output artifact
     // (e.g. dsl.Model) that is created by the external workload.
     KUBERNETES_VOLUMES = 6;
+    // Indicates that DRA resource claims should be passed through to the external workload.
+    KUBERNETES_RESOURCE_CLAIMS = 7;
   }
 }
 
@@ -981,6 +983,9 @@ message RuntimeArtifact {
 
   // Custom path for output artifact.
   optional string custom_path = 7;
+
+  // The unique server generated id of the artifact.
+  string artifact_id = 8;
 }
 
 // Message that represents a list of artifacts.
