@@ -353,7 +353,7 @@ def format_age(created_at_iso: str) -> tuple[str, int]:
 
 def render_table(rows: list[MarkdownRow]) -> list[str]:
     return [
-        "| Key | Value |",
+        "| Metric | Value |",
         "|---|---:|",
         *[f"| {row.metric} | {row.value} |" for row in rows],
     ]
@@ -401,13 +401,13 @@ def build_non_user_rows(author_type: str) -> list[MarkdownRow]:
 
 def build_comment(username: str,
                   rows: list[MarkdownRow],
-                  title: str = "## Contributor Report") -> str:
-    table_rows = [MarkdownRow(metric="User", value=f"@{username}"), *rows]
+                  title: str | None = None) -> str:
+    resolved_title = title or f"## Contributor Report for @{username}"
     return "\n".join([
         REPORT_MARKER,
-        title,
+        resolved_title,
         "",
-        *render_table(table_rows),
+        *render_table(rows),
     ])
 
 
