@@ -472,62 +472,18 @@ exports[`Router > initial render 1`] = `
         class="page_f1flacxk"
       >
         <div
-          class="root_f1vld0bw topLevelToolbar_faeji1w"
+          style="margin: 100px auto; text-align: center;"
         >
           <div
-            style="min-width: 100px;"
+            style="color: rgb(170, 170, 170); font-size: 50px; font-weight: bold;"
           >
-            <div
-              class="breadcrumbs_farqb1 flex_f16jawj4"
-            >
-              <span
-                class="flex_f16jawj4"
-                title=""
-              >
-                <a
-                  class="unstyled_f1ikaigl ellipsis_f15ay66x link_ffs2rnf"
-                  data-discover="true"
-                  href="/does-not-exist"
-                />
-              </span>
-            </div>
-            <div
-              class="flex_f16jawj4"
-            >
-              <div
-                aria-label="Back"
-                class=""
-                data-mui-internal-clone-element="true"
-              >
-                 
-                <button
-                  class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge backLink_fxaclcu css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
-                  disabled=""
-                  tabindex="-1"
-                  type="button"
-                >
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 disabled_fl0don4 css-i4bv87-MuiSvgIcon-root"
-                    data-testid="ArrowBackIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <span
-                class="pageName_fe4yf9p ellipsis_f15ay66x"
-                data-testid="page-title"
-              />
-            </div>
+            404
           </div>
           <div
-            class="actions_ffoeey"
-          />
+            style="font-size: 16px;"
+          >
+            Page Not Found: /does-not-exist
+          </div>
         </div>
       </div>
     </div>

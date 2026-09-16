@@ -45,7 +45,25 @@ describe('Router', () => {
         <Router />
       </MemoryRouter>,
     );
+    expect(screen.getByText('404')).toBeVisible();
+    expect(screen.getByText('Page Not Found: /does-not-exist')).toBeVisible();
     expect(renderResult.asFragment()).toMatchSnapshot();
+  });
+
+  it('updates the not-found pathname and recovers when navigating to a known route', async () => {
+    const router = createMemoryRouter([{ path: '*', element: <Router /> }], {
+      initialEntries: ['/does-not-exist?view=graph'],
+    });
+    render(<RouterProvider router={router} />);
+    expect(screen.getByText('Page Not Found: /does-not-exist')).toBeVisible();
+
+    await act(() => router.navigate('/another-missing-page'));
+    expect(screen.getByText('Page Not Found: /another-missing-page')).toBeVisible();
+    expect(screen.queryByText('Page Not Found: /does-not-exist')).not.toBeInTheDocument();
+
+    await act(() => router.navigate('/runs'));
+    expect(screen.getByText('Runs page')).toBeVisible();
+    expect(screen.queryByText('404')).not.toBeInTheDocument();
   });
 
   it('does not share state between pages', async () => {

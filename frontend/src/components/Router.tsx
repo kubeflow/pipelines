@@ -18,6 +18,7 @@ import { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, matchPath } from 'react-router';
 import { NavigationProps } from 'src/lib/Navigation';
+import Page404 from 'src/pages/404';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
@@ -365,7 +366,7 @@ class RoutedPage extends React.Component<
   public render(): React.JSX.Element {
     this.childProps.toolbarProps = this.state.toolbarProps;
     const { route, location, navigate, params } = this.props;
-    const Component = route?.Component;
+    const Component = route?.Component ?? Page404;
     const navigation = { location, navigate, params };
 
     return (
@@ -383,7 +384,7 @@ class RoutedPage extends React.Component<
             showTroubleshootingGuideLink={true}
           />
         )}
-        {Component && <Component {...navigation} {...this.childProps} view={route?.view} />}
+        <Component {...navigation} {...this.childProps} view={route?.view} />
 
         <Snackbar
           autoHideDuration={this.state.snackbarProps.autoHideDuration}
