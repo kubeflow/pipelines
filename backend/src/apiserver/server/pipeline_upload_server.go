@@ -99,10 +99,10 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	}
 	defer file.Close()
 
-	pipelineFile, err := ReadPipelineFile(header.Filename, file, common.MaxFileLength)
+	pipelineFile, err := ReadPipelineFileWithConfiguredLimits(header.Filename, file)
 	if err != nil {
 		glog.Errorf("Failed to read a pipeline spec file: %v", err)
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to read a pipeline spec file"))
+		s.writePipelineReadError(w, err, "Failed to read a pipeline spec file")
 		return
 	}
 
@@ -233,10 +233,10 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 	}
 	defer file.Close()
 
-	pipelineFile, err := ReadPipelineFile(header.Filename, file, common.MaxFileLength)
+	pipelineFile, err := ReadPipelineFileWithConfiguredLimits(header.Filename, file)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Error reading pipeline spec file: %v", err)
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		s.writePipelineReadError(w, err, "Failed to create a pipeline version")
 		return
 	}
 	pipelineID := r.URL.Query().Get(PipelineKey)
@@ -384,6 +384,17 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 		return util.Wrap(err, "Authorization Failure")
 	}
 	return nil
+}
+
+// writePipelineReadError exposes only known size-limit details, never arbitrary
+// parser, filesystem, or transport errors.
+func (s *PipelineUploadServer) writePipelineReadError(w http.ResponseWriter, err error, fallback string) {
+	var limitErr *common.SizeLimitError
+	if errors.As(err, &limitErr) {
+		s.writeErrorToResponse(w, http.StatusRequestEntityTooLarge, limitErr)
+		return
+	}
+	s.writeErrorToResponse(w, http.StatusBadRequest, errors.New(fallback))
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {

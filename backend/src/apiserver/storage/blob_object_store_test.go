@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/stretchr/testify/require"
 	"gocloud.dev/blob/memblob"
 )
@@ -392,4 +393,18 @@ func TestBlobObjectStore_Streaming_Large_File(t *testing.T) {
 	require.LessOrEqual(t, maxChunkSize, chunkSize, "No chunk should exceed buffer size")
 
 	t.Log("All assertions passed: file was streamed in chunks without loading into memory")
+}
+
+func TestBlobObjectStoreConfiguredSpecLimit(t *testing.T) {
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+	store := NewBlobObjectStore(bucket, "pipelines")
+	ctx := context.Background()
+	require.NoError(t, store.AddFile(ctx, []byte("key: value\n"), "config.yaml"))
+	var value map[string]string
+	t.Setenv(common.MaxPipelineSpecBytesEnv, "11")
+	require.NoError(t, store.GetFromYamlFile(ctx, &value, "config.yaml"))
+	require.Equal(t, "value", value["key"])
+	t.Setenv(common.MaxPipelineSpecBytesEnv, "10")
+	require.ErrorContains(t, store.GetFromYamlFile(ctx, &value, "config.yaml"), common.MaxPipelineSpecBytesEnv)
 }
