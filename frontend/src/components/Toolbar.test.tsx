@@ -17,7 +17,6 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { createMemoryHistory } from 'history';
 import { vi } from 'vitest';
 import Toolbar, { ToolbarActionMap } from './Toolbar';
 import HelpIcon from '@mui/icons-material/Help';
@@ -56,7 +55,7 @@ const breadcrumbs = [
   },
 ];
 
-const history = createMemoryHistory();
+const navigate = vi.fn();
 
 function renderWithRouter(ui: React.ReactElement) {
   return render(<MemoryRouter>{ui}</MemoryRouter>);
@@ -64,20 +63,43 @@ function renderWithRouter(ui: React.ReactElement) {
 
 describe('Toolbar', () => {
   beforeEach(() => {
-    history.push('/pipelines');
     vi.clearAllMocks();
+    vi.spyOn(window.history, 'length', 'get').mockReturnValue(2);
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('navigates Back through the native navigation function', () => {
+    renderWithRouter(
+      <Toolbar breadcrumbs={breadcrumbs} actions={{}} navigate={navigate} pageTitle='' />,
+    );
+    fireEvent.click(screen.getByTestId('ArrowBackIcon').closest('button')!);
+    expect(navigate).toHaveBeenCalledWith(-1);
+  });
+
+  it('disables Back when the browser has no previous entry', () => {
+    vi.spyOn(window.history, 'length', 'get').mockReturnValue(1);
+    renderWithRouter(
+      <Toolbar breadcrumbs={breadcrumbs} actions={{}} navigate={navigate} pageTitle='' />,
+    );
+    expect(screen.getByTestId('ArrowBackIcon').closest('button')).toBeDisabled();
   });
 
   it('renders nothing when there are no breadcrumbs or actions', () => {
     const { container } = render(
-      <Toolbar breadcrumbs={[]} actions={{}} history={history} pageTitle='' />,
+      <Toolbar breadcrumbs={[]} actions={{}} navigate={navigate} pageTitle='' />,
     );
     expect(container.firstChild).toBeNull();
   });
 
   it('renders without breadcrumbs and a string page title', () => {
     const { asFragment } = renderWithRouter(
-      <Toolbar breadcrumbs={[]} actions={actions} history={history} pageTitle='test page title' />,
+      <Toolbar
+        breadcrumbs={[]}
+        actions={actions}
+        navigate={navigate}
+        pageTitle='test page title'
+      />,
     );
     expect(asFragment()).toMatchSnapshot();
   });
@@ -87,7 +109,7 @@ describe('Toolbar', () => {
       <Toolbar
         breadcrumbs={[]}
         actions={actions}
-        history={history}
+        navigate={navigate}
         pageTitle={<div id='myComponent'>test page title</div>}
       />,
     );
@@ -109,7 +131,7 @@ describe('Toolbar', () => {
       <Toolbar
         breadcrumbs={[]}
         actions={singleAction}
-        history={history}
+        navigate={navigate}
         pageTitle='test page title'
       />,
     );
@@ -121,7 +143,7 @@ describe('Toolbar', () => {
       <Toolbar
         breadcrumbs={[breadcrumbs[0]]}
         actions={{}}
-        history={history}
+        navigate={navigate}
         pageTitle='test page title'
       />,
     );
@@ -133,7 +155,7 @@ describe('Toolbar', () => {
       <Toolbar
         breadcrumbs={[breadcrumbs[0]]}
         actions={{}}
-        history={history}
+        navigate={navigate}
         pageTitle='test page title'
       />,
     );
@@ -142,14 +164,24 @@ describe('Toolbar', () => {
 
   it('renders without breadcrumbs and two actions', () => {
     const { asFragment } = renderWithRouter(
-      <Toolbar breadcrumbs={[]} actions={actions} history={history} pageTitle='test page title' />,
+      <Toolbar
+        breadcrumbs={[]}
+        actions={actions}
+        navigate={navigate}
+        pageTitle='test page title'
+      />,
     );
     expect(asFragment()).toMatchSnapshot();
   });
 
   it('fires the right action function when button is clicked', () => {
     renderWithRouter(
-      <Toolbar breadcrumbs={[]} actions={actions} history={history} pageTitle='test page title' />,
+      <Toolbar
+        breadcrumbs={[]}
+        actions={actions}
+        navigate={navigate}
+        pageTitle='test page title'
+      />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'test title' }));
     expect(action1).toHaveBeenCalled();
@@ -171,7 +203,7 @@ describe('Toolbar', () => {
         breadcrumbs={breadcrumbs}
         actions={outlinedActions}
         pageTitle=''
-        history={history}
+        navigate={navigate}
       />,
     );
     expect(asFragment()).toMatchSnapshot();
@@ -189,7 +221,12 @@ describe('Toolbar', () => {
     };
 
     const { asFragment } = renderWithRouter(
-      <Toolbar breadcrumbs={breadcrumbs} actions={primaryActions} pageTitle='' history={history} />,
+      <Toolbar
+        breadcrumbs={breadcrumbs}
+        actions={primaryActions}
+        pageTitle=''
+        navigate={navigate}
+      />,
     );
     expect(asFragment()).toMatchSnapshot();
   });
@@ -211,7 +248,7 @@ describe('Toolbar', () => {
         breadcrumbs={breadcrumbs}
         actions={outlinedPrimaryActions}
         pageTitle=''
-        history={history}
+        navigate={navigate}
       />,
     );
     expect(asFragment()).toMatchSnapshot();
@@ -219,7 +256,7 @@ describe('Toolbar', () => {
 
   it('renders with two breadcrumbs and two actions', () => {
     const { asFragment } = renderWithRouter(
-      <Toolbar breadcrumbs={breadcrumbs} actions={actions} pageTitle='' history={history} />,
+      <Toolbar breadcrumbs={breadcrumbs} actions={actions} pageTitle='' navigate={navigate} />,
     );
     expect(asFragment()).toMatchSnapshot();
   });

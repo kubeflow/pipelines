@@ -255,8 +255,7 @@ describe('NewRun', () => {
   const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
   const getJobSpy = vi.spyOn(Apis.jobServiceApi, 'getJob');
   const loggerErrorSpy = vi.spyOn(logger, 'error');
-  const historyPushSpy = vi.fn();
-  const historyReplaceSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const updateBannerSpy = vi.fn();
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
@@ -374,13 +373,13 @@ describe('NewRun', () => {
 
   function generateProps(): PageProps {
     return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      navigate: navigateSpy,
       location: {
         pathname: RoutePage.NEW_RUN,
         // TODO: this should be removed once experiments are no longer required to reach this page.
         search: `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: TestNewRun.prototype.getInitialToolbarState(),
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -568,7 +567,7 @@ describe('NewRun', () => {
     await flushPromisesInAct();
     tree.find('#exitNewRunPageBtn').simulate('click');
 
-    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RUNS);
+    expect(navigateSpy).toHaveBeenCalledWith(RoutePage.RUNS);
   });
 
   it('fetches the associated experiment if one is present in the query params', async () => {
@@ -624,7 +623,7 @@ describe('NewRun', () => {
     await flushPromisesInAct();
     tree.find('#exitNewRunPageBtn').simulate('click');
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, MOCK_EXPERIMENT.id!),
     );
   });
@@ -1993,7 +1992,7 @@ describe('NewRun', () => {
 
       await waitFor(
         () =>
-          expect(historyPushSpy).toHaveBeenCalledWith(
+          expect(navigateSpy).toHaveBeenCalledWith(
             RoutePage.EXPERIMENT_DETAILS.replace(
               ':' + RouteParams.experimentId,
               MOCK_EXPERIMENT.id!,
@@ -2015,7 +2014,7 @@ describe('NewRun', () => {
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await flushPromisesInAct();
 
-      await waitFor(() => expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RUNS), {
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalledWith(RoutePage.RUNS), {
         timeout: 10000,
       });
     });
@@ -2195,7 +2194,7 @@ describe('NewRun', () => {
         },
       });
 
-      await waitFor(() => expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS), {
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS), {
         timeout: 10000,
       });
     });
@@ -2305,6 +2304,6 @@ describe('NewRun', () => {
     await flushPromisesInAct();
     tree.find('#exitNewRunPageBtn').simulate('click');
 
-    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS);
+    expect(navigateSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS);
   });
 });

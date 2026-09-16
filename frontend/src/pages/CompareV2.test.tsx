@@ -17,7 +17,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { forwardRef, useImperativeHandle } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import {
   ArtifactArtifactType,
   PipelineTaskTaskState,
@@ -213,9 +213,9 @@ describe('CompareV2', () => {
 
   function generateProps(runIds = ['run-1', 'run-2']): PageProps {
     return {
-      history: { push: vi.fn(), replace: vi.fn() } as any,
+      navigate: vi.fn(),
       location: { pathname: '/compare', search: `?runlist=${runIds.join(',')}` } as any,
-      match: { params: {}, isExact: true, path: '/compare', url: '/compare' } as any,
+      params: {} as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: vi.fn(),

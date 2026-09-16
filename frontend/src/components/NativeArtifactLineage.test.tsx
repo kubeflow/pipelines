@@ -11,7 +11,7 @@
 import * as React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import userEvent from '@testing-library/user-event';
 import { V2beta1IOType } from 'src/apisv2beta1/artifact';
 import { Apis } from 'src/lib/Apis';

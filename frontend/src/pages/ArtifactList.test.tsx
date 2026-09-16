@@ -16,7 +16,7 @@
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/artifact';
 import { RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -28,7 +28,7 @@ testBestPractices();
 
 describe('ArtifactList', () => {
   const updateBannerSpy = vi.fn();
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
 
   function generateArtifacts(count: number): V2beta1Artifact[] {
     return Array.from({ length: count }, (_, index) => ({
@@ -46,7 +46,7 @@ describe('ArtifactList', () => {
       ArtifactList,
       { pathname: RoutePage.ARTIFACTS } as any,
       '' as any,
-      historyPushSpy,
+      navigateSpy,
       updateBannerSpy,
       vi.fn(),
       vi.fn(),

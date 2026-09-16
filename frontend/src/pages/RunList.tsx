@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import Metric from 'src/components/Metric';
@@ -22,7 +23,7 @@ import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/api
 import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { URLParser } from 'src/lib/URLParser';
@@ -66,7 +67,7 @@ type MaskProps = Exclude<
 >;
 
 export type RunListProps = MaskProps &
-  RouteComponentProps & {
+  NavigationProps & {
     disablePaging?: boolean;
     disableSelection?: boolean;
     disableSorting?: boolean;

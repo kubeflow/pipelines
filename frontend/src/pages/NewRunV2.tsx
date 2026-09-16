@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1PipelineVersionReference, V2beta1Run } from 'src/apisv2beta1/run';
@@ -458,14 +458,14 @@ function NewRunV2(props: NewRunV2Props) {
         const data = await newRecurringRunMutation.mutateAsync(newRecurringRun);
         setIsStartingNewRun(false);
         if (data.recurring_run_id) {
-          props.history.push(
+          props.navigate(
             RoutePage.RECURRING_RUN_DETAILS.replace(
               ':' + RouteParams.recurringRunId,
               data.recurring_run_id,
             ),
           );
         } else {
-          props.history.push(RoutePage.RECURRING_RUNS);
+          props.navigate(RoutePage.RECURRING_RUNS);
         }
 
         props.updateSnackbar({
@@ -476,9 +476,9 @@ function NewRunV2(props: NewRunV2Props) {
         const data = await newRunMutation.mutateAsync(newRun);
         setIsStartingNewRun(false);
         if (data.run_id) {
-          props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
+          props.navigate(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
         } else {
-          props.history.push(RoutePage.RUNS);
+          props.navigate(RoutePage.RUNS);
         }
 
         props.updateSnackbar({
@@ -544,7 +544,7 @@ function NewRunV2(props: NewRunV2Props) {
                     [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
                     [QUERY_PARAMS.isRecurring]: isRecurringRun ? '1' : '',
                   });
-                  props.history.replace(searchString);
+                  props.navigate(searchString, { replace: true });
                   handlePipelineVersionIdChange(latestVersion?.pipeline_version_id!);
                   handlePipelineIdChange(updatedPipeline.pipeline_id);
                 }
@@ -587,7 +587,7 @@ function NewRunV2(props: NewRunV2Props) {
                       updatedPipelineVersion.pipeline_version_id || '',
                     [QUERY_PARAMS.isRecurring]: isRecurringRun ? '1' : '',
                   });
-                  props.history.replace(searchString);
+                  props.navigate(searchString, { replace: true });
                   handlePipelineVersionIdChange(updatedPipelineVersion.pipeline_version_id);
                 }
               }}
@@ -648,7 +648,7 @@ function NewRunV2(props: NewRunV2Props) {
                   [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
                 });
               }
-              props.history.replace(searchString);
+              props.navigate(searchString, { replace: true });
             }
           }}
         />
@@ -755,7 +755,7 @@ function NewRunV2(props: NewRunV2Props) {
           <Button
             id='exitNewRunPageBtn'
             onClick={() => {
-              props.history.push(returnPath || RoutePage.RUNS);
+              props.navigate(returnPath || RoutePage.RUNS);
             }}
           >
             {'Cancel'}

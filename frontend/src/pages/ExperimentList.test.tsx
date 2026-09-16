@@ -30,7 +30,7 @@ import { RoutePage, QUERY_PARAMS, RouteParams } from 'src/components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 
@@ -62,7 +62,7 @@ describe('ExperimentList', () => {
   let updateDialogSpy: ReturnType<typeof vi.fn>;
   let updateSnackbarSpy: ReturnType<typeof vi.fn>;
   let updateToolbarSpy: ReturnType<typeof vi.fn>;
-  let historyPushSpy: ReturnType<typeof vi.fn>;
+  let navigateSpy: ReturnType<typeof vi.fn>;
 
   const listExperimentsSpy = vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
   const listRunsSpy = vi.spyOn(Apis.runServiceApiV2, 'listRuns');
@@ -75,7 +75,7 @@ describe('ExperimentList', () => {
       ExperimentList,
       { pathname: RoutePage.EXPERIMENTS } as any,
       '' as any,
-      historyPushSpy,
+      navigateSpy,
       updateBannerSpy,
       updateDialogSpy,
       updateToolbarSpy,
@@ -144,7 +144,7 @@ describe('ExperimentList', () => {
     updateDialogSpy = vi.fn();
     updateSnackbarSpy = vi.fn();
     updateToolbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
+    navigateSpy = vi.fn();
     listExperimentsSpy.mockResolvedValue({ experiments: [] });
     listRunsSpy.mockResolvedValue({ runs: [] });
     formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
@@ -371,7 +371,7 @@ describe('ExperimentList', () => {
     await act(async () => {
       await createBtn!.action();
     });
-    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_EXPERIMENT);
+    expect(navigateSpy).toHaveBeenLastCalledWith(RoutePage.NEW_EXPERIMENT);
   });
 
   it('always has new experiment button enabled', async () => {
@@ -437,7 +437,7 @@ describe('ExperimentList', () => {
     await act(async () => {
       await compareBtn!.action();
     });
-    expect(historyPushSpy).toHaveBeenLastCalledWith(
+    expect(navigateSpy).toHaveBeenLastCalledWith(
       `${RoutePage.COMPARE}?${QUERY_PARAMS.runlist}=run1,run2,run3`,
     );
   });
@@ -451,7 +451,7 @@ describe('ExperimentList', () => {
     await act(async () => {
       await cloneBtn!.action();
     });
-    expect(historyPushSpy).toHaveBeenLastCalledWith(
+    expect(navigateSpy).toHaveBeenLastCalledWith(
       `${RoutePage.NEW_RUN}?${QUERY_PARAMS.cloneFromRun}=run1`,
     );
   });
