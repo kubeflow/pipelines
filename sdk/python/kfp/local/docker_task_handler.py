@@ -140,21 +140,16 @@ def run_docker_container(client: 'docker.DockerClient', image: str,
         stdout=True,
         stderr=True,
         volumes=volumes,
-        auto_remove=True,
+        auto_remove=False,
         **container_run_args)
     try:
         for line in container.logs(stream=True):
             # the inner logs should already have trailing \n
             # we do not need to add another
             print(line.decode(), end='')
-    except docker.errors.NotFound:
-        # Container was auto-removed before we could stream logs
-        # This can happen if the container exits very quickly
-        pass
-    try:
         return container.wait()['StatusCode']
-    except docker.errors.NotFound:
-        # Container was auto-removed after logs completed
-        # This means the container exited successfully (logs streaming completed)
-        # We assume success since we couldn't get the actual status code
-        return 0
+    finally:
+        try:
+            container.remove(force=True)
+        except docker.errors.NotFound:
+            pass
