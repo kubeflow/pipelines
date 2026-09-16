@@ -90,6 +90,10 @@ func main() {
 
 	flag.Parse()
 
+	if err := server.InitializeCacheSecurityMode(); err != nil {
+		log.Fatalf("Invalid cache security configuration: %v", err)
+	}
+
 	// Validate db_driver before using it to set defaults.
 	switch params.dbDriver {
 	case mysqlDBDriverDefault, pgxDBDriverDefault:
