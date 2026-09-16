@@ -3656,6 +3656,9 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 			return reportErr
 		}
 	}
+	if result.Status.EvaluationError != "" {
+		return util.NewInternalServerError(errors.New("SubjectAccessReview evaluation failed"), "Authorization could not be evaluated; retry after restoring the authorization service")
+	}
 	if !result.Status.Allowed {
 		err := util.NewPermissionDeniedError(
 			errors.New("Unauthorized access"),
@@ -3814,39 +3817,55 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 }
 
 func (r *ResourceManager) authorizeServiceAccount(ctx context.Context, serviceAccount, namespace string) error {
+	return r.authorizeServiceAccountWithPolicy(ctx, serviceAccount, namespace, false, nil)
+}
+
+// Audit relaxes policy denials only; authorization infrastructure errors still block.
+func (r *ResourceManager) authorizeServiceAccountWithPolicy(ctx context.Context, serviceAccount, namespace string, audit bool, recordViolation func(string)) error {
 	if serviceAccount == "" {
 		return nil
 	}
 	if strings.Contains(serviceAccount, "{{") {
+		if audit {
+			recordViolation("inspection_incomplete")
+			return nil
+		}
 		return util.NewInvalidInputError("service account %q is templated; use a literal name so it can be authorized before execution", serviceAccount)
 	}
 	if err := common.ValidateServiceAccountAllowList(serviceAccount); err != nil {
-		return util.NewInvalidInputError("%s", err)
+		if !audit {
+			return util.NewInvalidInputError("%s", err)
+		}
+		recordViolation("account_not_allowed")
 	}
 	defaultServiceAccount := common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount)
 	if serviceAccount == defaultServiceAccount {
 		return nil
 	}
-	return r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
-		Verb:      common.RbacResourceVerbUse,
-		Namespace: namespace,
-		Resource:  "serviceaccounts",
-		Name:      serviceAccount,
+	err := r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbUse, Namespace: namespace, Resource: "serviceaccounts", Name: serviceAccount,
 	})
+	if audit && util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
+		recordViolation("account_denied")
+		return nil
+	}
+	return err
 }
 
 func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace, operation string) error {
-	audit := common.IsWorkflowServiceAccountAuditEnabled()
+	mode, err := common.GetWorkflowIdentityMode()
+	if err != nil {
+		return util.NewInternalServerError(err, "Invalid workflow identity configuration")
+	}
+	audit := mode == "audit"
 	mainServiceAccount := executionSpec.ServiceAccount()
 	if mainServiceAccount == "" {
 		mainServiceAccount = "default"
 	}
-	if audit {
-		// Audit only the expanded checks; the main-account policy still applies,
-		// including when a dynamic patch prevents identity collection.
-		if err := r.authorizeServiceAccount(ctx, mainServiceAccount, namespace); err != nil {
-			return err
-		}
+	// Main and expanded identity policies remain independent, including when
+	// a dynamic patch prevents additional identity collection.
+	if err := r.authorizeServiceAccount(ctx, mainServiceAccount, namespace); err != nil {
+		return err
 	}
 	serviceAccounts, err := executionSpec.ServiceAccounts(allowCompilerPodSpecPatch)
 	if err != nil {
@@ -3857,20 +3876,13 @@ func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context,
 		return err
 	}
 	for _, serviceAccount := range serviceAccounts {
-		if audit && serviceAccount == mainServiceAccount {
+		if serviceAccount == mainServiceAccount {
 			continue
 		}
-		if err := r.authorizeServiceAccount(ctx, serviceAccount, namespace); err != nil {
-			if audit {
-				finding := "authorization_error"
-				if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
-					finding = "account_not_allowed"
-				} else if util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
-					finding = "account_denied"
-				}
-				logWorkflowServiceAccountAudit(executionSpec, namespace, operation, serviceAccount, finding)
-				continue
-			}
+		recordViolation := func(reason string) {
+			logWorkflowServiceAccountAudit(executionSpec, namespace, operation, serviceAccount, reason)
+		}
+		if err := r.authorizeServiceAccountWithPolicy(ctx, serviceAccount, namespace, audit, recordViolation); err != nil {
 			return err
 		}
 	}
@@ -3881,6 +3893,6 @@ func logWorkflowServiceAccountAudit(executionSpec util.ExecutionSpec, namespace,
 	meta := executionSpec.ExecutionObjectMeta()
 	// Parser errors can contain patch values. Log metadata and a finding code,
 	// never the manifest, patch contents, or raw authorization error.
-	glog.Warningf("Workflow service account audit: operation=%q namespace=%q workflow=%q generate_name=%q run_id=%q service_account=%q finding=%q; continuing because %s=true",
-		operation, namespace, meta.Name, meta.GenerateName, meta.Labels[util.LabelKeyWorkflowRunId], serviceAccount, finding, common.WorkflowServiceAccountAudit)
+	glog.Warningf("security_audit control=workflow_identity mode=audit operation=%q namespace=%q workflow=%q generate_name=%q run_id=%q service_account=%q reason=%q disposition=allow_policy_violation",
+		operation, namespace, meta.Name, meta.GenerateName, meta.Labels[util.LabelKeyWorkflowRunId], serviceAccount, finding)
 }

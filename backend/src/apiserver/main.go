@@ -760,11 +760,18 @@ func initConfig() error {
 		glog.Fatalf("Invalid plugin limits configuration: %v", err)
 	}
 
+	if err := common.InitializeWorkflowIdentityMode(); err != nil {
+		return err
+	}
+
 	// Watch for configuration change
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		if err := viper.ReadInConfig(); err != nil {
 			glog.Errorf("Failed to reload config: %v", err)
+		}
+		if err := common.InitializeWorkflowIdentityMode(); err != nil {
+			glog.Fatalf("Invalid workflow identity configuration: %v", err)
 		}
 		if _, err := common.GetPluginLimitsConfig(); err != nil {
 			glog.Fatalf("Invalid plugin limits configuration: %v", err)
