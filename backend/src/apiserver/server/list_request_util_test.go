@@ -28,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -60,6 +61,40 @@ func TestValidateFilterV1_ToModelResourceTypeFailed(t *testing.T) {
 	_, err := validateFilterV1(referenceKey)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unrecognized resource reference type")
+}
+
+func TestValidateFilterV2Beta1ArtifactTask_RejectsEmptyIDs(t *testing.T) {
+	_, err := validateFilterV2Beta1ArtifactTask(nil, []string{""}, nil)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "run_ids must not contain empty values")
+
+	_, err = validateFilterV2Beta1ArtifactTask([]string{""}, nil, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "task_ids must not contain empty values")
+
+	_, err = validateFilterV2Beta1ArtifactTask(nil, nil, []string{""})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "artifact_ids must not contain empty values")
+}
+
+func TestValidateFilterV2Beta1ArtifactTask_RejectsNoFilters(t *testing.T) {
+	_, err := validateFilterV2Beta1ArtifactTask(nil, nil, nil)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "At least one filter")
+}
+
+func TestValidateFilterV2Beta1ArtifactTask_BuildsFilters(t *testing.T) {
+	filters, err := validateFilterV2Beta1ArtifactTask([]string{"task-1"}, []string{"run-1"}, []string{"artifact-1"})
+	require.NoError(t, err)
+	require.Len(t, filters, 3)
+	assert.Equal(t, model.TaskResourceType, filters[0].Type)
+	assert.Equal(t, "task-1", filters[0].ID)
+	assert.Equal(t, model.RunResourceType, filters[1].Type)
+	assert.Equal(t, "run-1", filters[1].ID)
+	assert.Equal(t, model.ArtifactResourceType, filters[2].Type)
+	assert.Equal(t, "artifact-1", filters[2].ID)
 }
 
 func TestValidatePagination(t *testing.T) {

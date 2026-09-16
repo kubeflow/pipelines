@@ -24,7 +24,7 @@ import { PageProps } from './Page';
 describe('GettingStarted page', () => {
   const updateBannerSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const pipelineListSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
 
   function tutorialNameFromListPipelinesFilter(encodedFilter?: string): string {
@@ -46,7 +46,7 @@ describe('GettingStarted page', () => {
       GettingStarted,
       {} as any,
       {} as any,
-      historyPushSpy,
+      navigateSpy,
       updateBannerSpy,
       null,
       updateToolbarSpy,

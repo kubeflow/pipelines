@@ -62,7 +62,7 @@ func (r *ResourceManager) prepareRecurringRunTick(run *model.Run, owner *schedul
 		return nil, err
 	}
 	if existingID != "" {
-		existing, err := r.runStore.GetRun(existingID)
+		existing, err := r.runStore.GetRun(existingID, true)
 		if err != nil {
 			return nil, err
 		}

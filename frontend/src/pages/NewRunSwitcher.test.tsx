@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as JsYaml from 'js-yaml';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
-import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import Router, { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import NewRunSwitcher from 'src/pages/NewRunSwitcher';
 import { PageProps } from 'src/pages/Page';
@@ -49,12 +51,12 @@ describe('NewRunSwitcher', () => {
 
   function generatePropsCloneRun(runId = TEST_RUN_ID): PageProps {
     return {
-      history: { push: vi.fn(), replace: vi.fn() } as any,
+      navigate: vi.fn(),
       location: {
         pathname: RoutePage.NEW_RUN,
         search: `?${QUERY_PARAMS.cloneFromRun}=${runId}`,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a run' },
       updateBanner: vi.fn(),
       updateDialog: vi.fn(),
@@ -65,12 +67,12 @@ describe('NewRunSwitcher', () => {
 
   function generatePropsCloneRecurringRun(recurringRunId = TEST_RECURRING_RUN_ID): PageProps {
     return {
-      history: { push: vi.fn(), replace: vi.fn() } as any,
+      navigate: vi.fn(),
       location: {
         pathname: RoutePage.NEW_RUN,
         search: `?${QUERY_PARAMS.cloneFromRecurringRun}=${recurringRunId}`,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a recurring run' },
       updateBanner: vi.fn(),
       updateDialog: vi.fn(),
@@ -93,6 +95,81 @@ describe('NewRunSwitcher', () => {
   });
 
   describe('routing to V1 or V2 new run page', () => {
+    it('reloads the latest pipeline version after inline experiment creation', async () => {
+      const olderVersion = {
+        ...ORIGINAL_TEST_PIPELINE_VERSION,
+        display_name: 'older pipeline version',
+        pipeline_version_id: 'older-version-id',
+      };
+      const latestVersion = {
+        ...ORIGINAL_TEST_PIPELINE_VERSION,
+        display_name: 'latest pipeline version',
+        pipeline_version_id: 'latest-version-id',
+      };
+      vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
+      const getPipelineVersionSpy = vi
+        .spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion')
+        .mockImplementation((_pipelineId, versionId) =>
+          Promise.resolve(
+            versionId === latestVersion.pipeline_version_id ? latestVersion : olderVersion,
+          ),
+        );
+      vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions').mockResolvedValue({
+        pipeline_versions: [latestVersion],
+        total_size: 1,
+      });
+      vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments').mockResolvedValue({
+        experiments: [],
+        total_size: 0,
+      });
+      vi.spyOn(Apis.experimentServiceApiV2, 'createExperiment').mockResolvedValue(NEW_EXPERIMENT);
+      vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(NEW_EXPERIMENT);
+      const router = createMemoryRouter(
+        [
+          {
+            path: '*',
+            element: <Router configs={[{ path: RoutePage.NEW_RUN, Component: NewRunSwitcher }]} />,
+          },
+        ],
+        {
+          initialEntries: [
+            `${RoutePage.NEW_RUN}?${QUERY_PARAMS.pipelineId}=${ORIGINAL_TEST_PIPELINE_ID}` +
+              `&${QUERY_PARAMS.pipelineVersionId}=${olderVersion.pipeline_version_id}`,
+          ],
+        },
+      );
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>,
+      );
+
+      expect(await screen.findByDisplayValue(olderVersion.display_name)).toBeVisible();
+      fireEvent.click(screen.getAllByText('Choose')[2]);
+      fireEvent.click(await screen.findByText('Create new experiment'));
+      fireEvent.change(await screen.findByLabelText(/Experiment name/), {
+        target: { value: 'new-experiment' },
+      });
+      fireEvent.click(screen.getByText('Next'));
+
+      await waitFor(() =>
+        expect(router.state.location.search).toContain(
+          `${QUERY_PARAMS.pipelineVersionId}=${latestVersion.pipeline_version_id}`,
+        ),
+      );
+      await waitFor(() =>
+        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
+          ORIGINAL_TEST_PIPELINE_ID,
+          latestVersion.pipeline_version_id,
+        ),
+      );
+      expect(await screen.findByDisplayValue(latestVersion.display_name)).toBeVisible();
+    });
+
     it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
       render(
         <CommonTestWrapper>
@@ -566,12 +643,12 @@ describe('NewRunSwitcher', () => {
       }
 
       const props: PageProps = {
-        history: { push: vi.fn(), replace: vi.fn() } as any,
+        navigate: vi.fn(),
         location: {
           pathname: RoutePage.NEW_RUN,
           search: `?${QUERY_PARAMS.cloneFromRun}=${TEST_RUN_ID}&${QUERY_PARAMS.cloneFromRecurringRun}=${TEST_RECURRING_RUN_ID}`,
         } as any,
-        match: '' as any,
+        params: {},
         toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
         updateBanner: vi.fn(),
         updateDialog: vi.fn(),

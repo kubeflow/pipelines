@@ -7,7 +7,7 @@ This section of the codebase contains the Kubeflow Pipelines (KFP) Frontend.
 - React 19 with TypeScript on Vite 7
 - MUI v5 with Emotion
 - TanStack Query v5
-- React Router v5
+- React Router v8 (declarative hash routing)
 - Vitest with Testing Library v16 for UI tests
 - Vitest for frontend server tests
 - Storybook 10 for component development
@@ -50,7 +50,6 @@ You can access the KFP UI by port-forwarding the KFP UI Kubernetes Service:
 ```bash
 kubectl -n kubeflow  port-forward svc/ml-pipeline-ui 3000:80
 ```
-
 
 Navigate to [http://127.0.0.1:3000] to view the UI. You will see something like the following:
 
@@ -121,7 +120,7 @@ npm run mock:api
 npm run start
 ```
 
-The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurring Runs list pages with deterministic fixture data. Use `npm run start:proxy-and-server` against a real KFP deployment when validating MLMD, pod logs, runtime artifacts, auth, or backend behavior beyond those fixtures.
+The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurring Runs list pages with deterministic fixture data. Use `npm run start:proxy-and-server` against a real KFP deployment when validating native tasks and artifacts, pod logs, authentication, or backend behavior beyond those fixtures.
 
 ## Visual Regression Testing
 

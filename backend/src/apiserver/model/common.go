@@ -85,8 +85,10 @@ func AllModels() []any {
 		&Job{},
 		&RecurringRunState{},
 		&Run{},
-		&RunMetric{},
+		&RunMetricV1{},
 		&Task{},
+		&Artifact{},
+		&ArtifactTask{},
 		&ResourceReference{},
 		&MigrationStatus{},
 	}

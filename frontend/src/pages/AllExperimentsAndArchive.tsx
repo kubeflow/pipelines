@@ -65,7 +65,7 @@ class AllExperimentsAndArchive extends Page<
   }
 
   private _tabSwitched(newTab: AllExperimentsAndArchiveTab): void {
-    this.props.history.push(
+    this.props.navigate(
       newTab === AllExperimentsAndArchiveTab.EXPERIMENTS
         ? RoutePage.EXPERIMENTS
         : RoutePage.ARCHIVED_EXPERIMENTS,
