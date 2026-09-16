@@ -22,6 +22,8 @@ import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { PassThrough, Readable } from 'stream';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
+import { Apis } from '../../src/lib/Apis';
+import { parseArtifactFileLocation } from '../../src/lib/v2/ArtifactFileUtils';
 import { loadConfigs } from '../configs.js';
 import * as serverInfo from '../helpers/server-info.js';
 import { commonSetup, mkTempDir } from './test-helper.js';
@@ -2234,6 +2236,142 @@ s3:
       });
     });
 
+    it.each([
+      ['https://files.example/reports/', 'https://files.example/reports/report.txt'],
+      ['https://files.example/', 'https://files.example/reports/report.txt'],
+      ['http://files.example:8080/reports/', 'http://files.example:8080/reports/report.txt'],
+      ['https://files.example/reports/', 'https://files.example/reports/A%26B%3FC%23D.csv'],
+      ['https://files.example/reports/', 'https://files.example/reports/caf%C3%A9%20report.txt'],
+    ])('reads persisted HTTP URI within %s: %s', async (base, uri) => {
+      const content = 'migrated HTTP artifact';
+      mockedFetch.mockResolvedValueOnce({ body: toWebStream(content) });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: base }));
+      const location = parseArtifactFileLocation(uri);
+      const route = Apis.buildReadFileUrl({ path: location.path, isDownload: true });
+      await requests(app.app).get(`/${route}`).expect(200, content);
+      expect(mockedFetch).toHaveBeenCalledWith(uri, { headers: {}, redirect: 'manual' });
+    });
+
+    it.each([
+      ['http', 'files.example', 'reports/report.txt'],
+      ['https', 'other.example', 'reports/report.txt'],
+      ['https', 'files.example:444', 'reports/report.txt'],
+      ['https', 'files.example', 'reports-other/report.txt'],
+      ['https', 'files.example', 'private/report.txt'],
+      ['https', 'files.example', 'reports/../private/report.txt'],
+      ['https', 'files.example@other.example', 'reports/report.txt'],
+      ['https', 'files.example/path', 'reports/report.txt'],
+      ['https', 'files.example', 'reports/..\\private/report.txt'],
+    ])(
+      'rejects HTTP origin/path outside the configured base: %s %s %s',
+      async (source, bucket, key) => {
+        mockedFetch.mockClear();
+        app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'https://files.example/reports/' }));
+        await requests(app.app).get('/artifacts/get').query({ source, bucket, key }).expect(400);
+        expect(mockedFetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      'https://user:password@files.example/reports/',
+      'https://files.example/reports/?token=secret',
+      'https://files.example/reports/#fragment',
+      'file://files.example/reports/',
+      '//https://files.example/reports/',
+    ])('rejects invalid HTTP base configuration without fetching: %s', async (base) => {
+      mockedFetch.mockClear();
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: base }));
+      const response = await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'files.example', key: 'reports/report.txt' })
+        .expect(400);
+      expect(response.text).toContain('HTTP_BASE_URL');
+      expect(response.text).not.toContain(base);
+      expect(mockedFetch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'https://other.example/reports/file',
+      'https://files.example/private/file',
+      'https://files.example/reports/%2e%2e%2fprivate/file',
+    ])('rejects redirects outside an absolute HTTP base: %s', async (destination) => {
+      mockedFetch.mockResolvedValueOnce({
+        status: 302,
+        headers: new Map([['location', destination]]),
+        body: toWebStream(''),
+      });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'https://files.example/reports/' }));
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'files.example', key: 'reports/report.txt' })
+        .expect(400, 'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.');
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects credentials in an HTTP redirect before fetching it', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        status: 302,
+        headers: new Map([['location', 'https://user:password@files.example/reports/file']]),
+        body: toWebStream(''),
+      });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'https://files.example/reports/' }));
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'files.example', key: 'reports/file' })
+        .expect(400, 'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.');
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps domain-regex enforcement with a matching absolute HTTP base', async () => {
+      mockedFetch.mockClear();
+      app = new UIServer(
+        loadConfigs(argv, {
+          HTTP_BASE_URL: 'https://files.example/reports/',
+          ALLOWED_ARTIFACT_DOMAIN_REGEX: '^other$',
+        }),
+      );
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'files.example', key: 'reports/file' })
+        .expect(500, 'Domain not allowed.');
+      expect(mockedFetch).not.toHaveBeenCalled();
+    });
+
+    it('supports the HTTP path download route within an absolute base', async () => {
+      mockedFetch.mockResolvedValueOnce({ body: toWebStream('path download') });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'https://files.example/reports/' }));
+      await requests(app.app)
+        .get('/artifacts/https/files.example/reports/file.txt')
+        .expect(200, 'path download');
+      expect(mockedFetch).toHaveBeenCalledWith('https://files.example/reports/file.txt', {
+        headers: {},
+        redirect: 'manual',
+      });
+    });
+
+    it('follows an in-base HTTP redirect with an additional domain restriction', async () => {
+      mockedFetch.mockResolvedValueOnce({
+        status: 302,
+        headers: new Map([['location', '/reports/redirected.txt']]),
+        body: toWebStream(''),
+      });
+      mockedFetch.mockResolvedValueOnce({ body: toWebStream('redirected') });
+      app = new UIServer(
+        loadConfigs(argv, {
+          HTTP_BASE_URL: 'https://files.example/reports/',
+          ALLOWED_ARTIFACT_DOMAIN_REGEX: '^files\\.example$',
+        }),
+      );
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'files.example', key: 'reports/report.txt' })
+        .expect(200, 'redirected');
+      expect(mockedFetch).toHaveBeenLastCalledWith('https://files.example/reports/redirected.txt', {
+        headers: {},
+        redirect: 'manual',
+      });
+    });
+
     it('responds with a http artifact if source=http', async () => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
@@ -2279,17 +2417,23 @@ s3:
       );
     });
 
-    it('rejects http artifacts with a request-controlled host and default allowlist', async () => {
-      mockedFetch.mockClear();
-      const configs = loadConfigs(argv, {});
-      app = new UIServer(configs);
+    it.each(['metadata', 'files.example'])(
+      'rejects http artifact host %s without a configured base',
+      async (bucket) => {
+        mockedFetch.mockClear();
+        const configs = loadConfigs(argv, {});
+        app = new UIServer(configs);
 
-      const request = requests(app.app);
-      await request
-        .get('/artifacts/get?source=http&bucket=metadata&key=latest%2Fmeta-data')
-        .expect(400, 'HTTP artifact base URL is not configured');
-      expect(mockedFetch).not.toHaveBeenCalled();
-    });
+        const request = requests(app.app);
+        await request
+          .get(`/artifacts/get?source=http&bucket=${bucket}&key=latest%2Fmeta-data`)
+          .expect(
+            400,
+            'HTTP artifact base URL is not configured. Set HTTP_BASE_URL to an approved artifact base.',
+          );
+        expect(mockedFetch).not.toHaveBeenCalled();
+      },
+    );
 
     it('treats http artifact key metacharacters as path data', async () => {
       const artifactContent = 'hello world';

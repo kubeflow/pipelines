@@ -98,10 +98,29 @@ ENV_IMAGES_WITH_TAGS_AND_ISTIO = dict(ENV_IMAGES_WITH_TAGS, **{
 
 ENV_ARTIFACT_PROXY_WITH_ALLOWED_ENDPOINTS = dict(
     ENV_KFP_VERSION_ONLY, **{
+        "HTTP_BASE_URL": "https://artifacts.example.com:9443/pipelines/",
         "ALLOWED_ARTIFACT_ENDPOINTS": "https://objects.example.com:9443",
         "ALLOWED_GCS_UNIVERSE_DOMAINS": "googleapis.com,gdc.example",
         "ARTIFACTS_PROXY_ENABLED": "true",
     })
+
+
+def test_http_base_url_default_and_override():
+    with mock.patch.dict(os.environ, {"KFP_VERSION": KFP_VERSION}, clear=True):
+        assert get_settings_from_env()["http_base_url"] == ""
+
+    with mock.patch.dict(
+            os.environ, {
+                "KFP_VERSION": KFP_VERSION,
+                "HTTP_BASE_URL": "https://artifacts.example.com/pipelines/",
+            },
+            clear=True):
+        assert get_settings_from_env()["http_base_url"] == \
+            "https://artifacts.example.com/pipelines/"
+        assert get_settings_from_env(http_base_url="")["http_base_url"] == ""
+        assert get_settings_from_env(
+            http_base_url="https://other.example.com/prefix")["http_base_url"] == \
+            "https://other.example.com/prefix"
 
 
 def test_allowed_gcs_universe_domains_default_and_override():
@@ -353,6 +372,10 @@ def test_artifact_proxy_receives_allowed_endpoints(sync_server):
     container_env = artifact_deployment['spec']['template']['spec'][
         'containers'][0]['env']
 
+    assert {
+        'name': 'HTTP_BASE_URL',
+        'value': 'https://artifacts.example.com:9443/pipelines/',
+    } in container_env
     assert {
         'name': 'ALLOWED_ARTIFACT_ENDPOINTS',
         'value': 'https://objects.example.com:9443',
