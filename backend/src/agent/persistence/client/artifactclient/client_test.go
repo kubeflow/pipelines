@@ -459,6 +459,7 @@ func TestReadArtifact_MaxResponseBytes_ChunkedLimitRejection(t *testing.T) {
 	require.ErrorAs(t, err, &clientErr)
 	assert.Equal(t, ErrorCodePermanent, clientErr.Code)
 	assert.Contains(t, err.Error(), "Artifact response too large")
+	assert.Contains(t, err.Error(), fmt.Sprintf("wire response limit of %d bytes", request.MaxResponseBytes))
 }
 
 func TestReadArtifact_MaxResponseBytes_ZeroPreservesUnlimited(t *testing.T) {

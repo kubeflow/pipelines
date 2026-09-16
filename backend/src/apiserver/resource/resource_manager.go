@@ -3246,16 +3246,17 @@ func (r *ResourceManager) readPipelineSpecFromObjectStore(ctx context.Context, f
 	}
 	defer reader.Close()
 
-	limitedReader := io.LimitReader(reader, int64(common.MaxFileLength)+1)
+	limits, err := common.GetPipelineSizeLimits()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Invalid pipeline size limit configuration")
+	}
+	limitedReader := io.LimitReader(reader, int64(limits.SpecBytes)+1)
 	pipelineSpec, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to read pipeline spec from %v", filePath)
 	}
-	if len(pipelineSpec) > common.MaxFileLength {
-		return nil, util.NewInvalidInputError(
-			"Pipeline spec file size too large (%v bytes). Maximum supported size: %v.",
-			len(pipelineSpec), common.MaxFileLength,
-		)
+	if len(pipelineSpec) > limits.SpecBytes {
+		return nil, common.NewSizeLimitError("pipeline_spec", int64(limits.SpecBytes), common.MaxPipelineSpecBytesEnv)
 	}
 	return pipelineSpec, nil
 }

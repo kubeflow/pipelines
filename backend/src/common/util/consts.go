@@ -19,6 +19,7 @@ import (
 	"strconv"
 
 	constants "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -96,6 +97,7 @@ func GetMaxMetricsFileBytes() int64 {
 		if value, err := strconv.ParseInt(envValue, 10, 64); err == nil && value > 0 {
 			return value
 		}
+		log.Warnf("Invalid %s: expected a positive integer byte count; using default %d bytes (1 MiB). Correct the persistence-agent configuration and restart it.", MaxMetricsFileBytesEnvVar, defaultMaxMetricsFileBytes)
 	}
 	return defaultMaxMetricsFileBytes
 }

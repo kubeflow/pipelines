@@ -399,6 +399,21 @@ func TestReadPipelineSpecFromObjectStoreRejectsOversizedFile(t *testing.T) {
 	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
 }
 
+func TestReadPipelineSpecConfiguredLimit(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{files: map[string][]byte{"pipeline-spec.yaml": []byte("0123456789")}}
+	manager := &ResourceManager{objectStore: objectStore}
+	t.Setenv(common.MaxPipelineSpecBytesEnv, "10")
+	got, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+	require.NoError(t, err)
+	require.Len(t, got, 10)
+	t.Setenv(common.MaxPipelineSpecBytesEnv, "9")
+	_, err = manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+	require.ErrorContains(t, err, common.MaxPipelineSpecBytesEnv)
+	t.Setenv(common.MaxPipelineSpecBytesEnv, "invalid")
+	_, err = manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+	require.ErrorContains(t, err, "Invalid pipeline size limit configuration")
+}
+
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
 	initEnvVars()

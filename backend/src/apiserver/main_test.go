@@ -573,6 +573,12 @@ type errReader struct{ err error }
 func (e errReader) Read(p []byte) (n int, err error) { return 0, e.err }
 
 func TestClearTagsMiddleware(t *testing.T) {
+	t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, "")
+	limitErrorJSON, err := json.Marshal(map[string]interface{}{
+		"code":    3,
+		"message": common.SizeLimitErrorMessage("pipeline_update_body", MaxUpdateRequestBodySize, common.MaxPipelineUpdateBodyBytesEnv),
+	})
+	require.NoError(t, err)
 	tests := []struct {
 		name                 string
 		method               string
@@ -646,7 +652,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 			reqBodyReader:        strings.NewReader(strings.Repeat("a", MaxUpdateRequestBodySize+1)),
 			expectedStatus:       http.StatusRequestEntityTooLarge,
 			expectDownstreamCall: false,
-			expectedErrorJSON:    `{"code":3,"message":"Request body too large"}`,
+			expectedErrorJSON:    string(limitErrorJSON),
 		},
 		{
 			name:   "unknown content length over limit is rejected with 413",
@@ -658,7 +664,7 @@ func TestClearTagsMiddleware(t *testing.T) {
 			},
 			expectedStatus:       http.StatusRequestEntityTooLarge,
 			expectDownstreamCall: false,
-			expectedErrorJSON:    `{"code":3,"message":"Request body too large"}`,
+			expectedErrorJSON:    string(limitErrorJSON),
 		},
 		{
 			name:                 "unrelated reader failure yields 400",
@@ -713,6 +719,60 @@ func TestClearTagsMiddleware(t *testing.T) {
 				assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 				assert.JSONEq(t, tt.expectedErrorJSON, rec.Body.String())
 			}
+		})
+	}
+}
+
+func TestClearTagsMiddlewareConfiguredLimit(t *testing.T) {
+	for _, method := range []string{http.MethodPatch, http.MethodPut} {
+		for _, path := range []string{
+			"/apis/v2beta1/pipelines/123",
+			"/apis/v2beta1/pipelines/123/versions/456",
+		} {
+			for _, size := range []int{15, 16, 17} {
+				t.Run(fmt.Sprintf("%s/%s/%d", method, path, size), func(t *testing.T) {
+					t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, "16")
+					body := strings.Repeat("a", size)
+					called := false
+					handler := clearTagsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						called = true
+						got, err := io.ReadAll(r.Body)
+						require.NoError(t, err)
+						assert.Equal(t, body, string(got))
+					}))
+					req := httptest.NewRequest(method, path, strings.NewReader(body))
+					req.ContentLength = -1
+					rec := httptest.NewRecorder()
+					handler.ServeHTTP(rec, req)
+					if size <= 16 {
+						assert.Equal(t, http.StatusOK, rec.Code)
+						assert.True(t, called)
+					} else {
+						assert.Equal(t, http.StatusRequestEntityTooLarge, rec.Code)
+						assert.False(t, called)
+						assert.Contains(t, rec.Body.String(), common.MaxPipelineUpdateBodyBytesEnv)
+						assert.Contains(t, rec.Body.String(), "16 bytes")
+						assert.NotContains(t, rec.Body.String(), body)
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestClearTagsMiddlewareInvalidLimit(t *testing.T) {
+	for _, setting := range []string{"0", "-1", "invalid", "134217729"} {
+		t.Run(setting, func(t *testing.T) {
+			t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, setting)
+			called := false
+			handler := clearTagsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				called = true
+			}))
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPatch, "/apis/v2beta1/pipelines/123", strings.NewReader(`{"tags":{}}`)))
+			assert.False(t, called)
+			assert.Equal(t, http.StatusInternalServerError, rec.Code)
+			assert.JSONEq(t, `{"code":13,"message":"Invalid server size-limit configuration; contact your administrator"}`, rec.Body.String())
 		})
 	}
 }
