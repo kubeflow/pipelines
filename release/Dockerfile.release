@@ -18,6 +18,8 @@
 ARG BASE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 FROM ${BASE_IMAGE}
 
+ARG TARGETARCH
+
 # Install nvm and the Node version pinned in frontend/.nvmrc.
 # Pass it in at build time with:
 #   --build-arg NODE_VERSION=$(tr -d 'v' < frontend/.nvmrc)
@@ -42,7 +44,8 @@ RUN apt-get update \
 
 # install yq==3
 # Released in https://github.com/mikefarah/yq/releases/tag/3.4.1
-RUN curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64 && \
+RUN curl -fL -o /usr/local/bin/yq \
+    https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_${TARGETARCH} && \
     chmod +x /usr/local/bin/yq
 
 # Make all files accessible to non-root users.
@@ -52,6 +55,11 @@ RUN chmod -R 777 $NVM_DIR && \
 # Configure npm cache location
 RUN npm config set cache /tmp/.npm --global
 
-RUN curl -L -H "Accept: application/octet-stream" \
-        https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz \
+RUN case "${TARGETARCH}" in \
+        amd64) GIT_CLIFF_ARCH=x86_64 ;; \
+        arm64) GIT_CLIFF_ARCH=aarch64 ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac && \
+    curl -L -H "Accept: application/octet-stream" \
+        "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-${GIT_CLIFF_ARCH}-unknown-linux-gnu.tar.gz" \
     | tar -xz --strip-components=1 -C /usr/local/bin git-cliff-${GIT_CLIFF_VERSION}/git-cliff
