@@ -111,3 +111,75 @@ spec:
         - name: NO_PROXY
           value: localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,metadata-grpc-service,0,1,2,3,4,5,6,7,8,9
 ```
+
+### Pipeline size limits
+
+The API server enforces three independent byte ceilings. Configure these environment
+variables on the `ml-pipeline` deployment and roll out all replicas consistently:
+
+| Environment variable | What it bounds | Default | Supported range |
+| --- | --- | --- | --- |
+| `MAX_PIPELINE_UPLOAD_BYTES` | Pipeline file/package bytes from multipart uploads, URL imports, and bootstrap files | 33554432 (32 MiB) | 1–134217728 bytes (128 MiB) |
+| `MAX_PIPELINE_SPEC_BYTES` | Extracted YAML/JSON, uncompressed pipeline files, and object-store pipeline-spec reads | 33554432 (32 MiB) | 1–134217728 bytes (128 MiB) |
+| `MAX_PIPELINE_UPDATE_BODY_BYTES` | Entire HTTP PUT/PATCH body on pipeline and pipeline-version update routes | 33554432 (32 MiB) | 1–134217728 bytes (128 MiB) |
+
+Values are decimal integers in bytes; `64MiB`, zero, negative, and out-of-range
+values are invalid. Unset or empty values use the default. Invalid settings prevent
+API-server startup; there is no unlimited or audit mode. The upper bound limits
+administrator overrides because these paths buffer content in memory; it is not
+a guarantee that every deployment can safely accept concurrent requests that large.
+Raise limits only after sizing memory for concurrent uploads, decompression, parsing,
+and request processing. Prefer moving large embedded artifacts, notebooks, and code
+to container images or object storage.
+
+For example, to permit 64 MiB pipeline files and extracted specifications:
+
+```sh
+kubectl set env deployment/ml-pipeline -n kubeflow \
+  MAX_PIPELINE_UPLOAD_BYTES=67108864 MAX_PIPELINE_SPEC_BYTES=67108864
+kubectl rollout status deployment/ml-pipeline -n kubeflow
+```
+
+Persist overrides in your deployment/GitOps configuration. The upload ceiling applies
+to the selected file, not total multipart framing. Raw YAML/JSON must fit both input
+and spec ceilings. Compressed packages must fit the input ceiling and their extracted
+specification must fit the spec ceiling. Tar scanning remains bounded by the spec
+ceiling plus 1 MiB for headers, metadata, padding, and other entries encountered during
+scanning; this derived budget cannot be disabled independently. Remove unnecessary
+archive entries if traversal is rejected even though the selected YAML is small.
+
+These settings do not raise ingress/proxy, gRPC, Kubernetes object, or database limits.
+Configure and validate the complete request path; raising the KFP limit alone does not
+ensure a large pipeline can execute. Processes using the Kubernetes pipeline-upload
+client or bootstrap helpers read these same environment variables locally; keep their
+configuration consistent where those paths are used.
+
+Multipart upload and update-body size rejections return HTTP 413 with the applicable
+ceiling and setting. Other pipeline APIs preserve their existing InvalidArgument error
+mapping. API-server logs include `size_limit_exceeded`, the control, limit in bytes,
+and configuration name, without logging the rejected payload. Bounded reads do not
+measure the full rejected file, so errors report that it exceeds the ceiling rather
+than claiming an exact total size. Non-size parsing and transport failures retain
+sanitized upload responses.
+
+To return to defaults, remove the overrides and roll out the deployment. Before
+lowering `MAX_PIPELINE_SPEC_BYTES`, check stored pipelines accepted under the higher
+limit: object-store specifications may no longer be readable for subsequent execution. This
+setting does not add a new size check to the existing direct database-spec read path.
+
+### Legacy metrics artifact size
+
+On the persistence-agent deployment, `MAX_METRICS_FILE_BYTES` is the positive decimal
+byte limit for an uncompressed legacy `mlpipeline-metrics` artifact (default 1048576,
+1 MiB). It does not affect native V2 metrics. Unset or empty values use the default;
+invalid, zero, or negative values retain the default and now emit an operator warning.
+There is no disabling sentinel. Existing positive-value semantics are unchanged.
+
+Metrics extraction errors identify the byte ceiling and setting. Archive traversal
+and encoded artifact-response budgets remain finite and derived from that ceiling;
+wire-response rejections report the actual wire ceiling rather than a truncated read
+as the complete artifact size. Reduce the artifact or cautiously raise the setting
+and restart the persistence agent. Inspect persistence-agent logs for failed metrics
+reporting; this is asynchronous and is not a pipeline-upload HTTP error. The existing
+50-metric and single-file constraints are independent and are not changed by tuning
+this byte limit.

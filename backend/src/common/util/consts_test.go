@@ -15,9 +15,11 @@
 package util
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -136,7 +138,18 @@ func TestGetMaxMetricsFileBytes(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Setenv(MaxMetricsFileBytesEnvVar, testCase.envValue)
+			var output bytes.Buffer
+			originalOutput := log.StandardLogger().Out
+			log.SetOutput(&output)
+			t.Cleanup(func() { log.SetOutput(originalOutput) })
 			assert.Equal(t, testCase.expectValue, GetMaxMetricsFileBytes())
+			if testCase.envValue != "" && testCase.expectValue == defaultMaxMetricsFileBytes {
+				assert.Contains(t, output.String(), "Invalid MAX_METRICS_FILE_BYTES")
+				assert.Contains(t, output.String(), "1048576 bytes (1 MiB)")
+				assert.Contains(t, output.String(), "positive integer")
+			} else {
+				assert.Empty(t, output.String())
+			}
 		})
 	}
 }

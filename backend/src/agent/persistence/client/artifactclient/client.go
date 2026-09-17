@@ -171,7 +171,7 @@ func (a *client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 			if int64(len(body)) > request.MaxResponseBytes {
 				return nil, NewError(ErrorCodePermanent,
 					fmt.Errorf("response body exceeds %d bytes", request.MaxResponseBytes),
-					"Artifact response too large: %d bytes", len(body))
+					"Artifact response too large: exceeds the configured wire response limit of %d bytes; reduce the artifact or ask the operator to review the artifact size limit", request.MaxResponseBytes)
 			}
 		} else {
 			body, err = io.ReadAll(resp.Body)

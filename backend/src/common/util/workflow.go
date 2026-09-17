@@ -542,11 +542,12 @@ func readNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus,
 		return nil, nil // No metrics artifact, skip the reporting
 	}
 
+	maxMetricsFileBytes := GetMaxMetricsFileBytes()
 	artifactRequest := &artifactclient.ReadArtifactRequest{
 		RunID:            runID,
 		NodeID:           nodeStatus.ID,
 		ArtifactName:     metricsArtifactName,
-		MaxResponseBytes: ArchiveWireResponseBudget(GetMaxMetricsFileBytes()),
+		MaxResponseBytes: ArchiveWireResponseBudget(maxMetricsFileBytes),
 	}
 	artifactResponse, err := readArtifact(artifactRequest)
 	if err != nil {
@@ -558,7 +559,7 @@ func readNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus,
 	}
 
 	var metrics []*api.RunMetric
-	err = readSingleFileFromTgz(artifactResponse.Data, GetMaxMetricsFileBytes(), func(reader io.Reader) error {
+	err = readSingleFileFromTgz(artifactResponse.Data, maxMetricsFileBytes, func(reader io.Reader) error {
 		var decodeError error
 		metrics, decodeError = decodeRunMetrics(reader)
 		return decodeError

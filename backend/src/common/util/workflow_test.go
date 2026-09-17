@@ -2311,6 +2311,9 @@ func TestReadNodeMetricsOrNil_UsesConfiguredByteLimit(t *testing.T) {
 
 	assert.Nil(t, metrics)
 	assert.ErrorContains(t, err, "exceeds maximum size of 32 bytes")
+	assert.ErrorContains(t, err, MaxMetricsFileBytesEnvVar)
+	assert.ErrorContains(t, err, "reduce the metrics artifact")
+	assert.NotContains(t, err.Error(), metricsJSON)
 }
 
 func TestWorkflow_SetExecutionName(t *testing.T) {
