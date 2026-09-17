@@ -32,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/memblob"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -105,7 +106,6 @@ func Test_executeV2_Parameters(t *testing.T) {
 				"namespace",
 				fakeKubernetesClientset,
 				"false",
-				"",
 				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
 			)
 
@@ -270,7 +270,6 @@ func Test_executeV2_publishLogs(t *testing.T) {
 				"namespace",
 				fakeKubernetesClientset,
 				"true",
-				"",
 				&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
 			)
 
@@ -313,56 +312,28 @@ func Test_executeV2_publishLogs(t *testing.T) {
 	}
 }
 
-func Test_executeV2_publishLogs_skipsArtifactWhenSetupFailsBeforeLogsExist(t *testing.T) {
-	fakeKubernetesClientset := &fake.Clientset{}
-	fakeMetadataClient := metadata.NewFakeClient()
-	bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
-	assert.Nil(t, err)
-	bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
-	assert.Nil(t, err)
+func TestConfigureCustomCA(t *testing.T) {
+	t.Setenv("AWS_CA_BUNDLE", "")
+	t.Setenv("REQUESTS_CA_BUNDLE", "")
+	t.Setenv("SSL_CERT_FILE", "")
 
-	tempDir := t.TempDir()
-	customPath := filepath.Join(tempDir, "executor-logs")
-	executorInput := &pipelinespec.ExecutorInput{
-		Inputs: &pipelinespec.ExecutorInput_Inputs{
-			ParameterValues: map[string]*structpb.Value{},
-		},
-		Outputs: &pipelinespec.ExecutorInput_Outputs{
-			Artifacts: map[string]*pipelinespec.ArtifactList{
-				"executor-logs": {
-					Artifacts: []*pipelinespec.RuntimeArtifact{
-						{
-							Uri:        "mem://test-bucket/pipeline-root/executor-logs",
-							Type:       &pipelinespec.ArtifactTypeSchema{Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Artifact"}},
-							CustomPath: &customPath,
-						},
-					},
-				},
-			},
-		},
-	}
+	customCA := []byte("custom CA certificate")
+	customCAPath := filepath.Join(t.TempDir(), "custom-ca.crt")
+	require.NoError(t, os.WriteFile(customCAPath, customCA, 0600))
 
-	_, outputArtifacts, err := executeV2(
-		context.Background(),
-		executorInput,
-		addNumbersComponent,
-		"sh",
-		[]string{"-c", "echo testoutput"},
-		bucket,
-		bucketConfig,
-		fakeMetadataClient,
-		"namespace",
-		fakeKubernetesClientset,
-		"true",
-		filepath.Join(tempDir, "missing-ca.pem"),
-		&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
-	)
+	require.NoError(t, configureCustomCA(customCAPath))
+	caBundlePath := os.Getenv("AWS_CA_BUNDLE")
+	require.NotEmpty(t, caBundlePath)
+	t.Cleanup(func() { _ = os.Remove(caBundlePath) })
+	assert.Equal(t, caBundlePath, os.Getenv("REQUESTS_CA_BUNDLE"))
+	assert.Equal(t, caBundlePath, os.Getenv("SSL_CERT_FILE"))
 
+	caBundle, err := os.ReadFile(caBundlePath)
+	require.NoError(t, err)
+	assert.Contains(t, string(caBundle), string(customCA))
+
+	err = configureCustomCA(filepath.Join(t.TempDir(), "missing-ca.pem"))
 	assert.Error(t, err)
-	assert.Empty(t, outputArtifacts, "Expected no output artifacts when logs were never created")
-
-	_, err = bucket.ReadAll(context.TODO(), "executor-logs-0")
-	assert.Error(t, err, "Expected no qualified executor-logs blob to be uploaded")
 }
 
 func Test_executeV2_publishLogs_qualifiesExecutorInputBeforeCommandCompilation(t *testing.T) {
@@ -417,7 +388,6 @@ EOF`, filepath.Dir(outputMetadataFile), outputMetadataFile)
 		"namespace",
 		fakeKubernetesClientset,
 		"true",
-		"",
 		&OpenBucketConfig{context.Background(), fakeKubernetesClientset, "namespace", bucketConfig},
 	)
 
