@@ -66,6 +66,11 @@ type ClientManagerInterface interface {
 
 // MutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
 func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInterface) ([]patchOperation, error) {
+	mode, configErr := getCacheSecurityMode()
+	if configErr != nil {
+		return nil, configErr
+	}
+
 	// This handler should only get called on Pod objects as per the MutatingWebhookConfiguration in the YAML file.
 	// However, if (for whatever reason) this gets invoked on an object of a different kind, issue a log message but
 	// let the object request pass through otherwise.
@@ -158,18 +163,14 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	var cachedExecution *model.ExecutionCache
 	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(req.Namespace, executionHashKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
 	if errors.Is(err, storage.ErrExecutionCacheNotFound) {
-		allowLegacyFallback, configErr := getEnvBool("ALLOW_LEGACY_CACHE_FALLBACK")
-		if configErr != nil {
-			return nil, fmt.Errorf("invalid ALLOW_LEGACY_CACHE_FALLBACK: set it to true or false: %w", configErr)
-		}
-		if allowLegacyFallback {
+		if mode == "audit" {
 			legacyKey, keyErr := generateLegacyCacheKeyFromTemplate(template)
 			if keyErr != nil {
 				return nil, keyErr
 			}
 			cachedExecution, err = clientMgr.CacheStore().GetLegacyExecutionCache(legacyKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
 			if cachedExecution != nil {
-				log.Printf("Using legacy cache entry %d for pod %s/%s: original namespace is unknown; ALLOW_LEGACY_CACHE_FALLBACK is enabled", cachedExecution.ID, req.Namespace, pod.Name)
+				log.Printf("security_audit control=legacy_cache mode=audit operation=cache_lookup reason=ownership_unknown disposition=reuse_legacy_entry namespace=%q pod=%q cache_entry_id=%d", req.Namespace, pod.Name, cachedExecution.ID)
 			}
 		}
 	}
@@ -178,7 +179,6 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 	// Found cached execution, add cached output and cache_id and replace container images.
 	if cachedExecution != nil {
-		log.Println("Cached output: " + cachedExecution.ExecutionOutput)
 
 		annotations[ArgoWorkflowOutputs] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, ArgoWorkflowOutputs)
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)
