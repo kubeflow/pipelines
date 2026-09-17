@@ -968,3 +968,47 @@ func TestGetExperimentByName_RetriesClientTimeoutWithFreshRequest(t *testing.T) 
 	assert.Equal(t, "77", exp.ID)
 	assert.GreaterOrEqual(t, atomic.LoadInt32(&calls), int32(2), "the per-call timeout must be retried with a fresh request")
 }
+
+func TestDo_NonJSONErrorResponse_CapturesBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte(`<html><body>502 Bad Gateway</body></html>`))
+	}))
+	defer server.Close()
+
+	c, err := NewClient(Config{Endpoint: server.URL})
+	require.NoError(t, err)
+
+	_, err = c.do(httptest.NewRequest("GET", server.URL+"/api/2.0/mlflow/experiments/get-by-name?experiment_name=test", nil))
+	require.Error(t, err)
+
+	apiErr, ok := err.(*APIError)
+	require.True(t, ok, "expected *APIError")
+	assert.Equal(t, http.StatusBadGateway, apiErr.StatusCode)
+	assert.Contains(t, apiErr.Message, "failed to parse error body")
+	assert.NotContains(t, apiErr.Message, "<html>", "raw HTML should be %q-quoted")
+	assert.Contains(t, apiErr.Message, "Bad Gateway")
+}
+
+func TestDo_NonJSONErrorResponse_TruncatesLargeBody(t *testing.T) {
+	largeBody := make([]byte, 5*1024)
+	for i := range largeBody {
+		largeBody[i] = 'x'
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write(largeBody)
+	}))
+	defer server.Close()
+
+	c, err := NewClient(Config{Endpoint: server.URL})
+	require.NoError(t, err)
+
+	_, err = c.do(httptest.NewRequest("GET", server.URL+"/api/2.0/mlflow/experiments/get-by-name?experiment_name=test", nil))
+	require.Error(t, err)
+
+	apiErr, ok := err.(*APIError)
+	require.True(t, ok)
+	assert.Contains(t, apiErr.Message, "(truncated)")
+	assert.Less(t, len(apiErr.Message), 5*1024+200)
+}
