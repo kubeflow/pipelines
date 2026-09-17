@@ -94,3 +94,24 @@ python my_pipeline.py
 will result in `task_2` having caching disabled.
 
 **NOTE**: Since Python initializes configurations during the import process, setting the `KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT` environment variable after importing pipeline components will not affect the caching behavior. Therefore, always set it before importing any Kubeflow Pipelines components.
+
+## Upgrading to 2.18: container environment variables
+
+For V2 tasks using automatic cache keys, 2.18 includes the environment entries
+in the pipeline's container specification in the cache key. For example, changing
+`MODE=train` to `MODE=eval` must not reuse the previous task's outputs. Entry order
+and duplicates are preserved because Kubernetes expands `$(VAR)` references using
+preceding entries.
+
+Tasks with these environment entries will normally miss their pre-upgrade cache
+entries the next time they run, then populate entries using the corrected key.
+This costs task execution time and resources when those tasks run, not at server
+startup. Tasks without environment entries retain their previous fingerprints.
+No MLMD data migration or cache deletion is needed. Explicit custom cache keys
+continue to override automatic key generation; their owners must account for
+changes that affect outputs.
+
+This change covers environment entries declared in the pipeline container spec,
+not the resolved contents of Secrets or other environment injected at runtime.
+It is separate from the legacy V1/raw-Argo cache namespace-isolation migration
+and its audit setting.
