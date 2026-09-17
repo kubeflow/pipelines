@@ -135,6 +135,64 @@ describe('Utils', () => {
     it('handles number input', async () => {
       expect(await errorToMessage(404)).toBe('404');
     });
+
+    it('prefers sanitized details[0].message over the internal gRPC message', async () => {
+      const error = {
+        name: 'ResponseError',
+        message: 'Response returned an error code',
+        response: {
+          clone: () => ({
+            headers: { get: () => 'application/json' },
+            json: async () => ({
+              code: 13,
+              message: 'Failed to retry run 4287f724: pq: password authentication failed',
+              details: [{ message: 'Cannot retry workflow with offloaded node status' }],
+            }),
+            text: async () => '',
+          }),
+        },
+      };
+      expect(await errorToMessage(error)).toBe(
+        'Cannot retry workflow with offloaded node status',
+      );
+    });
+
+    it('reads JSON error body from OpenAPI ResponseError', async () => {
+      const error = {
+        name: 'ResponseError',
+        message: 'Response returned an error code',
+        response: {
+          clone: () => ({
+            headers: { get: () => 'application/json' },
+            json: async () => ({
+              code: 13,
+              message:
+                'Failed to retry run 4287f724 as it does not allow retries: Cannot retry workflow with offloaded node status',
+            }),
+            text: async () => '',
+          }),
+        },
+      };
+      expect(await errorToMessage(error)).toContain(
+        'Cannot retry workflow with offloaded node status',
+      );
+    });
+
+    it('falls back to ResponseError.message when the body cannot be parsed', async () => {
+      const error = {
+        name: 'ResponseError',
+        message: 'Response returned an error code',
+        response: {
+          clone: () => ({
+            headers: { get: () => 'application/json' },
+            json: async () => {
+              throw new Error('invalid json');
+            },
+          }),
+        },
+      };
+      expect(await errorToMessage(error)).toBe('Response returned an error code');
+    });
   });
 
   describe('enabledDisplayString', () => {

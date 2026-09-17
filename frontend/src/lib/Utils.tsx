@@ -69,6 +69,13 @@ export function titleCase(str: string): string {
 }
 
 export async function errorToMessage(error: any): Promise<string> {
+  if (error && error.name === 'ResponseError' && error.response) {
+    const message = await responseErrorBodyToMessage(error);
+    if (message) {
+      return message;
+    }
+  }
+
   if (error instanceof Error) {
     return error.message;
   }
@@ -78,6 +85,51 @@ export async function errorToMessage(error: any): Promise<string> {
   }
 
   return JSON.stringify(error) || '';
+}
+
+async function responseErrorBodyToMessage(error: {
+  message?: string;
+  response: {
+    clone?: () => any;
+    headers?: { get?: (name: string) => string | null };
+    json?: () => Promise<any>;
+    text?: () => Promise<string>;
+  };
+}): Promise<string> {
+  try {
+    const response = isFunction(error.response.clone) ? error.response.clone() : error.response;
+    const contentType = response.headers?.get?.('content-type') || '';
+    if (contentType.includes('application/json') && isFunction(response.json)) {
+      const body = await response.json();
+      const message = pickApiErrorMessage(body);
+      if (message) {
+        return message;
+      }
+    }
+    if (isFunction(response.text)) {
+      const text = (await response.text()).trim();
+      if (text) {
+        return text;
+      }
+    }
+  } catch {
+    // Fall back to the generic OpenAPI client message.
+  }
+  return error.message || '';
+}
+
+function pickApiErrorMessage(body: any): string {
+  if (!body || typeof body !== 'object') {
+    return '';
+  }
+  // gRPC-gateway puts the internal wrapped error in `message` and the
+  // client-safe UserError.externalMessage in details[0].message.
+  for (const value of [body.details?.[0]?.message, body.error, body.message]) {
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+  return '';
 }
 
 export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: boolean): string {

@@ -1294,8 +1294,12 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error decompressing execution spec", runId)
 	}
 
+	if err := execSpec.Hydrate(ctx); err != nil {
+		return util.Wrapf(err, "Failed to retry run %s due to error hydrating workflow node status", runId)
+	}
+
 	if err := execSpec.CanRetry(); err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow retries", runId)
+		return util.Wrapf(err, "Failed to retry run %s as it does not allow retries", runId)
 	}
 
 	newExecSpec, podsToDelete, err := execSpec.GenerateRetryExecution()
@@ -1482,6 +1486,12 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 		latestWorkflow, err := workflowClient.Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
 		if err == nil {
 			newExecSpec.SetVersion(latestWorkflow.Version())
+			adoptExecutionIdentity(newExecSpec, latestWorkflow)
+			lastWorkflowAction = "dehydrating workflow node status"
+			if err := newExecSpec.Dehydrate(ctx); err != nil {
+				lastWorkflowError = err
+				return err
+			}
 			lastWorkflowAction = "updating workflow"
 			updatedWorkflow, err := workflowClient.Update(ctx, newExecSpec, v1.UpdateOptions{})
 			if err == nil {
@@ -1499,15 +1509,42 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 			}
 		}
 
-		newExecSpec.SetVersion("")
-		lastWorkflowAction = "creating workflow"
-		newCreatedWorkflow, createError := workflowClient.Create(ctx, newExecSpec, v1.CreateOptions{})
-		if createError == nil {
-			retriedWorkflow = newCreatedWorkflow
-			return nil
+		// A previous update attempt may have dehydrated newExecSpec before the
+		// Workflow disappeared. Restore those nodes while the old UID still
+		// identifies the offload row, then create a status-free placeholder and
+		// dehydrate the retry under the UID assigned to the replacement.
+		lastWorkflowAction = "rehydrating workflow node status for create"
+		if err := newExecSpec.Hydrate(ctx); err != nil {
+			lastWorkflowError = err
+			return err
 		}
-		lastWorkflowError = createError
-		return createError
+		createSpec, cloneError := cloneExecutionSpecWithoutNodeStatus(newExecSpec)
+		if cloneError != nil {
+			lastWorkflowError = cloneError
+			lastWorkflowAction = "preparing workflow create"
+			return cloneError
+		}
+		lastWorkflowAction = "creating workflow"
+		newCreatedWorkflow, createError := workflowClient.Create(ctx, createSpec, v1.CreateOptions{})
+		if createError != nil {
+			lastWorkflowError = createError
+			return createError
+		}
+		adoptExecutionIdentity(newExecSpec, newCreatedWorkflow)
+		lastWorkflowAction = "dehydrating workflow node status"
+		if err := newExecSpec.Dehydrate(ctx); err != nil {
+			lastWorkflowError = err
+			return err
+		}
+		newExecSpec.SetVersion(newCreatedWorkflow.Version())
+		lastWorkflowAction = "updating workflow"
+		updatedWorkflow, updateError := workflowClient.Update(ctx, newExecSpec, v1.UpdateOptions{})
+		if updateError != nil {
+			lastWorkflowError = updateError
+			return updateError
+		}
+		retriedWorkflow = updatedWorkflow
+		return nil
 	})
 	if err == nil {
 		return retriedWorkflow, nil
@@ -1524,6 +1561,39 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 		return nil, util.NewUnavailableServerError(err, "Failed to retry run %s due to error %s - try again later. Last workflow error: %s", runID, lastWorkflowAction, lastWorkflowErrorMessage)
 	}
 	return nil, util.NewInternalServerError(err, "Failed to retry run %s due to error %s. Last workflow error: %s", runID, lastWorkflowAction, lastWorkflowErrorMessage)
+}
+
+func adoptExecutionIdentity(dst, src util.ExecutionSpec) {
+	if dst == nil || src == nil {
+		return
+	}
+	dstMeta := dst.ExecutionObjectMeta()
+	srcMeta := src.ExecutionObjectMeta()
+	if dstMeta == nil || srcMeta == nil {
+		return
+	}
+	dstMeta.UID = srcMeta.UID
+	dstMeta.ResourceVersion = srcMeta.ResourceVersion
+	dstMeta.CreationTimestamp = srcMeta.CreationTimestamp
+}
+
+func cloneExecutionSpecWithoutNodeStatus(spec util.ExecutionSpec) (util.ExecutionSpec, error) {
+	clone, err := util.NewExecutionSpecJSON(spec.ExecutionType(), []byte(spec.ToStringForStore()))
+	if err != nil {
+		return nil, err
+	}
+	clone.ClearPersistedNodeStatus()
+	clone.SetVersion("")
+	if meta := clone.ExecutionObjectMeta(); meta != nil {
+		meta.UID = ""
+	}
+	workflow, ok := clone.(*util.Workflow)
+	if !ok {
+		return nil, fmt.Errorf("cannot create controller-inert placeholder for execution type %s", spec.ExecutionType())
+	}
+	suspend := true
+	workflow.Spec.Suspend = &suspend
+	return clone, nil
 }
 
 func isRetryableWorkflowReconcileError(err error) bool {
@@ -2370,6 +2440,17 @@ func (r *ResourceManager) reportWorkflowResource(
 			execStatus = execSpec.ExecutionStatus()
 			state = workflowReportState(execSpec)
 		}
+	}
+
+	// Argo garbage-collects offloaded node-status rows after the Workflow CR is
+	// removed. Persist terminal workflows with their nodes hydrated so a later
+	// retry does not depend on that short-lived offload row.
+	if execStatus.IsInFinalState() {
+		if err := execSpec.Hydrate(ctx); err != nil {
+			return nil, util.Wrapf(err,
+				"Failed to preserve workflow node status for retry before finalizing run %s", runId)
+		}
+		execStatus = execSpec.ExecutionStatus()
 	}
 
 	if updateError == nil && !createdFromRecurringReport {
