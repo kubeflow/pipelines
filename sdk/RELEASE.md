@@ -14,6 +14,8 @@
 
 ## Bug fixes and other changes
 
+* Fix `normalize_time_string`/`convert_duration_to_seconds` to accept fractional durations (e.g. `'0.5h'`, `'1.5m'`), which previously raised `ValueError` due to an incorrect string-splitting check.
+
 # 2.15.2
 
 ## Bug fixes and other changes

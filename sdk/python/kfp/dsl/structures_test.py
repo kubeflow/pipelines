@@ -879,6 +879,9 @@ class TestNormalizeTimeString(parameterized.TestCase):
         ('2hours', '2h'),
         ('2 w', '2w'),
         ('2d', '2d'),
+        ('0.5 hours', '0.5h'),
+        ('1.5m', '1.5m'),
+        ('0.25h', '0.25h'),
     ])
     def test(self, unnorm: str, norm: str):
         self.assertEqual(structures.normalize_time_string(unnorm), norm)
@@ -891,6 +894,11 @@ class TestNormalizeTimeString(parameterized.TestCase):
         with self.assertRaisesRegex(ValueError, 'Invalid duration string:'):
             structures.convert_duration_to_seconds('one hour')
 
+    @parameterized.parameters(['.5h', '1.h', '1.2.3h'])
+    def test_malformed_decimal_raises(self, duration: str):
+        with self.assertRaisesRegex(ValueError, 'Invalid duration string:'):
+            structures.normalize_time_string(duration)
+
 
 class TestConvertDurationToSeconds(parameterized.TestCase):
 
@@ -900,6 +908,10 @@ class TestConvertDurationToSeconds(parameterized.TestCase):
         ('2hours', 7200),
         ('2 w', 1209600),
         ('2d', 172800),
+        ('0.5h', 1800),
+        ('1.5m', 90),
+        ('0.25h', 900),
+        ('2.5m', 150),
     ])
     def test(self, duration: str, seconds: int):
         self.assertEqual(
@@ -908,6 +920,12 @@ class TestConvertDurationToSeconds(parameterized.TestCase):
     def test_unsupported_duration_unit(self):
         with self.assertRaisesRegex(ValueError, 'Unsupported duration unit:'):
             structures.convert_duration_to_seconds('1 year')
+
+    @parameterized.parameters(['0.5s', '2.5s', '1.5s'])
+    def test_non_whole_second_result_raises(self, duration: str):
+        with self.assertRaisesRegex(
+                ValueError, 'must resolve to a whole number of seconds'):
+            structures.convert_duration_to_seconds(duration)
 
 
 class TestRetryPolicy(unittest.TestCase):
