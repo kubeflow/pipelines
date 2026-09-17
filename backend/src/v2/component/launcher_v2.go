@@ -809,24 +809,7 @@ func (l *LauncherV2) execute(
 		return l.getExecutorOutputFile(customOutputFile)
 	}
 
-	if err := l.downloadArtifacts(ctx); err != nil {
-		return nil, err
-	}
-
-	if err := l.prepareOutputFolders(l.executorInput); err != nil {
-		return nil, err
-	}
-
-	var writer io.Writer
-	if l.options.PublishLogs == "true" {
-		writer = getLogWriter(l.executorInput.Outputs.GetArtifacts())
-	} else {
-		writer = os.Stdout
-	}
-
-	defer glog.Flush()
-
-	// If a custom CA path is input, append to system CA and save to a temp file for executor access.
+	// Configure the CA bundle before artifact downloads initialize object store clients.
 	if l.options.CaCertPath != "" {
 		var caBundleTmpPath string
 		var err error
@@ -847,6 +830,23 @@ func (l *LauncherV2) execute(
 			glog.Errorf("Error setting SSL_CERT_FILE environment variable, %s", err.Error())
 		}
 	}
+
+	if err := l.downloadArtifacts(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := l.prepareOutputFolders(l.executorInput); err != nil {
+		return nil, err
+	}
+
+	var writer io.Writer
+	if l.options.PublishLogs == "true" {
+		writer = getLogWriter(l.executorInput.Outputs.GetArtifacts())
+	} else {
+		writer = os.Stdout
+	}
+
+	defer glog.Flush()
 
 	// Execute end user code using the command executor interface.
 	if err := l.cmdExecutor.Run(ctx, cmd, args, os.Stdin, writer, writer); err != nil {
