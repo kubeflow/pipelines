@@ -636,14 +636,19 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 		cached            bool
 		startFails        bool
 		cleanupFails      bool
-		missingProperties bool
+		initialStartFails bool
+		repairWriteFails  bool
+		repairReplyLost   bool
 	}{
 		{name: "driver restart"},
 		{name: "cached completion", cached: true},
 		{name: "failed repeated start", cached: true, startFails: true},
 		{name: "failed redundant run cleanup", cleanupFails: true},
 		{name: "RPC retry keeps current run", sameAttempt: true},
-		{name: "missing persisted state", missingProperties: true},
+		{name: "initial start failure recovers", initialStartFails: true},
+		{name: "initial start failure recovers cached completion", initialStartFails: true, cached: true},
+		{name: "failed repair write can retry", initialStartFails: true, repairWriteFails: true},
+		{name: "lost repair response preserves committed run", initialStartFails: true, repairReplyLost: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var mutex sync.Mutex
@@ -657,7 +662,7 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 				switch r.URL.Path {
 				case "/api/2.0/mlflow/runs/create":
 					starts++
-					if test.startFails && starts == 2 {
+					if (test.startFails && starts == 2) || (test.initialStartFails && starts == 1) {
 						http.Error(w, "start failed", http.StatusInternalServerError)
 						return
 					}
@@ -708,14 +713,25 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 			}
 
 			var stored *pb.Execution
-			failRead := !test.sameAttempt
+			repairWrites := 0
+			failRead := !test.sameAttempt && !test.initialStartFails
 			svc := &MockMetadataClient{
 				GetContextByTypeAndNameFunc: func(context.Context, *pb.GetContextByTypeAndNameRequest, ...grpc.CallOption) (*pb.GetContextByTypeAndNameResponse, error) {
 					return &pb.GetContextByTypeAndNameResponse{Context: &pb.Context{Id: proto.Int64(10)}}, nil
 				},
 				PutExecutionFunc: func(_ context.Context, req *pb.PutExecutionRequest, _ ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
 					if req.GetExecution().GetId() != 0 {
+						isRepair := stored.GetCustomProperties()["plugins.mlflow.run_id"] == nil && req.GetExecution().GetCustomProperties()["plugins.mlflow.run_id"] != nil
+						if isRepair {
+							repairWrites++
+							if test.repairWriteFails && repairWrites == 1 {
+								return nil, status.Error(codes.Unavailable, "repair write failed")
+							}
+						}
 						stored = proto.Clone(req.GetExecution()).(*pb.Execution)
+						if isRepair && test.repairReplyLost && repairWrites == 1 {
+							return nil, status.Error(codes.Unavailable, "repair response lost")
+						}
 						return &pb.PutExecutionResponse{ExecutionId: stored.Id}, nil
 					}
 					if stored != nil {
@@ -764,46 +780,90 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 			ctx := context.Background()
 			if !test.sameAttempt {
 				_, err := Container(ctx, opts, client, cache)
-				require.ErrorContains(t, err, "read failed after commit")
+				if test.initialStartFails {
+					if test.cached {
+						require.NoError(t, err)
+					} else {
+						require.ErrorContains(t, err, "MLflow run ID is empty")
+					}
+					require.Empty(t, metadata.ExtractPluginCustomProperties(metadata.NewExecution(stored)))
+				} else {
+					require.ErrorContains(t, err, "read failed after commit")
+				}
 				// A restarted driver has fresh handlers; persisted execution state must win.
 				opts.PluginDispatcher = newDispatcher()
-				if test.missingProperties {
-					delete(stored.CustomProperties, "plugins.mlflow.run_id")
-				}
 			}
 			execution, err := Container(ctx, opts, client, cache)
-			if test.missingProperties {
-				require.ErrorContains(t, err, "persisted plugin properties are missing")
+			if test.repairWriteFails || test.repairReplyLost {
+				require.ErrorContains(t, err, "failed to update plugin properties")
 				require.Empty(t, execution.PodSpecPatch)
 				mutex.Lock()
-				defer mutex.Unlock()
-				assert.Equal(t, []string{"run-2"}, canceledRuns)
-				return
+				assert.Empty(t, canceledRuns, "a failed write may have committed the run ID")
+				mutex.Unlock()
+				if test.repairWriteFails {
+					require.Empty(t, metadata.ExtractPluginCustomProperties(metadata.NewExecution(stored)))
+				} else {
+					require.Equal(t, "run-2", stored.CustomProperties["plugins.mlflow.run_id"].GetStringValue())
+				}
+				opts.PluginDispatcher = newDispatcher()
+				execution, err = Container(ctx, opts, client, cache)
 			}
 			require.NoError(t, err)
+			expectedRunID := "run-1"
+			if test.initialStartFails {
+				expectedRunID = "run-2"
+				if test.repairWriteFails {
+					expectedRunID = "run-3"
+				}
+				require.Equal(t, expectedRunID, stored.CustomProperties["plugins.mlflow.run_id"].GetStringValue())
+				if !test.cached {
+					var pod corev1.PodSpec
+					require.NoError(t, json.Unmarshal([]byte(execution.PodSpecPatch), &pod))
+					require.Contains(t, pod.Containers[0].Env, corev1.EnvVar{Name: "MLFLOW_RUN_ID", Value: expectedRunID})
+				}
+				// A further restart must reuse the repaired state as well.
+				opts.PluginDispatcher = newDispatcher()
+				execution, err = Container(ctx, opts, client, cache)
+				require.NoError(t, err)
+			}
 			require.Equal(t, int64(100), execution.ID)
-			require.Equal(t, "run-1", stored.GetCustomProperties()["plugins.mlflow.run_id"].GetStringValue())
+			require.Equal(t, expectedRunID, stored.GetCustomProperties()["plugins.mlflow.run_id"].GetStringValue())
 			if test.cached {
 				require.True(t, *execution.Cached)
 			} else {
 				var pod corev1.PodSpec
 				require.NoError(t, json.Unmarshal([]byte(execution.PodSpecPatch), &pod))
 				require.NotEmpty(t, pod.Containers)
-				assert.Contains(t, pod.Containers[0].Env, corev1.EnvVar{Name: "MLFLOW_RUN_ID", Value: "run-1"})
+				assert.Contains(t, pod.Containers[0].Env, corev1.EnvVar{Name: "MLFLOW_RUN_ID", Value: expectedRunID})
 				launcher := newDispatcher()
 				launcher.ApplyCustomProperties(metadata.ExtractPluginCustomProperties(metadata.NewExecution(stored)))
 				require.NoError(t, launcher.OnTaskEnd(ctx, &plugins.TaskInfo{Name: "notify", RunStatus: "COMPLETE", ScalarMetrics: map[string]float64{"accuracy": 1}}))
 			}
 			mutex.Lock()
 			defer mutex.Unlock()
-			assert.Equal(t, "FINISHED", updates["run-1"])
+			assert.Equal(t, "FINISHED", updates[expectedRunID])
 			if !test.cached {
 				assert.NotEmpty(t, loggedRuns)
 			}
 			for _, runID := range loggedRuns {
-				assert.Equal(t, "run-1", runID)
+				assert.Equal(t, expectedRunID, runID)
 			}
-			if test.sameAttempt {
+			if test.initialStartFails {
+				switch {
+				case test.repairWriteFails:
+					assert.Equal(t, 4, starts)
+					assert.Equal(t, 2, repairWrites)
+					assert.Equal(t, []string{"run-4"}, canceledRuns)
+				case test.repairReplyLost:
+					assert.Equal(t, 4, starts)
+					assert.Equal(t, 1, repairWrites)
+					assert.Equal(t, []string{"run-3", "run-4"}, canceledRuns)
+				default:
+					assert.Equal(t, 3, starts)
+					assert.Equal(t, 1, repairWrites)
+					assert.Equal(t, []string{"run-3"}, canceledRuns)
+				}
+			} else if test.sameAttempt {
 				assert.Equal(t, 1, starts)
 				assert.Len(t, updates, 1)
 				assert.Empty(t, canceledRuns)
