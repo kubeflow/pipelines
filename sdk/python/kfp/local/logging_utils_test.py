@@ -44,10 +44,10 @@ class TestColorText(unittest.TestCase):
             'text to color',
             logging_utils.Color.CYAN,
         )
-        expected = '\x1b[91mtext to color\x1b[0m'
+        expected = '\x1b[96mtext to color\x1b[0m'
         self.assertEqual(actual, expected)
 
-    def test_cyan(self):
+    def test_red(self):
 
         actual = logging_utils.color_text(
             'text to color',
