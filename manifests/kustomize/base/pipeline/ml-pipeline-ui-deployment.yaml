@@ -122,6 +122,12 @@ spec:
                 name: pipeline-install-config
                 key: ARTIFACTS_PROXY_ENABLED
                 optional: true
+          - name: HTTP_BASE_URL
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: HTTP_BASE_URL
+                optional: true
           - name: ALLOWED_ARTIFACT_ENDPOINTS
             valueFrom:
               configMapKeyRef:
