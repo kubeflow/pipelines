@@ -1,0 +1,17 @@
+# Include image overrides in the hash: Job pod templates are immutable.
+images:
+  - kind: ConfigMap
+    path: data/image
+nameReference:
+  - kind: ConfigMap
+    version: v1
+    fieldSpecs:
+      - kind: Job
+        path: metadata/name
+  - kind: Secret
+    version: v1
+    fieldSpecs:
+      - kind: ConfigMap
+        path: data/secretName
+      - kind: Role
+        path: rules/resourceNames
