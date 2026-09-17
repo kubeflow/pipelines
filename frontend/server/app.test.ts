@@ -683,9 +683,45 @@ describe('UIServer apis', () => {
         );
     });
 
+    it('rejects reportMetrics under the base path', async () => {
+      const runId = 'a-random-run-id';
+      await request
+        .post(`/pipeline/apis/v1beta1/runs/${runId}:reportMetrics`)
+        .expect(
+          403,
+          '/pipeline/apis/v1beta1/runs/a-random-run-id:reportMetrics endpoint is not meant for external usage.',
+        );
+    });
+
+    it('rejects reportWorkflow under the base path', async () => {
+      const workflowId = 'a-random-workflow-id';
+      await request
+        .post(`/pipeline/apis/v1beta1/workflows/${workflowId}`)
+        .expect(
+          403,
+          '/pipeline/apis/v1beta1/workflows/a-random-workflow-id endpoint is not meant for external usage.',
+        );
+    });
+
+    it('rejects reportScheduledWorkflow under the base path', async () => {
+      const swf = 'a-random-swf-id';
+      await request
+        .post(`/pipeline/apis/v2beta1/scheduledworkflows/${swf}`)
+        .expect(
+          403,
+          '/pipeline/apis/v2beta1/scheduledworkflows/a-random-swf-id endpoint is not meant for external usage.',
+        );
+    });
+
     it('does not reject similar apis', async () => {
       await request // use reportMetrics as runId to see if it can confuse route parsing
         .post(`/apis/v1beta1/runs/xxx-reportMetrics:archive`)
+        .expect(200, 'KFP API is working');
+    });
+
+    it('proxies other run apis under the base path', async () => {
+      await request
+        .post(`/pipeline/apis/v1beta1/runs/a-random-run-id:archive`)
         .expect(200, 'KFP API is working');
     });
 
