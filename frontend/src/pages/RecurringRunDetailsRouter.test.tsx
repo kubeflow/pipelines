@@ -28,7 +28,7 @@ import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
 import { PageProps } from 'src/pages/Page';
 import { queryClientTest } from 'src/TestUtils';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { vi } from 'vitest';
 
 vi.mock('src/pages/RecurringRunDetails', () => ({
@@ -53,14 +53,9 @@ const v2PipelineSpec = JsYaml.load(v2YamlTemplateString);
 
 function generateProps(recurringRunId = TEST_RECURRING_RUN_ID): PageProps {
   return {
-    history: { push: vi.fn(), replace: vi.fn() } as any,
+    navigate: vi.fn(),
     location: { pathname: `/recurringrun/details/${recurringRunId}` } as any,
-    match: {
-      isExact: true,
-      params: { [RouteParams.recurringRunId]: recurringRunId },
-      path: '',
-      url: '',
-    },
+    params: { [RouteParams.recurringRunId]: recurringRunId },
     toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
     updateBanner: vi.fn(),
     updateDialog: vi.fn(),

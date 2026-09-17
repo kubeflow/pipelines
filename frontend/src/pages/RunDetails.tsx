@@ -17,7 +17,7 @@
 import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { GkeMetadata, GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
@@ -192,7 +192,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
-    const runIdFromParams = this.props.match.params[RouteParams.runId] ?? '';
+    const runIdFromParams = this.props.params[RouteParams.runId] ?? '';
     return {
       actions: buttons
         .retryRun(
@@ -675,7 +675,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
   public async load(): Promise<void> {
     this.clearBanner();
-    const runId = this.props.match.params[RouteParams.runId] ?? '';
+    const runId = this.props.params[RouteParams.runId] ?? '';
 
     try {
       const allowCustomVisualizations = await Apis.areCustomVisualizationsAllowed();
@@ -1250,7 +1250,7 @@ const EnhancedRunDetails: React.FC<RunDetailsProps> = (props) => {
     // Run details page shows info about a run, when namespace changes, the run
     // doesn't exist in the new namespace, so we should redirect to experiment
     // list page.
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate replace to={RoutePage.EXPERIMENTS} />;
   }
   return <RunDetails {...props} gkeMetadata={gkeMetadata} />;
 };
