@@ -41,7 +41,18 @@ class SubprocessRunner:
     """Runner that indicates that local tasks should be run in a subprocess.
 
     Args:
-        use_venv: Whether to run the subprocess in a virtual environment. If True, dependencies will be installed in the virtual environment. If False, dependencies will be installed in the current environment. Using a virtual environment is recommended.
+        use_venv: Whether to run the subprocess in a virtual environment.
+            If ``True`` (default), dependencies are installed into a fresh
+            temporary virtual environment for each task run, keeping them
+            isolated from the current Python environment.
+            If ``False``, dependencies are installed directly into the current
+            interpreter via ``pip install --break-system-packages``.  The
+            flag is required on PEP 668-protected interpreters (system Python
+            on Ubuntu >= 23.04, Homebrew Python on macOS); without it pip
+            refuses to install into an externally-managed environment.  Note
+            that this **modifies your current Python environment** and may
+            conflict with other installed packages.  Using a virtual
+            environment is strongly recommended.
         serialize_pip_installs: Whether to serialize pip installations across parallel tasks to avoid race conditions. Only applies when use_venv=True. Default is True for safety.
         max_concurrent_pip_installs: Maximum number of concurrent pip installations when serialize_pip_installs=False. Default is 1.
     """

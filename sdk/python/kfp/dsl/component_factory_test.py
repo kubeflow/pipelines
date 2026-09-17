@@ -248,6 +248,129 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             ]))
 
 
+class TestMakePipInstallCommand(unittest.TestCase):
+    """Tests for make_pip_install_command."""
+
+    def test_default_no_break_system_packages_flag(self):
+        # By default (use_venv=True path) the flag must be absent so we don't
+        # unexpectedly touch system/venv environments.
+        cmd = component_factory.make_pip_install_command(
+            install_parts=['numpy'],
+            index_url_options='',
+        )
+        self.assertNotIn('--break-system-packages', cmd)
+        self.assertIn('python3 -m pip install', cmd)
+        self.assertIn("'numpy'", cmd)
+
+    def test_break_system_packages_false_omits_flag(self):
+        cmd = component_factory.make_pip_install_command(
+            install_parts=['numpy'],
+            index_url_options='',
+            break_system_packages=False,
+        )
+        self.assertNotIn('--break-system-packages', cmd)
+
+    def test_break_system_packages_true_includes_flag(self):
+        # When use_venv=False, KFP must emit --break-system-packages so that
+        # pip succeeds on PEP 668-protected interpreters (Ubuntu >= 23.04,
+        # Homebrew macOS).
+        cmd = component_factory.make_pip_install_command(
+            install_parts=['numpy'],
+            index_url_options='',
+            break_system_packages=True,
+        )
+        self.assertIn('--break-system-packages', cmd)
+        self.assertIn("'numpy'", cmd)
+
+    def test_break_system_packages_flag_position(self):
+        # The flag must appear before the package list, after the base flags.
+        cmd = component_factory.make_pip_install_command(
+            install_parts=['scipy'],
+            index_url_options='',
+            break_system_packages=True,
+        )
+        flag_pos = cmd.index('--break-system-packages')
+        pkg_pos = cmd.index("'scipy'")
+        self.assertLess(flag_pos, pkg_pos)
+
+    def test_break_system_packages_with_index_url(self):
+        # The flag must coexist correctly with --index-url options.
+        cmd = component_factory.make_pip_install_command(
+            install_parts=['pandas'],
+            index_url_options='--index-url https://example.org/simple ',
+            break_system_packages=True,
+        )
+        self.assertIn('--break-system-packages', cmd)
+        self.assertIn('--index-url https://example.org/simple', cmd)
+        self.assertIn("'pandas'", cmd)
+
+
+class TestGetPackagesToInstallCommandPep668(unittest.TestCase):
+    """Tests that _get_packages_to_install_command honours PEP 668 on the
+    use_venv=False path."""
+
+    def _get_shell_script(self, **kwargs) -> str:
+        """Helper: return the shell script string from the generated command."""
+        command = component_factory._get_packages_to_install_command(**kwargs)
+        # command is ['sh', '-c', '<script>']
+        self.assertEqual(command[:2], ['sh', '-c'])
+        return command[2]
+
+    def test_use_venv_false_user_packages_include_break_flag(self):
+        script = self._get_shell_script(
+            packages_to_install=['numpy'],
+            install_kfp_package=False,
+            use_venv=False,
+        )
+        self.assertIn('--break-system-packages', script)
+
+    def test_use_venv_false_kfp_package_includes_break_flag(self):
+        # When only KFP itself is being installed (no user packages).
+        script = self._get_shell_script(
+            packages_to_install=[],
+            use_venv=False,
+        )
+        self.assertIn('--break-system-packages', script)
+
+    def test_use_venv_true_omits_break_flag(self):
+        # Default path: venv is used; --break-system-packages must be absent.
+        script = self._get_shell_script(
+            packages_to_install=['numpy'],
+            install_kfp_package=False,
+            use_venv=True,
+        )
+        self.assertNotIn('--break-system-packages', script)
+
+    def test_default_use_venv_omits_break_flag(self):
+        # use_venv defaults to False in the function signature, but the
+        # SubprocessRunner defaults to use_venv=True, so verify the default
+        # function param (False) still emits the flag.
+        script = self._get_shell_script(
+            packages_to_install=['numpy'],
+            install_kfp_package=False,
+        )
+        # use_venv defaults to False → flag should be present
+        self.assertIn('--break-system-packages', script)
+
+    def test_use_venv_false_with_kfp_package_path(self):
+        script = self._get_shell_script(
+            packages_to_install=[],
+            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master'
+            '#subdirectory=sdk/python',
+            use_venv=False,
+        )
+        self.assertIn('--break-system-packages', script)
+
+    def test_use_venv_false_with_user_and_kfp_packages(self):
+        # Both user-package install and KFP install commands must carry the flag.
+        script = self._get_shell_script(
+            packages_to_install=['scikit-learn'],
+            use_venv=False,
+        )
+        # Count occurrences: one for user packages, one for kfp.
+        self.assertGreaterEqual(script.count('--break-system-packages'), 2)
+
+
 class TestInvalidParameterName(unittest.TestCase):
 
     def test_output_named_Output(self):
