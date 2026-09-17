@@ -567,7 +567,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
               onElementClick={onElementSelection}
               setFlowElements={(elems) => setFlowElements(elems)}
-              selectedNodeId={selectedNode?.id}
             />
 
             {/* Side panel for Execution, Artifact, Sub-DAG. */}
