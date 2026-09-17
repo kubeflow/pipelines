@@ -1,171 +1,153 @@
-# This workflow checks if all CI checks have passed by polling every 5 minutes.
-# It also records whether the triggering run actually completed that poll,
-# so downstream label automation can distinguish real passes from no-op successes.
+# Only trusted base-branch code is executed by this status publisher.
 name: CI Check
 
 on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
   pull_request_target:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]
+  workflow_run:
+    # Explicit constituents prevent CI Check from recursively triggering itself.
+    workflows:
+      - 'API Server Tests'
+      - 'KFP backend visualization tests'
+      - 'Build tools images'
+      - 'CI Scripts Tests'
+      - 'Workflow Compiler Tests'
+      - 'KFP Docs Freshness'
+      - 'Documentation'
+      - 'KFP e2e frontend tests'
+      - 'KFP E2E Pipeline tests'
+      - 'Frontend Tests'
+      - 'Go Builder Image Digests'
+      - 'KFP API Integration v1 tests'
+      - 'kfp-kubernetes library tests'
+      - 'KFP Python Client Tests'
+      - 'KFP SDK Tests'
+      - 'KFP SDK Unit Tests'
+      - 'KFP Webhook Integration'
+      - 'KFP Manifests'
+      - 'KFP Kubernetes Native Migration Tests'
+      - 'KFP API Integration V2 (Legacy)'
+      - 'pre-commit'
+      - 'KFP Backend Tests'
+      - 'Python Syntax'
+      - 'KFP Readthedocs Release Readiness'
+      - 'Runtime Base Images'
+      - 'KFP SDK Docformatter Test'
+      - 'KFP SDK Isort Test'
+      - 'KFP SDK Upgrade Test'
+      - 'KFP SDK YAPF Tests'
+      - 'KFP upgrade tests'
+      - 'Validate Generated Files'
+    types: [requested, in_progress, completed]
+
+permissions:
+  contents: read
 
 jobs:
-  check_ci_status:
-    # GitHub Actions cannot filter pull_request_target events by label name.
-    # Skip unrelated labels before entering concurrency so Dependabot/Prow label
-    # bursts cannot leave cancelled checks on the current head SHA.
-    if: >-
-      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
-      (github.event.action == 'labeled' && github.event.label.name == 'ok-to-test') ||
-      (github.event.action == 'unlabeled' && github.event.label.name == 'needs-ok-to-test')
-    concurrency:
-      # Label and reopen events use a unique group because cancelling a run for
-      # the same head SHA would make that commit's check rollup red.
-      group: >-
-        ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{
-          (github.event.action == 'opened' || github.event.action == 'synchronize')
-          && 'head-update' || github.run_id
-        }}
-      # A synchronize event moves the PR to a new head SHA, so cancelling the
-      # prior run cannot make the current commit's check rollup red.
-      cancel-in-progress: ${{ github.event.action == 'synchronize' }}
+  recovery_candidates:
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+      statuses: read
+      contents: read
+    outputs:
+      candidates: ${{ steps.list.outputs.result }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: list
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {recoveryCandidates} = require('./.github/resources/scripts/ci_passed.js');
+            return await recoveryCandidates({github, context});
+
+  check_ci_status:
+    name: check_ci_status
+    needs: recovery_candidates
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        candidate: ${{ fromJSON(needs.recovery_candidates.outputs.candidates || '[{"number":0,"head":""}]') }}
+    if: >-
+      always() && !cancelled() && (
+      (github.event_name == 'schedule' && needs.recovery_candidates.result == 'success' && needs.recovery_candidates.outputs.candidates != '[]') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
+      (github.event_name == 'pull_request_target' &&
+        ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+         github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')))
+    concurrency:
+      # GitHub can replace pending runs. Each survivor reads current PR, CI,
+      # and durable retarget history; correctness never depends on event order.
+      group: ci-passed-reconcile-${{ matrix.candidate.head || github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       actions: read
       checks: read
+      contents: read
+      issues: write
+      pull-requests: read
+      statuses: write
     steps:
-      - name: Determine whether CI polling is needed
-        id: eligibility
-        env:
-          EVENT_ACTION: ${{ github.event.action }}
-          LABEL_NAME: ${{ github.event.label.name }}
-        shell: bash
-        run: |
-          should_poll=false
-          reason="CI polling is not needed for this pull request event."
-
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" != "true" ]]; then
-            reason="PR is not yet labeled ok-to-test."
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
-            reason="PR still has the needs-ok-to-test label."
-          elif [[ "${EVENT_ACTION}" == "labeled" && "${LABEL_NAME}" != "ok-to-test" ]]; then
-            reason="Added label '${LABEL_NAME}' does not change CI eligibility."
-          elif [[ "${EVENT_ACTION}" == "unlabeled" && "${LABEL_NAME}" != "needs-ok-to-test" ]]; then
-            reason="Removed label '${LABEL_NAME}' does not change CI eligibility."
-          else
-            should_poll=true
-            reason="PR is eligible; running CI status polling."
-          fi
-
-          echo "should_poll=${should_poll}" >> "$GITHUB_OUTPUT"
-          echo "reason=${reason}" >> "$GITHUB_OUTPUT"
-          echo "${reason}"
-
-      - name: Wait for action_required workflow runs to be approved
-        id: approval_gate
-        if: steps.eligibility.outputs.should_poll == 'true'
-        uses: actions/github-script@v9
+      - name: Check out the trusted workflow revision
+        uses: actions/checkout@v7
         with:
-          retries: 3
+          # For both events github.sha is a base/default-branch commit,
+          # never the pull request head or a workflow_run artifact.
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Resolve PR and verify expected CI workflows
+        env:
+          CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}
+          CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}
+        id: prepare
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
           script: |
-            const headSha = context.payload.pull_request.head.sha;
-            // Timing: approve window (60s) < this gate (300s) < allcheckspassed delay (5min)
-            const maxAttempts = 31;
-            const intervalMs = 10_000;
-            const initialDelayMs = 15_000;
+            const {prepare} = require('./.github/resources/scripts/ci_passed.js');
+            await prepare({github, context, core, recovery: {
+              number: Number(process.env.CI_RECOVERY_NUMBER),
+              head: process.env.CI_RECOVERY_HEAD}});
 
-            const listRequest = {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              event: "pull_request",
-              status: "action_required",
-              head_sha: headSha,
-            };
-
-            // Wait for GitHub to finish registering workflow runs before the first check
-            core.info(`Waiting ${initialDelayMs / 1000}s for workflow runs to be registered...`);
-            await new Promise(r => setTimeout(r, initialDelayMs));
-
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-              core.info(`[Attempt ${attempt}/${maxAttempts}] Checking for action_required runs for ${headSha}`);
-              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
-
-              if (runs.length === 0) {
-                core.info("No action_required workflow runs found. All runs have been approved.");
-                return;
-              }
-
-              core.info(`Found ${runs.length} action_required run(s): ${runs.map(r => r.name).join(', ')}`);
-
-              if (attempt < maxAttempts) {
-                core.info(`Waiting ${intervalMs / 1000}s for approval...`);
-                await new Promise(r => setTimeout(r, intervalMs));
-              }
-            }
-
-            core.setFailed(
-              `${headSha} still has action_required workflow runs after ${(maxAttempts - 1) * intervalMs / 1000}s. ` +
-              `CI cannot pass while workflows are awaiting approval.`
-            );
-
-      - name: Check if all CI checks passed
+      - name: Check all current CI results
         id: poll
-        if: steps.eligibility.outputs.should_poll == 'true' && steps.approval_gate.outcome == 'success'
+        if: steps.prepare.outputs.ready == 'true'
+        continue-on-error: true
         uses: wechuli/allcheckspassed@e4240aa9cc76fd6828ce27a71ad16c406c25adb3
         with:
-          delay: '5'
-          retries: '10'
-          polling_interval: '5'
-          # Exclude checks dynamically created by the GitHub Copilot pull request reviewer.
-          # These checks fail with HTTP 403 on fork PRs due to permission limitations,
-          # causing false negatives in the status gate. If the Copilot reviewer adds or
-          # renames checks, update this list accordingly.
-          checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+          commit_sha: ${{ steps.prepare.outputs.head_sha }}
+          # Completion events and scheduled sweeps drive recovery. Never hold
+          # the shared writer while waiting for external checks.
+          poll: 'false'
+          ignore_superseded_runs: 'true'
+          # Expected workflow completion is verified independently; these
+          # exclusions cannot hide a failing constituent workflow.
+          checks_exclude: '^check_ci_status( \(.*\))?$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+          token: ${{ github.token }}
+
+      - name: Reconcile status and informational label
+        if: always() && steps.prepare.outputs.pr_number != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Skip CI polling with success
-        if: steps.eligibility.outputs.should_poll != 'true'
-        run: echo "${{ steps.eligibility.outputs.reason }}"
-
-      - name: Record CI check result
-        if: always()
-        shell: bash
-        run: |
-          mkdir -p ci-check-result
-
-          should_poll="${{ steps.eligibility.outputs.should_poll }}"
-          poll_outcome="${{ steps.poll.outcome }}"
-          should_add_label=false
-
-          if [[ -z "${should_poll}" ]]; then
-            should_poll=false
-          fi
-
-          if [[ -z "${poll_outcome}" ]]; then
-            poll_outcome=skipped
-          fi
-
-          if [[ "${should_poll}" == "true" && "${poll_outcome}" == "success" ]]; then
-            should_add_label=true
-          fi
-
-          jq -n \
-            --arg pr_number "${{ github.event.pull_request.number }}" \
-            --arg head_sha "${{ github.event.pull_request.head.sha }}" \
-            --arg poll_outcome "${poll_outcome}" \
-            --argjson should_poll "${should_poll}" \
-            --argjson should_add_label "${should_add_label}" \
-            '{
-              pr_number: $pr_number,
-              head_sha: $head_sha,
-              should_poll: $should_poll,
-              poll_outcome: $poll_outcome,
-              should_add_label: $should_add_label
-            }' > ci-check-result/result.json
-
-      - name: Upload CI check result
-        if: always()
-        uses: actions/upload-artifact@v7
+          CI_PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
+          CI_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
+          CI_PR_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
+          CI_POLL_PASSED: ${{ steps.poll.outcome == 'success' }}
         with:
-          name: ci-check-result
-          path: ci-check-result/result.json
-          if-no-files-found: error
+          script: |
+            const {finalize} = require('./.github/resources/scripts/ci_passed.js');
+            await finalize({github, context, core,
+              number: process.env.CI_PR_NUMBER,
+              head: process.env.CI_HEAD_SHA,
+              before: process.env.CI_PR_SNAPSHOT,
+              pollPassed: process.env.CI_POLL_PASSED === 'true'});
