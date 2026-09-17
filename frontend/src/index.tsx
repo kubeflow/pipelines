@@ -18,14 +18,14 @@
 import 'src/build/tailwind.output.css';
 import '@xyflow/react/dist/style.css';
 import React, { StrictMode } from 'react';
-import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
+import { StyledEngineProvider } from '@mui/material/styles';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter } from 'react-router';
 import { cssRule } from 'typestyle';
 import { NavigationErrorBoundary } from './atoms/NavigationErrorBoundary';
 import Router from './components/Router';
-import { fonts, theme } from './Css';
+import { fonts } from './Css';
 import { initFeatures } from './features';
 import { Deployments, KFP_FLAGS } from './lib/Flags';
 import { GkeMetadataProvider } from './lib/GkeMetadata';
@@ -35,6 +35,7 @@ import {
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
 import { BuildInfoProvider } from './lib/BuildInfo';
+import { AppThemeProvider } from './lib/ThemeContext';
 // TODO: license headers
 
 if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
@@ -42,8 +43,6 @@ if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
 }
 
 cssRule('html, body, #root', {
-  background: 'white',
-  color: 'rgba(0, 0, 0, .66)',
   display: 'flex',
   fontFamily: fonts.main,
   fontSize: 13,
@@ -57,7 +56,7 @@ export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
     <StyledEngineProvider injectFirst>
-      <ThemeProvider theme={theme}>
+      <AppThemeProvider>
         <BuildInfoProvider>
           <GkeMetadataProvider>
             <HashRouter>
@@ -67,7 +66,7 @@ const app = (
             </HashRouter>
           </GkeMetadataProvider>
         </BuildInfoProvider>
-      </ThemeProvider>
+      </AppThemeProvider>
     </StyledEngineProvider>
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
