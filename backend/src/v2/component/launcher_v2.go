@@ -266,6 +266,10 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		config:    bucketConfig,
 	}
 
+	if err = configureCustomCA(l.options.CaCertPath); err != nil {
+		return err
+	}
+
 	bucket, err := objectstore.OpenBucket(
 		openBucketConfig.ctx,
 		openBucketConfig.k8sClient,
@@ -290,7 +294,6 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		l.options.Namespace,
 		l.clientManager.K8sClient(),
 		l.options.PublishLogs,
-		l.options.CaCertPath,
 		openBucketConfig,
 	)
 	if err != nil {
@@ -414,7 +417,6 @@ func executeV2(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	publishLogs string,
-	customCAPath string,
 	openBucketConfig *OpenBucketConfig,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 	qualifyExecutorLogsForRetry(ctx, executorInput, publishLogs, namespace, k8sClient)
@@ -443,7 +445,6 @@ func executeV2(
 		namespace,
 		k8sClient,
 		publishLogs,
-		customCAPath,
 	)
 	if err != nil {
 		glog.Errorf("Component failed to execute successfully: %v", err)
@@ -664,30 +665,7 @@ func execute(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	publishLogs string,
-	customCAPath string,
 ) (*pipelinespec.ExecutorOutput, error) {
-	// If a custom CA path is input, append to system CA and save to a temp file for executor access.
-	if customCAPath != "" {
-		var caBundleTmpPath string
-		var err error
-		if caBundleTmpPath, err = compileTempCABundleWithCustomCA(customCAPath); err != nil {
-			return nil, err
-		}
-
-		err = os.Setenv("REQUESTS_CA_BUNDLE", caBundleTmpPath)
-		if err != nil {
-			glog.Errorf("Error setting REQUESTS_CA_BUNDLE environment variable, %s", err.Error())
-		}
-		err = os.Setenv("AWS_CA_BUNDLE", caBundleTmpPath)
-		if err != nil {
-			glog.Errorf("Error setting AWS_CA_BUNDLE environment variable, %s", err.Error())
-		}
-		err = os.Setenv("SSL_CERT_FILE", caBundleTmpPath)
-		if err != nil {
-			glog.Errorf("Error setting SSL_CERT_FILE environment variable, %s", err.Error())
-		}
-
-	}
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
 	}
@@ -717,6 +695,25 @@ func execute(
 	}
 
 	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
+}
+
+func configureCustomCA(customCAPath string) error {
+	if customCAPath == "" {
+		return nil
+	}
+
+	caBundleTmpPath, err := compileTempCABundleWithCustomCA(customCAPath)
+	if err != nil {
+		return err
+	}
+
+	for _, envVar := range []string{"REQUESTS_CA_BUNDLE", "AWS_CA_BUNDLE", "SSL_CERT_FILE"} {
+		if err := os.Setenv(envVar, caBundleTmpPath); err != nil {
+			glog.Errorf("Error setting %s environment variable, %s", envVar, err.Error())
+		}
+	}
+
+	return nil
 }
 
 // Create a temp file that contains the system CA bundle (and custom CA if it has been mounted).
