@@ -81,6 +81,25 @@ spec:
           requests:
             cpu: 120m
             memory: 500Mi
+        ports:
+          - name: http
+            containerPort: 9090
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          failureThreshold: 30
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+          periodSeconds: 10
         volumeMounts:
           - mountPath: /var/run/secrets/kubeflow/tokens
             name: persistenceagent-sa-token
