@@ -1075,6 +1075,27 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 	return executionsMap, nil
 }
 
+// UpdateExecutionPluginProperties persists plugin state on an existing execution,
+// preserving its other metadata. The caller must serialize execution updates,
+// as with PrePublishExecution. The local handle is updated only on success.
+func (c *Client) UpdateExecutionPluginProperties(ctx context.Context, execution *Execution, properties map[string]string) error {
+	if execution.GetID() == 0 {
+		return fmt.Errorf("cannot update plugin properties without an execution ID")
+	}
+	updated := proto.Clone(execution.Execution).(*pb.Execution)
+	if updated.CustomProperties == nil {
+		updated.CustomProperties = make(map[string]*pb.Value)
+	}
+	for key, value := range properties {
+		updated.CustomProperties[key] = StringValue(value)
+	}
+	if _, err := c.svc.PutExecution(ctx, &pb.PutExecutionRequest{Execution: updated}); err != nil {
+		return fmt.Errorf("failed to update plugin properties for execution %d: %w", execution.GetID(), err)
+	}
+	execution.Execution = updated
+	return nil
+}
+
 // GetEventsByArtifactIDs ...
 func (c *Client) GetEventsByArtifactIDs(ctx context.Context, artifactIds []int64) ([]*pb.Event, error) {
 	req := &pb.GetEventsByArtifactIDsRequest{ArtifactIds: artifactIds}

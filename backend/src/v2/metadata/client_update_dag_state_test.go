@@ -23,38 +23,38 @@ import (
 	"google.golang.org/grpc"
 )
 
-// mockMLMDClient embeds the MetadataStoreServiceClient interface and overrides
+// MockMLMDClient embeds the MetadataStoreServiceClient interface and overrides
 // only the methods exercised by UpdateDAGExecutionsState's call chain.
 // Calling any non-overridden method panics (nil receiver on the embedded
 // interface), which is intentional — it surfaces unexpected calls immediately.
-type mockMLMDClient struct {
+type MockMLMDClient struct {
 	pb.MetadataStoreServiceClient
 
 	getExecutionsByContextFn func(ctx context.Context, req *pb.GetExecutionsByContextRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error)
 	getExecutionsByIDFn      func(ctx context.Context, req *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error)
 	getContextsByExecutionFn func(ctx context.Context, req *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error)
 	getContextTypeFn         func(ctx context.Context, req *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error)
-	putExecutionFn           func(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error)
+	PutExecutionFn           func(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error)
 }
 
-func (m *mockMLMDClient) GetExecutionsByContext(ctx context.Context, req *pb.GetExecutionsByContextRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
+func (m *MockMLMDClient) GetExecutionsByContext(ctx context.Context, req *pb.GetExecutionsByContextRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
 	return m.getExecutionsByContextFn(ctx, req, opts...)
 }
 
-func (m *mockMLMDClient) GetExecutionsByID(ctx context.Context, req *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
+func (m *MockMLMDClient) GetExecutionsByID(ctx context.Context, req *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error) {
 	return m.getExecutionsByIDFn(ctx, req, opts...)
 }
 
-func (m *mockMLMDClient) GetContextsByExecution(ctx context.Context, req *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error) {
+func (m *MockMLMDClient) GetContextsByExecution(ctx context.Context, req *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error) {
 	return m.getContextsByExecutionFn(ctx, req, opts...)
 }
 
-func (m *mockMLMDClient) GetContextType(ctx context.Context, req *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error) {
+func (m *MockMLMDClient) GetContextType(ctx context.Context, req *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error) {
 	return m.getContextTypeFn(ctx, req, opts...)
 }
 
-func (m *mockMLMDClient) PutExecution(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
-	return m.putExecutionFn(ctx, req, opts...)
+func (m *MockMLMDClient) PutExecution(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
+	return m.PutExecutionFn(ctx, req, opts...)
 }
 
 // ---------- helpers ----------
@@ -85,10 +85,10 @@ func buildMock(
 	contextsByExecution map[int64][]*pb.Context,
 	executionsByContext map[int64][]*pb.Execution,
 	putExecutionFn func(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error),
-) *mockMLMDClient {
+) *MockMLMDClient {
 	contextTypeID := int64(100)
 
-	return &mockMLMDClient{
+	return &MockMLMDClient{
 		getExecutionsByContextFn: func(_ context.Context, req *pb.GetExecutionsByContextRequest, _ ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
 			contextID := req.GetContextId()
 			return &pb.GetExecutionsByContextResponse{
@@ -115,7 +115,7 @@ func buildMock(
 				ContextType: &pb.ContextType{Id: &contextTypeID},
 			}, nil
 		},
-		putExecutionFn: putExecutionFn,
+		PutExecutionFn: putExecutionFn,
 	}
 }
 
@@ -357,7 +357,7 @@ func TestUpdateDAGExecutionsState_RecursivePropagation(t *testing.T) {
 			sharedContexts := []*pb.Context{pipelineCtx, runCtx}
 
 			callCount := 0
-			mock := &mockMLMDClient{
+			mock := &MockMLMDClient{
 				getExecutionsByContextFn: func(_ context.Context, _ *pb.GetExecutionsByContextRequest, _ ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
 					callCount++
 					switch callCount {
@@ -386,7 +386,7 @@ func TestUpdateDAGExecutionsState_RecursivePropagation(t *testing.T) {
 						ContextType: &pb.ContextType{Id: &pipelineCtxTypeID},
 					}, nil
 				},
-				putExecutionFn: defaultPutExecution(store),
+				PutExecutionFn: defaultPutExecution(store),
 			}
 
 			client := newTestClient(mock)
@@ -458,11 +458,11 @@ func TestUpdateDAGExecutionsState_PropagationStopsAtRootDAG(t *testing.T) {
 func TestUpdateDAGExecutionsState_ErrorPropagation(t *testing.T) {
 	tests := []struct {
 		name      string
-		setupMock func() *mockMLMDClient
+		setupMock func() *MockMLMDClient
 	}{
 		{
 			name: "PutExecution error",
-			setupMock: func() *mockMLMDClient {
+			setupMock: func() *MockMLMDClient {
 				dagExecution := makeExecution(10, pb.Execution_RUNNING, map[string]*pb.Value{
 					keyTotalDagTasks: intValue(1),
 				})
@@ -484,8 +484,8 @@ func TestUpdateDAGExecutionsState_ErrorPropagation(t *testing.T) {
 		},
 		{
 			name: "GetExecutionsByContext error",
-			setupMock: func() *mockMLMDClient {
-				return &mockMLMDClient{
+			setupMock: func() *MockMLMDClient {
+				return &MockMLMDClient{
 					getExecutionsByContextFn: func(_ context.Context, _ *pb.GetExecutionsByContextRequest, _ ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
 						return nil, fmt.Errorf("simulated context query failure")
 					},
@@ -494,7 +494,7 @@ func TestUpdateDAGExecutionsState_ErrorPropagation(t *testing.T) {
 		},
 		{
 			name: "parent DAG not found during recursion",
-			setupMock: func() *mockMLMDClient {
+			setupMock: func() *MockMLMDClient {
 				dagExecution := makeExecution(10, pb.Execution_RUNNING, map[string]*pb.Value{
 					keyTotalDagTasks: intValue(1),
 					keyParentDagID:   intValue(99),
