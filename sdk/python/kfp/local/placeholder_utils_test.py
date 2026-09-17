@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for placeholder_utils.py."""
 
+import datetime
 import json
 import os
 import tempfile
@@ -122,6 +123,72 @@ class TestReplacePlaceholders(unittest.TestCase):
         ]
         self.assertEqual(actual, expected)
 
+    def test_replace_placeholders_with_utc_timestamps(self):
+        """Test that replace_placeholders() correctly resolves UTC timestamp
+        placeholders.
+
+        This test verifies the full path where utc_timestamp is
+        generated internally within replace_placeholders() and
+        propagated through the resolution hierarchy. Verifies that the
+        timestamps match the expected ISO8601 format and are identical
+        across different timestamp placeholders in the same command.
+        """
+        import re
+
+        iso8601_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$'
+
+        full_command = [
+            'task',
+            '--create-time={{$.pipeline_job_create_time_utc}}',
+            '--schedule-time={{$.pipeline_job_schedule_time_utc}}',
+            '--resource-name={{$.pipeline_job_resource_name}}',
+        ]
+
+        actual = placeholder_utils.replace_placeholders(
+            full_command=full_command,
+            executor_input_dict=EXECUTOR_INPUT_DICT,
+            pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
+            task_resource_name='comp',
+            pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            unique_pipeline_id='job-123',
+        )
+
+        # Verify the command was resolved correctly
+        self.assertEqual(len(actual), 4)
+        self.assertEqual(actual[0], 'task')
+
+        # Extract the timestamp values from the resolved command
+        create_time_match = re.search(r'--create-time=(.+)$', actual[1])
+        schedule_time_match = re.search(r'--schedule-time=(.+)$', actual[2])
+
+        self.assertIsNotNone(
+            create_time_match,
+            f'Could not extract create-time from {actual[1]!r}')
+        self.assertIsNotNone(
+            schedule_time_match,
+            f'Could not extract schedule-time from {actual[2]!r}')
+
+        create_timestamp = create_time_match.group(1)
+        schedule_timestamp = schedule_time_match.group(1)
+
+        # Verify both timestamps are valid ISO8601 format
+        self.assertRegex(
+            create_timestamp, iso8601_pattern,
+            f'Create timestamp {create_timestamp!r} is not valid ISO8601')
+        self.assertRegex(
+            schedule_timestamp, iso8601_pattern,
+            f'Schedule timestamp {schedule_timestamp!r} is not valid ISO8601')
+
+        # Verify both timestamps are identical (stability within replace_placeholders call)
+        self.assertEqual(
+            create_timestamp, schedule_timestamp,
+            'Create and schedule timestamps must be identical within same replace_placeholders() call'
+        )
+
+        # Verify resource name is resolved
+        self.assertEqual(
+            actual[3], '--resource-name=my-pipeline-2023-10-10-13-32-59-420710')
+
 
 class TestResolveIndividualPlaceholder(parameterized.TestCase):
 
@@ -142,6 +209,10 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
         ),
         (
             '{{$.pipeline_job_name}}',
+            'my-pipeline-2023-10-10-13-32-59-420710',
+        ),
+        (
+            '{{$.pipeline_job_resource_name}}',
             'my-pipeline-2023-10-10-13-32-59-420710',
         ),
         (
@@ -292,6 +363,129 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
             pipeline_task_id='987654321',
         )
         self.assertEqual(actual, expected)
+
+    def test_pipeline_job_create_time_utc_placeholder(self):
+        """Test that create and schedule timestamps are stable and match for
+        the same run context.
+
+        Verifies that multiple calls to resolve create/schedule time
+        placeholders return the same timestamp value, ensuring the
+        utc_timestamp is not regenerated per call. This catches
+        regressions where datetime.now() might be called per placeholder
+        resolution instead of using the stable utc_timestamp parameter.
+        """
+        utc_timestamp = datetime.datetime.now(
+            datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        iso8601_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$'
+        kwargs = dict(
+            executor_input_dict=EXECUTOR_INPUT_DICT,
+            pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
+            task_resource_name='comp',
+            pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            pipeline_job_id='123456789',
+            pipeline_task_id='987654321',
+            utc_timestamp=utc_timestamp,
+        )
+        # Resolve create time multiple times
+        actual_create_1 = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_create_time_utc}}', **kwargs)
+        actual_create_2 = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_create_time_utc}}', **kwargs)
+        # Resolve schedule time multiple times
+        actual_schedule_1 = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_schedule_time_utc}}', **kwargs)
+        actual_schedule_2 = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_schedule_time_utc}}', **kwargs)
+
+        # Verify format is valid
+        self.assertRegex(actual_create_1, iso8601_pattern)
+        self.assertRegex(actual_schedule_1, iso8601_pattern)
+
+        # Verify stability: multiple calls to the same placeholder return the same value
+        self.assertEqual(
+            actual_create_1, actual_create_2,
+            'Multiple calls to create_time_utc should return identical values')
+        self.assertEqual(
+            actual_schedule_1, actual_schedule_2,
+            'Multiple calls to schedule_time_utc should return identical values'
+        )
+
+        # Verify semantic equivalence: create and schedule times are the same
+        self.assertEqual(
+            actual_create_1, actual_schedule_1,
+            'Create and schedule timestamps must be identical for the same job context'
+        )
+
+    def test_pipeline_job_schedule_time_utc_placeholder(self):
+        """Test that schedule time placeholder returns stable timestamps across
+        multiple calls.
+
+        Verifies that multiple resolutions of the schedule_time_utc
+        placeholder return the same timestamp value within a single job
+        context, ensuring the timestamp does not change between
+        placeholder resolutions.
+        """
+        utc_timestamp = datetime.datetime.now(
+            datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        iso8601_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$'
+        kwargs = dict(
+            executor_input_dict=EXECUTOR_INPUT_DICT,
+            pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
+            task_resource_name='comp',
+            pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            pipeline_job_id='123456789',
+            pipeline_task_id='987654321',
+            utc_timestamp=utc_timestamp,
+        )
+        # Resolve schedule time multiple times to verify stability
+        actual_1 = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_schedule_time_utc}}', **kwargs)
+        actual_2 = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_schedule_time_utc}}', **kwargs)
+        actual_3 = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_schedule_time_utc}}', **kwargs)
+
+        # Verify format is valid ISO8601
+        self.assertRegex(actual_1, iso8601_pattern)
+        self.assertRegex(actual_2, iso8601_pattern)
+        self.assertRegex(actual_3, iso8601_pattern)
+
+        # Verify stability: all calls return the same timestamp
+        self.assertEqual(
+            actual_1, actual_2,
+            'Multiple calls to schedule_time_utc should return identical values'
+        )
+        self.assertEqual(
+            actual_2, actual_3,
+            'Multiple calls to schedule_time_utc should return identical values'
+        )
+
+    def test_utc_timestamp_placeholder_without_explicit_timestamp(self):
+        """Test behavior when UTC timestamp placeholders are resolved without
+        explicit utc_timestamp.
+
+        Documents the current behavior: when utc_timestamp parameter is not provided
+        (defaults to empty string), the placeholder is replaced with an empty string.
+        This is generally safe when called from replace_placeholders() which always
+        provides a utc_timestamp, but direct calls to resolve_individual_placeholder()
+        without utc_timestamp could produce unexpected empty values.
+
+        This test serves as a regression check and documents the current contract.
+        """
+        # When utc_timestamp is not provided (defaults to ''), the placeholder
+        # is replaced with an empty string
+        actual = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.pipeline_job_create_time_utc}}',
+            executor_input_dict=EXECUTOR_INPUT_DICT,
+            pipeline_resource_name='my-pipeline-2023-10-10-13-32-59-420710',
+            task_resource_name='comp',
+            pipeline_root='/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            pipeline_job_id='123456789',
+            pipeline_task_id='987654321',
+            # utc_timestamp is not provided, defaults to ''
+        )
+        # The placeholder is replaced with an empty string
+        self.assertEqual(actual, '')
 
 
 class TestGetValueUsingPath(unittest.TestCase):

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for working with placeholders."""
+import datetime
 import functools
 import json
 import random
@@ -38,12 +39,27 @@ def replace_placeholders(
 ) -> List[str]:
     """Iterates over each element in the command and replaces placeholders.
 
-    This should only be called once per each task, since the task's
-    random ID is created within the scope of the function. Multiple
-    calls on the same task will result in multiple random IDs per single
-    task.
+    Args:
+        full_command: List of command elements to process.
+        executor_input_dict: The executor input dictionary.
+        pipeline_resource_name: Pipeline display name or resource identifier.
+            Used for both {{$.pipeline_job_name}} and
+            {{$.pipeline_job_resource_name}} in local execution.
+        task_resource_name: Task display name.
+        pipeline_root: Root directory for pipeline artifacts.
+        unique_pipeline_id: Unique identifier for the pipeline run.
+
+    Returns:
+        List of command elements with all placeholders resolved.
+
+    Note:
+        This function should only be called once per task, as it generates
+        a unique task ID and UTC timestamp internally. Multiple calls on
+        the same task will result in different random IDs and timestamps.
     """
     unique_task_id = make_random_id()
+    utc_timestamp = datetime.datetime.now(
+        datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     executor_input_dict = resolve_self_references_in_executor_input(
         executor_input_dict=executor_input_dict,
         pipeline_resource_name=pipeline_resource_name,
@@ -51,6 +67,7 @@ def replace_placeholders(
         pipeline_root=pipeline_root,
         pipeline_job_id=unique_pipeline_id,
         pipeline_task_id=unique_task_id,
+        utc_timestamp=utc_timestamp,
     )
     provided_inputs = get_provided_inputs(executor_input_dict)
     full_command = [
@@ -70,6 +87,7 @@ def replace_placeholders(
             pipeline_root=pipeline_root,
             pipeline_job_id=unique_pipeline_id,
             pipeline_task_id=unique_task_id,
+            utc_timestamp=utc_timestamp,
         )
         if resolved_el is None:
             continue
@@ -91,6 +109,7 @@ def resolve_self_references_in_executor_input(
     pipeline_root: str,
     pipeline_job_id: str,
     pipeline_task_id: str,
+    utc_timestamp: str = '',
 ) -> Dict[str, Any]:
     """Resolve parameter placeholders that point to other parameter
     placeholders in the same ExecutorInput message.
@@ -119,6 +138,7 @@ def resolve_self_references_in_executor_input(
                     pipeline_root=pipeline_root,
                     pipeline_job_id=pipeline_job_id,
                     pipeline_task_id=pipeline_task_id,
+                    utc_timestamp=utc_timestamp,
                 )
     return executor_input_dict
 
@@ -131,6 +151,7 @@ def recursively_resolve_json_dict_placeholders(
     pipeline_root: str,
     pipeline_job_id: str,
     pipeline_task_id: str,
+    utc_timestamp: str = '',
 ) -> Any:
     """Recursively resolves any placeholders in a dictionary representation of
     a JSON object.
@@ -147,6 +168,7 @@ def recursively_resolve_json_dict_placeholders(
         pipeline_root=pipeline_root,
         pipeline_job_id=pipeline_job_id,
         pipeline_task_id=pipeline_task_id,
+        utc_timestamp=utc_timestamp,
     )
     if isinstance(obj, list):
         return [inner_fn(item) for item in obj]
@@ -161,6 +183,7 @@ def recursively_resolve_json_dict_placeholders(
             pipeline_root=pipeline_root,
             pipeline_job_id=pipeline_job_id,
             pipeline_task_id=pipeline_task_id,
+            utc_timestamp=utc_timestamp,
         )
     else:
         return obj
@@ -337,8 +360,29 @@ def resolve_individual_placeholder(
     pipeline_root: str,
     pipeline_job_id: str,
     pipeline_task_id: str,
+    utc_timestamp: str = '',
 ) -> str:
-    """Replaces placeholders for a single element."""
+    """Replaces placeholders for a single element.
+
+    Args:
+        element: The command element containing placeholders to resolve.
+        executor_input_dict: The executor input dictionary.
+        pipeline_resource_name: Pipeline display name or resource identifier.
+        task_resource_name: Task display name.
+        pipeline_root: Root directory for pipeline artifacts.
+        pipeline_job_id: Unique identifier for the pipeline run.
+        pipeline_task_id: Unique identifier for the task.
+        utc_timestamp: ISO8601-formatted UTC timestamp string. If not provided
+            (defaults to empty string), timestamp placeholders
+            ({{$.pipeline_job_create_time_utc}} and
+            {{$.pipeline_job_schedule_time_utc}}) will be replaced with
+            an empty string. This parameter should be provided by
+            replace_placeholders(), which generates a timestamp for all
+            placeholders in a command.
+
+    Returns:
+        The element with all placeholders resolved.
+    """
 
     if dsl.WORKSPACE_PATH_PLACEHOLDER in element or dsl_constants.WORKSPACE_MOUNT_PATH in element:
         # Ensure local config and workspace are available
@@ -360,6 +404,12 @@ def resolve_individual_placeholder(
                                   workspace_value)
 
     # match on literal for constant placeholders
+    # Note: In local execution, PIPELINE_JOB_NAME_PLACEHOLDER and
+    # PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER both resolve to
+    # pipeline_resource_name, which serves as both the job display name
+    # and resource identifier. This differs from remote execution where
+    # these may have different values, but local execution uses them
+    # interchangeably.
     PLACEHOLDERS = {
         r'{{$.outputs.output_file}}':
             executor_input_dict['outputs']['outputFile'],
@@ -369,8 +419,14 @@ def resolve_individual_placeholder(
             json.dumps(executor_input_dict),
         dsl.PIPELINE_JOB_NAME_PLACEHOLDER:
             pipeline_resource_name,
+        dsl.PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER:
+            pipeline_resource_name,
         dsl.PIPELINE_JOB_ID_PLACEHOLDER:
             pipeline_job_id,
+        dsl.PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER:
+            utc_timestamp,
+        dsl.PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER:
+            utc_timestamp,
         dsl.PIPELINE_TASK_NAME_PLACEHOLDER:
             task_resource_name,
         dsl.PIPELINE_TASK_ID_PLACEHOLDER:
