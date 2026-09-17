@@ -17,6 +17,7 @@ const URL = require('url').URL;
 const {
   buildTableRowSelector,
   clearDefaultInput,
+  isSelectorDisplayed,
   saveDebugScreenshot,
   selectPipelineForRun,
   waitForCondition,
@@ -186,7 +187,22 @@ describe('literal input parameter integration', () => {
     await $('#runsBtn').click();
     await waitForHashPrefix('#/runs', { timeout: uiTimeout });
 
-    await $('#createNewRunBtn').waitForDisplayed({ timeout: uiTimeout });
+    // The URL changes before React replaces the previous page's same-ID button.
+    await waitForCondition(
+      async () => {
+        const pageTitle = await $('[data-testid="page-title"]');
+        return (
+          new URL(await browser.getUrl()).hash === '#/runs' &&
+          (await pageTitle.isExisting()) &&
+          (await pageTitle.getText()) === 'Runs' &&
+          (await isSelectorDisplayed('#createNewRunBtn'))
+        );
+      },
+      {
+        timeout: uiTimeout,
+        timeoutMsg: 'expected the Runs page and Create run button to be ready',
+      },
+    );
     await $('#createNewRunBtn').click();
     await waitForHashPrefix('#/runs/new', { timeout: uiTimeout });
 
