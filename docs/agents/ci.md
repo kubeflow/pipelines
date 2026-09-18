@@ -27,6 +27,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Frontend CI also runs `frontend/scripts/check-spec-generation.sh` after installing `protoc`: pipeline and Kubernetes platform specs are generated into temporary directories and typechecked. Changes to either source proto directory trigger this workflow.
 - The frontend protobuf installation scopes both APT commands to `/etc/apt/sources.list.d/ubuntu.sources`, excluding unrelated runner repositories such as Chrome without changing their configuration or bypassing package verification. If the runner's source layout changes, update this explicit path; the step checks that it exists before running APT. Browser integration tests continue to use their separate Selenium container.
 
+- `upgrade-readiness.yml` runs dependency-free unittest coverage for `tools/upgrade-readiness` on changes to the tool or its workflow. It uses synthetic inventories and subprocesses, never cluster credentials.
+
 ## Common CI failures
 
 - Upgrade jobs remain disabled by default pending #14029. Set the repository variable `KFP_ENABLE_MLMD_UPGRADE_TESTS` to `true` only after the MLMD-to-native migration and startup gate are implemented; both image building and upgrade execution require this opt-in on PR and master runs.
