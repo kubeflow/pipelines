@@ -39,6 +39,7 @@ configuration remains unknown.
 
 Use `--format json` for automation. Exit codes:
 
+- `0`: help displayed (`--help`), not a readiness result.
 - `1`: invalid input or tool failure; no assessment is available.
 - `2`: an incomplete assessment was produced, including missing collection permissions.
 
@@ -92,7 +93,9 @@ reports the remaining scope as uncollected. Limits also include 100 selected
 namespaces, 10000 inventory objects and 256 referenced ClusterRoles. Larger scans
 should be split into explicit scopes. These caps bound collection; they are not
 pipeline-size settings. Kubernetes exec credential plugins configured in the
-selected kubeconfig still run normally through `kubectl`.
+selected kubeconfig run through `kubectl` in a private process group. On timeout
+or excessive output, the tool kills that group, including inherited plugin
+processes; it cannot contain a plugin that deliberately starts a new session.
 
 ## Offline analysis
 

@@ -19,9 +19,11 @@ from collections import Counter
 from datetime import datetime
 from datetime import timezone
 import json
+import os
 from pathlib import Path
 import re
 import selectors
+import signal
 import subprocess
 import sys
 import time
@@ -85,6 +87,13 @@ def validate_inventory(inventory):
             raise ValueError('Each inventory object requires metadata.')
         if not isinstance(obj['metadata'].get('name'), str):
             raise ValueError('Each inventory object requires a name.')
+        if obj['kind'] != 'ClusterRole' and (
+                not isinstance(obj['metadata'].get('namespace'), str) or
+                not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?',
+                                 obj['metadata']['namespace']) or
+                len(obj['metadata']['namespace']) > 63):
+            raise ValueError(
+                'Namespace-scoped objects require metadata.namespace.')
         if obj['kind'] in ('Role', 'ClusterRole'):
             rules = obj.get('rules', [])
             if not isinstance(rules, list):
@@ -102,6 +111,15 @@ def validate_inventory(inventory):
     return inventory
 
 
+def kill_process_group(process):
+    """Stop kubectl and inherited exec-plugin processes in its private
+    session."""
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+
 def kubectl_get(context, namespace, resource):
     """Bound time and buffered output; never print kubectl stderr or raw
     objects."""
@@ -113,15 +131,17 @@ def kubectl_get(context, namespace, resource):
     chunks = bytearray()
     try:
         with subprocess.Popen(
-                command, stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL) as process:
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True) as process:
             with selectors.DefaultSelector() as selector:
                 selector.register(process.stdout, selectors.EVENT_READ)
                 deadline = time.monotonic() + 30
                 while True:
                     remaining = deadline - time.monotonic()
                     if remaining <= 0 or not selector.select(remaining):
-                        process.kill()
+                        kill_process_group(process)
                         return None, 'collection_timed_out'
                     chunk = process.stdout.read1(
                         min(65536, MAX_BYTES + 1 - len(chunks)))
@@ -129,13 +149,13 @@ def kubectl_get(context, namespace, resource):
                         break
                     chunks.extend(chunk)
                     if len(chunks) > MAX_BYTES:
-                        process.kill()
+                        kill_process_group(process)
                         return None, 'collection_exceeded_16_mib'
                 try:
                     code = process.wait(
                         timeout=max(0.01, deadline - time.monotonic()))
                 except subprocess.TimeoutExpired:
-                    process.kill()
+                    kill_process_group(process)
                     return None, 'collection_timed_out'
                 if code:
                     return None, 'collection_failed'
@@ -236,6 +256,12 @@ def analyze(inventory,
         obj['metadata'].get('namespace') in namespaces
     ]
     findings = []
+    failures = list(failures or [])
+    if mode == 'offline':
+        failures.append(
+            dict(
+                resource='offline_inventory',
+                reason='offline_inventory_completeness_unverified'))
     deployments = [
         obj for obj in items if obj['kind'] == 'Deployment' and
         obj['metadata'].get('namespace') == system_namespace
@@ -244,13 +270,14 @@ def analyze(inventory,
         (obj for obj in deployments if obj['metadata']['name'] == ui_name),
         None)
     if ui is None:
-        findings.append(
-            finding(
-                'tensorboard.key', 'unknown', system_namespace + '/' + ui_name,
-                'Selected UI deployment was not collected.',
-                'Check scope, deployment name and read permissions.',
-                'Rerun with the correct --ui-deployment and installation namespace.'
-            ))
+        for rule in ('tensorboard.key', 'tensorboard.rollout'):
+            findings.append(
+                finding(
+                    rule, 'unknown', system_namespace + '/' + ui_name,
+                    'Selected UI deployment was not collected.',
+                    'Check scope, deployment name and read permissions.',
+                    'Rerun with the correct --ui-deployment and installation namespace.'
+                ))
     else:
         containers = ui.get('spec', {}).get('template',
                                             {}).get('spec',
@@ -412,8 +439,16 @@ def markdown(report):
     return '\n'.join(lines)
 
 
+class ArgumentParser(argparse.ArgumentParser):
+    """Reserve status 2 for an emitted incomplete report, not usage errors."""
+
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        self.exit(1, f'{self.prog}: error: {message}\n')
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument(
         '--context',
