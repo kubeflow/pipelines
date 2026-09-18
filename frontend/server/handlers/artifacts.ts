@@ -96,6 +96,9 @@ const MALFORMED_ARTIFACT_KEY_MESSAGE =
   'Artifact storage key contains malformed or noncanonical URI path encoding. Use the canonical artifact URI and retry.';
 const INVALID_ARTIFACT_PATH_ENCODING_MESSAGE =
   'Artifact path has malformed or noncanonical URI encoding. Use the canonical artifact URI and retry.';
+const OCI_ARTIFACT_PREVIEW_UNSUPPORTED_MESSAGE =
+  'OCI Object Storage (oci://<bucket>@<namespace>/...) artifacts cannot be previewed or downloaded through the KFP UI yet. ' +
+  'Use the OCI Console or the OCI CLI (oci os object get) to read the artifact.';
 
 export interface S3ProviderInfo {
   Provider: string;
@@ -639,6 +642,12 @@ export function getArtifactsHandler({
         '[SECURITY] Rejected artifact request whose coordinates changed after authorization',
       );
       sendArtifactError(res, 403, 'Artifact request coordinates changed after authorization');
+      return;
+    }
+    if (source === 'oci') {
+      // The launcher stores these artifacts through OCI's S3-compatible API, but the UI server has no
+      // OCI provider yet. Answer with an explicit 501 instead of an "Unknown storage source" 500.
+      sendArtifactError(res, 501, OCI_ARTIFACT_PREVIEW_UNSUPPORTED_MESSAGE);
       return;
     }
     const setArtifactFilename = (transformed: boolean) => {

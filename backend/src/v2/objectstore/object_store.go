@@ -84,6 +84,12 @@ func OpenBucket(
 		}
 	}
 
+	// OCI Object Storage has no gocloud driver of its own; it is served through
+	// the S3-compatible API of the bucket's namespace.
+	if config.Scheme == OCIScheme {
+		return openOCIBucket(ctx, k8sClient, namespace, config, sessionInfo)
+	}
+
 	bucketURL := normalizeBucketURLForBlobOpen(config.bucketURL())
 
 	// When no session info is provided for a plain s3:// or minio:// URL,
@@ -324,7 +330,12 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	return newS3Client(ctx, params, creds)
 }
 
-func newS3Client(ctx context.Context, params *S3Params, creds *credentials.StaticCredentialsProvider) (*s3.Client, error) {
+func newS3Client(
+	ctx context.Context,
+	params *S3Params,
+	creds *credentials.StaticCredentialsProvider,
+	optFns ...func(*s3.Options),
+) (*s3.Client, error) {
 	loadOptions := []func(*awsconfig.LoadOptions) error{
 		awsconfig.WithRequestChecksumCalculation(aws.RequestChecksumCalculationWhenRequired),
 		awsconfig.WithResponseChecksumValidation(aws.ResponseChecksumValidationWhenRequired),
@@ -379,7 +390,7 @@ func newS3Client(ctx context.Context, params *S3Params, creds *credentials.Stati
 			o.BaseEndpoint = aws.String(endpoint)
 		}
 	}
-	s3Client := s3.NewFromConfig(s3Config, s3Options)
+	s3Client := s3.NewFromConfig(s3Config, append([]func(*s3.Options){s3Options}, optFns...)...)
 	if s3Client == nil {
 		return nil, fmt.Errorf("failed to create object store session, %v", err)
 	}

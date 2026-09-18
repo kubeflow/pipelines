@@ -141,12 +141,57 @@ class TestConvertLocalPathToRemotePath(parameterized.TestCase):
         ('/oci/quay.io_org_repo:latest/models',
          'oci://quay.io/org/repo:latest'),
         ('/oci/quay.io_org_repo:latest', 'oci://quay.io/org/repo:latest'),
+        ('/oci/kfp-artifacts@mynamespace/run-1/model',
+         'oci://kfp-artifacts@mynamespace/run-1/model'),
+        ('/oci/kfp-artifacts@mynamespace/run_1/models',
+         'oci://kfp-artifacts@mynamespace/run_1/models'),
         ('/tmp/kfp_outputs', '/tmp/kfp_outputs'),
         ('/some/random/path', '/some/random/path'),
     ]])
     def test_gcs(self, local_path, expected):
         actual = artifact_types.convert_local_path_to_remote_path(local_path)
         self.assertEqual(actual, expected)
+
+
+class TestIsOciObjectStorageUri(parameterized.TestCase):
+
+    @parameterized.parameters([
+        ('oci://kfp-artifacts@mynamespace/run-1/model', True),
+        ('oci://kfp-artifacts@mynamespace', True),
+        ('oci://kfp-artifacts@mynamespace?region=us-ashburn-1', True),
+        ('oci://quay.io/org/repo:latest', False),
+        ('oci://quay.io/org/repo@sha256:0123abcd', False),
+        ('s3://kfp-artifacts@mynamespace/run-1/model', False),
+        ('/oci/kfp-artifacts@mynamespace/run-1/model', False),
+    ])
+    def test_is_oci_object_storage_uri(self, uri, expected):
+        self.assertEqual(
+            artifact_types.is_oci_object_storage_uri(uri), expected)
+
+
+class TestArtifactPathForRemoteUri(parameterized.TestCase):
+
+    @parameterized.parameters([
+        (dsl.Artifact, 'gs://bucket/run-1/model', '/gcs/bucket/run-1/model'),
+        (dsl.Artifact, 's3://bucket/run-1/model', '/s3/bucket/run-1/model'),
+        (dsl.Artifact, 'minio://bucket/run-1/model',
+         '/minio/bucket/run-1/model'),
+        # OCI Object Storage paths keep the bucket@namespace authority and key.
+        (dsl.Artifact, 'oci://kfp-artifacts@mynamespace/run-1/model',
+         '/oci/kfp-artifacts@mynamespace/run-1/model'),
+        (dsl.Model, 'oci://kfp-artifacts@mynamespace/run-1/model',
+         '/oci/kfp-artifacts@mynamespace/run-1/model'),
+        (dsl.Dataset, 'oci://kfp-artifacts@mynamespace/run-1/data.csv',
+         '/oci/kfp-artifacts@mynamespace/run-1/data.csv'),
+        # Modelcar container images are flattened; models expose /models.
+        (dsl.Artifact, 'oci://quay.io/org/repo:latest',
+         '/oci/quay.io_org_repo:latest'),
+        (dsl.Model, 'oci://quay.io/org/repo:latest',
+         '/oci/quay.io_org_repo:latest/models'),
+    ])
+    def test_path(self, artifact_cls, uri, expected_path):
+        artifact = artifact_cls(name='artifact', uri=uri)
+        self.assertEqual(artifact.path, expected_path)
 
 
 if __name__ == '__main__':

@@ -269,3 +269,38 @@ cases:
                 secretName: minio-test-secret-12-a
                 accessKeyKey: minio-test-accessKeyKey-12-a
                 secretKeyKey: minio-test-secretKeyKey-12-a
+  # valid
+  - name: case13
+    value: |
+      oci:
+        default:
+          region: us-ashburn-1
+          credentials:
+            fromEnv: false
+            secretRef:
+              secretName: oci-test-secret-13
+              accessKeyKey: oci-test-accessKeyKey-13
+              secretKeyKey: oci-test-secretKeyKey-13
+        overrides:
+          - bucketName: oci-bucket-a
+            namespace: oci-namespace-a
+            keyPrefix: some/oci/path/a
+            region: us-phoenix-1
+            credentials:
+              fromEnv: false
+              secretRef:
+                secretName: oci-test-secret-13-a
+                accessKeyKey: oci-test-accessKeyKey-13-a
+                secretKeyKey: oci-test-secretKeyKey-13-a
+          - bucketName: oci-bucket-a
+            keyPrefix: some/oci/path/b
+            endpoint: https://objectstorage.internal.example:8443
+            credentials:
+              fromEnv: true
+  # invalid - oci default without credentials
+  - name: case14
+    value: |
+      oci:
+        default:
+          region: us-ashburn-1
+        overrides: []
