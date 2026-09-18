@@ -35,4 +35,8 @@ export type ArtifactFlowElementData = FlowElementDataBase & {
   state?: Artifact.State;
   producerSubtask?: string;
   outputArtifactKey?: string;
+  // Execution that produced the resolved artifact (mlmdId). Together with mlmdId it
+  // uniquely identifies the OUTPUT event when an artifact carries more than one (e.g. a
+  // same-run cache hit republishes an artifact under a new execution).
+  producerExecutionId?: number;
 };

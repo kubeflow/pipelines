@@ -25,6 +25,7 @@ import {
   buildDag,
   buildGraphLayout,
   getArtifactNodeKey,
+  getKeysFromArtifactNodeKey,
   getIterationIdFromNodeKey,
   getTaskKeyFromNodeKey,
   isNode,
@@ -231,7 +232,7 @@ export function updateFlowElementsState(
   const taskNameToExecution = getTaskNameToExecution(executions);
   const executionIdToExectuion = getExectuionIdToExecution(executions);
   const artifactIdToArtifact = getArtifactIdToArtifact(artifacts);
-  const artifactNodeKeyToArtifact = getArtifactNodeKeyToArtifact(
+  const artifactNodeKeyToArtifacts = getArtifactNodeKeyToArtifacts(
     events,
     executionIdToExectuion,
     artifactIdToArtifact,
@@ -270,7 +271,10 @@ export function updateFlowElementsState(
         getTaskLabelByPipelineFlowElement(elem),
         executionLayers,
       );
-      if (executions) {
+      // The list is empty when the task ran elsewhere in the run but not in this DAG - two
+      // sibling sub-DAGs of the same component share their task names - and reading a
+      // display name off a missing execution throws.
+      if (executions && executions.length > 0) {
         (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
         // Use ExecutionHelpers.getName() which reads display_name from MLMD custom properties
@@ -279,21 +283,18 @@ export function updateFlowElementsState(
         );
       }
     } else if (NodeTypeNames.ARTIFACT === elem.type) {
-      let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
-
-      // Detect whether Artifact is an output of SubDAG, if so, search its source artifact.
-      let artifactData = elem.data as ArtifactFlowElementData;
-      if (artifactData && artifactData.outputArtifactKey && artifactData.producerSubtask) {
-        // SubDAG output artifact has reference to inner subtask and artifact.
-        const subArtifactKey = getArtifactNodeKey(
-          artifactData.producerSubtask,
-          artifactData.outputArtifactKey,
-        );
-        linkedArtifact = artifactNodeKeyToArtifact.get(subArtifactKey);
-      }
+      const linkedArtifact = resolveArtifactNodeInDag(
+        elem,
+        artifactNodeKeyToArtifacts,
+        taskNameToExecution,
+        executionIdToExectuion,
+        executionLayers,
+      );
 
       (updatedElem.data as ArtifactFlowElementData).state = linkedArtifact?.artifact?.getState();
       (updatedElem.data as ArtifactFlowElementData).mlmdId = linkedArtifact?.artifact?.getId();
+      (updatedElem.data as ArtifactFlowElementData).producerExecutionId =
+        linkedArtifact?.event.getExecutionId();
     } else if (NodeTypeNames.SUB_DAG === elem.type) {
       // TODO: Update sub-dag state based on future design.
       const executions = getExecutionsUnderDAG(
@@ -368,11 +369,6 @@ export function getNodeMlmdInfo(
   const taskNameToExecution = getTaskNameToExecution(executions);
   const executionIdToExectuion = getExectuionIdToExecution(executions);
   const artifactIdToArtifact = getArtifactIdToArtifact(artifacts);
-  const artifactNodeKeyToArtifact = getArtifactNodeKeyToArtifact(
-    events,
-    executionIdToExectuion,
-    artifactIdToArtifact,
-  );
 
   if (NodeTypeNames.EXECUTION === elem.type) {
     const taskLabel = getTaskLabelByPipelineFlowElement(elem);
@@ -381,21 +377,30 @@ export function getNodeMlmdInfo(
       ?.filter((exec) => exec.getId() === elem.data?.mlmdId);
     return executions ? { execution: executions[0] } : {};
   } else if (NodeTypeNames.ARTIFACT === elem.type) {
-    let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
-
-    // Detect whether Artifact is an output of SubDAG, if so, search its source artifact.
-    let artifactData = elem.data as ArtifactFlowElementData;
-    if (artifactData && artifactData.outputArtifactKey && artifactData.producerSubtask) {
-      // SubDAG output artifact has reference to inner subtask and artifact.
-      const subArtifactKey = getArtifactNodeKey(
-        artifactData.producerSubtask,
-        artifactData.outputArtifactKey,
-      );
-      linkedArtifact = artifactNodeKeyToArtifact.get(subArtifactKey);
+    // updateFlowElementsState resolved this node's artifact for the DAG being viewed and
+    // stamped the producing artifact id + execution id onto the node, the same way
+    // execution nodes carry their resolved mlmdId. Resolving by those ids (rather than by
+    // task_name + artifact_name) avoids a namesake artifact from a sibling sub-DAG, and the
+    // execution id disambiguates an artifact carrying more than one OUTPUT event within a
+    // run (e.g. a same-run cache hit republishes the cached artifact under a new execution).
+    const artifactData = elem.data as ArtifactFlowElementData | undefined;
+    const artifactId = artifactData?.mlmdId;
+    const producerExecutionId = artifactData?.producerExecutionId;
+    if (typeof artifactId !== 'number' || typeof producerExecutionId !== 'number') {
+      return {};
     }
-
-    const executionId = linkedArtifact?.event.getExecutionId();
-    const execution = executionId ? executionIdToExectuion.get(executionId) : undefined;
+    const artifact = artifactIdToArtifact.get(artifactId);
+    const outputEvent = events.find(
+      (event) =>
+        event.getType() === Event.Type.OUTPUT &&
+        event.getArtifactId() === artifactId &&
+        event.getExecutionId() === producerExecutionId,
+    );
+    if (!artifact || !outputEvent) {
+      return {};
+    }
+    const linkedArtifact: LinkedArtifact = { event: outputEvent, artifact };
+    const execution = executionIdToExectuion.get(producerExecutionId);
     return { execution, linkedArtifact };
   } else if (NodeTypeNames.SUB_DAG === elem.type) {
     // TODO: Update sub-dag state based on future design.
@@ -442,16 +447,22 @@ function getArtifactIdToArtifact(artifacts: Artifact[]): Map<number, Artifact> {
   return map;
 }
 
-function getArtifactNodeKeyToArtifact(
+// A single (task_name, artifact_name) pair does not uniquely identify an artifact: the
+// same component can run in sibling sub-DAGs (e.g. the same reporting task in two
+// pipelines that differ only by an input parameter), producing several executions with
+// the same task_name and the same output artifact name. Collecting every candidate here
+// lets callers disambiguate by the producing execution's DAG instead of silently keeping
+// whichever OUTPUT event happened to be processed last.
+function getArtifactNodeKeyToArtifacts(
   events: Event[],
-  executionIdToExectuion: Map<number, Execution>,
+  executionIdToExecution: Map<number, Execution>,
   artifactIdToArtifact: Map<number, Artifact>,
-): Map<string, LinkedArtifact> {
-  const map = new Map<string, LinkedArtifact>();
+): Map<string, LinkedArtifact[]> {
+  const artifactsByNodeKey = new Map<string, LinkedArtifact[]>();
   const outputEvents = events.filter((event) => event.getType() === Event.Type.OUTPUT);
   for (let event of outputEvents) {
     const executionId = event.getExecutionId();
-    const execution = executionIdToExectuion.get(executionId);
+    const execution = executionIdToExecution.get(executionId);
     if (!execution) {
       console.warn("Execution doesn't exist for ID " + executionId);
       continue;
@@ -473,9 +484,154 @@ function getArtifactNodeKeyToArtifact(
     }
     const linkedArtifact: LinkedArtifact = { event, artifact };
     const key = getArtifactNodeKey(taskName.getStringValue(), artifactName);
-    map.set(key, linkedArtifact);
+    const linkedArtifacts = artifactsByNodeKey.get(key);
+    if (linkedArtifacts) {
+      linkedArtifacts.push(linkedArtifact);
+    } else {
+      artifactsByNodeKey.set(key, [linkedArtifact]);
+    }
   }
-  return map;
+  return artifactsByNodeKey;
+}
+
+// An artifact node stands either for the output of a task in the DAG being viewed, or -
+// when its task is a sub-DAG - for the output that sub-DAG collects from an inner subtask.
+// A collected output is produced inside the sub-DAG, so it is scoped to that sub-DAG's
+// execution instead of the current one; otherwise sibling instances of the same sub-DAG
+// component collide on the inner (producerSubtask, artifact) key.
+function resolveArtifactNodeInDag(
+  artifactNode: PipelineFlowElement,
+  linkedArtifactsByNodeKey: Map<string, LinkedArtifact[]>,
+  taskNameToExecution: Map<string, Execution[]>,
+  executionIdToExecution: Map<number, Execution>,
+  executionLayers: Execution[],
+): LinkedArtifact | undefined {
+  const artifactData = artifactNode.data as ArtifactFlowElementData | undefined;
+  const producerSubtask = artifactData?.producerSubtask;
+  const outputArtifactKey = artifactData?.outputArtifactKey;
+  if (!producerSubtask || !outputArtifactKey) {
+    return selectLinkedArtifactUnderDag(
+      linkedArtifactsByNodeKey.get(artifactNode.id),
+      executionIdToExecution,
+      executionLayers[executionLayers.length - 1]?.getId(),
+    );
+  }
+
+  const [subDagTaskName] = getKeysFromArtifactNodeKey(artifactNode.id);
+  const subDagExecutionId = getExecutionsUnderDAG(
+    taskNameToExecution,
+    subDagTaskName,
+    executionLayers,
+  )?.[0]?.getId();
+  return selectLinkedArtifactUnderDag(
+    linkedArtifactsByNodeKey.get(getArtifactNodeKey(producerSubtask, outputArtifactKey)),
+    executionIdToExecution,
+    subDagExecutionId,
+  );
+}
+
+// The same component can run several times in one run - in sibling sub-DAGs, or once per
+// iteration of a ParallelFor - so a (task_name, artifact_name) key can match more than one
+// producing execution. Only a producer that belongs to the DAG being viewed can be the one
+// the node stands for: a direct child of that DAG execution, or, when the DAG collects the
+// output of a ParallelFor, a task of one of its iterations. Without such a producer the
+// node stays unresolved. Being the only candidate is not evidence of ownership either: a
+// task whose own producer is still pending would otherwise borrow a namesake artifact from
+// elsewhere in the run.
+function selectLinkedArtifactUnderDag(
+  candidateLinkedArtifacts: LinkedArtifact[] | undefined,
+  executionIdToExecution: Map<number, Execution>,
+  dagExecutionId: number | undefined,
+): LinkedArtifact | undefined {
+  if (!candidateLinkedArtifacts || dagExecutionId === undefined) {
+    return undefined;
+  }
+  const artifactOfDirectChild = candidateLinkedArtifacts.find(
+    (linkedArtifact) =>
+      getParentDagId(getProducingExecution(linkedArtifact, executionIdToExecution)) ===
+      dagExecutionId,
+  );
+  return (
+    artifactOfDirectChild ??
+    selectLinkedArtifactOfLowestIteration(
+      candidateLinkedArtifacts,
+      executionIdToExecution,
+      dagExecutionId,
+    )
+  );
+}
+
+type IterationArtifactCandidate = {
+  linkedArtifact: LinkedArtifact;
+  iterationIndex: number;
+};
+
+// A ParallelFor runs its tasks once per iteration, each under its own iteration execution,
+// so the artifact the loop collects is produced two layers below it. A single graph node
+// stands for the whole collection; resolving it to the lowest iteration keeps that choice
+// stable across renders.
+function selectLinkedArtifactOfLowestIteration(
+  candidateLinkedArtifacts: LinkedArtifact[],
+  executionIdToExecution: Map<number, Execution>,
+  loopExecutionId: number,
+): LinkedArtifact | undefined {
+  const iterationCandidates = candidateLinkedArtifacts
+    .map((linkedArtifact) => ({
+      linkedArtifact,
+      iterationIndex: getIterationIndexUnderLoop(
+        linkedArtifact,
+        executionIdToExecution,
+        loopExecutionId,
+      ),
+    }))
+    .filter(
+      (candidate): candidate is IterationArtifactCandidate =>
+        candidate.iterationIndex !== undefined,
+    )
+    .sort((first, second) => first.iterationIndex - second.iterationIndex);
+  return iterationCandidates[0]?.linkedArtifact;
+}
+
+// Returns the iteration the artifact was produced in, or undefined when its producer is not
+// a task of an iteration of the given ParallelFor execution.
+function getIterationIndexUnderLoop(
+  linkedArtifact: LinkedArtifact,
+  executionIdToExecution: Map<number, Execution>,
+  loopExecutionId: number,
+): number | undefined {
+  const producingExecution = getProducingExecution(linkedArtifact, executionIdToExecution);
+  const iterationExecutionId = getParentDagId(producingExecution);
+  if (iterationExecutionId === undefined) {
+    return undefined;
+  }
+  const iterationExecution = executionIdToExecution.get(iterationExecutionId);
+  if (!iterationExecution || getParentDagId(iterationExecution) !== loopExecutionId) {
+    return undefined;
+  }
+  return getIterationIndex(iterationExecution);
+}
+
+function getProducingExecution(
+  linkedArtifact: LinkedArtifact,
+  executionIdToExecution: Map<number, Execution>,
+): Execution | undefined {
+  return executionIdToExecution.get(linkedArtifact.event.getExecutionId());
+}
+
+function getParentDagId(execution: Execution | undefined): number | undefined {
+  const customProperties = execution?.getCustomPropertiesMap();
+  if (!customProperties?.has(PARENT_DAG_ID_KEY)) {
+    return undefined;
+  }
+  return customProperties.get(PARENT_DAG_ID_KEY)?.getIntValue();
+}
+
+function getIterationIndex(execution: Execution): number | undefined {
+  const customProperties = execution.getCustomPropertiesMap();
+  if (!customProperties.has(ITERATION_INDEX_KEY)) {
+    return undefined;
+  }
+  return customProperties.get(ITERATION_INDEX_KEY)?.getIntValue();
 }
 
 function getTaskName(exec: Execution): Value | undefined {
