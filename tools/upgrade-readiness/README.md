@@ -356,5 +356,7 @@ in #14421. Neither this conformance job nor a skipped upgrade job satisfies that
 Read-only helpers for the next live acceptance layer are documented in
 [LIVE_VALIDATION.md](LIVE_VALIDATION.md). They capture fixture baselines and compare
 controller-created runs and fresh correlated denial Events with predictions.
-They require a prepared isolated multi-user installation; fixture provisioning,
-candidate deployment and an actual passing live run remain open.
+The opt-in release upgrade lane provisions isolated fixtures and compares source
+predictions with target enforce/audit observations. Fixture RBAC has been checked
+against a real Kubernetes API; an actual passing candidate upgrade run remains
+open until the scheduling policy prerequisites are integrated.

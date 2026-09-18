@@ -57,3 +57,13 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
 - The readiness workflow also runs `tools/upgrade-readiness/conformance.py` against the exact backend revision in `schedule_policy.POLICY_SOURCE`. A Go overlay adds the fixture test without editing that checkout. This compares Python predictions with real backend main-account policy code under controlled SAR responses; it is not live RBAC, schedule firing, or upgrade validation. The pinned revision and policy contract must be reviewed together when the modeled policy changes.
+
+- `upgrade-test.yml` has an opt-in release-2.18 `readiness-schedules` job. Enable
+  `readiness_schedules` on manual dispatch or set repository variable
+  `KFP_ENABLE_READINESS_SCHEDULE_TESTS=true` after integrating the required scheduling
+  policy. It uses a disposable `kfp-readiness` cluster, source 2.17.2 and same-run
+  candidate images. The separate fixture script mutates only this test installation;
+  the operator readiness scanner remains read-only. Preserve source success checks,
+  disabled-schedule draining, pre-upgrade predictions and both enforce/audit phases.
+  Upload only sanitized `reports/*.json`, never fixture tokens or raw collection files.
+  A skipped lane or passing mocked helper tests do not satisfy live upgrade acceptance.
