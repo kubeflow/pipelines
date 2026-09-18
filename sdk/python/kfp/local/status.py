@@ -19,3 +19,4 @@ import enum
 class Status(enum.Enum):
     SUCCESS = 'SUCCESS'
     FAILURE = 'FAILURE'
+    SKIPPED = 'SKIPPED'
