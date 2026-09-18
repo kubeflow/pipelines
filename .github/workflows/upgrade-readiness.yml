@@ -5,11 +5,13 @@ on:
     paths:
       - tools/upgrade-readiness/**
       - .github/workflows/upgrade-readiness.yml
+      - .github/resources/scripts/readiness-schedules.sh
   push:
     branches: [master]
     paths:
       - tools/upgrade-readiness/**
       - .github/workflows/upgrade-readiness.yml
+      - .github/resources/scripts/readiness-schedules.sh
 
 permissions:
   contents: read

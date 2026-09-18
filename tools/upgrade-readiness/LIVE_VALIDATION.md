@@ -1,21 +1,22 @@
 # Live schedule prediction acceptance
 
-These helpers observe **prepared schedules in an isolated multi-user test
-installation**. They do not create fixtures, change permissions, upgrade KFP or
-change audit/enforce settings. They are separate from the operator readiness scan.
+The read-only baseline and observation helpers inspect **prepared schedules in an
+isolated multi-user test installation**. The separate `provision_live_schedules.py`
+CI helper creates fixtures and changes their activation state; it is never invoked
+by the operator readiness scan.
 No passing live-cluster result has yet been recorded for this fixture protocol.
 
 The release acceptance sequence is: prepare on 2.17.2, capture predictions and
 baselines, upgrade to the exact candidate, enable the prepared schedules, then
-compare actual controller behavior with the predictions. Use existing upgrade CI
-for deployment; its current single-user persistence lane does not provide this
-multi-user fixture setup. Integration of the scheduling policy fixes and this
-setup remains open in #14421.
+compare actual controller behavior with the predictions. The opt-in `readiness-schedules` job in the upgrade workflow provides a separate
+multi-user fixture lane alongside the existing single-user persistence tests.
+Integration of the scheduling policy fixes and an actual passing candidate run
+remain open in #14421.
 
 ## Fixture contract
 
 Use a fresh test namespace, a short periodic schedule interval (for example ten
-seconds), and a small known-working pipeline with an explicit account. Prove the
+seconds), and a small known-working pipeline. Prove the
 pipeline and controller work on the source version before collecting the final
 baseline. Disable the fixture schedules through the API before the upgrade and
 re-enable them afterward; do not edit only their CRs, because the API record is
@@ -29,7 +30,7 @@ For target **enforce** mode prepare three distinct recurring runs:
 
 | Scenario | Account and target grants | Predicted status | Observed requirement |
 | --- | --- | --- | --- |
-| Default control | Explicit configured default account | `no_issue_detected` | New controller-created run with that account |
+| Default control | Omitted account resolving to the configured default | `no_issue_detected` | New controller-created run with that account |
 | Scoped grant | Explicit custom account in allowlist; controller has `use` only for that named account | `no_issue_detected` | New controller-created run with that account |
 | Denied custom | Explicit custom account in allowlist; controller lacks its `use` grant | `policy_rejection` | Fresh correlated named-account rejection Event and no new run for the whole observation window |
 
@@ -131,3 +132,42 @@ as a rejected workload or a successful upgrade. Retain candidate/source revision
 predictions, baselines and sanitized results in CI artifacts. A release gate must
 run both enforce and audit phases; documenting this protocol or running its mocked
 unit tests does not satisfy live acceptance.
+
+## Disposable CI fixture tooling
+
+`provision_live_schedules.py` requires the exact context `kind-kfp-readiness` and
+`--allow-test-cluster-mutations`. Its `rbac` phase creates a fresh
+`kfp-readiness-test` namespace with a unique ownership marker; it refuses an
+existing namespace. Later phases require matching private state and namespace
+ownership. This is a guard against accidental use, not proof that a context name
+points to a disposable cluster: create the dedicated Kind cluster first.
+
+The fixture owner can use both custom accounts. The controller can use only
+`readiness-granted`, with a namespaced `resourceNames` grant. Both custom accounts
+are allowlisted so the denied case isolates the controller's RBAC check. Runner
+permissions are cloned from the source installation's `pipeline-runner` Role.
+The isolated setup also grants the API, scheduler, persistence agent and Argo
+controller namespace-scoped workload access and gives the API cluster-scoped
+TokenReview/SubjectAccessReview access. The fixture copies the test installation's
+artifact Secret and launcher ConfigMap into the fresh namespace without printing
+or writing their contents to reports. These mutations and Secret reads belong
+only to this disposable CI provisioner; the operator scanner never performs them.
+The `prepare` phase creates three disabled recurring runs; `enable` records an
+activation timestamp before API requests, and `disable` stops future submissions.
+These operations use authenticated POSTs through a literal loopback port-forward.
+Never supply production credentials or run these phases against an operator cluster.
+
+`build_live_policy.py` combines a complete source RBAC snapshot with the candidate
+manifests: matching objects are replaced and other source grants remain. It is
+specific to this additive, non-pruning fixture upgrade and asserts complete RBAC
+and an RBAC-only authorization model. It is not a general completeness detector.
+Keep policy assembly separate from the read-only operator scan.
+
+Local validation has exercised nine real Kubernetes SubjectAccessReviews: the
+controller's named grant, its denied account, both owner grants, and rejection in
+another namespace, API review permissions and controller workload access.
+Namespace adoption was also rejected. These checks validate
+fixture permissions only; they do not establish KFP schedule firing or upgrade
+success. Those require the full candidate lane, including source run creation and
+both target modes. Task completion and emitted audit telemetry remain outside this
+lane's acceptance scope.

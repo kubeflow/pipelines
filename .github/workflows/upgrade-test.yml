@@ -12,7 +12,12 @@ on:
   push:
     branches: [master, release-2.18]
 
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      readiness_schedules:
+        description: 'Run isolated multi-user schedule readiness acceptance (release-2.18 only)'
+        type: boolean
+        default: false
 
   pull_request:
     paths:
@@ -22,6 +27,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
+      - 'tools/upgrade-readiness/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
@@ -164,3 +170,68 @@ jobs:
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "Upgrade Verification"
+
+
+  readiness-schedules:
+    # Opt in only after the authorized scheduling and audit policy are integrated.
+    if: >-
+      ${{ (github.base_ref == 'release-2.18' || github.ref == 'refs/heads/release-2.18') &&
+          (inputs.readiness_schedules == true || vars.KFP_ENABLE_READINESS_SCHEDULE_TESTS == 'true') }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CLUSTER_NAME: kfp-readiness
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-pip-cache
+        with:
+          python-version: '3.9'
+          cache-scope: readiness-schedules
+          cache-dependency-hash: ${{ hashFiles('.github/workflows/upgrade-test.yml') }}
+
+      - name: Install fixture manifest reader
+        run: python3 -m pip install 'PyYAML==6.0.3'
+
+      - name: Require integrated scheduling policy
+        run: bash .github/resources/scripts/readiness-schedules.sh preflight
+
+      - name: Create isolated readiness cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: 'v1.36.1'
+          cluster_name: kfp-readiness
+
+      - name: Populate 2.17.2 and capture target predictions
+        run: bash .github/resources/scripts/readiness-schedules.sh source
+
+      - name: Deploy same-run candidate images
+        uses: ./.github/actions/deploy
+        with:
+          cluster_name: kfp-readiness
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          forward_port: 'false'
+
+      - name: Compare live enforce and audit schedule outcomes
+        run: bash .github/resources/scripts/readiness-schedules.sh target
+
+      - name: Upload sanitized readiness evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: readiness-schedules-${{ github.run_id }}
+          path: ${{ runner.temp }}/readiness-schedules/reports/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Remove isolated readiness cluster
+        if: ${{ always() }}
+        run: kind delete cluster --name kfp-readiness
