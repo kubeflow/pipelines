@@ -28,9 +28,11 @@ import subprocess
 import sys
 import time
 
+import schedule_policy
+
 MAX_BYTES = 16 * 1024 * 1024
 MAX_ITEMS = 10000
-RULESET = '2.18-preview.2'
+RULESET = '2.18-preview.3'
 SUPPORTED_KINDS = {
     'Deployment', 'Role', 'RoleBinding', 'ClusterRole', 'ScheduledWorkflow'
 }
@@ -302,7 +304,8 @@ def analyze(inventory,
             source_version,
             failures=None,
             mode='offline',
-            include_schedules=False):
+            include_schedules=False,
+            policy=None):
     inventory = validate_inventory(inventory)
     items = [
         obj for obj in inventory['items'] if obj['kind'] == 'ClusterRole' or
@@ -313,6 +316,18 @@ def analyze(inventory,
     findings = []
     if include_schedules:
         findings.extend(analyze_schedules(items))
+        if policy is not None:
+            schedule_policy.validate(policy)
+            for obj in items:
+                if obj['kind'] == 'ScheduledWorkflow':
+                    status, evidence, action = schedule_policy.assess(
+                        obj, policy)
+                    findings.append(
+                        finding(
+                            'schedule.targetMainAccount', status,
+                            resource_id(obj), evidence, action,
+                            'Validate this prediction against the pinned candidate in upgrade CI; other execution checks remain unassessed.'
+                        ))
     failures = list(failures or [])
     if mode == 'offline':
         failures.append(
@@ -459,6 +474,12 @@ def analyze(inventory,
         target=dict(
             version='2.18',
             status='migration_plan_preview_not_release_certification',
+            schedule_policy_revision=policy['target_revision']
+            if policy else None,
+            schedule_policy_source=schedule_policy.POLICY_SOURCE
+            if policy else None,
+            schedule_policy_evidence='operator_supplied_not_verified'
+            if policy else None,
             references=[
                 'https://github.com/kubeflow/pipelines/issues/14421',
                 'https://github.com/kubeflow/pipelines/pull/14362'
@@ -483,6 +504,13 @@ def markdown(report):
         '; source version supplied by operator: ' + report['source']['version'],
         ''
     ]
+    if report['target'].get('schedule_policy_revision'):
+        lines += [
+            'Target policy revision (operator supplied, unverified): ' +
+            report['target']['schedule_policy_revision'],
+            'Modeled policy source: ' +
+            report['target']['schedule_policy_source'], ''
+        ]
     for f in report['findings']:
         # Escape control characters and markup in inventory-controlled names.
         safe = lambda value: json.dumps(
@@ -530,11 +558,18 @@ def main(argv=None):
         action='store_true',
         help='Read ScheduledWorkflow objects in selected namespaces; includes embedded specifications in memory.'
     )
+    parser.add_argument(
+        '--schedule-policy',
+        type=Path,
+        help='Offline target policy/RBAC and persisted recurring-run evidence; requires --include-schedules.'
+    )
     parser.add_argument('--ui-deployment', default='ml-pipeline-ui')
     parser.add_argument('--cache-deployment', default='cache-server')
     parser.add_argument(
         '--format', choices=['json', 'markdown'], default='markdown')
     args = parser.parse_args(argv)
+    if args.schedule_policy and not args.include_schedules:
+        parser.error('--schedule-policy requires --include-schedules.')
     namespaces = sorted(set([args.system_namespace] + args.namespace))
     if len(namespaces) > 100 or any(
             not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', n) or len(n) > 63
@@ -554,7 +589,9 @@ def main(argv=None):
             args.source_version,
             failures,
             mode='live' if args.context else 'offline',
-            include_schedules=args.include_schedules)
+            include_schedules=args.include_schedules,
+            policy=read_json(args.schedule_policy)
+            if args.schedule_policy else None)
     except (OSError, ValueError, TypeError, AttributeError, KeyError):
         print(
             'Unable to assess inventory: check JSON structure, supported kinds, input size and scope. '
