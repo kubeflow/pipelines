@@ -27,9 +27,11 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Frontend CI also runs `frontend/scripts/check-spec-generation.sh` after installing `protoc`: pipeline and Kubernetes platform specs are generated into temporary directories and typechecked. Changes to either source proto directory trigger this workflow.
 - The frontend protobuf installation scopes both APT commands to `/etc/apt/sources.list.d/ubuntu.sources`, excluding unrelated runner repositories such as Chrome without changing their configuration or bypassing package verification. If the runner's source layout changes, update this explicit path; the step checks that it exists before running APT. Browser integration tests continue to use their separate Selenium container.
 
+- `upgrade-readiness.yml` runs dependency-free unittest coverage for `tools/upgrade-readiness` on changes to the tool or its workflow. It tests Python 3.9 and 3.13 with synthetic inventories and subprocesses, never cluster credentials.
+
 ## Common CI failures
 
-- Upgrade jobs remain disabled by default pending #14029. Set the repository variable `KFP_ENABLE_MLMD_UPGRADE_TESTS` to `true` only after the MLMD-to-native migration and startup gate are implemented; both image building and upgrade execution require this opt-in on PR and master runs.
+- `upgrade-test.yml` enables image builds and upgrade execution for pushes to `release-2.18`, PRs targeting it, and manual dispatch on that branch. This lane pins its source to `2.17.2` and upgrades to the checked-out candidate; release-2.18 retains MLMD. Failed source deployment, port forwarding, or preparation stops the upgrade. Other branches remain disabled by default pending #14029: set `KFP_ENABLE_MLMD_UPGRADE_TESTS=true` only after the MLMD-to-native migration and startup gate are implemented. Those lanes retain latest-release discovery. The existing single-user verification checks resource persistence; it does not validate multi-user authorization predictions or prove recurring schedules fire successfully.
 
 - SDK imports must pass both isort 5.10.1 from `sdk/python/requirements-dev.txt` and isort 9.0.1 from pre-commit. These versions wrap long imports differently; prefer short module imports and verify both checks after SDK import changes.
 - Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Verify formatter upgrades by running the full hook chain twice on the updater and SDK structures files.
@@ -37,3 +39,19 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+- The readiness workflow also runs `tools/upgrade-readiness/conformance.py` against the exact backend revision in `schedule_policy.POLICY_SOURCE`. A Go overlay adds the fixture test without editing that checkout. This compares Python predictions with real backend main-account policy code under controlled SAR responses; it is not live RBAC, schedule firing, or upgrade validation. The pinned revision and policy contract must be reviewed together when the modeled policy changes.
+
+- `upgrade-test.yml` has an opt-in release-2.18 `readiness-schedules` job. Enable
+  `readiness_schedules` on manual dispatch or set repository variable
+  `KFP_ENABLE_READINESS_SCHEDULE_TESTS=true` after integrating the required scheduling
+  policy. It uses a disposable `kfp-readiness` cluster, source 2.17.2 and same-run
+  candidate images. The separate fixture script mutates only this test installation;
+  the operator readiness scanner remains read-only. Preserve source success checks,
+  disabled-schedule draining, pre-upgrade predictions and both enforce/audit phases.
+  Upload only sanitized `reports/*.json`, never fixture tokens or raw collection files.
+  A skipped lane or passing mocked helper tests do not satisfy live upgrade acceptance.
+
+- Readiness policy conformance uses the managed Go setup action and a separately
+  pinned backend checkout. Upgrade gate regression tests cover master migration
+  opt-in, release-2.18 push/PR contexts, and the separate readiness opt-in; run the
+  CI scripts suite and `make check-go-version` when changing these workflows.

@@ -1,0 +1,53 @@
+name: Upgrade readiness tool
+
+on:
+  pull_request:
+    paths:
+      - tools/upgrade-readiness/**
+      - .github/workflows/upgrade-readiness.yml
+      - .github/resources/scripts/readiness-schedules.sh
+  push:
+    branches: [master]
+    paths:
+      - tools/upgrade-readiness/**
+      - .github/workflows/upgrade-readiness.yml
+      - .github/resources/scripts/readiness-schedules.sh
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.13"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run standalone readiness tests
+        run: python3 -m unittest discover -s tools/upgrade-readiness -p 'test_*.py' -v
+
+  policy-conformance:
+    name: Pinned policy code conformance (not live upgrade)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Checkout modeled policy source
+        uses: actions/checkout@v7
+        with:
+          # Keep synchronized with schedule_policy.POLICY_SOURCE. This proposed
+          # policy is not a claim that the release branch contains it.
+          ref: 698819580262320715ee616c7479b33c62e0a4b7
+          path: policy-source
+      # Use the repository-managed compiler; the tested backend source stays pinned.
+      - uses: ./.github/actions/setup-go
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Compare predictions with backend policy
+        run: python3 tools/upgrade-readiness/conformance.py --backend-source policy-source
