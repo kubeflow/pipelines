@@ -53,7 +53,48 @@ export const PodEvents: React.FC<{
     />
   );
 };
+// Extract human-readable failure reason from YAML
+const getFailureReason = (yaml: string): string | null => {
+  try {
+    const parsed = JsYaml.load(yaml) as any;
 
+    // Check container statuses
+    const statuses = parsed?.status?.containerStatuses;
+    if (statuses && Array.isArray(statuses)) {
+      for (const status of statuses) {
+        const waiting = status?.state?.waiting;
+        if (waiting?.reason) {
+          switch (waiting.reason) {
+            case 'CrashLoopBackOff':
+              return 'Container is repeatedly crashing (CrashLoopBackOff).';
+            case 'ImagePullBackOff':
+              return 'Failed to pull container image.';
+            case 'ErrImagePull':
+              return 'Error while pulling container image.';
+            case 'OOMKilled':
+              return 'Container was killed due to out-of-memory.';
+            default:
+              return `Container issue: ${waiting.reason}`;
+          }
+        }
+      }
+    }
+
+    // Check pod conditions
+    const conditions = parsed?.status?.conditions;
+    if (conditions && Array.isArray(conditions)) {
+      for (const condition of conditions) {
+        if (condition?.reason === 'Unschedulable') {
+          return 'Pod cannot be scheduled on any node.';
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore parsing errors
+  }
+
+  return null;
+};
 const PodYaml: React.FC<{
   name: string;
   namespace: string;
@@ -110,21 +151,34 @@ const PodYaml: React.FC<{
         />
       )}
       {!error && yaml && (
-        <Editor
-          value={yaml || ''}
-          height='100%'
-          width='100%'
-          mode='yaml'
-          theme='github'
-          editorProps={{ $blockScrolling: true }}
-          readOnly={true}
-          highlightActiveLine={true}
-          showGutter={true}
-        />
-      )}
-    </>
-  );
-};
+  <>
+    {(() => {
+      const failureReason = getFailureReason(yaml);
+      return (
+        <>
+          {failureReason && (
+            <Banner
+              message='Pod Failure Detected'
+              mode='warning'
+              additionalInfo={failureReason}
+            />
+          )}
+          <Editor
+            value={yaml || ''}
+            height='100%'
+            width='100%'
+            mode='yaml'
+            theme='github'
+            editorProps={{ $blockScrolling: true }}
+            readOnly={true}
+            highlightActiveLine={true}
+            showGutter={true}
+          />
+        </>
+      );
+    })()}
+  </>
+)}
 
 function reorderPodJson(jsonData: JSONObject): JSONObject {
   const orderedData = { ...jsonData };
