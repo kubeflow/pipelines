@@ -352,3 +352,9 @@ Those existing tests cover single-user resource persistence, not multi-user sche
 firing. The final-candidate lane must still compare observed recurring-run execution
 with predictions after the scheduling policy changes land; that work stays open
 in #14421. Neither this conformance job nor a skipped upgrade job satisfies that gate.
+
+Read-only helpers for the next live acceptance layer are documented in
+[LIVE_VALIDATION.md](LIVE_VALIDATION.md). They capture fixture baselines and compare
+controller-created runs and fresh correlated denial Events with predictions.
+They require a prepared isolated multi-user installation; fixture provisioning,
+candidate deployment and an actual passing live run remain open.
