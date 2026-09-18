@@ -643,6 +643,7 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 		{name: "driver restart"},
 		{name: "cached completion", cached: true},
 		{name: "failed repeated start", cached: true, startFails: true},
+		{name: "failed repeated start restores environment", startFails: true},
 		{name: "failed redundant run cleanup", cleanupFails: true},
 		{name: "RPC retry keeps current run", sameAttempt: true},
 		{name: "initial start failure recovers", initialStartFails: true},
@@ -695,6 +696,9 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 					}
 					loggedRuns = append(loggedRuns, batch.RunID)
 					fmt.Fprint(w, `{}`)
+				case "/api/2.0/mlflow/runs/search":
+					// These task runs have no direct child runs to close.
+					fmt.Fprint(w, `{"runs":[]}`)
 				default:
 					t.Errorf("unexpected MLflow request: %s", r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
@@ -779,12 +783,17 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 			}
 			ctx := context.Background()
 			if !test.sameAttempt {
-				_, err := Container(ctx, opts, client, cache)
+				initialExecution, err := Container(ctx, opts, client, cache)
 				if test.initialStartFails {
-					if test.cached {
-						require.NoError(t, err)
-					} else {
-						require.ErrorContains(t, err, "MLflow run ID is empty")
+					// Plugin startup is best-effort; failed handlers inject no environment.
+					require.NoError(t, err)
+					if !test.cached {
+						var pod corev1.PodSpec
+						require.NoError(t, json.Unmarshal([]byte(initialExecution.PodSpecPatch), &pod))
+						require.NotEmpty(t, pod.Containers)
+						for _, variable := range pod.Containers[0].Env {
+							assert.NotEqual(t, "MLFLOW_RUN_ID", variable.Name)
+						}
 					}
 					require.Empty(t, metadata.ExtractPluginCustomProperties(metadata.NewExecution(stored)))
 				} else {
