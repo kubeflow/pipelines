@@ -57,7 +57,7 @@ export function statusToIcon(
       break;
     case V2beta1RuntimeState.CANCELING:
       IconComponent = RunningIcon;
-      iconColor = color.blue;
+      iconColor = color.alert;
       title = 'Run is canceling';
       break;
     case V2beta1RuntimeState.PAUSED:
