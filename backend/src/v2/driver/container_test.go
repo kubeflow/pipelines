@@ -857,7 +857,8 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 			for _, runID := range loggedRuns {
 				assert.Equal(t, expectedRunID, runID)
 			}
-			if test.initialStartFails {
+			switch {
+			case test.initialStartFails:
 				switch {
 				case test.repairWriteFails:
 					assert.Equal(t, 4, starts)
@@ -872,11 +873,11 @@ func TestContainer_ReusedExecutionRestoresMLflow(t *testing.T) {
 					assert.Equal(t, 1, repairWrites)
 					assert.Equal(t, []string{"run-3"}, canceledRuns)
 				}
-			} else if test.sameAttempt {
+			case test.sameAttempt:
 				assert.Equal(t, 1, starts)
 				assert.Len(t, updates, 1)
 				assert.Empty(t, canceledRuns)
-			} else {
+			default:
 				assert.Equal(t, 2, starts)
 				if test.startFails {
 					assert.NotContains(t, updates, "run-2")
