@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/placeholder"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
@@ -45,10 +46,6 @@ type ifPresentCondition struct {
 // inputPipelineChannelPattern define a regex pattern to match the content within single quotes
 // example input channel looks like "{{$.inputs.parameters['pipelinechannel--val']}}"
 const inputPipelineChannelPattern = `\$.inputs.parameters\['(.+?)'\]`
-
-// fullInputParameterRe matches the complete {{$.inputs.parameters['name']}} placeholder
-// including the surrounding braces, for template substitution in container arguments.
-var fullInputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}}`)
 
 func isInputParameterChannel(inputChannel string) bool {
 	re := regexp.MustCompile(inputPipelineChannelPattern)
@@ -223,11 +220,12 @@ func isInputPresent(inputName string, executorInput *pipelinespec.ExecutorInput)
 }
 
 func resolveCommandLineValue(value any, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	parameterValues := executorInput.GetInputs().GetParameterValues()
 	switch typedValue := value.(type) {
 	case nil:
 		return nil, nil
 	case string:
-		resolvedArg, err := resolveInputParameterPlaceholders(typedValue, executorInput)
+		resolvedArg, err := placeholder.ResolveInputParameterPlaceholders(typedValue, parameterValues)
 		if err != nil {
 			return nil, err
 		}
@@ -288,6 +286,7 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 }
 
 func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	parameterValues := executorInput.GetInputs().GetParameterValues()
 	var resolvedArgs []string
 	for _, arg := range args {
 		if isConditionClause(arg) {
@@ -303,11 +302,23 @@ func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInp
 			resolvedArgs = append(resolvedArgs, arg)
 			continue
 		}
+
+		if isConditionClause(arg) {
+			resolved, err := resolveCondition(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve condition: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolved...)
+		} else {
+			resolvedArg, err := placeholder.ResolveInputParameterPlaceholders(arg, parameterValues)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolvedArg)
 		resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
 		}
-		resolvedArgs = append(resolvedArgs, resolvedArg)
 	}
 	return resolvedArgs, nil
 }
