@@ -1,0 +1,98 @@
+// Copyright 2026 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package resource
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"testing"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	authorizationv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type readinessPolicyCase struct {
+	Name       string `json:"name"`
+	Mode       string `json:"mode"`
+	Account    string `json:"account"`
+	Allowed    string `json:"allowlist"`
+	Default    string `json:"default_account"`
+	SARAllowed bool   `json:"sar_allowed"`
+	Prediction string `json:"prediction"`
+}
+
+type readinessPolicyReview struct {
+	allowed  bool
+	requests []*authorizationv1.SubjectAccessReview
+}
+
+func (r *readinessPolicyReview) Create(_ context.Context, request *authorizationv1.SubjectAccessReview, _ metav1.CreateOptions) (*authorizationv1.SubjectAccessReview, error) {
+	r.requests = append(r.requests, request.DeepCopy())
+	return &authorizationv1.SubjectAccessReview{Status: authorizationv1.SubjectAccessReviewStatus{Allowed: r.allowed}}, nil
+}
+
+// This calls the actual backend policy, not a Go reimplementation of the predictor.
+// SAR responses are controlled fixtures; this does not prove live Kubernetes RBAC.
+func TestReadinessPolicyConformance(t *testing.T) {
+	data, err := os.ReadFile(os.Getenv("KFP_READINESS_CASES"))
+	require.NoError(t, err)
+	var cases []readinessPolicyCase
+	require.NoError(t, json.Unmarshal(data, &cases))
+	require.NotEmpty(t, cases)
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			for key, value := range map[string]string{
+				common.MultiUserMode:                           "true",
+				common.ServiceAccountAuthorizationMode:         tc.Mode,
+				common.DefaultPipelineRunnerServiceAccountFlag: tc.Default,
+				common.AllowedServiceAccountsFlag:              tc.Allowed,
+			} {
+				previous := viper.Get(key)
+				viper.Set(key, value)
+				t.Cleanup(func() { viper.Set(key, previous) })
+			}
+			clients, _, _ := initWithExperiment(t)
+			t.Cleanup(func() { require.NoError(t, clients.Close()) })
+			review := &readinessPolicyReview{allowed: tc.SARAllowed}
+			clients.SubjectAccessReviewClientFake = review
+			manager := NewResourceManager(clients, &ResourceManagerOptions{CollectMetrics: false})
+			err = manager.authorizeServiceAccount(multiUserContext(), tc.Account, "ns1")
+			switch tc.Prediction {
+			case "policy_rejection":
+				require.Error(t, err)
+				require.True(t, util.IsUserErrorCodeMatch(err, codes.PermissionDenied) || util.IsUserErrorCodeMatch(err, codes.InvalidArgument), "expected policy rejection, got %v", err)
+			case "no_issue_detected", "operational_impact":
+				require.NoError(t, err)
+			default:
+				t.Fatalf("unsupported conformance prediction %q", tc.Prediction)
+			}
+			for _, request := range review.requests {
+				require.Equal(t, "user@google.com", request.Spec.User)
+				require.Empty(t, request.Spec.Groups)
+				require.Equal(t, authorizationv1.ResourceAttributes{Verb: "use", Resource: "serviceaccounts", Namespace: "ns1", Name: tc.Account}, *request.Spec.ResourceAttributes)
+			}
+			if tc.Account == tc.Default {
+				require.Empty(t, review.requests)
+			}
+			t.Logf("prediction=%s backend_rejected=%t", tc.Prediction, err != nil)
+		})
+	}
+}

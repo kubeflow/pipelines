@@ -10,7 +10,9 @@ env:
 
 on:
   push:
-    branches: [master]
+    branches: [master, release-2.18]
+
+  workflow_dispatch: {}
 
   pull_request:
     paths:
@@ -37,13 +39,19 @@ concurrency:
 
 jobs:
   build:
-    # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
-    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
+    # release-2.18 retains MLMD; master still requires the #14029 migration gate.
+    if: >-
+      ${{ github.base_ref == 'release-2.18' ||
+          github.ref == 'refs/heads/release-2.18' ||
+          vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
-    # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
-    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
+    # release-2.18 retains MLMD; master still requires the #14029 migration gate.
+    if: >-
+      ${{ github.base_ref == 'release-2.18' ||
+          github.ref == 'refs/heads/release-2.18' ||
+          vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -65,10 +73,18 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Get last release tag
+      - name: Select source release
         shell: bash
         id: get-tag
+        env:
+          RELEASE_218: ${{ github.base_ref == 'release-2.18' || github.ref == 'refs/heads/release-2.18' }}
         run: |
+          if [[ "$RELEASE_218" == "true" ]]; then
+            echo "Using pinned 2.18 upgrade source: 2.17.2"
+            echo "lastRelease=2.17.2" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           lastRelease=""
           for attempt in 1 2 3; do
             lastRelease=$(curl -sSL --fail-with-body --connect-timeout 10 --max-time 60 \
@@ -105,6 +121,7 @@ jobs:
           kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=${{ steps.get-tag.outputs.lastRelease }}
           kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=${{ steps.get-tag.outputs.lastRelease }}
           source "./.github/resources/scripts/helper-functions.sh"
+          EXIT_CODE=0
           wait_for_pods || EXIT_CODE=$?
           if [[ $EXIT_CODE -ne 0 ]]; then
             echo "Deploy unsuccessful. Not all pods running."
@@ -116,7 +133,6 @@ jobs:
         if: ${{ steps.deploy-release.outcome == 'success' }}
         shell: bash
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-        continue-on-error: true
 
       - name: Prepare for Upgrade
         id: prepare-upgrade
@@ -124,7 +140,6 @@ jobs:
         working-directory: ${{ env.TESTS_DIR }}
         run: |
           go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
-        continue-on-error: true
 
       - name: Stop port forwarding
         run: |
@@ -133,7 +148,7 @@ jobs:
 
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ success() && steps.prepare-upgrade.outcome == 'success' }}
         id: deploy
         with:
           image_path: images_${{ github.run_id }}
