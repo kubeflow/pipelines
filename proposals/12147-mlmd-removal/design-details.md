@@ -22,7 +22,7 @@ will replace the MLMD client.
 
 The additions to the RunService client are documented in [runs.proto].
 
-An example of the updated run response format can be found in [runs.json]. 
+An example of the updated run response format can be found in [runs.json].
 
 [artifacts.proto]: ./protos/artifacts.proto
 [runs.proto]: ./protos/runs.proto
@@ -102,7 +102,7 @@ func (c *RunServerClient) CreateTask(ctx context.Context, task apiv2beta1.Pipeli
 func (c *RunServerClient) UpdateTask(ctx context.Context, task apiv2beta1.PipelineTaskDetail) (*apiv2beta1.PipelineTaskDetail, error)
 
 // Replaces GetExecutionsInDAG
-// Queries Run API's ListTasks() with run_id field 
+// Queries Run API's ListTasks() with run_id field
 func (c *RunServerClient) GetChildTasks(ctx context.Context, task apiv2beta1.PipelineTaskDetail) (map[string]*apiv2beta1.PipelineTaskDetail, error)
 ```
 
@@ -312,12 +312,12 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
   for {
     ...
   } else {
-    // use the Component *pipelinespec.ComponentSpec.ComponentInputsSpec from Options in driver.go to determine 
-	// artifact schema type, 
+    // use the Component *pipelinespec.ComponentSpec.ComponentInputsSpec from Options in driver.go to determine
+	// artifact schema type,
     schemaTitle := determineArtifactSchema(ComponentInputSpec, TaskSpec)
     switch schemaTitle {
     case "system.Metrics":  // Handles Metric type, do something similar for ClassificationMetrics & SlicedClassificationMetrics
-	  // GetOutputMetricsByTaskID can fetch the Task via GetTask (if we don't already have the task), 
+	  // GetOutputMetricsByTaskID can fetch the Task via GetTask (if we don't already have the task),
 	  // and can parse the `output_metrics` to return map[string]*OutputArtifact or just the *OutputArtifact
       outputs, err := GetOutputMetricsByTaskID(cfg.ctx, taskID)
     case "system.Artifact":
@@ -330,7 +330,24 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 
 There are three primary pages in the UI where MLMD encounters happen, the Run Details, Artifacts, and Executions pages.
 
-The Executions page can be removed entirely since all information will be present in the run task nodes in the run graph. The FrontEnd will need to be updated to ensure all relevant information will continue to be surfaced in a Task Node's details sidebar. 
+Native task details replace the per-execution inspection workflow through run graph nodes,
+including inputs/outputs, task metadata, and logs where applicable. This does not replace the
+old global execution list or grouped execution discovery. Cross-run task browsing requires a
+bounded, namespace-authorized API projection and is tracked after this PR in #14301.
+Legacy execution URLs redirect to Runs (or the known run) with dismissible guidance; they do
+not guess a native task ID. Resolving an old execution bookmark to its corresponding task
+requires a trusted migration mapping coordinated with #14029 and #14301.
+
+Artifact Details provides both a Related tasks table and a native Lineage Explorer. The explorer
+uses a five-column graph of input artifacts, producing tasks, the selected artifact, consuming
+tasks, and output artifacts. Individual edges connect the recorded relationships. The first
+bounded page of each visible task's input/output relationships loads automatically; selecting
+an adjacent artifact recenters the neighborhood, with named breadcrumbs, Back, and Reset
+navigation. Relationship reads are filtered by artifact or task ID and loaded five
+at a time with explicit Load more controls, rather than scanning runs or recursively fetching
+the graph. Failed lookups retain already-loaded relationships and provide retry controls.
+This restores interactive neighborhood exploration without reintroducing MLMD. Grouped artifact
+browsing remains a separate read-model follow-up in #14041.
 
 On the Run Details page, MLMD data is fetched in `RuntimeNodeDetailsV2.tsx` via:
 
@@ -354,6 +371,22 @@ const events = await getArtifactEventsByTasks(tasks); // uses ListArtifactEvents
 The `Visualization` Nav in `RuntimeNodeDetailsV2.tsx` will also need to be updated to take `Metrics` fetched from `Task` response object, instead of `Artifacts` from MLMD.
 
 The Artifact Node in the UI should also no longer display an `Artifact URI` for metrics, as this is not applicable.
+
+#### Visualization compatibility
+
+The native Run Details page preserves scalar/classification metrics and the documented
+`mlpipeline-ui-metadata` viewers (table, ROC-from-CSV, static HTML, TensorBoard, and web app) through
+Task and Artifact API data. Source failures remain isolated so one bad legacy viewer does not hide
+valid siblings.
+
+The old V2 route also inherited the V1 page's **Create visualizations manually** control, which sent
+arbitrary visualization arguments to the Python visualization service. That control is not carried
+to the native Run Details page. TFDV was selectable through it; TFMA existed in the API enum but was
+already filtered out of the old selector. This is an explicit compatibility boundary, separate from
+`mlpipeline-ui-metadata`, and must not be described as native artifact-viewer parity. Reintroducing
+it requires a product and security decision about the server-side Python visualization API, task
+source identity, authorization, and supported lifecycle. That decision is tracked in
+[#14028](https://github.com/kubeflow/pipelines/issues/14028).
 
 The `CompareV2.tsx` also makes various calls to MLMD, much like `RuntimeNodeDetailsV2`:
 
@@ -388,9 +421,9 @@ _, err = s.reportTasksFromExecution(newExecSpec, runId)
 ```
 [report_server.go]: ../../backend/src/apiserver/server/report_server.go
 
-### Task States 
+### Task States
 
-We will follow the following method for handling Task states: 
+We will follow the following method for handling Task states:
 
 RuntimeStates
 * Tasks will always be in a subset of the [RuntimeStates](../../backend/api/v2beta1/run.proto)
@@ -398,7 +431,7 @@ RuntimeStates
   * Terminal States are: `SUCCEEDED`, `FAILED`, `CANCELED`
 
 StorageStates
-* Tasks don't need a storage state 
+* Tasks don't need a storage state
 * If a Run is deleted, all tasks should be deleted
 
 ### Auth Considerations
@@ -407,10 +440,67 @@ The Driver/Launcher will be introducing a new `RunServerClient` and `ArtifactSer
 
 For example, if a user makes a request to `ListArtifactRequest`, they require `list` verb on the `Run` resource for that particular namespace.
 
-A few more notes: 
+A few more notes:
 * the Driver/Launcher communicates with the KFP API Server via the CacheClient. This has no auth mechanism today and will need to be updated.
-* the Driver/Launcher will provide the Pipeline Runner's Service Account token in the auth header for authorization. 
+* the Driver/Launcher will provide the Pipeline Runner's Service Account token in the auth header for authorization.
   * As such, the Pipeline Runner SA will need the appropriate namespace-level access to such resources for the Driver & Launcher to communicate with the API Server.
+
+#### Frontend artifact-content compatibility
+
+Removing MLMD also removes the trusted store session attached to legacy artifact records. The
+frontend reconstructs native provider configuration from the namespace `kfp-launcher` ConfigMap,
+but the existing URI-based content endpoint does not carry a trusted native-versus-legacy
+provenance signal. The following rollout constraints are therefore intentional:
+
+* Read-only multi-user roles receive native Artifact API `get` and `list`; mutation remains
+  edit-only.
+* Authenticated `volume://` requests are rejected by the shared central UI. They remain supported
+  in single-user mode and through a namespace-isolated artifact service, where the serving pod's
+  mounts share the caller's namespace boundary.
+* GCS artifact reads may contact only exact domains listed in
+  `ALLOWED_GCS_UNIVERSE_DOMAINS`, which defaults to `googleapis.com`. Operators using Google
+  Distributed Cloud or an air-gapped GCS-compatible universe must explicitly add that domain.
+  This restriction applies to anonymous reads as well as authenticated reads because the shared UI
+  has a different network trust boundary from a pipeline pod.
+* S3 and MinIO provider settings are resolved and checked against the operator-configured
+  origin and `ALLOWED_ARTIFACT_ENDPOINTS` before reading Secrets or ambient credentials.
+  This includes anonymous and environment-backed providers and native MinIO queries that
+  resolve through S3. Operator endpoint rewrites are applied before this check; any additional
+  allowlist entry must name the final origin. Custom endpoint base paths remain supported,
+  but AWS S3 endpoints must use HTTPS even if an HTTP origin is explicitly allowlisted.
+  Endpoint-less settings may upgrade the configured store to TLS, not downgrade it.
+* Direct custom-root reads are denied unless ownership is independently established by the
+  standard namespace prefix. An Artifact API row alone does not authorize the central UI to use
+  privileged credentials for an arbitrary URI.
+* In multi-user direct mode, customer-namespace provider authority (including Secret references
+  and custom endpoints) returns a controlled `400` and requires the namespace-isolated artifact
+  proxy. The shared UI does not substitute its central endpoint or ambient credentials when that
+  authority is rejected.
+* Native MinIO, S3, and GCS URI queries are validated against the runtime's native option grammar.
+  Legacy structured spellings such as `disableSSL` in an otherwise native
+  `defaultPipelineRoot` query are rejected instead of being silently interpreted differently from
+  the launcher.
+* The frontend accepts at most ten retry attempts across one S3 artifact request. Initial attempts
+  for distinct operations are not charged: directory downloads require one object probe, one
+  listing, and one GET per child. A larger structured `maxRetries` value is clamped to ten total
+  attempts per operation so launcher-compatible configuration remains readable without allowing a
+  shared UI request to hold an operator-supplied unbounded retry budget.
+* Native endpoint base paths follow Go's URL/AWS signing behavior by decoding one percent-escape
+  layer before signing. Any proxy between the UI and object store must preserve the signed request
+  path rather than normalizing dot segments or encoded separators; this is also required by launcher
+  requests using the same endpoint contract.
+* Ownership lookup failures fail closed for non-prefix/custom-root reads. In the default
+  `artifact-then-prefix` mode, a canonical `private-artifacts/<namespace>/...` key can be accepted
+  without an Artifact API request; strict `artifact-only` mode always requires the native record.
+* In single-user direct mode, a legacy outside-root link with stored provider information can still
+  fail when a `kfp-launcher` ConfigMap is present. ConfigMap presence and browser-supplied provider
+  information cannot safely distinguish a legacy link from a native artifact attempting to bypass
+  launcher-root policy. The durable replacement is an artifact-ID content API backed by trusted
+  persisted storage provenance rather than a frontend heuristic.
+
+These compatibility boundaries and the longer-term content API are tracked in
+[#14031](https://github.com/kubeflow/pipelines/issues/14031). Multi-user RBAC and direct-volume
+decisions are recorded in [#14034](https://github.com/kubeflow/pipelines/issues/14034).
 
 ### Manifests
 
@@ -423,28 +513,28 @@ The following changes will need to be made:
 
 ### Migration
 
-This change will come with some drastic changes to the DB schema, namely the `Tasks` table. We will be dropping this table entirely. The only usage this table sees is described in the [caching](#caching) section. As noted there, all information that is relevant already exists in MLMD. 
+This change will come with some drastic changes to the DB schema, namely the `Tasks` table. We will be dropping this table entirely. The only usage this table sees is described in the [caching](#caching) section. As noted there, all information that is relevant already exists in MLMD.
 
-To accommodate the transition, the KFP release containing this change will provide a migration script for users to apply to their DB. MLMD will be required so that the script may use the mlmd client. The script will do the following: 
+To accommodate the transition, the KFP release containing this change will provide a migration script for users to apply to their DB. MLMD will be required so that the script may use the mlmd client. The script will do the following:
 
 * Drop the Tasks table and recreate it
 * Drop the Metrics table (it is not used at all)
 * Scan MLMD executions, converting them to their Task counterparts.
   * When encountering ContainerExecutions with `cache_fingerprints`, the fingerprint should only be stored if the execution has a `COMPLETE` state.
   * To detect exit handler dags, the execution name will need to be parsed for `exit-handler-*` prefixed, as there's no other declarative way to determine this type.
-* Scan all `Artifacts` and recreate in the KFP artifact table. 
+* Scan all `Artifacts` and recreate in the KFP artifact table.
 * In the case of metrics, artifacts will need to be logged to the `Metrics` table instead of `Artifacts`.
 * Validation Step
 
 Due to the nature of the change, we will require users to opt in to this upgrade by running this script. If the API Server detects the new fields are not present, KFP will assume the migration script has not been executed, and thus the server will fail to start up, logging a meaningful message to the user.
 
-#### Migration Alternative 
+#### Migration Alternative
 
 An alternative to this migration strategy is to have the KFP server perform the migration. We can enable opt-in by having a one time API Server config option `mlmdMigrate=true`.
 
 The benefit of this approach is a more seamless migration that's automated. However, if a user wants to have more granular control of their migration, they may prefer the script method which they can adjust as needed.
 
-There is also the option of doing a hybrid approach at the cost of more overhead. 
+There is also the option of doing a hybrid approach at the cost of more overhead.
 
 ### Testing
 
@@ -472,8 +562,8 @@ There is also the option of doing a hybrid approach at the cost of more overhead
 
 5. Frontend Verification Tests
 - Verify frontend reporting of metrics in the "Artifact Info" and "Visualization" navs in run details
-- Verify the frontend comparison UI, confirming artifacts and metrics are fetched accordingly 
+- Verify the frontend comparison UI, confirming artifacts and metrics are fetched accordingly
 
-6. Performance Testing 
+6. Performance Testing
 - Monitor and assess changes in CI times
 - Load testing on Kubernetes clusters before/after mlmd removal

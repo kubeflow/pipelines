@@ -18,7 +18,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import { ApiExperiment } from 'src/apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
@@ -49,7 +49,7 @@ describe('switch between v1 and v2', () => {
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
 
   let testV1Pipeline: ApiPipeline = {};
   let testV1PipelineVersion: ApiPipelineVersion = {};
@@ -59,24 +59,19 @@ describe('switch between v1 and v2', () => {
   let testV2Run: V2beta1Run = {};
 
   function generateProps(fromRunSpec = false): PageProps {
-    const match = {
-      isExact: true,
-      params: fromRunSpec
-        ? {}
-        : {
-            [RouteParams.pipelineId]: testV1Pipeline.id,
-            [RouteParams.pipelineVersionId]:
-              (testV1Pipeline.default_version && testV1Pipeline.default_version!.id) || '',
-          },
-      path: '',
-      url: '',
-    };
+    const params = fromRunSpec
+      ? {}
+      : {
+          [RouteParams.pipelineId]: testV1Pipeline.id,
+          [RouteParams.pipelineVersionId]:
+            (testV1Pipeline.default_version && testV1Pipeline.default_version!.id) || '',
+        };
     const location = { search: fromRunSpec ? `?${QUERY_PARAMS.fromRunId}=test-run-id` : '' } as any;
     const pageProps = TestUtils.generatePageProps(
       PipelineDetails,
       location,
-      match,
-      historyPushSpy,
+      params,
+      navigateSpy,
       updateBannerSpy,
       updateDialogSpy,
       updateToolbarSpy,

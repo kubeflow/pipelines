@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -99,6 +100,11 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		log.Printf("This pod %s is created by KFP v2 pipelines.", pod.ObjectMeta.Name)
 		return nil, nil
 	}
+	// Namespace comes from the API server's admission context, not caller metadata.
+	if req.Namespace == "" || (pod.Namespace != "" && pod.Namespace != req.Namespace) {
+		log.Printf("Skipping cache lookup for pod %s: missing or inconsistent namespace", pod.Name)
+		return nil, nil
+	}
 
 	var patches []patchOperation
 	annotations := pod.ObjectMeta.Annotations
@@ -110,7 +116,8 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 
 	// Generate the executionHashKey based on pod.metadata.annotations.workflows.argoproj.io/template
-	executionHashKey, err := generateCacheKeyFromTemplate(template)
+	// and the pod's namespace, so cache entries are scoped to a single tenant.
+	executionHashKey, err := generateCacheKeyFromTemplate(template, req.Namespace)
 	log.Println(executionHashKey)
 	if err != nil {
 		log.Printf("Unable to generate cache key for pod %s : %s", pod.ObjectMeta.Name, err.Error())
@@ -149,7 +156,23 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	log.Printf("cacheStalenessInSeconds: %d", cacheStalenessInSeconds)
 
 	var cachedExecution *model.ExecutionCache
-	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
+	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(req.Namespace, executionHashKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
+	if errors.Is(err, storage.ErrExecutionCacheNotFound) {
+		allowLegacyFallback, configErr := getEnvBool("ALLOW_LEGACY_CACHE_FALLBACK")
+		if configErr != nil {
+			return nil, fmt.Errorf("invalid ALLOW_LEGACY_CACHE_FALLBACK: set it to true or false: %w", configErr)
+		}
+		if allowLegacyFallback {
+			legacyKey, keyErr := generateLegacyCacheKeyFromTemplate(template)
+			if keyErr != nil {
+				return nil, keyErr
+			}
+			cachedExecution, err = clientMgr.CacheStore().GetLegacyExecutionCache(legacyKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
+			if cachedExecution != nil {
+				log.Printf("Using legacy cache entry %d for pod %s/%s: original namespace is unknown; ALLOW_LEGACY_CACHE_FALLBACK is enabled", cachedExecution.ID, req.Namespace, pod.Name)
+			}
+		}
+	}
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -235,26 +258,68 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 // intersectStructureWithSkeleton recursively intersects two maps
 // nil values in the skeleton map mean that the whole value (which can also be a map) should be kept.
-func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[string]interface{}) map[string]interface{} {
+func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[string]interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	for key, skeletonValue := range skeleton {
 		if value, ok := src[key]; ok {
 			if skeletonValue == nil {
 				result[key] = value
 			} else {
-				result[key] = intersectStructureWithSkeleton(value.(map[string]interface{}), skeletonValue.(map[string]interface{}))
+				object, ok := value.(map[string]interface{})
+				if !ok || object == nil {
+					return nil, fmt.Errorf("template field %q must be a JSON object", key)
+				}
+				nestedSkeleton, ok := skeletonValue.(map[string]interface{})
+				if !ok {
+					return nil, fmt.Errorf("cache skeleton field %q must be an object or nil", key)
+				}
+				nested, err := intersectStructureWithSkeleton(object, nestedSkeleton)
+				if err != nil {
+					return nil, fmt.Errorf("template field %q: %w", key, err)
+				}
+				result[key] = nested
 			}
 		}
 	}
-	return result
+	return result, nil
 }
 
-func generateCacheKeyFromTemplate(template string) (string, error) {
+func generateCacheKeyFromTemplate(template string, namespace string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("cache key requires a pod namespace")
+	}
+	cacheKeyMap, err := filterTemplateForCacheKey(template)
+	if err != nil {
+		return "", err
+	}
+
+	// Database namespace predicates enforce ownership. Including the trusted
+	// namespace in the hash also keeps tenant identities distinct if a future
+	// lookup accidentally omits its namespace predicate.
+	return hashCacheKey(map[string]interface{}{
+		"namespace": namespace,
+		"template":  cacheKeyMap,
+	})
+}
+
+// generateLegacyCacheKeyFromTemplate reproduces the pre-namespace key for legacy-only reads.
+func generateLegacyCacheKeyFromTemplate(template string) (string, error) {
+	cacheKeyMap, err := filterTemplateForCacheKey(template)
+	if err != nil {
+		return "", err
+	}
+	return hashCacheKey(cacheKeyMap)
+}
+
+func filterTemplateForCacheKey(template string) (map[string]interface{}, error) {
 	var templateMap map[string]interface{}
 	b := []byte(template)
 	err := json.Unmarshal(b, &templateMap)
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	if templateMap == nil {
+		return nil, fmt.Errorf("cache template must be a JSON object, not null")
 	}
 
 	// Selectively copying parts of the template that should affect the cache
@@ -272,9 +337,12 @@ func generateCacheKeyFromTemplate(template string) (string, error) {
 		"initContainers": nil,
 		"sidecars":       nil,
 	}
-	cacheKeyMap := intersectStructureWithSkeleton(templateMap, templateSkeleton)
+	return intersectStructureWithSkeleton(templateMap, templateSkeleton)
+}
 
-	b, err = json.Marshal(cacheKeyMap)
+func hashCacheKey(keyedStructure map[string]interface{}) (string, error) {
+	// encoding/json.Marshal documents sorted map keys, including nested maps.
+	b, err := json.Marshal(keyedStructure)
 	if err != nil {
 		return "", err
 	}
@@ -340,7 +408,7 @@ func isV2Pod(pod *corev1.Pod) bool {
 }
 
 func getEnvBool(key string) (bool, error) {
-	v, ok := os.LookupEnv("CACHE_NODE_RESTRICTIONS")
+	v, ok := os.LookupEnv(key)
 	if !ok {
 		return false, nil
 	}

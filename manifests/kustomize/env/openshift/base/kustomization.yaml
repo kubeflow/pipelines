@@ -43,24 +43,6 @@ patches:
     target:
       group: apps
       kind: Deployment
-      name: metadata-grpc-deployment
-      version: v1
-  - path: patches/remove-sc-init.json
-    target:
-      group: apps
-      kind: Deployment
-      name: metadata-writer
-      version: v1
-  - path: patches/remove-sc-init.json
-    target:
-      group: apps
-      kind: Deployment
-      name: ml-pipeline
-      version: v1
-  - path: patches/remove-sc-init-1.json
-    target:
-      group: apps
-      kind: Deployment
       name: ml-pipeline
       version: v1
   - path: patches/remove-sc-init.json
@@ -76,24 +58,6 @@ patches:
       name: ml-pipeline-scheduledworkflow
       version: v1
 
-  - path: patches/remove-sc.json
-    target:
-      group: apps
-      kind: Deployment
-      name: metadata-envoy-deployment
-      version: v1
-  - path: patches/remove-sc.json
-    target:
-      group: apps
-      kind: Deployment
-      name: metadata-grpc-deployment
-      version: v1
-  - path: patches/remove-sc.json
-    target:
-      group: apps
-      kind: Deployment
-      name: metadata-writer
-      version: v1
   - path: patches/remove-sc.json
     target:
       group: apps

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+import { NavigationProps } from 'src/lib/Navigation';
 import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -32,7 +33,7 @@ import RunList from 'src/pages/RunList';
 import { produce as immerProduce } from 'immer';
 import { Tooltip } from '@mui/material';
 
-export interface ExperimentListProps extends RouteComponentProps {
+export interface ExperimentListProps extends NavigationProps {
   namespace?: string;
   storageState?: V2beta1ExperimentStorageState;
   onError: (message: string, error: Error) => void;

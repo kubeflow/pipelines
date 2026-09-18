@@ -21,9 +21,8 @@ import {
   PlatformSpec,
 } from 'src/generated/pipeline_spec';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { Workflow } from 'src/third_party/mlmd/argo_template';
+import { Workflow } from 'src/third_party/argo/argo_template';
 
 // This key is used to retrieve the platform-agnostic pipeline definition
 export const PIPELINE_SPEC_TEMPLATE_KEY = 'pipeline_spec';
@@ -79,8 +78,12 @@ export function isTemplateV2(templateString: string): boolean {
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   const pipelineSpecDef = getPipelineDefFromYaml(template);
+  return convertPipelineSpecDef(pipelineSpecDef);
+}
+
+function convertPipelineSpecDef(pipelineSpecDef: unknown): PipelineSpec {
   const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
-  if (!pipelineSpec.root || !pipelineSpec.pipelineInfo || !pipelineSpec.deploymentSpec) {
+  if (!pipelineSpec.root?.dag || !pipelineSpec.pipelineInfo || !pipelineSpec.deploymentSpec) {
     throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
   }
   return pipelineSpec;
@@ -93,6 +96,26 @@ export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   // return pipelineSpec;
 }
 
+export function tryConvertYamlToV2PipelineSpec(templateString: string): PipelineSpec | undefined {
+  if (!templateString) {
+    return undefined;
+  }
+  try {
+    const template = getPipelineDefFromYaml(templateString);
+    if (WorkflowUtils.isArgoWorkflowTemplate(template as Workflow)) {
+      StaticGraphParser.createGraph(template as Workflow);
+      return undefined;
+    }
+    if (!isFeatureEnabled(FeatureKey.V2_ALPHA)) {
+      return undefined;
+    }
+    const pipelineSpec = convertPipelineSpecDef(template);
+    return pipelineSpec;
+  } catch {
+    return undefined;
+  }
+}
+
 export function convertYamlToPlatformSpec(template: string) {
   const platformSpecDef = getPlatformDefFromYaml(template);
   const platformSpec = PlatformSpec.fromJSON(platformSpecDef || '');
@@ -101,24 +124,7 @@ export function convertYamlToPlatformSpec(template: string) {
 
 // This needs to be changed to use pipeline_manifest vs workflow_manifest to distinguish V1 and V2.
 export function isPipelineSpec(templateString: string) {
-  if (!templateString) {
-    return false;
-  }
-  try {
-    const template = getPipelineDefFromYaml(templateString);
-    if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
-      StaticGraphParser.createGraph(template as Workflow);
-      return false;
-    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-      const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
-      convertFlowElements(pipelineSpec);
-      return true;
-    } else {
-      return false;
-    }
-  } catch (err) {
-    return false;
-  }
+  return WorkflowUtils.tryConvertYamlToV2PipelineSpec(templateString) !== undefined;
 }
 
 // Given the PipelineSpec payload and targeted componentSpec, returns

@@ -133,6 +133,32 @@ The setup automatically detects your platform (Linux or macOS) and uses the appr
 This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
 all the pods have started.
 
+#### Installing a DRA Driver
+
+To use Dynamic Resource Allocation (DRA) locally, install the Kubernetes
+[DRA example driver](https://github.com/kubernetes-sigs/dra-example-driver) in
+the Kind cluster. The `install-dra-driver` Make target installs the driver
+version used by the DRA end-to-end tests. The DRA end-to-end workflow runs
+this pinned driver on Kubernetes 1.34.3; verify the cluster version before
+installing it. Helm and Git must be installed:
+
+```bash
+kubectl version
+```
+
+Install the driver:
+
+```bash
+make -C backend install-dra-driver
+```
+
+Override the driver namespace when needed:
+
+```bash
+make -C backend install-dra-driver \
+  DRA_DRIVER_NAMESPACE=my-dra-namespace
+```
+
 > [!NOTE]
 > The config sets the `ml-pipeline` `Deployment` (api server) to have 0 replicas. The intent is to replace it with a locally
 > running API server for debugging and faster development. See the following steps to run the API server locally, and connect

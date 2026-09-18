@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { act, render } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import { produce } from 'immer';
 import { range } from 'lodash';
@@ -70,9 +70,9 @@ describe('RecurringRunList', () => {
 
   function generateProps(): RecurringRunListProps {
     return {
-      history: {} as any,
+      navigate: vi.fn(),
       location: { search: '' } as any,
-      match: '' as any,
+      params: {},
       onError: onErrorSpy,
       refreshCount: 1,
     };

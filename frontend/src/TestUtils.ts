@@ -20,7 +20,8 @@
 import 'src/build/tailwind.output.css';
 import { act } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
-import { match } from 'react-router';
+import React from 'react';
+import { Location, useLocation } from 'react-router';
 import { beforeEach, expect, MockInstance } from 'vitest';
 import { ToolbarActionConfig } from './components/Toolbar';
 import { Feature } from './features';
@@ -89,17 +90,17 @@ export default class TestUtils {
   public static generatePageProps(
     PageElement: new (_: PageProps) => Page<any, any>,
     location: Location,
-    matchValue: match,
-    historyPushSpy: MockInstance | null,
+    params: Record<string, string | undefined>,
+    navigateSpy: MockInstance | null,
     updateBannerSpy: MockInstance | null,
     updateDialogSpy: MockInstance | null,
     updateToolbarSpy: MockInstance | null,
     updateSnackbarSpy: MockInstance | null,
   ): PageProps {
     const pageProps = {
-      history: { push: historyPushSpy } as any,
+      navigate: navigateSpy as any,
       location: location as any,
-      match: matchValue,
+      params,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy as any,
       updateDialog: updateDialogSpy as any,
@@ -236,4 +237,14 @@ export function mockResizeObserver(width = 800, height = 600) {
   }
 
   (window as any).ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+}
+
+/** Displays the current native router location for navigation assertions. */
+export function RouterLocation() {
+  const location = useLocation();
+  return React.createElement(
+    'output',
+    { 'data-testid': 'router-location' },
+    location.pathname + location.search,
+  );
 }
