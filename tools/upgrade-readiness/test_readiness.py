@@ -19,6 +19,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -305,6 +306,101 @@ class ReadinessTest(unittest.TestCase):
                                                     'deployments.apps')
         self.assertIsNone(data)
         self.assertEqual(error, 'collection_timed_out')
+
+    def test_namespace_scoped_inventory_requires_namespace(self):
+        for kind in ['Deployment', 'Role', 'RoleBinding']:
+            for value in [None, '', 42, 'INVALID', ' ']:
+                item = obj(kind, 'test', namespace=value)
+                with self.subTest(
+                        kind=kind,
+                        namespace=value), self.assertRaises(ValueError):
+                    assess([item])
+            item = obj(kind, 'test')
+            del item['metadata']['namespace']
+            with self.assertRaises(ValueError):
+                assess([item])
+        readiness.validate_inventory({
+            'items': [{
+                'kind': 'ClusterRole',
+                'metadata': {
+                    'name': 'view'
+                },
+                'rules': []
+            }]
+        })
+
+    def test_missing_ui_reports_both_rules_and_offline_completeness(self):
+        report = assess([])
+        for rule in ['tensorboard.key', 'tensorboard.rollout']:
+            result = next(f for f in report['findings'] if f['rule'] == rule)
+            self.assertEqual(result['status'], 'unknown')
+        self.assertTrue(
+            any(f['rule'] == 'inventory.collection' and
+                f['evidence'] == 'offline_inventory_completeness_unverified'
+                for f in report['findings']))
+        live = readiness.analyze({'items': []},
+                                 'kubeflow', ['kubeflow'],
+                                 'ui',
+                                 'cache',
+                                 '2.17.2',
+                                 mode='live')
+        self.assertFalse(
+            any(f['evidence'] == 'offline_inventory_completeness_unverified'
+                for f in live['findings']))
+
+    def test_usage_errors_are_not_report_exit_codes(self):
+        base = [
+            '--inventory', 'unused.json', '--source-version', '2.17.2',
+            '--system-namespace', 'kubeflow'
+        ]
+        for args in [[], base + ['--format', 'invalid'],
+                     base + ['--namespace', 'INVALID'],
+                     base + ['--source-version', 'invalid']]:
+            with self.subTest(args=args), contextlib.redirect_stderr(
+                    io.StringIO()):
+                with self.assertRaises(SystemExit) as result:
+                    readiness.main(args)
+                self.assertEqual(result.exception.code, 1)
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(SystemExit) as result:
+                readiness.main(['--help'])
+            self.assertEqual(result.exception.code, 0)
+
+    def test_collection_limit_kills_inherited_plugin(self):
+        original = subprocess.Popen
+        for cause in ['timeout', 'size']:
+            with self.subTest(
+                    cause=cause), tempfile.TemporaryDirectory() as directory:
+                marker = Path(directory) / 'survived'
+                child = "import time; from pathlib import Path; time.sleep(0.4); Path(%r).touch()" % str(
+                    marker)
+                script = (
+                    "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c',%r]); "
+                    "print(%r,flush=True); time.sleep(10)") % (
+                        child, 'x' * 1024 if cause == 'size' else 'ready')
+
+                def launch(command, **kwargs):
+                    self.assertTrue(kwargs['start_new_session'])
+                    return original([sys.executable, '-c', script], **kwargs)
+
+                with mock.patch.object(
+                        readiness.subprocess, 'Popen', side_effect=launch):
+                    if cause == 'timeout':
+                        with mock.patch.object(
+                                readiness.time, 'monotonic',
+                                side_effect=[0, 0, 31]):
+                            _, error = readiness.kubectl_get(
+                                'ctx', 'ns', 'deployments.apps')
+                        self.assertEqual(error, 'collection_timed_out')
+                    else:
+                        with mock.patch.object(readiness, 'MAX_BYTES', 128):
+                            _, error = readiness.kubectl_get(
+                                'ctx', 'ns', 'deployments.apps')
+                        self.assertEqual(error, 'collection_exceeded_16_mib')
+                time.sleep(0.6)
+                self.assertFalse(
+                    marker.exists(),
+                    'Inherited credential plugin survived collection limit')
 
     def test_oversized_offline_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
