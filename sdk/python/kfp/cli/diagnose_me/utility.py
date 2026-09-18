@@ -26,7 +26,7 @@ class ExecutorResponse(object):
     pattern.
 
     TODO() This class should be extended to contain data structure to better
-    represent the underlying data instaed of dict for various response types.
+    represent the underlying data instead of dict for various response types.
     """
 
     def execute_command(self, command_list: List[Text]):
