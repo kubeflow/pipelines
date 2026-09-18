@@ -67,3 +67,8 @@ The Python visualization service is retired. Image builds, CI artifact inventori
   disabled-schedule draining, pre-upgrade predictions and both enforce/audit phases.
   Upload only sanitized `reports/*.json`, never fixture tokens or raw collection files.
   A skipped lane or passing mocked helper tests do not satisfy live upgrade acceptance.
+
+- Readiness policy conformance uses the managed Go setup action and a separately
+  pinned backend checkout. Upgrade gate regression tests cover master migration
+  opt-in, release-2.18 push/PR contexts, and the separate readiness opt-in; run the
+  CI scripts suite and `make check-go-version` when changing these workflows.

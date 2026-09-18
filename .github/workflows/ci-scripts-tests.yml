@@ -52,6 +52,8 @@ on:
       - '.github/workflows/check-requirements-txt.yml'
       - '.github/workflows/check-uv-lock.yml'
       - '.github/workflows/publish-packages.yml'
+      - '.github/workflows/upgrade-test.yml'
+      - '.github/workflows/upgrade-readiness.yml'
       - '.github/workflows/pre-commit.yml'
       - '.github/workflows/pr-gate.yml'
       - '.github/workflows/gh-workflow-approve.yml'
