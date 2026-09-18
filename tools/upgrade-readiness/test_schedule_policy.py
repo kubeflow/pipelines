@@ -76,6 +76,19 @@ class SchedulePolicyTest(unittest.TestCase):
         self.assertIn('team-a/custom', result[1])
         self.assertNotIn('untrusted-cr-account', result[1])
 
+    def test_template_default_requires_empty_target_patch(self):
+        bundle = evidence()
+        bundle['recurring_runs'][0]['service_account'] = None
+        bundle['recurring_runs'][0]['_readiness_v2_default'] = True
+        self.assertEqual(
+            schedule_policy.assess(schedule(), bundle)[0], 'unknown')
+        bundle['compiled_pipeline_spec_patch'] = {'serviceAccountName': 'other'}
+        self.assertEqual(
+            schedule_policy.assess(schedule(), bundle)[0], 'unknown')
+        bundle['compiled_pipeline_spec_patch'] = {}
+        self.assertEqual(
+            schedule_policy.assess(schedule(), bundle)[0], 'no_issue_detected')
+
     def test_default_exemption(self):
         bundle = evidence()
         bundle['recurring_runs'][0]['service_account'] = 'pipeline-runner'

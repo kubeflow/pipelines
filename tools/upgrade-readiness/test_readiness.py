@@ -53,6 +53,35 @@ def role_items(verbs):
 
 class ReadinessTest(unittest.TestCase):
 
+    def test_controller_hints_do_not_expose_identity_values(self):
+        deployment = obj(
+            'Deployment',
+            'ml-pipeline-scheduledworkflow',
+            'kubeflow',
+            spec={
+                'template': {
+                    'spec': {
+                        'serviceAccountName':
+                            'private-account',
+                        'containers': [{
+                            'args': ['--userIdentityValue=private-user']
+                        }]
+                    }
+                }
+            })
+        report = readiness.analyze({'items': [deployment]},
+                                   'kubeflow', ['kubeflow'],
+                                   'ui',
+                                   'cache',
+                                   '2.17.2',
+                                   include_schedules=True)
+        text = json.dumps(report)
+        self.assertNotIn('private-account', text)
+        self.assertNotIn('private-user', text)
+        self.assertTrue(
+            any(f['rule'] == 'schedule.controllerIdentity' and
+                f['status'] == 'unknown' for f in report['findings']))
+
     def test_schedule_cli_opt_in(self):
         schedule = obj(
             'ScheduledWorkflow',
