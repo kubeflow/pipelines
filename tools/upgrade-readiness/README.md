@@ -7,7 +7,7 @@ JSON inventory and prints an actionable Markdown or JSON report.
 **This first version is a partial migration-plan assessment, not an upgrade
 certification.** Every report is marked `incomplete`. It can identify configuration
 to review, but cannot establish that users or workloads will succeed on 2.18.
-Ruleset `2.18-preview.2` includes proposed TensorBoard adoption behavior from
+Ruleset `2.18-preview.3` includes proposed TensorBoard adoption behavior from
 [#14362](https://github.com/kubeflow/pipelines/pull/14362), not a claim that this
 change has shipped. Final release-candidate rules must be pinned and validated
 before this tool can offer a readiness conclusion.
@@ -75,6 +75,87 @@ top-level account as authoritative. It does not resolve referenced pipeline
 versions or reconcile CRs against database recurring runs. Disabled schedules
 are included because they may be re-enabled later. A zero count, missing CRD or
 permission failure never certifies that scheduling is unaffected.
+
+## Target main-account prediction (optional preview)
+
+Use `--include-schedules --schedule-policy target-policy.json` to evaluate the
+main service-account check using **persisted KFP recurring-run evidence and
+explicit target settings/RBAC**. The operator still runs against 2.17; this option
+makes no additional network requests or authorization reviews. It does not change
+any cluster permissions.
+
+The JSON bundle has this shape (values are illustrative):
+
+```json
+{
+  "policy_contract": "14363-main-account-preview.1",
+  "target_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "multi_user": true,
+  "mode": "enforce",
+  "default_service_account": "pipeline-runner",
+  "allowed_service_accounts": ["training-runner"],
+  "controller_user": "system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow",
+  "rbac_complete": false,
+  "rbac_only": false,
+  "recurring_runs": [],
+  "experiments": [],
+  "rbac": []
+}
+```
+
+Replace the revision with the exact proposed candidate commit. Supply
+`recurring_runs` from authenticated V2 KFP API responses, retaining
+`recurring_run_id`, `experiment_id`, `namespace` and `service_account`;
+`experiments` retain `experiment_id` and `namespace`. Reconcile all pages in the
+selected scope. Records are matched to `ScheduledWorkflow.metadata.uid`, never
+by display name. Missing/duplicate records and inconsistent namespaces remain
+unknown. Do not substitute the editable CR's account for the persisted account.
+This preview does not automate authenticated KFP collection or template resolution.
+An omitted account or embedded workflow is not assumed to use the default.
+An explicit persisted account can be checked without loading a referenced template;
+template-dependent defaults and additional identities remain unknown.
+
+Supply `rbac` as target Role, ClusterRole, RoleBinding and ClusterRoleBinding
+objects, including retained custom grants as well as rendered candidate objects.
+Never treat only the stock manifests as a complete snapshot. A missing grant is
+reported as denial only when **both** `rbac_complete` and `rbac_only` are true:
+these are explicit operator assertions that all applicable bindings/roles are
+included and RBAC is the only relevant authorizer. Otherwise absence is unknown.
+Missing referenced roles, ambiguous duplicate roles and unresolved aggregation
+also remain unknown. Named-account restrictions, namespace scope and additive
+grants are evaluated. No roles are created or recommended with wildcard access.
+
+`controller_user` must be the caller the target API actually authenticates.
+Do not infer it solely from a controller Pod: configured identity headers can
+change it. This contract mirrors KFP's **user-only** SubjectAccessReview; it does
+not add service-account or authenticated groups. A group-only grant therefore
+does not satisfy this check. `allowed_service_accounts` contains the exact names
+from target `ALLOWEDSERVICEACCOUNTS` (empty denies custom accounts; `*` is literal).
+`default_service_account` comes from target `DEFAULTPIPELINERUNNERSERVICEACCOUNT`;
+that account is exempt from this check. `mode` corresponds to target
+`KFP_SECURITY_SERVICE_ACCOUNT_MODE`.
+
+The contract is pinned to the proposed #14363 integration at
+`698819580262320715ee616c7479b33c62e0a4b7`, not dynamically inferred from the supplied
+candidate revision. The report records both revisions and labels target evidence
+operator-supplied/unverified. Confirm the candidate has equivalent policy before
+using its predictions; a changed policy needs a revised contract. Source 2.17
+configuration and its current authorization decisions are not target evidence.
+
+- `policy_rejection`: the supplied enforce policy would reject this main account.
+- `operational_impact`: audit would record the modeled policy denial; transport,
+  authentication and authorizer evaluation failures can still block execution.
+- `no_issue_detected`: a main-account exemption or RBAC grant was found within this
+  contract. This is not a schedule execution pass.
+- `unknown`: evidence or supported identity resolution is insufficient.
+
+Reports remain incomplete. They do not check controller run-creation permission,
+pipeline access, account existence, tampering/replay protections, plugins or
+additional workflow identities. Those checks and prediction-versus-execution
+fixtures in existing upgrade CI remain open in #14421. Bundles may contain
+sensitive workload data; keep them local and access-controlled. Reports omit raw
+records, controller names, subjects, specifications and parameters. The bundle
+shares the 16 MiB file limit and permits at most 10000 records across its lists.
 
 ## What it checks
 
