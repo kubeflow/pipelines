@@ -53,6 +53,151 @@ def role_items(verbs):
 
 class ReadinessTest(unittest.TestCase):
 
+    def test_schedule_cli_opt_in(self):
+        schedule = obj(
+            'ScheduledWorkflow',
+            'nightly',
+            spec={
+                'enabled': True,
+                'serviceAccount': 'runner'
+            })
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'inventory.json'
+            path.write_text(json.dumps({'items': [schedule]}))
+            base = [
+                '--inventory',
+                str(path), '--source-version', '2.17.2', '--system-namespace',
+                'team-a', '--format', 'json'
+            ]
+            for include in (False, True):
+                with contextlib.redirect_stdout(io.StringIO()) as output:
+                    self.assertEqual(
+                        readiness.main(base + (
+                            ['--include-schedules'] if include else [])), 2)
+                report = json.loads(output.getvalue())
+                self.assertEqual(report['source']['schedules_requested'],
+                                 include)
+                self.assertEqual(
+                    any(f['rule'] == 'schedule.serviceAccount'
+                        for f in report['findings']), include)
+
+    def test_schedule_collection_requires_opt_in_and_preserves_scope(self):
+        for include in (False, True):
+            with mock.patch.object(
+                    readiness, 'kubectl_get', return_value=({
+                        'items': []
+                    }, None)) as get:
+                readiness.collect(
+                    'ctx', ['team-a', 'team-b'], include_schedules=include)
+            schedule_calls = [
+                call.args
+                for call in get.call_args_list
+                if call.args[2] == 'scheduledworkflows.kubeflow.org'
+            ]
+            self.assertEqual(
+                schedule_calls,
+                [('ctx', namespace, 'scheduledworkflows.kubeflow.org')
+                 for namespace in ['team-a', 'team-b']] if include else [])
+
+    def test_schedule_accounts_are_evidence_not_access_decisions(self):
+        schedules = [
+            obj('ScheduledWorkflow',
+                'custom',
+                spec={
+                    'enabled': True,
+                    'serviceAccount': 'custom-runner'
+                }),
+            obj('ScheduledWorkflow', 'default', spec={'enabled': False}),
+            obj('ScheduledWorkflow',
+                'embedded',
+                spec={
+                    'enabled': True,
+                    'serviceAccount': 'WRONG_PATH',
+                    'workflow': {
+                        'spec': {
+                            'serviceAccountName': 'EMBEDDED_ACCOUNT',
+                            'secret': 'PRIVATE_SPEC'
+                        }
+                    }
+                }),
+            obj('ScheduledWorkflow',
+                'outside',
+                namespace='outside',
+                spec={'serviceAccount': 'OUTSIDE_ACCOUNT'}),
+        ]
+        self.assertFalse(
+            any(f['rule'].startswith('schedule.')
+                for f in assess(schedules)['findings']))
+        report = readiness.analyze({'items': schedules},
+                                   'kubeflow', ['kubeflow', 'team-a'],
+                                   'ui',
+                                   'cache',
+                                   '2.17.2',
+                                   include_schedules=True)
+        results = {
+            f['resource'].split('/')[-1]: f
+            for f in report['findings']
+            if f['rule'] == 'schedule.serviceAccount'
+        }
+        self.assertEqual(set(results), {'custom', 'default', 'embedded'})
+        self.assertTrue(all(f['status'] == 'unknown' for f in results.values()))
+        self.assertIn('account name custom-runner',
+                      results['custom']['evidence'])
+        self.assertIn('target run namespace', results['custom']['evidence'])
+        self.assertIn('disabled', results['default']['evidence'])
+        self.assertIn('default was not resolved',
+                      results['default']['evidence'])
+        self.assertIn('Embedded workflow path', results['embedded']['evidence'])
+        for output in (json.dumps(report), readiness.markdown(report)):
+            for private in [
+                    'WRONG_PATH', 'EMBEDDED_ACCOUNT', 'PRIVATE_SPEC',
+                    'OUTSIDE_ACCOUNT'
+            ]:
+                self.assertNotIn(private, output)
+
+    def test_schedule_failures_and_zero_counts_are_unknown(self):
+
+        def get(context, namespace, resource):
+            if resource == 'scheduledworkflows.kubeflow.org':
+                return None, 'collection_failed'
+            return {'items': []}, None
+
+        with mock.patch.object(readiness, 'kubectl_get', side_effect=get):
+            inventory, failures = readiness.collect(
+                'ctx', ['team-a'], include_schedules=True)
+        report = readiness.analyze(
+            inventory,
+            'team-a', ['team-a'],
+            'ui',
+            'cache',
+            '2.17.2',
+            failures,
+            mode='live',
+            include_schedules=True)
+        self.assertTrue(
+            any(f['rule'] == 'inventory.collection' and
+                'scheduledworkflows' in f['resource']
+                for f in report['findings']))
+        coverage = next(
+            f for f in report['findings'] if f['rule'] == 'schedule.coverage')
+        self.assertEqual(coverage['status'], 'unknown')
+        self.assertIn('0 ScheduledWorkflow', coverage['evidence'])
+
+    def test_malformed_schedule_identity_is_unresolved_and_redacted(self):
+        for spec in [
+                None, [], {
+                    'serviceAccount': ['PRIVATE']
+                }, {
+                    'serviceAccount': 'PRIVATE/BAD'
+                }, {
+                    'workflow': 'PRIVATE'
+                }
+        ]:
+            results = readiness.analyze_schedules(
+                [obj('ScheduledWorkflow', 'bad', spec=spec)])
+            self.assertEqual(results[-1]['status'], 'unknown')
+            self.assertNotIn('PRIVATE', json.dumps(results))
+
     def test_empty_inventory_never_green(self):
         report = assess([])
         self.assertEqual(report['assessment'], 'incomplete')
