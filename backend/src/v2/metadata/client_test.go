@@ -17,6 +17,7 @@ package metadata_test
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"maps"
 	"reflect"
@@ -33,6 +34,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -420,6 +422,66 @@ func Test_GetExecutionsByTypeAndName(t *testing.T) {
 			t.Fatalf("GetExecutionsByTypeAndName() error mismatch (-want +got):\n%s", diff)
 		}
 	})
+}
+
+func TestUpdateExecutionPluginProperties(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		missingID     bool
+		nilProperties bool
+		writeFails    bool
+	}{
+		{name: "preserves existing metadata"},
+		{name: "initializes custom properties", nilProperties: true},
+		{name: "failed write preserves local handle", writeFails: true},
+		{name: "requires existing execution", missingID: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			original := &pb.Execution{
+				Id: proto.Int64(100), TypeId: proto.Int64(10), Name: proto.String("task/55/notify/-1"),
+				LastKnownState: pb.Execution_RUNNING.Enum(),
+				Properties:     map[string]*pb.Value{"input": metadata.StringValue("value")},
+				CustomProperties: map[string]*pb.Value{
+					"task_name":        metadata.StringValue("notify"),
+					"plugins.other.id": metadata.StringValue("other-run"),
+				},
+			}
+			if test.missingID {
+				original.Id = nil
+			}
+			if test.nilProperties {
+				original.CustomProperties = nil
+			}
+			execution := metadata.NewExecution(proto.Clone(original).(*pb.Execution))
+			writeError := errors.New("write failed")
+			client := metadata.NewTestClient(&metadata.MockMLMDClient{
+				PutExecutionFn: func(_ context.Context, request *pb.PutExecutionRequest, _ ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
+					require.False(t, test.missingID, "must not create a new execution")
+					require.Equal(t, "recovered-run", request.Execution.CustomProperties["plugins.mlflow.run_id"].GetStringValue())
+					unchanged := proto.Clone(request.Execution).(*pb.Execution)
+					delete(unchanged.CustomProperties, "plugins.mlflow.run_id")
+					require.True(t, proto.Equal(original, unchanged), "must preserve all other metadata")
+					require.Empty(t, request.Contexts)
+					require.Empty(t, request.ArtifactEventPairs)
+					if test.writeFails {
+						return nil, writeError
+					}
+					return &pb.PutExecutionResponse{ExecutionId: original.Id}, nil
+				},
+			})
+			err := client.UpdateExecutionPluginProperties(context.Background(), execution, map[string]string{"plugins.mlflow.run_id": "recovered-run"})
+			if test.missingID || test.writeFails {
+				require.Error(t, err)
+				if test.writeFails {
+					require.ErrorIs(t, err, writeError)
+				}
+				require.True(t, proto.Equal(original, execution.Execution))
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, "recovered-run", metadata.ExtractPluginCustomProperties(execution)["plugins.mlflow.run_id"])
+		})
+	}
 }
 
 func TestFormatOutputArtifacts(t *testing.T) {
