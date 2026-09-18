@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export const ARTIFACT_SOURCES = ['minio', 's3', 'gcs', 'http', 'https', 'volume'] as const;
+// 'oci' is OCI Object Storage (oci://<bucket>@<namespace>/<key>). The launcher writes these artifacts
+// through OCI's S3-compatible API; the UI server recognizes the source but does not proxy it yet.
+export const ARTIFACT_SOURCES = ['minio', 's3', 'gcs', 'oci', 'http', 'https', 'volume'] as const;
 export type ArtifactSource = (typeof ARTIFACT_SOURCES)[number];
 
 export const LAUNCHER_ARTIFACT_SOURCES = [

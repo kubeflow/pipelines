@@ -114,6 +114,8 @@ Refer to the API Server configuration section [here](#api-server-supported-provi
 | S3-Compliant Storage with Static Credentials | Yes       |
 | Google Cloud Storage with Static Credentials | Yes       |
 | Google Cloud Storage with App Credentials    | Yes       |
+| OCI Object Storage with Customer Secret Key  | Yes       |
+| OCI Object Storage with IAM Principals       | No        |
 
 ### KFP Launcher Object Store Configuration
 
@@ -164,7 +166,8 @@ To utilize a different object store provider entirely, you will need to add a ne
 How to configure this field depends on your object store provider. See below for details.
 
 Note that the provider is determined by the PipelineRoot value. If `PipelineRoot=s3://mlpipeline` then this is matched
-with the `s3` provider. If `PipelineRoot=gs://mlpipeline` then this is matched with the `gs` provider (GCS) and so on.
+with the `s3` provider. If `PipelineRoot=gs://mlpipeline` then this is matched with the `gs` provider (GCS), if
+`PipelineRoot=oci://mlpipeline@mynamespace` then this is matched with the `oci` provider (OCI Object Storage) and so on.
 
 #### S3 and S3-compatible Provider
 
@@ -291,6 +294,108 @@ metadata:
   namespace: user-namespace
 ```
 
+#### Oracle Cloud Infrastructure (OCI) Object Storage provider
+
+OCI Object Storage buckets are addressed with the same convention as the OCI CLI, `ocifs` and OCI Data Science:
+
+```
+oci://<bucket>@<namespace>/<prefix>
+```
+
+The `@<namespace>` part is **required**. KFP already uses the bare `oci://<registry>/<repository>[:tag]` form for
+[Modelcar container images](../user-guides/components/importer-component.md); the `@<namespace>` in the authority is what
+tells the launcher that the URI is a bucket path rather than a container image reference.
+
+The launcher accesses the bucket through the [S3-compatible API] that every OCI Object Storage namespace exposes at
+`https://<namespace>.compat.objectstorage.<region>.oraclecloud.com`. Requests are signed with a [Customer Secret Key]
+(an S3-style access key / secret key pair created for an OCI IAM user). Because the namespace is part of the pipeline
+root, the provider only needs the region and the credentials:
+
+```yaml
+apiVersion: v1
+data:
+  defaultPipelineRoot: oci://mlpipeline@mynamespace/v2/artifacts
+  providers: |-
+    oci:
+      default:
+        region: us-ashburn-1
+        credentials:
+          fromEnv: false
+          secretRef:
+            secretName: oci-customer-secret-key
+            accessKeyKey: accessKey
+            secretKeyKey: secretKey
+kind: ConfigMap
+metadata:
+  name: kfp-launcher
+  namespace: user-namespace
+```
+
+Create the Kubernetes Secret from the Customer Secret Key:
+
+```bash
+kubectl -n user-namespace create secret generic oci-customer-secret-key \
+  --from-literal=accessKey="<customer secret key access key>" \
+  --from-literal=secretKey="<customer secret key secret>"
+```
+
+Optional fields on `default` and on each override:
+
+* `endpoint` — replaces the derived `https://<namespace>.compat.objectstorage.<region>.oraclecloud.com` endpoint, for
+  example for a private endpoint or a proxy. When the endpoint does not follow the `compat.objectstorage.<region>`
+  convention, `region` must be set as well (it is the SigV4 signing region).
+* `forcePathStyle` — defaults to `true`; the OCI S3-compatible API is path-style.
+* `maxRetries` — defaults to `5`.
+
+Overrides work like the S3 overrides described below and additionally accept an optional `namespace` field to pin an
+override to a specific Object Storage namespace:
+
+```yaml
+oci:
+  default:
+    region: us-ashburn-1
+    credentials:
+      fromEnv: false
+      secretRef:
+        secretName: oci-customer-secret-key
+        accessKeyKey: accessKey
+        secretKeyKey: secretKey
+  overrides:
+    # Matches pipeline root: oci://mlpipeline@mynamespace/team-a
+    - bucketName: mlpipeline
+      namespace: mynamespace
+      keyPrefix: team-a
+      region: us-phoenix-1
+      credentials:
+        fromEnv: false
+        secretRef:
+          secretName: oci-team-a-key
+          accessKeyKey: accessKey
+          secretKeyKey: secretKey
+```
+
+#### OCI Environment based Credentials
+
+With `credentials.fromEnv: true` (or when no `oci` provider is configured at all) the launcher resolves the Customer
+Secret Key through the AWS SDK default credential chain, i.e. from `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
+environment variables injected into the task (for example via [SDK Secret Env]). The region is taken from the provider
+config, from a `?region=<region>` query parameter on the pipeline root, or from the `OCI_REGION` environment variable:
+
+```python
+kubernetes.use_secret_as_env(
+    your_task,
+    secret_name='oci-customer-secret-key',
+    secret_key_to_env={'accessKey': 'AWS_ACCESS_KEY_ID', 'secretKey': 'AWS_SECRET_ACCESS_KEY'})
+your_task.set_env_variable(name='OCI_REGION', value='us-ashburn-1')
+```
+
+> **Note**: native OCI IAM authentication (instance principals, resource principals, API-key request signing) is not
+> supported by the `oci` provider: the S3-compatible API only accepts Customer Secret Keys. Supporting IAM principals
+> requires a dedicated Object Storage driver on top of the OCI Go SDK.
+
+> **Note**: the KFP UI currently recognizes `oci://<bucket>@<namespace>/...` artifact URIs but cannot preview or download
+> them yet; it answers such requests with HTTP 501. Use the OCI Console or the OCI CLI (`oci os object get`) instead.
+
 ### KFP Launcher Overrides
 
 KFP Launcher overrides allow users to specify different Provider sources for different paths within a given PipelineRoot. 
@@ -395,6 +500,8 @@ The `keyPrefix` are matched with the path prescribed in the `PipelineRoot`. For 
 If a field is not provided, then the default configuration is utilized. 
 
 [IRSA docs]: https://docs.aws.amazon.com/emr/latest/EMR-on-EKS-DevelopmentGuide/setting-up-enable-IAM.html
+[S3-compatible API]: https://docs.oracle.com/en-us/iaas/Content/Object/Tasks/s3compatibleapi.htm
+[Customer Secret Key]: https://docs.oracle.com/en-us/iaas/Content/Identity/Tasks/managingcredentials.htm#Working2
 [SDK PipelineRoot Docs]: ../concepts/pipeline-root.md
 [overrides]: #kfp-launcher-overrides
 [SDK Secret Env]: https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.2.0/source/kubernetes.html#kfp.kubernetes.use_secret_as_env

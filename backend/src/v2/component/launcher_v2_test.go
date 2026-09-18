@@ -1599,6 +1599,88 @@ func TestUploadOutputArtifacts_RegistersOCIOutputs(t *testing.T) {
 	assert.Equal(t, "oci://registry.domain.local/org/repo:v1.0", *launcher.batchUpdater.artifacts[0].request.Artifact.Uri)
 }
 
+func TestUploadOutputArtifacts_UploadsOCIObjectStorageOutputs(t *testing.T) {
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"model": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{
+							Name: "trained-model",
+							Uri:  "oci://kfp-artifacts@mynamespace/v2/artifacts/run-1/model",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Model"},
+							},
+						}},
+					},
+				},
+			},
+		},
+		options: LauncherV2Options{
+			Namespace: "default",
+			Run:       &apiv2beta1.Run{RunId: "run-1"},
+			Task:      &apiv2beta1.PipelineTask{TaskId: "task-1"},
+		},
+		batchUpdater: NewBatchUpdater(),
+		objectStore:  NewMockObjectStoreClient(),
+	}
+
+	err := launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{},
+	})
+	require.NoError(t, err)
+
+	// OCI Object Storage outputs are regular bucket artifacts, unlike Modelcar (oci://<registry>/<image>) outputs.
+	mockObjectStore := launcher.objectStore.(*MockObjectStoreClient)
+	require.Len(t, mockObjectStore.UploadCalls, 1)
+	assert.Equal(t, "oci://kfp-artifacts@mynamespace/v2/artifacts/run-1/model", mockObjectStore.UploadCalls[0].RemoteURI)
+	assert.Equal(t, "/oci/kfp-artifacts@mynamespace/v2/artifacts/run-1/model", mockObjectStore.UploadCalls[0].LocalPath)
+	require.Len(t, launcher.batchUpdater.artifacts, 1)
+	assert.Equal(t, "oci://kfp-artifacts@mynamespace/v2/artifacts/run-1/model", *launcher.batchUpdater.artifacts[0].request.Artifact.Uri)
+}
+
+func TestLocalPathForURI(t *testing.T) {
+	t.Setenv("ARTIFACT_LOCAL_PATH", "")
+
+	tests := []struct {
+		uri      string
+		expected string
+		wantErr  bool
+	}{
+		{uri: "gs://bucket/path/model", expected: "/gcs/bucket/path/model"},
+		{uri: "minio://bucket/path/model", expected: "/minio/bucket/path/model"},
+		{uri: "s3://bucket/path/model", expected: "/s3/bucket/path/model"},
+		// OCI Object Storage keeps the bucket@namespace authority and the object key as-is.
+		{uri: "oci://kfp-artifacts@mynamespace/path/model", expected: "/oci/kfp-artifacts@mynamespace/path/model"},
+		// Modelcar image references are flattened and expose the image's /models directory.
+		{uri: "oci://registry.domain.local/org/repo:v1.0", expected: "/oci/registry.domain.local_org_repo:v1.0/models"},
+		{uri: "unsupported://bucket/path", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.uri, func(t *testing.T) {
+			localPath, err := LocalPathForURI(tt.uri)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, localPath)
+		})
+	}
+}
+
+func TestLocalWorkspacePathForURI_OCI(t *testing.T) {
+	t.Setenv("ARTIFACT_LOCAL_PATH", "")
+
+	workspacePath, err := LocalWorkspacePathForURI("oci://kfp-artifacts@mynamespace/path/model")
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Join(WorkspaceMountPath, ".artifacts", "oci", "kfp-artifacts@mynamespace", "path", "model"), workspacePath)
+
+	_, err = LocalWorkspacePathForURI("oci://registry.domain.local/org/repo:v1.0")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "OCI not supported for workspace artifacts")
+}
+
 func TestUploadOutputArtifacts_PreservesCustomSchemaTitle(t *testing.T) {
 	launcher := &LauncherV2{
 		executorInput: &pipelinespec.ExecutorInput{

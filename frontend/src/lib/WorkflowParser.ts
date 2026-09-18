@@ -32,6 +32,7 @@ export enum StorageService {
   HTTP = 'http',
   HTTPS = 'https',
   MINIO = 'minio',
+  OCI = 'oci',
   S3 = 's3',
   VOLUME = 'volume',
 }
@@ -372,6 +373,18 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.S3,
+      };
+    } else if (
+      strPath.startsWith('oci://') &&
+      strPath.substr('oci://'.length).split('/')[0].includes('@')
+    ) {
+      // OCI Object Storage: oci://<bucket>@<namespace>/<key>. The bare oci://<registry>/<image>
+      // form is a Modelcar container image reference, not a storage path.
+      const pathParts = strPath.substr('oci://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.OCI,
       };
     } else if (strPath.startsWith('http://')) {
       const pathParts = strPath.substr('http://'.length).split('/');

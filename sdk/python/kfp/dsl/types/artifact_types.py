@@ -33,6 +33,21 @@ class RemotePrefix(enum.Enum):
     OCI = 'oci://'
 
 
+def is_oci_object_storage_uri(uri: str) -> bool:
+    """Returns True if ``uri`` is an OCI Object Storage path.
+
+    OCI Object Storage paths use the ``oci://<bucket>@<namespace>/<key>`` form
+    shared by the OCI CLI, ocifs and OCI Data Science. The bare
+    ``oci://<registry>/<repository>[:tag]`` form is a Modelcar container image
+    reference; only the ``@<namespace>`` in the authority marks a bucket path.
+    """
+    if not uri.startswith(RemotePrefix.OCI.value):
+        return False
+    authority = uri[len(RemotePrefix.OCI.value):].split('/', 1)[0]
+    authority = authority.split('?', 1)[0]
+    return '@' in authority
+
+
 class Artifact:
     """Represents a generic machine learning artifact.
 
@@ -109,7 +124,14 @@ class Artifact:
         elif self.uri.startswith(RemotePrefix.S3.value):
             local_path = _S3_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.S3
                                                                .value):]
+        elif is_oci_object_storage_uri(self.uri):
+            # OCI Object Storage: oci://<bucket>@<namespace>/<key> maps to
+            # /oci/<bucket>@<namespace>/<key>, mirroring the other object stores.
+            # Must stay in sync with LocalPathForURI in the KFP launcher.
+            local_path = _OCI_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.OCI
+                                                                .value):]
         elif self.uri.startswith(RemotePrefix.OCI.value):
+            # Modelcar container image reference.
             escaped_uri = self.uri[len(RemotePrefix.OCI.value):].replace(
                 '/', '_')
             local_path = _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
@@ -152,7 +174,13 @@ def convert_local_path_to_remote_path(path: str) -> str:
     elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
         return RemotePrefix.S3.value + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_OCI_LOCAL_MOUNT_PREFIX):
-        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('_', '/')
+        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):]
+        if '@' in remote_path.split('/', 1)[0]:
+            # OCI Object Storage: /oci/<bucket>@<namespace>/<key>
+            return RemotePrefix.OCI.value + remote_path
+
+        # Modelcar container image reference.
+        remote_path = remote_path.replace('_', '/')
         if remote_path.endswith('/models'):
             remote_path = remote_path[:-len('/models')]
 
@@ -180,7 +208,8 @@ class Model(Artifact):
 
     @property
     def path(self) -> str:
-        if self.uri.startswith('oci://'):
+        if self.uri.startswith('oci://') and not is_oci_object_storage_uri(
+                self.uri):
             # Modelcar container images are expected to have the model files stored in /models
             # https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
             return self._get_path() + '/models'

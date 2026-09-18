@@ -48,8 +48,11 @@ const (
 )
 
 type Config struct {
-	Scheme      string
-	BucketName  string
+	Scheme     string
+	BucketName string
+	// Namespace is the OCI Object Storage namespace parsed from
+	// oci://<bucket>@<namespace>/... paths. It is empty for every other scheme.
+	Namespace   string
 	Prefix      string
 	QueryString string
 }
@@ -78,8 +81,17 @@ type S3Params struct {
 	MaxRetries     int
 }
 
+// authority returns the host portion of the bucket URL: the bucket name, or
+// "<bucket>@<namespace>" for OCI Object Storage paths.
+func (b *Config) authority() string {
+	if b.Namespace != "" {
+		return b.BucketName + ociNamespaceSeparator + b.Namespace
+	}
+	return b.BucketName
+}
+
 func (b *Config) bucketURL() string {
-	u := b.Scheme + b.BucketName
+	u := b.Scheme + b.authority()
 
 	// append prefix=b.prefix to existing queryString
 	q := b.QueryString
@@ -111,15 +123,16 @@ func (b *Config) SessionInfoPath() string {
 }
 
 func (b *Config) PrefixedBucket() string {
-	return b.Scheme + path.Join(b.BucketName, b.Prefix)
+	return b.Scheme + path.Join(b.authority(), b.Prefix)
 }
 
 func (b *Config) Hash() string {
 	h := sha256.New()
 	fmt.Fprintf(h,
-		"%d:%s|%d:%s|%d:%s|%d:%s",
+		"%d:%s|%d:%s|%d:%s|%d:%s|%d:%s",
 		len(b.Scheme), b.Scheme,
 		len(b.BucketName), b.BucketName,
+		len(b.Namespace), b.Namespace,
 		len(b.Prefix), b.Prefix,
 		len(b.QueryString), b.QueryString,
 	)
@@ -139,8 +152,19 @@ func ParseBucketPathToConfig(path string) (*Config, error) {
 	}
 
 	// TODO: Verify/add support for file:///.
-	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" {
+	if ms[1] != "gs://" && ms[1] != "s3://" && ms[1] != "minio://" && ms[1] != "mem://" && ms[1] != OCIScheme {
 		return nil, fmt.Errorf("parse bucket config failed: unsupported Cloud bucket: %q", path)
+	}
+
+	bucketName := ms[2]
+	namespace := ""
+	if ms[1] == OCIScheme {
+		// OCI Object Storage paths carry the namespace in the authority. A bare
+		// oci://<host>/<repository> is a Modelcar image reference, not a bucket.
+		bucketName, namespace, err = parseOCIAuthority(ms[2])
+		if err != nil {
+			return nil, fmt.Errorf("parse bucket config failed: %w", err)
+		}
 	}
 
 	prefix := strings.TrimPrefix(ms[3], "/")
@@ -150,7 +174,8 @@ func ParseBucketPathToConfig(path string) (*Config, error) {
 
 	return &Config{
 		Scheme:      ms[1],
-		BucketName:  ms[2],
+		BucketName:  bucketName,
+		Namespace:   namespace,
 		Prefix:      prefix,
 		QueryString: ms[4],
 	}, nil
@@ -162,6 +187,7 @@ func IsWithinBucketRoot(rootConfig, candidateConfig *Config) bool {
 	}
 	return rootConfig.Scheme == candidateConfig.Scheme &&
 		rootConfig.BucketName == candidateConfig.BucketName &&
+		rootConfig.Namespace == candidateConfig.Namespace &&
 		strings.HasPrefix(candidateConfig.Prefix, rootConfig.Prefix)
 }
 
@@ -181,8 +207,13 @@ func SplitObjectURI(uri string) (prefix, base string, err error) {
 	base = path.Base(cleanPath)
 	dir := path.Dir(cleanPath)
 
-	// Reconstruct prefix (scheme + host + dir)
-	prefix = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	// Reconstruct prefix (scheme + authority + dir). OCI Object Storage paths
+	// carry the bucket as userinfo (oci://<bucket>@<namespace>), so keep it.
+	authority := u.Host
+	if u.User != nil {
+		authority = u.User.String() + "@" + u.Host
+	}
+	prefix = fmt.Sprintf("%s://%s", u.Scheme, authority)
 	if dir != "." && dir != "/" {
 		prefix += dir
 	}

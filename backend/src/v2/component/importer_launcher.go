@@ -20,6 +20,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"gocloud.dev/blob"
 )
 
@@ -361,7 +362,7 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 		artifact.Metadata = importerSpec.Metadata.GetFields()
 	}
 	artifact.Metadata = preserveArtifactSchema(artifact.Metadata, schemaTitleForMetadata, importerSpec.GetTypeSchema().GetSchemaVersion())
-	if strings.HasPrefix(artifactUri, "oci://") {
+	if objectstore.IsModelcarURI(artifactUri) {
 		// OCI artifacts are not supported when workspace is used
 		if l.opts.ImporterSpec.GetDownloadToWorkspace() {
 			return nil, fmt.Errorf("importer workspace download does not support OCI registries")
