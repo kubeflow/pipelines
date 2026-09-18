@@ -243,6 +243,119 @@ class TestClient(parameterized.TestCase):
     def setUp(self):
         self.client = client.Client(namespace='ns1')
 
+    @staticmethod
+    def _pipeline_spec_dict():
+        return {
+            'components': {
+                'comp-foo': {
+                    'executorLabel': 'exec-foo',
+                },
+            },
+            'deploymentSpec': {
+                'executors': {
+                    'exec-foo': {
+                        'container': {
+                            'image': 'alpine',
+                        },
+                    },
+                },
+            },
+            'pipelineInfo': {
+                'name': 'my-pipeline',
+            },
+            'root': {
+                'dag': {
+                    'tasks': {
+                        'foo': {
+                            'componentRef': {
+                                'name': 'comp-foo',
+                            },
+                            'taskInfo': {
+                                'name': 'foo',
+                            },
+                        },
+                    },
+                },
+            },
+            'schemaVersion': '2.1.0',
+            'sdkVersion': 'kfp-2.0.0-beta.13',
+        }
+
+    def test_run_pipeline_with_version_applies_caching_override(self):
+        with patch.object(
+                self.client,
+                'get_pipeline_version',
+                return_value=Mock(pipeline_spec=self._pipeline_spec_dict())
+        ) as mock_get_version:
+            with patch.object(
+                    self.client._run_api,
+                    'run_service_create_run',
+                    return_value=Mock(run_id='run-id')) as mock_create_run:
+                with patch.object(
+                        self.client, '_get_url_prefix', return_value=''):
+                    self.client.run_pipeline(
+                        experiment_id='experiment-id',
+                        job_name='job-name',
+                        pipeline_id='pipeline-id',
+                        version_id='version-id',
+                        enable_caching=False,
+                        cache_key='cache-key')
+
+        mock_get_version.assert_called_once_with('pipeline-id', 'version-id')
+        run = mock_create_run.call_args.kwargs['run']
+        self.assertIsNone(run.pipeline_version_reference)
+        pipeline_spec = json_format.ParseDict(run.pipeline_spec,
+                                              pipeline_spec_pb2.PipelineSpec())
+        caching_options = pipeline_spec.root.dag.tasks['foo'].caching_options
+        self.assertFalse(caching_options.enable_cache)
+        self.assertEqual('cache-key', caching_options.cache_key)
+
+    def test_create_recurring_run_with_version_applies_caching_override(self):
+        with patch.object(
+                self.client,
+                'get_pipeline_version',
+                return_value=Mock(pipeline_spec=self._pipeline_spec_dict())
+        ) as mock_get_version:
+            with patch.object(
+                    self.client._recurring_run_api,
+                    'recurring_run_service_create_recurring_run',
+                    return_value=Mock()) as mock_create_run:
+                self.client.create_recurring_run(
+                    experiment_id='experiment-id',
+                    job_name='job-name',
+                    interval_second=60,
+                    pipeline_id='pipeline-id',
+                    version_id='version-id',
+                    enable_caching=True)
+
+        mock_get_version.assert_called_once_with('pipeline-id', 'version-id')
+        recurring_run = mock_create_run.call_args.kwargs['recurring_run']
+        self.assertIsNone(recurring_run.pipeline_version_reference)
+        caching_options = recurring_run.pipeline_spec['root']['dag']['tasks'][
+            'foo']['cachingOptions']
+        self.assertTrue(caching_options['enableCache'])
+
+    def test_run_pipeline_with_version_without_caching_override_uses_reference(
+            self):
+        with patch.object(self.client,
+                          'get_pipeline_version') as mock_get_version:
+            job_config = self.client._create_job_config(
+                params=None,
+                pipeline_package_path=None,
+                pipeline_id='pipeline-id',
+                version_id='version-id',
+                enable_caching=None,
+                cache_key=None,
+                pipeline_root=None)
+
+        mock_get_version.assert_not_called()
+        self.assertIsNone(job_config.pipeline_spec)
+        self.assertEqual('pipeline-id',
+                         job_config.pipeline_version_reference.pipeline_id)
+        self.assertEqual(
+            'version-id',
+            job_config.pipeline_version_reference.pipeline_version_id)
+
     def test_wait_for_run_completion_invalid_token_should_raise_error(self):
         with self.assertRaises(kfp_server_api.ApiException):
             with patch.object(
