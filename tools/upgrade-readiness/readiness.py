@@ -30,8 +30,10 @@ import time
 
 MAX_BYTES = 16 * 1024 * 1024
 MAX_ITEMS = 10000
-RULESET = '2.18-preview.1'
-SUPPORTED_KINDS = {'Deployment', 'Role', 'RoleBinding', 'ClusterRole'}
+RULESET = '2.18-preview.2'
+SUPPORTED_KINDS = {
+    'Deployment', 'Role', 'RoleBinding', 'ClusterRole', 'ScheduledWorkflow'
+}
 GAPS = [
     'Effective user/group/service-account authorization and cluster-wide bindings',
     'Stored pipelines, versions, runs, schedules, workflow identities and ownership',
@@ -81,7 +83,7 @@ def validate_inventory(inventory):
     for obj in inventory['items']:
         if not isinstance(obj, dict) or obj.get('kind') not in SUPPORTED_KINDS:
             raise ValueError(
-                'Only Deployment, Role, RoleBinding and ClusterRole objects are accepted.'
+                'Only Deployment, Role, RoleBinding, ClusterRole and ScheduledWorkflow objects are accepted.'
             )
         if not isinstance(obj.get('metadata'), dict):
             raise ValueError('Each inventory object requires metadata.')
@@ -167,7 +169,7 @@ def kubectl_get(context, namespace, resource):
         return None, 'collection_invalid_json'
 
 
-def collect(context, namespaces):
+def collect(context, namespaces, include_schedules=False):
     items, failures = [], []
     inventory_bytes = 0
 
@@ -188,11 +190,14 @@ def collect(context, namespaces):
             raise ValueError('Inventory exceeds 10000 objects; reduce scope.')
         return True
 
+    resources = [
+        'deployments.apps', 'roles.rbac.authorization.k8s.io',
+        'rolebindings.rbac.authorization.k8s.io'
+    ]
+    if include_schedules:
+        resources.append('scheduledworkflows.kubeflow.org')
     for namespace in namespaces:
-        for resource in [
-                'deployments.apps', 'roles.rbac.authorization.k8s.io',
-                'rolebindings.rbac.authorization.k8s.io'
-        ]:
+        for resource in resources:
             data, error = kubectl_get(context, namespace, resource)
             if error or not isinstance(data, dict) or not isinstance(
                     data.get('items'), list):
@@ -242,6 +247,53 @@ def permits(role, group, resource, verb):
         for r in role.get('rules', []))
 
 
+def analyze_schedules(items):
+    """Report schedule declarations without guessing effective permissions."""
+    schedules = sorted(
+        (obj for obj in items if obj['kind'] == 'ScheduledWorkflow'),
+        key=resource_id)
+    findings = [
+        finding(
+            'schedule.coverage', 'unknown', 'selected_namespaces',
+            str(len(schedules)) +
+            ' ScheduledWorkflow objects collected; this does not establish database recurring-run coverage or future execution success.',
+            'Reconcile this inventory with KFP recurring runs, including disabled and infrequent schedules.',
+            'Check collection failures and inventory completeness before interpreting a zero count.'
+        )
+    ]
+    for schedule in schedules:
+        spec = schedule.get('spec')
+        if not isinstance(spec, dict):
+            spec = {}
+        enabled = spec.get('enabled')
+        state = 'enabled' if enabled is True else 'disabled' if enabled is False else 'enablement unresolved'
+        workflow = spec.get('workflow')
+        embedded = isinstance(workflow,
+                              dict) and workflow.get('spec') is not None
+        account = spec.get('serviceAccount')
+        valid_account = (
+            isinstance(account, str) and len(account) <= 253 and
+            re.fullmatch(r'[a-z0-9]([-a-z0-9.]*[a-z0-9])?', account))
+        if embedded:
+            evidence = 'Embedded workflow path; effective workflow service account was not resolved.'
+            action = 'Inspect the embedded workflow identity and target controller admission checks; do not assume spec.serviceAccount controls this path.'
+        elif valid_account:
+            evidence = 'API submission path declares account name ' + account + ' in schedule namespace ' + schedule[
+                'metadata'][
+                    'namespace'] + '; target run namespace and controller authorization are unresolved.'
+            action = 'Verify the actual controller caller can use this specific service account in the target run namespace under the final 2.18 policy. Grant only the required account if access is missing.'
+        else:
+            evidence = 'API submission service account is omitted, empty or invalid; the effective default was not resolved.'
+            action = 'Resolve the target API server default service account and run namespace, then verify the actual controller caller against the final 2.18 policy.'
+        findings.append(
+            finding(
+                'schedule.serviceAccount', 'unknown', resource_id(schedule),
+                'Schedule is ' + state + '. ' + evidence, action,
+                'Confirm the target run namespace and controller identity, including groups; validate a triggered run in release CI. Disabled schedules also need review before re-enabling.'
+            ))
+    return findings
+
+
 def analyze(inventory,
             system_namespace,
             namespaces,
@@ -249,13 +301,18 @@ def analyze(inventory,
             cache_name,
             source_version,
             failures=None,
-            mode='offline'):
+            mode='offline',
+            include_schedules=False):
     inventory = validate_inventory(inventory)
     items = [
         obj for obj in inventory['items'] if obj['kind'] == 'ClusterRole' or
         obj['metadata'].get('namespace') in namespaces
     ]
+    if not include_schedules:
+        items = [obj for obj in items if obj['kind'] != 'ScheduledWorkflow']
     findings = []
+    if include_schedules:
+        findings.extend(analyze_schedules(items))
     failures = list(failures or [])
     if mode == 'offline':
         failures.append(
@@ -410,7 +467,8 @@ def analyze(inventory,
             version=source_version,
             version_evidence='operator_supplied_not_verified',
             collection=mode,
-            namespaces=namespaces),
+            namespaces=namespaces,
+            schedules_requested=include_schedules),
         assessment='incomplete',
         assessed_objects=len(items),
         counts=dict(Counter(f['status'] for f in findings)),
@@ -467,6 +525,11 @@ def main(argv=None):
         '--source-version',
         required=True,
         choices=['2.17.0', '2.17.1', '2.17.2'])
+    parser.add_argument(
+        '--include-schedules',
+        action='store_true',
+        help='Read ScheduledWorkflow objects in selected namespaces; includes embedded specifications in memory.'
+    )
     parser.add_argument('--ui-deployment', default='ml-pipeline-ui')
     parser.add_argument('--cache-deployment', default='cache-server')
     parser.add_argument(
@@ -479,7 +542,8 @@ def main(argv=None):
         parser.error('Supply at most 100 valid Kubernetes namespace names.')
     try:
         inventory, failures = collect(
-            args.context, namespaces) if args.context else (read_json(
+            args.context, namespaces,
+            args.include_schedules) if args.context else (read_json(
                 args.inventory), [])
         report = analyze(
             inventory,
@@ -489,7 +553,8 @@ def main(argv=None):
             args.cache_deployment,
             args.source_version,
             failures,
-            mode='live' if args.context else 'offline')
+            mode='live' if args.context else 'offline',
+            include_schedules=args.include_schedules)
     except (OSError, ValueError, TypeError, AttributeError, KeyError):
         print(
             'Unable to assess inventory: check JSON structure, supported kinds, input size and scope. '
