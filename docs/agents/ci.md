@@ -42,6 +42,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 The Python visualization service is retired. Image builds, CI artifact inventories, and Kustomize overlays exclude it; v2 artifact viewers and the TensorBoard viewer controller remain supported. See [artifact migration and deployment cleanup](../concepts/output-artifact.md#migrating-from-the-python-visualization-server).
 
+- `upgrade-readiness.yml` runs dependency-free unittest coverage for `tools/upgrade-readiness` on changes to the tool or its workflow. It uses synthetic inventories and subprocesses, never cluster credentials.
+
 ## Common CI failures
 
 - `sdk-upgrade.yml` uses a fresh virtual environment to install the latest published SDK before upgrading to source-built wheels. Install the SDK, pipeline-spec, and server API wheels together in one pip transaction so unpublished dependency versions resolve locally; never run the upgrade against the already-installed uv workspace.

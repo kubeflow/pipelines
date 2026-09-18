@@ -1,0 +1,24 @@
+name: Upgrade readiness tool
+
+on:
+  pull_request:
+    paths:
+      - tools/upgrade-readiness/**
+      - .github/workflows/upgrade-readiness.yml
+  push:
+    branches: [master]
+    paths:
+      - tools/upgrade-readiness/**
+      - .github/workflows/upgrade-readiness.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run standalone readiness tests
+        run: python3 -m unittest discover -s tools/upgrade-readiness -p 'test_*.py' -v
