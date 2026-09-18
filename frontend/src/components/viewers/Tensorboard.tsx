@@ -62,7 +62,6 @@ export const css = stylesheet({
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
   namespace: string;
-  podTemplateSpec?: any; // JSON object of pod template spec
   image?: string;
 }
 
@@ -270,11 +269,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
-  private _podTemplateSpec(): any | undefined {
-    const podTemplateSpec = this.props.configs[0]?.podTemplateSpec;
-    // TODO: how to handle multiple config with different pod template specs?
-    return podTemplateSpec || undefined;
-  }
 
   private _image(): string | undefined {
     return this.props.configs[0]?.image || undefined;
@@ -319,7 +313,6 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           logdir: this._buildUrl(),
           namespace: this._getNamespace(),
           image: this.state.tfImage,
-          podTemplateSpec: this._podTemplateSpec(),
         });
         this.setStateSafe({ busy: false, proxyPath, tensorboardReady: false }, () => {
           if (proxyPath) {
