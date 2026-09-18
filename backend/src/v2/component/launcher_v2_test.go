@@ -645,6 +645,48 @@ func TestLauncherV2_ArtifactHandling(t *testing.T) {
 	assert.Equal(t, "s3://bucket/output/model.pkl", modelUploads[0].RemoteURI)
 }
 
+func TestExecute_ConfiguresCustomCABeforeDownloadingArtifacts(t *testing.T) {
+	t.Setenv("AWS_CA_BUNDLE", "")
+	t.Setenv("REQUESTS_CA_BUNDLE", "")
+	t.Setenv("SSL_CERT_FILE", "")
+
+	customCA := []byte("custom CA certificate")
+	customCAPath := filepath.Join(t.TempDir(), "custom-ca.crt")
+	require.NoError(t, os.WriteFile(customCAPath, customCA, 0600))
+
+	var caBundleAtDownload string
+	mockObjectStore := NewMockObjectStoreClient()
+	mockObjectStore.DownloadFunc = func(context.Context, string, string, string) error {
+		caBundleAtDownload = os.Getenv("AWS_CA_BUNDLE")
+		return nil
+	}
+
+	launcher := &LauncherV2{
+		executorInput: &pipelinespec.ExecutorInput{
+			Inputs: &pipelinespec.ExecutorInput_Inputs{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"input": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: "s3://bucket/input"}},
+					},
+				},
+			},
+		},
+		options:     LauncherV2Options{CaCertPath: customCAPath},
+		fileSystem:  NewMockFileSystem(),
+		cmdExecutor: NewMockCommandExecutor(),
+		objectStore: mockObjectStore,
+	}
+
+	_, err := launcher.execute(context.Background(), "true", nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, caBundleAtDownload)
+	t.Cleanup(func() { _ = os.Remove(caBundleAtDownload) })
+
+	caBundle, err := os.ReadFile(caBundleAtDownload)
+	require.NoError(t, err)
+	assert.Contains(t, string(caBundle), string(customCA))
+}
+
 // TestLauncherV2_CommandExecution demonstrates testing command execution
 func TestLauncherV2_CommandExecution(t *testing.T) {
 	mockCmd := NewMockCommandExecutor()
