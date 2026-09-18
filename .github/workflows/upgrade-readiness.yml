@@ -28,3 +28,26 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Run standalone readiness tests
         run: python3 -m unittest discover -s tools/upgrade-readiness -p 'test_*.py' -v
+
+  policy-conformance:
+    name: Pinned policy code conformance (not live upgrade)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Checkout modeled policy source
+        uses: actions/checkout@v7
+        with:
+          # Keep synchronized with schedule_policy.POLICY_SOURCE. This proposed
+          # policy is not a claim that the release branch contains it.
+          ref: 698819580262320715ee616c7479b33c62e0a4b7
+          path: policy-source
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: policy-source/go.mod
+          cache-dependency-path: policy-source/go.sum
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Compare predictions with backend policy
+        run: python3 tools/upgrade-readiness/conformance.py --backend-source policy-source

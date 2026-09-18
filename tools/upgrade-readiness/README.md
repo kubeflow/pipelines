@@ -325,3 +325,30 @@ role scope/wildcards, unresolved aggregation, missing permissions, environment
 imports, sensitive-value exclusion, output bounds, CLI errors and incomplete
 assessment semantics, opt-in schedule scope, unresolved defaults and embedded
 workflow identities, and exclusion of schedule parameters/specifications.
+
+## Policy-code conformance versus upgrade acceptance
+
+CI compares predictions with the actual backend `authorizeServiceAccount` method
+at the policy source revision recorded above. It covers default exemption, a named
+custom-account grant, denial, audit, exact allowlists, whitespace, wrong named
+accounts and group-only grants. Controlled SAR responses are independent fixture
+inputs; this does not verify a real Kubernetes authorizer or schedule firing.
+
+To run locally, use a clean checkout at that exact revision:
+
+```bash
+python3 tools/upgrade-readiness/conformance.py --backend-source /path/to/policy-checkout
+```
+
+The runner checks the revision and clean working tree, generates predictions and
+uses a Go overlay to add its test without editing the backend checkout. A policy
+compile failure or prediction mismatch fails the job. It never silently substitutes
+the current branch for the policy source.
+
+The existing upgrade workflow separately tests a populated **2.17.2 → release-2.18**
+installation when run on that release branch or a PR targeting it. Its master
+MLMD migration gate remains in place. Preparation failures prevent target deployment.
+Those existing tests cover single-user resource persistence, not multi-user schedule
+firing. The final-candidate lane must still compare observed recurring-run execution
+with predictions after the scheduling policy changes land; that work stays open
+in #14421. Neither this conformance job nor a skipped upgrade job satisfies that gate.

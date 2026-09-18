@@ -31,7 +31,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 ## Common CI failures
 
-- Upgrade jobs remain disabled by default pending #14029. Set the repository variable `KFP_ENABLE_MLMD_UPGRADE_TESTS` to `true` only after the MLMD-to-native migration and startup gate are implemented; both image building and upgrade execution require this opt-in on PR and master runs.
+- `upgrade-test.yml` enables image builds and upgrade execution for pushes to `release-2.18`, PRs targeting it, and manual dispatch on that branch. This lane pins its source to `2.17.2` and upgrades to the checked-out candidate; release-2.18 retains MLMD. Failed source deployment, port forwarding, or preparation stops the upgrade. Other branches remain disabled by default pending #14029: set `KFP_ENABLE_MLMD_UPGRADE_TESTS=true` only after the MLMD-to-native migration and startup gate are implemented. Those lanes retain latest-release discovery. The existing single-user verification checks resource persistence; it does not validate multi-user authorization predictions or prove recurring schedules fire successfully.
 
 - SDK imports must pass both isort 5.10.1 from `sdk/python/requirements-dev.txt` and isort 9.0.1 from pre-commit. These versions wrap long imports differently; prefer short module imports and verify both checks after SDK import changes.
 - Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Verify formatter upgrades by running the full hook chain twice on the updater and SDK structures files.
@@ -39,3 +39,4 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+- The readiness workflow also runs `tools/upgrade-readiness/conformance.py` against the exact backend revision in `schedule_policy.POLICY_SOURCE`. A Go overlay adds the fixture test without editing that checkout. This compares Python predictions with real backend main-account policy code under controlled SAR responses; it is not live RBAC, schedule firing, or upgrade validation. The pinned revision and policy contract must be reviewed together when the modeled policy changes.
