@@ -86,6 +86,12 @@ def assess(schedule, bundle):
     if job.get('namespace') not in (None, '', namespace):
         return unknown
     account = job.get('service_account')
+    account_source = 'Persisted recurring-run account '
+    if account in (None, ''
+                  ) and job.get('_readiness_v2_default') is True and bundle.get(
+                      'compiled_pipeline_spec_patch') == {}:
+        account = bundle['default_service_account']
+        account_source = 'V2-shaped template default account (target compiler patch asserted empty) '
     if not isinstance(account, str) or not re.fullmatch(
             r'[a-z0-9]([-a-z0-9.]*[a-z0-9])?', account):
         # An empty request can acquire an identity from the pipeline/compiler.
@@ -95,7 +101,7 @@ def assess(schedule, bundle):
     if isinstance(workflow, dict) and workflow.get('spec') is not None:
         return unknown
     evidence = (
-        'Persisted recurring-run account ' + namespace + '/' + account +
+        account_source + namespace + '/' + account +
         '; prediction conditional on supplied target revision/settings and controller identity. '
     )
     if account == bundle['default_service_account']:

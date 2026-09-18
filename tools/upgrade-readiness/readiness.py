@@ -28,11 +28,13 @@ import subprocess
 import sys
 import time
 
+from kfp_http import Client
+import kfp_inventory
 import schedule_policy
 
 MAX_BYTES = 16 * 1024 * 1024
 MAX_ITEMS = 10000
-RULESET = '2.18-preview.3'
+RULESET = '2.18-preview.4'
 SUPPORTED_KINDS = {
     'Deployment', 'Role', 'RoleBinding', 'ClusterRole', 'ScheduledWorkflow'
 }
@@ -316,6 +318,34 @@ def analyze(inventory,
     findings = []
     if include_schedules:
         findings.extend(analyze_schedules(items))
+        controller = next(
+            (obj for obj in items if obj['kind'] == 'Deployment' and
+             obj['metadata'].get('namespace') == system_namespace and
+             obj['metadata'].get('name') == 'ml-pipeline-scheduledworkflow'),
+            None)
+        evidence = 'Default-named controller deployment was not collected; renamed controllers require manual inspection.'
+        if controller is not None:
+            pod = controller.get('spec', {}).get('template', {}).get('spec', {})
+            containers = pod.get('containers', [])
+            header_args = any(
+                isinstance(arg, str) and arg.lstrip('-').split('=')[0] in (
+                    'userIdentityHeader', 'userIdentityValue')
+                for container in containers
+                for arg in container.get('args', []) +
+                container.get('command', []))
+            evidence = (
+                'Controller Pod service-account field present: ' +
+                str(bool(pod.get('serviceAccountName'))) +
+                '; identity-header command flags present: ' + str(header_args) +
+                '. Presence does not establish the authenticated API caller; header and token authentication may differ.'
+            )
+        findings.append(
+            finding(
+                'schedule.controllerIdentity', 'unknown', system_namespace,
+                evidence,
+                'Verify target controller identity-header flags, token projection and API authentication settings before supplying controller_user. Values are not reported.',
+                'Confirm the actual authenticated caller; do not infer it solely from the Pod service account.'
+            ))
         if policy is not None:
             schedule_policy.validate(policy)
             for obj in items:
@@ -511,6 +541,17 @@ def markdown(report):
             'Modeled policy source: ' +
             report['target']['schedule_policy_source'], ''
         ]
+    coverage = report['source'].get('kfp_collection')
+    if coverage is not None:
+        lines += [
+            'KFP collection: ' +
+            str(len(coverage['list_completed_namespaces'])) + '/' +
+            str(len(coverage['requested_namespaces'])) +
+            ' namespace lists completed; ' +
+            str(coverage['recurring_run_records']) +
+            ' recurring-run records; ' + str(coverage['failed_checks']) +
+            ' failed checks. Snapshot is not atomic.', ''
+        ]
     for f in report['findings']:
         # Escape control characters and markup in inventory-controlled names.
         safe = lambda value: json.dumps(
@@ -563,6 +604,15 @@ def main(argv=None):
         type=Path,
         help='Offline target policy/RBAC and persisted recurring-run evidence; requires --include-schedules.'
     )
+    parser.add_argument(
+        '--kfp-endpoint',
+        help='Source KFP API endpoint; GET-only evidence collection.')
+    parser.add_argument(
+        '--kfp-token-file', type=Path, help='Bearer token file; never printed.')
+    parser.add_argument(
+        '--kfp-ca-file',
+        type=Path,
+        help='CA bundle for source KFP HTTPS verification.')
     parser.add_argument('--ui-deployment', default='ml-pipeline-ui')
     parser.add_argument('--cache-deployment', default='cache-server')
     parser.add_argument(
@@ -570,6 +620,12 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.schedule_policy and not args.include_schedules:
         parser.error('--schedule-policy requires --include-schedules.')
+    if args.kfp_endpoint and not args.schedule_policy:
+        parser.error(
+            '--kfp-endpoint requires --schedule-policy and --include-schedules.'
+        )
+    if (args.kfp_token_file or args.kfp_ca_file) and not args.kfp_endpoint:
+        parser.error('KFP credential options require --kfp-endpoint.')
     namespaces = sorted(set([args.system_namespace] + args.namespace))
     if len(namespaces) > 100 or any(
             not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', n) or len(n) > 63
@@ -580,6 +636,24 @@ def main(argv=None):
             args.context, namespaces,
             args.include_schedules) if args.context else (read_json(
                 args.inventory), [])
+        policy = read_json(
+            args.schedule_policy) if args.schedule_policy else None
+        kfp_coverage = None
+        if args.kfp_endpoint:
+            # Never retain stale manual records alongside a fresh partial scan.
+            policy['recurring_runs'], policy['experiments'] = [], []
+            schedule_policy.validate(policy)
+            client = Client(args.kfp_endpoint, args.kfp_token_file,
+                            args.kfp_ca_file)
+            records, kfp_failures, kfp_coverage = kfp_inventory.collect(
+                client, namespaces, record_budget=10000 - len(policy['rbac']))
+            policy.update(records)
+            failures.extend(kfp_failures)
+            failures.append(
+                dict(
+                    resource='KFP evidence',
+                    reason='non_atomic_source_snapshot_target_configuration_unverified'
+                ))
         report = analyze(
             inventory,
             args.system_namespace,
@@ -590,8 +664,9 @@ def main(argv=None):
             failures,
             mode='live' if args.context else 'offline',
             include_schedules=args.include_schedules,
-            policy=read_json(args.schedule_policy)
-            if args.schedule_policy else None)
+            policy=policy)
+        if kfp_coverage is not None:
+            report['source']['kfp_collection'] = kfp_coverage
     except (OSError, ValueError, TypeError, AttributeError, KeyError):
         print(
             'Unable to assess inventory: check JSON structure, supported kinds, input size and scope. '

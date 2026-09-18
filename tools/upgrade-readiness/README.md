@@ -2,12 +2,13 @@
 
 Assess selected deployment and RBAC configuration on an existing 2.17 installation
 without upgrading it. This standalone Python tool uses `kubectl get` or an offline
-JSON inventory and prints an actionable Markdown or JSON report.
+JSON inventory and prints an actionable Markdown or JSON report. Optional authenticated
+KFP API collection supplies recurring-run, experiment and pinned-template evidence.
 
 **This first version is a partial migration-plan assessment, not an upgrade
 certification.** Every report is marked `incomplete`. It can identify configuration
 to review, but cannot establish that users or workloads will succeed on 2.18.
-Ruleset `2.18-preview.3` includes proposed TensorBoard adoption behavior from
+Ruleset `2.18-preview.4` includes proposed TensorBoard adoption behavior from
 [#14362](https://github.com/kubeflow/pipelines/pull/14362), not a claim that this
 change has shipped. Final release-candidate rules must be pinned and validated
 before this tool can offer a readiness conclusion.
@@ -76,12 +77,73 @@ versions or reconcile CRs against database recurring runs. Disabled schedules
 are included because they may be re-enabled later. A zero count, missing CRD or
 permission failure never certifies that scheduling is unaffected.
 
+## Collect source KFP evidence automatically
+
+Combine the existing namespace scan and target policy file with a source API
+endpoint. The target file still supplies the intended 2.18 settings, RBAC and
+controller identity; its manual recurring-run/experiment arrays can be empty.
+
+```bash
+python3 tools/upgrade-readiness/readiness.py \
+  --context my-cluster --system-namespace kubeflow --namespace team-a \
+  --source-version 2.17.2 --include-schedules \
+  --schedule-policy target-policy.json \
+  --kfp-endpoint https://kubeflow.example/pipeline \
+  --kfp-token-file /secure/path/kfp-token --format json
+```
+
+Use an existing bearer token accepted by that KFP installation, held in a local
+file. Tokens never appear in command arguments or reports. `--kfp-ca-file` accepts
+a custom HTTPS CA bundle; TLS verification cannot be disabled. HTTP is accepted
+only for a literal loopback address, such as `http://127.0.0.1:8888`, for an existing
+port-forward. The tool does not start one. Cookie login flows and arbitrary
+identity headers are not supported. Redirects are refused, including login
+redirects, and environment HTTP proxies are disabled. Choose the exact API base
+URL, not a sign-in page.
+
+Collection only performs V2 API GET requests:
+
+- Paginate recurring runs in each selected namespace, including disabled runs.
+- Fetch referenced experiments once and verify their namespaces.
+- For omitted accounts, inspect inline V2 evidence or GET a pinned pipeline
+  version and verify both returned IDs. Reused versions are fetched once.
+
+Manual source records in the target file are **replaced**, even when collection
+fails; stale records cannot mask permission failures. Returned records are reduced
+to IDs, namespace, account and a template classification marker. Raw specifications,
+parameters and token values are not reported or written to disk. Responses are
+held temporarily in memory and may contain sensitive information.
+
+Unpinned/latest versions remain unknown, as do unavailable templates and legacy
+embedded workflows. No `package_url` or artifact endpoint is fetched. An omitted
+account can be modeled as the target default only for collected V2 template
+structure **and** an explicitly empty target `compiled_pipeline_spec_patch: {}`
+in the target policy file. Omit that setting or supply a nonempty patch to leave
+the default unresolved. Structural classification is not protobuf/compilation
+validation, and plugin/additional identities are still unassessed.
+
+Coverage reports include requested namespaces, completed list traversals, record
+counts and failed checks. A completed traversal does not mean every experiment or
+version was accessible. Reads are not an atomic snapshot; rerun near upgrade time.
+Failures and repeated pagination tokens remain unknown, retaining earlier evidence.
+Limits are 100 pages per namespace, 10000 recurring-run records, 200 HTTP requests,
+16 MiB per response and cumulatively, and a 20-second request/body budget.
+The 10000-record target budget is shared with experiments and target RBAC. DNS
+resolution is subject to operating-system timeouts. Requests stop succeeding when
+a budget is exhausted; reduce the explicit scope. Target bundle limits still apply.
+
+The scan also reports whether the default-named controller Deployment declares a
+Pod account or identity-header command flags, without exposing values. These are
+source configuration hints only. Authentication headers can take precedence over
+tokens, so the tool never converts these hints into `controller_user` automatically.
+
 ## Target main-account prediction (optional preview)
 
 Use `--include-schedules --schedule-policy target-policy.json` to evaluate the
 main service-account check using **persisted KFP recurring-run evidence and
-explicit target settings/RBAC**. The operator still runs against 2.17; this option
-makes no additional network requests or authorization reviews. It does not change
+explicit target settings/RBAC**. The operator still runs against 2.17. Without
+`--kfp-endpoint`, this option makes no additional network requests. It never
+submits authorization reviews. It does not change
 any cluster permissions.
 
 The JSON bundle has this shape (values are illustrative):
@@ -110,8 +172,8 @@ Replace the revision with the exact proposed candidate commit. Supply
 selected scope. Records are matched to `ScheduledWorkflow.metadata.uid`, never
 by display name. Missing/duplicate records and inconsistent namespaces remain
 unknown. Do not substitute the editable CR's account for the persisted account.
-This preview does not automate authenticated KFP collection or template resolution.
-An omitted account or embedded workflow is not assumed to use the default.
+Use `--kfp-endpoint` to automate collection and inspect pinned/inline template evidence.
+An omitted account is unresolved unless collected V2 evidence and an explicitly empty target compiler patch establish the conditional default. Embedded workflows remain unresolved.
 An explicit persisted account can be checked without loading a referenced template;
 template-dependent defaults and additional identities remain unknown.
 
@@ -181,7 +243,7 @@ acceptance. A namespace with no collected bindings is not assumed unused.
 
 ## Access and data handling
 
-The tool issues only Kubernetes `get` commands:
+The Kubernetes collector issues only `get` commands; optional KFP API collection is described above:
 
 - List Deployments, Roles and RoleBindings in each explicitly selected namespace.
 - Get each ClusterRole referenced by those RoleBindings, by name.
@@ -236,8 +298,8 @@ a custom reader role whose log and TensorBoard management permissions need revie
 
 Tracked in [#14421](https://github.com/kubeflow/pipelines/issues/14421):
 
-1. Add authenticated KFP inventory for stored specifications, schedules, ownership,
-   service accounts and size limits, with explicit pagination/collection coverage.
+1. Expand authenticated KFP collection beyond recurring runs/experiments and
+   pinned-template evidence to full stored workload, ownership and size coverage.
 2. Add optional effective authorization checks with separately documented access
    requirements, including actual caller/group identities.
 3. Assess artifact origins, profile reconciliation, archive credentials and
