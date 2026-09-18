@@ -56,6 +56,7 @@ type BucketProviders struct {
 	Minio *MinioProviderConfig `json:"minio"`
 	S3    *S3ProviderConfig    `json:"s3"`
 	GCS   *GCSProviderConfig   `json:"gs"`
+	OCI   *OCIProviderConfig   `json:"oci"`
 }
 
 type SessionInfoProvider interface {
@@ -119,6 +120,13 @@ func (c *Config) GetStoreSessionInfo(path string) (objectstore.SessionInfo, erro
 			sessProvider = bucketProviders.GCS
 		}
 		break
+	case objectstore.OCIProvider:
+		if bucketProviders == nil || bucketProviders.OCI == nil {
+			sessProvider = &OCIProviderConfig{}
+		} else {
+			sessProvider = bucketProviders.OCI
+		}
+		break
 	default:
 		return objectstore.SessionInfo{}, fmt.Errorf("Encountered unsupported provider in provider config %s", provider)
 	}
@@ -159,6 +167,11 @@ func (c *Config) HasExplicitBucketOverride(path string) (bool, error) {
 			return false, nil
 		}
 		return bucketProviders.GCS.HasExplicitOverride(path)
+	case objectstore.OCIProvider:
+		if bucketProviders.OCI == nil {
+			return false, nil
+		}
+		return bucketProviders.OCI.HasExplicitOverride(path)
 	default:
 		return false, fmt.Errorf("encountered unsupported provider in provider config %s", provider)
 	}

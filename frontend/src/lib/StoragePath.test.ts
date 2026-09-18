@@ -94,6 +94,28 @@ describe('parseStoragePath', () => {
     });
   });
 
+  it('handles OCI Object Storage bucket and namespace without key', () => {
+    expect(parseStoragePath('oci://testbucket@testnamespace/')).toEqual({
+      bucket: 'testbucket@testnamespace',
+      key: '',
+      source: StorageService.OCI,
+    });
+  });
+
+  it('handles OCI Object Storage bucket, namespace and multi-part key', () => {
+    expect(parseStoragePath('oci://testbucket@testnamespace/test/key/path')).toEqual({
+      bucket: 'testbucket@testnamespace',
+      key: 'test/key/path',
+      source: StorageService.OCI,
+    });
+  });
+
+  it('rejects Modelcar container image references as storage paths', () => {
+    expect(() => parseStoragePath('oci://registry.domain.local/org/repo:v1.0')).toThrowError(
+      'Unsupported storage path: oci://registry.domain.local/org/repo:v1.0',
+    );
+  });
+
   it('handles HTTP URL without path', () => {
     expect(parseStoragePath('http://host:port')).toEqual({
       bucket: 'host:port',
