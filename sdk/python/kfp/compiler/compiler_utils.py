@@ -433,7 +433,7 @@ def make_new_channel_for_collected_outputs(
             task_name=task_name,
             is_artifact_list=True)
     else:
-        ValueError(
+        raise ValueError(
             f'Got unknown PipelineChannel: {starting_channel!r}. Expected an instance of {pipeline_channel.PipelineArtifactChannel.__name__!r} or {pipeline_channel.PipelineParameterChannel.__name__!r}.'
         )
 
