@@ -648,7 +648,7 @@ def _get_command_and_args_for_lightweight_component(
                     program_path=$(mktemp -d)
 
                     printf "%s" "$0" > "$program_path/ephemeral_component.py"
-                    _KFP_RUNTIME=true python3 -m {EXECUTOR_MODULE} \
+                    python3 -m {EXECUTOR_MODULE} \
                         --component_module_path \
                         "$program_path/ephemeral_component.py" \
                         "$@"
