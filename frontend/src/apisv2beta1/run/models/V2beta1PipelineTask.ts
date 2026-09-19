@@ -188,7 +188,7 @@ export interface V2beta1PipelineTask {
    */
   scope_path?: string;
   /**
-   * Latest pod lifecycle diagnostic from the execution engine.
+   *
    * @type {string}
    * @memberof V2beta1PipelineTask
    */
