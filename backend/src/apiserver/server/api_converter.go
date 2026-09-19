@@ -38,71 +38,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// transientNodeMessages are set by Kubernetes during normal pod startup and do not indicate failure.
-var transientNodeMessages = map[string]bool{
-	"PodInitializing":   true,
-	"ContainerCreating": true,
-}
-
-// terminalSuccessStates are states for which any node message is irrelevant.
-var terminalSuccessStates = map[string]bool{
-	"Succeeded": true,
-	"Skipped":   true,
-	"Omitted":   true,
-}
-
-// normalizeLifecycleMessage filters out transient startup messages and messages from successful nodes.
-func normalizeLifecycleMessage(message string, state string) string {
-	if transientNodeMessages[message] {
-		return ""
-	}
-	if terminalSuccessStates[state] {
-		return ""
-	}
-	return message
-}
-
-// resolveNodeLifecycleMessages propagates executor-pod failure messages up to parent task nodes.
-// Each node gets its own message if non-empty, otherwise the first non-empty message from a child.
-func resolveNodeLifecycleMessages(nodes map[string]util.NodeStatus) map[string]string {
-	resolved := make(map[string]string, len(nodes))
-	onStack := make(map[string]bool)
-
-	var resolve func(id string) string
-	resolve = func(id string) string {
-		if msg, ok := resolved[id]; ok {
-			return msg
-		}
-		if onStack[id] {
-			return ""
-		}
-		onStack[id] = true
-		defer delete(onStack, id)
-
-		node, ok := nodes[id]
-		if !ok {
-			resolved[id] = ""
-			return ""
-		}
-		msg := normalizeLifecycleMessage(node.Message, node.State)
-		if msg == "" {
-			for _, childID := range node.Children {
-				if childMsg := resolve(childID); childMsg != "" {
-					msg = childMsg
-					break
-				}
-			}
-		}
-		resolved[id] = msg
-		return msg
-	}
-
-	for id := range nodes {
-		resolve(id)
-	}
-	return resolved
-}
-
 const (
 	urlSchemeJavaScript = "javascript:"
 	urlSchemeData       = "data:"
@@ -3068,6 +3003,11 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 		task.ScopePath = apiTask.GetScopePath()
 	}
 
+	if apiTask.LifecycleMessage != nil {
+		task.LifecycleMessage = model.LargeText(apiTask.GetLifecycleMessage())
+		task.LifecycleMessagePresent = true
+	}
+
 	return task, nil
 }
 
@@ -3306,6 +3246,11 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	// Convert scope_path from model string to API string (both use dot notation)
 	if modelTask.ScopePath != "" {
 		apiTask.ScopePath = modelTask.ScopePath
+	}
+
+	if modelTask.LifecycleMessage != "" {
+		msg := string(modelTask.LifecycleMessage)
+		apiTask.LifecycleMessage = &msg
 	}
 
 	return apiTask, nil

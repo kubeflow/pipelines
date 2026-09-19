@@ -30,7 +30,7 @@ type NodeStatus struct {
 	CreateTime  int64
 	FinishTime  int64
 	Children    []string
-	// Message is the human-readable status message from the execution engine (e.g. "Back-off pulling image…"). Empty for healthy nodes.
+	// Message is the human-readable status message from the execution engine (e.g. "Back-off pulling image…"). May be empty.
 	Message string
 }
 

@@ -66,6 +66,9 @@ type V2beta1PipelineTask struct {
 	// "root.primary-pipeline.secondary-pipeline.task"
 	ScopePath string `json:"scope_path,omitempty"`
 
+	// Latest pod lifecycle diagnostic from the execution engine.
+	LifecycleMessage string `json:"lifecycle_message,omitempty"`
+
 	// state
 	State *PipelineTaskTaskState `json:"state,omitempty"`
 
