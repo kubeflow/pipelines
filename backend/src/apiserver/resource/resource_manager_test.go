@@ -4608,6 +4608,79 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
 }
 
+func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "executor-pod",
+		Uid:  "uid-1",
+		Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          run.UUID,
+		Name:             "train",
+		DisplayName:      "train",
+		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Fingerprint:      "fp-train",
+		Pods:             pods,
+		TypeAttrs:        model.JSONData{},
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				"workflows.argoproj.io/pod-name-format": "v1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"executor-pod": {
+					ID:          "executor-pod",
+					Name:        "executor-pod",
+					DisplayName: "train",
+					Phase:       v1alpha1.NodePending,
+					Message:     `Back-off pulling image "ghcr.io/example/missing:v1"`,
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), got.LifecycleMessage)
+
+	workflow.Status.Nodes["executor-pod"] = v1alpha1.NodeStatus{
+		ID:          "executor-pod",
+		Name:        "executor-pod",
+		DisplayName: "train",
+		Phase:       v1alpha1.NodeRunning,
+		Message:     "ContainerCreating: Container is creating",
+	}
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+	got, err = manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText(""), got.LifecycleMessage)
+}
+
 type runStoreWithBeforeWorkflowUpdateHook struct {
 	storage.RunStoreInterface
 	beforeUpdate func()
@@ -9284,4 +9357,55 @@ func TestCreateRun_ServiceAccountSAR_EmbeddedSA_Unauthorized(t *testing.T) {
 	_, err := manager.CreateRun(multiUserContext(), apiRun)
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not allowed")
+}
+
+func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task := &model.Task{Name: "train", Pods: pods}
+	nodes := map[string]util.NodeStatus{
+		"node-1": {ID: "executor-pod", DisplayName: "system-container-impl", State: "Pending"},
+	}
+	resolved := map[string]string{"node-1": `Back-off pulling image "bad"`}
+	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	assert.True(t, matched)
+	assert.Equal(t, `Back-off pulling image "bad"`, msg)
+}
+
+func TestLifecycleMessageForTask_MatchesDisplayName(t *testing.T) {
+	task := &model.Task{Name: "train", DisplayName: "train"}
+	nodes := map[string]util.NodeStatus{
+		"parent": {ID: "parent", DisplayName: "train", State: "Running"},
+	}
+	resolved := map[string]string{"parent": "ImagePullBackOff"}
+	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	assert.True(t, matched)
+	assert.Equal(t, "ImagePullBackOff", msg)
+}
+
+func TestLifecycleMessageForTask_Unmatched(t *testing.T) {
+	task := &model.Task{Name: "other"}
+	nodes := map[string]util.NodeStatus{
+		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Pending"},
+	}
+	resolved := map[string]string{"node-1": "ImagePullBackOff"}
+	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task := &model.Task{Name: "train", Pods: pods, LifecycleMessage: "old"}
+	nodes := map[string]util.NodeStatus{
+		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Running"},
+	}
+	resolved := map[string]string{"node-1": ""}
+	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	assert.True(t, matched)
+	assert.Equal(t, "", msg)
 }

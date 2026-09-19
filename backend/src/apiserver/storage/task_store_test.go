@@ -506,6 +506,49 @@ func TestUpdateTask_Success(t *testing.T) {
 	assert.Equal(t, model.TaskStatus(2), updated.State)
 }
 
+func TestUpdateTask_LifecycleMessageSetAndCleared(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	created, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2beta1.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-0",
+		State:            1,
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		TypeAttrs:        map[string]interface{}{},
+	})
+	require.NoError(t, err)
+
+	updated, err := taskStore.UpdateTask(&model.Task{
+		UUID:                    created.UUID,
+		LifecycleMessage:        "ImagePullBackOff",
+		LifecycleMessagePresent: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText("ImagePullBackOff"), updated.LifecycleMessage)
+
+	renamed, err := taskStore.UpdateTask(&model.Task{
+		UUID: created.UUID,
+		Name: "keep-message",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "keep-message", renamed.Name)
+	assert.Equal(t, model.LargeText("ImagePullBackOff"), renamed.LifecycleMessage)
+
+	cleared, err := taskStore.UpdateTask(&model.Task{
+		UUID:                    created.UUID,
+		LifecycleMessage:        "",
+		LifecycleMessagePresent: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText(""), cleared.LifecycleMessage)
+}
+
 func TestUpdateTask_MergesParameters(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()

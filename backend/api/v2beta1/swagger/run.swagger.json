@@ -1151,6 +1151,10 @@
         "scope_path": {
           "type": "string",
           "title": "The scope of this task within the\npipeline spec. Each entry (delimited by\na dot \".\"), represents either a Dag\nTask or a Container task.\nNote that Container task will are\nalways the last entry in a scope_path.\nExample of a scope_path:\n\"root.primary-pipeline.secondary-pipeline.task\""
+        },
+        "lifecycle_message": {
+          "type": "string",
+          "description": "Latest pod lifecycle diagnostic from the execution engine.\nOptional so UpdateTask can distinguish \"leave unchanged\" from \"clear\"."
         }
       },
       "description": "Runtime information of a task execution used by task APIs and Run.tasks."

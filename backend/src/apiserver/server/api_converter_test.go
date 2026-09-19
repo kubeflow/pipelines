@@ -3090,6 +3090,36 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 	assert.Equal(t, expected, got)
 }
 
+func TestToModelAndAPITask_LifecycleMessage(t *testing.T) {
+	msg := "ImagePullBackOff"
+	apiTask := &apiv2beta1.PipelineTask{
+		TaskId:           "task-1",
+		RunId:            "run-1",
+		Name:             "train",
+		LifecycleMessage: &msg,
+	}
+	modelTask, err := toModelTask(apiTask)
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText("ImagePullBackOff"), modelTask.LifecycleMessage)
+	assert.True(t, modelTask.LifecycleMessagePresent)
+
+	exported, err := toAPITask(modelTask, nil)
+	require.NoError(t, err)
+	require.NotNil(t, exported.LifecycleMessage)
+	assert.Equal(t, "ImagePullBackOff", exported.GetLifecycleMessage())
+
+	clear := ""
+	apiTask.LifecycleMessage = &clear
+	cleared, err := toModelTask(apiTask)
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText(""), cleared.LifecycleMessage)
+	assert.True(t, cleared.LifecycleMessagePresent)
+
+	unset, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "task-2", RunId: "run-1"})
+	require.NoError(t, err)
+	assert.False(t, unset.LifecycleMessagePresent)
+}
+
 func TestToModelRun(t *testing.T) {
 	tests := []struct {
 		name    string

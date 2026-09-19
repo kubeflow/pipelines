@@ -187,6 +187,13 @@ export interface V2beta1PipelineTask {
    * @memberof V2beta1PipelineTask
    */
   scope_path?: string;
+  /**
+   * Latest pod lifecycle diagnostic from the execution engine.
+   * Optional so UpdateTask can distinguish "leave unchanged" from "clear".
+   * @type {string}
+   * @memberof V2beta1PipelineTask
+   */
+  lifecycle_message?: string;
 }
 
 /**
@@ -242,6 +249,7 @@ export function V2beta1PipelineTaskFromJSONTyped(
     outputs:
       json['outputs'] == null ? undefined : PipelineTaskInputOutputsFromJSON(json['outputs']),
     scope_path: json['scope_path'] == null ? undefined : json['scope_path'],
+    lifecycle_message: json['lifecycle_message'] == null ? undefined : json['lifecycle_message'],
   };
 }
 
@@ -286,5 +294,6 @@ export function V2beta1PipelineTaskToJSONTyped(
     inputs: PipelineTaskInputOutputsToJSON(value['inputs']),
     outputs: PipelineTaskInputOutputsToJSON(value['outputs']),
     scope_path: value['scope_path'],
+    lifecycle_message: value['lifecycle_message'],
   };
 }
