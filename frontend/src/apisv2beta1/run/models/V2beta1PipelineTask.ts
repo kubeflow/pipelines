@@ -188,7 +188,8 @@ export interface V2beta1PipelineTask {
    */
   scope_path?: string;
   /**
-   *
+   * Latest pod lifecycle diagnostic from the execution engine.
+   * Optional so UpdateTask can distinguish "leave unchanged" from "clear".
    * @type {string}
    * @memberof V2beta1PipelineTask
    */
