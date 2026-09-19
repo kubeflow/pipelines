@@ -496,7 +496,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
             />
             <Button
               id='cancelNewPipelineOrVersionBtn'
-              onClick={() => this.props.history.push(RoutePage.PIPELINES)}
+              onClick={() => this.props.navigate(RoutePage.PIPELINES)}
             >
               Cancel
             </Button>
@@ -637,7 +637,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         }
 
         // If success, go to pipeline details page of the new version
-        this.props.history.push(
+        this.props.navigate(
           RoutePage.PIPELINE_DETAILS.replace(
             `:${RouteParams.pipelineId}`,
             pipelineVersionResponse.pipeline_id! /* pipeline id of this version */,

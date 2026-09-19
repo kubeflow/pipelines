@@ -34,7 +34,7 @@ import (
 // getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
 // PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
 // different, the execution shouldn't be reused for the cache.
-// If a custom cache key is set, all automatic inputs, image, command, arguments, and PVC names are ignored.
+// If a custom cache key is set, all automatic inputs, image, command, arguments, env, and PVC names are ignored.
 // Instead, the custom key is combined with the component name (to avoid cross-component cache collisions) and hashed.
 func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInput, pvcNames []string) (string, error) {
 	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetCacheKey() != "" {
@@ -69,6 +69,8 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 	}
 	sort.Strings(sortedPVCNames)
 
+	// Env is passed in its original order and is not deduplicated, because a
+	// $(VAR) reference expands from the entries defined before it.
 	cacheKey, err := cacheutils.GenerateCacheKey(
 		executorInput.GetInputs(),
 		executorInput.GetOutputs(),
@@ -76,6 +78,7 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 		userCmdArgs,
 		opts.Container.Image,
 		sortedPVCNames,
+		opts.Container.GetEnv(),
 	)
 	if err != nil {
 		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
@@ -90,11 +93,11 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 //
 // A cache hit requires the task to resolve to the same effective execution
 // shape: the same resolved inputs and declared outputs, the same output
-// parameter types, the same user container image and command/args, and the
-// same referenced PVC names. If caching is disabled, the task will not run, or
-// the task opts out of caching, this returns no fingerprint and no match. When
-// multiple successful tasks share the fingerprint, the first match found is
-// reused.
+// parameter types, the same user container image, command/args and env in
+// order, and the same referenced PVC names. If caching is disabled, the task
+// will not run, or the task opts out of caching, this returns no fingerprint
+// and no match. When multiple successful tasks share the fingerprint, the first
+// match found is reused.
 func getFingerPrintsAndID(
 	ctx context.Context,
 	execution *Execution,

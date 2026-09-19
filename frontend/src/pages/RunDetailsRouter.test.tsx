@@ -25,7 +25,7 @@ import { Apis } from 'src/lib/Apis';
 import { queryClientTest } from 'src/TestUtils';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import RunDetailsRouter, {
   RUN_DETAILS_REFETCH_INTERVAL,
   RUN_RETRY_STATE_GC_TIME,
@@ -79,14 +79,9 @@ const v2PipelineSpec = JsYaml.load(v2YamlTemplateString);
 
 function generateProps(runId = TEST_RUN_ID) {
   return {
-    history: { push: vi.fn(), replace: vi.fn() } as any,
+    navigate: vi.fn(),
     location: { pathname: `/runs/details/${runId}` } as any,
-    match: {
-      isExact: true,
-      params: { [RouteParams.runId]: runId },
-      path: '',
-      url: '',
-    },
+    params: { [RouteParams.runId]: runId },
     toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
     updateBanner: vi.fn(),
     updateDialog: vi.fn(),

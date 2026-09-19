@@ -15,9 +15,8 @@
  */
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import * as dagre from 'dagre';
-import { createMemoryHistory } from 'history';
 import * as React from 'react';
-import { Router } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { ApiResourceType, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
@@ -29,7 +28,7 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { NodePhase } from 'src/lib/StatusUtils';
 import * as Utils from 'src/lib/Utils';
 import WorkflowParser from 'src/lib/WorkflowParser';
-import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
+import TestUtils, { RouterLocation, flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
 import { vi, SpyInstance } from 'vitest';
@@ -95,7 +94,7 @@ describe('RunDetails', () => {
   let updateDialogSpy: any;
   let updateSnackbarSpy: any;
   let updateToolbarSpy: any;
-  let historyPushSpy: any;
+  let navigateSpy: any;
   let getRunSpy: any;
   let getExperimentSpy: any;
   let isCustomVisualizationsAllowedSpy: any;
@@ -171,15 +170,10 @@ describe('RunDetails', () => {
 
   function generateProps(): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
-      history: { push: historyPushSpy } as any,
+      navigate: navigateSpy,
       location: '' as any,
-      match: {
-        params: {
-          [RouteParams.runId]: testRun.run!.id,
-        },
-        isExact: true,
-        path: '',
-        url: '',
+      params: {
+        [RouteParams.runId]: testRun.run!.id,
       },
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
@@ -217,7 +211,7 @@ describe('RunDetails', () => {
     updateDialogSpy = vi.fn();
     updateSnackbarSpy = vi.fn();
     updateToolbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
+    navigateSpy = vi.fn();
     getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
     getExperimentSpy = vi.spyOn(Apis.experimentServiceApi, 'getExperiment');
     isCustomVisualizationsAllowedSpy = vi.spyOn(Apis, 'areCustomVisualizationsAllowed');
@@ -294,8 +288,8 @@ describe('RunDetails', () => {
     const cloneBtn = getToolbarAction(ButtonKeys.CLONE_RUN);
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
-    expect(historyPushSpy).toHaveBeenCalledTimes(1);
-    expect(historyPushSpy).toHaveBeenLastCalledWith(
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testRun.run!.id}`,
     );
   });
@@ -306,8 +300,8 @@ describe('RunDetails', () => {
     const cloneBtn = getToolbarAction(ButtonKeys.CLONE_RUN, 0);
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
-    expect(historyPushSpy).toHaveBeenCalledTimes(1);
-    expect(historyPushSpy).toHaveBeenLastCalledWith(
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testRun.run!.id}`,
     );
   });
@@ -1525,77 +1519,77 @@ describe('RunDetails', () => {
 
   describe('EnhancedRunDetails', () => {
     it('redirects to experiments page when namespace changes', () => {
-      const history = createMemoryHistory({
-        initialEntries: ['/does-not-matter'],
-      });
+      const initialEntries = ['/does-not-matter'];
       const { rerender } = render(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='ns1'>
             <EnhancedRunDetails {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
-      expect(history.location.pathname).not.toEqual('/experiments');
+      expect(screen.getByTestId('router-location').textContent).not.toEqual('/experiments');
       rerender(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='ns2'>
             <EnhancedRunDetails {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
-      expect(history.location.pathname).toEqual('/experiments');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/experiments');
     });
 
     it('does not redirect when namespace stays the same', async () => {
-      const history = createMemoryHistory({
-        initialEntries: ['/initial-path'],
-      });
+      const initialEntries = ['/initial-path'];
       const { rerender } = render(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='ns1'>
             <EnhancedRunDetails {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       await flushPromisesInAct();
-      expect(history.location.pathname).toEqual('/initial-path');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/initial-path');
       await act(async () => {
         rerender(
-          <Router history={history}>
+          <MemoryRouter initialEntries={initialEntries}>
+            <RouterLocation />
             <NamespaceContext.Provider value='ns1'>
               <EnhancedRunDetails {...generateProps()} />
             </NamespaceContext.Provider>
-          </Router>,
+          </MemoryRouter>,
         );
         await TestUtils.flushPromises();
       });
-      expect(history.location.pathname).toEqual('/initial-path');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/initial-path');
     });
 
     it('does not redirect when namespace initializes', async () => {
-      const history = createMemoryHistory({
-        initialEntries: ['/initial-path'],
-      });
+      const initialEntries = ['/initial-path'];
       const { rerender } = render(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value={undefined}>
             <EnhancedRunDetails {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       await flushPromisesInAct();
-      expect(history.location.pathname).toEqual('/initial-path');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/initial-path');
       await act(async () => {
         rerender(
-          <Router history={history}>
+          <MemoryRouter initialEntries={initialEntries}>
+            <RouterLocation />
             <NamespaceContext.Provider value='ns1'>
               <EnhancedRunDetails {...generateProps()} />
             </NamespaceContext.Provider>
-          </Router>,
+          </MemoryRouter>,
         );
         await TestUtils.flushPromises();
       });
-      expect(history.location.pathname).toEqual('/initial-path');
+      expect(screen.getByTestId('router-location').textContent).toEqual('/initial-path');
     });
   });
 
