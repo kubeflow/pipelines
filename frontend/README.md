@@ -176,3 +176,34 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [sample pipeline]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.py
 [sample pipeline in yaml]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.yaml
 [KFP docs]: https://www.kubeflow.org/docs/components/pipelines/getting-started/
+
+## Artifact ownership migration in 2.18
+
+Multi-user frontend previews and downloads enforce namespace-prefixed object keys by default:
+`private-artifacts/<namespace>/...` (or `ARTIFACT_NAMESPACE_KEY_PREFIX/<namespace>/...`).
+Matching MLMD metadata alone no longer authorizes an arbitrary custom-root object. This applies
+to direct and proxied MinIO, S3, GCS and HTTP(S) retrieval. Standalone mode is unchanged.
+
+Operators with legacy custom roots can temporarily set `ARTIFACT_OWNERSHIP_ENFORCEMENT=audit`
+in the `pipeline-install-config` ConfigMap and restart the frontend deployment. The default is
+`enforce`; unknown values deny access. Audit is a **2.18 migration option, not a security fix**:
+matching metadata can refer to another tenant's object when downstream credentials are shared.
+Enable audit only after independently verifying storage and proxy/network isolation, and set a
+migration deadline before upgrading to 3.0. The 3.0 policy has no audit exception.
+
+Audit relaxes only an absent namespace prefix after successful MLMD lookup and matching namespace
+evidence for every returned artifact. It does not relax user authorization, explicit namespace
+mismatches, unsafe paths, missing protobufs, MLMD errors/timeouts or missing context evidence.
+For objects absent from MLMD, `mlmd-then-prefix` retains the validated namespace-prefix fallback;
+`mlmd-only` still denies them. Neither mode permits unavailable ownership checks to fail open.
+
+Each permitted legacy read emits an `artifact_ownership_audit` warning with namespace, source,
+route category and reason. Count these events in your log system to track migration; full object
+URIs, query strings and credentials are not included in the audit event. Audit also emits a startup
+warning. An event records permission to proceed, not proof that the downstream download succeeded.
+
+Configure new pipeline roots with namespace-prefixed paths, then move/copy authorized existing
+objects and update their references. Metadata changes alone do not move storage objects. Switch
+back to `enforce` and verify preview/download before upgrading. Do not disable authentication to
+restore custom-root access. MLMD outages now deny artifact reads in both modes, including reads of
+otherwise correctly prefixed objects; restoring MLMD restores those reads.
