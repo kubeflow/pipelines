@@ -17,6 +17,8 @@ definitions."""
 __all__ = [
     'Compiler',
     'KubernetesManifestOptions',
+    'migrate',
 ]
 from kfp.compiler.compiler import Compiler
 from kfp.compiler.compiler_utils import KubernetesManifestOptions
+from kfp.compiler.migration import migrate
