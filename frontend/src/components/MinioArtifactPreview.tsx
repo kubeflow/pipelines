@@ -73,7 +73,7 @@ async function getPreview(
   // TODO how to handle binary data (can probably use magic number to id common mime types)
   let data = await Apis.readFile({ path: storagePath, namespace: namespace, peek: maxbytes + 1 });
   // is preview === data and no maxlines
-  if (data.length <= maxbytes && !maxlines) {
+  if (data.length <= maxbytes && (!maxlines || data.split('\n').length <= maxlines)) {
     return { data, hasMore: false };
   }
   // remove extra byte at the end (we requested maxbytes +1)
