@@ -41,8 +41,7 @@ describe('NewPipelineVersion', () => {
   // so we call the component's _onDrop handler directly for file upload tests.
   let componentRef: React.RefObject<TestNewPipelineVersion> | null = null;
 
-  const historyPushSpy = vi.fn();
-  const historyReplaceSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const updateBannerSpy = vi.fn();
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
@@ -68,12 +67,12 @@ describe('NewPipelineVersion', () => {
 
   function generateProps(search: string = ''): PageProps {
     return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      navigate: navigateSpy,
       location: {
         pathname: RoutePage.NEW_PIPELINE_VERSION,
         search,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: {} as any,
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,

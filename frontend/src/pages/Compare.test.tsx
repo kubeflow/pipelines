@@ -37,11 +37,11 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
 
   function generateProps(): PageProps {
     const pageProps: PageProps = {
-      history: {} as any,
+      navigate: vi.fn(),
       location: {
         search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`,
       } as any,
-      match: {} as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: () => null,

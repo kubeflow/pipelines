@@ -41,7 +41,7 @@ describe('ArchivedRuns', () => {
   let updateToolbarSpy: ReturnType<typeof vi.fn>;
   let updateDialogSpy: ReturnType<typeof vi.fn>;
   let updateSnackbarSpy: ReturnType<typeof vi.fn>;
-  let historyPushSpy: ReturnType<typeof vi.fn>;
+  let navigateSpy: ReturnType<typeof vi.fn>;
   let renderResult: ReturnType<typeof render> | null = null;
   let archivedRunsRef: React.RefObject<ArchivedRuns> | null = null;
   let toolbarProps: ToolbarProps | null = null;
@@ -49,9 +49,9 @@ describe('ArchivedRuns', () => {
 
   function baseProps(): PageProps {
     return {
-      history: { push: historyPushSpy } as any,
+      navigate: navigateSpy,
       location: '' as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -78,7 +78,7 @@ describe('ArchivedRuns', () => {
     updateToolbarSpy = vi.fn();
     updateDialogSpy = vi.fn();
     updateSnackbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
+    navigateSpy = vi.fn();
     refreshSpy.mockClear();
     lastRunListProps = null;
     toolbarProps = null;

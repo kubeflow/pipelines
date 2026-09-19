@@ -67,7 +67,7 @@ You will see a lot of `npm run xxx` commands in the instructions below. The actu
 - React 19 with TypeScript
 - MUI v5 with Emotion
 - TanStack Query v5
-- React Router v5
+- React Router v8 (declarative hash routing)
 - Vitest with Testing Library v16 for UI tests
 - Vitest for frontend server tests
 - Storybook 10

@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { classes, stylesheet } from 'typestyle';
 import { Workflow } from '../third_party/argo/argo_template';
@@ -373,7 +373,7 @@ const EnhancedCompareV1: React.FC<PageProps> = (props) => {
   if (namespaceChanged) {
     // Compare page compares two runs, when namespace changes, the runs don't
     // exist in the new namespace, so we should redirect to experiment list page.
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate replace to={RoutePage.EXPERIMENTS} />;
   }
   return <CompareV1 {...props} />;
 };

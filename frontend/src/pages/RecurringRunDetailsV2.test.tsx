@@ -33,7 +33,7 @@ describe('RecurringRunDetailsV2', () => {
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const getRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
   const deleteRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'deleteRecurringRun');
   const enableRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
@@ -45,17 +45,12 @@ describe('RecurringRunDetailsV2', () => {
   let testPipelineVersion: V2beta1PipelineVersion = {};
 
   function generateProps(): PageProps {
-    const match = {
-      isExact: true,
-      params: { [RouteParams.recurringRunId]: fullTestV2RecurringRun.recurring_run_id },
-      path: '',
-      url: '',
-    };
+    const params = { [RouteParams.recurringRunId]: fullTestV2RecurringRun.recurring_run_id };
     return TestUtils.generatePageProps(
       RecurringRunDetailsV2,
       '' as any,
-      match,
-      historyPushSpy,
+      params,
+      navigateSpy,
       updateBannerSpy,
       updateDialogSpy,
       updateToolbarSpy,
@@ -165,7 +160,7 @@ describe('RecurringRunDetailsV2', () => {
   });
 
   it('loads the recurring run given its id in query params', async () => {
-    // The run id is in the router match object, defined inside generateProps
+    // The run id is in the route params, defined inside generateProps
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />
@@ -180,7 +175,7 @@ describe('RecurringRunDetailsV2', () => {
   });
 
   it('shows All runs -> run name when there is no experiment', async () => {
-    // The run id is in the router match object, defined inside generateProps
+    // The run id is in the route params, defined inside generateProps
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />

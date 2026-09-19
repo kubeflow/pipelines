@@ -35,7 +35,7 @@ import { triggerDisplayString } from 'src/lib/TriggerUtils';
 export function RecurringRunDetailsV2FC(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
 
-  const recurringRunId = props.match.params[RouteParams.recurringRunId] ?? '';
+  const recurringRunId = props.params[RouteParams.recurringRunId] ?? '';
 
   const {
     isLoading: isRecurringRunLoading,
@@ -84,7 +84,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
       const previousPage = breadcrumbs.length
         ? breadcrumbs[breadcrumbs.length - 1].href
         : RoutePage.EXPERIMENTS;
-      props.history.push(previousPage);
+      props.navigate(previousPage);
     }
   };
 

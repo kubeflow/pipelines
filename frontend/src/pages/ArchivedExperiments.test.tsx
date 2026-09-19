@@ -40,7 +40,7 @@ describe('ArchivedExperiments', () => {
   let updateToolbarSpy: ReturnType<typeof vi.fn>;
   let updateDialogSpy: ReturnType<typeof vi.fn>;
   let updateSnackbarSpy: ReturnType<typeof vi.fn>;
-  let historyPushSpy: ReturnType<typeof vi.fn>;
+  let navigateSpy: ReturnType<typeof vi.fn>;
   let renderResult: ReturnType<typeof render> | null = null;
   let archivedExperimentsRef: React.RefObject<ArchivedExperiments> | null = null;
 
@@ -49,7 +49,7 @@ describe('ArchivedExperiments', () => {
       ArchivedExperiments,
       {} as any,
       {} as any,
-      historyPushSpy,
+      navigateSpy,
       updateBannerSpy,
       updateDialogSpy,
       updateToolbarSpy,
@@ -75,7 +75,7 @@ describe('ArchivedExperiments', () => {
     updateToolbarSpy = vi.fn();
     updateDialogSpy = vi.fn();
     updateSnackbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
+    navigateSpy = vi.fn();
     refreshSpy.mockClear();
     lastExperimentListProps = null;
   });
