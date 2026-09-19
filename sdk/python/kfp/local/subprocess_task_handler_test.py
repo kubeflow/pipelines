@@ -15,6 +15,7 @@
 import contextlib
 import functools
 import io
+import json
 import os
 from typing import NamedTuple, Optional
 import unittest
@@ -24,6 +25,7 @@ from absl.testing import parameterized
 from kfp import dsl
 from kfp import local
 from kfp.dsl import Artifact
+from kfp.dsl import component_factory
 from kfp.dsl import Dataset
 from kfp.dsl import Output
 from kfp.local import subprocess_task_handler
@@ -146,6 +148,51 @@ class TestUseCurrentPythonExecutable(
         )
         expected = ['/foo/bar/python3 -c "from kfp import dsl"']
         self.assertEqual(actual, expected)
+
+    @parameterized.parameters(False, True)
+    def test_preserves_component_source_and_executor_arguments(
+            self, install_kfp_package):
+
+        def python3_identity(text: str) -> str:
+            return text + 'python3'
+
+        component = component_factory.create_component_from_func(
+            python3_identity,
+            base_image='python:3.11',
+            install_kfp_package=install_kfp_package,
+        )
+        container = component.component_spec.implementation.container
+        executor_input = {
+            'inputs': {
+                'parameterValues': {
+                    'text': 'python3.11',
+                },
+            },
+            'outputs': {
+                'outputFile': '/tmp/python3/executor_output.json',
+            },
+        }
+        full_command = container.command + container.args
+        executor_input_index = full_command.index('--executor_input') + 1
+        full_command[executor_input_index] = json.dumps(executor_input)
+        new_executable = '/foo/bar/python'
+
+        actual = subprocess_task_handler.replace_python_executable(
+            full_command=full_command,
+            new_executable=new_executable,
+        )
+
+        source_index = len(container.command) - 1
+        self.assertEqual(actual[source_index], container.command[-1])
+        self.assertEqual(
+            json.loads(actual[executor_input_index]), executor_input)
+        self.assertEqual(actual[-1], 'python3_identity')
+        self.assertIn(
+            f'_KFP_RUNTIME=true {new_executable} -m kfp.dsl.executor_main',
+            actual[source_index - 1],
+        )
+        if install_kfp_package:
+            self.assertIn(f'{new_executable} -m pip install', actual[2])
 
 
 class TestUseVenv(testing_utilities.LocalRunnerEnvironmentTestCase):
