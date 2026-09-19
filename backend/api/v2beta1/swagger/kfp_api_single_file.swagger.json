@@ -3657,7 +3657,7 @@
         },
         "lifecycle_message": {
           "type": "string",
-          "title": "Latest pod lifecycle diagnostic from the execution engine.\nOptional so UpdateTask can distinguish \"leave unchanged\" from \"clear\"."
+          "description": "Latest pod lifecycle diagnostic from the execution engine.\nOptional so UpdateTask can distinguish \"leave unchanged\" from \"clear\"."
         }
       },
       "description": "Runtime information of a task execution used by task APIs and Run.tasks."

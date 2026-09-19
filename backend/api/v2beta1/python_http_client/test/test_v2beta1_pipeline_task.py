@@ -107,7 +107,8 @@ class TestV2beta1PipelineTask(unittest.TestCase):
                         kfp_server_api.models.input_outputs_io_artifact.InputOutputsIOArtifact(
                             artifact_key = '0', )
                         ], ), 
-                scope_path = '0'
+                scope_path = '0', 
+                lifecycle_message = '0'
             )
         else :
             return V2beta1PipelineTask(
