@@ -66,7 +66,11 @@ def generate_proto(source: str) -> None:
     Args:
       source: The source proto file that needs to be compiled.
     """
-    output = source.replace('.proto', '_pb2.py')
+    # protoc writes into PKG_DIR (--python_out), not next to the .proto source.
+    output = os.path.join(
+        PKG_DIR,
+        os.path.basename(source).replace('.proto', '_pb2.py'),
+    )
 
     if not os.path.exists(output) or (
             os.path.exists(source) and
