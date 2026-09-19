@@ -3746,6 +3746,7 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 	})
 	require.NoError(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
