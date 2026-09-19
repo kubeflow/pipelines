@@ -68,6 +68,11 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
 	}
+	defer func() {
+		if gzipReader != nil {
+			gzipReader.Close()
+		}
+	}()
 
 	// Use the shared overflow-safe traversal budget for tar headers,
 	// PAX/GNU metadata, and padding.
@@ -98,6 +103,7 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 	// Old behavior - taking the first file in the archive
 	if tarReader == nil {
 		// Resetting the reader
+		gzipReader.Close()
 		gzipReader, err = gzip.NewReader(bytes.NewReader(compressedFile))
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
@@ -161,6 +167,7 @@ func decompressPipelineZip(compressedFile []byte, maxFileLength int) ([]byte, er
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Failed to read the content")
 	}
+	defer rc.Close()
 	limitedReader := io.LimitReader(rc, util.SaturatingAdd(int64(maxFileLength), 1))
 	decompressedFile, err := io.ReadAll(limitedReader)
 	if err != nil {
