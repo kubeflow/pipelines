@@ -856,7 +856,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		executionSpec.SetCannonicalLabels(swf.Name, run.CreatedAtInSec, nextIndex)
 	}
 
-	if err := r.authorizeServiceAccount(ctx, executionSpec.ServiceAccount(), k8sNamespace); err != nil {
+	allowCompilerPodSpecPatch := tmpl.GetTemplateType() == template.V2
+	if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a run due to service account authorization error")
 	}
 
@@ -887,6 +888,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 			}
 		}
 	}()
+
+	if r.pluginDispatcher.PluginsRegistered() {
+		if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run_after_plugins"); err != nil {
+			return nil, util.Wrap(err, "Failed to create a run due to service account authorization error after plugin processing")
+		}
+	}
 
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
@@ -1358,6 +1365,19 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 	}
 
+	allowCompilerPodSpecPatch := false
+	// Recurring-run reports store both the source pipeline and compiled workflow.
+	if run.PipelineSpecManifest != "" {
+		retryTemplate, templateErr := template.New([]byte(run.PipelineSpecManifest), template.TemplateOptions{})
+		if templateErr != nil {
+			return util.NewInternalServerError(templateErr, "Failed to retry run %s due to error parsing its pipeline spec", runId)
+		}
+		allowCompilerPodSpecPatch = retryTemplate.GetTemplateType() == template.V2
+	}
+	if err := r.authorizeExecutionServiceAccounts(ctx, newExecSpec, allowCompilerPodSpecPatch, namespace, "retry_run"); err != nil {
+		return util.Wrapf(err, "Failed to retry run %s due to service account authorization error", runId)
+	}
+
 	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
 	// from overwriting with a stale terminal state. The returned claimGeneration
 	// acts as a unique fence token: UpdateRun checks it to reject stale reports,
@@ -1755,7 +1775,9 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 	var manifest string
 	var scheduledWorkflow *scheduledworkflow.ScheduledWorkflow
+	var renderedScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
 	var tmpl template.Template
+	var templateType template.TemplateType
 
 	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
 	// Otherwise, always let the ScheduledWorkflow controller pick the latest.
@@ -1767,7 +1789,12 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
+		templateType = tmpl.GetTemplateType()
 
+		renderedScheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+		}
 		// When plugins are enabled, the SWF controller must call the CreateRun API
 		// so that per-run plugin logic executes.
 		if r.pluginDispatcher.PluginsRegistered() {
@@ -1775,9 +1802,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			// so the SWF controller calls the CreateRun API for per-run plugin logic.
 			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
 		} else {
-			// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
-			// Convert modelJob into scheduledWorkflow.
-			scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+			scheduledWorkflow = renderedScheduledWorkflow
 		}
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
@@ -1802,16 +1827,17 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
 			DefaultHostUsers:     r.options.DefaultHostUsers,
 		}
-		tmpl, err := template.New(manifest, templateOptions)
+		latestTemplate, err := template.New(manifest, templateOptions)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
+		templateType = latestTemplate.GetTemplateType()
 
-		validatedScheduledWorkflow, err := tmpl.ScheduledWorkflow(job)
+		renderedScheduledWorkflow, err = latestTemplate.ScheduledWorkflow(job)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
-		if v2Tmpl, ok := tmpl.(*template.V2Spec); ok {
+		if v2Tmpl, ok := latestTemplate.(*template.V2Spec); ok {
 			if err = v2Tmpl.ValidateJobInputs(job); err != nil {
 				return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 			}
@@ -1830,18 +1856,18 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
 			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
 		}
-		scheduledWorkflow.Spec.ServiceAccount = validatedScheduledWorkflow.Spec.ServiceAccount
+		scheduledWorkflow.Spec.ServiceAccount = renderedScheduledWorkflow.Spec.ServiceAccount
 	}
 
-	if tmpl != nil && util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
+	if util.IsV1PipelinesBlocked(k8sNamespace) && templateType == template.V1 {
 		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
 	}
 
-	resolvedJobServiceAccount := scheduledWorkflow.Spec.ServiceAccount
-	if resolvedJobServiceAccount == "" {
-		resolvedJobServiceAccount = job.ServiceAccount
+	jobExecutionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, renderedScheduledWorkflow.Spec.Workflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to inspect the recurring run's service accounts")
 	}
-	if err := r.authorizeServiceAccount(ctx, resolvedJobServiceAccount, k8sNamespace); err != nil {
+	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
 
@@ -1900,6 +1926,18 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		}
 		if scheduledWorkflow == nil || string(scheduledWorkflow.UID) != jobId {
 			return util.Wrapf(util.NewResourceNotFoundError("recurring run", job.K8SName), "Failed to enable recurring run %v. Check if its k8s resource exists", jobId)
+		}
+		// An embedded workflow is launched directly by the ScheduledWorkflow
+		// controller, so reauthorize its identities whenever a job is enabled.
+		if scheduledWorkflow.Spec.Workflow != nil && scheduledWorkflow.Spec.Workflow.Spec != nil {
+			executionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, scheduledWorkflow.Spec.Workflow)
+			if err != nil {
+				return util.Wrapf(err, "Failed to enable recurring run %v because its workflow could not be inspected", jobId)
+			}
+			allowCompilerPodSpecPatch := job.WorkflowSpecManifest == "" && job.PipelineSpecManifest != ""
+			if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "enable_recurring_run"); err != nil {
+				return util.Wrapf(err, "Failed to enable recurring run %v due to service account authorization error", jobId)
+			}
 		}
 	}
 
@@ -3644,6 +3682,9 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 			return reportErr
 		}
 	}
+	if result.Status.EvaluationError != "" {
+		return util.NewInternalServerError(errors.New("SubjectAccessReview evaluation failed"), "Authorization could not be evaluated; retry after restoring the authorization service")
+	}
 	if !result.Status.Allowed {
 		err := util.NewPermissionDeniedError(
 			errors.New("Unauthorized access"),
@@ -3802,22 +3843,39 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 }
 
 func (r *ResourceManager) authorizeServiceAccount(ctx context.Context, serviceAccount, namespace string) error {
+	return r.authorizeServiceAccountWithPolicy(ctx, serviceAccount, namespace, false, nil)
+}
+
+// Audit relaxes policy denials only; authorization infrastructure errors still block.
+func (r *ResourceManager) authorizeServiceAccountWithPolicy(ctx context.Context, serviceAccount, namespace string, audit bool, recordViolation func(string)) error {
 	if serviceAccount == "" {
 		return nil
 	}
+	if strings.Contains(serviceAccount, "{{") {
+		if audit {
+			recordViolation("inspection_incomplete")
+			return nil
+		}
+		return util.NewInvalidInputError("service account %q is templated; use a literal name so it can be authorized before execution", serviceAccount)
+	}
 	if err := common.ValidateServiceAccountAllowList(serviceAccount); err != nil {
-		return util.NewInvalidInputError("%s", err)
+		if !audit {
+			return util.NewInvalidInputError("%s", err)
+		}
+		recordViolation("account_not_allowed")
 	}
 	defaultServiceAccount := common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount)
 	if serviceAccount == defaultServiceAccount {
 		return nil
 	}
-	return r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
-		Verb:      common.RbacResourceVerbUse,
-		Namespace: namespace,
-		Resource:  "serviceaccounts",
-		Name:      serviceAccount,
+	err := r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbUse, Namespace: namespace, Resource: "serviceaccounts", Name: serviceAccount,
 	})
+	if audit && util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
+		recordViolation("account_denied")
+		return nil
+	}
+	return err
 }
 
 // GetTasksByIDs fetches tasks keyed by task ID without hydrating artifacts.
@@ -3949,4 +4007,49 @@ func (r *ResourceManager) GetArtifactsByURI(namespace, uri string) ([]*model.Art
 		return nil, util.Wrap(err, "Failed to get artifacts by URI")
 	}
 	return artifacts, nil
+}
+
+func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace, operation string) error {
+	mode, err := common.GetWorkflowIdentityMode()
+	if err != nil {
+		return util.NewInternalServerError(err, "Invalid workflow identity configuration")
+	}
+	audit := mode == "audit"
+	mainServiceAccount := executionSpec.ServiceAccount()
+	if mainServiceAccount == "" {
+		mainServiceAccount = "default"
+	}
+	// Main and expanded identity policies remain independent, including when
+	// a dynamic patch prevents additional identity collection.
+	if err := r.authorizeServiceAccount(ctx, mainServiceAccount, namespace); err != nil {
+		return err
+	}
+	serviceAccounts, err := executionSpec.ServiceAccounts(allowCompilerPodSpecPatch)
+	if err != nil {
+		if audit {
+			logWorkflowServiceAccountAudit(executionSpec, namespace, operation, "", "inspection_incomplete")
+			return nil
+		}
+		return err
+	}
+	for _, serviceAccount := range serviceAccounts {
+		if serviceAccount == mainServiceAccount {
+			continue
+		}
+		recordViolation := func(reason string) {
+			logWorkflowServiceAccountAudit(executionSpec, namespace, operation, serviceAccount, reason)
+		}
+		if err := r.authorizeServiceAccountWithPolicy(ctx, serviceAccount, namespace, audit, recordViolation); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func logWorkflowServiceAccountAudit(executionSpec util.ExecutionSpec, namespace, operation, serviceAccount, finding string) {
+	meta := executionSpec.ExecutionObjectMeta()
+	// Parser errors can contain patch values. Log metadata and a finding code,
+	// never the manifest, patch contents, or raw authorization error.
+	glog.Warningf("security_audit control=workflow_identity mode=audit operation=%q namespace=%q workflow=%q generate_name=%q run_id=%q service_account=%q reason=%q disposition=allow_policy_violation",
+		operation, namespace, meta.Name, meta.GenerateName, meta.Labels[util.LabelKeyWorkflowRunId], serviceAccount, finding)
 }
