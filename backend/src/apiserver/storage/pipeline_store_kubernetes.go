@@ -206,6 +206,13 @@ func (k *PipelineStoreKubernetes) DeletePipeline(pipelineId string) error {
 	return k.deleteWithTimeout(pipelineCopy.Namespace, pipelineCopy.Name, &v2beta1.Pipeline{})
 }
 
+// DeletePipelineAndVersions deletes a pipeline and all its versions.
+// In the Kubernetes store, cascade deletion is handled by owner references,
+// so this delegates to DeletePipeline.
+func (k *PipelineStoreKubernetes) DeletePipelineAndVersions(pipelineId string) error {
+	return k.DeletePipeline(pipelineId)
+}
+
 func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
 	pipeline.UUID = ""
 	pipelineVersion.UUID = ""

@@ -2425,3 +2425,54 @@ func TestListPipelineVersions_WithTagFilter(t *testing.T) {
 	assert.Equal(t, 0, totalSize)
 	assert.Equal(t, 0, len(versions))
 }
+
+func TestDeletePipelineAndVersions(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Create a pipeline.
+	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline1", "test pipeline", "ns1"))
+	require.Nil(t, err)
+
+	// Create two versions under the pipeline.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "version 1", "", "", ""))
+	require.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v2", "version 2", "", "", ""))
+	require.Nil(t, err)
+
+	// Verify versions exist before delete.
+	opts := list.EmptyOptions()
+	versions, totalSize, _, err := pipelineStore.ListPipelineVersions(pipeline.UUID, opts)
+	require.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
+	assert.Equal(t, 2, len(versions))
+
+	// Delete pipeline and all versions atomically.
+	err = pipelineStore.DeletePipelineAndVersions(pipeline.UUID)
+	assert.Nil(t, err)
+
+	// Verify pipeline is gone.
+	_, err = pipelineStore.GetPipeline(pipeline.UUID)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	// Verify versions are gone.
+	versions, totalSize, _, err = pipelineStore.ListPipelineVersions(pipeline.UUID, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, totalSize)
+	assert.Equal(t, 0, len(versions))
+}
+
+func TestDeletePipelineAndVersions_NoPipeline(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Deleting a non-existent pipeline should not error (DELETE affects 0 rows).
+	err := pipelineStore.DeletePipelineAndVersions("non-existent-id")
+	assert.Nil(t, err)
+}
