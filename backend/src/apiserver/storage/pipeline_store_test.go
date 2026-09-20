@@ -2181,3 +2181,112 @@ func TestGetAnyPipelineVersionID_IgnoresDeletedVersions(t *testing.T) {
 	require.Nil(t, err)
 	assert.Empty(t, pipelineVersionID)
 }
+
+func TestDeletePipelineAndVersions(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Create a pipeline.
+	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline1", "test pipeline", "ns1"))
+	require.Nil(t, err)
+
+	// Create two versions under the pipeline.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "version 1", "", "", ""))
+	require.Nil(t, err)
+
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v2", "version 2", "", "", ""))
+	require.Nil(t, err)
+
+	// Verify versions exist before delete.
+	opts := list.EmptyOptions()
+	versions, totalSize, _, err := pipelineStore.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
+	assert.Equal(t, 2, len(versions))
+
+	// Delete pipeline and all versions atomically.
+	err = pipelineStore.DeletePipelineAndVersions(pipeline.UUID)
+	assert.Nil(t, err)
+
+	// Verify pipeline is gone.
+	_, err = pipelineStore.GetPipeline(pipeline.UUID)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	// Verify versions are gone.
+	versions, totalSize, _, err = pipelineStore.ListPipelineVersions(pipeline.UUID, opts, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, totalSize)
+	assert.Equal(t, 0, len(versions))
+}
+
+func TestDeletePipelineAndVersions_NoPipeline(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Deleting a non-existent pipeline should not error (DELETE affects 0 rows).
+	err := pipelineStore.DeletePipelineAndVersions("non-existent-id")
+	assert.Nil(t, err)
+}
+
+// TestDeletePipelineAndVersions_RollbackOnPipelineDeleteFailure verifies the
+// atomicity guarantee: when the pipeline DELETE fails after the version DELETE
+// succeeds inside the transaction, the entire operation is rolled back and
+// both the pipeline and its versions remain intact.
+func TestDeletePipelineAndVersions_RollbackOnPipelineDeleteFailure(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
+
+	// Create a pipeline.
+	pipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline1", "test pipeline", "ns1"))
+	require.Nil(t, err)
+
+	// Create a version under the pipeline.
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "version 1", "", "", ""))
+	require.Nil(t, err)
+
+	// Drop the pipelines table so the pipeline DELETE inside the transaction
+	// fails while the version DELETE (which runs first) would have succeeded.
+	_, err = db.Exec("DROP TABLE \"pipelines\"")
+	require.Nil(t, err)
+
+	// Attempt cascade delete — should fail because the pipelines table is gone.
+	err = pipelineStore.DeletePipelineAndVersions(pipeline.UUID)
+	assert.NotNil(t, err, "Expected an error when the pipeline DELETE fails")
+
+	// Recreate the pipelines table so we can query the remaining data.
+	_, err = db.Exec(`CREATE TABLE "pipelines" (
+		"UUID" varchar(255) NOT NULL PRIMARY KEY,
+		"CreatedAtInSec" bigint,
+		"Name" varchar(255) NOT NULL,
+		"Description" varchar(65535),
+		"Status" varchar(255),
+		"Namespace" varchar(63),
+		"DefaultVersionId" varchar(255)
+	)`)
+	require.Nil(t, err)
+
+	// Re-insert the pipeline row that was in the dropped table so we can verify
+	// version survival. (The version rows live in a separate table that was
+	// never dropped, so they survived the DROP TABLE above.)
+	_, err = db.Exec(
+		`INSERT INTO "pipelines" ("UUID","CreatedAtInSec","Name","Description","Status","Namespace") VALUES (?,?,?,?,?,?)`,
+		pipeline.UUID, pipeline.CreatedAtInSec, pipeline.Name, pipeline.Description,
+		string(model.PipelineReady), pipeline.Namespace,
+	)
+	require.Nil(t, err)
+
+	// Verify the version survived — transaction rollback must have prevented
+	// the version DELETE from being committed.
+	opts := list.EmptyOptions()
+	versions, totalSize, _, err := pipelineStore.ListPipelineVersions(pipeline.UUID, opts, nil)
+	require.Nil(t, err)
+	assert.Equal(t, 1, totalSize, "Version should survive because the transaction was rolled back")
+	assert.Equal(t, 1, len(versions))
+}

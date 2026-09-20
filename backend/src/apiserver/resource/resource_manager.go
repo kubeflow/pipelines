@@ -469,38 +469,22 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 	}
 
 	if cascade {
-		// Get all pipeline versions for this pipeline and delete them
-		opts := list.EmptyOptions()
-		pipelineVersions, _, _, err := r.pipelineStore.ListPipelineVersions(pipelineId, opts, nil)
+		// Delete pipeline and all its versions atomically in a single transaction.
+		err = r.pipelineStore.DeletePipelineAndVersions(pipelineId)
 		if err != nil {
-			return util.Wrapf(err, "Failed to delete pipeline with id %v due to error listing pipeline versions", pipelineId)
+			return util.Wrapf(err, "Failed to cascade delete pipeline %v and its versions", pipelineId)
 		}
+		return nil
+	}
 
-		// Delete each pipeline version
-		for _, pipelineVersion := range pipelineVersions {
-			// Mark pipeline version as deleting so it's not visible to user.
-			err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersion.UUID, model.PipelineVersionDeleting)
-			if err != nil {
-				return util.Wrapf(err, "Failed to change the status of pipeline version id %v to DELETING during cascade delete", pipelineVersion.UUID)
-			}
-
-			// Delete the pipeline version from the database
-			err = r.pipelineStore.DeletePipelineVersion(pipelineVersion.UUID)
-			if err != nil {
-				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
-			}
-			glog.Infof("Successfully deleted pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
-		}
-	} else {
-		// Any version blocks the delete, regardless of whether the default resolves. Ask the store
-		// for a single id: listing converts every version's manifest just to reject the request.
-		pipelineVersionID, err := r.pipelineStore.GetAnyPipelineVersionID(pipelineId)
-		if err != nil {
-			return util.Wrapf(err, "Failed to delete pipeline with id %v as it failed to check existing pipeline versions", pipelineId)
-		}
-		if pipelineVersionID != "" {
-			return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v). Set cascade=true to delete all versions", pipelineId, pipelineVersionID)
-		}
+	// Non-cascade: any version blocks the delete, regardless of whether the default resolves. Ask the store
+	// for a single id: listing converts every version's manifest just to reject the request.
+	pipelineVersionID, err := r.pipelineStore.GetAnyPipelineVersionID(pipelineId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to delete pipeline with id %v as it failed to check existing pipeline versions", pipelineId)
+	}
+	if pipelineVersionID != "" {
+		return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v). Set cascade=true to delete all versions", pipelineId, pipelineVersionID)
 	}
 
 	// Mark pipeline as deleting so it's not visible to user.
