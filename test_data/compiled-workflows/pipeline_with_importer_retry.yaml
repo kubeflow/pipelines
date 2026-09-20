@@ -105,10 +105,14 @@ spec:
       - name: parent-dag-task-id
       - default: "-1"
         name: iteration-index
-      - name: retry-max-count
-      - name: retry-backoff-duration
-      - name: retry-backoff-factor
-      - name: retry-backoff-max-duration
+      - default: "0"
+        name: retry-max-count
+      - default: "0"
+        name: retry-backoff-duration
+      - default: "0"
+        name: retry-backoff-factor
+      - default: "0"
+        name: retry-backoff-max-duration
     metadata:
       annotations:
         pipelines.kubeflow.org/runtime-role: launcher

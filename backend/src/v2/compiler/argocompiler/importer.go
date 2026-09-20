@@ -154,10 +154,12 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool, taskRet
 	}
 	if taskRetrySpec != nil {
 		inputParameters = append(inputParameters,
-			wfapi.Parameter{Name: paramRetryMaxCount},
-			wfapi.Parameter{Name: paramRetryBackOffDuration},
-			wfapi.Parameter{Name: paramRetryBackOffFactor},
-			wfapi.Parameter{Name: paramRetryBackOffMaxDuration},
+			c.addParameterDefault([]wfapi.Parameter{
+				{Name: paramRetryMaxCount},
+				{Name: paramRetryBackOffDuration},
+				{Name: paramRetryBackOffFactor},
+				{Name: paramRetryBackOffMaxDuration},
+			}, "0")...,
 		)
 	}
 
