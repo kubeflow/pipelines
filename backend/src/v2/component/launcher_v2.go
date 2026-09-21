@@ -1776,19 +1776,32 @@ func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, ar
 	executorInputJSONKey := "{{$}}"
 	executorInputJSONString := string(executorInputJSON)
 
-	compiledCmd := strings.ReplaceAll(cmd, executorInputJSONKey, executorInputJSONString)
+	compiledCmd := substitutePlaceholders(cmd, executorInputJSONKey, executorInputJSONString, placeholders)
 	compiledArgs := make([]string, 0, len(args))
-	for placeholder, replacement := range placeholders {
-		compiledCmd = strings.ReplaceAll(compiledCmd, placeholder, replacement)
-	}
 	for _, arg := range args {
-		compiledArgTemplate := strings.ReplaceAll(arg, executorInputJSONKey, executorInputJSONString)
-		for placeholder, replacement := range placeholders {
-			compiledArgTemplate = strings.ReplaceAll(compiledArgTemplate, placeholder, replacement)
-		}
-		compiledArgs = append(compiledArgs, compiledArgTemplate)
+		compiledArgs = append(compiledArgs, substitutePlaceholders(arg, executorInputJSONKey, executorInputJSONString, placeholders))
 	}
 	return compiledCmd, compiledArgs, nil
+}
+
+// substitutePlaceholders expands {{$}} once, then repeatedly applies the
+// placeholder map until no further substitutions occur (fixpoint). This makes
+// resolution order-independent: a placeholder whose text is only introduced by
+// another substitution (e.g. pipelinechannel--volume_name nested inside a
+// resolved dask_config struct) is still resolved on a subsequent pass.
+func substitutePlaceholders(s, execInputKey, execInputJSON string, placeholders map[string]string) string {
+	s = strings.ReplaceAll(s, execInputKey, execInputJSON)
+	maxPasses := 10 // Prevents infinite loops on cyclic/self-referential placeholders
+	for pass := 0; pass < maxPasses; pass++ {
+		prev := s
+		for placeholder, replacement := range placeholders {
+			s = strings.ReplaceAll(s, placeholder, replacement)
+		}
+		if s == prev {
+			break
+		}
+	}
+	return s
 }
 
 // Add executor input placeholders to provided map.
