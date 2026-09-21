@@ -89,22 +89,26 @@ This test gets triggered by the end-to-end testing workflows.
 ## Dependency compatibility checks
 
 Use Node.js 22.12.0 or newer (the version in `frontend/.nvmrc` is recommended).
-The browser installer requires `unzip` on Linux/macOS or `tar.exe` on Windows;
-the integration Docker image includes `unzip`.
 
 ```bash
 npm install
 npm run test:dependencies
 ```
 
-These checks load the WebdriverIO configuration and install a harmless ZIP fixture
-from a temporary loopback HTTP server. They do not require Selenium or a deployed
-KFP cluster. They also run automatically before `npm test`.
+These checks load the WebdriverIO configuration, confirm that the pinned browser
+installer exposes the API WebdriverIO calls, and confirm that our explicit
+Selenium connection skips automatic browser and driver installation. They do not
+require Selenium, a deployed KFP cluster, or a ZIP extractor. CI runs them once in
+the `frontend-integration-dependency-checks` job of `e2e-test-frontend.yml`; they
+are not part of `npm test`.
 
-The `@wdio/utils` override pins `@puppeteer/browsers` 3.2.2 because WebdriverIO's
-2.x dependency still includes `extract-zip`, which has no patched release for
+`@puppeteer/browsers` is pinned to 3.2.2, and the override applies the same pin
+to `@wdio/utils`, because the 2.x line that `@wdio/utils` declares still depends
+on `extract-zip`, which has no patched release for
 [GHSA-jmr9-qjv8-65gv](https://github.com/advisories/GHSA-jmr9-qjv8-65gv).
-Browser installer 3.x uses the operating system ZIP extractor and requires the
-Node.js version above. Remove the override when WebdriverIO accepts that major
-version. The checks cover the APIs WebdriverIO uses and confirm that our explicit
-Selenium connection skips automatic browser and driver installation.
+`@wdio/utils` does not declare support for the 3.x major; the checks above stand
+in for that support. Two consequences of 3.x are worth knowing: it requires the
+Node.js version above, and it made `proxy-agent` optional, so `HTTPS_PROXY` is
+ignored on the browser download path. That path never runs here because the
+Selenium host is explicit. Remove the pin and the override when `@wdio/utils`
+accepts the 3.x major.

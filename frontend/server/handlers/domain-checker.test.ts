@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { isAllowedDomain } from './domain-checker.js';
+import { isAllowedDomain, isTrustedArtifactEndpoint } from './domain-checker.js';
 
 describe('isAllowedDomain', () => {
   it('matches a host-only allowlist for a plain https URL', () => {
@@ -50,5 +50,34 @@ describe('isAllowedDomain', () => {
 
   it('rejects non-http schemes before applying the allowlist', () => {
     expect(isAllowedDomain('file:///etc/passwd', '^.*$')).toBe(false);
+  });
+});
+
+describe('isTrustedArtifactEndpoint', () => {
+  it('trusts the exact configured endpoint', () => {
+    expect(
+      isTrustedArtifactEndpoint('http://seaweedfs.kubeflow:9000', [
+        'http://seaweedfs.kubeflow:9000',
+      ]),
+    ).toBe(true);
+  });
+
+  it('rejects other hosts and ports', () => {
+    expect(
+      isTrustedArtifactEndpoint('http://169.254.169.254:80', ['http://seaweedfs.kubeflow:9000']),
+    ).toBe(false);
+    expect(
+      isTrustedArtifactEndpoint('http://seaweedfs.kubeflow:9001', [
+        'http://seaweedfs.kubeflow:9000',
+      ]),
+    ).toBe(false);
+  });
+
+  it('rejects endpoints containing user info', () => {
+    expect(
+      isTrustedArtifactEndpoint('http://attacker@seaweedfs.kubeflow:9000', [
+        'http://seaweedfs.kubeflow:9000',
+      ]),
+    ).toBe(false);
   });
 });

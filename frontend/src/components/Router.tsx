@@ -16,7 +16,9 @@
 
 import { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, matchPath } from 'react-router';
+import { NavigationProps } from 'src/lib/Navigation';
+import Page404 from 'src/pages/404';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
@@ -24,16 +26,13 @@ import { classes, stylesheet } from 'typestyle';
 import Banner, { BannerProps } from 'src/components/Banner';
 import { commonCss } from 'src/Css';
 import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
-import Page404 from 'src/pages/404';
 import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
 } from 'src/pages/AllExperimentsAndArchive';
 import AllRecurringRunsPage from 'src/pages/AllRecurringRunsList';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from 'src/pages/AllRunsAndArchive';
 import ArtifactDetails from 'src/pages/ArtifactDetails';
-import ArtifactListSwitcher from 'src/pages/ArtifactListSwitcher';
-import ExecutionDetails from 'src/pages/ExecutionDetails';
-import ExecutionListSwitcher from 'src/pages/ExecutionListSwitcher';
+import EnhancedArtifactList from 'src/pages/ArtifactList';
 import ExperimentDetailsPage from 'src/pages/ExperimentDetails';
 import { GettingStarted } from 'src/pages/GettingStarted';
 import NewExperimentPage from 'src/pages/NewExperiment';
@@ -48,7 +47,15 @@ import SideNavigation from './SideNav';
 import Toolbar, { ToolbarProps } from './Toolbar';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar } from '@mui/material';
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Snackbar,
+} from '@mui/material';
 
 export type RouteConfig = {
   path: string;
@@ -75,7 +82,9 @@ export enum QUERY_PARAMS {
   fromRunId = 'fromRun',
   fromRecurringRunId = 'fromRecurringRun',
   runlist = 'runlist',
+  taskId = 'task',
   view = 'view',
+  executionRedirect = 'executionRedirect',
 }
 
 export enum RouteParams {
@@ -84,7 +93,7 @@ export enum RouteParams {
   pipelineVersionId = 'vid',
   runId = 'rid',
   recurringRunId = 'rrid',
-  // TODO: create one of these for artifact and execution?
+  // Legacy execution routes below are retained only to redirect old bookmarks.
   ID = 'id',
   executionId = 'executionid',
 }
@@ -92,7 +101,6 @@ export enum RouteParams {
 // tslint:disable-next-line:variable-name
 export const RoutePrefix = {
   ARTIFACT: '/artifact',
-  EXECUTION: '/execution',
   RECURRING_RUN: '/recurringrun',
 };
 
@@ -124,11 +132,15 @@ export const RoutePage = {
 };
 
 export const RoutePageFactory = {
-  artifactDetails: (artifactId: number) => {
+  artifactDetails: (artifactId: string | number) => {
     return RoutePage.ARTIFACT_DETAILS.replace(`:${RouteParams.ID}`, '' + artifactId);
   },
-  executionDetails: (executionId: number) => {
-    return RoutePage.EXECUTION_DETAILS.replace(`:${RouteParams.ID}`, '' + executionId);
+  runDetails: (runId: string) => {
+    return RoutePage.RUN_DETAILS.replace(`:${RouteParams.runId}`, runId);
+  },
+  runDetailsTask: (runId: string, taskId: string) => {
+    const search = new URLSearchParams({ [QUERY_PARAMS.taskId]: taskId });
+    return `${RoutePageFactory.runDetails(runId)}?${search.toString()}`;
   },
   pipelineDetails: (id: string) => {
     return RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(`:${RouteParams.pipelineId}`, id);
@@ -171,6 +183,56 @@ export interface RouterProps {
 const DEFAULT_ROUTE =
   KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
 
+const RemovedExecutionRoute = ({ params }: NavigationProps) => {
+  return (
+    <Navigate
+      replace
+      to={`${RoutePage.RUNS}?${QUERY_PARAMS.executionRedirect}=${params[RouteParams.ID] ? 'detail' : 'list'}`}
+    />
+  );
+};
+
+const LegacyRunExecutionRoute = ({ location, params }: NavigationProps) => {
+  const query = new URLSearchParams(location.search);
+  query.set(QUERY_PARAMS.executionRedirect, 'detail');
+  return (
+    <Navigate
+      replace
+      to={{
+        pathname: RoutePageFactory.runDetails(encodeURIComponent(params[RouteParams.runId]!)),
+        search: `?${query}`,
+        hash: location.hash,
+      }}
+    />
+  );
+};
+
+// Keep navigation guidance separate from page-owned loading and error banners.
+const ExecutionRedirectNotice = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const query = new URLSearchParams(location.search);
+  const reason = query.get(QUERY_PARAMS.executionRedirect);
+  if (reason !== 'list' && reason !== 'detail') return null;
+  return (
+    <Alert
+      severity='info'
+      onClose={() => {
+        query.delete(QUERY_PARAMS.executionRedirect);
+        navigate(
+          { ...location, search: query.size ? `?${query}` : '' },
+          { replace: true, state: location.state },
+        );
+      }}
+    >
+      Execution pages have moved to Runs and task details. Open a run and select a task to view its
+      inputs, outputs, status, and logs.
+      {reason === 'detail' &&
+        ' This legacy execution link cannot select the corresponding task automatically.'}
+    </Alert>
+  );
+};
+
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const buildInfo = React.useContext(BuildInfoContext);
@@ -187,10 +249,10 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       path: RoutePage.ARCHIVED_EXPERIMENTS,
       view: AllExperimentsAndArchiveTab.ARCHIVE,
     },
-    { path: RoutePage.ARTIFACTS, Component: ArtifactListSwitcher },
+    { path: RoutePage.ARTIFACTS, Component: EnhancedArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
-    { path: RoutePage.EXECUTIONS, Component: ExecutionListSwitcher },
-    { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
+    { path: RoutePage.EXECUTIONS, Component: RemovedExecutionRoute },
+    { path: RoutePage.EXECUTION_DETAILS, Component: RemovedExecutionRoute },
     {
       Component: AllExperimentsAndArchive,
       path: RoutePage.EXPERIMENTS,
@@ -216,7 +278,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsPage },
     { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetailsRouter },
     { path: RoutePage.RUN_DETAILS, Component: RunDetailsRouter },
-    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetailsRouter },
+    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: LegacyRunExecutionRoute },
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
   ];
@@ -228,41 +290,56 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   return (
     // There will be only one instance of SideNav, throughout UI usage.
     <SideNavLayout>
-      <Switch>
-        <Route
-          exact={true}
-          path={'/'}
-          render={({ ...props }) => <Redirect to={DEFAULT_ROUTE} {...props} />}
-        />
-
-        {/* Normal routes */}
-        {routes.map((route, i) => {
-          const { path } = { ...route };
-          return (
-            // Setting a key here, so that two different routes are considered two instances from
-            // react. Therefore, they don't share toolbar state. This avoids many bugs like dangling
-            // network response handlers.
-            <Route
-              key={i}
-              exact={!route.notExact}
-              path={path}
-              render={(props) => <RoutedPage key={props.location.key} route={route} />}
-            />
-          );
-        })}
-
-        {/* 404 */}
-        {
-          <Route>
-            <RoutedPage />
-          </Route>
-        }
-      </Switch>
+      <Routes>
+        <Route path='/' element={<Navigate replace to={DEFAULT_ROUTE} />} />
+        {routes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.notExact ? `${route.path}/*` : route.path}
+            element={<RoutePageElement route={route} />}
+          />
+        ))}
+        <Route path='*' element={<RoutePageElement />} />
+      </Routes>
     </SideNavLayout>
   );
 };
 
-class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponentState> {
+// Run Details owns task selection in the query. Other pages initialize forms from it.
+function RoutePageElement({ route }: { route?: RouteConfig }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Match the encoded pathname before decoding once: useParams turns a literal
+  // "%2F" (encoded as "%252F" in the URL) into a slash in React Router 8.
+  const match = route && matchPath({ path: route.path, end: !route.notExact }, location.pathname);
+  const params = Object.fromEntries(
+    Object.entries(match?.params || {}).map(([name, value]) => {
+      try {
+        return [name, value === undefined ? undefined : decodeURIComponent(value)];
+      } catch {
+        return [name, value];
+      }
+    }),
+  );
+  const routeIdentity =
+    route?.path === RoutePage.RUN_DETAILS
+      ? location.pathname
+      : location.key || `${location.pathname}${location.search}${location.hash}`;
+  return (
+    <RoutedPage
+      key={`${route?.path}:${routeIdentity}`}
+      route={route}
+      location={location}
+      navigate={navigate}
+      params={params}
+    />
+  );
+}
+
+class RoutedPage extends React.Component<
+  NavigationProps & { route?: RouteConfig },
+  RouteComponentState
+> {
   private childProps = {
     toolbarProps: {
       breadcrumbs: [{ displayName: '', href: '' }],
@@ -288,11 +365,16 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
   public render(): React.JSX.Element {
     this.childProps.toolbarProps = this.state.toolbarProps;
-    const route = this.props.route;
+    const { route, location, navigate, params } = this.props;
+    const Component = route?.Component ?? Page404;
+    const navigation = { location, navigate, params };
 
     return (
       <div className={classes(commonCss.page)}>
-        <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
+        <Toolbar {...this.state.toolbarProps} navigate={navigate} />
+        {(route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS) && (
+          <ExecutionRedirectNotice />
+        )}
         {this.state.bannerProps.message && (
           <Banner
             message={this.state.bannerProps.message}
@@ -302,32 +384,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
             showTroubleshootingGuideLink={true}
           />
         )}
-        <Switch>
-          {route &&
-            (() => {
-              const { path, Component, ...otherProps } = { ...route };
-              return (
-                <Route
-                  exact={!route.notExact}
-                  path={path}
-                  render={({ ...props }) => (
-                    <Component {...props} {...this.childProps} {...otherProps} />
-                  )}
-                />
-              );
-            })()}
-
-          {/* 404 */}
-          {!!route && (
-            <Route
-              render={(props) => (
-                // The catch-all route matches no params, so narrow the params bag
-                // to the string-valued shape PageProps declares.
-                <Page404 {...props} match={{ ...props.match, params: {} }} {...this.childProps} />
-              )}
-            />
-          )}
-        </Switch>
+        <Component {...navigation} {...this.childProps} view={route?.view} />
 
         <Snackbar
           autoHideDuration={this.state.snackbarProps.autoHideDuration}
@@ -410,13 +467,14 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
 export default Router;
 
-const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className={classes(commonCss.page)}>
-    <div className={classes(commonCss.flexGrow)}>
-      <Route
-        render={({ ...props }) => <SideNavigation page={props.location.pathname} {...props} />}
-      />
-      {children}
+const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  return (
+    <div className={classes(commonCss.page)}>
+      <div className={classes(commonCss.flexGrow)}>
+        <SideNavigation page={location.pathname} />
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};

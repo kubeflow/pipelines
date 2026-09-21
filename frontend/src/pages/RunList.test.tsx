@@ -47,9 +47,9 @@ describe('RunList', () => {
 
   function generateProps(): RunListProps {
     return {
-      history: {} as any,
+      navigate: vi.fn(),
       location: { search: '' } as any,
-      match: '' as any,
+      params: {},
       onError: onErrorSpy,
     };
   }

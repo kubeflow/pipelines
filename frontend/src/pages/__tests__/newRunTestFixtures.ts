@@ -70,14 +70,14 @@ export const NEW_EXPERIMENT: V2beta1Experiment = {
 
 export function generatePropsNoPipelineDef(experimentId: string | null): PageProps {
   return {
-    history: { push: vi.fn(), replace: vi.fn() } as any,
+    navigate: vi.fn(),
     location: {
       pathname: RoutePage.NEW_RUN,
       search: experimentId
         ? `?${QUERY_PARAMS.experimentId}=${experimentId}`
         : `?${QUERY_PARAMS.experimentId}=`,
     } as any,
-    match: '' as any,
+    params: {},
     toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
     updateBanner: vi.fn(),
     updateDialog: vi.fn(),
@@ -91,12 +91,12 @@ export function generatePropsNewRun(
   versionId = ORIGINAL_TEST_PIPELINE_VERSION_ID,
 ): PageProps {
   return {
-    history: { push: vi.fn(), replace: vi.fn() } as any,
+    navigate: vi.fn(),
     location: {
       pathname: RoutePage.NEW_RUN,
       search: `?${QUERY_PARAMS.pipelineId}=${pipelineId}&${QUERY_PARAMS.pipelineVersionId}=${versionId}`,
     } as any,
-    match: '' as any,
+    params: {},
     toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
     updateBanner: vi.fn(),
     updateDialog: vi.fn(),

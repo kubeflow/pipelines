@@ -46,9 +46,9 @@ function generateProps(): PipelinesDialogV2Props {
 
 function generatePageProps(): PageProps {
   return {
-    history: {} as any,
+    navigate: vi.fn(),
     location: '' as any,
-    match: {} as any,
+    params: {},
     toolbarProps: {} as any,
     updateBanner: vi.fn(),
     updateDialog: vi.fn(),

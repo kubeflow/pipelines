@@ -401,8 +401,9 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 			resourceAttributes.Namespace = namespace
 		}
 	}
-	if resourceAttributes.Namespace == "" {
-		return nil
+	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+		// Shared-pipeline writes require authorization in the KFP system namespace.
+		resourceAttributes.Namespace = common.GetPodNamespace()
 	}
 
 	resourceAttributes.Group = common.RbacPipelinesGroup

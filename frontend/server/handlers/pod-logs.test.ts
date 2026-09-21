@@ -23,7 +23,7 @@ vi.mock('../workflow-helper.js', () => ({
   composePodLogsStreamHandler: vi.fn(() => getPodLogsStream),
   createPodLogsMinioRequestConfig: vi.fn(),
   getPodLogsStreamFromK8s: vi.fn(),
-  getPodLogsStreamFromWorkflow: vi.fn(),
+  createPodLogsStreamFromWorkflow: vi.fn(),
   toGetPodLogsStream: vi.fn(),
 }));
 

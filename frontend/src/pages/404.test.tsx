@@ -22,9 +22,9 @@ import { PageProps } from './Page';
 describe('404', () => {
   function generateProps(): PageProps {
     return {
-      history: {} as any,
+      navigate: vi.fn(),
       location: { pathname: 'some bad page' } as any,
-      match: {} as any,
+      params: {},
       toolbarProps: {} as any,
       updateBanner: vi.fn(),
       updateDialog: vi.fn(),
