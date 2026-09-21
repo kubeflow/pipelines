@@ -11,6 +11,17 @@ to use them, please visit the [documentation page](https://www.kubeflow.org/docs
 Please check the [developer guidelines](https://github.com/kubeflow/pipelines/blob/master/developer_guide.md)
 for additional development guidelines.
 
+## Multi-user upgrade compatibility
+
+The KFP API server now rejects Python visualization requests with an empty
+namespace in multi-user mode before contacting the visualization service. This
+security fix is in the API server, not this Python server. Authorized requests
+to existing tenant-local services and standalone generation remain supported.
+Central-only multi-user deployments lose the empty-namespace generation path;
+adding a namespace alone is insufficient because the shipped profile controller
+does not provision tenant-local visualization services. Before upgrading, review
+the [operator compatibility guidance](../../../../docs/operator-guides/upgrade-2.18.md#legacy-python-visualization-compatibility).
+
 ## Architecture
 
 Python based visualizations rely on three parts: the frontend, the API server,
@@ -35,7 +46,7 @@ Consider the following:
         * The complexity of a visualization can reduce its usability. Predefined
         visualizations are intended to be powerful and simple. Visualizations
         that require extensive or complex variables are not good candidates for
-        predefined visualizations. 
+        predefined visualizations.
 2. Fork the Kubeflow Pipelines repository.
 3. Add a new type for the visualization within the [visualization.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/visualization.proto#L78)
 file in the `backend/api` directory.
@@ -159,7 +170,7 @@ within your cluster.
     than 4MB in size to be generated, you must manually set
     **MaxCallRecvMsgSize** for gRPC. This can be done by editing the provided
     options given to the gRPC server within [main.go](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/main.go#L128)
-    to 
+    to
     ```golang
     var maxCallRecvMsgSize = 4 * 1024 * 1024
 	if serviceName == "Visualization" {
