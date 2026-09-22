@@ -69,7 +69,7 @@ test = [
 dev = [
   "kfp-workspace[lint,test]",
   "mypy",
-  "pre-commit",
+  "pre-commit>=3.2",
   "types-protobuf",
   "types-PyYAML",
   "types-requests",
@@ -143,7 +143,6 @@ sdk-deprecated-runtime = [
 # Legacy requirement entries that are compatible with the workspace's
 # protobuf>=6 dependency floor.
 legacy-compatible-runtime = [
-  "filelock==3.0.*",
   "flake8==3.7.*",
   "flake8-black==0.1.*",
   "kubernetes>=8.0.0,<=31.0.0",

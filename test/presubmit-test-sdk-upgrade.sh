@@ -20,10 +20,16 @@ set -ex
 # the real-world upgrade path that users would experience. uv is only used for building
 # the packages from source.
 
+# The CI workspace already contains HEAD, so test upgrades in a clean environment.
+UPGRADE_TEST_DIR=$(mktemp -d)
+trap 'rm -rf "$UPGRADE_TEST_DIR"' EXIT
+python3 -m venv "$UPGRADE_TEST_DIR/venv"
+UPGRADE_PYTHON="$UPGRADE_TEST_DIR/venv/bin/python"
+
 # Install the latest released version of KFP from PyPI
-python3 -m pip install --upgrade pip
-python3 -m pip install kfp
-LATEST_KFP_SDK_RELEASE=$(python3 -m pip show kfp | grep "Version:" | awk '{print $2}' | awk '{$1=$1};1')
+"$UPGRADE_PYTHON" -m pip install --upgrade pip
+"$UPGRADE_PYTHON" -m pip install kfp
+LATEST_KFP_SDK_RELEASE=$("$UPGRADE_PYTHON" -m pip show kfp | grep "Version:" | awk '{print $2}' | awk '{$1=$1};1')
 echo "Installed latest KFP SDK version: $LATEST_KFP_SDK_RELEASE"
 
 # Build and install workspace packages from source using uv
@@ -33,18 +39,16 @@ make python
 popd
 
 # Build all workspace packages
-uv build --package kfp-pipeline-spec
-uv build --package kfp-server-api
-uv build --package kfp
+uv build --package kfp-pipeline-spec --out-dir "$UPGRADE_TEST_DIR/dist"
+uv build --package kfp-server-api --out-dir "$UPGRADE_TEST_DIR/dist"
+uv build --package kfp --out-dir "$UPGRADE_TEST_DIR/dist"
 
-# Install the built packages (simulates upgrade from PyPI to HEAD)
-python3 -m pip install dist/kfp_pipeline_spec-*.whl --force-reinstall
-python3 -m pip install dist/kfp_server_api-*.whl --force-reinstall
-python3 -m pip install dist/kfp-*.whl --force-reinstall
+# Resolve all local wheels together so unpublished versions never require PyPI.
+"$UPGRADE_PYTHON" -m pip install "$UPGRADE_TEST_DIR"/dist/*.whl --force-reinstall
 
 # HEAD will only be different than latest for a release PR
-HEAD_KFP_SDK_VERSION=$(python3 -m pip show kfp | grep "Version:" | awk '{print $2}')
+HEAD_KFP_SDK_VERSION=$("$UPGRADE_PYTHON" -m pip show kfp | grep "Version:" | awk '{print $2}')
 echo "Successfully upgraded to KFP SDK version @ HEAD: $HEAD_KFP_SDK_VERSION"
 
-python3 -c 'import kfp'
+"$UPGRADE_PYTHON" -c 'import kfp'
 echo "Successfully ran 'import kfp' @ HEAD: $HEAD_KFP_SDK_VERSION"
