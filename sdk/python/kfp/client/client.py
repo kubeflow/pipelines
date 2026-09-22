@@ -1321,6 +1321,7 @@ class Client:
         Returns:
             ``V2beta1ListRecurringRunsResponse`` object.
         """
+        namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
             return self._recurring_run_api.recurring_run_service_list_recurring_runs(
                 page_token=page_token,
