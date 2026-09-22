@@ -16,6 +16,7 @@ package list
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -307,6 +309,112 @@ func TestNextPageToken_MetricValuePresent(t *testing.T) {
 	}
 	if got.SortByFieldValue != 0.95 {
 		t.Errorf("nextPageToken() SortByFieldValue = %v, want 0.95", got.SortByFieldValue)
+	}
+}
+
+// A nullable column is exposed as a pointer. A nil pointer is a NULL cursor, and
+// a set pointer carries its plain value.
+func TestNextPageToken_NullablePointerField(t *testing.T) {
+	parentTaskID := "parent-task"
+	numberValue := 0.5
+
+	tests := []struct {
+		name      string
+		row       Listable
+		sortBy    string
+		wantValue interface{}
+		wantNull  bool
+	}{
+		{"task without parent", &model.Task{UUID: "row-1"}, "parent_task_id", nil, true},
+		{"task with parent", &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID}, "parent_task_id", "parent-task", false},
+		{"artifact without number", &model.Artifact{UUID: "row-1"}, "number_value", nil, true},
+		{"artifact with number", &model.Artifact{UUID: "row-1", NumberValue: &numberValue}, "number_value", 0.5, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts, err := NewOptions(tt.row, 2, tt.sortBy, nil)
+			if err != nil {
+				t.Fatalf("NewOptions() unexpected error: %v", err)
+			}
+			got, err := opts.nextPageToken(tt.row)
+			if err != nil {
+				t.Fatalf("nextPageToken() unexpected error: %v", err)
+			}
+			assert.Equal(t, tt.wantNull, got.SortByFieldIsNull)
+			assert.Equal(t, tt.wantValue, got.SortByFieldValue)
+			assert.Equal(t, "row-1", got.KeyFieldValue)
+		})
+	}
+}
+
+// The cursor built from a nullable string column has to survive the page token.
+// A NULL cursor then continues inside the NULL block from the saved key.
+func TestNextPageToken_NullableStringFieldRoundTrip(t *testing.T) {
+	parentTaskID := "parent-task"
+
+	tests := []struct {
+		name     string
+		sortBy   string
+		row      *model.Task
+		wantNull bool
+		wantSQL  string
+	}{
+		{
+			name:     "no parent ascending",
+			sortBy:   "parent_task_id",
+			row:      &model.Task{UUID: "row-1"},
+			wantNull: true,
+			wantSQL:  `("tasks"."ParentTaskUUID" IS NULL AND "tasks"."UUID" >= ?)`,
+		},
+		{
+			name:     "no parent descending",
+			sortBy:   "parent_task_id desc",
+			row:      &model.Task{UUID: "row-1"},
+			wantNull: true,
+			wantSQL:  `("tasks"."ParentTaskUUID" IS NULL AND "tasks"."UUID" <= ?)`,
+		},
+		{
+			name:    "with parent ascending",
+			sortBy:  "parent_task_id",
+			row:     &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID},
+			wantSQL: `LOWER("tasks"."ParentTaskUUID") > LOWER(?)`,
+		},
+		{
+			name:    "with parent descending",
+			sortBy:  "parent_task_id desc",
+			row:     &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID},
+			wantSQL: `LOWER("tasks"."ParentTaskUUID") < LOWER(?)`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts, err := NewOptions(&model.Task{}, 2, tt.sortBy, nil)
+			if err != nil {
+				t.Fatalf("NewOptions() unexpected error: %v", err)
+			}
+			// Every page, including the first, has to order the column the same way.
+			assert.True(t, opts.SortByFieldIsString)
+
+			pageToken, err := opts.NextPageToken(tt.row)
+			if err != nil {
+				t.Fatalf("NextPageToken() unexpected error: %v", err)
+			}
+			next, err := NewOptionsFromToken(pageToken, 2)
+			if err != nil {
+				t.Fatalf("NewOptionsFromToken() unexpected error: %v", err)
+			}
+			assert.Equal(t, tt.wantNull, next.SortByFieldIsNull)
+			assert.True(t, next.SortByFieldIsString)
+			assert.Equal(t, "row-1", next.KeyFieldValue)
+
+			sql, args, err := next.AddSortingToSelect(sq.Select("*").From("tasks"), testQuote, "").ToSql()
+			if err != nil {
+				t.Fatalf("AddSortingToSelect() unexpected error: %v", err)
+			}
+			assert.Contains(t, sql, tt.wantSQL)
+			assert.Contains(t, sql, `ORDER BY ("tasks"."ParentTaskUUID" IS NULL) ASC, LOWER("tasks"."ParentTaskUUID")`)
+			assert.Contains(t, args, "row-1")
+		})
 	}
 }
 
@@ -1327,4 +1435,78 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, sql, `WHERE ("Conditions" <> ?)`) // status is not case-insensitive; exact comparison
 	assert.Contains(t, args, "somevalue")
+}
+
+// Sorting by a mapped field that GetFieldValue cannot resolve returns a first
+// page, then fails the whole call once NextPageToken has to build a token.
+func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
+	parentTaskID := "parent-task"
+	uri := "s3://bucket/artifact"
+	numberValue := 0.5
+
+	// Optional fields are set, so a nil value below means a missing getter and
+	// not just an empty field.
+	listables := []Listable{
+		&model.Run{UUID: "run"},
+		&model.Job{UUID: "job"},
+		&model.Experiment{UUID: "experiment"},
+		&model.Pipeline{UUID: "pipeline"},
+		&model.PipelineVersion{UUID: "pipeline-version"},
+		&model.Task{
+			UUID:             "task",
+			ParentTaskUUID:   &parentTaskID,
+			StatusMetadata:   model.JSONData{"message": "done"},
+			StateHistory:     model.JSONSlice{"SUCCEEDED"},
+			InputParameters:  model.JSONSlice{"input"},
+			OutputParameters: model.JSONSlice{"output"},
+			TypeAttrs:        model.JSONData{"iteration_count": 1},
+		},
+		&model.Artifact{UUID: "artifact", URI: &uri, NumberValue: &numberValue, Metadata: model.JSONData{"key": "value"}},
+		&model.ArtifactTask{UUID: "artifact-task", Producer: model.JSONData{"task_name": "producer"}},
+	}
+
+	// JSON columns with no getter. They could not carry a page cursor anyway.
+	noGetter := map[string]bool{
+		"Run.StateHistory": true,
+		"Task.pods":        true,
+	}
+
+	for _, listable := range listables {
+		modelName := reflect.TypeOf(listable).Elem().Name()
+		for apiField, modelField := range listable.APIToModelFieldMap() {
+			t.Run(modelName+"/"+apiField, func(t *testing.T) {
+				value := listable.GetFieldValue(modelField)
+				if noGetter[modelName+"."+modelField] {
+					assert.Nil(t, value, "%s.GetFieldValue(%q) now resolves, so remove it from noGetter", modelName, modelField)
+					return
+				}
+				require.NotNil(t, value, "%s.GetFieldValue(%q) returns nil, so sorting by %q cannot build a page token", modelName, modelField, apiField)
+
+				// Only scalar values can be a sort cursor, so JSON values stop here.
+				switch reflect.Indirect(reflect.ValueOf(value)).Kind() {
+				case reflect.Map, reflect.Slice:
+					return
+				}
+
+				opts, err := NewOptions(listable, 1, apiField, nil)
+				require.NoError(t, err)
+				pageToken, err := opts.NextPageToken(listable)
+				require.NoError(t, err)
+				next, err := NewOptionsFromToken(pageToken, 1)
+				require.NoError(t, err)
+				assert.Equal(t, decodedTokenValue(t, value), next.SortByFieldValue)
+				assert.Equal(t, decodedTokenValue(t, reflect.ValueOf(listable).Elem().FieldByName("UUID").Interface()), next.KeyFieldValue)
+			})
+		}
+	}
+}
+
+// decodedTokenValue returns v the way a page token decodes it, so integers come
+// back as float64 and pointers as the value they point to.
+func decodedTokenValue(t *testing.T, v interface{}) interface{} {
+	b, err := json.Marshal(v)
+	require.NoError(t, err)
+	var decoded interface{}
+	require.NoError(t, json.Unmarshal(b, &decoded))
+	return decoded
 }

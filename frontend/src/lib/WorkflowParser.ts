@@ -16,7 +16,7 @@
 
 import MoreIcon from '@mui/icons-material/MoreHoriz';
 import * as dagre from 'dagre';
-import { NodeStatus, Parameter, S3Artifact, Workflow } from '../third_party/mlmd/argo_template';
+import { NodeStatus, Parameter, S3Artifact, Workflow } from '../third_party/argo/argo_template';
 import IconWithTooltip from '../atoms/IconWithTooltip';
 import { color } from '../Css';
 import { statusToIcon } from '../pages/Status';
@@ -25,9 +25,6 @@ import { KeyValue } from './StaticGraphParser';
 import { hasFinished, NodePhase, statusToBgColor, parseNodePhase } from './StatusUtils';
 import { parseTaskDisplayNameByNodeId } from './ParserUtils';
 import { isS3Endpoint } from './AwsHelper';
-import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
-import { isV2Pipeline } from './v2/WorkflowUtils';
-import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 import type { DagreGraph, GraphNodeData, GraphNodeInput } from './GraphTypes';
 
 export enum StorageService {
@@ -43,14 +40,14 @@ export interface StoragePath {
   source: StorageService;
   bucket: string;
   key: string;
+  /** Whether `key` is a decoded storage key or the canonical path from an artifact URI. */
+  keyEncoding?: 'storage' | 'uri';
+  /** Exact persisted URI path when reconstructing it from `key` would change its spelling. */
+  uriKey?: string;
 }
 
 export default class WorkflowParser {
-  public static createRuntimeGraph(
-    workflow: Workflow,
-    executions: metadataStorePb.Execution[] | undefined,
-  ): DagreGraph {
-    const nodeStateMap = buildNodeToExecutionStateMap(executions);
+  public static createRuntimeGraph(workflow: Workflow): DagreGraph {
     const g = new dagre.graphlib.Graph<GraphNodeData>();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
@@ -95,19 +92,9 @@ export default class WorkflowParser {
     (Object as any).values(workflowNodes).forEach((node: NodeStatus) => {
       const nodeLabel = parseTaskDisplayNameByNodeId(node.id, workflow);
 
-      let mlmdState: metadataStorePb.Execution.State | undefined;
-      if (isV2Pipeline(workflow)) {
-        mlmdState = nodeStateMap.get(node.id);
-      }
       g.setNode(node.id, {
         height: Constants.NODE_HEIGHT,
-        icon: statusToIcon(
-          parseNodePhase(node),
-          node.startedAt,
-          node.finishedAt,
-          node.message,
-          mlmdState,
-        ),
+        icon: statusToIcon(parseNodePhase(node), node.startedAt, node.finishedAt, node.message),
         label: nodeLabel,
         statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
         width: Constants.NODE_WIDTH,
@@ -467,17 +454,4 @@ export default class WorkflowParser {
       return '';
     }
   }
-}
-
-function buildNodeToExecutionStateMap(
-  executions: metadataStorePb.Execution[] | undefined,
-): Map<string, metadataStorePb.Execution.State> {
-  const m = new Map<string, metadataStorePb.Execution.State>();
-  executions?.forEach((execution) => {
-    const podname = ExecutionHelpers.getKfpPod(execution);
-    if (typeof podname === 'string') {
-      m.set(podname, execution.getLastKnownState());
-    }
-  });
-  return m;
 }

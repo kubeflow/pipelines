@@ -21,6 +21,7 @@ import {
   LineChart,
   ReferenceArea,
   ReferenceLine,
+  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -62,6 +63,7 @@ const css = stylesheet({
   legendSwatch: {
     borderRadius: 2,
     display: 'inline-block',
+    flexShrink: 0,
     height: 10,
     marginRight: 6,
     width: 10,
@@ -131,12 +133,17 @@ export interface ROCCurveConfig extends ViewerConfig {
 interface ROCCurveProps {
   configs: ROCCurveConfig[];
   maxDimension?: number;
+  maxChartHeight?: number;
   colors?: string[];
+  labels?: string[];
+  compactLegend?: boolean;
+  responsive?: boolean;
   forceLegend?: boolean; // Forces the legend to display even with just one ROC Curve
   disableAnimation?: boolean;
 }
 
 interface ROCCurveState {
+  containerWidth: number | null;
   lastDrawLocation: { left: number; right: number } | null;
   highlightIndex: number;
   refAreaLeft: number | null;
@@ -147,12 +154,16 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   private cachedConfigs: ROCCurveConfig[] | null = null;
   private cachedChartData: Array<Record<string, number | null>> = [];
   private readonly xTicks = Array.from({ length: 20 }, (_, i) => Number((i * 0.05).toFixed(2)));
+  private readonly compactXTicks = Array.from({ length: 6 }, (_, i) =>
+    Number((i * 0.2).toFixed(1)),
+  );
   private readonly yTicks = Array.from({ length: 10 }, (_, i) => Number((i * 0.1).toFixed(1)));
 
   constructor(props: any) {
     super(props);
 
     this.state = {
+      containerWidth: null,
       lastDrawLocation: null,
       highlightIndex: -1, // -1 indicates no curve is highlighted
       refAreaLeft: null,
@@ -169,12 +180,16 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   }
 
   public render(): React.JSX.Element {
-    const width = this.props.maxDimension || 800;
-    const height = width * 0.65;
+    const maxWidth = this.props.maxDimension || 800;
+    const width = this.props.responsive
+      ? Math.min(this.state.containerWidth ?? maxWidth, maxWidth)
+      : maxWidth;
+    const height = Math.min(width * 0.65, this.props.maxChartHeight ?? Infinity);
     const isSmall = width < 600;
     const configs = this.props.configs;
     const datasets = configs.map((d) => d.data);
-    const labels = configs.map((_, i) => `threshold (Series #${i + 1})`);
+    const seriesLabels = configs.map((_, i) => this.props.labels?.[i] || `Series #${i + 1}`);
+    const labels = seriesLabels.map((label) => `threshold (${label})`);
     const { lastDrawLocation, highlightIndex, refAreaLeft, refAreaRight } = this.state;
     const chartData = this.getChartData(configs, datasets);
     const xDomain = lastDrawLocation
@@ -183,127 +198,149 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const colors = this.props.colors || lineColors;
     const showLegend = this.props.forceLegend || datasets.length > 1;
 
-    return (
-      <div>
-        <LineChart
-          width={width}
-          height={height}
-          data={chartData}
-          margin={{ top: 5, right: 5, bottom: 20, left: 32 }}
-          onMouseDown={
-            !isSmall
-              ? (e) => {
-                  if (e?.activeLabel == null) {
-                    return;
-                  }
-                  this.setState({ refAreaLeft: Number(e.activeLabel), refAreaRight: null });
+    const chart = (
+      <LineChart
+        width={width}
+        height={height}
+        data={chartData}
+        margin={{ top: 5, right: 5, bottom: 20, left: 32 }}
+        onMouseDown={
+          !isSmall
+            ? (e) => {
+                if (e?.activeLabel == null) {
+                  return;
                 }
-              : undefined
-          }
-          onMouseMove={
-            !isSmall && refAreaLeft != null
-              ? (e) => {
-                  if (e?.activeLabel == null) {
-                    return;
-                  }
-                  this.setState({ refAreaRight: Number(e.activeLabel) });
+                this.setState({ refAreaLeft: Number(e.activeLabel), refAreaRight: null });
+              }
+            : undefined
+        }
+        onMouseMove={
+          !isSmall && refAreaLeft != null
+            ? (e) => {
+                if (e?.activeLabel == null) {
+                  return;
                 }
-              : undefined
-          }
-          onMouseUp={
-            !isSmall && refAreaLeft != null
-              ? () => {
-                  if (refAreaRight == null || refAreaLeft === refAreaRight) {
-                    this.setState({ refAreaLeft: null, refAreaRight: null });
-                    return;
-                  }
-                  const left = Math.min(refAreaLeft, refAreaRight);
-                  const right = Math.max(refAreaLeft, refAreaRight);
-                  this.setState({
-                    lastDrawLocation: { left, right },
-                    refAreaLeft: null,
-                    refAreaRight: null,
-                  });
+                this.setState({ refAreaRight: Number(e.activeLabel) });
+              }
+            : undefined
+        }
+        onMouseUp={
+          !isSmall && refAreaLeft != null
+            ? () => {
+                if (refAreaRight == null || refAreaLeft === refAreaRight) {
+                  this.setState({ refAreaLeft: null, refAreaRight: null });
+                  return;
                 }
-              : undefined
-          }
-        >
-          <CartesianGrid />
-          <XAxis
-            type='number'
-            dataKey='x'
-            domain={xDomain}
-            ticks={this.xTicks}
-            interval={0}
-            tickFormatter={(value: number) => value.toFixed(2)}
-            tick={axisTickStyle}
-            label={{
-              value: 'fpr',
-              position: 'insideBottom',
-              offset: 0,
-              ...axisLabelStyle,
-            }}
+                const left = Math.min(refAreaLeft, refAreaRight);
+                const right = Math.max(refAreaLeft, refAreaRight);
+                this.setState({
+                  lastDrawLocation: { left, right },
+                  refAreaLeft: null,
+                  refAreaRight: null,
+                });
+              }
+            : undefined
+        }
+      >
+        <CartesianGrid />
+        <XAxis
+          type='number'
+          dataKey='x'
+          domain={xDomain}
+          ticks={this.props.responsive && isSmall ? this.compactXTicks : this.xTicks}
+          interval={0}
+          tickFormatter={(value: number) => value.toFixed(2)}
+          tick={axisTickStyle}
+          label={{
+            value: 'fpr',
+            position: 'insideBottom',
+            offset: 0,
+            ...axisLabelStyle,
+          }}
+        />
+        <YAxis
+          type='number'
+          domain={[0, 1]}
+          ticks={this.yTicks}
+          interval={0}
+          tickFormatter={(value: number) => value.toFixed(1)}
+          tick={axisTickStyle}
+          label={{
+            value: 'tpr',
+            angle: -90,
+            position: 'insideLeft',
+            offset: 14,
+            ...axisLabelStyle,
+          }}
+        />
+        <ReferenceLine
+          segment={[
+            { x: 0, y: 0 },
+            { x: 1, y: 1 },
+          ]}
+          stroke={color.disabledBg}
+          strokeWidth={1}
+          strokeDasharray='4 4'
+        />
+        {datasets.map((_, i) => (
+          <Line
+            key={i}
+            type='basis'
+            dataKey={`y${i}`}
+            stroke={colors[i] || colors[colors.length - 1]}
+            strokeWidth={highlightIndex === i ? 4 : 2}
+            dot={false}
+            isAnimationActive={!this.props.disableAnimation && !isSmall}
+            connectNulls={true}
           />
-          <YAxis
-            type='number'
-            domain={[0, 1]}
-            ticks={this.yTicks}
-            interval={0}
-            tickFormatter={(value: number) => value.toFixed(1)}
-            tick={axisTickStyle}
-            label={{
-              value: 'tpr',
-              angle: -90,
-              position: 'insideLeft',
-              offset: 14,
-              ...axisLabelStyle,
-            }}
+        ))}
+        {!isSmall && refAreaLeft != null && refAreaRight != null && (
+          <ReferenceArea
+            x1={Math.min(refAreaLeft, refAreaRight)}
+            x2={Math.max(refAreaLeft, refAreaRight)}
+            strokeOpacity={0.1}
           />
-          <ReferenceLine
-            segment={[
-              { x: 0, y: 0 },
-              { x: 1, y: 1 },
-            ]}
-            stroke={color.disabledBg}
-            strokeWidth={1}
-            strokeDasharray='4 4'
+        )}
+        {!isSmall && (
+          <Tooltip
+            cursor={{ stroke: color.weak }}
+            content={(tooltipProps) => this.renderTooltipContent(tooltipProps, datasets, labels)}
           />
-          {datasets.map((_, i) => (
-            <Line
-              key={i}
-              type='basis'
-              dataKey={`y${i}`}
-              stroke={colors[i] || colors[colors.length - 1]}
-              strokeWidth={highlightIndex === i ? 4 : 2}
-              dot={false}
-              isAnimationActive={!this.props.disableAnimation && !isSmall}
-              connectNulls={true}
-            />
-          ))}
-          {!isSmall && refAreaLeft != null && refAreaRight != null && (
-            <ReferenceArea
-              x1={Math.min(refAreaLeft, refAreaRight)}
-              x2={Math.max(refAreaLeft, refAreaRight)}
-              strokeOpacity={0.1}
-            />
-          )}
-          {!isSmall && (
-            <Tooltip
-              cursor={{ stroke: color.weak }}
-              content={(tooltipProps) => this.renderTooltipContent(tooltipProps, datasets, labels)}
-            />
-          )}
-        </LineChart>
+        )}
+      </LineChart>
+    );
 
+    return (
+      <div style={this.props.responsive ? { width: '100%', minWidth: 0, maxWidth } : undefined}>
+        {this.props.responsive ? (
+          <ResponsiveContainer
+            width='100%'
+            aspect={this.props.maxChartHeight === undefined ? 1 / 0.65 : undefined}
+            height={this.props.maxChartHeight === undefined ? undefined : height}
+            initialDimension={{ width: maxWidth, height }}
+            onResize={(containerWidth) => this.setState({ containerWidth })}
+          >
+            {chart}
+          </ResponsiveContainer>
+        ) : (
+          chart
+        )}
         <div className={commonCss.flex}>
           {/* Legend */}
           {showLegend && (
-            <div style={{ flexGrow: 1 }}>
-              <div className={commonCss.flex}>
+            <div style={{ flexGrow: 1, ...(this.props.labels ? { minWidth: 0 } : {}) }}>
+              <div
+                className={commonCss.flex}
+                role={this.props.labels ? 'list' : undefined}
+                aria-label={this.props.labels ? 'Selected ROC curve provenance' : undefined}
+                style={this.props.labels ? { flexWrap: 'wrap', gap: 6 } : undefined}
+              >
                 {datasets.map((_, i) => (
                   <div
                     key={`legend-${i}`}
                     className={css.legendItem}
+                    role={this.props.labels ? 'listitem' : undefined}
+                    style={this.props.labels ? { minWidth: 0, maxWidth: '100%' } : undefined}
                     onMouseEnter={() => this.setState({ highlightIndex: i })}
                     onMouseLeave={() => this.setState({ highlightIndex: -1 })}
                   >
@@ -313,7 +350,23 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
                         backgroundColor: colors[i] || colors[colors.length - 1],
                       }}
                     />
-                    <span>{`Series #${i + 1}`}</span>
+                    <span
+                      title={this.props.compactLegend ? seriesLabels[i] : undefined}
+                      style={
+                        this.props.compactLegend
+                          ? {
+                              display: 'block',
+                              maxWidth: 220,
+                              overflowWrap: 'anywhere',
+                              whiteSpace: 'normal',
+                            }
+                          : this.props.labels
+                            ? { overflowWrap: 'anywhere' }
+                            : undefined
+                      }
+                    >
+                      {seriesLabels[i]}
+                    </span>
                   </div>
                 ))}
               </div>

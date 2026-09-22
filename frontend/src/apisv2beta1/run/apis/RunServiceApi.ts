@@ -13,19 +13,45 @@
  */
 
 import * as runtime from '../runtime';
-import type { GoogleRpcStatus, V2beta1ListRunsResponse, V2beta1Run } from '../models/index';
+import type {
+  GoogleRpcStatus,
+  RunServiceUpdateTasksBulkBody,
+  V2beta1FindCachedTaskRequest,
+  V2beta1FindCachedTaskResponse,
+  V2beta1ListRunsResponse,
+  V2beta1ListTasksResponse,
+  V2beta1PipelineTask,
+  V2beta1Run,
+  V2beta1UpdateTasksBulkResponse,
+} from '../models/index';
 import {
   GoogleRpcStatusFromJSON,
   GoogleRpcStatusToJSON,
+  RunServiceUpdateTasksBulkBodyFromJSON,
+  RunServiceUpdateTasksBulkBodyToJSON,
+  V2beta1FindCachedTaskRequestFromJSON,
+  V2beta1FindCachedTaskRequestToJSON,
+  V2beta1FindCachedTaskResponseFromJSON,
+  V2beta1FindCachedTaskResponseToJSON,
   V2beta1ListRunsResponseFromJSON,
   V2beta1ListRunsResponseToJSON,
+  V2beta1ListTasksResponseFromJSON,
+  V2beta1ListTasksResponseToJSON,
+  V2beta1PipelineTaskFromJSON,
+  V2beta1PipelineTaskToJSON,
   V2beta1RunFromJSON,
   V2beta1RunToJSON,
+  V2beta1UpdateTasksBulkResponseFromJSON,
+  V2beta1UpdateTasksBulkResponseToJSON,
 } from '../models/index';
 
 export interface ArchiveRunRequest {
   run_id: string;
   experiment_id?: string;
+}
+
+export interface CachedTaskRequest {
+  body: V2beta1FindCachedTaskRequest;
 }
 
 export interface CreateRunRequest {
@@ -41,6 +67,7 @@ export interface DeleteRunRequest {
 export interface GetRunRequest {
   run_id: string;
   experiment_id?: string;
+  view?: GetRunViewEnum;
 }
 
 export interface ListRunsRequest {
@@ -51,11 +78,37 @@ export interface ListRunsRequest {
   sort_by?: string;
   filter?: string;
   skip_count?: boolean;
+  view?: ListRunsViewEnum;
 }
 
 export interface RetryRunRequest {
   run_id: string;
   experiment_id?: string;
+}
+
+export interface TaskRequest {
+  run_id: string;
+  task: V2beta1PipelineTask;
+}
+
+export interface Task0Request {
+  run_id: string;
+  task_id: string;
+}
+
+export interface Task1Request {
+  run_id: string;
+  task_id: string;
+  task: V2beta1PipelineTask;
+}
+
+export interface TasksRequest {
+  run_id: string;
+  parent_id?: string;
+  page_size?: number;
+  page_token?: string;
+  filter?: string;
+  order_by?: string;
 }
 
 export interface TerminateRunRequest {
@@ -66,6 +119,11 @@ export interface TerminateRunRequest {
 export interface UnarchiveRunRequest {
   run_id: string;
   experiment_id?: string;
+}
+
+export interface UpdateTasksRequest {
+  run_id: string;
+  body: RunServiceUpdateTasksBulkBody;
 }
 
 /**
@@ -129,6 +187,59 @@ export class RunServiceApi extends runtime.BaseAPI {
       { run_id: run_id, experiment_id: experiment_id },
       initOverrides,
     );
+    return await response.value();
+  }
+
+  /**
+   * Finds a cached successful task by namespace and fingerprint.
+   */
+  async cachedTaskRaw(
+    requestParameters: CachedTaskRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1FindCachedTaskResponse>> {
+    if (requestParameters['body'] == null) {
+      throw new runtime.RequiredError(
+        'body',
+        'Required parameter "body" was null or undefined when calling cachedTask().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization'); // Bearer authentication
+    }
+
+    let urlPath = `/apis/v2beta1/tasks:findCached`;
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: V2beta1FindCachedTaskRequestToJSON(requestParameters['body']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1FindCachedTaskResponseFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Finds a cached successful task by namespace and fingerprint.
+   */
+  async cachedTask(
+    body: V2beta1FindCachedTaskRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1FindCachedTaskResponse> {
+    const response = await this.cachedTaskRaw({ body: body }, initOverrides);
     return await response.value();
   }
 
@@ -271,6 +382,10 @@ export class RunServiceApi extends runtime.BaseAPI {
       queryParameters['experiment_id'] = requestParameters['experiment_id'];
     }
 
+    if (requestParameters['view'] != null) {
+      queryParameters['view'] = requestParameters['view'];
+    }
+
     const headerParameters: runtime.HTTPHeaders = {};
 
     if (this.configuration && this.configuration.apiKey) {
@@ -302,10 +417,11 @@ export class RunServiceApi extends runtime.BaseAPI {
   async getRun(
     run_id: string,
     experiment_id?: string,
+    view?: GetRunViewEnum,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<V2beta1Run> {
     const response = await this.getRunRaw(
-      { run_id: run_id, experiment_id: experiment_id },
+      { run_id: run_id, experiment_id: experiment_id, view: view },
       initOverrides,
     );
     return await response.value();
@@ -348,6 +464,10 @@ export class RunServiceApi extends runtime.BaseAPI {
       queryParameters['skip_count'] = requestParameters['skip_count'];
     }
 
+    if (requestParameters['view'] != null) {
+      queryParameters['view'] = requestParameters['view'];
+    }
+
     const headerParameters: runtime.HTTPHeaders = {};
 
     if (this.configuration && this.configuration.apiKey) {
@@ -382,6 +502,7 @@ export class RunServiceApi extends runtime.BaseAPI {
     sort_by?: string,
     filter?: string,
     skip_count?: boolean,
+    view?: ListRunsViewEnum,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<V2beta1ListRunsResponse> {
     const response = await this.listRunsRaw(
@@ -393,6 +514,7 @@ export class RunServiceApi extends runtime.BaseAPI {
         sort_by: sort_by,
         filter: filter,
         skip_count: skip_count,
+        view: view,
       },
       initOverrides,
     );
@@ -454,6 +576,306 @@ export class RunServiceApi extends runtime.BaseAPI {
   ): Promise<object> {
     const response = await this.retryRunRaw(
       { run_id: run_id, experiment_id: experiment_id },
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Creates a new task.
+   */
+  async taskRaw(
+    requestParameters: TaskRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1PipelineTask>> {
+    if (requestParameters['run_id'] == null) {
+      throw new runtime.RequiredError(
+        'run_id',
+        'Required parameter "run_id" was null or undefined when calling task().',
+      );
+    }
+
+    if (requestParameters['task'] == null) {
+      throw new runtime.RequiredError(
+        'task',
+        'Required parameter "task" was null or undefined when calling task().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization'); // Bearer authentication
+    }
+
+    let urlPath = `/apis/v2beta1/runs/{run_id}/tasks`;
+    urlPath = urlPath.replace(
+      `{${'run_id'}}`,
+      encodeURIComponent(String(requestParameters['run_id'])),
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: V2beta1PipelineTaskToJSON(requestParameters['task']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1PipelineTaskFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Creates a new task.
+   */
+  async task(
+    run_id: string,
+    task: V2beta1PipelineTask,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1PipelineTask> {
+    const response = await this.taskRaw({ run_id: run_id, task: task }, initOverrides);
+    return await response.value();
+  }
+
+  /**
+   * Gets a specific task by ID.
+   */
+  async task_1Raw(
+    requestParameters: Task0Request,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1PipelineTask>> {
+    if (requestParameters['run_id'] == null) {
+      throw new runtime.RequiredError(
+        'run_id',
+        'Required parameter "run_id" was null or undefined when calling task_1().',
+      );
+    }
+
+    if (requestParameters['task_id'] == null) {
+      throw new runtime.RequiredError(
+        'task_id',
+        'Required parameter "task_id" was null or undefined when calling task_1().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization'); // Bearer authentication
+    }
+
+    let urlPath = `/apis/v2beta1/runs/{run_id}/tasks/{task_id}`;
+    urlPath = urlPath.replace(
+      `{${'run_id'}}`,
+      encodeURIComponent(String(requestParameters['run_id'])),
+    );
+    urlPath = urlPath.replace(
+      `{${'task_id'}}`,
+      encodeURIComponent(String(requestParameters['task_id'])),
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1PipelineTaskFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Gets a specific task by ID.
+   */
+  async task_1(
+    run_id: string,
+    task_id: string,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1PipelineTask> {
+    const response = await this.task_1Raw({ run_id: run_id, task_id: task_id }, initOverrides);
+    return await response.value();
+  }
+
+  /**
+   * Updates an existing task.
+   */
+  async task_2Raw(
+    requestParameters: Task1Request,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1PipelineTask>> {
+    if (requestParameters['run_id'] == null) {
+      throw new runtime.RequiredError(
+        'run_id',
+        'Required parameter "run_id" was null or undefined when calling task_2().',
+      );
+    }
+
+    if (requestParameters['task_id'] == null) {
+      throw new runtime.RequiredError(
+        'task_id',
+        'Required parameter "task_id" was null or undefined when calling task_2().',
+      );
+    }
+
+    if (requestParameters['task'] == null) {
+      throw new runtime.RequiredError(
+        'task',
+        'Required parameter "task" was null or undefined when calling task_2().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization'); // Bearer authentication
+    }
+
+    let urlPath = `/apis/v2beta1/runs/{run_id}/tasks/{task_id}`;
+    urlPath = urlPath.replace(
+      `{${'run_id'}}`,
+      encodeURIComponent(String(requestParameters['run_id'])),
+    );
+    urlPath = urlPath.replace(
+      `{${'task_id'}}`,
+      encodeURIComponent(String(requestParameters['task_id'])),
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'PATCH',
+        headers: headerParameters,
+        query: queryParameters,
+        body: V2beta1PipelineTaskToJSON(requestParameters['task']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1PipelineTaskFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Updates an existing task.
+   */
+  async task_2(
+    run_id: string,
+    task_id: string,
+    task: V2beta1PipelineTask,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1PipelineTask> {
+    const response = await this.task_2Raw(
+      { run_id: run_id, task_id: task_id, task: task },
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Lists tasks with optional filtering.
+   */
+  async tasksRaw(
+    requestParameters: TasksRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1ListTasksResponse>> {
+    if (requestParameters['run_id'] == null) {
+      throw new runtime.RequiredError(
+        'run_id',
+        'Required parameter "run_id" was null or undefined when calling tasks().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    if (requestParameters['parent_id'] != null) {
+      queryParameters['parent_id'] = requestParameters['parent_id'];
+    }
+
+    if (requestParameters['page_size'] != null) {
+      queryParameters['page_size'] = requestParameters['page_size'];
+    }
+
+    if (requestParameters['page_token'] != null) {
+      queryParameters['page_token'] = requestParameters['page_token'];
+    }
+
+    if (requestParameters['filter'] != null) {
+      queryParameters['filter'] = requestParameters['filter'];
+    }
+
+    if (requestParameters['order_by'] != null) {
+      queryParameters['order_by'] = requestParameters['order_by'];
+    }
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization'); // Bearer authentication
+    }
+
+    let urlPath = `/apis/v2beta1/runs/{run_id}/tasks`;
+    urlPath = urlPath.replace(
+      `{${'run_id'}}`,
+      encodeURIComponent(String(requestParameters['run_id'])),
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'GET',
+        headers: headerParameters,
+        query: queryParameters,
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1ListTasksResponseFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Lists tasks with optional filtering.
+   */
+  async tasks(
+    run_id: string,
+    parent_id?: string,
+    page_size?: number,
+    page_token?: string,
+    filter?: string,
+    order_by?: string,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1ListTasksResponse> {
+    const response = await this.tasksRaw(
+      {
+        run_id: run_id,
+        parent_id: parent_id,
+        page_size: page_size,
+        page_token: page_token,
+        filter: filter,
+        order_by: order_by,
+      },
       initOverrides,
     );
     return await response.value();
@@ -578,4 +1000,86 @@ export class RunServiceApi extends runtime.BaseAPI {
     );
     return await response.value();
   }
+
+  /**
+   * Updates multiple tasks in bulk.
+   */
+  async updateTasksRaw(
+    requestParameters: UpdateTasksRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1UpdateTasksBulkResponse>> {
+    if (requestParameters['run_id'] == null) {
+      throw new runtime.RequiredError(
+        'run_id',
+        'Required parameter "run_id" was null or undefined when calling updateTasks().',
+      );
+    }
+
+    if (requestParameters['body'] == null) {
+      throw new runtime.RequiredError(
+        'body',
+        'Required parameter "body" was null or undefined when calling updateTasks().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    if (this.configuration && this.configuration.apiKey) {
+      headerParameters['authorization'] = await this.configuration.apiKey('authorization'); // Bearer authentication
+    }
+
+    let urlPath = `/apis/v2beta1/runs/{run_id}/tasks:batchUpdate`;
+    urlPath = urlPath.replace(
+      `{${'run_id'}}`,
+      encodeURIComponent(String(requestParameters['run_id'])),
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'POST',
+        headers: headerParameters,
+        query: queryParameters,
+        body: RunServiceUpdateTasksBulkBodyToJSON(requestParameters['body']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1UpdateTasksBulkResponseFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Updates multiple tasks in bulk.
+   */
+  async updateTasks(
+    run_id: string,
+    body: RunServiceUpdateTasksBulkBody,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1UpdateTasksBulkResponse> {
+    const response = await this.updateTasksRaw({ run_id: run_id, body: body }, initOverrides);
+    return await response.value();
+  }
 }
+
+/**
+ * @export
+ */
+export const GetRunViewEnum = {
+  DEFAULT: 'DEFAULT',
+  FULL: 'FULL',
+} as const;
+export type GetRunViewEnum = (typeof GetRunViewEnum)[keyof typeof GetRunViewEnum];
+/**
+ * @export
+ */
+export const ListRunsViewEnum = {
+  DEFAULT: 'DEFAULT',
+  FULL: 'FULL',
+} as const;
+export type ListRunsViewEnum = (typeof ListRunsViewEnum)[keyof typeof ListRunsViewEnum];

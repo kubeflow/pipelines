@@ -26,16 +26,16 @@ import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
 describe('NewExperiment', () => {
   const TEST_EXPERIMENT_ID = 'new-experiment-id';
   const createExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'createExperiment');
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
 
   function generateProps(): PageProps {
     return {
-      history: { push: historyPushSpy } as any,
+      navigate: navigateSpy,
       location: { pathname: RoutePage.NEW_EXPERIMENT } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: TEST_EXPERIMENT_ID },
       updateBanner: () => null,
       updateDialog: updateDialogSpy,
@@ -183,7 +183,7 @@ describe('NewExperiment', () => {
         }),
       );
     });
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN + `?experimentId=${TEST_EXPERIMENT_ID}` + `&firstRunInExperiment=1`,
     );
   });
@@ -220,7 +220,7 @@ describe('NewExperiment', () => {
       );
     });
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN +
         `?experimentId=${TEST_EXPERIMENT_ID}` +
         `&pipelineId=${pipelineId}` +
@@ -269,10 +269,10 @@ describe('NewExperiment', () => {
     resolveVersions({ pipeline_versions: [] });
 
     await waitFor(() => {
-      expect(historyPushSpy).toHaveBeenCalledTimes(1);
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
       expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
     });
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN +
         `?experimentId=${TEST_EXPERIMENT_ID}` +
         `&pipelineId=${pipelineId}` +
@@ -312,12 +312,12 @@ describe('NewExperiment', () => {
     });
 
     await waitFor(() => {
-      expect(historyPushSpy).toHaveBeenCalledTimes(1);
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
       expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
       expect(nextButton.closest('button')?.disabled).toBe(false);
     });
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN +
         `?experimentId=${TEST_EXPERIMENT_ID}` +
         `&pipelineId=${pipelineId}` +
@@ -391,6 +391,6 @@ describe('NewExperiment', () => {
     const cancelButton = screen.getByText('Cancel');
     fireEvent.click(cancelButton);
 
-    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.EXPERIMENTS);
+    expect(navigateSpy).toHaveBeenCalledWith(RoutePage.EXPERIMENTS);
   });
 });

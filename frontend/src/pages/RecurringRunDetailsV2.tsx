@@ -138,7 +138,7 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
 
   public async load(): Promise<void> {
     this.clearBanner();
-    const recurringRunId = this.props.match.params[RouteParams.recurringRunId] ?? '';
+    const recurringRunId = this.props.params[RouteParams.recurringRunId] ?? '';
 
     let run: V2beta1RecurringRun;
     try {
@@ -204,7 +204,7 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
       const previousPage = breadcrumbs.length
         ? breadcrumbs[breadcrumbs.length - 1].href
         : RoutePage.EXPERIMENTS;
-      this.props.history.push(previousPage);
+      this.props.navigate(previousPage);
     }
   }
 }

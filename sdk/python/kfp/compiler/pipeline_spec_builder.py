@@ -16,8 +16,12 @@
 import copy
 import json
 import typing
+
+# SDK CI uses isort 5.10.1; pre-commit CI uses isort 9.0.1.
+# isort: off
 from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
                     Union)
+# isort: on
 import warnings
 
 from google.protobuf import json_format
@@ -50,12 +54,13 @@ group_type_to_dsl_class = {
 }
 
 
-def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
+def to_protobuf_value(
+        value: Optional[type_utils.PARAMETER_TYPES]) -> struct_pb2.Value:
     """Creates a google.protobuf.struct_pb2.Value message out of a provide
     value.
 
     Args:
-        value: The value to be converted to Value message.
+        value: The value to be converted to Value message. Must be one of: None, str, int, float, bool, dict, or list.
 
     Returns:
          A google.protobuf.struct_pb2.Value message.
@@ -63,8 +68,10 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     Raises:
         ValueError if the given value is not one of the parameter types.
     """
+    if value is None:
+        return struct_pb2.Value(null_value=struct_pb2.NULL_VALUE)
     # bool check must be above (int, float) check because bool is a subclass of int so isinstance(True, int) == True
-    if isinstance(value, bool):
+    elif isinstance(value, bool):
         return struct_pb2.Value(bool_value=value)
     elif isinstance(value, str):
         return struct_pb2.Value(string_value=value)
@@ -81,7 +88,7 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
                 values=[to_protobuf_value(v) for v in value]))
     else:
         raise ValueError('Value must be one of the following types: '
-                         'str, int, float, bool, dict, and list. Got: '
+                         'None, str, int, float, bool, dict, and list. Got: '
                          f'"{value}" of type "{type(value)}".')
 
 
@@ -721,6 +728,11 @@ def build_container_spec_for_task(
             if TaskConfigField.KUBERNETES_VOLUMES not in allowed_fields:
                 _raise_passthrough_error(
                     task, TaskConfigField.KUBERNETES_VOLUMES.name)
+
+        if _has_any(k8s_cfg, ['podResourceClaims']):
+            if TaskConfigField.KUBERNETES_RESOURCE_CLAIMS not in allowed_fields:
+                _raise_passthrough_error(
+                    task, TaskConfigField.KUBERNETES_RESOURCE_CLAIMS.name)
 
     _validate_task_config_passthroughs_for_kubernetes_settings(task)
 

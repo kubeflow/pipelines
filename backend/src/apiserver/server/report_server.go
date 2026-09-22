@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -26,7 +25,6 @@ import (
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -49,21 +47,6 @@ type ReportServerV1 struct {
 	apiv1beta1.UnimplementedReportServiceServer
 }
 
-// Extracts task details from an execution spec and reports them to storage.
-func (s *BaseReportServer) reportTasksFromExecution(
-	execSpec util.ExecutionSpec,
-	run *model.Run,
-) ([]*model.Task, error) {
-	if !execSpec.ExecutionStatus().HasNodes() {
-		return nil, nil
-	}
-	tasks, err := toModelTasks(execSpec)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to report tasks of an execution")
-	}
-	return s.resourceManager.CreateOrUpdateTasksForRun(tasks, run, execSpec.ExecutionNamespace())
-}
-
 // Reports a workflow.
 func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) (*emptypb.Empty, error) {
 	execSpec, err := validateReportWorkflowRequest(workflow)
@@ -81,43 +64,20 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 		return nil, err
 	}
 
-	runID := (*execSpec).ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
-	var run *model.Run
-	if (*execSpec).ExecutionStatus().HasNodes() {
-		run, err = s.resourceManager.GetRun(runID)
-		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
-			return nil, util.Wrap(err, "Failed to load run before reporting workflow")
-		}
-	}
-
-	var newExecSpec util.ExecutionSpec
-	if run != nil {
-		newExecSpec, err = s.resourceManager.ReportWorkflowResourceWithRun(ctx, *execSpec, run)
-	} else {
-		newExecSpec, err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
-	}
+	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report workflow")
 	}
 
-	if newExecSpec.ExecutionStatus().HasNodes() && run == nil {
-		run, err = s.resourceManager.GetRun(runID)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to load run before reporting task details")
-		}
-	}
-	_, err = s.reportTasksFromExecution(newExecSpec, run)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to report task details")
-	}
-	// Add the persistedFinalState label only after the task details above have
-	// been persisted. The label makes the persistence agent skip re-reporting
-	// this workflow and lets the API server garbage collect it, so adding it
-	// before the task write completes would silently lose the run's final task
-	// states if the write fails or the request is interrupted.
+	// Add the persistedFinalState label only after everything this report has
+	// to persist is durable. The label makes the persistence agent skip
+	// re-reporting this workflow and lets the API server garbage collect it,
+	// so adding it while any part of the report can still fail would silently
+	// lose the run's final state.
 	if err := s.resourceManager.FinalizeReportedWorkflow(ctx, newExecSpec); err != nil {
 		return nil, util.Wrap(err, "Failed to finalize the workflow report")
 	}
+
 	return &emptypb.Empty{}, nil
 }
 
