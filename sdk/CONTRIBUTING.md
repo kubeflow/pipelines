@@ -6,9 +6,9 @@ For developing KFP v1 SDK, use the [sdk/release-1.8 branch](https://github.com/k
 
 For general contribution guidelines including pull request conventions, see [pipelines/CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md).
 
-### Pre-requisites 
+### Pre-requisites
 
-Clone the repo: 
+Clone the repo:
 
 ```bash
 git clone https://github.com/kubeflow/pipelines.git && cd pipelines

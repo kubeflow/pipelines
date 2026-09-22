@@ -48,10 +48,10 @@ To run tests locally, set up a Kind cluster and follow the same steps as the Git
         `uv sync --extra test`
 
     -   Deploy Kubeflow Pipelines to the Kind cluster:
-        
+
         `kubectl apply -k manifests/`
 
-4.  **Run the Tests**: 
+4.  **Run the Tests**:
 Execute the desired test suite:
 
     `uv run pytest test/kfp-functional-test/`

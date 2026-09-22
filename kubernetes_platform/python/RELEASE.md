@@ -34,7 +34,7 @@ Some steps require elevated permissions to push branches, publish the package, a
     ```
     To upload packages, you need an [API token](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#create-an-account) (contact @chensun for help).
     Visit https://pypi.org/project/kfp-kubernetes/ and confirm the package was published.
-    
+
 1.  [Requires credentials] Go to
     [readthedocs.org/projects/kfp-kubernetes/](https://readthedocs.org/projects/kfp-kubernetes/) (contact @chensun for help),
     click "Versions" in the menu panel, and search for the correct branch to activate the version. Make sure the docs build.

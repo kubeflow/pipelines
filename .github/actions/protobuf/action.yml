@@ -1,8 +1,8 @@
 name: "Install Proto dependencies & Pipeline Spec"
 description: |
   This action pins various Proto generation packages to default versions and
-  installs these dependencies in the workflow environment. It will also 
-  install the kfp-pipeline-spec. Whenever KFP project updates generation 
+  installs these dependencies in the workflow environment. It will also
+  install the kfp-pipeline-spec. Whenever KFP project updates generation
   packages, the defaults here must be updated.
 inputs:
   protoc_version:
@@ -54,4 +54,3 @@ runs:
         Binaries:
           protoc: ${{ inputs.protoc_version }}
         EOF
-        

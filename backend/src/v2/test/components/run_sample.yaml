@@ -56,7 +56,7 @@ implementation:
         --pipeline_root "$output_dir" \
         --launcher_v2_image "$launcher_v2_image" \
         --driver_image "$driver_image"
-      
+
     - inputPath: backend_compiler
     - inputValue: Sample Path
     - concat: [{inputValue: GCS Root}, '/', {inputValue: Name}]
