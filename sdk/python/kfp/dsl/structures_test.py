@@ -642,6 +642,7 @@ class TestConvertDurationToSeconds(parameterized.TestCase):
         ('1.5m', 90),
         ('0.25h', 900),
         ('2.5m', 150),
+        ('2.05m', 123),
     ])
     def test(self, duration: str, seconds: int):
         self.assertEqual(

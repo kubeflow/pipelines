@@ -16,6 +16,7 @@
 import ast
 import collections
 import dataclasses
+from decimal import Decimal
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple
@@ -929,8 +930,8 @@ def convert_duration_to_seconds(duration: str) -> int:
     if duration[-1] not in seconds_per_unit.keys():
         raise ValueError(
             f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
-    seconds = float(duration[:-1]) * seconds_per_unit[duration[-1]]
-    if not seconds.is_integer():
+    seconds = Decimal(duration[:-1]) * seconds_per_unit[duration[-1]]
+    if seconds != seconds.to_integral_value():
         raise ValueError(
             f"Invalid duration string: '{duration}'. Duration must resolve to a "
             f'whole number of seconds, but got {seconds}.')
