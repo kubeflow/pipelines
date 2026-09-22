@@ -78,8 +78,9 @@ class PackageImportTest(unittest.TestCase):
         workflow_text = workflow.read_text()
         self.assertIn('kfpr run create-kfp-kubernetes-docs-branch',
                       workflow_text)
-        self.assertIn('uv run --with ./release kfpr run', workflow_text)
-        self.assertIn('uv run --with ./release python -m unittest',
+        self.assertIn('uv run --with-editable ./release kfpr run',
+                      workflow_text)
+        self.assertIn('uv run --with-editable ./release python -m unittest',
                       workflow_text)
 
     def test_kubernetes_release_guide_uses_nested_step_command(self):

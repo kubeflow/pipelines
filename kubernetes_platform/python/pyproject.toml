@@ -10,7 +10,7 @@ authors = [
 ]
 dependencies = [
   "protobuf>=6.33.5,<7.0",
-  "kfp==2.15.2",
+  "kfp>=2.17.0,<3",
 ]
 
 [project.urls]

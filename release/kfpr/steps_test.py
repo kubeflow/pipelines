@@ -1501,10 +1501,9 @@ class StepSdkVersionFilesTest(unittest.TestCase):
 
 class UvReleasePackagesTest(unittest.TestCase):
 
-    def test_update_sdk_versions_preserves_backend_version_and_refreshes_workspace(
-            self):
-        """Keep SDK pins synchronized without conflating SDK and backend
-        releases."""
+    def test_update_sdk_versions_regenerates_server_api_and_refreshes_workspace(
+            self) -> None:
+        """Release all Python packages together without bumping the backend."""
         for dry_run in (False, True):
             with self.subTest(dry_run=dry_run), TemporaryDirectory() as tmpdir:
                 root = Path(tmpdir)
@@ -1512,23 +1511,19 @@ class UvReleasePackagesTest(unittest.TestCase):
                     'uv.lock':
                         'version = 1\n',
                     'VERSION':
-                        '2.17.1\n',
+                        '2.18.0\n',
                     'sdk/python/kfp/version.py':
-                        "__version__ = '2.15.2'\n",
+                        "__version__ = '2.17.0'\n",
                     'kubernetes_platform/python/kfp/kubernetes/__init__.py':
-                        "__version__ = '2.15.2'\n",
+                        "__version__ = '2.17.0'\n",
                     'api/v2alpha1/python/pyproject.toml':
-                        '[project]\nversion = "2.15.2"\n',
-                    'backend/api/v2beta1/python_http_client/pyproject.toml':
-                        '[project]\nversion = "2.17.1"\n',
-                    'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py':
-                        '__version__ = "2.17.1"\n',
+                        '[project]\nversion = "2.17.0"\n',
                     'sdk/python/pyproject.toml': (
-                        '[project]\ndependencies = ["kfp-pipeline-spec==2.15.2", "kfp-server-api==2.17.1"]\n'
-                        '[project.optional-dependencies]\nkubernetes = ["kfp-kubernetes==2.15.2"]\n'
+                        '[project]\ndependencies = ["kfp-pipeline-spec>=2.17.0,<3", "kfp-server-api>=2.17.0,<3"]\n'
+                        '[project.optional-dependencies]\nkubernetes = ["kfp-kubernetes==2.17.0"]\n'
                     ),
                     'kubernetes_platform/python/pyproject.toml':
-                        '[project]\ndependencies = ["kfp==2.15.2"]\n',
+                        '[project]\ndependencies = ["kfp>=2.17.0,<3"]\n',
                 }
                 for relative_path, content in files.items():
                     path = root / relative_path
@@ -1542,7 +1537,7 @@ class UvReleasePackagesTest(unittest.TestCase):
                     state=core.ReleaseState(root / 'state.json'),
                     runner=runner,
                     metadata=core.ReleaseMetadata.from_version(
-                        'patch', '2.15.3'),
+                        'patch', '2.17.1'),
                     fork_remote='git@github.com:testuser/pipelines.git',
                     include_backend=False,
                     include_sdk=True,
@@ -1553,11 +1548,17 @@ class UvReleasePackagesTest(unittest.TestCase):
 
                 for relative_path, original in files.items():
                     expected = original if dry_run else original.replace(
-                        '2.15.2', '2.15.3')
+                        '2.17.0', '2.17.1')
                     self.assertEqual((root / relative_path).read_text(),
                                      expected, relative_path)
-                self.assertEqual(runner.run.call_args_list[0],
-                                 mock.call(['uv', 'lock'], cwd=root))
+                self.assertEqual(runner.run.call_args_list[:2], [
+                    mock.call([
+                        'make', 'API_VERSION=v2beta1',
+                        'generate-kfp-server-api-package'
+                    ],
+                              cwd=root / 'backend/api'),
+                    mock.call(['uv', 'lock'], cwd=root),
+                ])
                 runner.run.assert_any_call(
                     [
                         'uv', 'export', '--frozen', '--no-dev', '--format',
@@ -1587,15 +1588,6 @@ class UvReleasePackagesTest(unittest.TestCase):
                             ],
                             cwd=root,
                         )
-
-    def test_empty_backend_version_is_rejected(self):
-        """Reject missing backend version data before changing package
-        metadata."""
-        with TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-            (root / 'VERSION').write_text('\n')
-            with self.assertRaisesRegex(ValueError, 'backend release version'):
-                steps._update_uv_package_versions(root, '2.15.3')
 
 
 class DryRunOutputTest(unittest.TestCase):

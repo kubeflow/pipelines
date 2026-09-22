@@ -29,9 +29,20 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="$DIR/../.."
-VERSION="$(cat $REPO_ROOT/VERSION)"
+if [[ "$API_VERSION" == "v2beta1" ]]; then
+    # Python distributions share the SDK release version, not the backend version.
+    VERSION="$(python3 - "$REPO_ROOT/sdk/python/kfp/version.py" <<'PY'
+import runpy
+import sys
+
+print(runpy.run_path(sys.argv[1])["__version__"])
+PY
+)"
+else
+    VERSION="$(cat "$REPO_ROOT/VERSION")"
+fi
 if [ -z "$VERSION" ]; then
-    echo "ERROR: $REPO_ROOT/VERSION is empty"
+    echo "ERROR: the package version must not be empty"
     exit 1
 fi
 
@@ -106,7 +117,7 @@ echo "Copying LICENSE to $DIR"
 cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 
 # TODO: Update the codegen Mustache templates in v2beta1/python_http_client_template/
-# to generate pyproject.toml instead of setup.py. See: https://github.com/kubeflow/pipelines/issues/XXXX
+# to generate pyproject.toml instead of setup.py.
 # For now, use the codegen-generated setup.py for building, then restore
 # pyproject.toml for uv workspace resolution.
 

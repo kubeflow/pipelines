@@ -29,8 +29,7 @@ SCRIPT = Path(
 class SdkUpgradeTest(unittest.TestCase):
 
     def test_isolated_upgrade_resolves_local_wheels_and_cleans_up(self):
-        """Exercise successful and failed upgrades without downloading
-        packages."""
+        """Exercise same-version wheel replacement and failure cleanup."""
         for fail_upgrade in (False, True):
             with self.subTest(fail_upgrade=fail_upgrade
                              ), tempfile.TemporaryDirectory() as directory:
@@ -60,7 +59,7 @@ class SdkUpgradeTest(unittest.TestCase):
                         output.mkdir(exist_ok=True)
                         (output / (package.replace('-', '_') + '-HEAD.whl')).touch()
                     elif args[:3] == ['-m', 'pip', 'show']:
-                        print('Version: 2.15.2')
+                        print('Version: 2.17.0')
                     elif args[:3] == ['-m', 'pip', 'install']:
                         if any(arg.endswith('.whl') for arg in args):
                             sys.exit(int(os.environ['FAIL_UPGRADE']))

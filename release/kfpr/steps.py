@@ -588,36 +588,26 @@ def _update_sdk_release_notes(
 
 
 def _update_uv_package_versions(root: Path, sdk_version: str) -> None:
-    """Update workspace package versions while retaining the backend release
-    version."""
-    backend_version = (root / 'VERSION').read_text().strip()
-    if not backend_version:
-        raise ValueError('VERSION must contain the backend release version')
-    for package_path, version in (
-        ('api/v2alpha1/python', sdk_version),
-        ('backend/api/v2beta1/python_http_client', backend_version),
-    ):
-        _replace(root / package_path / 'pyproject.toml',
-                 r'(?m)^version\s*=\s*"[^"]+"', f'version = "{version}"')
-    _replace(
-        root /
-        'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py',
-        r"__version__\s*=\s*['\"]([^'\"]+)['\"]",
-        f'__version__ = "{backend_version}"')
-    for package, version in (
-        ('kfp-pipeline-spec', sdk_version),
-        ('kfp-kubernetes', sdk_version),
-        ('kfp-server-api', backend_version),
-    ):
-        _replace(root / 'sdk/python/pyproject.toml', rf'{package}==[^"\']+',
-                 f'{package}=={version}')
+    """Update handwritten package metadata for the SDK release."""
+    next_major = int(sdk_version.split('.')[0]) + 1
+    _replace(root / 'api/v2alpha1/python/pyproject.toml',
+             r'(?m)^version\s*=\s*"[^"]+"', f'version = "{sdk_version}"')
+    for package in ('kfp-pipeline-spec', 'kfp-server-api'):
+        _replace(root / 'sdk/python/pyproject.toml',
+                 rf'{package}>=[^,"\']+,<\d+',
+                 f'{package}>={sdk_version},<{next_major}')
+    _replace(root / 'sdk/python/pyproject.toml', r'kfp-kubernetes==[^"\']+',
+             f'kfp-kubernetes=={sdk_version}')
     _replace(root / 'kubernetes_platform/python/pyproject.toml',
-             r'kfp==[^"\']+', f'kfp=={sdk_version}')
+             r'kfp>=[^,"\']+,<\d+', f'kfp>={sdk_version},<{next_major}')
 
 
 def _refresh_uv_release_packages(context: ReleaseContext) -> None:
     """Regenerate the workspace lock, requirements exports, and local release
     dists."""
+    context.runner.run(
+        ['make', 'API_VERSION=v2beta1', 'generate-kfp-server-api-package'],
+        cwd=context.root / 'backend/api')
     context.runner.run(['uv', 'lock'], cwd=context.root)
     export_command = ['uv', 'export', '--frozen', '--no-dev']
     context.runner.run(

@@ -12,7 +12,7 @@ Python proto code should be updated prior to releasing the package. For this rea
 
 Python proto code *should not* be checked into source control.
 
-1. Update the version in `python/kfp/kubernetes/__init__.py` and the matching SDK dependency pins in the workspace `pyproject.toml` files if applicable, then run `uv lock` from the repository root.
+1. Update the version in `python/kfp/kubernetes/__init__.py` and the matching SDK dependency constraints in the workspace `pyproject.toml` files if applicable, then run `uv lock` from the repository root.
 2. `make clean-python python`
 
 The Python package is built with `uv build` using the Hatch metadata in `python/pyproject.toml`.

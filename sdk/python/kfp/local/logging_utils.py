@@ -56,7 +56,8 @@ _INDENT_LOCK = threading.Lock()
 _THREAD_LOCAL_STATE = threading.local()
 
 
-def _thread_aware_indented_print(*args, **kwargs):
+def _thread_aware_indented_print(*args: Any, **kwargs: Any) -> None:
+    """Forward prints using the active thread's indentation."""
     num_spaces = getattr(_THREAD_LOCAL_STATE, 'num_spaces', 0)
     if num_spaces > 0:
         _ORIGINAL_PRINT(' ' * num_spaces, end='')
@@ -101,10 +102,11 @@ def indented_print(num_spaces: int = 4) -> Generator[None, None, None]:
     Useful for visually separating a subprocess logs from the outer
     process logs.
     """
-    global _ACTIVE_INDENT_CONTEXTS
+    global _ACTIVE_INDENT_CONTEXTS, _ORIGINAL_PRINT
 
     with _INDENT_LOCK:
         if _ACTIVE_INDENT_CONTEXTS == 0:
+            _ORIGINAL_PRINT = builtins.print
             builtins.print = _thread_aware_indented_print
         _ACTIVE_INDENT_CONTEXTS += 1
 

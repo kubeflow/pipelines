@@ -14,7 +14,9 @@
 """Tests for logging_utils.py."""
 
 import builtins
+import concurrent.futures
 import io
+import threading
 import unittest
 from unittest import mock
 
@@ -24,6 +26,64 @@ from kfp.local import status
 
 
 class TestIndentedPrint(unittest.TestCase):
+
+    @mock.patch('builtins.print')
+    def test_preserves_existing_print_wrapper(self,
+                                              wrapped_print: mock.Mock) -> None:
+        """Forward to and restore print wrappers installed after SDK import."""
+        with logging_utils.indented_print(num_spaces=2):
+            print('component', 'log', sep=':', end='!')
+
+        self.assertIs(builtins.print, wrapped_print)
+        self.assertEqual(wrapped_print.call_args_list, [
+            mock.call('  ', end=''),
+            mock.call('component', 'log', sep=':', end='!'),
+        ])
+
+    @mock.patch('builtins.print')
+    def test_restores_print_wrapper_after_exception(
+            self, wrapped_print: mock.Mock) -> None:
+        """Restore the caller's print function when local execution fails."""
+        with self.assertRaisesRegex(RuntimeError, 'component failed'):
+            with logging_utils.indented_print():
+                raise RuntimeError('component failed')
+        self.assertIs(builtins.print, wrapped_print)
+
+    @mock.patch('builtins.print')
+    def test_overlapping_threads_keep_indentation_separate(
+            self, wrapped_print: mock.Mock) -> None:
+        """Keep the wrapper active until the final thread leaves its
+        context."""
+        both_entered = threading.Barrier(2, timeout=10)
+        first_exited = threading.Event()
+
+        def first_task() -> None:
+            with logging_utils.indented_print(num_spaces=2):
+                both_entered.wait()
+                print('first')
+            first_exited.set()
+
+        def second_task() -> None:
+            with logging_utils.indented_print(num_spaces=4):
+                both_entered.wait()
+                self.assertTrue(first_exited.wait(timeout=10))
+                self.assertIs(builtins.print,
+                              logging_utils._thread_aware_indented_print)
+                print('second')
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            first = executor.submit(first_task)
+            second = executor.submit(second_task)
+            first.result(timeout=10)
+            second.result(timeout=10)
+
+        self.assertIs(builtins.print, wrapped_print)
+        self.assertEqual(wrapped_print.call_args_list, [
+            mock.call('  ', end=''),
+            mock.call('first'),
+            mock.call('    ', end=''),
+            mock.call('second'),
+        ])
 
     @mock.patch('sys.stdout', new_callable=io.StringIO)
     def test(self, mocked_stdout):

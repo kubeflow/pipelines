@@ -39,7 +39,7 @@ jobs:
         uses: ./.github/actions/kfp-k8s
 
       - name: Test release automation
-        run: uv run --with ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test
+        run: uv run --with-editable ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test
 
       - name: Build KFP SDK Docs
         working-directory: docs/sdk
@@ -56,7 +56,7 @@ jobs:
           KFP_KUBERNETES_VERSION="$(uv run python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')"
           RELEASE_TYPE="patch"
           case "$KFP_KUBERNETES_VERSION" in *.0) RELEASE_TYPE="minor" ;; esac
-          uv run --with ./release kfpr run create-kfp-kubernetes-docs-branch \
+          uv run --with-editable ./release kfpr run create-kfp-kubernetes-docs-branch \
             --release-type "$RELEASE_TYPE" \
             --version "$KFP_KUBERNETES_VERSION" \
             --fork-remote upstream \
