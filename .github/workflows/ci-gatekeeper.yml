@@ -30,11 +30,11 @@ jobs:
 
           # MEMBER = org member, OWNER = org owner, COLLABORATOR = invited collaborator
           if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" || "$AUTHOR_ASSOCIATION" == "COLLABORATOR" ]]; then
-            echo "::notice::Author "$PR_AUTHOR" is a trusted contributor (association: $AUTHOR_ASSOCIATION). Bypassing gatekeeper checks."
-            echo "is_member=true" >> $GITHUB_OUTPUT
+            printf '::notice::Author %s is a trusted contributor (association: %s). Bypassing gatekeeper checks.\n' "$PR_AUTHOR" "$AUTHOR_ASSOCIATION"
+            printf 'is_member=true\n' >> "$GITHUB_OUTPUT"
           else
-            echo "::notice::Author "$PR_AUTHOR" is not a member of Kubeflow (association: "$AUTHOR_ASSOCIATION"). Checking for 'ok-to-test' label."
-            echo "is_member=false" >> $GITHUB_OUTPUT
+            printf '::notice::Author %s is not a member of Kubeflow (association: %s). Checking for '\''ok-to-test'\'' label.\n' "$PR_AUTHOR" "$AUTHOR_ASSOCIATION"
+            printf 'is_member=false\n' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Author is not a Kubeflow member, check for 'ready' label in the issue linked to the PR
@@ -42,6 +42,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           # Get the issue linked to the PR via GitHub CLI using closingIssuesReferences
@@ -50,12 +51,12 @@ jobs:
           ISSUE_NUMBER=$(echo "$PR_JSON" | jq -r '.closingIssuesReferences[0].number // empty')
 
           if [[ -z "$ISSUE_NUMBER" ]]; then
-           echo "::error::No linked issue found for PR "#$PR_NUMBER". Please link an issue using closing keywords (e.g., 'Fixes #123') in the PR description."
+            printf '::error::No linked issue found for PR #%s. Please link an issue using closing keywords (e.g., '\''Fixes #123'\'') in the PR description.\n' "$PR_NUMBER"
 
-           COMMENT="@${{ github.event.pull_request.user.login }}: Hey, thank you for your PR! As you are not a member of Kubeflow organization, your PR must link to an issue with 'ready' label. Please read our [CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md), closing this PR"
-           gh pr comment "$PR_NUMBER" --body "$COMMENT"
-           gh pr close "$PR_NUMBER"
-           exit 1
+            COMMENT=$(printf '@%s: Hey, thank you for your PR! As you are not a member of Kubeflow organization, your PR must link to an issue with '\''ready'\'' label. Please read our [CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md), closing this PR' "$PR_AUTHOR")
+            gh pr comment "$PR_NUMBER" --body "$COMMENT"
+            gh pr close "$PR_NUMBER"
+            exit 1
           fi
 
           echo "Linked issue number found: #$ISSUE_NUMBER"
