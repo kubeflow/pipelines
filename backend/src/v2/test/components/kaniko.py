@@ -59,7 +59,8 @@ def kaniko(
     cache: str = 'true',
     cache_ttl: str = '24h',
 ):
-    """Build an image from context_uri or context_artifact and write its URI/digest."""
+    """Build an image from context_uri or context_artifact and write its
+    URI/digest."""
     # The debug image supplies sh; this pin avoids known later-version OOMs.
     # https://github.com/GoogleContainerTools/kaniko/issues/1680
     return dsl.ContainerSpec(

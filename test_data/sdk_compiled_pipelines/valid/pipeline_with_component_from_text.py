@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from google.protobuf import json_format
-from kfp import components
 from kfp import compiler
+from kfp import components
 from kfp import dsl
 from kfp.dsl import component
 

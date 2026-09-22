@@ -59,30 +59,6 @@ async function waitForTensorboardControls() {
   }
 }
 
-async function openNewRunDetails() {
-  const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
-
-  await $('#refreshBtn').waitForDisplayed({ timeout: uiTimeout });
-  await waitForCondition(
-    async () => {
-      if (await $(runLinkSelector).isExisting()) {
-        return true;
-      }
-      await $('#refreshBtn').click();
-      return false;
-    },
-    {
-      timeout: runStartTimeout,
-      interval: 1000,
-      timeoutMsg: `waited ${runStartTimeout / 1000} seconds but run ${runName} did not start`,
-    },
-  );
-
-  await $(runLinkSelector).click();
-  await waitForHashPrefix('#/runs/details/', { timeout: uiTimeout });
-  runDetailsUrl = await browser.getUrl();
-}
-
 async function waitForRunToSucceed() {
   let currentStatus = '';
 
@@ -299,13 +275,13 @@ describe('deploy tensorboard example run', () => {
       await browser.keys(runName);
       await $('#startNewRunBtn').click();
 
-      await waitForHashPrefix('#/experiments/details/', { timeout: uiTimeout });
-      await openNewRunDetails();
+      await waitForHashPrefix('#/runs/details/', { timeout: uiTimeout });
+      runDetailsUrl = await browser.getUrl();
     });
 
     await runPhase('wait for run completion', async () => {
-      await $('button=Config').waitForDisplayed({ timeout: uiTimeout });
-      await $('button=Config').click();
+      await $('button=Detail').waitForDisplayed({ timeout: uiTimeout });
+      await $('button=Detail').click();
       await waitForRunToSucceed();
     });
 

@@ -13,8 +13,8 @@
 # limitations under the License.
 """Starry Net Upload Model Component."""
 
-from kfp import dsl
 from google_cloud_pipeline_components.types import artifact_types as google_artifact_types
+from kfp import dsl
 
 
 @dsl.container_component

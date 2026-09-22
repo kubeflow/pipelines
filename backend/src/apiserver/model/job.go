@@ -112,12 +112,12 @@ func (j *Job) ToV2() *Job {
 				j.ExperimentId = ref.ReferenceUUID
 			}
 		case PipelineResourceType:
-			if j.PipelineSpec.PipelineId == "" {
-				j.PipelineSpec.PipelineId = ref.ReferenceUUID
+			if j.PipelineId == "" {
+				j.PipelineId = ref.ReferenceUUID
 			}
 		case PipelineVersionResourceType:
-			if j.PipelineSpec.PipelineVersionId == "" {
-				j.PipelineSpec.PipelineVersionId = ref.ReferenceUUID
+			if j.PipelineVersionId == "" {
+				j.PipelineVersionId = ref.ReferenceUUID
 			}
 		}
 	}

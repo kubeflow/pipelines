@@ -144,18 +144,23 @@ describe('deploy helloworld sample run', () => {
     await $('#startNewRunBtn').click();
   });
 
-  it('redirects back to experiment page', async () => {
-    await waitForHashPrefix('#/experiments/details/', { timeout: uiTimeout });
+  it('opens the newly created run details', async () => {
+    await waitForHashPrefix('#/runs/details/', { timeout: uiTimeout });
   });
 
-  it('finds the new run in the list of runs, navigates to it', async () => {
+  it('finds the new run in its experiment and navigates back to it', async () => {
+    const experimentLink = await $(`a=${experimentName}`);
+    await experimentLink.waitForDisplayed({ timeout: uiTimeout });
+    await experimentLink.click();
+    await waitForHashPrefix('#/experiments/details/', { timeout: uiTimeout });
     const runLinkSelector = await waitForRunLink(runName, { timeout: runStartTimeout });
     await $(runLinkSelector).click();
+    await waitForHashPrefix('#/runs/details/', { timeout: uiTimeout });
   });
 
-  it('switches to config tab', async () => {
-    await $('button=Config').waitForDisplayed({ timeout: uiTimeout });
-    await $('button=Config').click();
+  it('switches to the details tab', async () => {
+    await $('button=Detail').waitForDisplayed({ timeout: uiTimeout });
+    await $('button=Detail').click();
   });
 
   it('waits for run to finish', async () => {

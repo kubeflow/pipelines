@@ -39,9 +39,9 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef tensorboard_metadata(mlpipeline_ui_metadata: dsl.Output[dsl.Artifact]):\n\
           \    import json\n\n    with open(mlpipeline_ui_metadata.path, 'w') as metadata_file:\n\
-          \        json.dump({\n            'outputs': [{\n                'type':\
-          \ 'tensorboard',\n                'source': 'gs://ml-pipeline-dataset/tensorboard-train',\n\
-          \            }],\n        }, metadata_file)\n\n"
+          \        json.dump(\n            {\n                'outputs': [{\n    \
+          \                'type': 'tensorboard',\n                    'source': 'gs://ml-pipeline-dataset/tensorboard-train',\n\
+          \                }],\n            }, metadata_file)\n\n"
         image: python:3.11-slim
 pipelineInfo:
   name: tensorboard-example

@@ -53,10 +53,11 @@ def convert_csv_to_apache_parquet(data: dsl.Input[dsl.Artifact],
                                   output_data: dsl.Output[dsl.Artifact]):
     """Converts CSV table to Apache Parquet.
 
-        [Apache Parquet](https://parquet.apache.org/)
+    [Apache Parquet](https://parquet.apache.org/)
 
-        Annotations:
-            author: Alexey Volkov <alexey.volkov@ark-kun.com>"""
+    Annotations:
+        author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    """
     return dsl.ContainerSpec(
         image='python:3.7',
         command=[
@@ -87,26 +88,27 @@ def xgboost_train_csv(training_data: dsl.Input[dsl.Artifact],
                       max_depth: int = 6):
     """Train an XGBoost model.
 
-        Args:
-            training_data_path: Path for the training data in CSV format.
-            model_path: Output path for the trained model in binary XGBoost format.
-            model_config_path: Output path for the internal parameter configuration of Booster as a JSON string.
-            starting_model_path: Path for the existing trained model to start from.
-            label_column: Column containing the label data.
-            num_boost_rounds: Number of boosting iterations.
-            booster_params: Parameters for the booster. See https://xgboost.readthedocs.io/en/latest/parameter.html
-            objective: The learning task and the corresponding learning objective.
-                See https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters
-                The most common values are:
-                "reg:squarederror" - Regression with squared loss (default).
-                "reg:logistic" - Logistic regression.
-                "binary:logistic" - Logistic regression for binary classification, output probability.
-                "binary:logitraw" - Logistic regression for binary classification, output score before logistic transformation
-                "rank:pairwise" - Use LambdaMART to perform pairwise ranking where the pairwise loss is minimized
-                "rank:ndcg" - Use LambdaMART to perform list-wise ranking where Normalized Discounted Cumulative Gain (NDCG) is maximized
+    Args:
+        training_data_path: Path for the training data in CSV format.
+        model_path: Output path for the trained model in binary XGBoost format.
+        model_config_path: Output path for the internal parameter configuration of Booster as a JSON string.
+        starting_model_path: Path for the existing trained model to start from.
+        label_column: Column containing the label data.
+        num_boost_rounds: Number of boosting iterations.
+        booster_params: Parameters for the booster. See https://xgboost.readthedocs.io/en/latest/parameter.html
+        objective: The learning task and the corresponding learning objective.
+            See https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters
+            The most common values are:
+            "reg:squarederror" - Regression with squared loss (default).
+            "reg:logistic" - Logistic regression.
+            "binary:logistic" - Logistic regression for binary classification, output probability.
+            "binary:logitraw" - Logistic regression for binary classification, output score before logistic transformation
+            "rank:pairwise" - Use LambdaMART to perform pairwise ranking where the pairwise loss is minimized
+            "rank:ndcg" - Use LambdaMART to perform list-wise ranking where Normalized Discounted Cumulative Gain (NDCG) is maximized
 
-        Annotations:
-            author: Alexey Volkov <alexey.volkov@ark-kun.com>"""
+    Annotations:
+        author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    """
     return dsl.ContainerSpec(
         image='python:3.7',
         command=[
@@ -156,14 +158,15 @@ def xgboost_predict_csv(data: dsl.Input[dsl.Artifact],
                         label_column: int = None):
     """Make predictions using a trained XGBoost model.
 
-        Args:
-            data_path: Path for the feature data in CSV format.
-            model_path: Path for the trained model in binary XGBoost format.
-            predictions_path: Output path for the predictions.
-            label_column: Column containing the label data.
+    Args:
+        data_path: Path for the feature data in CSV format.
+        model_path: Path for the trained model in binary XGBoost format.
+        predictions_path: Output path for the predictions.
+        label_column: Column containing the label data.
 
-        Annotations:
-            author: Alexey Volkov <alexey.volkov@ark-kun.com>"""
+    Annotations:
+        author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    """
     return dsl.ContainerSpec(
         image='python:3.7',
         command=[
@@ -200,26 +203,27 @@ def xgboost_train(training_data: dsl.Input[dsl.Artifact],
                   max_depth: int = 6):
     """Train an XGBoost model.
 
-        Args:
-            training_data_path: Path for the training data in Apache Parquet format.
-            model_path: Output path for the trained model in binary XGBoost format.
-            model_config_path: Output path for the internal parameter configuration of Booster as a JSON string.
-            starting_model_path: Path for the existing trained model to start from.
-            label_column_name: Name of the column containing the label data.
-            num_boost_rounds: Number of boosting iterations.
-            booster_params: Parameters for the booster. See https://xgboost.readthedocs.io/en/latest/parameter.html
-            objective: The learning task and the corresponding learning objective.
-                See https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters
-                The most common values are:
-                "reg:squarederror" - Regression with squared loss (default).
-                "reg:logistic" - Logistic regression.
-                "binary:logistic" - Logistic regression for binary classification, output probability.
-                "binary:logitraw" - Logistic regression for binary classification, output score before logistic transformation
-                "rank:pairwise" - Use LambdaMART to perform pairwise ranking where the pairwise loss is minimized
-                "rank:ndcg" - Use LambdaMART to perform list-wise ranking where Normalized Discounted Cumulative Gain (NDCG) is maximized
+    Args:
+        training_data_path: Path for the training data in Apache Parquet format.
+        model_path: Output path for the trained model in binary XGBoost format.
+        model_config_path: Output path for the internal parameter configuration of Booster as a JSON string.
+        starting_model_path: Path for the existing trained model to start from.
+        label_column_name: Name of the column containing the label data.
+        num_boost_rounds: Number of boosting iterations.
+        booster_params: Parameters for the booster. See https://xgboost.readthedocs.io/en/latest/parameter.html
+        objective: The learning task and the corresponding learning objective.
+            See https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters
+            The most common values are:
+            "reg:squarederror" - Regression with squared loss (default).
+            "reg:logistic" - Logistic regression.
+            "binary:logistic" - Logistic regression for binary classification, output probability.
+            "binary:logitraw" - Logistic regression for binary classification, output score before logistic transformation
+            "rank:pairwise" - Use LambdaMART to perform pairwise ranking where the pairwise loss is minimized
+            "rank:ndcg" - Use LambdaMART to perform list-wise ranking where Normalized Discounted Cumulative Gain (NDCG) is maximized
 
-        Annotations:
-            author: Alexey Volkov <alexey.volkov@ark-kun.com>"""
+    Annotations:
+        author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    """
     return dsl.ContainerSpec(
         image='python:3.7',
         command=[
@@ -267,14 +271,15 @@ def xgboost_predict(data: dsl.Input[dsl.Artifact],
                     label_column_name: str = None):
     """Make predictions using a trained XGBoost model.
 
-        Args:
-            data_path: Path for the feature data in Apache Parquet format.
-            model_path: Path for the trained model in binary XGBoost format.
-            predictions_path: Output path for the predictions.
-            label_column_name: Optional. Name of the column containing the label data that is excluded during the prediction.
+    Args:
+        data_path: Path for the feature data in Apache Parquet format.
+        model_path: Path for the trained model in binary XGBoost format.
+        predictions_path: Output path for the predictions.
+        label_column_name: Optional. Name of the column containing the label data that is excluded during the prediction.
 
-        Annotations:
-            author: Alexey Volkov <alexey.volkov@ark-kun.com>"""
+    Annotations:
+        author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    """
     return dsl.ContainerSpec(
         image='python:3.7',
         command=[

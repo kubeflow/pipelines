@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
 from google_cloud_pipeline_components.types import artifact_types as google_artifact_types
+from kfp import compiler
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Input

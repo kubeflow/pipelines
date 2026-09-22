@@ -111,6 +111,10 @@ jobs:
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
+      - name: Port-forward API server
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh kubeflow ml-pipeline 8888 8888
+
       - name: Port-forward Postgres
         if: ${{ matrix.db_type == 'pgx' && steps.deploy.outcome == 'success' }}
         run: kubectl -n kubeflow port-forward svc/postgres-service 5432:5432 &

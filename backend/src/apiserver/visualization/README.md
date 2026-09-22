@@ -35,7 +35,7 @@ Consider the following:
         * The complexity of a visualization can reduce its usability. Predefined
         visualizations are intended to be powerful and simple. Visualizations
         that require extensive or complex variables are not good candidates for
-        predefined visualizations. 
+        predefined visualizations.
 2. Fork the Kubeflow Pipelines repository.
 3. Add a new type to [visualization.proto](../../../api/v2beta1/visualization.proto)
 in the `backend/api/v2beta1` directory.
@@ -160,7 +160,7 @@ within your cluster.
     than 4MB in size to be generated, you must manually set
     **MaxCallRecvMsgSize** for gRPC. This can be done by editing the provided
     options given to the gRPC server within [main.go](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/main.go#L128)
-    to 
+    to
     ```golang
     var maxCallRecvMsgSize = 4 * 1024 * 1024
 	if serviceName == "Visualization" {

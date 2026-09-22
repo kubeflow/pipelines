@@ -34,67 +34,69 @@ dsl.component = functools.partial(
 dsl.notebook_component = functools.partial(
     dsl.notebook_component, kfp_package_path=_KFP_PACKAGE_PATH)
 
-from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
-    echo as arguments_echo
-from test_data.sdk_compiled_pipelines.valid.critical.add_numbers import \
-    add_numbers
-from test_data.sdk_compiled_pipelines.valid.critical.collected_parameters import \
-    collected_param_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.component_with_optional_inputs import \
-    pipeline as optional_inputs_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.flip_coin import flip_coin
-from test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters import \
-    crust as mixed_parameters_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtuple import \
-    crust as namedtuple_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.notebook_component_simple import \
-    pipeline as notebook_simple_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.notebook_component_simple import \
-    run_train_notebook as run_train_notebook_component
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace import \
-    pipeline_with_importer_workspace as importer_workspace_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.producer_consumer_param import \
-    producer_consumer_param_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.component_with_env_variable import \
-    pipeline_with_env_variable
-from test_data.sdk_compiled_pipelines.valid.essential.concat_message import \
-    concat_message
-from test_data.sdk_compiled_pipelines.valid.essential.container_no_input import \
-    container_no_input
-from test_data.sdk_compiled_pipelines.valid.essential.dict_input import \
-    dict_input
-from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs import \
-    pipeline as lightweight_with_outputs_pipeline
+from test_data.sdk_compiled_pipelines.valid import sequential_container
+import test_data.sdk_compiled_pipelines.valid.arguments_parameters as arguments_parameters
+import test_data.sdk_compiled_pipelines.valid.critical.add_numbers as add_numbers_module
+import test_data.sdk_compiled_pipelines.valid.critical.collected_parameters as collected_parameters
+import test_data.sdk_compiled_pipelines.valid.critical.component_with_optional_inputs as optional_inputs
+import test_data.sdk_compiled_pipelines.valid.critical.flip_coin as flip_coin_module
+import test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters as mixed_parameters
+import test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtuple as namedtuple_parameters
+import test_data.sdk_compiled_pipelines.valid.critical.notebook_component_simple as notebook_component
+import test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace as importer_workspace
+import test_data.sdk_compiled_pipelines.valid.critical.producer_consumer_param as producer_consumer
+import test_data.sdk_compiled_pipelines.valid.essential.component_with_env_variable as env_variable
+import test_data.sdk_compiled_pipelines.valid.essential.concat_message as concat_message_module
+import test_data.sdk_compiled_pipelines.valid.essential.container_no_input as container_no_input_module
+import test_data.sdk_compiled_pipelines.valid.essential.dict_input as dict_input_module
+import test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs as lightweight_outputs
 from test_data.sdk_compiled_pipelines.valid.hello_world import echo
 from test_data.sdk_compiled_pipelines.valid.identity import identity
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_exit_handler import \
-    pipeline_with_exit_handler
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_ignore_upstream_failure import \
-    pipeline_with_ignore_upstream_failure
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_k8s_only_methods import \
-    pipeline_with_k8s_only_methods
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_oneof import \
-    pipeline_with_oneof
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_retry import \
-    pipeline_with_retry
-from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_caching import \
-    pipeline_with_caching
-from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_collected_artifacts import \
-    pipeline_with_collected_artifacts
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_exit_handler as exit_handler
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_ignore_upstream_failure as ignore_upstream_failure
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_k8s_only_methods as k8s_only_methods
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_oneof as oneof
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_retry as retry
+import test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_caching as caching
+import test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_collected_artifacts as collected_artifacts
 from test_data.sdk_compiled_pipelines.valid.nested_return import nested_return
-from test_data.sdk_compiled_pipelines.valid.output_metrics import \
-    output_metrics
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.pipeline_with_loops import \
-    my_pipeline as pipeline_with_loops
-from test_data.sdk_compiled_pipelines.valid.parameter import \
-    crust as parameter_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artifacts import \
-    my_pipeline as pipeline_with_parallelfor_list_artifacts
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism import \
-    my_pipeline as pipeline_with_parallelfor_parallelism
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_pipeline_param import \
-    my_pipeline as pipeline_with_parallelfor_pipeline_param
-from test_data.sdk_compiled_pipelines.valid.sequential_container import sequential
+import test_data.sdk_compiled_pipelines.valid.output_metrics as output_metrics_module
+import test_data.sdk_compiled_pipelines.valid.parallel_and_nested.pipeline_with_loops as loops
+import test_data.sdk_compiled_pipelines.valid.parameter as parameters
+import test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artifacts as parallelfor_list_artifacts
+import test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism as parallelfor_parallelism
+import test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_pipeline_param as parallelfor_pipeline_param
+
+arguments_echo = arguments_parameters.echo
+add_numbers = add_numbers_module.add_numbers
+collected_param_pipeline = collected_parameters.collected_param_pipeline
+optional_inputs_pipeline = optional_inputs.pipeline
+flip_coin = flip_coin_module.flip_coin
+mixed_parameters_pipeline = mixed_parameters.crust
+namedtuple_pipeline = namedtuple_parameters.crust
+notebook_simple_pipeline = notebook_component.pipeline
+run_train_notebook_component = notebook_component.run_train_notebook
+importer_workspace_pipeline = importer_workspace.pipeline_with_importer_workspace
+producer_consumer_param_pipeline = producer_consumer.producer_consumer_param_pipeline
+pipeline_with_env_variable = env_variable.pipeline_with_env_variable
+concat_message = concat_message_module.concat_message
+container_no_input = container_no_input_module.container_no_input
+dict_input = dict_input_module.dict_input
+lightweight_with_outputs_pipeline = lightweight_outputs.pipeline
+pipeline_with_exit_handler = exit_handler.pipeline_with_exit_handler
+pipeline_with_ignore_upstream_failure = ignore_upstream_failure.pipeline_with_ignore_upstream_failure
+pipeline_with_k8s_only_methods = k8s_only_methods.pipeline_with_k8s_only_methods
+pipeline_with_oneof = oneof.pipeline_with_oneof
+pipeline_with_retry = retry.pipeline_with_retry
+pipeline_with_caching = caching.pipeline_with_caching
+pipeline_with_collected_artifacts = collected_artifacts.pipeline_with_collected_artifacts
+output_metrics = output_metrics_module.output_metrics
+pipeline_with_loops = loops.my_pipeline
+parameter_pipeline = parameters.crust
+pipeline_with_parallelfor_list_artifacts = parallelfor_list_artifacts.my_pipeline
+pipeline_with_parallelfor_parallelism = parallelfor_parallelism.my_pipeline
+pipeline_with_parallelfor_pipeline_param = parallelfor_pipeline_param.my_pipeline
+sequential = sequential_container.sequential
 
 
 @dataclass

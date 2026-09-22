@@ -54,6 +54,15 @@ class V2DeploymentContractTest(unittest.TestCase):
                     target + '.py')
                 self.assertTrue(source.is_file(), source)
 
+    def test_v2_integration_forwards_the_api_before_running_tests(self):
+        workflow = (ROOT / '.github/workflows/'
+                    'legacy-v2-api-integration-tests.yml').read_text()
+        forwarding = './.github/resources/scripts/forward-port.sh kubeflow ml-pipeline 8888 8888'
+        self.assertIn(forwarding, workflow)
+        self.assertLess(
+            workflow.index(forwarding),
+            workflow.index('- name: API integration tests v2'))
+
     def test_v2_caching_is_configured_without_admission_webhook(self):
         self.assertFalse(
             (ROOT /

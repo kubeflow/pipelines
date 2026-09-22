@@ -40,28 +40,36 @@ deploymentSpec:
     exec-echo:
       container:
         args:
-        - '{"Concat": ["{{$.inputs.parameters[''message'']}}", " from node: ", "{{$.inputs.parameters[''node'']}}"]}'
+        - '{{$.inputs.parameters[''message'']}}'
+        - 'from node:'
+        - '{{$.inputs.parameters[''node'']}}'
         command:
         - echo
         image: alpine:3.21
     exec-echo-2:
       container:
         args:
-        - '{"Concat": ["{{$.inputs.parameters[''message'']}}", " from node: ", "{{$.inputs.parameters[''node'']}}"]}'
+        - '{{$.inputs.parameters[''message'']}}'
+        - 'from node:'
+        - '{{$.inputs.parameters[''node'']}}'
         command:
         - echo
         image: alpine:3.21
     exec-echo-3:
       container:
         args:
-        - '{"Concat": ["{{$.inputs.parameters[''message'']}}", " from node: ", "{{$.inputs.parameters[''node'']}}"]}'
+        - '{{$.inputs.parameters[''message'']}}'
+        - 'from node:'
+        - '{{$.inputs.parameters[''node'']}}'
         command:
         - echo
         image: alpine:3.21
     exec-echo-4:
       container:
         args:
-        - '{"Concat": ["{{$.inputs.parameters[''message'']}}", " from node: ", "{{$.inputs.parameters[''node'']}}"]}'
+        - '{{$.inputs.parameters[''message'']}}'
+        - 'from node:'
+        - '{{$.inputs.parameters[''node'']}}'
         command:
         - echo
         image: alpine:3.21

@@ -1020,7 +1020,7 @@ func (w *Workflow) CanRetry() error {
 	}
 	// The IR compiler emits this format marker. It is not an authorization boundary.
 	const componentMarker = "pipelines.kubeflow.org/v2_component"
-	metadata := w.Workflow.Spec.PodMetadata
+	metadata := w.Spec.PodMetadata
 	if metadata == nil || (metadata.Labels[componentMarker] != "true" && metadata.Annotations[componentMarker] != "true") {
 		return NewInvalidInputError("Legacy workflow templates cannot be retried; create a new run from pipeline IR")
 	}

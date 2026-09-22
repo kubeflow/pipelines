@@ -28,7 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
@@ -2476,7 +2475,7 @@ func TestUpsertRuntimeEnvVars_Annotation_UnknownRoleIgnored(t *testing.T) {
 func TestWorkflow_CanRetryRejectsLegacyFormats(t *testing.T) {
 	for _, workflow := range []*Workflow{
 		nil, {}, NewWorkflow(&workflowapi.Workflow{}),
-		NewWorkflow(&workflowapi.Workflow{ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{"pipelines.kubeflow.org/v2_pipeline": "true"}}}),
+		NewWorkflow(&workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{"pipelines.kubeflow.org/v2_pipeline": "true"}}}),
 	} {
 		assert.Error(t, workflow.CanRetry())
 	}

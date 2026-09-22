@@ -15,8 +15,8 @@
 
 import importlib.util
 from pathlib import Path
-from types import SimpleNamespace
 import subprocess
+from types import SimpleNamespace
 import unittest
 
 MODULE_PATH = (

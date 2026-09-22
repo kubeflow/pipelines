@@ -51,7 +51,8 @@ def run_sample(
     launcher_v2_image: str = 'gcr.io/ml-pipeline/kfp-launcher-v2:latest',
     driver_image: str = 'gcr.io/ml-pipeline/kfp-driver:latest',
 ):
-    """Run a v2 sample using the compiler artifact and native SDK dependencies."""
+    """Run a v2 sample using the compiler artifact and native SDK
+    dependencies."""
     return dsl.ContainerSpec(
         image='python:3.11-alpine',
         command=[

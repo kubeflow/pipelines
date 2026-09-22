@@ -1,6 +1,8 @@
-from kfp.dsl import Output, Input
+from kfp import compiler
+from kfp import dsl
+from kfp.dsl import Input
+from kfp.dsl import Output
 from kfp.dsl.types.artifact_types import Dataset
-from kfp import dsl, compiler
 
 
 @dsl.component

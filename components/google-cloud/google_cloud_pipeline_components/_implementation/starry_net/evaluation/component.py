@@ -13,8 +13,8 @@
 # limitations under the License.
 """StarryNet Evaluation Component."""
 
-from kfp import dsl
 from google_cloud_pipeline_components.types import artifact_types as google_artifact_types
+from kfp import dsl
 
 
 @dsl.container_component
@@ -47,7 +47,9 @@ def model_evaluation_forecasting(
         dataflow_subnetwork: str = '',
         dataflow_use_public_ips: bool = True,
         encryption_spec_key_name: str = ''):
-    """Computes a google.ForecastingMetrics Artifact, containing evaluation metrics given a model's prediction results.
+    """Computes a google.ForecastingMetrics Artifact, containing evaluation
+    metrics given a model's prediction results.
+
     Creates a dataflow job with Apache Beam and TFMA to compute evaluation metrics.
     Supports point forecasting and quantile forecasting for tabular data.
     Args:
@@ -137,7 +139,8 @@ def model_evaluation_forecasting(
             Customer-managed encryption key.
     Returns:
         evaluation_metrics (google.ForecastingMetrics):
-            google.ForecastingMetrics artifact representing the forecasting evaluation metrics in GCS."""
+            google.ForecastingMetrics artifact representing the forecasting evaluation metrics in GCS.
+    """
     return dsl.ContainerSpec(
         image='gcr.io/ml-pipeline/model-evaluation:v0.9',
         command=['python', '/main.py'],

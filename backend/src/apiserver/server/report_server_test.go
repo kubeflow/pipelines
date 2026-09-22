@@ -21,7 +21,6 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -100,7 +99,7 @@ func TestReportWorkflow_ValidationFailedMigrated(t *testing.T) {
 		},
 	})
 
-	_, err := reportServer.ReportWorkflow(nil, &apiv2.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)
@@ -144,7 +143,7 @@ func TestReportWorkflow(t *testing.T) {
 		context.Background(), run.K8SName, metav1.GetOptions{})
 	require.NoError(t, err)
 	workflow.UID = liveWorkflow.ExecutionObjectMeta().UID
-	_, err = reportServer.ReportWorkflow(context.Background(), &apiv2.ReportWorkflowRequest{
+	_, err = reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)
@@ -177,7 +176,7 @@ func TestReportWorkflow_DoesNotPersistTasksFromStalePreTerminationSnapshot(t *te
 	// Model the recovery window where cancellation committed to SQL but the
 	// API server has not yet patched the Workflow.
 	require.NoError(t, clientManager.RunStore().TerminateRun(run.UUID))
-	_, err = reportServer.ReportWorkflow(ctx, &apiv2.ReportWorkflowRequest{
+	_, err = reportServer.ReportWorkflow(ctx, &api.ReportWorkflowRequest{
 		Workflow: liveWorkflow.ToStringForStore(),
 	})
 	require.Error(t, err)
@@ -212,7 +211,7 @@ func TestReportWorkflow_ValidationFailed(t *testing.T) {
 		},
 	})
 
-	_, err := reportServer.ReportWorkflow(nil, &api.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)
@@ -406,7 +405,7 @@ func TestReportScheduledWorkflow_InvalidManifest(t *testing.T) {
 	defer clientManager.Close()
 	reportServer := NewReportServer(resourceManager)
 
-	_, err := reportServer.ReportScheduledWorkflow(context.Background(), &apiv2.ReportScheduledWorkflowRequest{
+	_, err := reportServer.ReportScheduledWorkflow(context.Background(), &api.ReportScheduledWorkflowRequest{
 		ScheduledWorkflow: "INVALID_JSON",
 	})
 	assert.NotNil(t, err)

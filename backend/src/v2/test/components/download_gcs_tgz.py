@@ -27,7 +27,8 @@ tar xvf artifact.tar.gz -C "$output_path"
 
 @dsl.container_component
 def download_gcs_tgz(gcs_path: str, folder: dsl.Output[dsl.Artifact]):
-    """Download a GCS tarball and extract it to the output artifact directory."""
+    """Download a GCS tarball and extract it to the output artifact
+    directory."""
     return dsl.ContainerSpec(
         image='gcr.io/google.com/cloudsdktool/cloud-sdk:latest',
         command=[

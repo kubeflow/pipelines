@@ -13,7 +13,8 @@
 # limitations under the License.
 
 # Simple two-step pipeline with 'producer' and 'consumer' steps
-from kfp import compiler, dsl
+from kfp import compiler
+from kfp import dsl
 
 
 @dsl.container_component

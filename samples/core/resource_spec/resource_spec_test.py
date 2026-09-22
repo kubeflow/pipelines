@@ -18,7 +18,7 @@ from resource_spec import my_pipeline
 
 
 def EXPECTED_OOM(run_id, run, **kwargs):
-    """confirms a sample test case is failing, because of OOM."""
+    """Confirms a sample test case is failing, because of OOM."""
     assert run.state == 'FAILED'
 
 

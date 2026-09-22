@@ -14,9 +14,11 @@
 """Compile shared component fixtures without handwritten component YAML."""
 
 import importlib
+import importlib.util
+from pathlib import Path
+import subprocess
 import tempfile
 import unittest
-from pathlib import Path
 
 from kfp import compiler
 from kfp import components
@@ -68,6 +70,31 @@ class ComponentMigrationTest(unittest.TestCase):
                     self.assertEqual(loaded.component_spec.name,
                                      pipeline.component_spec.name)
                     self.assertTrue(loaded.pipeline_spec.root.dag.tasks)
+
+    def test_browser_fixture_emits_the_expected_log_message(self):
+        source = (
+            Path(__file__).resolve().parents[1] / 'test' /
+            'frontend-integration-test' / 'compile_fixtures.py')
+        spec = importlib.util.spec_from_file_location('browser_fixtures',
+                                                      source)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        container = module.helloworld.pipeline_spec.deployment_spec[
+            'executors']['exec-echo']['container']
+        for message in ('Hello world in test', 'spaces and "quotes"; $literal'):
+            with self.subTest(message=message):
+                args = [
+                    arg.replace("{{$.inputs.parameters['message']}}",
+                                message).replace(
+                                    "{{$.inputs.parameters['node']}}", 'A')
+                    for arg in container['args']
+                ]
+                result = subprocess.run(
+                    list(container['command']) + args,
+                    check=True,
+                    capture_output=True,
+                    text=True)
+                self.assertEqual(result.stdout, message + ' from node: A\n')
 
     def test_env_overrides_survive_container_conversion(self):
         from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_env import my_pipeline
