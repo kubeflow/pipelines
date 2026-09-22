@@ -81,7 +81,7 @@ func createWorkflowWithArtifact(runUUID, nodeID, artifactName, artifactPath stri
 	})
 }
 
-func syncWorkflowWithFakeCluster(
+func syncArtifactWorkflowWithFakeCluster(
 	t *testing.T,
 	clientManager *resource.FakeClientManager,
 	workflow *util.Workflow,
@@ -115,7 +115,7 @@ func TestReadArtifactV1_Succeed(t *testing.T) {
 	require.NoError(t, err, "Failed to add file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", filePath)
-	syncWorkflowWithFakeCluster(t, resourceManager, workflow)
+	syncArtifactWorkflowWithFakeCluster(t, resourceManager, workflow)
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err, "Failed to report workflow resource")
 
@@ -209,7 +209,7 @@ func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 	require.NoError(t, err, "Failed to add large file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "large-artifact", filePath)
-	syncWorkflowWithFakeCluster(t, resourceManager, workflow)
+	syncArtifactWorkflowWithFakeCluster(t, resourceManager, workflow)
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err, "Failed to report workflow resource")
 
@@ -291,7 +291,7 @@ func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 	}()
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", "test/nonexistent.txt")
-	syncWorkflowWithFakeCluster(t, resourceManager, workflow)
+	syncArtifactWorkflowWithFakeCluster(t, resourceManager, workflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err, "Failed to report workflow resource")
 
@@ -402,7 +402,7 @@ func TestReadArtifactV1_Unauthorized(t *testing.T) {
 	require.NoError(t, err, "Failed to add file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", filePath)
-	syncWorkflowWithFakeCluster(t, clientManager, workflow)
+	syncArtifactWorkflowWithFakeCluster(t, clientManager, workflow)
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err, "Failed to report workflow resource")
 

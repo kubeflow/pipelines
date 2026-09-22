@@ -64,18 +64,9 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 		return nil, err
 	}
 
-	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	_, err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report workflow")
-	}
-
-	// Add the persistedFinalState label only after everything this report has
-	// to persist is durable. The label makes the persistence agent skip
-	// re-reporting this workflow and lets the API server garbage collect it,
-	// so adding it while any part of the report can still fail would silently
-	// lose the run's final state.
-	if err := s.resourceManager.FinalizeReportedWorkflow(ctx, newExecSpec); err != nil {
-		return nil, util.Wrap(err, "Failed to finalize the workflow report")
 	}
 
 	return &emptypb.Empty{}, nil
