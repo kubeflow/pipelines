@@ -4444,11 +4444,16 @@ class TestPlatformConfig(unittest.TestCase):
         """Test that workspace size validation works correctly."""
         from kfp.dsl.pipeline_config import WorkspaceConfig
 
-        valid_sizes = ['10Gi', '1.5Gi', '1000Ti', '500Mi', '2Ki']
+        valid_sizes = [
+            '10Gi', '1.5Gi', '1000Ti', '500Mi', '2Ki', '100k', '500m', '1e3'
+        ]
         for size in valid_sizes:
             with self.subTest(size=size):
                 workspace = WorkspaceConfig(size=size)
                 self.assertEqual(workspace.size, size)
+
+        # Kubernetes only reads the lowercase kilobyte suffix.
+        self.assertEqual(WorkspaceConfig(size='10K').size, '10k')
 
         with self.assertRaises(ValueError) as context:
             WorkspaceConfig(size='')
@@ -4468,7 +4473,9 @@ class TestPlatformConfig(unittest.TestCase):
             WorkspaceConfig(size=None)
 
         # Test invalid size raise error
-        invalid_sizes = ['abc', '10XYZ', 'Gi', '.', '1..5Gi', '-10Gi']
+        invalid_sizes = [
+            'abc', '10XYZ', 'Gi', '.', '1..5Gi', '-10Gi', '1gi', '1GB', '1KI'
+        ]
         for size in invalid_sizes:
             with self.subTest(invalid_size=size):
                 with self.assertRaisesRegex(
