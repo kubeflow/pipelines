@@ -266,14 +266,12 @@ export class OutputArtifactLoader {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
-    if (!namespace) {
-      throw new Error('Namespace is required.');
-    }
     parseStoragePath(metadata.source);
     return {
       type: PlotType.TENSORBOARD,
       url: metadata.source,
-      namespace,
+      // The server resolves an omitted namespace only for standalone installs.
+      namespace: namespace || '',
       podTemplateSpec: metadata.pod_template_spec,
       image: metadata.image,
     };

@@ -102,7 +102,8 @@ Use [`@dsl.container_component`](../user-guides/components/container-components.
 to configure an existing container's image, command, and arguments. Compile the
 component with `kfp.compiler.Compiler().compile()` to produce a portable
 [IR YAML definition](ir-yaml.md). The file, URL, and text component loaders accept
-this compiled format; they do not accept handwritten component specifications.
+this compiled format and retain compatibility with legacy container component
+YAML by converting it to native v2 components.
 
 See [loading and sharing components](../user-guides/components/load-and-share-components.md).
 

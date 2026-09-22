@@ -39,9 +39,14 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PageProps } from './Page';
-import { RunDetailsInternalProps } from './RunDetails';
 import { RunDetailsV2 } from './RunDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import { readFileSync } from 'node:fs';
+
+const tensorboardYaml = readFileSync(
+  `${__dirname}/../../../test/frontend-integration-test/tensorboard-example.yaml`,
+  'utf8',
+);
 
 vi.mock('src/components/Editor', () => ({
   default: ({ value }: { value?: string }) => <pre data-testid='Editor'>{value}</pre>,
@@ -66,8 +71,7 @@ describe('RunDetailsV2', () => {
     return { promise, resolve };
   }
 
-  function generateProps(): RunDetailsInternalProps &
-    PageProps & { parsedPipelineSpec: PipelineSpec } {
+  function generateProps(): PageProps & { parsedPipelineSpec: PipelineSpec } {
     const pageProps: PageProps = {
       navigate: navigateSpy,
       location: '' as any,
@@ -209,6 +213,75 @@ describe('RunDetailsV2', () => {
   });
 
   afterEach(() => vi.useRealTimers());
+
+  it.each(['kubeflow', ''])(
+    'renders TensorBoard controls with artifact namespace %j',
+    async (namespace) => {
+      vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+        tasks: [
+          TEST_TASKS[0],
+          {
+            ...TEST_TASKS[1],
+            name: 'tensorboard-metadata',
+            display_name: 'tensorboard-metadata',
+            outputs: {
+              artifacts: [
+                {
+                  artifact_key: 'mlpipeline_ui_metadata',
+                  artifacts: [
+                    {
+                      artifact_id: 'tensorboard-metadata',
+                      type: ArtifactArtifactType.Artifact,
+                      name: 'mlpipeline_ui_metadata',
+                      namespace,
+                      uri: 'minio://mlpipeline/v2/artifacts/tensorboard/mlpipeline_ui_metadata',
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      });
+      vi.spyOn(Apis, 'readFile').mockResolvedValue(
+        JSON.stringify({
+          outputs: [
+            {
+              type: 'tensorboard',
+              source: 'gs://ml-pipeline-dataset/tensorboard-train',
+            },
+          ],
+        }),
+      );
+      const getTensorboard = vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue({
+        proxyPath: '',
+        tfVersion: '',
+        image: '',
+      });
+      render(
+        <CommonTestWrapper>
+          <NamespaceContext.Provider value={undefined}>
+            <RunDetailsV2
+              {...generateProps()}
+              pipeline_job={tensorboardYaml}
+              parsedPipelineSpec={convertYamlToV2PipelineSpec(tensorboardYaml)}
+              run={TEST_RUN}
+            />
+          </NamespaceContext.Provider>
+        </CommonTestWrapper>,
+      );
+      await waitFor(() =>
+        expect(document.querySelector('.react-flow__node-ARTIFACT')).not.toBeNull(),
+      );
+      fireEvent.click(document.querySelector('.react-flow__node-ARTIFACT')!);
+      fireEvent.click(await screen.findByText('Visualization', { exact: true }));
+      await screen.findByRole('button', { name: 'Start Tensorboard' });
+      expect(getTensorboard).toHaveBeenCalledWith(
+        'gs://ml-pipeline-dataset/tensorboard-train',
+        namespace,
+      );
+    },
+  );
 
   it('Render detail page with reactflow', async () => {
     render(

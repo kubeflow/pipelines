@@ -27,6 +27,163 @@ from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 
+V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
+    implementation:
+      container:
+        args:
+        - if:
+            cond:
+              isPresent: optional_input_1
+            else:
+              - --arg2
+              - default
+            then:
+              - --arg1
+              - {inputUri: optional_input_1}
+        image: alpine
+    inputs:
+    - {name: optional_input_1, optional: true, type: String}
+    name: component_if
+    """)
+
+COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
+    name='component_if',
+    implementation=structures.Implementation(
+        container=structures.ContainerSpecImplementation(
+            image='alpine',
+            args=[
+                placeholders.IfPresentPlaceholder(
+                    input_name='optional_input_1',
+                    then=[
+                        '--arg1',
+                        placeholders.InputUriPlaceholder(
+                            input_name='optional_input_1'),
+                    ],
+                    else_=[
+                        '--arg2',
+                        'default',
+                    ])
+            ])),
+    inputs={
+        'optional_input_1': structures.InputSpec(type='String', default=None)
+    },
+)
+
+V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
+    name: component_concat
+    implementation:
+      container:
+        args:
+        - concat: ['--arg1', {inputValue: input_prefix}]
+        image: alpine
+    inputs:
+    - {name: input_prefix, type: String}
+    """)
+
+COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
+    name='component_concat',
+    implementation=structures.Implementation(
+        container=structures.ContainerSpecImplementation(
+            image='alpine',
+            args=[
+                placeholders.ConcatPlaceholder(items=[
+                    '--arg1',
+                    placeholders.InputValuePlaceholder(
+                        input_name='input_prefix'),
+                ])
+            ])),
+    inputs={'input_prefix': structures.InputSpec(type='String')},
+)
+
+V1_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
+    name: component_nested
+    implementation:
+      container:
+        args:
+        - concat:
+            - --arg1
+            - if:
+                cond:
+                    isPresent: input_prefix
+                then: {inputValue: input_prefix}
+                else: default
+        image: alpine
+    inputs:
+    - {name: input_prefix, optional: false, type: String}
+    """)
+
+COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
+    name='component_nested',
+    implementation=structures.Implementation(
+        container=structures.ContainerSpecImplementation(
+            image='alpine',
+            args=[
+                placeholders.ConcatPlaceholder(items=[
+                    '--arg1',
+                    placeholders.IfPresentPlaceholder(
+                        input_name='input_prefix',
+                        then=placeholders.InputValuePlaceholder(
+                            input_name='input_prefix'),
+                        else_='default'),
+                ]),
+            ])),
+    inputs={'input_prefix': structures.InputSpec(type='String')},
+)
+
+V1_YAML_EXECUTOR_INPUT_PLACEHOLDER = textwrap.dedent("""\
+    name: component_executor_input
+    inputs:
+    - {name: input, type: String}
+    implementation:
+      container:
+        image: alpine
+        command:
+        - python
+        - -m
+        - kfp.containers.entrypoint
+        args:
+        - --executor_input
+        - {executorInput: null}
+        - --function_name
+        - test_function
+    """)
+
+COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER = structures.ComponentSpec(
+    name='component_executor_input',
+    implementation=structures.Implementation(
+        container=structures.ContainerSpecImplementation(
+            image='alpine',
+            command=[
+                'python',
+                '-m',
+                'kfp.containers.entrypoint',
+            ],
+            args=[
+                '--executor_input',
+                dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER,
+                '--function_name',
+                'test_function',
+            ])),
+    inputs={'input': structures.InputSpec(type='String')},
+)
+
+V1_NONCANONICAL_GENERIC_TYPES_COMPONENT_SPEC = textwrap.dedent("""\
+    name: generic_types_test
+    inputs:
+    - {name: input1, type: "List[str]"}
+    - {name: input2, type: "typing.List[str]"}
+    - {name: input3, type: "Dict[str, str]"}
+    - {name: input4, type: "typing.Dict[str, str]"}
+    outputs:
+    - {name: output1, type: "List[str]"}
+    - {name: output2, type: "typing.List[str]"}
+    - {name: output3, type: "Dict[str, str]"}
+    - {name: output4, type: "typing.Dict[str, str]"}
+    implementation:
+      container:
+        image: alpine
+    """)
+
 
 class StructuresTest(parameterized.TestCase):
 
@@ -181,6 +338,93 @@ sdkVersion: kfp-2.0.0-alpha.2
             inputs={'input1': structures.InputSpec(type='String')},
             outputs={'output1': structures.OutputSpec(type='String')})
 
+        self.assertEqual(generated_spec, expected_spec)
+
+    @parameterized.parameters(
+        {
+            'yaml': V1_YAML_IF_PLACEHOLDER,
+            'expected_component': COMPONENT_SPEC_IF_PLACEHOLDER
+        },
+        {
+            'yaml': V1_YAML_CONCAT_PLACEHOLDER,
+            'expected_component': COMPONENT_SPEC_CONCAT_PLACEHOLDER
+        },
+        {
+            'yaml': V1_YAML_NESTED_PLACEHOLDER,
+            'expected_component': COMPONENT_SPEC_NESTED_PLACEHOLDER
+        },
+        {
+            'yaml': V1_YAML_EXECUTOR_INPUT_PLACEHOLDER,
+            'expected_component': COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER
+        },
+    )
+    def test_component_spec_placeholder_load_from_v2_component_yaml(
+            self, yaml, expected_component):
+        generated_spec = structures.ComponentSpec.from_yaml_documents(yaml)
+        self.assertEqual(generated_spec, expected_component)
+
+    def test_component_spec_load_from_v1_component_yaml(self):
+        component_yaml_v1 = textwrap.dedent("""\
+        name: Component with 2 inputs and 2 outputs
+        inputs:
+        - {name: Input parameter, type: String}
+        - {name: Input artifact}
+        outputs:
+        - {name: Output 1}
+        - {name: Output 2}
+        implementation:
+          container:
+            image: busybox
+            command: [sh, -c, '
+                mkdir -p $(dirname "$2")
+                mkdir -p $(dirname "$3")
+                echo "$0" > "$2"
+                cp "$1" "$3"
+                '
+            ]
+            args:
+            - {inputValue: Input parameter}
+            - {inputPath: Input artifact}
+            - {outputPath: Output 1}
+            - {outputPath: Output 2}
+        """)
+
+        generated_spec = structures.ComponentSpec.from_yaml_documents(
+            component_yaml_v1)
+
+        expected_spec = structures.ComponentSpec(
+            name='Component with 2 inputs and 2 outputs',
+            implementation=structures.Implementation(
+                container=structures.ContainerSpecImplementation(
+                    image='busybox',
+                    command=[
+                        'sh',
+                        '-c',
+                        (' mkdir -p $(dirname "$2") mkdir -p $(dirname "$3") '
+                         'echo "$0" > "$2" cp "$1" "$3" '),
+                    ],
+                    args=[
+                        placeholders.InputValuePlaceholder(
+                            input_name='input_parameter'),
+                        placeholders.InputPathPlaceholder(
+                            input_name='input_artifact'),
+                        placeholders.OutputPathPlaceholder(
+                            output_name='output_1'),
+                        placeholders.OutputPathPlaceholder(
+                            output_name='output_2'),
+                    ],
+                    env={},
+                )),
+            inputs={
+                'input_parameter':
+                    structures.InputSpec(type='String'),
+                'input_artifact':
+                    structures.InputSpec(type='system.Artifact@0.0.1')
+            },
+            outputs={
+                'output_1': structures.OutputSpec(type='system.Artifact@0.0.1'),
+                'output_2': structures.OutputSpec(type='system.Artifact@0.0.1'),
+            })
         self.assertEqual(generated_spec, expected_spec)
 
 
@@ -373,7 +617,34 @@ class TestOutputSpec(parameterized.TestCase):
         self.assertEqual(output_spec.type, 'system.Artifact@0.0.1')
 
 
+V1_YAML = textwrap.dedent("""\
+    implementation:
+      container:
+        args:
+        - if:
+            cond:
+              isPresent: optional_input_1
+            else:
+              - --arg2
+              - default
+            then:
+              - --arg1
+              - {inputUri: optional_input_1}
+        image: alpine
+    inputs:
+    - {name: optional_input_1, optional: true, type: String}
+    name: component_if
+    """)
+
+
 class TestReadInComponent(parameterized.TestCase):
+
+    def test_read_v1(self):
+        component_spec = structures.ComponentSpec.from_yaml_documents(
+            V1_YAML_IF_PLACEHOLDER)
+        self.assertEqual(component_spec.name, 'component-if')
+        self.assertEqual(component_spec.implementation.container.image,
+                         'alpine')
 
     def test_simple_placeholder(self):
         compiled_yaml = textwrap.dedent("""
@@ -683,6 +954,203 @@ class TestRetryPolicy(unittest.TestCase):
                 proto = structures.RetryPolicy(
                     max_retry_count=1, policy=policy_str).to_proto()
                 self.assertEqual(proto.policy, proto_val)
+
+
+class TestDeserializeV1ComponentYamlDefaults(unittest.TestCase):
+
+    def test_True(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: "True" }
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, True)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, True)
+
+    def test_true(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: "true" }
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, True)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, True)
+
+    def test_false(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: "false" }
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, False)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, False)
+
+    def test_False(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: "False" }
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, False)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, False)
+
+    def test_int(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Integer, default: "1" }
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, 1)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.number_value, 1.0)
+
+    def test_float(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Float, default: "1.0" }
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, 1.0)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.number_value, 1.0)
+
+    def test_struct(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: JsonObject, default: '{"a": 1.0}' }
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, {'a': 1.0})
+        self.assertEqual(
+            dict(comp.pipeline_spec.root.input_definitions.parameters['val']
+                 .default_value.struct_value), {'a': 1.0})
+
+    def test_array(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: JsonObject, default: '["a", 1.0]' }
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, ['a', 1.0])
+        self.assertEqual(
+            list(comp.pipeline_spec.root.input_definitions.parameters['val']
+                 .default_value.list_value), ['a', 1.0])
+
+    def test_artifact_with_dict_type_passes_through(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: {Key: Val}}
+implementation:
+  container:
+    image: alpine
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputPath: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertFalse(comp.component_spec.inputs['val'].optional)
+        self.assertFalse(comp.pipeline_spec.root.input_definitions
+                         .artifacts['val'].is_optional)
+
+    def test_load_noncanonical_v1_generic_types(self):
+        loaded_comp = components.load_component_from_text(
+            V1_NONCANONICAL_GENERIC_TYPES_COMPONENT_SPEC)
+        inputs = loaded_comp.component_spec.inputs
+        outputs = loaded_comp.component_spec.outputs
+        self.assertEqual(inputs['input1'].type, 'List')
+        self.assertEqual(inputs['input2'].type, 'List')
+        self.assertEqual(inputs['input3'].type, 'Dict')
+        self.assertEqual(inputs['input4'].type, 'Dict')
+
+        self.assertEqual(outputs['output1'].type, 'List')
+        self.assertEqual(outputs['output2'].type, 'List')
+        self.assertEqual(outputs['output3'].type, 'Dict')
+        self.assertEqual(outputs['output4'].type, 'Dict')
 
 
 class TestLoadDocumentsFromYAML(unittest.TestCase):

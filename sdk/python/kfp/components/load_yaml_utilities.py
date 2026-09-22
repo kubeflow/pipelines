@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Functions for loading components from compiled YAML."""
+"""Functions for loading IR and legacy container component YAML."""
 
 from typing import Optional, Tuple
 
@@ -21,20 +21,17 @@ import requests
 
 
 def load_component_from_text(text: str) -> yaml_component.YamlComponent:
-    """Loads a component from PipelineSpec IR YAML text.
+    """Loads a component from IR or legacy container component YAML.
 
-    The YAML may include a second document containing a PlatformSpec.
+    IR YAML may include a second document containing a PlatformSpec.
+    Legacy ``implementation: container:`` YAML is converted to a native v2
+    component at load time; it does not require v1 backend support.
 
     Args:
-        text (str): PipelineSpec IR YAML text.
+        text (str): Component YAML text.
 
     Returns:
         Component loaded from YAML.
-
-    Raises:
-        ValueError: If the YAML uses the old implementation/container format
-            instead of PipelineSpec IR. Compile the component with the current
-            SDK before loading it.
     """
     return yaml_component.YamlComponent(
         component_spec=structures.ComponentSpec.from_yaml_documents(text),
@@ -42,10 +39,10 @@ def load_component_from_text(text: str) -> yaml_component.YamlComponent:
 
 
 def load_component_from_file(file_path: str) -> yaml_component.YamlComponent:
-    """Loads a component from a PipelineSpec IR YAML file.
+    """Loads a component from an IR or legacy container component YAML file.
 
     Args:
-        file_path (str): Filepath to PipelineSpec IR YAML.
+        file_path (str): Filepath to component YAML.
 
     Returns:
         Component loaded from YAML.
@@ -64,10 +61,10 @@ def load_component_from_file(file_path: str) -> yaml_component.YamlComponent:
 def load_component_from_url(
         url: str,
         auth: Optional[Tuple[str, str]] = None) -> yaml_component.YamlComponent:
-    """Loads a component from a URL containing PipelineSpec IR YAML.
+    """Loads a component from a URL containing IR or legacy container YAML.
 
     Args:
-        url (str): URL to PipelineSpec IR YAML.
+        url (str): URL to component YAML.
         auth (Tuple[str, str], optional): A ``('<username>', '<password>')`` tuple of authentication credentials necessary for URL access. See `Requests Authorization <https://requests.readthedocs.io/en/latest/user/authentication/#authentication>`_ for more information.
 
     Returns:

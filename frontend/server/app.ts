@@ -245,7 +245,13 @@ function createUIServer(options: UIConfigs) {
     get: tensorboardGetHandler,
     create: tensorboardCreateHandler,
     delete: tensorboardDeleteHandler,
-  } = getTensorboardHandlers(options.viewer.tensorboard, authorizeFn);
+  } = getTensorboardHandlers(
+    options.viewer.tensorboard,
+    authorizeFn,
+    // Standalone artifact/experiment records have no tenant namespace.
+    // Authenticated requests must always name a namespace explicitly.
+    options.auth.enabled ? undefined : options.server.serverNamespace,
+  );
   registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
   registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);

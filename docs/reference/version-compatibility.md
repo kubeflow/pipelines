@@ -10,6 +10,7 @@ the [release notes](https://github.com/kubeflow/pipelines/releases) for the rele
 you deploy.
 
 Argo Workflow YAML is an internal runtime output, not a supported pipeline upload
-format. Component loaders accept compiled IR, not handwritten component YAML.
+format. Component loaders accept compiled IR and retain a compile-time adapter
+for legacy `implementation: container:` component YAML used by v2 pipelines.
 See [upgrading pipeline definitions](../user-guides/migration.md) before upgrading
 an existing installation.

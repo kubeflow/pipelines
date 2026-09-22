@@ -14,7 +14,8 @@
 """Utilities for component I/O type mapping."""
 
 import inspect
-from typing import Any, Optional, Type, Union
+import json
+from typing import Any, Callable, Dict, Optional, Type, Union
 
 try:
     from typing import get_args, get_origin
@@ -50,6 +51,9 @@ ARTIFACT_CLASSES_MAPPING = {
     'markdown': artifact_types.Markdown,
 }
 
+_GOOGLE_TYPES_PATTERN = r'^google.[A-Za-z]+$'
+_GOOGLE_TYPES_VERSION = DEFAULT_ARTIFACT_SCHEMA_VERSION
+
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Parameters.
 # The values are the corresponding IR parameter primitive types.
@@ -77,6 +81,65 @@ PARAMETER_TYPES_MAPPING = {
     'jsonobject': STRUCT,
     'jsonarray': LIST,
 }
+
+
+# copied from distutils.util, which was removed in Python 3.12
+# https://github.com/pypa/distutils/blob/fb5c5704962cd3f40c69955437da9a88f4b28567/distutils/util.py#L340-L353
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    else:
+        raise ValueError('invalid truth value %r' % (val,))
+
+
+def bool_cast_fn(default: Union[str, bool]) -> bool:
+    if isinstance(default, str):
+        default = strtobool(default) == 1
+    return default
+
+
+def try_loading_json(default: str) -> Union[dict, list, str]:
+    try:
+        return json.loads(default)
+    except (ValueError, TypeError):
+        return default
+
+
+_V1_DEFAULT_DESERIALIZER_MAPPING: Dict[str, Callable] = {
+    'integer': int,
+    'int': int,
+    'double': float,
+    'float': float,
+    'string': str,
+    'str': str,
+    'text': str,
+    'bool': bool_cast_fn,
+    'boolean': bool_cast_fn,
+    'dict': try_loading_json,
+    'list': try_loading_json,
+    'jsonobject': try_loading_json,
+    'jsonarray': try_loading_json,
+}
+
+
+def deserialize_v1_component_yaml_default(type_: str, default: Any) -> Any:
+    """Converts legacy component defaults to native v2 in-memory values."""
+    if default is None:
+        return default
+    if isinstance(type_, str):
+        cast_fn = _V1_DEFAULT_DESERIALIZER_MAPPING.get(type_.lower(),
+                                                       lambda x: x)
+        return cast_fn(default)
+    return default
 
 
 def is_task_final_status_type(type_name: Optional[str]) -> bool:

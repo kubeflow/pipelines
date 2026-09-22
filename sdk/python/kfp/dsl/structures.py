@@ -18,7 +18,7 @@ import collections
 import dataclasses
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import uuid
 
 from google.protobuf import json_format
@@ -26,7 +26,9 @@ import kfp
 from kfp.dsl import container_component_artifact_channel as artifact_channel
 from kfp.dsl import placeholders
 from kfp.dsl import utils
+from kfp.dsl import v1_structures
 from kfp.dsl.component_task_config import TaskConfigPassthrough
+from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -44,7 +46,7 @@ class InputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Input description.
     """
-    type: str
+    type: Union[str, dict]
     default: Optional[Any] = None
     optional: bool = False
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
@@ -124,6 +126,7 @@ class InputSpec:
 
         This allows us to perform fewer checks downstream.
         """
+        # TODO: add transformation logic so that we don't have to transform inputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
 
@@ -146,7 +149,7 @@ class OutputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Output description.
     """
-    type: str
+    type: Union[str, dict]
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
     description: Optional[str] = None
@@ -211,6 +214,7 @@ class OutputSpec:
 
         This allows us to perform fewer checks downstream.
         """
+        # TODO: add transformation logic so that we don't have to transform outputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
 
@@ -632,6 +636,168 @@ class ComponentSpec:
                                                        valid_outputs, arg)
 
     @classmethod
+    def from_v1_component_spec(
+            cls,
+            v1_component_spec: v1_structures.ComponentSpec) -> 'ComponentSpec':
+        """Converts a legacy container component schema to a native v2
+        component.
+
+        Args:
+            v1_component_spec: The V1 ComponentSpec.
+
+        Returns:
+            Component spec in the form of V2 ComponentSpec.
+
+        Raises:
+            ValueError: If implementation is not found.
+            TypeError: If any argument is neither a str nor Dict.
+        """
+        component_dict = v1_component_spec.to_dict()
+        if component_dict.get('implementation') is None:
+            raise ValueError('Implementation field not found')
+
+        if 'implementation' not in component_dict or 'container' not in component_dict[
+                'implementation']:
+            raise NotImplementedError('Container implementation not found.')
+
+        container = component_dict['implementation']['container']
+        command = [
+            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                command, component_dict=component_dict)
+            for command in container.get('command', [])
+        ]
+        args = [
+            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                command, component_dict=component_dict)
+            for command in container.get('args', [])
+        ]
+        env = {
+            key:
+                placeholders
+                .maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                    command, component_dict=component_dict)
+            for key, command in container.get('env', {}).items()
+        }
+        container_spec = ContainerSpecImplementation.from_container_dict({
+            'image': container['image'],
+            'command': command,
+            'args': args,
+            'env': env
+        })
+
+        inputs = {}
+        for spec in component_dict.get('inputs', []):
+            type_ = spec.get('type')
+            optional = spec.get('optional', False) or 'default' in spec
+            default = spec.get('default')
+            default = type_utils.deserialize_v1_component_yaml_default(
+                type_=type_, default=default)
+
+            if isinstance(type_, str):
+                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
+
+            if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_, optional=True)
+                continue
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils.PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
+                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+                    type_enum)
+                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
+                    ir_parameter_type_name]
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=in_memory_parameter_type_name,
+                    default=default,
+                    optional=optional,
+                )
+                continue
+
+            elif isinstance(type_, str) and re.match(
+                    type_utils._GOOGLE_TYPES_PATTERN, type_):
+                schema_title = type_
+                schema_version = type_utils._GOOGLE_TYPES_VERSION
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
+                    type_.lower()]
+                schema_title = artifact_class.schema_title
+                schema_version = artifact_class.schema_version
+
+            elif type_ is None or isinstance(type_, dict) or type_.lower(
+            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
+                schema_title = artifact_types.Artifact.schema_title
+                schema_version = artifact_types.Artifact.schema_version
+
+            else:
+                raise ValueError(f'Unknown input: {type_}')
+
+            if optional:
+                # handles optional artifacts with no default value
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        schema_title, schema_version),
+                    default=default,
+                    optional=optional,
+                )
+            else:
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        schema_title, schema_version))
+
+        outputs = {}
+        for spec in component_dict.get('outputs', []):
+            type_ = spec.get('type')
+            if isinstance(type_, str):
+                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
+
+            if isinstance(type_, str) and type_.lower(
+            ) in type_utils.PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
+                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+                    type_enum)
+                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
+                    ir_parameter_type_name]
+                outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
+                    type=in_memory_parameter_type_name)
+                continue
+
+            elif isinstance(type_, str) and re.match(
+                    type_utils._GOOGLE_TYPES_PATTERN, type_):
+                schema_title = type_
+                schema_version = type_utils._GOOGLE_TYPES_VERSION
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
+                    type_.lower()]
+                schema_title = artifact_class.schema_title
+                schema_version = artifact_class.schema_version
+
+            elif type_ is None or isinstance(type_, dict) or type_.lower(
+            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
+                schema_title = artifact_types.Artifact.schema_title
+                schema_version = artifact_types.Artifact.schema_version
+
+            else:
+                raise ValueError(f'Unknown output: {type_}')
+
+            outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
+                type=type_utils.create_bundled_artifact_type(
+                    schema_title, schema_version))
+
+        return ComponentSpec(
+            name=component_dict.get('name', 'name'),
+            description=component_dict.get('description'),
+            implementation=Implementation(container=container_spec),
+            inputs=inputs,
+            outputs=outputs,
+        )
+
+    @classmethod
     def from_ir_dicts(
         cls,
         pipeline_spec_dict: dict,
@@ -706,7 +872,7 @@ class ComponentSpec:
 
     @classmethod
     def from_yaml_documents(cls, component_yaml: str) -> 'ComponentSpec':
-        """Loads PipelineSpec IR YAML into a ComponentSpec.
+        """Loads IR or legacy container YAML into a native v2 ComponentSpec.
 
         Args:
             component_yaml: PipelineSpec and optionally PlatformSpec YAML documents as a single string.
@@ -744,16 +910,18 @@ class ComponentSpec:
         pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
             component_yaml)
 
-        if 'implementation' in pipeline_spec_dict:
-            raise ValueError(
-                'Component YAML must use the PipelineSpec IR format. '
-                'Recompile the component with the current KFP SDK.')
-        component_spec = cls.from_ir_dicts(pipeline_spec_dict,
-                                           platform_spec_dict)
-        if not component_spec.description:
-            component_spec.description = extract_description(
-                component_yaml=component_yaml)
-        return component_spec
+        is_v1 = 'implementation' in set(pipeline_spec_dict.keys())
+        if is_v1:
+            v1_component = _load_component_spec_from_component_text(
+                component_yaml)
+            return cls.from_v1_component_spec(v1_component)
+        else:
+            component_spec = ComponentSpec.from_ir_dicts(
+                pipeline_spec_dict, platform_spec_dict)
+            if not component_spec.description:
+                component_spec.description = extract_description(
+                    component_yaml=component_yaml)
+            return component_spec
 
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into IR YAML file.
@@ -946,3 +1114,11 @@ def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
             f'Expected one or two YAML documents in the IR YAML file. Got: {num_docs}.'
         )
     return pipeline_spec_dict, platform_spec_dict
+
+
+def _load_component_spec_from_component_text(
+        text) -> v1_structures.ComponentSpec:
+    component_dict = yaml.safe_load(text)
+    component_spec = v1_structures.ComponentSpec.from_dict(component_dict)
+
+    return component_spec

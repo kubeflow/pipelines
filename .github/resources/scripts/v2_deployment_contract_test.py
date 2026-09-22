@@ -58,7 +58,13 @@ class V2DeploymentContractTest(unittest.TestCase):
         workflow = (ROOT / '.github/workflows/'
                     'legacy-v2-api-integration-tests.yml').read_text()
         forwarding = './.github/resources/scripts/forward-port.sh kubeflow ml-pipeline 8888 8888'
-        self.assertIn(forwarding, workflow)
+        deploy = workflow.split('- name: Deploy\n', 1)[1].split(
+            '- name: Deploy pipeline URL test fixtures', 1)[0]
+        self.assertIn("forward_port: 'false'", deploy)
+        self.assertEqual(workflow.count(forwarding), 1)
+        self.assertLess(
+            workflow.index('kubectl rollout status deployment/ml-pipeline'),
+            workflow.index(forwarding))
         self.assertLess(
             workflow.index(forwarding),
             workflow.index('- name: API integration tests v2'))

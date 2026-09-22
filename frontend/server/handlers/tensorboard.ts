@@ -22,16 +22,19 @@ import { parseError, isAllowedResourceName } from '../utils.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 import { createTensorboardProxyPath } from './tensorboard-proxy.js';
 
+/** Supply a default namespace only for unauthenticated standalone installations. */
 export const getTensorboardHandlers = (
   tensorboardConfig: ViewerTensorboardConfig,
   authorizeFn: AuthorizeFn,
+  defaultNamespace?: string,
 ): { get: Handler; create: Handler; delete: Handler } => {
   /**
    * Retrieves the scoped proxy path and image metadata for a TensorBoard instance.
    * The handler expects query strings `logdir` and `namespace`.
    */
   const get: Handler = async (req, res) => {
-    const { logdir, namespace } = req.query;
+    const { logdir } = req.query;
+    const namespace = req.query.namespace || defaultNamespace;
     if (!logdir) {
       res.status(400).send('logdir argument is required');
       return;
@@ -93,7 +96,8 @@ export const getTensorboardHandlers = (
    * Either `image` or `tfversion` should be specified.
    */
   const create: Handler = async (req, res) => {
-    const { logdir, namespace, tfversion, image, podtemplatespec: podTemplateSpecRaw } = req.query;
+    const { logdir, tfversion, image, podtemplatespec: podTemplateSpecRaw } = req.query;
+    const namespace = req.query.namespace || defaultNamespace;
     if (!logdir) {
       res.status(400).send('logdir argument is required');
       return;
@@ -168,7 +172,8 @@ export const getTensorboardHandlers = (
    * and `namespace`.
    */
   const deleteHandler: Handler = async (req, res) => {
-    const { logdir, namespace } = req.query;
+    const { logdir } = req.query;
+    const namespace = req.query.namespace || defaultNamespace;
     if (!logdir) {
       res.status(400).send('logdir argument is required');
       return;

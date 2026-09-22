@@ -4,7 +4,10 @@ This section describes how to load and use existing components. In this section,
 
 IR YAML serves as a portable, sharable computational template. This allows you compile and share your components with others, as well as leverage an ecosystem of existing components.
 
-All three loaders accept compiled IR only, not handwritten component YAML.
+All three loaders accept compiled IR and legacy `implementation: container:`
+component YAML. Legacy components are converted to native v2 components during
+loading, so existing v2 pipeline sources can keep using shared component files.
+Prefer compiled IR when publishing new components.
 
 To use an existing component, you can load it using the [`components`][components-module] module and use it with other components in a pipeline:
 

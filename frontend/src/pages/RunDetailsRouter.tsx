@@ -120,7 +120,29 @@ export default function RunDetailsRouter(props: PageProps & NavigationProps<RunD
     pipelineManifest ? undefined : pipelineVersionId,
   );
 
-  const loadError = (!v2Run && runError) || templateStrError;
+  // A run retains its IR after its pipeline version is deleted. Keep this
+  // immutable snapshot separate from the lightweight, polled run response.
+  const {
+    data: storedPipelineManifest,
+    error: storedSpecError,
+    isLoading: storedSpecIsLoading,
+  } = useQuery<string, Error>({
+    queryKey: queryKeys.runPipelineSpec(runId),
+    queryFn: async () => {
+      const fullRun = await Apis.runServiceApiV2.getRun(runId, 'FULL');
+      return fullRun.pipeline_spec ? JsYaml.dump(fullRun.pipeline_spec) : '';
+    },
+    enabled:
+      !!v2Run &&
+      !pipelineManifest &&
+      !templateStrFromPipelineVersion &&
+      (!!templateStrError || templateStrFromPipelineVersion === ''),
+    staleTime: Infinity,
+  });
+
+  const loadError =
+    (!v2Run && runError) ||
+    (!storedPipelineManifest && !storedSpecIsLoading && (storedSpecError || templateStrError));
   const hasLoadErrorBanner = useRef(false);
   useEffect(() => {
     if (loadError) {
@@ -129,7 +151,7 @@ export default function RunDetailsRouter(props: PageProps & NavigationProps<RunD
         if (!cancelled) {
           hasLoadErrorBanner.current = true;
           updateBanner({
-            message: `Error: failed to retrieve ${runError ? 'run' : 'pipeline version template'}. Click Details for more information.`,
+            message: `Error: failed to retrieve ${runError || storedSpecError ? 'run' : 'pipeline version template'}. Click Details for more information.`,
             mode: 'error',
             additionalInfo: msg,
           });
@@ -144,15 +166,16 @@ export default function RunDetailsRouter(props: PageProps & NavigationProps<RunD
       hasLoadErrorBanner.current = false;
     }
     return undefined;
-  }, [loadError, runError, updateBanner]);
+  }, [loadError, runError, storedSpecError, updateBanner]);
 
-  const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
+  const templateString =
+    pipelineManifest || templateStrFromPipelineVersion || storedPipelineManifest;
   const pipelineSpec = useMemo(
     () =>
       templateString ? WorkflowUtils.tryConvertYamlToV2PipelineSpec(templateString) : undefined,
     [templateString],
   );
-  const runDetailsIsLoading = runIsLoading || templateStrIsLoading;
+  const runDetailsIsLoading = runIsLoading || templateStrIsLoading || storedSpecIsLoading;
 
   if (v2Run && templateString && pipelineSpec) {
     return (

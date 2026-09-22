@@ -18,6 +18,9 @@ SHELL = /bin/bash
 # create an .env file to override dev vars locally
 -include .env
 DEV_IMAGE_PREFIX?=$(error Please set DEV_IMAGE_PREFIX flag)
+DEV_KUBE_CONTEXT?=$(error Set DEV_KUBE_CONTEXT to the development cluster used by the KFP client)
+DEV_NAMESPACE?=kubeflow
+DEV_API_DEPLOYMENT?=ml-pipeline
 REPO_ROOT=../../..
 PIPELINE_SOURCES=$(REPO_ROOT)/test_data/sdk_compiled_pipelines/valid
 GOOS_VALUE?=linux
@@ -64,6 +67,14 @@ dev: pipeline/hello_world \
 build: build/compiler build/driver
 image-dev: image-launcher-v2-dev image-driver-dev
 
+# IR is compiled on the server, so its runtime images must match the local build.
+.PHONY: configure-dev-runtime
+configure-dev-runtime: image-dev
+	@test -n "$(strip $(DEV_KUBE_CONTEXT))" || { echo 'Set DEV_KUBE_CONTEXT to a development cluster' >&2; exit 1; }
+	kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" set env deployment/$(DEV_API_DEPLOYMENT) --containers=ml-pipeline-api-server \
+		V2_DRIVER_IMAGE="$$(cat build/driver-image.txt)" V2_LAUNCHER_IMAGE="$$(cat build/launcher-v2-image.txt)"
+	kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" rollout status deployment/$(DEV_API_DEPLOYMENT) --timeout=180s
+
 # Install v2 backend compiler to ~/bin.
 # Please add ~/bin to your $PATH first.
 .PHONY: install-compiler
@@ -100,11 +111,12 @@ pipeline/essential/pipeline_with_nested_conditions:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%
-pipeline/%: build/compiler image-dev
+pipeline/%: build/compiler configure-dev-runtime
 	tmp="$$(mktemp -d)" \
+	&& trap 'rm -rf "$$tmp"' EXIT \
 	&& mkdir -p "$$(dirname $${tmp}/$*)" \
 	&& echo "SDK Compiling to $${tmp}/$*-spec.yaml" && kfp dsl compile --py $(PIPELINE_SOURCES)/$*.py --output "$${tmp}/$*-spec.yaml" \
-	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*-spec.yaml" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
+	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*-spec.yaml" --driver "$$(cat build/driver-image.txt)" --launcher "$$(cat build/launcher-v2-image.txt)" > "$${tmp}/$*.yaml" \
 	&& echo "Linting..." && if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
 	&& echo "Running the pipeline..." && kfp run submit -f "$${tmp}/$*-spec.yaml" -e default -r "$*_$${RANDOM}"
 
@@ -115,7 +127,9 @@ pipeline/%: build/compiler image-dev
 build/%: FORCE
 	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/backend/src/v2/cmd/$*
 image-%-dev: FORCE
-	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)$* ko publish ./cmd/$* --bare
+	@mkdir -p build
+	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)$* ko publish ./cmd/$* --bare > build/$*-image.txt
+	@cat build/$*-image.txt
 install-ko: FORCE
 	go install github.com/google/ko@$(KO_VERSION)
 

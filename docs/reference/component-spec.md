@@ -22,5 +22,7 @@ implementation in `deploymentSpec.executors`. The authoritative schema is
 
 Load compiled components with
 [`kfp.components.load_component_from_file`](../user-guides/components/load-and-share-components.md).
-The file, text, and URL loaders accept IR only. Handwritten component YAML with
-`inputs`, `outputs`, and `implementation` at the top level is unsupported.
+The file, text, and URL loaders accept IR and legacy container component YAML
+with `inputs`, `outputs`, and `implementation` at the top level. The SDK
+converts the legacy format to native v2 components; it does not require v1
+backend APIs. See [migrating component files](../user-guides/migration.md).

@@ -42,6 +42,8 @@ export const queryKeys = {
 
   v2RunComparison: (runId: string) => ['v2_run_comparison', { id: runId }] as const,
 
+  runPipelineSpec: (runId: string) => ['run_pipeline_spec', { id: runId }] as const,
+
   v2RecurringRunDetail: (recurringRunId: string | null | undefined) =>
     ['v2_recurring_run_detail', { id: recurringRunId }] as const,
 

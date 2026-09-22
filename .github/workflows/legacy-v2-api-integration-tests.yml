@@ -89,6 +89,8 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           db_type: ${{ matrix.db_type }}
+          # Fixture setup rolls the API pod; forward only after that rollout.
+          forward_port: 'false'
 
       - name: Deploy pipeline URL test fixtures
         if: ${{ steps.deploy.outcome == 'success' }}
