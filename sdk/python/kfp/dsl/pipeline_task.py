@@ -531,30 +531,27 @@ class PipelineTask:
         return self.set_accelerator_limit(gpu)
 
     def _validate_memory_request_limit(self, memory: str) -> str:
-        """Validates memory request/limit string and converts to its numeric
-        string value.
+        """Validates a memory request/limit string.
 
         Args:
-            memory: Memory requests or limits. This string should be a number or
-               a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
-               "Gi", "M", "Mi", "K", or "Ki".
+            memory: Memory requests or limits, as a Kubernetes quantity.
 
         Raises:
             ValueError if the memory request/limit string value is invalid.
 
         Returns:
-            The numeric string value of the memory request/limit.
+            The memory request/limit in the form Kubernetes accepts.
         """
         if isinstance(memory, pipeline_channel.PipelineChannel):
-            memory = str(memory)
-        else:
-            if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                        memory) is None:
-                raise ValueError(
-                    'Invalid memory string. Should be a number or a number '
-                    'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
-                    '"Gi", "M", "Mi", "K", "Ki".')
-        return memory
+            return str(memory)
+
+        normalized = utils.normalize_resource_quantity(memory)
+        if normalized is None:
+            raise ValueError(
+                f'Invalid memory string {memory!r}. Should be a non-negative '
+                'Kubernetes quantity, such as "512Mi", "1.5Gi", "2G" or the '
+                'plain byte count "1000".')
+        return normalized
 
     @warn_if_final()
     def set_memory_request(
@@ -564,9 +561,10 @@ class PipelineTask:
         """Sets memory request (minimum) for the task.
 
         Args:
-            memory: The minimum memory requests required. This string should be
-                a number or a number followed by one of "E", "Ei", "P", "Pi",
-                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            memory: The minimum memory requests required, as a Kubernetes
+                quantity such as ``'512Mi'``, ``'1.5Gi'`` or ``'2G'``. For more
+                information, see `Resource units in Kubernetes
+                <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes>`_.
 
         Returns:
             Self return to allow chained setting calls.
@@ -591,9 +589,10 @@ class PipelineTask:
         """Sets memory limit (maximum) for the task.
 
         Args:
-            memory: The maximum memory requests allowed. This string should be
-                a number or a number followed by one of "E", "Ei", "P", "Pi",
-                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            memory: The maximum memory allowed, as a Kubernetes quantity such
+                as ``'512Mi'``, ``'1.5Gi'`` or ``'2G'``. For more information,
+                see `Resource units in Kubernetes
+                <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes>`_.
 
         Returns:
             Self return to allow chained setting calls.
