@@ -15,9 +15,7 @@
 from collections import abc
 from collections import OrderedDict
 import inspect
-from typing import (Any, cast, Dict, get_type_hints, List, Mapping,
-                    MutableMapping, MutableSequence, Sequence, Type, TypeVar,
-                    Union)
+from typing import Any, cast, Dict, get_type_hints, List, Mapping, MutableMapping, MutableSequence, Sequence, Type, TypeVar, Union
 
 T = TypeVar('T')
 
