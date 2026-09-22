@@ -434,6 +434,32 @@ func TestLoadAWSConfig_EmptyCredentials(t *testing.T) {
 	require.Equal(t, awsv2.ResponseChecksumValidationWhenRequired, awsCfg.ResponseChecksumValidation)
 }
 
+func TestResolveObjectStoreRegion(t *testing.T) {
+	t.Run("configured region takes precedence", func(t *testing.T) {
+		t.Setenv("AWS_REGION", "ap-southeast-1")
+		t.Setenv("AWS_DEFAULT_REGION", "us-west-2")
+		assert.Equal(t, "eu-central-1", resolveObjectStoreRegion("eu-central-1"))
+	})
+
+	t.Run("AWS_REGION is used when object store region is absent", func(t *testing.T) {
+		t.Setenv("AWS_REGION", "ap-southeast-1")
+		t.Setenv("AWS_DEFAULT_REGION", "us-west-2")
+		assert.Equal(t, "ap-southeast-1", resolveObjectStoreRegion(""))
+	})
+
+	t.Run("AWS_DEFAULT_REGION is used when AWS_REGION is absent", func(t *testing.T) {
+		t.Setenv("AWS_REGION", "")
+		t.Setenv("AWS_DEFAULT_REGION", "us-west-2")
+		assert.Equal(t, "us-west-2", resolveObjectStoreRegion(""))
+	})
+
+	t.Run("us-east-1 remains the final fallback", func(t *testing.T) {
+		t.Setenv("AWS_REGION", "")
+		t.Setenv("AWS_DEFAULT_REGION", "")
+		assert.Equal(t, "us-east-1", resolveObjectStoreRegion(""))
+	})
+}
+
 func TestLoadAWSConfig_WithCredentials(t *testing.T) {
 	cfg := &blobStorageConfig{
 		region:    "us-east-1",
