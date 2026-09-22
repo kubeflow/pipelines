@@ -279,6 +279,15 @@ class TestClient(parameterized.TestCase):
             mock_get_run.assert_called_once_with(run_id='foo')
             assert response == mock_get_run.return_value
 
+    def test_wait_for_run_completion_canceled_run(self):
+        with patch.object(self.client._run_api,
+                          'run_service_get_run') as mock_get_run:
+            mock_get_run.return_value = Mock(state='CANCELED')
+            response = self.client.wait_for_run_completion(
+                run_id='foo', timeout=1, sleep_duration=0)
+            mock_get_run.assert_called_once_with(run_id='foo')
+            assert response == mock_get_run.return_value
+
     def test_wait_for_run_completion_run_timeout_should_raise_error(self):
         with self.assertRaises(TimeoutError):
             with patch.object(self.client._run_api,
