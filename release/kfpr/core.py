@@ -426,10 +426,15 @@ git clone --depth 1 --branch v26.0 https://github.com/protocolbuffers/protobuf.g
 mkdir -p api/v2alpha1/google/protobuf
 cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
-python3 -m pip install --user --break-system-packages -r requirements.txt
 python3 generate_proto.py
-python3 setup.py sdist
-pip wheel --no-deps dist/*.tar.gz -w dist
+if [ -f pyproject.toml ]; then
+  python3 -m pip install --user --break-system-packages uv==0.10.3
+  ~/.local/bin/uv build --package kfp-kubernetes --out-dir dist
+else
+  python3 -m pip install --user --break-system-packages -r requirements.txt
+  python3 setup.py sdist
+  pip wheel --no-deps dist/*.tar.gz -w dist
+fi
 '''.strip()
   return [
       'docker',

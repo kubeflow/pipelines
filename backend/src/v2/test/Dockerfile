@@ -15,12 +15,12 @@
 FROM python:3.11-slim
 
 WORKDIR /workdir
+RUN apt-get update && apt-get install --no-install-recommends -y make git wget protobuf-compiler \
+    && rm -rf /var/lib/apt/lists
 RUN pip install uv
-COPY pyproject.toml uv.lock ./
-COPY sdk/python sdk/python
-RUN uv sync --frozen --no-install-workspace --no-install-project --extra backend-v2-test \
-	&& uv pip install -e ./sdk/python
-ENV PATH="/workdir/.venv/bin:$PATH"
-
-# copy all other code
 COPY . .
+RUN make -C api fetch-protos \
+    && python3 api/v2alpha1/python/generate_proto.py \
+    && python3 kubernetes_platform/python/generate_proto.py \
+    && uv sync --frozen --extra backend-v2-test
+ENV PATH="/workdir/.venv/bin:$PATH"

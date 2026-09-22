@@ -152,6 +152,12 @@ class PreflightStepTest(unittest.TestCase):
       self.assertIn(['which', 'sed'], context.runner.commands)
       self.assertIn(['which', 'pip-compile'], context.runner.commands)
 
+      (Path(tmpdir) / 'uv.lock').touch()
+      context.runner.commands.clear()
+      steps.step_preflight(context)
+      self.assertIn(['which', 'uv'], context.runner.commands)
+      self.assertNotIn(['which', 'pip-compile'], context.runner.commands)
+
   def test_preflight_rejects_dirty_working_tree(self):
     class DirtyRunner(core.CommandRunner):
 
@@ -1231,6 +1237,76 @@ class StepSdkVersionFilesTest(unittest.TestCase):
           next(index for index, command in enumerate(commands) if command[:2] == ['bash', '-c']),
       )
       self.assertIn(['git', 'add', '--all'], commands)
+
+
+class UvReleasePackagesTest(unittest.TestCase):
+
+  def test_update_sdk_versions_preserves_backend_version_and_refreshes_workspace(self):
+    """Keep SDK pins synchronized without conflating SDK and backend releases."""
+    for dry_run in (False, True):
+      with self.subTest(dry_run=dry_run), TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        files = {
+            'uv.lock': 'version = 1\n',
+            'VERSION': '2.17.1\n',
+            'sdk/python/kfp/version.py': "__version__ = '2.15.2'\n",
+            'kubernetes_platform/python/kfp/kubernetes/__init__.py': "__version__ = '2.15.2'\n",
+            'api/v2alpha1/python/pyproject.toml': '[project]\nversion = "2.15.2"\n',
+            'backend/api/v2beta1/python_http_client/pyproject.toml': '[project]\nversion = "2.17.1"\n',
+            'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py': '__version__ = "2.17.1"\n',
+            'sdk/python/pyproject.toml': (
+                '[project]\ndependencies = ["kfp-pipeline-spec==2.15.2", "kfp-server-api==2.17.1"]\n'
+                '[project.optional-dependencies]\nkubernetes = ["kfp-kubernetes==2.15.2"]\n'
+            ),
+            'kubernetes_platform/python/pyproject.toml': '[project]\ndependencies = ["kfp==2.15.2"]\n',
+        }
+        for relative_path, content in files.items():
+          path = root / relative_path
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(content)
+
+        runner = mock.Mock(spec=core.CommandRunner)
+        runner.dry_run = dry_run
+        context = core.ReleaseContext(
+            root=root,
+            state=core.ReleaseState(root / 'state.json'),
+            runner=runner,
+            metadata=core.ReleaseMetadata.from_version('patch', '2.15.3'),
+            fork_remote='git@github.com:testuser/pipelines.git',
+            include_backend=False,
+            include_sdk=True,
+        )
+        with mock.patch.object(steps, '_generate_sdk_release_notes', return_value=''):
+          steps._update_sdk_version_files(context)
+
+        for relative_path, original in files.items():
+          expected = original if dry_run else original.replace('2.15.2', '2.15.3')
+          self.assertEqual((root / relative_path).read_text(), expected, relative_path)
+        self.assertEqual(runner.run.call_args_list[0], mock.call(['uv', 'lock'], cwd=root))
+        runner.run.assert_any_call(
+            ['uv', 'export', '--frozen', '--no-dev', '--format', 'requirements-txt', '-o', 'requirements.txt'],
+            cwd=root,
+        )
+        for package, path in (
+            ('kfp-pipeline-spec', 'api/v2alpha1/python'),
+            ('kfp-server-api', 'backend/api/v2beta1/python_http_client'),
+            ('kfp', 'sdk/python'),
+            ('kfp-kubernetes', 'kubernetes_platform/python'),
+        ):
+          runner.run.assert_any_call(['uv', 'build', '--package', package, '--out-dir', f'{path}/dist'], cwd=root)
+          if package != 'kfp-server-api':
+            runner.run.assert_any_call(
+                ['uv', 'export', '--frozen', '--no-dev', '--package', package, '--format', 'requirements-txt', '-o', f'{path}/requirements.txt'],
+                cwd=root,
+            )
+
+  def test_empty_backend_version_is_rejected(self):
+    """Reject missing backend version data before changing package metadata."""
+    with TemporaryDirectory() as tmpdir:
+      root = Path(tmpdir)
+      (root / 'VERSION').write_text('\n')
+      with self.assertRaisesRegex(ValueError, 'backend release version'):
+        steps._update_uv_package_versions(root, '2.15.3')
 
 
 class DryRunOutputTest(unittest.TestCase):

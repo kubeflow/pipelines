@@ -73,7 +73,8 @@ class PackageImportTest(unittest.TestCase):
     workflow = Path(__file__).parents[2] / '.github/workflows/readthedocs-builds.yml'
     workflow_text = workflow.read_text()
     self.assertIn('kfpr run create-kfp-kubernetes-docs-branch', workflow_text)
-    self.assertIn("pip install --upgrade 'typer>=0.16,<1.0'", workflow_text)
+    self.assertIn('uv run --with ./release kfpr run', workflow_text)
+    self.assertIn('uv run --with ./release python -m unittest', workflow_text)
 
   def test_kubernetes_release_guide_uses_nested_step_command(self):
     guide = Path(__file__).parents[2] / 'kubernetes_platform/python/RELEASE.md'

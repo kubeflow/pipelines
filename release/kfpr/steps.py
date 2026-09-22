@@ -101,7 +101,7 @@ def step_preflight(context: ReleaseContext) -> None:
   """
   tools = ['git', 'gh', 'docker', 'python3', 'sed']
   if context.include_sdk:
-    tools.append('pip-compile')
+    tools.append('uv' if (context.root / 'uv.lock').exists() else 'pip-compile')
   for tool in tools:
     context.runner.run(['which', tool])
   context.runner.run(['gh', 'auth', 'status'])
@@ -462,9 +462,50 @@ def _update_sdk_release_notes(
   path.write_text(f'{match.group(1)}{default_body}\n\n# {version}\n\n{release_body}{match.group(3)}{text[match.end():]}')
 
 
+def _update_uv_package_versions(root: Path, sdk_version: str) -> None:
+  """Update workspace package versions while retaining the backend release version."""
+  backend_version = (root / 'VERSION').read_text().strip()
+  if not backend_version:
+    raise ValueError('VERSION must contain the backend release version')
+  for package_path, version in (
+      ('api/v2alpha1/python', sdk_version),
+      ('backend/api/v2beta1/python_http_client', backend_version),
+  ):
+    _replace(root / package_path / 'pyproject.toml', r'(?m)^version\s*=\s*"[^"]+"', f'version = "{version}"')
+  _replace(root / 'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f'__version__ = "{backend_version}"')
+  for package, version in (
+      ('kfp-pipeline-spec', sdk_version),
+      ('kfp-kubernetes', sdk_version),
+      ('kfp-server-api', backend_version),
+  ):
+    _replace(root / 'sdk/python/pyproject.toml', rf'{package}==[^"\']+', f'{package}=={version}')
+  _replace(root / 'kubernetes_platform/python/pyproject.toml', r'kfp==[^"\']+', f'kfp=={sdk_version}')
+
+
+def _refresh_uv_release_packages(context: ReleaseContext) -> None:
+  """Regenerate the workspace lock, requirements exports, and local release dists."""
+  context.runner.run(['uv', 'lock'], cwd=context.root)
+  export_command = ['uv', 'export', '--frozen', '--no-dev']
+  context.runner.run(export_command + ['--format', 'requirements-txt', '-o', 'requirements.txt'], cwd=context.root)
+  for package, path in (
+      ('kfp-pipeline-spec', 'api/v2alpha1/python'),
+      ('kfp-server-api', 'backend/api/v2beta1/python_http_client'),
+      ('kfp', 'sdk/python'),
+      ('kfp-kubernetes', 'kubernetes_platform/python'),
+  ):
+    if package != 'kfp-server-api':
+      context.runner.run(
+          export_command + ['--package', package, '--format', 'requirements-txt', '-o', f'{path}/requirements.txt'],
+          cwd=context.root,
+      )
+    context.runner.run(['uv', 'build', '--package', package, '--out-dir', f'{path}/dist'], cwd=context.root)
+
+
 def _update_sdk_version_files(context: ReleaseContext) -> None:
+  """Update SDK release metadata and regenerate the matching package artifacts."""
   metadata = context.metadata
   root = context.root
+  uses_uv = (root / 'uv.lock').exists()
 
   # Update SDK version files
   if context.runner.dry_run:
@@ -472,13 +513,16 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
   else:
     _replace(root / 'sdk/python/kfp/version.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f"__version__ = '{metadata.tag}'")
     _replace(root / 'kubernetes_platform/python/kfp/kubernetes/__init__.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f"__version__ = '{metadata.tag}'")
-    _replace(root / 'api/v2alpha1/python/setup.py', r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", f"VERSION = '{metadata.tag}'")
-    _replace(root / 'backend/api/v2beta1/python_http_client/setup.py', r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", f'VERSION = "{metadata.tag}"')
-    _replace(root / 'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f'__version__ = "{metadata.tag}"')
-    next_major = metadata.major + 1
-    _replace(root / 'sdk/python/requirements.in', r'kfp-pipeline-spec>=[^,\n]+,<\d+', f'kfp-pipeline-spec>={metadata.tag},<{next_major}')
-    _replace(root / 'sdk/python/requirements.in', r'kfp-server-api>=[^,\n]+,<\d+', f'kfp-server-api>={metadata.tag},<{next_major}')
-    _replace(root / 'kubernetes_platform/python/requirements.in', r'kfp>=[^,\n]+,<\d+', f'kfp>={metadata.tag},<{next_major}')
+    if uses_uv:
+      _update_uv_package_versions(root, metadata.tag)
+    else:
+      _replace(root / 'api/v2alpha1/python/setup.py', r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", f"VERSION = '{metadata.tag}'")
+      _replace(root / 'backend/api/v2beta1/python_http_client/setup.py', r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", f'VERSION = "{metadata.tag}"')
+      _replace(root / 'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f'__version__ = "{metadata.tag}"')
+      next_major = metadata.major + 1
+      _replace(root / 'sdk/python/requirements.in', r'kfp-pipeline-spec>=[^,\n]+,<\d+', f'kfp-pipeline-spec>={metadata.tag},<{next_major}')
+      _replace(root / 'sdk/python/requirements.in', r'kfp-server-api>=[^,\n]+,<\d+', f'kfp-server-api>={metadata.tag},<{next_major}')
+      _replace(root / 'kubernetes_platform/python/requirements.in', r'kfp>=[^,\n]+,<\d+', f'kfp>={metadata.tag},<{next_major}')
     _update_sdk_docs_versions(root / 'docs/sdk/versions.json', metadata.tag)
     _update_kfp_kubernetes_docs_versions(root / 'kubernetes_platform/python/docs/conf.py', metadata.tag)
     _update_sdk_release_notes(
@@ -487,7 +531,11 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
         _generate_sdk_release_notes(root),
     )
 
-  # Build local dists for unpublished package versions before resolving requirements.
+  if uses_uv:
+    _refresh_uv_release_packages(context)
+    return
+
+  # Older release branches still resolve unpublished dists with pip-compile.
   context.runner.run([sys.executable, '-m', 'build', '.'], cwd=root / 'api/v2alpha1/python')
   context.runner.run([sys.executable, '-m', 'build', '.'], cwd=root / 'backend/api/v2beta1/python_http_client')
   context.runner.run(kfp_requirements_command(), cwd=root / 'sdk/python')

@@ -18,3 +18,7 @@ runs:
     - name: Install dependencies
       run: uv sync --python ${{ inputs.python-version }} --extra ci --frozen
       shell: bash
+
+    - name: Use the workspace virtual environment
+      run: echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+      shell: bash

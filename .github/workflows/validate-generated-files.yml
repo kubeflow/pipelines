@@ -10,7 +10,7 @@ on:
       - '.github/workflows/validate-generated-files.yml'
       - '.github/resources/scripts/generated_files_dependency_change.py'
       - '.github/resources/scripts/check_generated_diff.py'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - 'go.mod'
       - 'go.sum'
       - 'backend/api/Dockerfile'

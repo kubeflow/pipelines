@@ -502,6 +502,8 @@ class InlineCommandTest(unittest.TestCase):
     script = command[-1]
     self.assertIn('wget -qO api/v2alpha1/google/rpc/status.proto', script)
     self.assertIn('python3 generate_proto.py', script)
+    self.assertIn('if [ -f pyproject.toml ]; then', script)
+    self.assertIn('uv build --package kfp-kubernetes --out-dir dist', script)
     self.assertIn('python3 setup.py sdist', script)
     self.assertNotIn('make', command)
 

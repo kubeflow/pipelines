@@ -79,6 +79,10 @@ Single-step commands do not update the checkpoint unless `--done` is passed.
 `update-version-tags` cuts `<version>-update-version-tags` from the release branch
 before committing version changes. When SDK release steps are enabled, this same PR also updates
 SDK package versions, requirements, docs versions, and `sdk/RELEASE.md`.
+Branches with `uv.lock` require uv: release updates synchronize the four package
+manifests, regenerate the lockfile and requirements exports, and build with
+`uv build`. The server API version follows the backend `VERSION`, independently
+of the SDK version. Older release branches retain the pip-compile build path.
 
 If you complete a step outside `kfpr` (for example, manually creating an already-existing
 release branch), mark that step done before resuming:

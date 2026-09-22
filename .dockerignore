@@ -1,4 +1,6 @@
 .git
+.venv
+**/.venv
 bower_components
 dist
 **/node_modules

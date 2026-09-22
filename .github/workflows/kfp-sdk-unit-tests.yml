@@ -11,7 +11,7 @@ on:
       - 'sdk/**'
       - 'test/presubmit-tests-sdk-unit.sh'
       - '.github/workflows/kfp-sdk-unit-tests.yml'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - '!**/*.md'
       - '!**/OWNERS'
 

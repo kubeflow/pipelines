@@ -9,7 +9,7 @@ on:
       - "**/pyproject.toml"
       - "uv.lock"
       - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
-      - ".github/actions/setup-python-pip-cache/**"
+      - ".github/actions/setup-python/**"
       - ".github/workflows/image-builds.yml"
       - ".github/actions/deploy/**"
       - ".github/resources/**"
@@ -71,12 +71,8 @@ jobs:
         id: install-kfp-k8s-deps
         uses: ./.github/actions/kfp-k8s
 
-      - name: Install requirements
-        id: install-requirements
-        if: ${{ steps.install-kfp-k8s-deps.outcome == 'success' }}
-
       - name: Create test pipelines in DB mode
-        if: ${{ steps.install-requirements.outcome == 'success' }}
+        if: ${{ steps.install-kfp-k8s-deps.outcome == 'success' }}
         id: create-test-pipelines
         run: uv run python ./test/kfp-kubernetes-native-migration-tests/create_test_pipelines.py
         continue-on-error: true

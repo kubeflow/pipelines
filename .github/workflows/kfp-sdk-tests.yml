@@ -12,7 +12,7 @@ on:
       - 'test_data/sdk_compiled_pipelines/**'
       - 'test/presubmit-tests-sdk.sh'
       - '.github/workflows/kfp-sdk-tests.yml'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - '!**/*.md'
       - '!**/OWNERS'
 

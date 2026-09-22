@@ -12,7 +12,7 @@ on:
       - 'sdk/python/**'
       - 'test/presubmit-yapf-sdk.sh'
       - '.github/workflows/sdk-yapf.yml'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - '!**/*.md'
       - '!**/OWNERS'
 

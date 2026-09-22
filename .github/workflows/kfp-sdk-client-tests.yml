@@ -9,7 +9,7 @@ on:
       - '**/pyproject.toml'
       - 'uv.lock'
       - '.github/workflows/kfp-sdk-client-tests.yml'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
