@@ -75,6 +75,10 @@ Kubeflow Pipelines uses GitHub Actions workflows to gate CI for pull requests.
 - The linked issue must be labeled `ready` by a Kubeflow Pipelines maintainer
   before CI is allowed to proceed.
 
+If you plan to contribute regularly, becoming a Kubeflow GitHub organization
+member is straightforward. Follow the instructions in the
+[`kubeflow/internal-acls` guide](https://github.com/kubeflow/internal-acls/#joining-the-kubeflow-github-organization).
+
 If a pull request from a non-member does not link to an issue, or the linked
 issue is not labeled `ready`, the gatekeeper workflow may comment on the PR and
 close it until the issue triage step is completed.
