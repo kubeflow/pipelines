@@ -1400,7 +1400,7 @@ class Client:
         if isinstance(timeout, datetime.timedelta):
             timeout = timeout.total_seconds()
         is_valid_token = False
-        finish_states = ['succeeded', 'failed', 'skipped', 'error']
+        finish_states = ['succeeded', 'failed', 'skipped', 'error', 'canceled']
         while True:
             try:
                 get_run_response = self._run_api.run_service_get_run(
