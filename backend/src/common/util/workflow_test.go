@@ -16,7 +16,6 @@ package util
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -24,12 +23,12 @@ import (
 	argofake "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned/fake"
 	argoinformer "github.com/argoproj/argo-workflows/v4/pkg/client/informers/externalversions"
 	argolister "github.com/argoproj/argo-workflows/v4/pkg/client/listers/workflow/v1alpha1"
-	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
@@ -979,67 +978,6 @@ func TestWorkflow_PersistedFinalState(t *testing.T) {
 	}
 }
 
-func TestWorkflow_IsV2Compatible(t *testing.T) {
-	testCases := []struct {
-		name        string
-		annotations map[string]string
-		expected    bool
-	}{
-		{
-			name:        "annotation true",
-			annotations: map[string]string{"pipelines.kubeflow.org/v2_pipeline": "true"},
-			expected:    true,
-		},
-		{
-			name:        "annotation missing",
-			annotations: nil,
-			expected:    false,
-		},
-		{
-			name:        "annotation false",
-			annotations: map[string]string{"pipelines.kubeflow.org/v2_pipeline": "false"},
-			expected:    false,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			workflow := NewWorkflow(&workflowapi.Workflow{
-				ObjectMeta: metav1.ObjectMeta{Annotations: testCase.annotations},
-			})
-			assert.Equal(t, testCase.expected, workflow.IsV2Compatible())
-		})
-	}
-}
-
-func TestWorkflow_HasMetrics(t *testing.T) {
-	testCases := []struct {
-		name     string
-		nodes    map[string]workflowapi.NodeStatus
-		expected bool
-	}{
-		{
-			name:     "non-nil nodes returns true",
-			nodes:    map[string]workflowapi.NodeStatus{"node-1": {}},
-			expected: true,
-		},
-		{
-			name:     "nil nodes returns false",
-			nodes:    nil,
-			expected: false,
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			workflow := NewWorkflow(&workflowapi.Workflow{
-				Status: workflowapi.WorkflowStatus{Nodes: testCase.nodes},
-			})
-			assert.Equal(t, testCase.expected, workflow.HasMetrics())
-		})
-	}
-}
-
 func TestWorkflow_HasNodes(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -1271,31 +1209,6 @@ func TestWorkflow_SetCannonicalLabels(t *testing.T) {
 	assert.Equal(t, FormatInt64ForLabel(1000), workflow.Labels[LabelKeyWorkflowEpoch])
 	assert.Equal(t, FormatInt64ForLabel(5), workflow.Labels[LabelKeyWorkflowIndex])
 	assert.Equal(t, "true", workflow.Labels[LabelKeyWorkflowIsOwnedByScheduledWorkflow])
-}
-
-func TestWorkflow_PatchTemplateOutputArtifacts(t *testing.T) {
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		Spec: workflowapi.WorkflowSpec{
-			Templates: []workflowapi.Template{
-				{
-					Name: "template1",
-					Outputs: workflowapi.Outputs{
-						Artifacts: []workflowapi.Artifact{
-							{Name: "mlpipeline-ui-metadata"},
-							{Name: "mlpipeline-metrics"},
-							{Name: "other-artifact"},
-						},
-					},
-				},
-			},
-		},
-	})
-
-	workflow.PatchTemplateOutputArtifacts()
-
-	assert.True(t, workflow.Spec.Templates[0].Outputs.Artifacts[0].Optional)
-	assert.True(t, workflow.Spec.Templates[0].Outputs.Artifacts[1].Optional)
-	assert.False(t, workflow.Spec.Templates[0].Outputs.Artifacts[2].Optional)
 }
 
 func TestWorkflow_NodeStatuses(t *testing.T) {
@@ -1566,6 +1479,7 @@ func TestWorkflow_CanRetry(t *testing.T) {
 	// No offloaded node status → no error
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{},
+		Spec:   workflowapi.WorkflowSpec{PodMetadata: &workflowapi.Metadata{Labels: map[string]string{"pipelines.kubeflow.org/v2_component": "true"}}},
 	})
 	assert.Nil(t, workflow.CanRetry())
 
@@ -1911,406 +1825,6 @@ func TestWorkflow_Decompress(t *testing.T) {
 
 func TestArgoContext_ReusesContext(t *testing.T) {
 	assert.Same(t, ArgoContext(), ArgoContext())
-}
-
-func TestTransformJSONForBackwardCompatibility(t *testing.T) {
-	// numberValue → number_value
-	input := `{"metrics":[{"name":"accuracy","numberValue":0.95}]}`
-	expected := `{"metrics":[{"name":"accuracy","number_value":0.95}]}`
-	result, err := transformJSONForBackwardCompatibility(input)
-	assert.Nil(t, err)
-	assert.Equal(t, expected, result)
-
-	// Already snake_case → unchanged
-	input = `{"metrics":[{"name":"accuracy","number_value":0.95}]}`
-	result, err = transformJSONForBackwardCompatibility(input)
-	assert.Nil(t, err)
-	assert.Equal(t, input, result)
-
-	// No metrics → unchanged
-	input = `{"some":"value"}`
-	result, err = transformJSONForBackwardCompatibility(input)
-	assert.Nil(t, err)
-	assert.Equal(t, input, result)
-}
-
-func TestReadNodeMetricsOrNil(t *testing.T) {
-	// No outputs → empty
-	nodeStatus := &workflowapi.NodeStatus{
-		ID:      "node-1",
-		Outputs: nil,
-	}
-	wf := &workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Name: "test-wf"}}
-	result, err := readNodeMetricsOrNil("run-1", nodeStatus, nil, wf)
-	assert.Nil(t, err)
-	assert.Empty(t, result)
-
-	// No artifacts → empty
-	nodeStatus = &workflowapi.NodeStatus{
-		ID: "node-1",
-		Outputs: &workflowapi.Outputs{
-			Artifacts: nil,
-		},
-	}
-	result, err = readNodeMetricsOrNil("run-1", nodeStatus, nil, wf)
-	assert.Nil(t, err)
-	assert.Empty(t, result)
-
-	// No metrics artifact → empty
-	nodeStatus = &workflowapi.NodeStatus{
-		ID: "node-1",
-		Outputs: &workflowapi.Outputs{
-			Artifacts: []workflowapi.Artifact{
-				{Name: "some-other-artifact"},
-			},
-		},
-	}
-	result, err = readNodeMetricsOrNil("run-1", nodeStatus, nil, wf)
-	assert.Nil(t, err)
-	assert.Empty(t, result)
-
-	// readArtifact returns error → error
-	nodeStatus = &workflowapi.NodeStatus{
-		ID: "node-1",
-		Outputs: &workflowapi.Outputs{
-			Artifacts: []workflowapi.Artifact{
-				{Name: "mlpipeline-metrics"},
-			},
-		},
-	}
-	mockReadArtifactError := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return nil, fmt.Errorf("connection refused")
-	}
-	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactError, wf)
-	assert.NotNil(t, err)
-	assert.Empty(t, result)
-
-	// readArtifact returns nil response → empty
-	mockReadArtifactNil := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return nil, nil
-	}
-	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactNil, wf)
-	assert.Nil(t, err)
-	assert.Empty(t, result)
-
-	// readArtifact returns empty data → empty
-	mockReadArtifactEmpty := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte{}}, nil
-	}
-	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactEmpty, wf)
-	assert.Nil(t, err)
-	assert.Empty(t, result)
-
-	// readArtifact returns invalid tgz → error
-	mockReadArtifactBadTgz := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte("not a tgz file")}, nil
-	}
-	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactBadTgz, wf)
-	assert.NotNil(t, err)
-	assert.Empty(t, result)
-
-	// readArtifact returns valid tgz with metrics → success
-	metricsJSON := `{"metrics":[{"name":"accuracy","number_value":0.95}]}`
-	tgzContent, archiveErr := ArchiveTgz(map[string]string{"metrics.json": metricsJSON})
-	assert.Nil(t, archiveErr)
-	mockReadArtifactSuccess := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
-	}
-	result, err = readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifactSuccess, wf)
-	require.NoError(t, err)
-	require.Len(t, result, 1)
-	assert.Equal(t, "accuracy", result[0].GetName())
-	assert.Equal(t, 0.95, result[0].GetNumberValue())
-}
-
-func TestCollectNodeMetricsOrNil(t *testing.T) {
-	wf := workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Name: "test-wf"}}
-
-	// Incomplete node → nil
-	nodeStatus := &workflowapi.NodeStatus{
-		ID:    "node-1",
-		Phase: workflowapi.NodeRunning,
-	}
-	metrics, err := collectNodeMetricsOrNil("run-1", nodeStatus, nil, wf)
-	assert.Nil(t, err)
-	assert.Nil(t, metrics)
-
-	// Completed node with no outputs → nil
-	nodeStatus = &workflowapi.NodeStatus{
-		ID:    "node-1",
-		Phase: workflowapi.NodeSucceeded,
-	}
-	metrics, err = collectNodeMetricsOrNil("run-1", nodeStatus, nil, wf)
-	assert.Nil(t, err)
-	assert.Nil(t, metrics)
-}
-
-func TestCollectionMetrics_NoNodes(t *testing.T) {
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "test-wf",
-			Labels: map[string]string{LabelKeyWorkflowRunId: "run-1"},
-		},
-		Status: workflowapi.WorkflowStatus{
-			Nodes: map[string]workflowapi.NodeStatus{},
-		},
-	})
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return nil, nil
-	}
-	runMetrics, partialFailures := workflow.CollectionMetrics(mockReadArtifact)
-	assert.Empty(t, runMetrics)
-	assert.Empty(t, partialFailures)
-}
-
-func TestCollectionMetrics_WithRunningNode(t *testing.T) {
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "test-wf",
-			Labels: map[string]string{LabelKeyWorkflowRunId: "run-1"},
-		},
-		Status: workflowapi.WorkflowStatus{
-			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": {
-					ID:    "node-1",
-					Phase: workflowapi.NodeRunning,
-				},
-			},
-		},
-	})
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return nil, nil
-	}
-	runMetrics, partialFailures := workflow.CollectionMetrics(mockReadArtifact)
-	assert.Empty(t, runMetrics)
-	assert.Empty(t, partialFailures)
-}
-
-func TestCollectionMetrics_WithCompletedNodeNoMetrics(t *testing.T) {
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "test-wf",
-			Labels: map[string]string{LabelKeyWorkflowRunId: "run-1"},
-		},
-		Status: workflowapi.WorkflowStatus{
-			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": {
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
-				},
-			},
-		},
-	})
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return nil, nil
-	}
-	runMetrics, partialFailures := workflow.CollectionMetrics(mockReadArtifact)
-	assert.Empty(t, runMetrics)
-	assert.Empty(t, partialFailures)
-}
-
-func TestCollectionMetrics_WithError(t *testing.T) {
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "test-wf",
-			Labels: map[string]string{LabelKeyWorkflowRunId: "run-1"},
-		},
-		Status: workflowapi.WorkflowStatus{
-			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": {
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
-					Outputs: &workflowapi.Outputs{
-						Artifacts: []workflowapi.Artifact{
-							{Name: "mlpipeline-metrics"},
-						},
-					},
-				},
-			},
-		},
-	})
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return nil, fmt.Errorf("artifact read failed")
-	}
-	runMetrics, partialFailures := workflow.CollectionMetrics(mockReadArtifact)
-	assert.Empty(t, runMetrics)
-	assert.Len(t, partialFailures, 1)
-}
-
-func TestCollectionMetrics_WithValidMetrics(t *testing.T) {
-	metricsJSON := `{"metrics":[{"name":"accuracy","number_value":0.95}]}`
-	tgzContent, err := ArchiveTgz(map[string]string{"metrics.json": metricsJSON})
-	assert.Nil(t, err)
-
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "test-wf",
-			Labels: map[string]string{LabelKeyWorkflowRunId: "run-1"},
-		},
-		Status: workflowapi.WorkflowStatus{
-			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": {
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
-					Outputs: &workflowapi.Outputs{
-						Artifacts: []workflowapi.Artifact{
-							{Name: "mlpipeline-metrics"},
-						},
-					},
-				},
-			},
-		},
-	})
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
-	}
-	runMetrics, partialFailures := workflow.CollectionMetrics(mockReadArtifact)
-	assert.Len(t, runMetrics, 1)
-	assert.Empty(t, partialFailures)
-	assert.Equal(t, "accuracy", runMetrics[0].GetName())
-	assert.Equal(t, "node-1", runMetrics[0].GetNodeId())
-}
-
-func TestCollectNodeMetricsOrNil_InvalidJSON(t *testing.T) {
-	invalidMetricsJSON := `not valid json`
-	tgzContent, err := ArchiveTgz(map[string]string{"metrics.json": invalidMetricsJSON})
-	assert.Nil(t, err)
-
-	wf := workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Name: "test-wf"}}
-	nodeStatus := &workflowapi.NodeStatus{
-		ID:    "node-1",
-		Phase: workflowapi.NodeSucceeded,
-		Outputs: &workflowapi.Outputs{
-			Artifacts: []workflowapi.Artifact{
-				{Name: "mlpipeline-metrics"},
-			},
-		},
-	}
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
-	}
-
-	metrics, metricsErr := collectNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifact, wf)
-	assert.NotNil(t, metricsErr)
-	assert.Nil(t, metrics)
-}
-
-func TestCollectNodeMetricsOrNil_EmptyMetrics(t *testing.T) {
-	emptyMetricsJSON := `{}`
-	tgzContent, err := ArchiveTgz(map[string]string{"metrics.json": emptyMetricsJSON})
-	assert.Nil(t, err)
-
-	wf := workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Name: "test-wf"}}
-	nodeStatus := &workflowapi.NodeStatus{
-		ID:    "node-1",
-		Phase: workflowapi.NodeSucceeded,
-		Outputs: &workflowapi.Outputs{
-			Artifacts: []workflowapi.Artifact{
-				{Name: "mlpipeline-metrics"},
-			},
-		},
-	}
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
-	}
-
-	metrics, metricsErr := collectNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifact, wf)
-	assert.Nil(t, metricsErr)
-	assert.Nil(t, metrics)
-}
-
-func TestCollectionMetrics_MetricsCountLimit(t *testing.T) {
-	// Create a workflow with many nodes that produce metrics to hit the limit
-	metricsJSON := `{"metrics":[{"name":"m1","number_value":0.1},{"name":"m2","number_value":0.2},{"name":"m3","number_value":0.3},{"name":"m4","number_value":0.4},{"name":"m5","number_value":0.5},{"name":"m6","number_value":0.6},{"name":"m7","number_value":0.7},{"name":"m8","number_value":0.8},{"name":"m9","number_value":0.9},{"name":"m10","number_value":1.0}]}`
-	tgzContent, err := ArchiveTgz(map[string]string{"metrics.json": metricsJSON})
-	assert.Nil(t, err)
-
-	nodes := make(map[string]workflowapi.NodeStatus)
-	// Create 6 nodes, each producing 10 metrics = 60 total, which exceeds maxMetricsCountLimit (50)
-	for i := 0; i < 6; i++ {
-		nodeID := fmt.Sprintf("node-%d", i)
-		nodes[nodeID] = workflowapi.NodeStatus{
-			ID:    nodeID,
-			Phase: workflowapi.NodeSucceeded,
-			Outputs: &workflowapi.Outputs{
-				Artifacts: []workflowapi.Artifact{
-					{Name: "mlpipeline-metrics"},
-				},
-			},
-		}
-	}
-
-	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "test-wf",
-			Labels: map[string]string{LabelKeyWorkflowRunId: "run-1"},
-		},
-		Status: workflowapi.WorkflowStatus{Nodes: nodes},
-	})
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
-	}
-	runMetrics, partialFailures := workflow.CollectionMetrics(mockReadArtifact)
-	// Should be capped at maxMetricsCountLimit (50)
-	assert.LessOrEqual(t, len(runMetrics), 50)
-	assert.Empty(t, partialFailures)
-}
-
-func TestReadNodeMetricsOrNil_MultipleTgzFiles(t *testing.T) {
-	// Multiple files in tgz → error
-	tgzContent, err := ArchiveTgz(map[string]string{
-		"file1.json": "content1",
-		"file2.json": "content2",
-	})
-	assert.Nil(t, err)
-
-	nodeStatus := &workflowapi.NodeStatus{
-		ID: "node-1",
-		Outputs: &workflowapi.Outputs{
-			Artifacts: []workflowapi.Artifact{
-				{Name: "mlpipeline-metrics"},
-			},
-		},
-	}
-	wf := &workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Name: "test-wf"}}
-
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
-	}
-	result, err := readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifact, wf)
-	assert.NotNil(t, err)
-	assert.Empty(t, result)
-}
-
-func TestReadNodeMetricsOrNil_UsesConfiguredByteLimit(t *testing.T) {
-	t.Setenv(MaxMetricsFileBytesEnvVar, "32")
-	metricsJSON := `{"metrics":[{"name":"accuracy","number_value":0.95}]}`
-	tgzContent, err := ArchiveTgz(map[string]string{"metrics.json": metricsJSON})
-	require.NoError(t, err)
-
-	nodeStatus := &workflowapi.NodeStatus{
-		ID: "node-1",
-		Outputs: &workflowapi.Outputs{
-			Artifacts: []workflowapi.Artifact{{Name: metricsArtifactName}},
-		},
-	}
-	workflow := &workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{Name: "test-wf"}}
-	readArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		return &artifactclient.ReadArtifactResponse{Data: []byte(tgzContent)}, nil
-	}
-
-	metrics, err := readNodeMetricsOrNil("run-1", nodeStatus, readArtifact, workflow)
-
-	assert.Nil(t, metrics)
-	assert.ErrorContains(t, err, "exceeds maximum size of 32 bytes")
 }
 
 func TestWorkflow_SetExecutionName(t *testing.T) {
@@ -2958,34 +2472,16 @@ func TestUpsertRuntimeEnvVars_Annotation_UnknownRoleIgnored(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, w.Spec.Templates[0].Container.Env)
 }
-func TestReadNodeMetricsOrNil_MaxResponseBytesPropagation(t *testing.T) {
-	// Use a minimal valid *workflowapi.Workflow directly (no parsing required).
-	rawWF := &workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-wf"},
-	}
 
-	nodeStatus := &workflowapi.NodeStatus{
-		Phase: workflowapi.NodeSucceeded,
-		Type:  workflowapi.NodeTypePod,
-		Outputs: &workflowapi.Outputs{
-			Artifacts: []workflowapi.Artifact{
-				{Name: "mlpipeline-metrics"},
-			},
-		},
+func TestWorkflow_CanRetryRejectsLegacyFormats(t *testing.T) {
+	for _, workflow := range []*Workflow{
+		nil, {}, NewWorkflow(&workflowapi.Workflow{}),
+		NewWorkflow(&workflowapi.Workflow{ObjectMeta: v1.ObjectMeta{Annotations: map[string]string{"pipelines.kubeflow.org/v2_pipeline": "true"}}}),
+	} {
+		assert.Error(t, workflow.CanRetry())
 	}
-
-	callCount := 0
-	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
-		callCount++
-		expectedLimit := ArchiveWireResponseBudget(GetMaxMetricsFileBytes())
-		assert.Equal(t, expectedLimit, request.MaxResponseBytes)
-		return nil, fmt.Errorf("sentinel stop here")
-	}
-
-	_, err := readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifact, rawWF)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "sentinel stop here")
-	assert.Equal(t, 1, callCount, "mock must be invoked exactly once")
+	workflow := NewWorkflow(&workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{PodMetadata: &workflowapi.Metadata{Annotations: map[string]string{"pipelines.kubeflow.org/v2_component": "true"}}}})
+	assert.NoError(t, workflow.CanRetry())
 }
 
 func TestWorkflow_ServiceAccountsCollectsPodIdentities(t *testing.T) {

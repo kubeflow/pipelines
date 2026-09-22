@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Apis } from './Apis';
-import { StorageService } from './WorkflowParser';
+import { StorageService } from './StoragePath';
 
 const fetchSpy = (response: string) => {
   const spy = vi.fn(() =>
@@ -39,19 +39,30 @@ const failedFetchSpy = (response: string) => {
 
 describe('Apis', () => {
   it('hosts a singleton experimentServiceApi', () => {
-    expect(Apis.experimentServiceApi).toBe(Apis.experimentServiceApi);
+    expect(Apis.experimentServiceApiV2).toBe(Apis.experimentServiceApiV2);
   });
 
-  it('hosts a singleton jobServiceApi', () => {
-    expect(Apis.jobServiceApi).toBe(Apis.jobServiceApi);
+  it('hosts a singleton recurringRunServiceApi', () => {
+    expect(Apis.recurringRunServiceApi).toBe(Apis.recurringRunServiceApi);
   });
 
   it('hosts a singleton pipelineServiceApi', () => {
-    expect(Apis.pipelineServiceApi).toBe(Apis.pipelineServiceApi);
+    expect(Apis.pipelineServiceApiV2).toBe(Apis.pipelineServiceApiV2);
   });
 
   it('hosts a singleton runServiceApi', () => {
-    expect(Apis.runServiceApi).toBe(Apis.runServiceApi);
+    expect(Apis.runServiceApiV2).toBe(Apis.runServiceApiV2);
+  });
+
+  it('has no KFP v1 clients', () => {
+    for (const key of [
+      'experimentServiceApi',
+      'pipelineServiceApi',
+      'runServiceApi',
+      'jobServiceApi',
+    ]) {
+      expect(key in Apis).toBe(false);
+    }
   });
 
   it('hosts a singleton visualizationServiceApi', () => {
@@ -437,7 +448,7 @@ describe('Apis', () => {
 
   it('uploadPipeline', async () => {
     const spy = fetchSpy(JSON.stringify({ name: 'resultName' }));
-    const result = await Apis.uploadPipeline(
+    const result = await Apis.uploadPipelineV2(
       'test pipeline name',
       'test display name',
       'test description',
@@ -445,7 +456,7 @@ describe('Apis', () => {
     );
     expect(result).toEqual({ name: 'resultName' });
     expect(spy).toHaveBeenCalledWith(
-      'apis/v1beta1/pipelines/upload?name=' +
+      'apis/v2beta1/pipelines/upload?name=' +
         encodeURIComponent('test pipeline name') +
         '&display_name=' +
         encodeURIComponent('test display name') +
@@ -533,4 +544,19 @@ describe('Apis', () => {
     expect(ready).toBe(false);
     expect(spy).toHaveBeenCalledWith('apps/tensorboard/proxy/test-token/', { method: 'HEAD' });
   });
+});
+
+it('creates visualizations through the v2 schema and endpoint', async () => {
+  const fetch = vi
+    .spyOn(window, 'fetch')
+    .mockResolvedValue(new Response(JSON.stringify({ html: '<p>native viewer</p>' })));
+  const config = await Apis.buildPythonVisualizationConfig(
+    { type: 'TFMA', source: 'gs://bucket/model' },
+    'user-ns',
+  );
+  expect(fetch).toHaveBeenCalledWith(
+    expect.stringContaining('/apis/v2beta1/visualizations/user-ns'),
+    expect.objectContaining({ method: 'POST' }),
+  );
+  expect(config.htmlContent).toBe('<p>native viewer</p>');
 });

@@ -20,12 +20,13 @@ import * as JsYaml from 'js-yaml';
 import { isEqual } from 'lodash';
 import { isCancelledError, useQuery, useQueryClient } from '@tanstack/react-query';
 import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
-import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
+import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 
-import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
+import { PageProps } from './Page';
+import { CircularProgress } from '@mui/material';
 import {
   RunDetailsV2,
   RunDetailsV2Params,
@@ -36,18 +37,12 @@ import { usePipelineVersionTemplate } from 'src/hooks/usePipelineVersionTemplate
 import { queryKeys } from 'src/hooks/queryKeys';
 import { hasFinishedV2 } from 'src/lib/StatusUtils';
 import { preserveDeepEqualData } from 'src/lib/v2/QueryUtils';
-import { BannerProps } from 'src/components/Banner';
 
 export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
 export const RUN_RETRY_STATE_GC_TIME = 10 * 60 * 1000;
 const MAX_POST_RETRY_DISCOVERY_ATTEMPTS = 3;
 const RETRY_DISCOVERY_QUERY_FAMILY = ['run_retry_discovery'] as const;
 const INITIAL_RETRY_TASK_STATE: RunTaskRetryState = { version: 0 };
-const LEGACY_TASK_LINK_WARNING: BannerProps = {
-  message:
-    'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
-  mode: 'warning',
-};
 
 interface PendingRetryDiscovery {
   baseline: V2beta1Run;
@@ -92,23 +87,17 @@ function isRunActive(state?: string): boolean {
   }
 }
 
-// This is a router to determine whether to show V1 or V2 run detail page.
-export default function RunDetailsRouter(
-  props: RunDetailsProps & NavigationProps<RunDetailsV2Params>,
-) {
+// Load the immutable pipeline spec before mounting the polled run view.
+export default function RunDetailsRouter(props: PageProps & NavigationProps<RunDetailsV2Params>) {
   const { updateBanner } = props;
-  const currentPageBanner = useRef<BannerProps>({});
-  const updatePageBanner = useCallback(
-    (banner: BannerProps) => {
-      currentPageBanner.current = banner;
-      updateBanner(banner);
-    },
-    [updateBanner],
-  );
   const runId = props.params[RouteParams.runId];
 
   // Retrieves v2 run detail.
-  const { isLoading: runIsLoading, data: v2Run } = useQuery<V2beta1Run, Error>({
+  const {
+    isLoading: runIsLoading,
+    error: runError,
+    data: v2Run,
+  } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
     structuralSharing: preserveDeepEqualData,
@@ -124,7 +113,6 @@ export default function RunDetailsRouter(
 
   const {
     isLoading: templateStrIsLoading,
-    isError: templateStrIsError,
     error: templateStrError,
     data: templateStrFromPipelineVersion,
   } = usePipelineVersionTemplate(
@@ -132,14 +120,16 @@ export default function RunDetailsRouter(
     pipelineManifest ? undefined : pipelineVersionId,
   );
 
+  const loadError = (!v2Run && runError) || templateStrError;
+  const hasLoadErrorBanner = useRef(false);
   useEffect(() => {
-    if (templateStrIsError && templateStrError) {
+    if (loadError) {
       let cancelled = false;
-      errorToMessage(templateStrError).then((msg) => {
+      errorToMessage(loadError).then((msg) => {
         if (!cancelled) {
-          updatePageBanner({
-            message:
-              'Error: failed to retrieve pipeline version template. Click Details for more information.',
+          hasLoadErrorBanner.current = true;
+          updateBanner({
+            message: `Error: failed to retrieve ${runError ? 'run' : 'pipeline version template'}. Click Details for more information.`,
             mode: 'error',
             additionalInfo: msg,
           });
@@ -149,8 +139,12 @@ export default function RunDetailsRouter(
         cancelled = true;
       };
     }
+    if (hasLoadErrorBanner.current) {
+      updateBanner({});
+      hasLoadErrorBanner.current = false;
+    }
     return undefined;
-  }, [templateStrIsError, templateStrError, updatePageBanner]);
+  }, [loadError, runError, updateBanner]);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
   const pipelineSpec = useMemo(
@@ -158,21 +152,7 @@ export default function RunDetailsRouter(
       templateString ? WorkflowUtils.tryConvertYamlToV2PipelineSpec(templateString) : undefined,
     [templateString],
   );
-  const linkedTaskId = new URLSearchParams(props.location.search).get(QUERY_PARAMS.taskId);
-  const renderV2Details = !!(v2Run && templateString && pipelineSpec);
   const runDetailsIsLoading = runIsLoading || templateStrIsLoading;
-
-  useEffect(() => {
-    if (linkedTaskId && !runDetailsIsLoading && !renderV2Details && !templateStrIsError) {
-      updatePageBanner(LEGACY_TASK_LINK_WARNING);
-      return () => {
-        if (currentPageBanner.current === LEGACY_TASK_LINK_WARNING) {
-          updatePageBanner({});
-        }
-      };
-    }
-    return undefined;
-  }, [linkedTaskId, renderV2Details, runDetailsIsLoading, templateStrIsError, updatePageBanner]);
 
   if (v2Run && templateString && pipelineSpec) {
     return (
@@ -182,17 +162,19 @@ export default function RunDetailsRouter(
         parsedPipelineSpec={pipelineSpec}
         run={v2Run}
         {...props}
-        updateBanner={updatePageBanner}
+        updateBanner={updateBanner}
       />
     );
   }
 
+  if (runDetailsIsLoading) {
+    return <CircularProgress aria-label='Loading run details' />;
+  }
+  if (loadError) {
+    return <div role='alert'>Unable to load run details. Refresh this page to retry.</div>;
+  }
   return (
-    <EnhancedRunDetails
-      {...props}
-      isLoading={runDetailsIsLoading}
-      updateBanner={updatePageBanner}
-    />
+    <div role='alert'>This run has no valid pipeline IR. Select a run created with KFP v2.</div>
   );
 }
 

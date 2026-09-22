@@ -29,3 +29,34 @@ func TestRunToV2_UsesConditionsWhenStateIsUnspecified(t *testing.T) {
 		t.Fatalf("expected state %q, got %q", RuntimeStateRunning, converted.State)
 	}
 }
+
+func TestStoredOwnershipReferencesOnlyFillMissingV2Fields(t *testing.T) {
+	for _, direct := range []string{"", "v2-owner"} {
+		run := (&Run{ExperimentId: direct, Namespace: direct, RecurringRunId: direct,
+			ResourceReferences: []*ResourceReference{
+				{ReferenceType: ExperimentResourceType, ReferenceUUID: "historical-owner"},
+				{ReferenceType: NamespaceResourceType, ReferenceUUID: "historical-owner"},
+				{ReferenceType: JobResourceType, ReferenceUUID: "historical-owner"},
+			},
+		}).ToV2()
+		want := direct
+		if want == "" {
+			want = "historical-owner"
+		}
+		if run.ExperimentId != want || run.Namespace != want || run.RecurringRunId != want || run.ResourceReferences != nil {
+			t.Fatalf("unexpected normalized run ownership: %+v", run)
+		}
+		job := (&Job{ExperimentId: direct, Namespace: direct,
+			PipelineSpec: PipelineSpec{PipelineId: direct, PipelineVersionId: direct},
+			ResourceReferences: []*ResourceReference{
+				{ReferenceType: ExperimentResourceType, ReferenceUUID: "historical-owner"},
+				{ReferenceType: NamespaceResourceType, ReferenceUUID: "historical-owner"},
+				{ReferenceType: PipelineResourceType, ReferenceUUID: "historical-owner"},
+				{ReferenceType: PipelineVersionResourceType, ReferenceUUID: "historical-owner"},
+			},
+		}).ToV2()
+		if job.ExperimentId != want || job.Namespace != want || job.PipelineId != want || job.PipelineVersionId != want || job.ResourceReferences != nil {
+			t.Fatalf("unexpected normalized job ownership: %+v", job)
+		}
+	}
+}

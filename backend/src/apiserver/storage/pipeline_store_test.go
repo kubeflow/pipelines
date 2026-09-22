@@ -17,7 +17,7 @@ package storage
 import (
 	"testing"
 
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -200,297 +200,6 @@ func TestListPipelinesAndVersions_FilterOutNotReady(t *testing.T) {
 	assert.Equal(t, pipelinesVersionsExpected3, pipelineVersions)
 }
 
-func TestListPipelines_WithFilter(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline_foo"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline_bar"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
-
-	expectedPipeline1 := &model.Pipeline{
-		UUID:           DefaultFakePipelineId,
-		CreatedAtInSec: 1,
-		Name:           "pipeline_foo",
-		Status:         model.PipelineReady,
-	}
-	pipelinesExpected := []*model.Pipeline{expectedPipeline1}
-
-	filterProto := &api.Filter{
-		Predicates: []*api.Predicate{
-			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "pipeline_f"},
-			},
-		},
-	}
-	newFilter, _ := filter.New(filterProto)
-	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", newFilter)
-	assert.Nil(t, err)
-
-	pipelines, _, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-
-	assert.Nil(t, err)
-	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 1, totalSize)
-	assert.Equal(t, pipelinesExpected, pipelines)
-}
-
-func TestListPipelines_Pagination(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline3"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline4"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFour, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline2"))
-	expectedPipeline1 := &model.Pipeline{
-		UUID:           DefaultFakePipelineId,
-		CreatedAtInSec: 1,
-		Name:           "pipeline1",
-		Status:         model.PipelineReady,
-	}
-	expectedPipeline4 := &model.Pipeline{
-		UUID:           DefaultFakePipelineIdFour,
-		CreatedAtInSec: 4,
-		Name:           "pipeline2",
-		Status:         model.PipelineReady,
-	}
-	pipelinesExpected := []*model.Pipeline{expectedPipeline1, expectedPipeline4}
-
-	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name", nil)
-	assert.Nil(t, err)
-	pipelines, _, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-	assert.Nil(t, err)
-	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, 4, totalSize)
-	assert.Equal(t, pipelinesExpected, pipelines)
-
-	expectedPipeline2 := &model.Pipeline{
-		UUID:           DefaultFakePipelineIdTwo,
-		CreatedAtInSec: 2,
-		Name:           "pipeline3",
-		Status:         model.PipelineReady,
-	}
-	expectedPipeline3 := &model.Pipeline{
-		UUID:           DefaultFakePipelineIdThree,
-		CreatedAtInSec: 3,
-		Name:           "pipeline4",
-		Status:         model.PipelineReady,
-	}
-	pipelinesExpected2 := []*model.Pipeline{expectedPipeline2, expectedPipeline3}
-
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
-	assert.Nil(t, err)
-
-	pipelines, _, totalSize, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-	assert.Nil(t, err)
-	assert.Empty(t, nextPageToken)
-	assert.Equal(t, 4, totalSize)
-	assert.Equal(t, pipelinesExpected2, pipelines)
-}
-
-func TestListPipelines_Pagination_Descend(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline1"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline3"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline4"))
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFour, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("pipeline2"))
-
-	expectedPipeline2 := &model.Pipeline{
-		UUID:           DefaultFakePipelineIdTwo,
-		CreatedAtInSec: 2,
-		Name:           "pipeline3",
-		Status:         model.PipelineReady,
-	}
-	expectedPipeline3 := &model.Pipeline{
-		UUID:           DefaultFakePipelineIdThree,
-		CreatedAtInSec: 3,
-		Name:           "pipeline4",
-		Status:         model.PipelineReady,
-	}
-	pipelinesExpected := []*model.Pipeline{expectedPipeline3, expectedPipeline2}
-
-	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name desc", nil)
-	assert.Nil(t, err)
-	pipelines, _, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-	assert.Nil(t, err)
-	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, 4, totalSize)
-	assert.Equal(t, pipelinesExpected, pipelines)
-
-	expectedPipeline1 := &model.Pipeline{
-		UUID:           DefaultFakePipelineId,
-		CreatedAtInSec: 1,
-		Name:           "pipeline1",
-		Status:         model.PipelineReady,
-	}
-	expectedPipeline4 := &model.Pipeline{
-		UUID:           DefaultFakePipelineIdFour,
-		CreatedAtInSec: 4,
-		Name:           "pipeline2",
-		Status:         model.PipelineReady,
-	}
-	pipelinesExpected2 := []*model.Pipeline{expectedPipeline4, expectedPipeline1}
-
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
-	assert.Nil(t, err)
-	pipelines, _, totalSize, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-	assert.Nil(t, err)
-	assert.Empty(t, nextPageToken)
-	assert.Equal(t, 4, totalSize)
-	assert.Equal(t, pipelinesExpected2, pipelines)
-}
-
-func TestListPipelinesV1_Pagination_NameAsc(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
-	pipelineStore.CreatePipeline(createPipelineV1("bbb"))
-
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
-	pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineId, "pipeline1/v1", "", "", "", ""))
-
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
-	pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineId, "pipeline1/v2", "", "", "", ""))
-
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("aaa"))
-
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFour, nil)
-	pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineIdTwo, "pipeline2/v1", "", "", "", ""))
-
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFive, nil)
-	pipelineStore.CreatePipelineVersion(createPipelineVersion(DefaultFakePipelineIdTwo, "pipeline2/v2", "", "", "", ""))
-
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil)
-	pipelineStore.CreatePipeline(createPipelineV1("ccc"))
-
-	expectedPipeline1 := &model.Pipeline{
-		UUID:           DefaultFakePipelineId,
-		CreatedAtInSec: 1,
-		Name:           "bbb",
-		Status:         model.PipelineReady,
-	}
-	expectedPipeline2 := &model.Pipeline{
-		UUID:           DefaultFakePipelineIdTwo,
-		CreatedAtInSec: 4,
-		Name:           "aaa",
-		Status:         model.PipelineReady,
-	}
-	pipelinesExpected := []*model.Pipeline{expectedPipeline2, expectedPipeline1}
-
-	expectedPipelineVersion1 := &model.PipelineVersion{
-		PipelineId:     DefaultFakePipelineId,
-		UUID:           DefaultFakePipelineIdThree,
-		CreatedAtInSec: 3,
-		Name:           "pipeline1/v2",
-		Status:         model.PipelineVersionReady,
-		Parameters:     `[{"Name": "param1"}]`,
-	}
-	expectedPipelineVersion2 := &model.PipelineVersion{
-		PipelineId:     DefaultFakePipelineIdTwo,
-		UUID:           DefaultFakePipelineIdFive,
-		CreatedAtInSec: 6,
-		Name:           "pipeline2/v2",
-		Status:         model.PipelineVersionReady,
-		Parameters:     `[{"Name": "param1"}]`,
-	}
-	pipelineVersionsExpected := []*model.PipelineVersion{expectedPipelineVersion2, expectedPipelineVersion1}
-
-	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name asc", nil)
-	assert.Nil(t, err)
-	pipelines, pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-	assert.Nil(t, err)
-	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, pipelinesExpected, pipelines)
-	assert.Equal(t, pipelineVersionsExpected, pipelineVersions)
-
-	expectedPipeline3 := &model.Pipeline{
-		UUID:           DefaultFakePipelineIdThree,
-		CreatedAtInSec: 7,
-		Name:           "ccc",
-		Status:         model.PipelineReady,
-	}
-	pipelinesExpected2 := []*model.Pipeline{expectedPipeline3}
-	pipelineVersionsExpected2 := []*model.PipelineVersion{{}}
-
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
-	assert.Nil(t, err)
-	pipelines, pipelineVersions, totalSize, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-	assert.Nil(t, err)
-	assert.Empty(t, nextPageToken)
-	assert.Equal(t, 3, totalSize)
-	assert.Equal(t, pipelinesExpected2, pipelines)
-	assert.Equal(t, pipelineVersionsExpected2, pipelineVersions)
-}
-
-func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
-	p := createPipelineV1("pipeline1")
-	p1, err := pipelineStore.CreatePipeline(p)
-	assert.Nil(t, err)
-	pipelineStore.CreatePipelineVersion(
-		createPipelineVersion(
-			p1.UUID,
-			"version1",
-			"",
-			"",
-			"",
-			"",
-		),
-	)
-	expectedPipeline1 := &model.Pipeline{
-		UUID:           DefaultFakePipelineId,
-		CreatedAtInSec: 1,
-		Name:           "pipeline1",
-		Status:         model.PipelineReady,
-	}
-	expectedPipelineVersion1 := &model.PipelineVersion{
-		UUID:           DefaultFakePipelineId,
-		CreatedAtInSec: 2,
-		Name:           "version1",
-		Status:         model.PipelineVersionReady,
-		PipelineId:     DefaultFakePipelineId,
-		Parameters:     "[{\"Name\": \"param1\"}]",
-	}
-	pipelinesExpected := []*model.Pipeline{expectedPipeline1}
-	pipelineVersionsExpected := []*model.PipelineVersion{expectedPipelineVersion1}
-
-	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
-	assert.Nil(t, err)
-	pipelines, pipelineVersions, totalSize, nextPageToken, err := pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-	assert.Nil(t, err)
-	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, 1, totalSize)
-	assert.Equal(t, pipelinesExpected, pipelines)
-	assert.Equal(t, pipelineVersionsExpected, pipelineVersions)
-}
-
-func TestListPipelinesError(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
-	db.Close()
-	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
-	assert.Nil(t, err)
-	_, _, _, _, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-}
-
 func TestGetPipeline(t *testing.T) {
 	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
@@ -585,37 +294,6 @@ func TestGetPipelineByNameAndNamespace_NotFound(t *testing.T) {
 	_, err := pipelineStore.CreatePipeline(p)
 	assert.Nil(t, err)
 	_, err = pipelineStore.GetPipelineByNameAndNamespace(p.Name, "wrong_namespace")
-	assert.NotNil(t, err)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
-		"Failed to get pipeline by name and namespace")
-}
-
-func TestGetPipelineByNameAndNamespaceV1(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
-	p := createPipelineV1("pipeline1")
-	p.Namespace = "ns1"
-	resPipeline, err := pipelineStore.CreatePipeline(p)
-	assert.Nil(t, err)
-	pv := createPipelineVersion(resPipeline.UUID, "pipeline1", "", "", "", "")
-	resPipelineV, err := pipelineStore.CreatePipelineVersion(pv)
-	assert.Nil(t, err)
-	pipeline, pipelineVersion, err := pipelineStore.GetPipelineByNameAndNamespaceV1("pipeline1", "ns1")
-	assert.Nil(t, err)
-	assert.Equal(t, resPipeline, pipeline)
-	assert.Equal(t, resPipelineV, pipelineVersion)
-}
-
-func TestGetPipelineByNameAndNamespaceV1_NotFound(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect)
-	p := createPipelineV1("pipeline1")
-	p.Namespace = "ns1"
-	_, err := pipelineStore.CreatePipeline(p)
-	assert.Nil(t, err)
-	_, _, err = pipelineStore.GetPipelineByNameAndNamespaceV1(p.Name, "wrong_namespace")
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Failed to get pipeline by name and namespace")
@@ -1026,40 +704,6 @@ func TestCreatePipelineVersion(t *testing.T) {
 		pipelineVersionExpected,
 		*pipelineVersionCreated,
 		"Got unexpected pipeline")
-}
-
-func TestUpdatePipelineDefaultVersion(t *testing.T) {
-	db, testDialect := NewFakeDBOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(
-		db,
-		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil), testDialect,
-	)
-
-	// Create a pipeline first.
-	p, err := pipelineStore.CreatePipeline(
-		createPipeline("p1", "pipeline one", "user1"),
-	)
-	assert.Nil(t, err)
-	// Create a version under the above pipeline.
-	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
-	pipelineVersion := &model.PipelineVersion{
-		Name:          "pipeline_version_1",
-		Parameters:    `[{"Name": "param1"}]`,
-		Description:   "pipeline_version_description",
-		PipelineId:    DefaultFakePipelineId,
-		Status:        model.PipelineVersionCreating,
-		CodeSourceUrl: "code_source_url",
-	}
-	pipelineVersionCreated, err := pipelineStore.CreatePipelineVersion(
-		pipelineVersion,
-	)
-	assert.Nil(t, err)
-	err = pipelineStore.UpdatePipelineDefaultVersion(p.UUID, pipelineVersionCreated.UUID)
-	assert.Nil(t, err)
-	err = pipelineStore.UpdatePipelineDefaultVersion(p.UUID, "something else")
-	assert.Nil(t, err)
 }
 
 func TestCreatePipelineVersionNotUpdateDefaultVersion(t *testing.T) {
@@ -1908,9 +1552,9 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	equalFilterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_EQUALS,
-				Value: &api.Predicate_StringValue{StringValue: "pipeline_version_1"},
+				Key:       "name",
+				Operation: api.Predicate_EQUALS,
+				Value:     &api.Predicate_StringValue{StringValue: "pipeline_version_1"},
 			},
 		},
 	}
@@ -1920,9 +1564,9 @@ func TestListPipelineVersions_WithFilter(t *testing.T) {
 	prefixFilterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "pipeline_version"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "pipeline_version"},
 			},
 		},
 	}

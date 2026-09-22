@@ -11,43 +11,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Two step v2-compatible pipeline with URI placeholders."""
-from kfp import components, dsl
+"""Two step pipeline with URI placeholders."""
+from kfp import dsl
 
-write_to_gcs_op = components.load_component_from_text("""
-name: write-to-gcs
-inputs:
-- {name: msg, type: String, description: 'Content to be written to GCS'}
-outputs:
-- {name: artifact, type: Artifact, description: 'GCS file path'}
-implementation:
-  container:
-    image: google/cloud-sdk:slim
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "$0" | gsutil cp - "$1"
-    - {inputValue: msg}
-    - {outputUri: artifact}
-""")
 
-read_from_gcs_op = components.load_component_from_text("""
-name: read-from-gcs
-inputs:
-- {name: artifact, type: Artifact, description: 'GCS file path'}
-implementation:
-  container:
-    image: google/cloud-sdk:slim
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      gsutil cat "$0"
-    - {inputUri: artifact}
-""")
+@dsl.container_component
+def write_to_gcs(msg: str, artifact: dsl.Output[dsl.Artifact]):
+    """
+    Args:
+        msg: Content to be written to GCS
+        artifact: GCS file path"""
+    return dsl.ContainerSpec(
+        image='google/cloud-sdk:slim',
+        command=[
+            'sh', '-c', 'set -e -x\necho "$0" | gsutil cp - "$1"\n', msg,
+            artifact.uri
+        ],
+    )
+
+
+write_to_gcs_op = write_to_gcs
+
+
+@dsl.container_component
+def read_from_gcs(artifact: dsl.Input[dsl.Artifact]):
+    """
+    Args:
+        artifact: GCS file path"""
+    return dsl.ContainerSpec(
+        image='google/cloud-sdk:slim',
+        command=['sh', '-c', 'set -e -x\ngsutil cat "$0"\n', artifact.uri],
+    )
+
+
+read_from_gcs_op = read_from_gcs
 
 
 @dsl.pipeline(name='two-step-with-uri-placeholders')

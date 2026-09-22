@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -68,9 +68,9 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "test"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "test"},
 			},
 		},
 	}
@@ -502,9 +502,9 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "test"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "test"},
 			},
 		},
 	}

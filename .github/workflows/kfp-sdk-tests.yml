@@ -10,6 +10,8 @@ on:
       - 'api/**'
       - 'sdk/**'
       - 'test_data/sdk_compiled_pipelines/**'
+      - 'test_data/component_migration_test.py'
+      - 'components/google-cloud/google_cloud_pipeline_components/_implementation/starry_net/**'
       - 'test/presubmit-tests-sdk.sh'
       - '.github/workflows/kfp-sdk-tests.yml'
       - '.github/actions/setup-python/**'
@@ -50,3 +52,8 @@ jobs:
         PYTEST_PARALLEL_WORKERS: 2
       run: |
         ./test/presubmit-tests-sdk.sh
+
+    - name: Compile shared container fixtures without legacy YAML
+      run: |
+        PYTHONPATH="$PWD/components/google-cloud:${PYTHONPATH:-}" \
+          python -m pytest -q test_data/component_migration_test.py

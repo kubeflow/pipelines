@@ -249,7 +249,6 @@ func normalizeSQL(sql string) string {
 **CI Coverage**: GitHub Actions workflows automatically run integration tests against both MySQL and PostgreSQL:
 - `.github/workflows/api-server-tests.yml`: API tests with both MySQL and PostgreSQL (`db_type` matrix)
 - `.github/workflows/legacy-v2-api-integration-tests-postgres.yml`: PostgreSQL integration tests
-- `.github/workflows/integration-tests-v1-postgres.yml`: V1 API with PostgreSQL
 
 ## Common Pitfalls and Solutions
 
@@ -328,3 +327,25 @@ For now, the DBDialect + quoting approach provides a robust solution for multi-d
 - Refer to `AGENTS.md` for high-level guidance
 - CI failures related to PostgreSQL usually indicate missing identifier quoting
 - For new features, prefer GORM; fall back to Squirrel + DBDialect only when necessary
+
+### Retired API compatibility and database upgrades
+
+The backend serves only the v2beta1 API and accepts pipeline IR, not raw Argo
+pipeline templates. V2 execution still persists Argo runtime manifests for
+reporting, log retrieval, retries, and workflow identity fencing.
+
+Historical database columns and migrations are not dropped by API removal:
+`DefaultVersionId`, `WorkflowSpecManifest`, `Parameters`, `Conditions`, and
+resource-reference rows remain readable for upgrades. V2 ownership uses the
+explicit experiment/namespace/pipeline columns; reference rows only fill missing
+historical ownership. New runs and recurring runs do not synthesize v1 resource
+references. The `run_metrics` model/FK is migration-only, with no write, read, or
+sort API; run deletion still cleans up pre-upgrade metric rows. V2 metrics use
+native tasks and artifacts, whose storage and hydration remain supported.
+
+Retries of stored user-authored Argo templates are rejected before claiming the
+run or mutating pods/workflows. IR-compiled runtime workflows remain retryable
+even if the referenced pipeline version has since been deleted. The compiler's
+`v2_component` pod metadata distinguishes the execution format; it is not an
+authorization boundary and does not replace namespace, identity, or service-account
+checks.

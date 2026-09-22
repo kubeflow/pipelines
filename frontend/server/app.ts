@@ -135,7 +135,6 @@ export class UIServer {
 function createUIServer(options: UIConfigs) {
   const currDir = path.resolve(__dirname);
   const basePath = options.server.basePath;
-  const apiVersion1Prefix = options.server.apiVersion1Prefix;
   const apiVersion2Prefix = options.server.apiVersion2Prefix;
   const apiServerAddress = getAddress(options.pipeline);
 
@@ -149,15 +148,6 @@ function createUIServer(options: UIConfigs) {
   });
 
   /** Healthz */
-  registerHandler(
-    app.get,
-    `/${apiVersion1Prefix}/healthz`,
-    getHealthzHandler({
-      healthzEndpoint: getHealthzEndpoint(apiServerAddress, apiVersion1Prefix),
-      healthzStats: getBuildMetadata(currDir),
-    }),
-  );
-
   registerHandler(
     app.get,
     `/${apiVersion2Prefix}/healthz`,
@@ -264,8 +254,18 @@ function createUIServer(options: UIConfigs) {
   /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
   if (options.artifacts.streamLogsFromServerApi) {
     app.all(
-      '/k8s/pod/logs',
+      ['/k8s/pod/logs', `${basePath}/k8s/pod/logs`],
       hardenPodLogsProxyRequest,
+      (req, res, next) => {
+        for (const key of ['runid', 'podname']) {
+          const value = req.query[key];
+          if (typeof value !== 'string' || !value || value === '.' || value === '..') {
+            res.status(400).send(`${key} must be a non-empty path segment`);
+            return;
+          }
+        }
+        next();
+      },
       createProxyMiddleware({
         changeOrigin: true,
         on: {
@@ -277,44 +277,8 @@ function createUIServer(options: UIConfigs) {
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
         pathRewrite: (pathStr: string, req: any) => {
           /** Argo nodeId is just POD name */
-          const nodeId = req.query.podname;
-          const runId = req.query.runid;
-          return `/${apiVersion1Prefix}/runs/${runId}/nodes/${nodeId}/log`;
-        },
-        target: apiServerAddress,
-      }),
-    );
-  } else {
-    registerHandler(
-      app.get,
-      '/k8s/pod/logs',
-      getPodLogsHandler(
-        options.argo,
-        options.artifacts,
-        options.pod.logContainerName,
-        authorizeFn,
-        options.auth.enabled,
-      ),
-    );
-  }
-
-  if (options.artifacts.streamLogsFromServerApi) {
-    app.all(
-      '/k8s/pod/logs',
-      hardenPodLogsProxyRequest,
-      createProxyMiddleware({
-        changeOrigin: true,
-        on: {
-          proxyReq: (proxyReq) => {
-            console.log('Proxied log request: ', proxyReq.path);
-          },
-          proxyRes: hardenPodLogsProxyResponse,
-        },
-        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-        pathRewrite: (pathStr: string, req: any) => {
-          /** Argo nodeId is just POD name */
-          const nodeId = req.query.podname;
-          const runId = req.query.runid;
+          const nodeId = encodeURIComponent(req.query.podname as string);
+          const runId = encodeURIComponent(req.query.runid as string);
           return `/${apiVersion2Prefix}/runs/${runId}/nodes/${nodeId}/log`;
         },
         target: apiServerAddress,
@@ -352,23 +316,14 @@ function createUIServer(options: UIConfigs) {
 
   registerHandler(
     app.use,
-    [
-      // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
-      `/${apiVersion1Prefix}/runs/*reportMetrics`,
-      `/${apiVersion1Prefix}/workflows`,
-      `/${apiVersion1Prefix}/scheduledworkflows`,
-      `/${apiVersion2Prefix}/workflows`,
-      `/${apiVersion2Prefix}/scheduledworkflows`,
-    ],
+    [`/${apiVersion2Prefix}/workflows`, `/${apiVersion2Prefix}/scheduledworkflows`],
     (req, res) => {
       res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
     },
   );
 
   const deprecatedProxyRoutes = [
-    `/${apiVersion1Prefix}/_proxy/*`,
     `/${apiVersion2Prefix}/_proxy/*`,
-    `${basePath}/${apiVersion1Prefix}/_proxy/*`,
     `${basePath}/${apiVersion2Prefix}/_proxy/*`,
   ];
 
@@ -377,19 +332,6 @@ function createUIServer(options: UIConfigs) {
   });
 
   /** Proxy to ml-pipeline api server */
-  app.all(
-    `/${apiVersion1Prefix}/*`,
-    createProxyMiddleware({
-      changeOrigin: true,
-      on: {
-        proxyReq: (proxyReq) => {
-          console.log('Proxied request: ', proxyReq.path);
-        },
-      },
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      target: apiServerAddress,
-    }),
-  );
   app.all(
     `/${apiVersion2Prefix}/*`,
     createProxyMiddleware({
@@ -404,21 +346,6 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
-  app.all(
-    `${basePath}/${apiVersion1Prefix}/*`,
-    createProxyMiddleware({
-      changeOrigin: true,
-      on: {
-        proxyReq: (proxyReq) => {
-          console.log('Proxied request: ', proxyReq.path);
-        },
-      },
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      pathRewrite: (pathStr) =>
-        pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
-      target: apiServerAddress,
-    }),
-  );
   app.all(
     `${basePath}/${apiVersion2Prefix}/*`,
     createProxyMiddleware({

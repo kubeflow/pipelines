@@ -114,22 +114,10 @@ jobs:
           API_VERSION: v2beta1
         run: make generate
 
-      - name: Generate backend proto code v1beta1
-        working-directory: ./backend/api
-        env:
-          API_VERSION: v1beta1
-        run: make generate
-
       - name: Generate backend proto code v2beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v2beta1
-        run: make generate-kfp-server-api-package
-
-      - name: Generate backend proto code v1beta1
-        working-directory: ./backend/api
-        env:
-          API_VERSION: v1beta1
         run: make generate-kfp-server-api-package
 
       - name: Check for Changes

@@ -112,3 +112,10 @@ Node.js version above, and it made `proxy-agent` optional, so `HTTPS_PROXY` is
 ignored on the browser download path. That path never runs here because the
 Selenium host is explicit. Remove the pin and the override when `@wdio/utils`
 accepts the 3.x major.
+
+## Pipeline fixtures
+
+The browser tests upload KFP v2 pipeline IR only. Regenerate the hello-world and
+TensorBoard fixtures with `python compile_fixtures.py` in an environment with the
+v2 `kfp` SDK installed. TensorBoard exercises UI metadata carried as a native
+`system.Artifact`, not an Argo workflow upload.

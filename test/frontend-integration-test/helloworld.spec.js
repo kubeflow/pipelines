@@ -43,7 +43,7 @@ const outputParameterValue = 'Hello world in test';
 
 function getGraphNodeByLabel(label) {
   return $(
-    `//div[contains(concat(" ", normalize-space(@class), " "), " graphNode ")][.//div[normalize-space()="${label}"]]`,
+    `//div[contains(concat(" ", normalize-space(@class), " "), " react-flow__node-EXECUTION ")][.//span[normalize-space()="${label}"]]`,
   );
 }
 
@@ -202,7 +202,7 @@ describe('deploy helloworld sample run', () => {
 
   it('has at least 4 graph nodes', async () => {
     await waitForCondition(
-      async () => (await $$('.graphNode')).length >= 4,
+      async () => (await $$('.react-flow__node-EXECUTION')).length >= 4,
       {
         timeout: uiTimeout,
         timeoutMsg: 'expected at least 4 graph node(s) to be visible',
@@ -211,12 +211,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('opens the side panel when graph node is clicked', async () => {
-    // Global Argo retries add an A wrapper and an A(0) pod. Select the pod when present so the
-    // Logs tab targets an execution rather than the retry wrapper.
-    const retryAttemptNode = await getGraphNodeByLabel('A(0)');
-    const loggableNode = (await retryAttemptNode.isExisting())
-      ? retryAttemptNode
-      : await getGraphNodeByLabel('A');
+    const loggableNode = await getGraphNodeByLabel('A');
     await loggableNode.click();
     await $('button=Logs').waitForDisplayed({ timeout: uiTimeout });
   });

@@ -1,86 +1,149 @@
-# Copyright 2021 The Kubeflow Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-name: Kaniko
-inputs:
-- {name: dockerfile, type: String}
-- name: context_uri
-  type: URI
-  default: ""
-  description: |
-    URI to download context, e.g. gs://mybucket/context.tar.gz.
-    At least one of context_uri and context_artifact should be specified.
-- name: context_artifact
-  type: Folder
-  default: ""
-  description: |
-    Input context artifact, it should be a folder.
-    At least one of context_uri and context_artifact should be specified.
-- {name: context_sub_path, type: Path, default: ""}
-- {name: destination, type: String, description: destination should not contain tag}
-- {name: cache, type: String, description: enable caching one of true/false, default: "true"}
-- {name: cache_ttl, type: String, description: 'cache TTL, format like XXh', default: 24h}
-outputs:
-- {name: digest, type: URI, description: Image URI with full digest}
-metadata:
-  annotations:
-    author: Yuan Gong <gongyuan94@gmail.com>
-implementation:
-  container:
-    # The debug image contains busybox, while the normal images do not.
-    # Pinned to 1.3.0, because unusually high memory usage is observed in later
-    # versions, causing OOM. 1.6.0 is known to break, we may try later releases
-    # when they are released.
-    # https://github.com/GoogleContainerTools/kaniko/issues/1680
-    image: gcr.io/kaniko-project/executor:v1.3.0-debug
-    command:
-    - sh
-    - -exc
-    - |
-        dockerfile="$0"
-        context_uri="$1"
-        context_artifact_path="$2"
-        context_sub_path="$3"
-        destination="$4"
-        digest_output_path="$5"
-        cache="$6"
-        cache_ttl="$7"
-        context=""
-        if [[ "${context_uri}" != "" ]]; then
-          context="${context_uri}"
-        else
-          context="dir://${context_artifact_path}"
-        fi
-        digest_file="$(mktemp)"
-        # Reference: https://github.com/GoogleContainerTools/kaniko
-        # snapshotMode and use-new-run added because: https://github.com/GoogleContainerTools/kaniko/issues/1333
-        /kaniko/executor \
-            --dockerfile "${dockerfile}" \
-            --context "${context}" \
-            ${context_sub_path:+ --context-sub-path "${context_sub_path}"} \
-            --destination "${destination}" \
-            --digest-file "${digest_file}" \
-            --cache="${cache}" \
-            --cache-ttl="${cache_ttl}"
-        mkdir -p "$(dirname "${digest_output_path}")"
-        digest="$(cat $digest_file)"
-        echo "${destination}@${digest}" > "${digest_output_path}"
-    - inputValue: dockerfile
-    - inputValue: context_uri
-    - inputPath: context_artifact
-    - inputValue: context_sub_path
-    - inputValue: destination
-    - outputPath: digest
-    - inputValue: cache
-    - inputValue: cache_ttl
+# PIPELINE DEFINITION
+# Name: kaniko
+# Description: Build an image from context_uri or context_artifact and write its URI/digest.
+# Inputs:
+#    cache: str [Default: 'true']
+#    cache_ttl: str [Default: '24h']
+#    context_artifact: system.Artifact
+#    context_sub_path: str [Default: '']
+#    context_uri: str [Default: '']
+#    destination: str
+#    dockerfile: str
+# Outputs:
+#    digest: system.Artifact
+components:
+  comp-kaniko:
+    executorLabel: exec-kaniko
+    inputDefinitions:
+      artifacts:
+        context_artifact:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+          isOptional: true
+      parameters:
+        cache:
+          defaultValue: 'true'
+          isOptional: true
+          parameterType: STRING
+        cache_ttl:
+          defaultValue: 24h
+          isOptional: true
+          parameterType: STRING
+        context_sub_path:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        context_uri:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        destination:
+          parameterType: STRING
+        dockerfile:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        digest:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-kaniko:
+      container:
+        command:
+        - sh
+        - -exc
+        - "dockerfile=\"$0\"\ncontext_uri=\"$1\"\ncontext_artifact_path=\"$2\"\ncontext_sub_path=\"\
+          $3\"\ndestination=\"$4\"\ndigest_output_path=\"$5\"\ncache=\"$6\"\ncache_ttl=\"\
+          $7\"\ncontext=\"\"\nif [[ \"${context_uri}\" != \"\" ]]; then\n  context=\"\
+          ${context_uri}\"\nelse\n  context=\"dir://${context_artifact_path}\"\nfi\n\
+          digest_file=\"$(mktemp)\"\n# Reference: https://github.com/GoogleContainerTools/kaniko\n\
+          # snapshotMode and use-new-run added because: https://github.com/GoogleContainerTools/kaniko/issues/1333\n\
+          /kaniko/executor \\\n    --dockerfile \"${dockerfile}\" \\\n    --context\
+          \ \"${context}\" \\\n    ${context_sub_path:+ --context-sub-path \"${context_sub_path}\"\
+          } \\\n    --destination \"${destination}\" \\\n    --digest-file \"${digest_file}\"\
+          \ \\\n    --cache=\"${cache}\" \\\n    --cache-ttl=\"${cache_ttl}\"\nmkdir\
+          \ -p \"$(dirname \"${digest_output_path}\")\"\ndigest=\"$(cat $digest_file)\"\
+          \necho \"${destination}@${digest}\" > \"${digest_output_path}\"\n"
+        - '{{$.inputs.parameters[''dockerfile'']}}'
+        - '{{$.inputs.parameters[''context_uri'']}}'
+        - '{"IfPresent": {"InputName": "context_artifact", "Then": "{{$.inputs.artifacts[''context_artifact''].path}}"}}'
+        - '{{$.inputs.parameters[''context_sub_path'']}}'
+        - '{{$.inputs.parameters[''destination'']}}'
+        - '{{$.outputs.artifacts[''digest''].path}}'
+        - '{{$.inputs.parameters[''cache'']}}'
+        - '{{$.inputs.parameters[''cache_ttl'']}}'
+        image: gcr.io/kaniko-project/executor:v1.3.0-debug
+pipelineInfo:
+  name: kaniko
+root:
+  dag:
+    outputs:
+      artifacts:
+        digest:
+          artifactSelectors:
+          - outputArtifactKey: digest
+            producerSubtask: kaniko
+    tasks:
+      kaniko:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-kaniko
+        inputs:
+          artifacts:
+            context_artifact:
+              componentInputArtifact: context_artifact
+          parameters:
+            cache:
+              componentInputParameter: cache
+            cache_ttl:
+              componentInputParameter: cache_ttl
+            context_sub_path:
+              componentInputParameter: context_sub_path
+            context_uri:
+              componentInputParameter: context_uri
+            destination:
+              componentInputParameter: destination
+            dockerfile:
+              componentInputParameter: dockerfile
+        taskInfo:
+          name: kaniko
+  inputDefinitions:
+    artifacts:
+      context_artifact:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+        isOptional: true
+    parameters:
+      cache:
+        defaultValue: 'true'
+        isOptional: true
+        parameterType: STRING
+      cache_ttl:
+        defaultValue: 24h
+        isOptional: true
+        parameterType: STRING
+      context_sub_path:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      context_uri:
+        defaultValue: ''
+        isOptional: true
+        parameterType: STRING
+      destination:
+        parameterType: STRING
+      dockerfile:
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      digest:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

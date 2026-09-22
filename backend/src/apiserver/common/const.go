@@ -67,7 +67,6 @@ const DefaultMetadataTLSEnabled = false
 
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
-	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
 	ProjectIDEnvVar                     = "PROJECT_ID"
 )

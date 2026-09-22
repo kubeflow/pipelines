@@ -16,12 +16,9 @@ package common
 
 import (
 	"os"
-	"os/exec"
 	"reflect"
-	"strings"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zapcore"
 )
@@ -164,87 +161,6 @@ func TestCustomMarshaler(t *testing.T) {
 	assert.True(t, marshaler.UseProtoNames)
 	assert.False(t, marshaler.EmitUnpopulated)
 	assert.False(t, marshaler.DiscardUnknown)
-}
-
-func TestPatchPipelineDefaultParameter(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		bucket   string
-		project  string
-		expected string
-	}{
-		{
-			name:     "replaces both placeholders",
-			input:    "gs://{{kfp-default-bucket}}/{{kfp-project-id}}/output",
-			bucket:   "my-bucket",
-			project:  "my-project",
-			expected: "gs://my-bucket/my-project/output",
-		},
-		{
-			name:     "text with no placeholders is unchanged",
-			input:    "gs://some-bucket/some-project/output",
-			bucket:   "my-bucket",
-			project:  "my-project",
-			expected: "gs://some-bucket/some-project/output",
-		},
-		{
-			name:     "replaces only bucket placeholder",
-			input:    "gs://{{kfp-default-bucket}}/data",
-			bucket:   "test-bucket",
-			project:  "test-project",
-			expected: "gs://test-bucket/data",
-		},
-		{
-			name:     "replaces multiple occurrences",
-			input:    "{{kfp-default-bucket}} and {{kfp-default-bucket}} with {{kfp-project-id}}",
-			bucket:   "b1",
-			project:  "p1",
-			expected: "b1 and b1 with p1",
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			viper.Reset()
-			t.Setenv(DefaultBucketNameEnvVar, testCase.bucket)
-			t.Setenv(ProjectIDEnvVar, testCase.project)
-			viper.AutomaticEnv()
-
-			result, err := PatchPipelineDefaultParameter(testCase.input)
-			assert.NoError(t, err)
-			assert.Equal(t, testCase.expected, result)
-		})
-	}
-}
-
-// TestPatchPipelineDefaultParameterMissingEnv verifies that PatchPipelineDefaultParameter
-// causes a fatal exit when required env vars (BUCKET_NAME, PROJECT_ID) are not set.
-// GetStringConfig calls glog.Fatalf for missing config, so the error return value of
-// PatchPipelineDefaultParameter is never used — the process exits instead.
-// This test uses the subprocess pattern to verify the fatal behavior.
-func TestPatchPipelineDefaultParameterMissingEnv(t *testing.T) {
-	if os.Getenv("TEST_PATCH_MISSING_ENV") == "1" {
-		viper.Reset()
-		viper.AutomaticEnv()
-		PatchPipelineDefaultParameter("gs://{{kfp-default-bucket}}/data")
-		return
-	}
-	cmd := exec.Command(os.Args[0], "-test.run=TestPatchPipelineDefaultParameterMissingEnv")
-	cmd.Env = append(os.Environ(), "TEST_PATCH_MISSING_ENV=1")
-	// Unset the env vars that PatchPipelineDefaultParameter requires
-	filteredEnv := []string{"TEST_PATCH_MISSING_ENV=1"}
-	for _, env := range os.Environ() {
-		if !strings.HasPrefix(env, "BUCKET_NAME=") && !strings.HasPrefix(env, "PROJECT_ID=") {
-			filteredEnv = append(filteredEnv, env)
-		}
-	}
-	cmd.Env = filteredEnv
-	err := cmd.Run()
-	if exitErr, ok := err.(*exec.ExitError); ok && !exitErr.Success() {
-		return // expected: process exited with non-zero status due to glog.Fatalf
-	}
-	t.Fatalf("expected process to exit with non-zero status when env vars are missing, but got: %v", err)
 }
 
 func TestParseResourceIdsFromFullName(t *testing.T) {

@@ -20,14 +20,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
+
 	"github.com/gorilla/mux"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -51,13 +55,13 @@ func TestRunLogServer_writeErrorToResponse(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 
-	var errorResponse api.Error
+	var errorResponse apiError
 	err := json.Unmarshal(recorder.Body.Bytes(), &errorResponse)
 	assert.Nil(t, err)
 	assert.Contains(t, errorResponse.ErrorMessage, assert.AnError.Error())
 }
 
-func TestReadRunLogV1_MissingRunId(t *testing.T) {
+func TestReadRunLog_MissingRunId(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunLogServer(manager)
@@ -67,13 +71,13 @@ func TestReadRunLogV1_MissingRunId(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{})
 
 	recorder := httptest.NewRecorder()
-	server.ReadRunLogV1(recorder, req)
+	server.ReadRunLog(recorder, req)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), RunKey)
 }
 
-func TestReadRunLogV1_MissingNodeId(t *testing.T) {
+func TestReadRunLog_MissingNodeId(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunLogServer(manager)
@@ -85,13 +89,13 @@ func TestReadRunLogV1_MissingNodeId(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	server.ReadRunLogV1(recorder, req)
+	server.ReadRunLog(recorder, req)
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), NodeKey)
 }
 
-func TestReadRunLogV1_Unauthorized(t *testing.T) {
+func TestReadRunLog_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -104,7 +108,7 @@ func TestReadRunLogV1_Unauthorized(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v1alpha1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req := httptest.NewRequest("GET", "/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log", nil)
 	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
 	req = mux.SetURLVars(req, map[string]string{
 		RunKey:  run.UUID,
@@ -112,7 +116,7 @@ func TestReadRunLogV1_Unauthorized(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	server.ReadRunLogV1(recorder, req)
+	server.ReadRunLog(recorder, req)
 
 	assert.Equal(t, http.StatusForbidden, recorder.Code)
 	assert.Equal(t, "application/json", recorder.Result().Header.Get("Content-Type"))
@@ -122,7 +126,7 @@ func TestReadRunLogV1_Unauthorized(t *testing.T) {
 // Shared read mode auto-approves the get and list verbs, so log reads use the
 // dedicated readLog verb to stay behind a SubjectAccessReview. This pins that:
 // an unauthorized caller must still get a 403 with shared read enabled.
-func TestReadRunLogV1_SharedReadModeStillDenied(t *testing.T) {
+func TestReadRunLog_SharedReadModeStillDenied(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 	viper.Set(common.MultiUserModeSharedReadAccess, "true")
@@ -135,7 +139,7 @@ func TestReadRunLogV1_SharedReadModeStillDenied(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v1alpha1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req := httptest.NewRequest("GET", "/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log", nil)
 	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
 	req = mux.SetURLVars(req, map[string]string{
 		RunKey:  run.UUID,
@@ -143,7 +147,7 @@ func TestReadRunLogV1_SharedReadModeStillDenied(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	server.ReadRunLogV1(recorder, req)
+	server.ReadRunLog(recorder, req)
 
 	assert.Equal(t, http.StatusForbidden, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "Check if you have access to namespace")
@@ -153,7 +157,7 @@ func TestReadRunLogV1_SharedReadModeStillDenied(t *testing.T) {
 // ReadLog, after the handler has already started its response. This pins that
 // the handler does not commit a 200 before that validation: the failure must
 // still surface to the client as a non-2xx JSON response.
-func TestReadRunLogV1_PodNotFromRun(t *testing.T) {
+func TestReadRunLog_PodNotFromRun(t *testing.T) {
 	clients, _, run := initWithOneTimeRun(t)
 	defer clients.Close()
 
@@ -168,21 +172,21 @@ func TestReadRunLogV1_PodNotFromRun(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v1alpha1/runs/"+run.UUID+"/nodes/victim-pod/log", nil)
+	req := httptest.NewRequest("GET", "/apis/v2beta1/runs/"+run.UUID+"/nodes/victim-pod/log", nil)
 	req = mux.SetURLVars(req, map[string]string{
 		RunKey:  run.UUID,
 		NodeKey: "victim-pod",
 	})
 
 	recorder := httptest.NewRecorder()
-	server.ReadRunLogV1(recorder, req)
+	server.ReadRunLog(recorder, req)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	assert.Equal(t, "application/json", recorder.Result().Header.Get("Content-Type"))
 	assert.Contains(t, recorder.Body.String(), "Failed to read logs for run "+run.UUID)
 }
 
-func TestReadRunLogV1_AuthorizedOverPlainHTTP(t *testing.T) {
+func TestReadRunLog_AuthorizedOverPlainHTTP(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -190,8 +194,74 @@ func TestReadRunLogV1_AuthorizedOverPlainHTTP(t *testing.T) {
 	defer clients.Close()
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v1alpha1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req := httptest.NewRequest("GET", "/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log", nil)
 	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
 
 	assert.NoError(t, server.authorize(req, run.UUID))
+}
+
+type logTestKubernetesCore struct {
+	kubernetes.Interface
+}
+
+func (c *logTestKubernetesCore) PodClient(namespace string) typedcorev1.PodInterface {
+	return c.CoreV1().Pods(namespace)
+}
+
+func (c *logTestKubernetesCore) GetClientSet() kubernetes.Interface {
+	return c.Interface
+}
+
+func TestReadRunLog_ForwardsFollowQueryToPodLogs(t *testing.T) {
+	for _, tc := range []struct {
+		query      string
+		wantFollow bool
+	}{
+		{query: "", wantFollow: false},
+		{query: "?follow=false", wantFollow: false},
+		{query: "?follow=true", wantFollow: true},
+	} {
+		t.Run(tc.query, func(t *testing.T) {
+			clients, _, run := initWithOneTimeRun(t)
+			defer clients.Close()
+			logRequests := make(chan string, 1)
+			kubeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/api/v1/namespaces/ns1/pods/node-1":
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(&corev1.Pod{
+						TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
+						ObjectMeta: metav1.ObjectMeta{Name: "node-1", Namespace: "ns1", Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID}},
+					})
+				case "/api/v1/namespaces/ns1/pods/node-1/log":
+					logRequests <- r.URL.Query().Get("follow")
+					w.Header().Set("Content-Type", "text/plain")
+					_, _ = w.Write([]byte("IR run log\n"))
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer kubeServer.Close()
+			kubeClient, err := kubernetes.NewForConfig(&rest.Config{Host: kubeServer.URL})
+			require.NoError(t, err)
+			clients.KubernetesCoreClientFake = &logTestKubernetesCore{Interface: kubeClient}
+			manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{})
+			server := NewRunLogServer(manager)
+			router := mux.NewRouter()
+			router.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/log", server.ReadRunLog).Methods(http.MethodGet)
+			req := httptest.NewRequest(http.MethodGet, "/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log"+tc.query, nil)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, req)
+			require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+			require.Equal(t, "IR run log\n", response.Body.String())
+			require.Equal(t, "text/plain", response.Header().Get("Content-Type"))
+			require.Equal(t, "no-cache, private", response.Header().Get("Cache-Control"))
+			select {
+			case follow := <-logRequests:
+				require.Equal(t, tc.wantFollow, follow == "true")
+			default:
+				t.Fatal("the request did not reach pod logs")
+			}
+		})
+	}
 }

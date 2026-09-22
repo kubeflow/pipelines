@@ -21,7 +21,7 @@ import unittest
 
 from kfp import compiler
 from kfp import components
-from kfp.components import placeholders
+from kfp.dsl import placeholders
 import pytest
 import yaml
 
@@ -99,7 +99,7 @@ def handle_expected_diffs(
 ) -> 'structures.ComponentSpec':
     """Strips some component spec fields that should be ignored when comparing
     with golden result."""
-    # Ignore description when comparing components specs read in from v1 component YAML and from IR YAML, because non lightweight Python components defined in v1 YAML can have a description field, but IR YAML does not preserve this field unless the component is a lightweight Python function-based component
+    # Older IR snapshots may not preserve the component description.
     component_spec.description = None
     # ignore SDK version so that golden snapshots don't need to be updated between SDK version bump
     if component_spec.implementation.graph is not None:
@@ -164,7 +164,7 @@ class TestReadWrite:
             test_case (str): Test case name (without file extension).
             test_data_dir (str): The directory containing the test case files.
             function (str, optional): The function name to compile.
-            read (bool): Whether the pipeline/component supports deserialization from YAML (IR, except for V1 component YAML back compatability tests).
+            read (bool): Whether the pipeline/component supports deserialization from PipelineSpec IR YAML.
             write (bool): Whether the pipeline/component supports compilation from a Python file.
         """
         yaml_file = os.path.join(_TEST_DATA_DIR, f'{test_case}.yaml')

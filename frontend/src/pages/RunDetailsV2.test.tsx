@@ -95,7 +95,7 @@ describe('RunDetailsV2', () => {
     display_name: 'test run',
     pipeline_spec: {
       pipeline_id: 'some-pipeline-id',
-      pipeline_manifest: '{some-template-string}',
+      pipelineInfo: { name: 'native-test-pipeline' },
     },
     runtime_config: { parameters: { param1: 'value1' } },
     state: V2beta1RuntimeState.SUCCEEDED,

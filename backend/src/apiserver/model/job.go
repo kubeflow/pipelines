@@ -55,21 +55,6 @@ func (s StatusState) ToString() string {
 	return string(s.ToV2())
 }
 
-// Converts to v1beta1-compatible internal representation of job status.
-// This should be called before converting to v1beta1 API type.
-func (s StatusState) ToV1() StatusState {
-	switch s.toUpper() {
-	case StatusStateUnspecified, StatusStateUnspecifiedV1, StatusState(LegacyStateNoStatus).toUpper(), StatusState(LegacyStateEmpty).toUpper():
-		return StatusStateUnspecifiedV1
-	case StatusStateEnabled, StatusState(LegacyStateReady).toUpper(), StatusState(LegacyStateDone).toUpper(), StatusState(LegacyStateRunning).toUpper(), StatusState(LegacyStateSucceeded).toUpper():
-		return StatusStateEnabledV1
-	case StatusStateDisabled:
-		return StatusStateDisabledV1
-	default:
-		return StatusStateUnspecifiedV1
-	}
-}
-
 // Converts to v2beta1-compatible internal representation of job status.
 // This should be called before converting to v2beta1 API type or writing to a store.
 func (s StatusState) ToV2() StatusState {
@@ -113,78 +98,31 @@ type Job struct {
 	PluginsInputString *LargeText `gorm:"column:PluginsInput; default:null;"`
 }
 
-// Converts to v1beta1-compatible internal representation of job.
-// This should be called before converting to v1beta1 API type.
-func (j *Job) ToV1() *Job {
-	j.ResourceReferences = make([]*ResourceReference, 0)
-	if j.Namespace != "" {
-		j.ResourceReferences = append(
-			j.ResourceReferences,
-			&ResourceReference{
-				ResourceUUID:  j.UUID,
-				ResourceType:  JobResourceType,
-				ReferenceUUID: j.Namespace,
-				ReferenceType: NamespaceResourceType,
-				Relationship:  OwnerRelationship,
-			},
-		)
-	}
-	if j.ExperimentId != "" {
-		j.ResourceReferences = append(
-			j.ResourceReferences,
-			&ResourceReference{
-				ResourceUUID:  j.UUID,
-				ResourceType:  JobResourceType,
-				ReferenceUUID: j.ExperimentId,
-				ReferenceType: ExperimentResourceType,
-				Relationship:  OwnerRelationship,
-			},
-		)
-	}
-	if j.PipelineSpec.PipelineId != "" {
-		j.ResourceReferences = append(
-			j.ResourceReferences,
-			&ResourceReference{
-				ResourceUUID:  j.UUID,
-				ResourceType:  JobResourceType,
-				ReferenceUUID: j.PipelineSpec.PipelineId,
-				ReferenceType: PipelineResourceType,
-				Relationship:  CreatorRelationship,
-			},
-		)
-	}
-	if j.PipelineSpec.PipelineVersionId != "" {
-		j.ResourceReferences = append(
-			j.ResourceReferences,
-			&ResourceReference{
-				ResourceUUID:  j.UUID,
-				ResourceType:  JobResourceType,
-				ReferenceUUID: j.PipelineSpec.PipelineVersionId,
-				ReferenceType: PipelineVersionResourceType,
-				Relationship:  CreatorRelationship,
-			},
-		)
-	}
-	j.Conditions = string(StatusState(j.Conditions).ToV1())
-	return j
-}
-
 // Converts to v2beta1-compatible internal representation of job.
 // This should be called before converting to v2beta1 API type.
 func (j *Job) ToV2() *Job {
 	for _, ref := range j.ResourceReferences {
 		switch ref.ReferenceType {
 		case NamespaceResourceType:
-			j.Namespace = ref.ReferenceUUID
+			if j.Namespace == "" {
+				j.Namespace = ref.ReferenceUUID
+			}
 		case ExperimentResourceType:
-			j.ExperimentId = ref.ReferenceUUID
+			if j.ExperimentId == "" {
+				j.ExperimentId = ref.ReferenceUUID
+			}
 		case PipelineResourceType:
-			j.PipelineSpec.PipelineId = ref.ReferenceUUID
+			if j.PipelineSpec.PipelineId == "" {
+				j.PipelineSpec.PipelineId = ref.ReferenceUUID
+			}
 		case PipelineVersionResourceType:
-			j.PipelineSpec.PipelineVersionId = ref.ReferenceUUID
+			if j.PipelineSpec.PipelineVersionId == "" {
+				j.PipelineSpec.PipelineVersionId = ref.ReferenceUUID
+			}
 		}
 	}
 	j.Conditions = StatusState(j.Conditions).ToString()
+	j.ResourceReferences = nil
 	return j
 }
 

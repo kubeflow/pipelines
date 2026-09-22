@@ -27,7 +27,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/golang/glog"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -77,10 +77,6 @@ type PipelineUploadServerOptions struct {
 type PipelineUploadServer struct {
 	resourceManager *resource.ResourceManager
 	options         *PipelineUploadServerOptions
-}
-
-func (s *PipelineUploadServer) UploadPipelineV1(w http.ResponseWriter, r *http.Request) {
-	s.uploadPipeline("v1beta1", w, r)
 }
 
 func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Request) {
@@ -180,7 +176,7 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 
 	w.Header().Set("Content-Type", "application/json")
 
-	newPipeline, newPipelineVersion, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
+	newPipeline, _, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
 	if err != nil {
 		if util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
 			glog.Errorf("Failed to create a pipeline and a pipeline version. The pipeline already exists: %v", err)
@@ -203,8 +199,7 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 
 	var messageToMarshal proto.Message
 	switch apiVersion {
-	case "v1beta1":
-		messageToMarshal = toApiPipelineV1(newPipeline, newPipelineVersion)
+
 	case "v2beta1":
 		messageToMarshal = toApiPipeline(newPipeline)
 	default:
@@ -230,10 +225,6 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
 		return
 	}
-}
-
-func (s *PipelineUploadServer) UploadPipelineVersionV1(w http.ResponseWriter, r *http.Request) {
-	s.uploadPipelineVersion("v1beta1", w, r)
 }
 
 func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *http.Request) {
@@ -355,8 +346,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 
 	var messageToMarshal proto.Message
 	switch apiVersion {
-	case "v1beta1":
-		messageToMarshal = toApiPipelineVersionV1(newPipelineVersion)
+
 	case "v2beta1":
 		messageToMarshal = toApiPipelineVersion(newPipelineVersion)
 	default:
@@ -427,7 +417,7 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
 	glog.Errorf("Failed to upload pipelines. Error: %+v", err)
 	w.WriteHeader(code)
-	errorResponse := &apiv1beta1.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
+	errorResponse := &apiError{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
 	errBytes, err := json.Marshal(errorResponse)
 	if err != nil {
 		w.Write([]byte("Error uploading pipeline"))

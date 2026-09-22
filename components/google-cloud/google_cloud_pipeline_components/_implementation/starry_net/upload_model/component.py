@@ -13,11 +13,43 @@
 # limitations under the License.
 """Starry Net Upload Model Component."""
 
-import os
+from kfp import dsl
+from google_cloud_pipeline_components.types import artifact_types as google_artifact_types
 
-from kfp import components
 
-# TODO(b/346580764)
-upload_model = components.load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'upload_model.yaml')
-)
+@dsl.container_component
+def model_upload(
+        project: str,
+        display_name: str,
+        model: dsl.Output[google_artifact_types.VertexModel],
+        gcp_resources: dsl.OutputPath(str),
+        location: str = 'us-central1',
+        description: str = '',
+        unmanaged_container_model: dsl.Input[
+            google_artifact_types.UnmanagedContainerModel] = None,
+        encryption_spec_key_name: str = '',
+        labels: dict = {},
+        parent_model: dsl.Input[google_artifact_types.VertexModel] = None):
+    return dsl.ContainerSpec(
+        image='gcr.io/ml-pipeline/automl-tables-private:1.0.17',
+        command=['python3', '-u', '-m', 'launcher'],
+        args=[
+            '--type', 'UploadModel', '--payload',
+            dsl.ConcatPlaceholder([
+                '{', '"display_name": "', display_name, '"',
+                ', "description": "', description, '"',
+                ', "encryption_spec": {"kms_key_name":"',
+                encryption_spec_key_name, '"}', ', "labels": ', labels, '}'
+            ]), '--project', project, '--location', location, '--gcp_resources',
+            gcp_resources, '--executor_input', '{{$}}',
+            dsl.IfPresentPlaceholder(
+                input_name='parent_model',
+                then=[
+                    '--parent_model_name',
+                    "{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}"
+                ])
+        ],
+    )
+
+
+upload_model = model_upload

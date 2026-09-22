@@ -15,9 +15,9 @@ import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper.js';
 import { ViewerTensorboardConfig } from '../configs.js';
 import {
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
-} from '../src/generated/apis/auth/index.js';
+  AuthorizeResourcesEnum,
+  AuthorizeVerbEnum,
+} from '../src/generated/apisv2beta1/auth/index.js';
 import { parseError, isAllowedResourceName } from '../utils.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 import { createTensorboardProxyPath } from './tensorboard-proxy.js';
@@ -48,8 +48,8 @@ export const getTensorboardHandlers = (
     try {
       const authError = await authorizeFn(
         {
-          verb: AuthorizeRequestVerb.GET,
-          resources: AuthorizeRequestResources.VIEWERS,
+          verb: AuthorizeVerbEnum.GET,
+          resources: AuthorizeResourcesEnum.VIEWERS,
           namespace: namespace as string,
         },
         req,
@@ -127,8 +127,8 @@ export const getTensorboardHandlers = (
     try {
       const authError = await authorizeFn(
         {
-          verb: AuthorizeRequestVerb.CREATE,
-          resources: AuthorizeRequestResources.VIEWERS,
+          verb: AuthorizeVerbEnum.CREATE,
+          resources: AuthorizeResourcesEnum.VIEWERS,
           namespace: namespace as string,
         },
         req,
@@ -185,8 +185,8 @@ export const getTensorboardHandlers = (
     try {
       const authError = await authorizeFn(
         {
-          verb: AuthorizeRequestVerb.DELETE,
-          resources: AuthorizeRequestResources.VIEWERS,
+          verb: AuthorizeVerbEnum.DELETE,
+          resources: AuthorizeResourcesEnum.VIEWERS,
           namespace: namespace as string,
         },
         req,

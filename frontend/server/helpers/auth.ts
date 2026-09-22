@@ -1,11 +1,11 @@
 import { Request } from 'express';
 import { AuthConfigs } from '../configs.js';
 import {
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
+  AuthorizeResourcesEnum,
+  AuthorizeVerbEnum,
   Configuration as AuthConfiguration,
   AuthServiceApi,
-} from '../src/generated/apis/auth/index.js';
+} from '../src/generated/apisv2beta1/auth/index.js';
 import { parseError, ErrorDetails } from '../utils.js';
 
 export type AuthorizeFn = (
@@ -14,8 +14,8 @@ export type AuthorizeFn = (
     verb,
     namespace,
   }: {
-    resources: AuthorizeRequestResources;
-    verb: AuthorizeRequestVerb;
+    resources: AuthorizeResourcesEnum;
+    verb: AuthorizeVerbEnum;
     namespace: string;
   },
   req: Request,
@@ -40,10 +40,7 @@ export const getAuthorizeFn = (
       const kubeflowUserId = Array.isArray(rawKubeflowUserId)
         ? rawKubeflowUserId[0]
         : rawKubeflowUserId;
-      // Resources and verb are string enums, they are used as string here, that
-      // requires a force type conversion. If we generated client should accept
-      // enums instead.
-      await authService.authorize(namespace, resources as any, verb as any, {
+      await authService.authorize(namespace, resources, verb, {
         // Pass authentication header.
         headers: kubeflowUserId
           ? {

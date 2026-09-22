@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from kfp import dsl, compiler
 
 
@@ -30,7 +29,7 @@ def random_failure_op(exit_codes: str):
 
 @dsl.pipeline(
     name='retry-random-failures',
-    description='The pipeline includes two steps which fail randomly. It shows how to use ContainerOp(...).set_retry(...).'
+    description='The pipeline includes two steps which fail randomly. It shows how to use PipelineTask.set_retry(...).'
 )
 def retry_sample_pipeline():
     op1 = random_failure_op(exit_codes='0,1,2,3').set_retry(10)

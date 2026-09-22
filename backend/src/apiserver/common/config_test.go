@@ -328,11 +328,6 @@ func TestConfigWrapperDefaults(t *testing.T) {
 		expected interface{}
 	}{
 		{
-			name:     "IsPipelineVersionUpdatedByDefault defaults to true",
-			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
-			expected: true,
-		},
-		{
 			name:     "IsNamespaceRequiredForPipelines defaults to false",
 			getter:   func() interface{} { return IsNamespaceRequiredForPipelines() },
 			expected: false,
@@ -352,11 +347,7 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: DefaultPodNamespace,
 		},
-		{
-			name:     "IsCacheEnabled defaults to true string",
-			getter:   func() interface{} { return IsCacheEnabled() },
-			expected: "true",
-		},
+
 		{
 			name:     "GetKubeflowUserIDHeader defaults to GoogleIAPUserIdentityHeader",
 			getter:   func() interface{} { return GetKubeflowUserIDHeader() },
@@ -458,13 +449,6 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 		expected    interface{}
 	}{
 		{
-			name:     "IsPipelineVersionUpdatedByDefault with custom false",
-			envKey:   UpdatePipelineVersionByDefault,
-			envValue: "false",
-			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
-			expected: false,
-		},
-		{
 			name:     "IsNamespaceRequiredForPipelines with custom true",
 			envKey:   RequireNamespaceForPipelines,
 			envValue: "true",
@@ -492,14 +476,7 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: "custom-ns",
 		},
-		{
-			name:        "IsCacheEnabled with custom false",
-			envKey:      CacheEnabled,
-			envValue:    "false",
-			useViperSet: true, // CacheEnabled is mixed-case, env var lookup via AutomaticEnv uppercases the key
-			getter:      func() interface{} { return IsCacheEnabled() },
-			expected:    "false",
-		},
+
 		{
 			name:     "GetKubeflowUserIDHeader with custom header",
 			envKey:   KubeflowUserIDHeader,

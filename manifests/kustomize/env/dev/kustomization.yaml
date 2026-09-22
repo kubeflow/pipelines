@@ -17,10 +17,6 @@ images:
   newTag: master
 - name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
   newTag: master
-- name: ghcr.io/kubeflow/kfp-cache-deployer
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-cache-server
-  newTag: master
 - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
   newTag: master
 - name: ghcr.io/kubeflow/kfp-visualization-server
@@ -30,7 +26,6 @@ images:
 
 patches:
   - path: api-server-patch.yaml
-# !!! If you want to customize the namespace,
 # please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
 namespace: kubeflow
 # Identifier for application manager to apply ownerReference.

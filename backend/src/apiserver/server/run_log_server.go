@@ -21,7 +21,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -32,7 +31,6 @@ import (
 const (
 	RunKey  = "run_id"
 	NodeKey = "node_id"
-	Follow  = "follow"
 )
 
 type RunLogServer struct {
@@ -42,7 +40,7 @@ type RunLogServer struct {
 
 // Log streaming endpoint
 // This endpoint is not exposed through grpc endpoint, since grpc-gateway cannot handle native HTTP content streaming.
-func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
+func (s *RunLogServer) ReadRunLog(w http.ResponseWriter, r *http.Request) {
 	glog.Infof("Read run log called")
 
 	vars := mux.Vars(r)
@@ -59,7 +57,7 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	follow := vars[Follow] == "true" // defaults to false
+	follow := r.URL.Query().Get("follow") == "true" // defaults to false
 
 	if err := s.authorize(r, runId); err != nil {
 		s.writeErrorToResponse(w, http.StatusForbidden, util.Wrap(err, "Failed to authorize the request"))
@@ -97,7 +95,7 @@ func (s *RunLogServer) writeErrorToResponse(w http.ResponseWriter, code int, err
 	glog.Errorf("Failed to read run log. Error: %+v", err)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	errorResponse := &api.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
+	errorResponse := &apiError{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
 	errBytes, err := json.Marshal(errorResponse)
 	if err != nil {
 		w.Write([]byte("Error reading run log"))

@@ -182,38 +182,15 @@ Each of these results in a new dag execution. Instead of these executions, we wi
 
 ##### Caching
 
-###### Caching explained
-To understand how caching should be handled in a post mlmd world, let's first review how caching in KFP works.
+###### Caching after MLMD removal
 
-Caching has two parts. The first being Cache Fingerprint creations that happen in the Launcher, and the second is detecting Cache hit detections, which happens in Container Drivers.
-
-1. At the end of Launcher `Execute()` procedure, there is a call to `l.clientManager.CacheClient().CreateExecutionCache(ctx, task)` which stores a `Task` with a `cache_fingerprint`. Underneath, this uses the `TaskServiceClient.CreateTaskV1` api, meaning this is execution data stored in the Task database table.
-
-1. When the Container Driver runs, it does the following:
-
-```go
-if !opts.CacheDisabled {
-    fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
-    if err != nil {
-        return execution, err
-    }
-  ecfg.CachedMLMDExecutionID = cachedMLMDExecutionID
-  ecfg.FingerPrint = fingerPrint
-}
-createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
-```
-
-The call to `getFingerPrintsAndID` makes a subsequent call to `TaskServiceClient.ListTasksV1` and fetches the execution ID for the Task with the fingerprint stored in the Launcher step. If such an execution ID is found, we assume there was a cache hit, and we don't run the next Launcher.
-
-Notice also that we store the `ecfg.FingerPrint = fingerPrint` in the MLMD execution as well, this means the container execution also has the `cache_fingerprint` found in the task table.
-
-###### Caching post mlmd removal
-
-Much of the logic flow will stay the same, but instead of calls to `TaskServiceClient`'s v1 API, the v2 `RunService` api will be used.
+Cache fingerprints are recorded after successful Launcher execution. Container
+Drivers look for completed tasks with a matching fingerprint through the v2
+`RunService` API; cache hits reuse the native task and artifact records.
 
 When the Launcher finishes running `Execute()`, it `defers` an `UpdateDAGExecutionsState()` call, this can be replaced with the `UpdateTask` call using the v2 `RunServerClient`, providing the `cache_fingerprint` for this `Runtime` task. The fingerprint should only be provided upon a successful launcher execution.
 
-In the Driver, `getFingerPrintsAndID` will be updated to leverage `ListTasks` and its `filter` field to search by `cache_fingerprint` to detect a hit, much like how it uses `ListTasksV1` today. Note that unlike how the Driver works today, the `cache_fingerprint` should not be stored for an upcoming task that will be created in the Driver, it should instead be updated by the Launcher once an execution successfully completes.
+In the Driver, `getFingerPrintsAndID` will be updated to leverage `ListTasks` and its `filter` field to search by `cache_fingerprint` to detect a hit. Note that unlike how the Driver works today, the `cache_fingerprint` should not be stored for an upcoming task that will be created in the Driver, it should instead be updated by the Launcher once an execution successfully completes.
 
 **Migration Note**
 

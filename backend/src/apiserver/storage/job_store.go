@@ -363,7 +363,7 @@ func (s *JobStore) DeleteJob(id string) error {
 
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	// Add creation/update time.
-	j = j.ToV1().ToV2()
+	j = j.ToV2()
 	now := s.time.Now().Unix()
 	j.CreatedAtInSec = now
 	j.UpdatedAtInSec = now

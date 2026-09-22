@@ -13,71 +13,52 @@
 # limitations under the License.
 
 from kfp import compiler
-from kfp import components
+from google_cloud_pipeline_components.types import artifact_types as google_artifact_types
 from kfp import dsl
 from kfp.dsl import Artifact
 from kfp.dsl import Input
 
-component_op_1 = components.load_component_from_text("""
-name: upstream
-inputs:
-- {name: input_1, type: String}
-- {name: input_2, type: Float}
-- {name: input_3, type: Artifact}
-- {name: input_4, type: String}
-outputs:
-- {name: output_1, type: Integer}
-- {name: output_2, type: Model}
-- {name: output_3}
-- {name: output_4, type: Model}
-- {name: output_5, type: Datasets}
-- {name: output_6, type: Some arbitrary type}
-- {name: output_7, type: {GcsPath: {data_type: TSV}}}
-- {name: output_8, type: HTML}
-- {name: output_9, type: google.BQMLModel}
-implementation:
-  container:
-    image: gcr.io/image
-    args:
-    - {inputValue: input_1}
-    - {inputValue: input_2}
-    - {inputPath: input_3}
-    - {inputValue: input_4}
-    - {outputPath: output_1}
-    - {outputUri: output_2}
-    - {outputPath: output_3}
-    - {outputUri: output_4}
-    - {outputUri: output_5}
-    - {outputPath: output_6}
-    - {outputPath: output_7}
-    - {outputPath: output_8}
-""")
 
-component_op_2 = components.load_component_from_text("""
-name: downstream
-inputs:
-- {name: input_a, type: Integer}
-- {name: input_b, type: Model}
-- {name: input_c}
-- {name: input_d, type: Model}
-- {name: input_e, type: Datasets}
-- {name: input_f, type: Some arbitrary type}
-- {name: input_g, type: {GcsPath: {data_type: TSV}}}
-- {name: input_h, type: HTML}
-- {name: input_i, type: google.BQMLModel}
-implementation:
-  container:
-    image: gcr.io/image
-    args:
-    - {inputValue: input_a}
-    - {inputUri: input_b}
-    - {inputPath: input_c}
-    - {inputUri: input_d}
-    - {inputUri: input_e}
-    - {inputPath: input_f}
-    - {inputPath: input_g}
-    - {inputPath: input_h}
-""")
+@dsl.container_component
+def upstream(input_1: str, input_2: float, input_3: dsl.Input[dsl.Artifact],
+             input_4: str, output_1: dsl.OutputPath(int),
+             output_2: dsl.Output[dsl.Model],
+             output_3: dsl.Output[dsl.Artifact],
+             output_4: dsl.Output[dsl.Model],
+             output_5: dsl.Output[dsl.Artifact],
+             output_6: dsl.Output[dsl.Artifact],
+             output_7: dsl.Output[dsl.Artifact], output_8: dsl.Output[dsl.HTML],
+             output_9: dsl.Output[google_artifact_types.BQMLModel]):
+    return dsl.ContainerSpec(
+        image='gcr.io/image',
+        args=[
+            input_1, input_2, input_3.path, input_4, output_1, output_2.uri,
+            output_3.path, output_4.uri, output_5.uri, output_6.path,
+            output_7.path, output_8.path
+        ],
+    )
+
+
+component_op_1 = upstream
+
+
+@dsl.container_component
+def downstream(input_a: int, input_b: dsl.Input[dsl.Model],
+               input_c: dsl.Input[dsl.Artifact], input_d: dsl.Input[dsl.Model],
+               input_e: dsl.Input[dsl.Artifact],
+               input_f: dsl.Input[dsl.Artifact],
+               input_g: dsl.Input[dsl.Artifact], input_h: dsl.Input[dsl.HTML],
+               input_i: dsl.Input[google_artifact_types.BQMLModel]):
+    return dsl.ContainerSpec(
+        image='gcr.io/image',
+        args=[
+            input_a, input_b.uri, input_c.path, input_d.uri, input_e.uri,
+            input_f.path, input_g.path, input_h.path
+        ],
+    )
+
+
+component_op_2 = downstream
 
 
 @dsl.pipeline(name='pipeline-with-various-types')

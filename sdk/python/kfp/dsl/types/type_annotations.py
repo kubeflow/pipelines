@@ -111,13 +111,13 @@ def construct_type_for_inputpath_or_outputpath(
     elif isinstance(
             type_,
             str) and type_.lower() in type_utils.ARTIFACT_CLASSES_MAPPING:
-        # v1 artifact backward compat, e.g. dsl.OutputPath('Dataset')
+        # Resolve SDK artifact names in path annotations, e.g. OutputPath('Dataset').
         return type_utils.create_bundled_artifact_type(
             type_utils.ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
     elif type_utils.get_parameter_type(type_):
         return type_
     else:
-        # v1 unknown type dsl.OutputPath('MyCustomType')
+        # Unregistered path types use the generic artifact schema.
         return type_utils.create_bundled_artifact_type(
             artifact_types.Artifact.schema_title)
 

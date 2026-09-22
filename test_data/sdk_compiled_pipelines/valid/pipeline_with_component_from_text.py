@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp import compiler
+from google.protobuf import json_format
 from kfp import components
+from kfp import compiler
 from kfp import dsl
 from kfp.dsl import component
 
@@ -24,27 +25,19 @@ def print_env_op():
     print('ENV2', os.environ.get('ENV2'))
 
 
-print_env_2_op = components.load_component_from_text("""
-name: Check env
-implementation:
-  container:
-    image: alpine
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      if [ "$ENV2" == "val2" ]
-      then
-        echo "$ENV2" 
-      else 
-        echo "ENV2 does not equal val2"
-        exit 1
-      fi
-      echo "$ENV3"
-    env:
-      ENV2: val0
-""")
+@dsl.container_component
+def check_env():
+    return dsl.ContainerSpec(
+        image='alpine',
+        command=[
+            'sh', '-c',
+            'set -e -x\nif [ "$ENV2" == "val2" ]\nthen\n  echo "$ENV2" \nelse \n  echo "ENV2 does not equal val2"\n  exit 1\nfi\necho "$ENV3"\n'
+        ],
+    )
+
+
+print_env_2_op = components.load_component_from_text(
+    json_format.MessageToJson(check_env.component_spec.to_pipeline_spec()))
 
 
 @dsl.pipeline(name='pipeline-with-env')

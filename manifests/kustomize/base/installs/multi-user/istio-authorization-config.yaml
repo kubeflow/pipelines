@@ -69,19 +69,6 @@ spec:
         - cluster.local/ns/kubeflow/sa/kubeflow-pipelines-cache
 
 ---
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: service-cache-server
-  namespace: kubeflow
-spec:
-  selector:
-    matchLabels:
-      app: cache-server
-  rules:
-  - {}
-
----
 apiVersion: "networking.istio.io/v1alpha3"
 kind: DestinationRule
 metadata:

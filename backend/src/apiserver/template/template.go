@@ -34,19 +34,13 @@ import (
 	goyaml "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 )
 
 type TemplateType string
 
 const (
-	V1      TemplateType = "v1Argo"
 	V2      TemplateType = "v2"
 	Unknown TemplateType = "Unknown"
-
-	argoGroup       = "argoproj.io/"
-	argoVersion     = "argoproj.io/v1alpha1"
-	argoK8sResource = "Workflow"
 
 	SCHEMA_VERSION_2_1_0 = "2.1.0"
 )
@@ -63,8 +57,6 @@ func inferTemplateFormat(template []byte) (TemplateType, error) {
 	switch {
 	case len(template) == 0:
 		return Unknown, nil
-	case isArgoWorkflow(template):
-		return V1, nil
 	}
 	isV2, err := isV2Spec(template)
 	if isV2 {
@@ -96,16 +88,6 @@ func isV2Spec(template []byte) (bool, error) {
 			return true, nil
 		}
 	}
-}
-
-// isArgoWorkflow returns whether template is in argo workflow spec format.
-func isArgoWorkflow(template []byte) bool {
-	var meta metav1.TypeMeta
-	err := yaml.Unmarshal(template, &meta)
-	if err != nil {
-		return false
-	}
-	return strings.HasPrefix(meta.APIVersion, argoGroup) && meta.Kind == argoK8sResource
 }
 
 // isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
@@ -159,8 +141,6 @@ type TemplateOptions struct {
 func New(bytes []byte, opts TemplateOptions) (Template, error) {
 	format, parseErr := inferTemplateFormat(bytes)
 	switch format {
-	case V1:
-		return NewArgoTemplate(bytes)
 	case V2:
 		return NewV2SpecTemplate(bytes, opts)
 	default:
@@ -216,42 +196,6 @@ func StringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter
 	return swParams, nil
 }
 
-// Converts serialized v1 parameters to []scheduledworkflow.Parameter.
-// Assumes that the serialized parameters will take a form of
-// []map[string]string, which works for legacy v1 parameters such as
-// [{"name":"param1","value":"value1"},{"name":"param2","value":"value2"}].
-func stringArrayToCRDParameters(modelParameters string) ([]scheduledworkflow.Parameter, error) {
-	var paramsMapList []*map[string]string
-	var desiredParams []scheduledworkflow.Parameter
-	if modelParameters == "" {
-		return desiredParams, nil
-	}
-	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "error unmarshalling model parameters")
-	}
-	for _, param := range paramsMapList {
-		desiredParams = append(desiredParams, scheduledworkflow.Parameter{Name: (*param)["name"], Value: (*param)["value"]})
-	}
-	return desiredParams, nil
-}
-
-func modelToParametersMap(modelParameters string) (map[string]string, error) {
-	var paramsMapList []*map[string]string
-	desiredParamsMap := make(map[string]string)
-	if modelParameters == "" {
-		return desiredParamsMap, nil
-	}
-	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "error unmarshalling model parameters")
-	}
-	for _, param := range paramsMapList {
-		desiredParamsMap[(*param)["name"]] = (*param)["value"]
-	}
-	return desiredParamsMap, nil
-}
-
 func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, error) {
 	crdTrigger := scheduledworkflow.Trigger{}
 	// CronSchedule and PeriodicSchedule can have at most one being non-empty
@@ -287,32 +231,6 @@ func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, e
 		crdTrigger.PeriodicSchedule = &crdPeriodicSchedule
 	}
 	return crdTrigger, nil
-}
-
-// Patch the system-specified default parameters if available.
-func OverrideParameterWithSystemDefault(execSpec util.ExecutionSpec) error {
-	// Patch the default value to workflow spec.
-	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
-		params := execSpec.SpecParameters()
-		patched := make(util.SpecParameters, 0, len(params))
-		for _, currentParam := range params {
-			if currentParam.Value != nil {
-				desiredValue, err := common.PatchPipelineDefaultParameter(*currentParam.Value)
-				if err != nil {
-					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
-				}
-				patched = append(patched, util.SpecParameter{Name: currentParam.Name, Value: &desiredValue})
-			} else if currentParam.Default != nil {
-				desiredValue, err := common.PatchPipelineDefaultParameter(*currentParam.Default)
-				if err != nil {
-					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
-				}
-				patched = append(patched, util.SpecParameter{Name: currentParam.Name, Default: &desiredValue})
-			}
-		}
-		execSpec.SetSpecParameters(patched)
-	}
-	return nil
 }
 
 func setDefaultServiceAccount(workflow util.ExecutionSpec, serviceAccount string) {

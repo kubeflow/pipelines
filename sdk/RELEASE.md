@@ -10,6 +10,12 @@
 
 ## Breaking changes
 
+* Component loaders now accept only PipelineSpec IR YAML, optionally followed by
+  a PlatformSpec document. Old `implementation: container:` component YAML is
+  rejected. Define components with the current DSL and compile them with
+  `kfp.compiler.Compiler().compile()` before using `load_component_from_text`,
+  `load_component_from_file`, or `load_component_from_url`.
+
 ## Deprecations
 
 ## Bug fixes and other changes
@@ -201,7 +207,6 @@
 ## Breaking changes
 
 ## Deprecations
-* Remove `kfp.deprecated` module [\#11366](https://github.com/kubeflow/pipelines/pull/11366)
 
 ## Bug fixes and other changes
 * Support Python 3.13. [\#11372](https://github.com/kubeflow/pipelines/pull/11372)
@@ -362,10 +367,9 @@
 # 2.0.0
 KFP SDK 2.0.0 release notes are distilled to emphasize high-level improvements in major version 2. See preceding 2.x.x pre-release notes for a more comprehensive list.
 
-Also see the KFP SDK v1 to v2 [migration guide](https://www.kubeflow.org/docs/components/pipelines/v2/migration/).
 ## Features
 
-The KFP SDK 2.0.0 release contains features present in the KFP SDK v1's v2 namespace along with considerable additional functionality. A selection of these features include:
+The KFP SDK 2.0.0 release includes:
 * An improved and unified Python-based authoring experience for [components](https://www.kubeflow.org/docs/components/pipelines/v2/components/) and [pipelines](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/)
 * Support for using [pipelines as components](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/pipeline-basics/#pipelines-as-components) (pipeline in pipeline)
 * Various additional [configurations for tasks](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/pipeline-basics/#task-configurations)
@@ -376,7 +380,6 @@ The KFP SDK 2.0.0 release contains features present in the KFP SDK v1's v2 names
 
 Selected contributions from pre-releases:
 * Support for `@component` decorator for Python components [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
-* Support for loading v1 and v2 components using `load_component_from_*` [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
 * Support importer in KFP v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
 * Add metadata field for `importer` [\#7112](https://github.com/kubeflow/pipelines/pull/7112)
 * Add in filter to `list_pipeline_versions` client method [\#7223](https://github.com/kubeflow/pipelines/pull/7223)
@@ -406,7 +409,6 @@ Selected contributions from pre-releases:
 * Allow user to specify platform when building container components [\#9212](https://github.com/kubeflow/pipelines/pull/9212)
 
 ## Breaking changes
-See the [KFP SDK v1 to v2 migration guide](https://www.kubeflow.org/docs/components/pipelines/v2/migration/).
 
 ## Deprecations
 * Deprecate compiling pipelines to JSON in favor of compiling to YAML [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
@@ -418,10 +420,7 @@ See the [KFP SDK v1 to v2 migration guide](https://www.kubeflow.org/docs/compone
 
 
 ## Bug fixes and other changes
-* Various changes to dependency versions relative to v1
-* Various dependencies removed relative to v1
 * Various bug fixes applied in KFP SDK 2.x.x pre-release versions
-* Various bug fixes associated with providing backward compatibility for KFP SDK v1
 * Use YAML as default serialization format for pipeline IR [\#7431](https://github.com/kubeflow/pipelines/pull/7431)
 * Support Python 3.10 [\#8186](https://github.com/kubeflow/pipelines/pull/8186) and 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
 * Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
@@ -438,7 +437,7 @@ See the [KFP SDK v1 to v2 migration guide](https://www.kubeflow.org/docs/compone
 * Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method.
 Technically no breaking changes but compilation error could be exposed in a different (and earlier) stage [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
 * Fully support optional parameter inputs by writing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
-* Add support for optional artifact inputs (toward feature parity with KFP SDK v1) [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
+* Add support for optional artifact inputs [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
 * Fix upload_pipeline method on client when no name is provided [\#8695](https://github.com/kubeflow/pipelines/pull/8695)
 * Enables output definitions when compiling components as pipelines [\#8848](https://github.com/kubeflow/pipelines/pull/8848)
 * Add experiment_id parameter to create run methods [\#9004](https://github.com/kubeflow/pipelines/pull/9004)
@@ -539,7 +538,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 
 ## Bug fixes and other changes
 * Support python 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
-* Fix loading non-canonical generic type strings from v1 component YAML (e.g., `List[str]`, `typing.List[str]`, `Dict[str]`, `typing.Dict[str, str]` [\#9041](https://github.com/kubeflow/pipelines/pull/9041)
 * Add experiment_id parameter to create run methods [\#9004](https://github.com/kubeflow/pipelines/pull/9004)
 * Support setting task dependencies via kfp.kubernetes.mount_pvc [\#8999](https://github.com/kubeflow/pipelines/pull/8999)
 * cpu_limit and memory_limit can be optional [\#8992](https://github.com/kubeflow/pipelines/pull/8992)
@@ -588,7 +586,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 
 ## Bug fixes and other changes
 * Accepts `PyYAML<7` in addition to `PyYAML>=5.3,<6` [\#8665](https://github.com/kubeflow/pipelines/pull/8665)
-* Remove v1 dependencies from SDK v2 [\#8668](https://github.com/kubeflow/pipelines/pull/8668)
 
 ## Documentation updates
 # 2.0.0-beta.10
@@ -601,8 +598,7 @@ Technically no breaking changes but compilation error could be exposed in a diff
 
 ## Bug fixes and other changes
 * Fully support optional parameter inputs by writing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
-* Add support for optional artifact inputs (toward feature parity with KFP SDK v1) [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
-* Fix bug deserializing v1 component YAML with boolean defaults, struct defaults, and array defaults [\#8639](https://github.com/kubeflow/pipelines/pull/8639)
+* Add support for optional artifact inputs [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
 
 ## Documentation updates
 # 2.0.0-beta.9
@@ -807,7 +803,7 @@ Technically no breaking changes but compilation error could be exposed in a diff
 ## Major Features and Improvements
 * feat(sdk): add `.list_pipeline_versions` and `.unarchive_experiment` methods to Client [\#7563](https://github.com/kubeflow/pipelines/pull/7563)
 * Add additional methods to `kfp.client.Client` [\#7562](https://github.com/kubeflow/pipelines/pull/7562), [\#7463](https://github.com/kubeflow/pipelines/pull/7463)
-* Migrate V1 CLI to V2, with improvements [\#7547](https://github.com/kubeflow/pipelines/pull/7547), [\#7558](https://github.com/kubeflow/pipelines/pull/7558), [\#7559](https://github.com/kubeflow/pipelines/pull/7559), [\#7560](https://github.com/kubeflow/pipelines/pull/7560), , [\#7569](https://github.com/kubeflow/pipelines/pull/7569), [\#7567](https://github.com/kubeflow/pipelines/pull/7567), [\#7603](https://github.com/kubeflow/pipelines/pull/7603), [\#7606](https://github.com/kubeflow/pipelines/pull/7606), [\#7607](https://github.com/kubeflow/pipelines/pull/7607), [\#7628](https://github.com/kubeflow/pipelines/pull/7628), [\#7618](https://github.com/kubeflow/pipelines/pull/7618)
+* CLI improvements [\#7547](https://github.com/kubeflow/pipelines/pull/7547), [\#7558](https://github.com/kubeflow/pipelines/pull/7558), [\#7559](https://github.com/kubeflow/pipelines/pull/7559), [\#7560](https://github.com/kubeflow/pipelines/pull/7560), , [\#7569](https://github.com/kubeflow/pipelines/pull/7569), [\#7567](https://github.com/kubeflow/pipelines/pull/7567), [\#7603](https://github.com/kubeflow/pipelines/pull/7603), [\#7606](https://github.com/kubeflow/pipelines/pull/7606), [\#7607](https://github.com/kubeflow/pipelines/pull/7607), [\#7628](https://github.com/kubeflow/pipelines/pull/7628), [\#7618](https://github.com/kubeflow/pipelines/pull/7618)
 
 ## Breaking Changes
 
@@ -904,10 +900,7 @@ Technically no breaking changes but compilation error could be exposed in a diff
 ## Breaking Changes
 
 * Remove sdk/python/kfp/v2/google directory for v2, including google client and custom job [\#6886](https://github.com/kubeflow/pipelines/pull/6886)
-* APIs imported from the v1 namespace are no longer supported by the v2 compiler. [\#6890](https://github.com/kubeflow/pipelines/pull/6890)
-* Deprecate v2 compatible mode in v1 compiler. [\#6958](https://github.com/kubeflow/pipelines/pull/6958)
 * Drop support for python 3.6 [\#7303](https://github.com/kubeflow/pipelines/pull/7303)
-* Deprecate v1 code to deprecated folder [\#7291](https://github.com/kubeflow/pipelines/pull/7291)
 * Disable output_component_file temporarily for v2 early release [\#7390](https://github.com/kubeflow/pipelines/pull/7390)
 
 ### For Pipeline Authors
@@ -933,7 +926,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 * Depends on `typing-extensions>=3.7.4,<5; python_version<"3.9"` [\#7288](https://github.com/kubeflow/pipelines/pull/7288)
 * Depends on `google-api-core>=1.31.5, >=2.3.2` [\#7377](https://github.com/kubeflow/pipelines/pull/7377)
 * Fix bug that required KFP API server for `kfp components build` command to work [\#7430](https://github.com/kubeflow/pipelines/pull/7430)
-* Pass default value for inputs and remove deprecated items in v1 [\#7405](https://github.com/kubeflow/pipelines/pull/7405)
 
 
 ## Documentation Updates
@@ -943,7 +935,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 ## Major Features and Improvements
 
 * kfp.Client uses namespace from initialization if set for the instance context [\#7056](https://github.com/kubeflow/pipelines/pull/7056)
-* Add importer_spec metadata to v1 [\#7180](https://github.com/kubeflow/pipelines/pull/7180)
 
 ## Breaking Changes
 
@@ -1082,7 +1073,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 
 ## Bug Fixes and Other Changes
 
-* Fix the specified 'mlpipeline-ui-metadata','mlpipeline-metrics' path is overridden by default value [\#6796](https://github.com/kubeflow/pipelines/pull/6796)
 * Fix placeholder mapping error in v2. [\#6794](https://github.com/kubeflow/pipelines/pull/6794)
 * Add `OnTransientError` to allowed retry policies [\#6808](https://github.com/kubeflow/pipelines/pull/6808)
 * Add optional `filter` argument to list methods of KFP client [\#6748](https://github.com/kubeflow/pipelines/pull/6748)
@@ -1135,7 +1125,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 * Add v2 placeholder variables [\#6693](https://github.com/kubeflow/pipelines/pull/6693)
 * Add a new command in KFP's CLI, `components`, that enables users to manage and build
   v2 components in a container with Docker [\#6417](https://github.com/kubeflow/pipelines/pull/6417)
-* Add `load_component_from_spec` for SDK v1 which brings back the ability to build components directly in python, using `ComponentSpec` [\#6690](https://github.com/kubeflow/pipelines/pull/6690)
 
 ## Breaking Changes
 
@@ -1230,7 +1219,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 * Support re-use of PVC with VolumeOp. [\#6582](https://github.com/kubeflow/pipelines/pull/6582)
 * When namespace file is missing, remove stack trace so it doesn't look like an error [\#6590](https://github.com/kubeflow/pipelines/pull/6590)
 * Local runner supports additional docker options. [\#6599](https://github.com/kubeflow/pipelines/pull/6599)
-* Fix the error that kfp v1 and v2 compiler failed to provide unique name for ops of the same component. [\#6600](https://github.com/kubeflow/pipelines/pull/6600)
 
 ## Documentation Updates
 
@@ -1296,7 +1284,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 ## Bug Fixes and Other Changes
 
 * Define PipelineParameterChannel and PipelineArtifactChannel in v2. [\#6470](https://github.com/kubeflow/pipelines/pull/6470)
-* Remove dead code on importer check in v1. [\#6508](https://github.com/kubeflow/pipelines/pull/6508)
 * Fix issue where dict, list, bool typed input parameters don't accept constant values or pipeline inputs. [\#6523](https://github.com/kubeflow/pipelines/pull/6523)
 * Fix passing in "" to a str parameter causes the parameter to receive it as None instead. [\#6533](https://github.com/kubeflow/pipelines/pull/6533)
 * Get short name of complex input/output types to ensure we can map to appropriate de|serializer. [\#6504](https://github.com/kubeflow/pipelines/pull/6504)
@@ -1339,8 +1326,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 * Import mock from stdlib and drop dependency. [\#6456](https://github.com/kubeflow/pipelines/issues/6456)
 * Update yapf config and move it to sdk folder. [\#6467](https://github.com/kubeflow/pipelines/issues/6467)
 * Fix typing issues. [\#6480](https://github.com/kubeflow/pipelines/issues/6480)
-* Load v1 and v2 component yaml into v2 ComponentSpec and convert v1 component
-  spec to v2 component spec [\#6497](https://github.com/kubeflow/pipelines/issues/6497)
 * Format all Python files under SDK folder. [\#6501](https://github.com/kubeflow/pipelines/issues/6501)
 
 ## Documentation Updates
@@ -1408,7 +1393,6 @@ Technically no breaking changes but compilation error could be exposed in a diff
 ## Bug Fixes and Other Changes
 
 * Relaxes the requirement that component inputs/outputs must appear on the command line. [\#6268](https://github.com/kubeflow/pipelines/issues/6268)
-* Fixed the compiler bug for legacy outputs mlpipeline-ui-metadata and mlpipeline-metrics. [\#6325](https://github.com/kubeflow/pipelines/issues/6325)
 * Raises error on using importer in v2 compatible mode. [\#6330](https://github.com/kubeflow/pipelines/issues/6330)
 * Raises error on missing pipeline name in v2 compatible mode. [\#6332](https://github.com/kubeflow/pipelines/issues/6332)
 * Raises warning on container component without command. [\#6335](https://github.com/kubeflow/pipelines/issues/6335)

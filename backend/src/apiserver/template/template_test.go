@@ -30,12 +30,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	goyaml "gopkg.in/yaml.v3"
@@ -43,55 +41,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
-
-func TestFailValidation(t *testing.T) {
-	wf := unmarshalWf(emptyName)
-	wf.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "dup", Value: v1alpha1.AnyStringPtr("value1")}}
-	templateBytes, _ := yaml.Marshal(wf)
-	_, err := ValidateWorkflow([]byte(templateBytes))
-	if assert.NotNil(t, err) {
-		assert.Contains(t, err.Error(), "name is required")
-	}
-}
-
-func TestValidateWorkflow_ParametersTooLong(t *testing.T) {
-	var params []v1alpha1.Parameter
-	// Create a long enough parameter string so it exceed the length limit of parameter.
-	for i := 0; i < 10000; i++ {
-		params = append(params, v1alpha1.Parameter{Name: "name1", Value: v1alpha1.AnyStringPtr("value1")})
-	}
-	template := v1alpha1.Workflow{Spec: v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{
-		Parameters: params,
-	}}}
-	templateBytes, _ := yaml.Marshal(template)
-	_, err := ValidateWorkflow(templateBytes)
-	assert.Equal(t, codes.InvalidArgument, err.(*commonutil.UserError).ExternalStatusCode())
-}
-
-func TestValidateWorkflow_RejectsExternalTemplateReference(t *testing.T) {
-	wf := v1alpha1.Workflow{
-		TypeMeta: metav1.TypeMeta{APIVersion: argoVersion, Kind: argoK8sResource},
-		Spec: v1alpha1.WorkflowSpec{
-			WorkflowTemplateRef: &v1alpha1.WorkflowTemplateRef{Name: "external-template"},
-		},
-	}
-	templateBytes, err := yaml.Marshal(wf)
-	require.NoError(t, err)
-
-	_, err = ValidateWorkflow(templateBytes)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "external workflow template references cannot be authorized")
-}
-
-func TestValidateWorkflow_AllowsParameterizedPodSpecPatch(t *testing.T) {
-	wf := unmarshalWf(awfTemplate)
-	wf.Spec.Templates[0].PodSpecPatch = `serviceAccountName: "{{inputs.parameters.dup}}"`
-	templateBytes, err := yaml.Marshal(wf)
-	require.NoError(t, err)
-
-	_, err = ValidateWorkflow(templateBytes)
-	require.NoError(t, err)
-}
 
 func TestParseSpecFormat(t *testing.T) {
 	tt := []struct {
@@ -103,16 +52,16 @@ func TestParseSpecFormat(t *testing.T) {
 		template: `
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow`,
-		templateType: V1,
+		templateType: Unknown,
 	}, { // template contains content too
 		template:     awfTemplate,
-		templateType: V1,
+		templateType: Unknown,
 	}, {
 		// version does not matter
 		template: `
 apiVersion: argoproj.io/v1alpha2
 kind: Workflow`,
-		templateType: V1,
+		templateType: Unknown,
 	}, {
 		template:     "",
 		templateType: Unknown,
@@ -252,104 +201,6 @@ func TestToSwfCRDResourceGeneratedName_EmptyName(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("")
 	assert.Nil(t, err)
 	assert.Equal(t, name, "job-")
-}
-
-func TestScheduledWorkflow(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
-
-	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
-	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
-
-	modelJob := &model.Job{
-		K8SName:        "name1",
-		Enabled:        true,
-		MaxConcurrency: 1,
-		NoCatchup:      true,
-		Trigger: model.Trigger{
-			CronSchedule: model.CronSchedule{
-				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				CronScheduleEndTimeInSec:   util.Int64Pointer(10),
-				Cron:                       util.StringPointer("1 * * * *"),
-			},
-		},
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:           "1",
-			PipelineName:         "pipeline name",
-			PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters: "{\"y\":\"world\"}",
-			},
-		},
-	}
-
-	expectedScheduledWorkflow := scheduledworkflow.ScheduledWorkflow{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kubeflow.org/v2beta1",
-			Kind:       "ScheduledWorkflow",
-		},
-		ObjectMeta: metav1.ObjectMeta{GenerateName: "name1"},
-		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:        true,
-			MaxConcurrency: util.Int64Pointer(1),
-			Trigger: scheduledworkflow.Trigger{
-				CronSchedule: &scheduledworkflow.CronSchedule{
-					Cron:      "1 * * * *",
-					StartTime: &metav1.Time{Time: time.Unix(1, 0)},
-					EndTime:   &metav1.Time{Time: time.Unix(10, 0)},
-				},
-			},
-			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: []scheduledworkflow.Parameter{{Name: "y", Value: "\"world\""}},
-				Spec:       "",
-			},
-			PipelineId:     "1",
-			PipelineName:   "pipeline name",
-			NoCatchup:      util.BoolPointer(true),
-			ServiceAccount: "pipeline-runner",
-		},
-	}
-
-	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)
-	assert.Nil(t, err)
-
-	// We don't compare this field because it changes with every driver/launcher image release.
-	// It is also tested in compiler.
-	actualScheduledWorkflow.Spec.Workflow.Spec = ""
-	assert.Equal(t, &expectedScheduledWorkflow, actualScheduledWorkflow)
-}
-
-func TestScheduledWorkflow_CustomServiceAccount(t *testing.T) {
-	proxy.InitializeConfigWithEmptyForTests()
-
-	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
-	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
-
-	modelJob := &model.Job{
-		K8SName:        "name1",
-		Enabled:        true,
-		MaxConcurrency: 1,
-		NoCatchup:      true,
-		ServiceAccount: "custom-sa",
-		Trigger: model.Trigger{
-			CronSchedule: model.CronSchedule{
-				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				CronScheduleEndTimeInSec:   util.Int64Pointer(10),
-				Cron:                       util.StringPointer("1 * * * *"),
-			},
-		},
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:           "1",
-			PipelineName:         "pipeline name",
-			PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters: "{\"y\":\"world\"}",
-			},
-		},
-	}
-
-	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)
-	require.Nil(t, err)
-	assert.Equal(t, "custom-sa", actualScheduledWorkflow.Spec.ServiceAccount)
 }
 
 func TestModelToCRDTrigger_Cron(t *testing.T) {
@@ -530,51 +381,6 @@ func TestStringMapToCRDParameters_InvalidJSON(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// --- stringArrayToCRDParameters tests ---
-
-func TestStringArrayToCRDParameters_Empty(t *testing.T) {
-	result, err := stringArrayToCRDParameters("")
-	assert.Nil(t, err)
-	assert.Empty(t, result)
-}
-
-func TestStringArrayToCRDParameters_ValidParams(t *testing.T) {
-	input := `[{"name":"param1","value":"val1"},{"name":"param2","value":"val2"}]`
-	result, err := stringArrayToCRDParameters(input)
-	assert.Nil(t, err)
-	assert.Len(t, result, 2)
-	assert.Equal(t, "param1", result[0].Name)
-	assert.Equal(t, "val1", result[0].Value)
-	assert.Equal(t, "param2", result[1].Name)
-	assert.Equal(t, "val2", result[1].Value)
-}
-
-func TestStringArrayToCRDParameters_InvalidJSON(t *testing.T) {
-	_, err := stringArrayToCRDParameters("not json")
-	assert.NotNil(t, err)
-}
-
-// --- modelToParametersMap tests ---
-
-func TestModelToParametersMap_Empty(t *testing.T) {
-	result, err := modelToParametersMap("")
-	assert.Nil(t, err)
-	assert.Empty(t, result)
-}
-
-func TestModelToParametersMap_ValidParams(t *testing.T) {
-	input := `[{"name":"param1","value":"val1"},{"name":"param2","value":"val2"}]`
-	result, err := modelToParametersMap(input)
-	assert.Nil(t, err)
-	assert.Equal(t, "val1", result["param1"])
-	assert.Equal(t, "val2", result["param2"])
-}
-
-func TestModelToParametersMap_InvalidJSON(t *testing.T) {
-	_, err := modelToParametersMap("{bad")
-	assert.NotNil(t, err)
-}
-
 // --- modelToCRDTrigger periodic schedule tests ---
 
 func TestModelToCRDTrigger_Periodic(t *testing.T) {
@@ -600,89 +406,6 @@ func TestModelToCRDTrigger_Empty(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, result.CronSchedule)
 	assert.Nil(t, result.PeriodicSchedule)
-}
-
-// --- NewArgoTemplate / NewArgoTemplateFromWorkflow tests ---
-
-func TestNewArgoTemplate_Valid(t *testing.T) {
-	tmpl, err := NewArgoTemplate([]byte(awfTemplate))
-	assert.Nil(t, err)
-	assert.NotNil(t, tmpl)
-	assert.Equal(t, V1, tmpl.GetTemplateType())
-	assert.False(t, tmpl.IsCacheDisabled())
-}
-
-func TestNewArgoTemplate_InvalidYAML(t *testing.T) {
-	_, err := NewArgoTemplate([]byte("not yaml: ["))
-	assert.NotNil(t, err)
-}
-
-func TestNewArgoTemplateFromWorkflow(t *testing.T) {
-	wf := unmarshalWf(awfTemplate)
-	tmpl, err := NewArgoTemplateFromWorkflow(wf)
-	assert.Nil(t, err)
-	assert.NotNil(t, tmpl)
-	assert.Equal(t, V1, tmpl.GetTemplateType())
-}
-
-// --- Argo simple method tests ---
-
-func TestArgo_Bytes(t *testing.T) {
-	tmpl, _ := NewArgoTemplate([]byte(awfTemplate))
-	result := tmpl.Bytes()
-	assert.NotEmpty(t, result)
-	assert.Contains(t, string(result), "whalesay")
-}
-
-func TestArgo_Bytes_Nil(t *testing.T) {
-	var tmpl *Argo
-	assert.Nil(t, tmpl.Bytes())
-}
-
-func TestArgo_IsV2(t *testing.T) {
-	tmpl, _ := NewArgoTemplate([]byte(awfTemplate))
-	assert.False(t, tmpl.IsV2())
-}
-
-func TestArgo_IsV2_Nil(t *testing.T) {
-	var tmpl *Argo
-	assert.False(t, tmpl.IsV2())
-}
-
-func TestArgo_V2PipelineName_Empty(t *testing.T) {
-	tmpl, _ := NewArgoTemplate([]byte(awfTemplate))
-	assert.Empty(t, tmpl.V2PipelineName())
-}
-
-func TestArgo_V2PipelineName_Nil(t *testing.T) {
-	var tmpl *Argo
-	assert.Empty(t, tmpl.V2PipelineName())
-}
-
-func TestArgo_ParametersJSON(t *testing.T) {
-	tmpl, _ := NewArgoTemplate([]byte(awfTemplate))
-	result, err := tmpl.ParametersJSON()
-	assert.Nil(t, err)
-	assert.NotEmpty(t, result)
-}
-
-func TestArgo_ParametersJSON_Nil(t *testing.T) {
-	var tmpl *Argo
-	result, err := tmpl.ParametersJSON()
-	assert.Nil(t, err)
-	assert.Empty(t, result)
-}
-
-func TestArgo_OverrideV2PipelineName_NonV2(t *testing.T) {
-	tmpl, _ := NewArgoTemplate([]byte(awfTemplate))
-	// Should be a no-op for non-V2 workflows.
-	tmpl.OverrideV2PipelineName("my-pipeline", "my-ns")
-	assert.Empty(t, tmpl.V2PipelineName())
-}
-
-func TestArgo_OverrideV2PipelineName_Nil(t *testing.T) {
-	var tmpl *Argo
-	tmpl.OverrideV2PipelineName("my-pipeline", "my-ns") // should not panic
 }
 
 // --- V2Spec simple method tests ---
@@ -787,15 +510,6 @@ func TestNewV2SpecTemplate_InvalidYAML(t *testing.T) {
 }
 
 // --- AddRuntimeMetadata tests ---
-
-func TestAddRuntimeMetadata(t *testing.T) {
-	wf := unmarshalWf(awfTemplate)
-	AddRuntimeMetadata(wf)
-	template := wf.Spec.Templates[0]
-	assert.Equal(t, "false", template.Metadata.Annotations["sidecar.istio.io/inject"])
-	assert.Equal(t, "true", template.Metadata.Labels["pipelines.kubeflow.org/cache_enabled"])
-	assert.NotEmpty(t, template.Metadata.Labels[util.LabelKeyWorkflowRunId])
-}
 
 // --- New factory error test ---
 

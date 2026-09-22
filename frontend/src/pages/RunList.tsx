@@ -17,8 +17,7 @@
 import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
-import Metric from 'src/components/Metric';
-import { MetricMetadata, ExperimentInfo } from 'src/lib/RunUtils';
+import { ExperimentInfo } from 'src/lib/ExperimentInfo';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
@@ -27,7 +26,7 @@ import { Link } from 'react-router';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { URLParser } from 'src/lib/URLParser';
-import { commonCss, color } from 'src/Css';
+import { commonCss } from 'src/Css';
 import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import { Tooltip } from '@mui/material';
@@ -54,12 +53,6 @@ interface DisplayRun {
   error?: string;
 }
 
-interface DisplayMetric {
-  metadata?: MetricMetadata;
-  // run metric field is currently not supported in v2 API
-  // Context: https://github.com/kubeflow/pipelines/issues/8957
-}
-
 // Both masks cannot be provided together.
 type MaskProps = Exclude<
   { experimentIdMask?: string; namespaceMask?: string },
@@ -72,7 +65,6 @@ export type RunListProps = MaskProps &
     disableSelection?: boolean;
     disableSorting?: boolean;
     hideExperimentColumn?: boolean;
-    hideMetricMetadata?: boolean;
     noFilterBox?: boolean;
     onError: (message: string, error: Error) => void;
     onSelectionChange?: (selectedRunIds: string[]) => void;
@@ -82,7 +74,6 @@ export type RunListProps = MaskProps &
   };
 
 interface RunListState {
-  metrics: MetricMetadata[];
   runs: DisplayRun[];
 }
 
@@ -98,14 +89,11 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     super(props);
 
     this.state = {
-      metrics: [],
       runs: [],
     };
   }
 
   public render(): React.JSX.Element {
-    // Only show the two most prevalent metrics
-    const metricMetadata: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
@@ -128,31 +116,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       });
     }
 
-    if (metricMetadata.length && !this.props.hideMetricMetadata) {
-      // This is a column of empty cells with a left border to separate the metrics from the other
-      // columns.
-      columns.push({
-        customRenderer: this._metricBufferCustomRenderer,
-        flex: 0.1,
-        label: '',
-      });
-
-      columns.push(
-        ...metricMetadata.map((metadata) => {
-          return {
-            customRenderer: this._metricCustomRenderer,
-            flex: 0.5,
-            label: metadata.name!,
-          };
-        }),
-      );
-    }
-
     const rows: Row[] = this.state.runs.map((r) => {
-      const displayMetrics = metricMetadata.map((metadata) => {
-        const displayMetric: DisplayMetric = { metadata };
-        return displayMetric;
-      });
       const row = {
         error: r.error,
         id: r.run.run_id!,
@@ -167,10 +131,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       };
       if (!this.props.hideExperimentColumn) {
         row.otherFields.splice(3, 0, r.experiment);
-      }
-      if (displayMetrics.length && !this.props.hideMetricMetadata) {
-        row.otherFields.push(''); // Metric buffer column
-        row.otherFields.push(...(displayMetrics as any));
       }
       return row;
     });
@@ -327,21 +287,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     return statusToIcon(props.value);
   };
 
-  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = () => {
-    return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
-  };
-
-  public _metricCustomRenderer: React.FC<CustomRendererProps<DisplayMetric>> = (
-    props: CustomRendererProps<DisplayMetric>,
-  ) => {
-    const displayMetric = props.value;
-    if (!displayMetric) {
-      return <div />;
-    }
-
-    return <Metric metadata={displayMetric.metadata} />;
-  };
-
   protected async _loadRuns(request: ListRequest): Promise<string> {
     let displayRuns: DisplayRun[];
     let nextPageToken = '';
@@ -416,7 +361,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     await this._setColumns(displayRuns);
 
     this.setStateSafe({
-      // metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
     });
     return nextPageToken;
@@ -582,7 +526,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           'Failed to get associated pipeline version' + (errorMessage ? ': ' + errorMessage : '');
       }
     } else if (displayRun.run.pipeline_spec) {
-      // pipeline_spec in v2 can store either workflow_manifest or pipeline_manifest
       displayRun.pipelineVersion = displayRun.recurringRun?.id
         ? { usePlaceholder: true, recurringRunId: displayRun.recurringRun.id }
         : { usePlaceholder: true };

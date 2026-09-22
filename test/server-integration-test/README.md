@@ -28,7 +28,7 @@ node k8s-integration-test.js --url http://127.0.0.1:3000
 
 General server functionality tests:
 - Static file serving
-- API proxy (v1beta1, v2beta1)
+- API proxy (v2beta1)
 - Health endpoints
 - System endpoints
 - Artifact endpoints

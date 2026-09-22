@@ -108,9 +108,10 @@ async function openTensorboardVisualizations() {
   await $('button=Graph').click();
   await waitForGraphNodeCount(1, { timeout: uiTimeout });
 
-  await $('.graphNode').click();
-  await $('button=Visualizations').waitForDisplayed({ timeout: uiTimeout });
-  await $('button=Visualizations').click();
+  await $('.react-flow__node-ARTIFACT').waitForDisplayed({ timeout: uiTimeout });
+  await $('.react-flow__node-ARTIFACT').click();
+  await $('button=Visualization').waitForDisplayed({ timeout: uiTimeout });
+  await $('button=Visualization').click();
   await waitForTensorboardControls();
 }
 

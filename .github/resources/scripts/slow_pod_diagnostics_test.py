@@ -19,8 +19,8 @@ from types import SimpleNamespace
 import subprocess
 import unittest
 
-MODULE_PATH = (Path(__file__).parent / 'kfp-readiness' /
-               'slow_pod_diagnostics.py')
+MODULE_PATH = (
+    Path(__file__).parent / 'kfp-readiness' / 'slow_pod_diagnostics.py')
 SPEC = importlib.util.spec_from_file_location('slow_pod_diagnostics',
                                               MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
@@ -49,7 +49,7 @@ class SlowContainerCreatingDiagnosticsTest(unittest.TestCase):
         )
 
     def test_captures_describe_and_events_once_after_threshold(self):
-        pod = ('cache-server-abc', 'pod-uid')
+        pod = ('ml-pipeline-abc', 'pod-uid')
 
         self.diagnostics.observe('kubeflow', [pod])
         self.now = 59
@@ -67,7 +67,7 @@ class SlowContainerCreatingDiagnosticsTest(unittest.TestCase):
         self.assertIn('ContainerCreating', self.output[0])
 
     def test_reports_a_new_episode_after_the_condition_clears(self):
-        pod = ('cache-server-abc', 'pod-uid')
+        pod = ('ml-pipeline-abc', 'pod-uid')
         self.diagnostics.observe('kubeflow', [pod])
         self.now = 60
         self.diagnostics.observe('kubeflow', [pod])
@@ -81,8 +81,8 @@ class SlowContainerCreatingDiagnosticsTest(unittest.TestCase):
         self.assertEqual(len(self.commands), 4)
 
     def test_recreated_pod_uid_has_an_independent_threshold(self):
-        old_pod = ('cache-server-abc', 'old-uid')
-        new_pod = ('cache-server-abc', 'new-uid')
+        old_pod = ('ml-pipeline-abc', 'old-uid')
+        new_pod = ('ml-pipeline-abc', 'new-uid')
         self.diagnostics.observe('kubeflow', [old_pod])
         self.now = 60
         self.diagnostics.observe('kubeflow', [old_pod])
@@ -112,22 +112,25 @@ class SlowContainerCreatingDiagnosticsTest(unittest.TestCase):
             command_runner=fail,
             output=self.output.append,
         )
-        pod = ('cache-server-abc', 'pod-uid')
+        pod = ('ml-pipeline-abc', 'pod-uid')
 
         diagnostics.observe('kubeflow', [pod])
         diagnostics.observe('kubeflow', [pod])
 
         self.assertEqual(calls, 2)
         self.assertTrue(any('status 1' in line for line in self.output))
-        self.assertTrue(any('unable to collect events' in line
-                            for line in self.output))
+        self.assertTrue(
+            any('unable to collect events' in line for line in self.output))
 
     def test_detects_regular_and_init_containers_being_created(self):
+
         def pod(name, uid, regular_reason=None, init_reason=None):
+
             def status(reason):
-                return SimpleNamespace(state=SimpleNamespace(
-                    waiting=(SimpleNamespace(reason=reason)
-                             if reason else None)))
+                return SimpleNamespace(
+                    state=SimpleNamespace(
+                        waiting=(SimpleNamespace(
+                            reason=reason) if reason else None)))
 
             return SimpleNamespace(
                 metadata=SimpleNamespace(name=name, uid=uid),

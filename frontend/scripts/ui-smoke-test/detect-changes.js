@@ -41,13 +41,6 @@ const COMPONENTS = [
     deployment: 'ml-pipeline-persistenceagent',
   },
   {
-    name: 'cache-server',
-    paths: ['backend/src/cache/'],
-    makeTarget: 'image_cache',
-    imageTag: 'cache-server',
-    deployment: null, // cache deployment name varies
-  },
-  {
     name: 'scheduledworkflow',
     paths: ['backend/src/crd/controller/scheduledworkflow/'],
     makeTarget: 'image_swf',

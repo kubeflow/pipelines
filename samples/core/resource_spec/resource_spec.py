@@ -33,7 +33,7 @@ def my_pipeline(n: int = 11234567):
     # Note, with v2 python components, there's a larger memory overhead caused
     # by installing KFP SDK in the component, so we had to increase memory limit to 650M.
     training_task = training_op(n=n).set_cpu_limit('1').set_memory_limit('650M')
-    
+
     # TODO(gkcalat): enable requests once SDK implements the feature
     # training_task = training_task.set_cpu_request('1').set_memory_request('650M')
 
@@ -42,4 +42,4 @@ def my_pipeline(n: int = 11234567):
     # There are other resource spec you can set.
     # For example, to use TPU, add the following:
     # .add_node_selector_constraint('cloud.google.com/gke-accelerator', 'tpu-v3')
-    # .set_gpu_limit(1)
+    # .set_accelerator_limit(1)

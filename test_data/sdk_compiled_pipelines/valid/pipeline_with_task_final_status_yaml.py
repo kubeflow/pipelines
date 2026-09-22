@@ -14,36 +14,23 @@
 """Pipeline using ExitHandler with PipelineTaskFinalStatus (YAML)."""
 
 from kfp import compiler
-from kfp import components
 from kfp import dsl
 
-exit_op = components.load_component_from_text("""
-name: Exit Op
-inputs:
-- {name: user_input, type: String}
-- {name: status, type: PipelineTaskFinalStatus}
-implementation:
-  container:
-    image: registry.access.redhat.com/ubi9/python-311:latest
-    command:
-    - echo
-    - "user input:"
-    - {inputValue: user_input}
-    - "pipeline status:"
-    - {inputValue: status}
-""")
 
-print_op = components.load_component_from_text("""
-name: Print Op
-inputs:
-- {name: message, type: String}
-implementation:
-  container:
-    image: registry.access.redhat.com/ubi9/python-311:latest
-    command:
-    - echo
-    - {inputValue: message}
-""")
+@dsl.container_component
+def exit_op(user_input: str, status: dsl.PipelineTaskFinalStatus):
+    return dsl.ContainerSpec(
+        image='registry.access.redhat.com/ubi9/python-311:latest',
+        command=['echo', 'user input:', user_input, 'pipeline status:', status],
+    )
+
+
+@dsl.container_component
+def print_op(message: str):
+    return dsl.ContainerSpec(
+        image='registry.access.redhat.com/ubi9/python-311:latest',
+        command=['echo', message],
+    )
 
 
 @dsl.pipeline(name='pipeline-with-task-final-status-yaml')

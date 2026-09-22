@@ -11,118 +11,198 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for kfp.dsl.yaml_component."""
+"""Tests for the public PipelineSpec IR component loaders."""
 
 import os
 import tempfile
-import textwrap
+from typing import Optional
 import unittest
+from unittest import mock
 
+from absl.testing import parameterized
+from kfp import compiler
 from kfp import components
-from kfp.dsl import structures
-
-SAMPLE_YAML = textwrap.dedent("""\
-components:
-  comp-component-1:
-    executorLabel: exec-component-1
-    inputDefinitions:
-      parameters:
-        input1:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        output1:
-          parameterType: STRING
-deploymentSpec:
-  executors:
-    exec-component-1:
-      container:
-        command:
-        - sh
-        - -c
-        - 'set -ex
-
-          echo "$0" > "$1"'
-        - '{{$.inputs.parameters[''input1'']}}'
-        - '{{$.outputs.parameters[''output1''].output_file}}'
-        image: alpine
-pipelineInfo:
-  name: component-1
-root:
-  dag:
-    tasks:
-      component-1:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-component-1
-        inputs:
-          parameters:
-            input1:
-              componentInputParameter: input1
-        taskInfo:
-          name: component-1
-  inputDefinitions:
-    parameters:
-      input1:
-        parameterType: STRING
-schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.3
-        """)
-
-V1_COMPONENTS_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), 'compiler', 'test_data',
-    'v1_component_yaml')
-
-V1_COMPONENT_YAML_TEST_CASES = [
-    'concat_placeholder_component.yaml',
-    'ingestion_component.yaml',
-    'serving_component.yaml',
-    'if_placeholder_component.yaml',
-    'trainer_component.yaml',
-    'add_component.yaml',
-]
+from kfp import dsl
+from kfp.dsl import placeholders
+import yaml
 
 
-class LoadYamlTests(unittest.TestCase):
+@dsl.container_component
+def round_trip_component(
+    dataset: dsl.Input[dsl.Dataset],
+    model: dsl.Output[dsl.Model],
+    count: dsl.OutputPath(int),
+    message: str = 'hello',
+    enabled: bool = False,
+    number: int = 7,
+    fraction: float = 1.5,
+    items: list = ['a', 2],
+    config: dict = {'key': True},
+    optional_dataset: Optional[dsl.Input[dsl.Dataset]] = None,
+):
+    return dsl.ContainerSpec(
+        image='alpine',
+        command=['echo'],
+        args=[
+            message,
+            enabled,
+            number,
+            fraction,
+            items,
+            config,
+            dataset.path,
+            dataset.uri,
+            model.path,
+            model.uri,
+            count,
+            dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER,
+            dsl.IfPresentPlaceholder(
+                input_name='optional_dataset',
+                then=[
+                    dsl.ConcatPlaceholder(['--dataset=', optional_dataset.uri])
+                ],
+                else_=['--no-dataset']),
+        ])
 
-    def test_load_component_from_text(self):
-        component = components.load_component_from_text(SAMPLE_YAML)
-        self.assertEqual(component.component_spec.name, 'component-1')
-        self.assertEqual(component.component_spec.outputs,
-                         {'output1': structures.OutputSpec(type='String')})
-        self.assertEqual(component._component_inputs, {'input1'})
-        self.assertEqual(component.name, 'component-1')
-        self.assertEqual(
-            component.component_spec.implementation.container.image, 'alpine')
 
-    def test_load_component_from_file(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path = os.path.join(tmpdir, 'sample_yaml.yaml')
+class LoadYamlTests(parameterized.TestCase):
+
+    def load(self, entrypoint, text, directory):
+        if entrypoint == 'text':
+            return components.load_component_from_text(text)
+        if entrypoint == 'file':
+            path = os.path.join(directory, 'input.yaml')
             with open(path, 'w') as f:
-                f.write(SAMPLE_YAML)
-            component = components.load_component_from_file(path)
-        self.assertEqual(component.component_spec.name, 'component-1')
-        self.assertEqual(component.component_spec.outputs,
-                         {'output1': structures.OutputSpec(type='String')})
-        self.assertEqual(component._component_inputs, {'input1'})
-        self.assertEqual(component.name, 'component-1')
-        self.assertEqual(
-            component.component_spec.implementation.container.image, 'alpine')
+                f.write(text)
+            return components.load_component_from_file(path)
+        response = mock.Mock(content=text.encode('utf-8'))
+        url = 'https://example.com/component.yaml'
+        auth = ('user', 'password')
+        with mock.patch(
+                'kfp.components.load_yaml_utilities.requests.get',
+                return_value=response) as get:
+            try:
+                return components.load_component_from_url(url, auth=auth)
+            finally:
+                get.assert_called_once_with(url, auth=auth)
+                response.raise_for_status.assert_called_once_with()
 
-    def test_load_component_from_url(self):
-        component_url = 'https://raw.githubusercontent.com/kubeflow/pipelines/5d0ace427d55ee04da028cb19613018aed0b2042/sdk/python/test_data/components/identity.yaml'
-        component = components.load_component_from_url(component_url)
+    @parameterized.product(entrypoint=['text', 'file', 'url'])
+    def test_rejects_implementation_container_yaml(self, entrypoint):
+        text = '''name: old-component
+inputs:
+- {name: message, type: String, default: hello}
+implementation:
+  container:
+    image: alpine
+    args: [{inputValue: message}]
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(
+                    ValueError,
+                    'Component YAML must use the PipelineSpec IR format.*Recompile'
+            ):
+                self.load(entrypoint, text, directory)
 
-        self.assertEqual(component.component_spec.name, 'identity')
-        self.assertEqual(component.component_spec.outputs,
-                         {'Output': structures.OutputSpec(type='String')})
-        self.assertEqual(component._component_inputs, {'value'})
-        self.assertEqual(component.name, 'identity')
-        # TODO: uncomment once PR #12383 is merged since this is checking against a version on master
-        # self.assertEqual(
-        #     component.component_spec.implementation.container.image,
-        #     'python:3.11')
+    @parameterized.product(entrypoint=['text', 'file', 'url'])
+    def test_container_component_round_trip(self, entrypoint):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'compiled.yaml')
+            compiler.Compiler().compile(round_trip_component, path)
+            with open(path) as f:
+                loaded = self.load(entrypoint, f.read(), directory)
+
+            self.assertEqual(loaded.pipeline_spec,
+                             round_trip_component.pipeline_spec)
+            spec = loaded.component_spec
+            self.assertEqual(spec.inputs,
+                             round_trip_component.component_spec.inputs)
+            self.assertEqual(spec.outputs,
+                             round_trip_component.component_spec.outputs)
+            self.assertEqual(spec.inputs['dataset'].type,
+                             'system.Dataset@0.0.1')
+            self.assertTrue(spec.inputs['optional_dataset'].optional)
+            self.assertEqual(spec.outputs['model'].type, 'system.Model@0.0.1')
+            self.assertEqual(spec.outputs['count'].type, 'Integer')
+            for name, expected in {
+                    'message': 'hello',
+                    'enabled': False,
+                    'number': 7,
+                    'fraction': 1.5,
+                    'items': ['a', 2],
+                    'config': {
+                        'key': True
+                    },
+            }.items():
+                self.assertEqual(spec.inputs[name].default, expected)
+                self.assertTrue(spec.inputs[name].optional)
+            self.assertEqual(spec.implementation.container.args, [
+                placeholders.convert_command_line_element_to_string(arg)
+                for arg in round_trip_component.component_spec.implementation
+                .container.args
+            ])
+            compiler.Compiler().compile(loaded, path)
+            reloaded = components.load_component_from_file(path)
+            self.assertEqual(reloaded.pipeline_spec, loaded.pipeline_spec)
+            self.assertEqual(reloaded.component_spec, spec)
+
+    @parameterized.product(entrypoint=['text', 'file', 'url'])
+    def test_pipeline_with_platform_spec_round_trip(self, entrypoint):
+
+        @dsl.pipeline
+        def pipeline(dataset: dsl.Input[dsl.Dataset],
+                     message: str = 'hello') -> dsl.Model:
+            task = round_trip_component(dataset=dataset, message=message)
+            task.set_env_variable('MESSAGE', 'test')
+            task.platform_config['kubernetes'] = {
+                'podMetadata': {
+                    'labels': {
+                        'test': 'round-trip'
+                    }
+                }
+            }
+            return task.outputs['model']
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'compiled.yaml')
+            compiler.Compiler().compile(pipeline, path)
+            with open(path) as f:
+                text = f.read()
+            self.assertLen(list(yaml.safe_load_all(text)), 2)
+            loaded = self.load(entrypoint, text, directory)
+            self.assertEqual(loaded.pipeline_spec, pipeline.pipeline_spec)
+            self.assertEqual(loaded.platform_spec, pipeline.platform_spec)
+            self.assertEqual(loaded.component_spec.inputs,
+                             pipeline.component_spec.inputs)
+            self.assertEqual(loaded.component_spec.outputs,
+                             pipeline.component_spec.outputs)
+            compiler.Compiler().compile(loaded, path)
+            reloaded = components.load_component_from_file(path)
+            self.assertEqual(reloaded.pipeline_spec, loaded.pipeline_spec)
+            self.assertEqual(reloaded.platform_spec, loaded.platform_spec)
+
+    def test_gcs_url(self):
+        response = mock.Mock(content=b'not a pipeline')
+        with mock.patch(
+                'kfp.components.load_yaml_utilities.requests.get',
+                return_value=response
+        ) as get, mock.patch(
+                'kfp.components.load_yaml_utilities.load_component_from_text'
+        ) as load:
+            components.load_component_from_url('gs://bucket/component.yaml')
+        get.assert_called_once_with(
+            'https://storage.googleapis.com/bucket/component.yaml', auth=None)
+        load.assert_called_once_with('not a pipeline')
+
+    def test_http_error_is_not_loaded(self):
+        response = mock.Mock()
+        response.raise_for_status.side_effect = RuntimeError('HTTP error')
+        with mock.patch(
+                'kfp.components.load_yaml_utilities.requests.get',
+                return_value=response):
+            with self.assertRaisesRegex(RuntimeError, 'HTTP error'):
+                components.load_component_from_url(
+                    'https://example.com/component.yaml')
 
 
 if __name__ == '__main__':

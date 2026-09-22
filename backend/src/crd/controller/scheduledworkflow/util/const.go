@@ -24,7 +24,6 @@ const (
 	ControllerAgentName string = "scheduled-workflow-controller"       // ControllerAgentName is the name of the controller.
 	TimeZone            string = "CRON_SCHEDULE_TIMEZONE"              // TimeZone is the name of the cron schedule timezone env parameter
 	V2Key               string = "pipelines.kubeflow.org/v2_component" // V2Key is the name of the v2 component labels
-	V2PipelineKey       string = "pipelines.kubeflow.org/v2_pipeline"  // V2PipelineKey is the name of the v2 pipeline label
 )
 
 func GetLocation() (*time.Location, error) {

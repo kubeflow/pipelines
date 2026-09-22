@@ -347,18 +347,6 @@ def get_name_to_specs(
             name_to_output_specs[maybe_make_unique(
                 name,
                 list(name_to_output_specs))] = make_output_spec(annotation)
-    # is deprecated dict returns style
-    elif isinstance(return_ann, dict):
-        warnings.warn(
-            'The ability to specify multiple outputs using the dict syntax'
-            ' has been deprecated. It will be removed soon after release'
-            ' 0.1.32. Please use typing.NamedTuple to declare multiple'
-            ' outputs.', DeprecationWarning)
-        for output_name, output_type_annotation in return_ann.items():
-            output_type = type_utils._annotation_to_type_struct(
-                output_type_annotation)
-            name_to_output_specs[maybe_make_unique(
-                output_name, list(name_to_output_specs))] = output_type
     # is the simple single return case (can be `-> <param>` or `-> Artifact`)
     # treated the same way, since processing is done in inner functions
     else:

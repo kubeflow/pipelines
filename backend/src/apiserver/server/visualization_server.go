@@ -23,10 +23,8 @@ import (
 	"net/url"
 	"strings"
 
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -42,7 +40,7 @@ const (
 type VisualizationServer struct {
 	resourceManager *resource.ResourceManager
 	serviceURL      string
-	apiv1beta1.UnimplementedVisualizationServiceServer
+	go_client.UnimplementedVisualizationServiceServer
 }
 
 func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
@@ -81,6 +79,9 @@ func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request
 // It returns an error if a go_client.Visualization object does not have valid
 // values.
 func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_client.CreateVisualizationRequest) error {
+	if request == nil || request.Visualization == nil {
+		return util.NewInvalidInputError("A visualization is required")
+	}
 	// Only validate that a source is provided for non-custom visualizations.
 	if request.Visualization.Type != go_client.Visualization_CUSTOM {
 		if len(request.Visualization.Source) == 0 {

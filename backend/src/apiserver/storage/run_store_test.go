@@ -16,13 +16,10 @@ package storage
 
 import (
 	"database/sql"
-	"encoding/base64"
 	"fmt"
-	"sort"
 	"testing"
 
-	sq "github.com/Masterminds/squirrel"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -39,12 +36,6 @@ const (
 	defaultFakeRunIdTwo   = "123e4567-e89b-12d3-a456-426655440021"
 	defaultFakeRunIdThree = "123e4567-e89b-12d3-a456-426655440023"
 )
-
-type RunMetricSorter []*model.RunMetricV1
-
-func (r RunMetricSorter) Len() int           { return len(r) }
-func (r RunMetricSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
-func (r RunMetricSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 func testLargeTextPtr(s string) *model.LargeText {
 	lt := model.LargeText(s)
@@ -133,22 +124,12 @@ func initializeRunStore() (*sql.DB, dialect.DBDialect, *RunStore) {
 	runStore.CreateRun(run2)
 	runStore.CreateRun(run3)
 
-	metric1 := &model.RunMetricV1{
-		RunUUID:     "1",
-		NodeID:      "node1",
-		Name:        "dummymetric",
-		NumberValue: 1.0,
-		Format:      "PERCENTAGE",
+	for _, id := range []string{"1", "2"} {
+		_, err := db.Exec("INSERT INTO resource_references (ResourceUUID, ResourceType, ReferenceUUID, ReferenceType, Relationship, ReferenceName, Payload) VALUES (?, ?, ?, ?, ?, ?, ?)", id, "Run", defaultFakeExpId, "Experiment", "Owner", "", "{}")
+		if err != nil {
+			panic(err)
+		}
 	}
-	metric2 := &model.RunMetricV1{
-		RunUUID:     "2",
-		NodeID:      "node2",
-		Name:        "dummymetric",
-		NumberValue: 2.0,
-		Format:      "PERCENTAGE",
-	}
-	runStore.CreateV1Metric(metric1)
-	runStore.CreateV1Metric(metric2)
 
 	return db, testDialect, runStore
 }
@@ -178,15 +159,7 @@ func TestListRuns_Pagination(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "1",
-					NodeID:      "node1",
-					Name:        "dummymetric",
-					NumberValue: 1.0,
-					Format:      "PERCENTAGE",
-				},
-			},
+
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
 					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
@@ -195,7 +168,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			},
 		},
 	}
-	expectedFirstPageRuns[0] = expectedFirstPageRuns[0].ToV1()
+	expectedFirstPageRuns[0] = expectedFirstPageRuns[0].ToV2()
 
 	expectedSecondPageRuns := []*model.Run{
 		{
@@ -218,15 +191,7 @@ func TestListRuns_Pagination(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "2",
-					NodeID:      "node2",
-					Name:        "dummymetric",
-					NumberValue: 2.0,
-					Format:      "PERCENTAGE",
-				},
-			},
+
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
 					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
@@ -235,14 +200,14 @@ func TestListRuns_Pagination(t *testing.T) {
 			},
 		},
 	}
-	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV1()
+	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV2()
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	assert.Nil(t, err)
 
 	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
+	runs[0] = runs[0].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
@@ -252,200 +217,11 @@ func TestListRuns_Pagination(t *testing.T) {
 	assert.Nil(t, err)
 	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
+	runs[0] = runs[0].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
-}
-
-func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-
-	expectedFirstPageRuns := []*model.Run{
-		{
-			UUID:         "1",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run1",
-			DisplayName:  "run1",
-			Namespace:    "n1",
-			StorageState: model.StorageStateAvailable,
-			RunDetails: model.RunDetails{
-				CreatedAtInSec:          1,
-				ScheduledAtInSec:        1,
-				Conditions:              "Running",
-				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "",
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 1,
-						State:           model.RuntimeStateRunning,
-					},
-				},
-			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "1",
-					NodeID:      "node1",
-					Name:        "dummymetric",
-					NumberValue: 1.0,
-					Format:      "PERCENTAGE",
-				},
-			},
-			PipelineSpec: model.PipelineSpec{
-				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
-					PipelineRoot: "gs://my-bucket/path/to/root/run1",
-				},
-			},
-		},
-	}
-	expectedFirstPageRuns[0] = expectedFirstPageRuns[0].ToV1()
-	expectedSecondPageRuns := []*model.Run{
-		{
-			UUID:         "2",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run2",
-			DisplayName:  "run2",
-			StorageState: model.StorageStateAvailable,
-			Namespace:    "n2",
-			RunDetails: model.RunDetails{
-				CreatedAtInSec:          2,
-				ScheduledAtInSec:        2,
-				Conditions:              "Succeeded",
-				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "",
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 2,
-						State:           model.RuntimeStateSucceeded,
-					},
-				},
-			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "2",
-					NodeID:      "node2",
-					Name:        "dummymetric",
-					NumberValue: 2.0,
-					Format:      "PERCENTAGE",
-				},
-			},
-			PipelineSpec: model.PipelineSpec{
-				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
-					PipelineRoot: "gs://my-bucket/path/to/root/run2",
-				},
-			},
-		},
-	}
-	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV1()
-
-	// Sort in asc order
-	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
-	assert.Nil(t, err)
-
-	runs, totalSize, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
-	assert.Nil(t, err)
-	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
-	assert.NotEmpty(t, nextPageToken)
-
-	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
-	assert.Nil(t, err)
-	runs, totalSize, nextPageToken, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
-	assert.Nil(t, err)
-	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
-	assert.Empty(t, nextPageToken)
-
-	// Sort in desc order
-	opts, err = list.NewOptions(&model.Run{}, 1, "metric:dummymetric desc", nil)
-	assert.Nil(t, err)
-
-	runs, totalSize, nextPageToken, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
-	assert.Nil(t, err)
-	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
-	assert.NotEmpty(t, nextPageToken)
-
-	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
-	assert.Nil(t, err)
-	runs, totalSize, nextPageToken, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
-	assert.Nil(t, err)
-	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
-	assert.Empty(t, nextPageToken)
-}
-
-func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
-	// An injection-shaped metric name is not rejected on page 1: the raw metric
-	// name only ever reaches SQL as a bind parameter, so parameterization — not
-	// name validation — is what keeps query structure safe.
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-
-	// Lowercase because NewOptions lowercases the whole sort_by expression.
-	maliciousMetric := "';drop/**/table/**/run_metrics;--"
-	opts, err := list.NewOptions(&model.Run{}, 10, "metric:"+maliciousMetric, nil)
-	assert.Nil(t, err, "NewOptions must accept the metric name; it is only used as a bind value")
-
-	sql, args, err := runStore.buildSelectRunsQuery(false, opts,
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}})
-	assert.Nil(t, err)
-	assert.NotContains(t, sql, maliciousMetric, "metric name must never be spliced into SQL text")
-	assert.Contains(t, args, maliciousMetric, "metric name must be passed as a bind parameter")
-
-	// Page 2 is where the name is validated: a forged page token carrying the
-	// same payload must be rejected by token unmarshalling.
-	forged := base64.StdEncoding.EncodeToString(fmt.Appendf(nil,
-		`{"KeyFieldName":"UUID","SortByFieldName":%q,"SortBySQLColumn":%q}`,
-		maliciousMetric, model.MetricSortSQLAlias))
-	_, err = list.NewOptionsFromToken(forged, 10)
-	assert.NotNil(t, err, "page token with an invalid metric name must be rejected")
-}
-
-// TestListRuns_HyphenatedMetricSort verifies that metric names containing
-// hyphens (e.g. "log-loss") can be used for pagination across multiple pages.
-// This is a regression test for a bug where token.unmarshal() validated
-// SortByFieldName with a SQL identifier regex that rejects "-", causing page-2
-// requests with hyphenated metric names to fail with "Invalid sort field name".
-func TestListRuns_HyphenatedMetricSort(t *testing.T) {
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-
-	// Seed runs 1 and 2 with the hyphenated metric so pagination produces a page token.
-	runStore.CreateV1Metric(&model.RunMetricV1{RunUUID: "1", NodeID: "node1", Name: "log-loss", NumberValue: 0.5, Format: "RAW"})
-	runStore.CreateV1Metric(&model.RunMetricV1{RunUUID: "2", NodeID: "node2", Name: "log-loss", NumberValue: 0.3, Format: "RAW"})
-
-	// Page 1: metric:log-loss — must not error even though "log-loss" contains "-".
-	opts, err := list.NewOptions(&model.Run{}, 1, "metric:log-loss", nil)
-	assert.Nil(t, err, "NewOptions must accept hyphenated metric name")
-
-	_, total, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
-		opts, false)
-	assert.Nil(t, err, "page-1 ListRuns must succeed with hyphenated metric name")
-	assert.Equal(t, 2, total)
-	assert.NotEmpty(t, nextPageToken, "must produce a page token when there are 2 runs")
-
-	// Page 2: the page token carries SortByFieldName="log-loss". Unmarshalling
-	// it must succeed (i.e. the identifier regex must NOT be applied to metric names).
-	opts2, err := list.NewOptionsFromToken(nextPageToken, 1)
-	assert.Nil(t, err, "NewOptionsFromToken must not reject hyphenated metric name in pageToken")
-	_, _, _, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
-		opts2, false)
-	assert.Nil(t, err, "page-2 ListRuns must succeed with hyphenated metric name in pageToken")
 }
 
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
@@ -469,10 +245,10 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key: "name",
-				Op:  api.Predicate_IN,
-				Value: &api.Predicate_StringValues{
-					StringValues: &api.StringValues{
+				Key:       "name",
+				Operation: api.Predicate_IN,
+				Value: &api.Predicate_StringValues_{
+					StringValues: &api.Predicate_StringValues{
 						Values: []string{"run1", "run3"},
 					},
 				},
@@ -538,15 +314,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "2",
-					NodeID:      "node2",
-					Name:        "dummymetric",
-					NumberValue: 2.0,
-					Format:      "PERCENTAGE",
-				},
-			},
+
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
 					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
@@ -555,7 +323,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			},
 		},
 	}
-	expectedFirstPageRuns[0] = expectedFirstPageRuns[0].ToV1()
+	expectedFirstPageRuns[0] = expectedFirstPageRuns[0].ToV2()
 	expectedSecondPageRuns := []*model.Run{
 		{
 			UUID:         "1",
@@ -577,15 +345,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "1",
-					NodeID:      "node1",
-					Name:        "dummymetric",
-					NumberValue: 1.0,
-					Format:      "PERCENTAGE",
-				},
-			},
+
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
 					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
@@ -594,14 +354,14 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			},
 		},
 	}
-	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV1()
+	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV2()
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
 	assert.Nil(t, err)
 	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 	for i, run := range runs {
-		runs[i] = run.ToV1()
+		runs[i] = run.ToV2()
 		fmt.Printf("%+v\n", run)
 	}
 
@@ -614,7 +374,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	assert.Nil(t, err)
 	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
+	runs[0] = runs[0].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
@@ -647,15 +407,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "1",
-					NodeID:      "node1",
-					Name:        "dummymetric",
-					NumberValue: 1.0,
-					Format:      "PERCENTAGE",
-				},
-			},
+
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
 					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
@@ -684,15 +436,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "2",
-					NodeID:      "node2",
-					Name:        "dummymetric",
-					NumberValue: 2.0,
-					Format:      "PERCENTAGE",
-				},
-			},
+
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
 					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
@@ -701,16 +445,16 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			},
 		},
 	}
-	expectedRuns[0] = expectedRuns[0].ToV1()
-	expectedRuns[1] = expectedRuns[1].ToV1()
+	expectedRuns[0] = expectedRuns[0].ToV2()
+	expectedRuns[1] = expectedRuns[1].ToV2()
 
 	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
 	assert.Nil(t, err)
 	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
 
-	runs[0] = runs[0].ToV1()
-	runs[1] = runs[1].ToV1()
+	runs[0] = runs[0].ToV2()
+	runs[1] = runs[1].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed")
@@ -849,15 +593,7 @@ func TestGetRun(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
-			{
-				RunUUID:     "1",
-				NodeID:      "node1",
-				Name:        "dummymetric",
-				NumberValue: 1.0,
-				Format:      "PERCENTAGE",
-			},
-		},
+
 		PipelineSpec: model.PipelineSpec{
 			RuntimeConfig: model.RuntimeConfig{
 				Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
@@ -868,7 +604,7 @@ func TestGetRun(t *testing.T) {
 
 	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
+	assert.Equal(t, expectedRun.ToV2(), runDetail.ToV2())
 }
 
 func TestGetRun_NotFoundError(t *testing.T) {
@@ -913,15 +649,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
-			{
-				RunUUID:     "1",
-				NodeID:      "node1",
-				Name:        "dummymetric",
-				NumberValue: 1.0,
-				Format:      "PERCENTAGE",
-			},
-		},
+
 		PipelineSpec: model.PipelineSpec{
 			RuntimeConfig: model.RuntimeConfig{
 				Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
@@ -932,7 +660,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 
 	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
+	assert.Equal(t, expectedRun.ToV2(), runDetail.ToV2())
 
 	runDetail = &model.Run{
 		UUID:         "1",
@@ -970,15 +698,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
-			{
-				RunUUID:     "1",
-				NodeID:      "node1",
-				Name:        "dummymetric",
-				NumberValue: 1.0,
-				Format:      "PERCENTAGE",
-			},
-		},
+
 		PipelineSpec: model.PipelineSpec{
 			RuntimeConfig: model.RuntimeConfig{
 				Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
@@ -989,7 +709,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 
 	runDetail, err = runStore.GetRun("1", false)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
+	assert.Equal(t, expectedRun.ToV2(), runDetail.ToV2())
 }
 
 func TestUpdateRunIfRuntimeManifestsUnchangedRejectsStaleManifest(t *testing.T) {
@@ -1161,7 +881,7 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 
 	runDetail, err = runStore.GetRun("2000", false)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
+	assert.Equal(t, expectedRun.ToV2(), runDetail.ToV2())
 }
 
 func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
@@ -1223,15 +943,6 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 			WorkflowRuntimeManifest: "",
 			State:                   model.RuntimeStateRunning,
 		},
-		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
-			{
-				RunUUID:     "1",
-				NodeID:      "node1",
-				Name:        "dummymetric",
-				NumberValue: 1.0,
-				Format:      "PERCENTAGE",
-			},
-		},
 	}
 
 	_, err := runStore.CreateRun(runDetail)
@@ -1278,7 +989,7 @@ func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
 			}
 
 			staleRun.State = test.incomingState
-			staleRun.Conditions = string(test.incomingState.ToV1())
+			staleRun.Conditions = string(test.incomingState.ToV2())
 			staleRun.WorkflowRuntimeManifest = "stale-workflow"
 			updated, err := runStore.UpdateRunFromWorkflow(
 				staleRun,
@@ -1409,15 +1120,7 @@ func TestTerminateRun(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
-			{
-				RunUUID:     "1",
-				NodeID:      "node1",
-				Name:        "dummymetric",
-				NumberValue: 1.0,
-				Format:      "PERCENTAGE",
-			},
-		},
+
 		PipelineSpec: model.PipelineSpec{
 			RuntimeConfig: model.RuntimeConfig{
 				Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
@@ -1428,7 +1131,7 @@ func TestTerminateRun(t *testing.T) {
 
 	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
+	assert.Equal(t, expectedRun.ToV2(), runDetail.ToV2())
 }
 
 func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
@@ -1478,204 +1181,6 @@ func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
 	err := runStore.TerminateRun("2")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Row not found")
-}
-
-func TestCreateMetric_Success(t *testing.T) {
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-
-	metric := &model.RunMetricV1{
-		RunUUID:     "1",
-		NodeID:      "node1",
-		Name:        "acurracy",
-		NumberValue: 0.77,
-		Format:      "PERCENTAGE",
-	}
-	runStore.CreateV1Metric(metric)
-
-	runDetail, err := runStore.GetRun("1", false)
-	assert.Nil(t, err, "Got error: %+v", err)
-	sort.Sort(RunMetricSorter(runDetail.Metrics))
-	assert.Equal(t, []*model.RunMetricV1{
-		metric,
-		{
-			RunUUID:     "1",
-			NodeID:      "node1",
-			Name:        "dummymetric",
-			NumberValue: 1.0,
-			Format:      "PERCENTAGE",
-		},
-	}, runDetail.Metrics)
-}
-
-func TestCreateMetric_DupReports_Fail(t *testing.T) {
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-
-	metric1 := &model.RunMetricV1{
-		RunUUID:     "1",
-		NodeID:      "node1",
-		Name:        "acurracy",
-		NumberValue: 0.77,
-		Format:      "PERCENTAGE",
-	}
-	metric2 := &model.RunMetricV1{
-		RunUUID:     "1",
-		NodeID:      "node1",
-		Name:        "acurracy",
-		NumberValue: 0.88,
-		Format:      "PERCENTAGE",
-	}
-	runStore.CreateV1Metric(metric1)
-
-	err := runStore.CreateV1Metric(metric2)
-	_, ok := err.(*util.UserError)
-	assert.True(t, ok)
-}
-
-func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-	sql, args, _ := sq.
-		Insert("run_metrics").
-		SetMap(sq.Eq{
-			"RunUUID":     "1",
-			"NodeID":      "node1",
-			"Name":        "accuracy",
-			"NumberValue": 0.88,
-			"Format":      "RAW",
-			"Payload":     "{ invalid; json,",
-		}).ToSql()
-	db.Exec(sql, args...)
-
-	run, err := runStore.GetRun("1", false)
-	assert.Nil(t, err, "Got error: %+v", err)
-	assert.Empty(t, run.Metrics)
-}
-
-func TestListRuns_WithMetrics(t *testing.T) {
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-	metric1 := &model.RunMetricV1{
-		RunUUID:     "1",
-		NodeID:      "node1",
-		Name:        "acurracy",
-		NumberValue: 0.77,
-		Format:      "PERCENTAGE",
-	}
-	metric2 := &model.RunMetricV1{
-		RunUUID:     "1",
-		NodeID:      "node2",
-		Name:        "logloss",
-		NumberValue: -1.2,
-		Format:      "RAW",
-	}
-	metric3 := &model.RunMetricV1{
-		RunUUID:     "2",
-		NodeID:      "node2",
-		Name:        "logloss",
-		NumberValue: -1.3,
-		Format:      "RAW",
-	}
-	runStore.CreateV1Metric(metric1)
-	runStore.CreateV1Metric(metric2)
-	runStore.CreateV1Metric(metric3)
-
-	expectedRuns := []*model.Run{
-		{
-			UUID:         "1",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run1",
-			DisplayName:  "run1",
-			Namespace:    "n1",
-			StorageState: model.StorageStateAvailable,
-			RunDetails: model.RunDetails{
-				CreatedAtInSec:          1,
-				ScheduledAtInSec:        1,
-				Conditions:              "Running",
-				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "",
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 1,
-						State:           model.RuntimeStateRunning,
-					},
-				},
-			},
-			PipelineSpec: model.PipelineSpec{
-				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
-					PipelineRoot: "gs://my-bucket/path/to/root/run1",
-				},
-			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "1",
-					NodeID:      "node1",
-					Name:        "dummymetric",
-					NumberValue: 1.0,
-					Format:      "PERCENTAGE",
-				},
-				metric1,
-				metric2,
-			},
-		},
-		{
-			UUID:         "2",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run2",
-			DisplayName:  "run2",
-			Namespace:    "n2",
-			StorageState: model.StorageStateAvailable,
-
-			RunDetails: model.RunDetails{
-				CreatedAtInSec:          2,
-				ScheduledAtInSec:        2,
-				Conditions:              "Succeeded",
-				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "",
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 2,
-						State:           model.RuntimeStateSucceeded,
-					},
-				},
-			},
-			PipelineSpec: model.PipelineSpec{
-				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
-					PipelineRoot: "gs://my-bucket/path/to/root/run2",
-				},
-			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "2",
-					NodeID:      "node2",
-					Name:        "dummymetric",
-					NumberValue: 2.0,
-					Format:      "PERCENTAGE",
-				},
-				metric3,
-			},
-		},
-	}
-	expectedRuns[0] = expectedRuns[0].ToV1()
-	expectedRuns[1] = expectedRuns[1].ToV1()
-
-	opts, err := list.NewOptions(&model.Run{}, 2, "id", nil)
-	assert.Nil(t, err)
-	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
-	runs[0] = runs[0].ToV1()
-	runs[1] = runs[1].ToV1()
-	assert.Equal(t, 3, totalSize)
-	assert.Nil(t, err)
-	for _, run := range expectedRuns {
-		sort.Sort(RunMetricSorter(run.Metrics))
-	}
-	for _, run := range runs {
-		sort.Sort(RunMetricSorter(run.Metrics))
-	}
-	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed")
 }
 
 func TestArchiveRun(t *testing.T) {
@@ -1783,15 +1288,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 					},
 				},
 			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "1",
-					NodeID:      "node1",
-					Name:        "dummymetric",
-					NumberValue: 1.0,
-					Format:      "PERCENTAGE",
-				},
-			},
+
 			PipelineSpec: model.PipelineSpec{
 				RuntimeConfig: model.RuntimeConfig{
 					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
@@ -1800,11 +1297,11 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 			},
 		},
 	}
-	expectedRuns[0] = expectedRuns[0].ToV1()
+	expectedRuns[0] = expectedRuns[0].ToV2()
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
+	runs[0] = runs[0].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedRuns, runs)
@@ -1867,13 +1364,8 @@ func TestDeleteRun_CleansUpTasksAndMetrics(t *testing.T) {
 	}
 	runStore.CreateRun(run)
 
-	runStore.CreateV1Metric(&model.RunMetricV1{
-		RunUUID:     defaultFakeRunId,
-		NodeID:      "node1",
-		Name:        "accuracy",
-		NumberValue: 0.95,
-		Format:      "RAW",
-	})
+	_, err = db.Exec("INSERT INTO run_metrics (RunUUID, NodeID, Name, NumberValue, Format, Payload) VALUES (?, ?, ?, ?, ?, ?)", defaultFakeRunId, "node1", "accuracy", 0.95, "RAW", "{}")
+	require.NoError(t, err)
 
 	_, err = taskStore.CreateTask(&model.Task{
 		Namespace:        "ns1",
@@ -1934,27 +1426,6 @@ func TestDeleteRun_CleansUpTasksAndMetrics(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
-func TestParseMetrics(t *testing.T) {
-	expectedModelRunMetrics := []*model.RunMetricV1{
-		{
-			RunUUID:     "run-1",
-			Name:        "metric-1",
-			NodeID:      "node-1",
-			NumberValue: 0.88,
-			Format:      "RAW",
-		},
-	}
-	metricsByte, _ := json.Marshal(expectedModelRunMetrics)
-	metricsString := string(metricsByte)
-	metricsNullString := sql.NullString{
-		Valid:  true,
-		String: metricsString,
-	}
-	parsedMetrics, err := parseMetrics(metricsNullString)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedModelRunMetrics, parsedMetrics)
-}
-
 func TestParseRuntimeConfig(t *testing.T) {
 	expectedRuntimeConfig := model.RuntimeConfig{
 		Parameters:   `[{"name":"param2","value":"world1"}]`,
@@ -1995,89 +1466,6 @@ func TestRunAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.Run{}).APIToModelFieldMap() {
 		assert.Contains(t, runColumns, modelField)
 	}
-}
-
-func TestListRuns_Pagination_WithSortingOnMetrics_StringValueInToken(t *testing.T) {
-	db, _, runStore := initializeRunStore()
-	defer db.Close()
-
-	expectedSecondPageRuns := []*model.Run{
-		{
-			UUID:         "2",
-			ExperimentId: defaultFakeExpId,
-			K8SName:      "run2",
-			DisplayName:  "run2",
-			StorageState: model.StorageStateAvailable,
-			Namespace:    "n2",
-			RunDetails: model.RunDetails{
-				CreatedAtInSec:          2,
-				ScheduledAtInSec:        2,
-				Conditions:              "Succeeded",
-				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "",
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 2,
-						State:           model.RuntimeStateSucceeded,
-					},
-				},
-			},
-			Metrics: []*model.RunMetricV1{
-				{
-					RunUUID:     "2",
-					NodeID:      "node2",
-					Name:        "dummymetric",
-					NumberValue: 2.0,
-					Format:      "PERCENTAGE",
-				},
-			},
-			PipelineSpec: model.PipelineSpec{
-				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
-					PipelineRoot: "gs://my-bucket/path/to/root/run2",
-				},
-			},
-		},
-	}
-	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV1()
-
-	// Sort in asc order
-	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
-	assert.Nil(t, err)
-
-	_, _, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	assert.Nil(t, err)
-	assert.NotEmpty(t, nextPageToken)
-
-	// Decode token to modify SortByFieldValue to string
-	// list.Token is exported now
-	var tokenMap map[string]interface{}
-	tokenBytes, err := base64.StdEncoding.DecodeString(nextPageToken)
-	assert.Nil(t, err)
-	err = json.Unmarshal(tokenBytes, &tokenMap)
-	assert.Nil(t, err)
-
-	// Force it to string
-	tokenMap["SortByFieldValue"] = fmt.Sprintf("%v", tokenMap["SortByFieldValue"])
-
-	// Encode back
-	newTokenBytes, err := json.Marshal(tokenMap)
-	assert.Nil(t, err)
-	newToken := base64.StdEncoding.EncodeToString(newTokenBytes)
-
-	// Use the manipulated token
-	opts, err = list.NewOptionsFromToken(newToken, 1)
-	assert.Nil(t, err)
-	runs, totalSize, nextPageToken, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts, false)
-	runs[0] = runs[0].ToV1()
-
-	// Should not error and return correct results
-	assert.Nil(t, err)
-	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed with string token")
-	assert.Empty(t, nextPageToken)
 }
 
 // TestBuildSelectRunsQuery_PgxPlaceholder verifies that buildSelectRunsQuery
@@ -2137,7 +1525,7 @@ func TestBuildSelectRunsQuery_PgxPlaceholder(t *testing.T) {
 	// subquery (UUID + sort key, ORDER BY + LIMIT) is the innermost layer, and
 	// the refs/tasks/metrics aggregation runs only over the paged rows. The
 	// outer ORDER BY re-sorts the final result without LIMIT (already applied).
-	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "refs", "metrics" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", withmetrics."refs", withmetrics."metrics" FROM (SELECT subq."UUID", subq."refs", '[' || COALESCE(string_agg(rm."Payload", ','), '') || ']' AS "metrics" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS subq LEFT JOIN "run_metrics" AS rm ON subq."UUID"=rm."RunUUID" GROUP BY subq."UUID", subq."refs") AS withmetrics JOIN "run_details" AS rd ON withmetrics."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
+	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
 	assert.Equal(t, expectedSQL, sqlStr,
 		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
 
@@ -2390,9 +1778,9 @@ func TestListRunsReturnsPluginsFields(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_EQUALS,
-				Value: &api.Predicate_StringValue{StringValue: runName},
+				Key:       "name",
+				Operation: api.Predicate_EQUALS,
+				Value:     &api.Predicate_StringValue{StringValue: runName},
 			},
 		},
 	}
@@ -2610,13 +1998,8 @@ func TestDeleteExpiredArchivedRuns_DeletesArchivedRunsAndDependentTables(t *test
 	runStore.CreateRun(archivedRun)
 
 	// Seed run_metrics.
-	runStore.CreateV1Metric(&model.RunMetricV1{
-		RunUUID:     "run-to-delete",
-		NodeID:      "node1",
-		Name:        "accuracy",
-		NumberValue: 0.95,
-		Format:      "RAW",
-	})
+	_, err = db.Exec("INSERT INTO run_metrics (RunUUID, NodeID, Name, NumberValue, Format, Payload) VALUES (?, ?, ?, ?, ?, ?)", "run-to-delete", "node1", "accuracy", 0.95, "RAW", "{}")
+	require.NoError(t, err)
 
 	// Seed a task row.
 	taskStore.CreateTask(&model.Task{
@@ -3230,8 +2613,8 @@ func TestListRuns_FilterByPipelineId(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key: "pipeline_id",
-				Op:  api.Predicate_EQUALS,
+				Key:       "pipeline_id",
+				Operation: api.Predicate_EQUALS,
 				Value: &api.Predicate_StringValue{
 					StringValue: targetPipelineID,
 				},
@@ -3341,7 +2724,7 @@ func TestListRuns_SortByExperimentIdAndRecurringRunIdPaginates(t *testing.T) {
 			ExperimentId:   tc.experimentID,
 			CreatedAtInSec: int64(i + 1),
 			UpdatedAtInSec: int64(i + 1),
-		}).ToV1())
+		}).ToV2())
 		require.NoError(t, err)
 
 		_, err = runStore.CreateRun(&model.Run{
@@ -3387,4 +2770,10 @@ func TestListRuns_SortByExperimentIdAndRecurringRunIdPaginates(t *testing.T) {
 			assert.Equal(t, []string{"sort-run-a", "sort-run-b", "sort-run-c"}, got)
 		})
 	}
+}
+
+func TestListRuns_RejectsRetiredMetricSort(t *testing.T) {
+	_, err := list.NewOptions(&model.Run{}, 10, "metric:accuracy", nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Invalid sorting field")
 }

@@ -94,7 +94,7 @@ from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelis
     my_pipeline as pipeline_with_parallelfor_parallelism
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_pipeline_param import \
     my_pipeline as pipeline_with_parallelfor_pipeline_param
-from test_data.sdk_compiled_pipelines.valid.sequential_v1 import sequential
+from test_data.sdk_compiled_pipelines.valid.sequential_container import sequential
 
 
 @dataclass

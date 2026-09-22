@@ -24,7 +24,7 @@ import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { PlotType } from '../components/viewers/Viewer';
 import { Apis } from '../lib/Apis';
 import { OutputArtifactLoader, TEST_ONLY } from './OutputArtifactLoader';
-import { StoragePath, StorageService } from './WorkflowParser';
+import { StoragePath, StorageService } from './StoragePath';
 
 beforeEach(async () => {
   vi.resetAllMocks();

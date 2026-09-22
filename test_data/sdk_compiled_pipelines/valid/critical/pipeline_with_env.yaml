@@ -22,8 +22,6 @@ deploymentSpec:
 
           '
         env:
-        - name: ENV1
-          value: val0
         - name: ENV2
           value: val2
         - name: ENV3
@@ -41,7 +39,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -60,7 +58,7 @@ deploymentSpec:
         env:
         - name: ENV1
           value: val1
-        image: python:3.11
+        image: registry.access.redhat.com/ubi9/python-311:latest
 pipelineInfo:
   name: pipeline-with-env
 root:
@@ -81,4 +79,4 @@ root:
         taskInfo:
           name: print-env-op
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.15.2

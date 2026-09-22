@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -102,15 +101,6 @@ var runListColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
-}
-
-var runMetricsColumns = []string{
-	"RunUUID",
-	"NodeID",
-	"Name",
-	"NumberValue",
-	"Format",
-	"Payload",
 }
 
 // terminalRunStateStrings lists every raw value that a terminal run can carry
@@ -233,11 +223,6 @@ type RunStoreInterface interface {
 
 	// DeleteRun deletes a run.
 	DeleteRun(runId string) error
-
-	// CreateV1Metric creates a new metric entry.
-	//
-	// Prefer CreateMetric for new code; this remains for v1 compatibility.
-	CreateV1Metric(metric *model.RunMetricV1) (err error)
 
 	// TerminateRun terminates a run.
 	TerminateRun(runId string) error
@@ -418,21 +403,11 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, q)
 
 	if !selectCount {
-		// Convert metric value (string) to float64 for numeric comparison in SQL, generic for all DBs.
-		// Must happen before building the paging subquery since cursor WHERE uses this value.
-		if opts != nil && opts.IsMetricSort() && opts.GetSortByFieldValue() != nil {
-			if strVal, ok := opts.GetSortByFieldValue().(string); ok {
-				if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
-					opts = opts.WithSortByFieldValue(floatVal)
-				}
-			}
-		}
-
 		// Paginate-then-aggregate: build a lightweight subquery that pages by UUID
-		// with cursor WHERE + ORDER BY + LIMIT, then aggregate refs/tasks/metrics
+		// with cursor WHERE + ORDER BY + LIMIT, then aggregate resource references
 		// only for the paged rows.
 		pagedBuilder := s.buildPagedUUIDSubquery(sqlBuilder, opts)
-		sqlBuilder = s.addMetricsResourceReferencesAndTasks(pagedBuilder, opts)
+		sqlBuilder = s.addResourceReferences(pagedBuilder)
 		sqlBuilder = opts.AddOrderByToSelect(sqlBuilder, q, s.dbDialect.StringCollation())
 	}
 	sql, args, err := s.dbDialect.FinalizeSelect(sqlBuilder)
@@ -446,11 +421,11 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 func (s *RunStore) GetRun(runID string, hydrateTasks bool) (*model.Run, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
-	getRunBuilder := s.addMetricsResourceReferencesAndTasks(
+	getRunBuilder := s.addResourceReferences(
 		qb.Select(dialect.QuoteAll(q, runColumns)...).
 			From(q("run_details")).
 			Where(sq.Eq{q("UUID"): runID}).
-			Limit(1), nil)
+			Limit(1))
 	sql, args, err := s.dbDialect.FinalizeSelect(getRunBuilder)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
@@ -587,34 +562,13 @@ func (s *RunStore) populateTaskCountsForRuns(runs []*model.Run) error {
 
 // buildPagedUUIDSubquery creates a lightweight subquery that selects only the
 // UUIDs needed for the current page. It applies cursor-based keyset pagination
-// (WHERE + ORDER BY + LIMIT) so that the expensive refs/tasks/metrics
-// aggregation in addMetricsResourceReferencesAndTasks runs only over
+// (WHERE + ORDER BY + LIMIT) so that the expensive resource references
+// aggregation in addResourceReferences runs only over
 // PageSize+1 rows instead of the entire filtered result set.
 func (s *RunStore) buildPagedUUIDSubquery(filteredBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
 	q := s.dbDialect.QuoteIdentifier
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	collation := s.dbDialect.StringCollation()
-
-	if opts.IsMetricSort() {
-		// Metric sort: LEFT JOIN run_metrics to compute sort_metric_value,
-		// then wrap in a subquery so the alias is a real column for WHERE.
-		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
-			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
-
-		metricSubQ := qb.
-			Select("filtered."+q("UUID")).
-			Column(sq.Expr(metricValueExtract, opts.SortByFieldName)).
-			FromSelect(filteredBuilder, "filtered").
-			LeftJoin(fmt.Sprintf("%s AS rm ON filtered.%s=rm.%s",
-				q("run_metrics"), q("UUID"), q("RunUUID"))).
-			GroupBy("filtered." + q("UUID"))
-
-		pageBuilder := qb.
-			Select(q("UUID"), q(model.MetricSortSQLAlias)).
-			FromSelect(metricSubQ, "metric_page")
-
-		return opts.AddPaginationToSelect(pageBuilder, q, collation)
-	}
 
 	// Regular sort: select UUID (+ sort column if different from UUID).
 	columns := []string{q("UUID")}
@@ -625,7 +579,7 @@ func (s *RunStore) buildPagedUUIDSubquery(filteredBuilder sq.SelectBuilder, opts
 	return opts.AddPaginationToSelect(pageBuilder, q, collation)
 }
 
-func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+func (s *RunStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
 	q := s.dbDialect.QuoteIdentifier
 	// All builders in this function must use Question format.
 	// Reason: squirrel's aliasExpr.ToSql() (used by FromSelect) calls each
@@ -637,7 +591,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
 
-	// Optimization: Only pass UUID and aggregated columns through the 3 LEFT JOINs,
+	// Only pass UUID and reference aggregates through the LEFT JOIN,
 	// then JOIN back to run_details at the end to get all runColumns.
 	// This avoids GROUP BY on LONGTEXT columns (PipelineSpecManifest, WorkflowSpecManifest, etc.)
 	// and improves performance by reducing data transfer through intermediate queries.
@@ -659,63 +613,22 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 			q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
 		GroupBy("filtered." + q("UUID"))
 
-	// Layer 2: LEFT JOIN run_metrics
-	// This layer does two things:
-	// 1. Aggregate all metrics into a JSON array for display
-	// 2. Extract the specific metric for sorting (if sortByFieldName is a metric)
-	metricConcatQuery := s.dbDialect.ConcatExprs(
-		[]string{
-			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false /* DISTINCT off */, "rm."+q("Payload"), ",") + ", '')", "']'",
-		}, "",
-	)
-	columnsAfterJoiningRunMetrics := []string{
-		"subq." + q("UUID"),
-		"subq." + q("refs"),
-		metricConcatQuery + " AS " + q("metrics"),
-	}
-
-	// Build the metrics subquery. If sorting by a metric, add the CASE WHEN expression
-	// using a bind parameter for the metric name to prevent SQL injection.
-	// The column alias is always the fixed constant model.MetricSortSQLAlias.
-	subQWithMetrics := qb.
-		Select(columnsAfterJoiningRunMetrics...).
-		FromSelect(subQ, "subq").
-		LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
-			q("run_metrics"), q("UUID"), q("RunUUID"))).
-		GroupBy("subq."+q("UUID"), "subq."+q("refs"))
-	if opts != nil && opts.IsMetricSort() {
-		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
-			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
-		subQWithMetrics = subQWithMetrics.Column(sq.Expr(metricValueExtract, opts.SortByFieldName))
-	}
-
 	// Final layer: JOIN back to run_details to get all runColumns
 	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
 	joinedColumns := append(
 		dialect.QuoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
-		"withmetrics."+q("refs"),
-		"withmetrics."+q("metrics"))
-
-	if opts != nil && opts.IsMetricSort() {
-		joinedColumns = append(joinedColumns, "withmetrics."+q(model.MetricSortSQLAlias))
-	}
+		"withrefs."+q("refs"))
 
 	joinedSubQ := qb.
 		Select(joinedColumns...).
-		FromSelect(subQWithMetrics, "withmetrics").
-		Join(fmt.Sprintf("%s AS rd ON withmetrics.%s=rd.%s",
+		FromSelect(subQ, "withrefs").
+		Join(fmt.Sprintf("%s AS rd ON withrefs.%s=rd.%s",
 			q("run_details"), q("UUID"), q("UUID")))
 
 	// Wrap in final SELECT to provide clean column names without table prefixes
 	// This avoids ambiguity in ORDER BY clauses added by pagination
 	finalSelectColumns := dialect.QuoteAll(q, runColumns)
-	finalSelectColumns = append(finalSelectColumns, q("refs"), q("metrics"))
-
-	// Include metric sort column in SELECT when sorting by metric.
-	// MySQL/PostgreSQL require WHERE-referenced columns in SELECT list.
-	if opts != nil && opts.IsMetricSort() {
-		finalSelectColumns = append(finalSelectColumns, q(model.MetricSortSQLAlias))
-	}
+	finalSelectColumns = append(finalSelectColumns, q("refs"))
 
 	return qb.
 		Select(finalSelectColumns...).
@@ -729,15 +642,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
-		var metricsInString, resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
+		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
 
-		// Check how many columns are in the result set
-		columns, err := rows.Columns()
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "failed to get columns from rows")
-		}
-
-		// Prepare scan destinations: 32 base columns + 2 aggregated + 1 optional metric sort
+		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
 			&uuid,
 			&experimentUUID,
@@ -772,31 +679,12 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
 			&resourceReferencesInString,
-			&metricsInString,
 		}
 
-		// If there's an extra column (metric sort column), add a dummy variable to scan it.
-		// Base count = runColumns + 2 aggregated columns (refs, metrics).
-		baseColumnCount := len(runColumns) + 2
-		if len(columns) > baseColumnCount {
-			var dummyMetricValue sql.NullFloat64
-			scanDest = append(scanDest, &dummyMetricValue)
-		}
-
-		err = rows.Scan(scanDest...)
+		err := rows.Scan(scanDest...)
 		if err != nil {
 			glog.Errorf("Failed to scan row into a run: %v", err)
 			return nil, err
-		}
-		metrics, err := parseMetrics(metricsInString)
-		if err != nil {
-			glog.Errorf("Failed to parse metrics (%v) from DB: %v", metricsInString, err)
-			// Skip the error to allow user to get runs even when metrics data
-			// are invalid.
-			metrics = []*model.RunMetricV1{}
-		}
-		if len(metrics) == 0 {
-			metrics = nil
 		}
 		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
 		if err != nil {
@@ -855,8 +743,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				ArchivedAtInSec:         archivedAtInSec.Int64,
 				StateHistory:            stateHistoryNew,
 			},
-			Metrics:            metrics,
-			ResourceReferences: resourceReferences,
+
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
 				PipelineVersionId:    pvID,
@@ -879,17 +766,6 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		runs = append(runs, run)
 	}
 	return runs, nil
-}
-
-func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetricV1, error) {
-	if !metricsInString.Valid {
-		return nil, nil
-	}
-	var metrics []*model.RunMetricV1
-	if err := json.Unmarshal([]byte(metricsInString.String), &metrics); err != nil {
-		return nil, util.Wrapf(err, "Failed to parse a run metric '%s'", metricsInString.String)
-	}
-	return metrics, nil
 }
 
 func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
@@ -918,7 +794,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
-	r = r.ToV1().ToV2()
+	r = r.ToV2()
 	if r.StorageState == "" || r.StorageState == model.StorageStateUnspecified || r.StorageState == model.StorageStateUnspecifiedV1 {
 		r.StorageState = model.StorageStateAvailable
 	}
@@ -1524,7 +1400,7 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	claimSQL, claimArgs, err := qb.
 		Update(q("run_details")).
 		Set(q("State"), model.RuntimeStatePending.ToString()).
-		Set(q("Conditions"), string(model.RuntimeStatePending.ToV1())).
+		Set(q("Conditions"), string(model.RuntimeStatePending.ToExecutionPhase())).
 		Set(q("FinishedAtInSec"), 0).
 		Set(q("RetryGeneration"), newGeneration).
 		Set(q("RetryClaimedAtInSec"), s.time.Now().Unix()).
@@ -1885,41 +1761,6 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	return affected, nil
 }
 
-// Creates a new metric in run_metrics table if does not exist.
-func (s *RunStore) CreateV1Metric(metric *model.RunMetricV1) error {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-
-	payloadBytes, err := json.Marshal(metric)
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to marshal a run metric to json: %+v", metric)
-	}
-	sql, args, err := qb.
-		Insert(q("run_metrics")).
-		SetMap(sq.Eq{
-			q("RunUUID"):     metric.RunUUID,
-			q("NodeID"):      metric.NodeID,
-			q("Name"):        metric.Name,
-			q("NumberValue"): metric.NumberValue,
-			q("Format"):      metric.Format,
-			q("Payload"):     string(payloadBytes),
-		}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query for inserting a run metric: %+v", metric)
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		if s.dbDialect.IsDuplicateKeyError(err) {
-			return util.NewAlreadyExistError(
-				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
-		}
-		return util.NewInternalServerError(err, "Failed to insert a run metric: %v", metric)
-	}
-	return nil
-}
-
 // Returns a new RunStore.
 func NewRunStore(db *sql.DB, time util.TimeInterface, d dialect.DBDialect) *RunStore {
 	return &RunStore{
@@ -1939,7 +1780,7 @@ func (s *RunStore) TerminateRun(runId string) error {
 	sql, args, err := qb.
 		Update(q("run_details")).
 		SetMap(sq.Eq{
-			q("Conditions"): string(model.RuntimeStateCancelling.ToV1()),
+			q("Conditions"): string(model.RuntimeStateCancelling.ToExecutionPhase()),
 			q("State"):      model.RuntimeStateCancelling.ToString(),
 		}).
 		Where(sq.And{

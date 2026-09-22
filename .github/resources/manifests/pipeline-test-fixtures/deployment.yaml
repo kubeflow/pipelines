@@ -70,9 +70,7 @@ spec:
                 path: backend/test/v2/resources/sequential.yaml
               - key: backend-test-v2-resources-arguments-parameters.zip
                 path: backend/test/v2/resources/arguments_parameters.zip
-              - key: backend-test-resources-arguments-parameters.zip
-                path: backend/test/resources/arguments_parameters.zip
-              - key: test-data-sequential-v1.yaml
-                path: test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml
+              - key: test-data-sequential-container.yaml
+                path: test_data/sdk_compiled_pipelines/valid/sequential_container.yaml
               - key: test-data-arguments-parameters.zip
                 path: test_data/sdk_compiled_pipelines/valid/arguments_parameters.zip

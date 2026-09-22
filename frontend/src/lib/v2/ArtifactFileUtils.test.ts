@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Apis } from 'src/lib/Apis';
-import { StorageService } from 'src/lib/WorkflowParser';
+import { StorageService } from 'src/lib/StoragePath';
 import { parseArtifactFileLocation, readArtifactFile } from './ArtifactFileUtils';
 
 describe('readArtifactFile', () => {
