@@ -59,7 +59,10 @@ spec:
 
                 # Create bucket with retries (maximum 25 seconds)
                 for i in $(seq 1 5); do
-                  echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell 2>&1 || true
+                  bucket_listing=$(echo "s3.bucket.list" | /usr/bin/weed shell 2>/dev/null) || exit 1
+                  if ! printf '%s\n' "$bucket_listing" | grep -Eq '^[[:space:]]*mlpipeline[[:space:]]'; then
+                    echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell 2>&1 || true
+                  fi
                   if echo "s3.bucket.list" | /usr/bin/weed shell 2>/dev/null | grep -q mlpipeline; then
                     break
                   fi
