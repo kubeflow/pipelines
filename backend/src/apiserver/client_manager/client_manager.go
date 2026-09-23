@@ -345,6 +345,11 @@ func (c *ClientManager) init(options *Options) error {
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+	if options != nil && options.Context != nil {
+		c.initWorkflowHydrator(options.Context)
+	} else {
+		c.initWorkflowHydrator(context.Background())
+	}
 
 	glog.Info("Initializing Object store client...")
 	objectStore, err := initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout))

@@ -1294,13 +1294,21 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error decompressing execution spec", runId)
 	}
 
+	if err := execSpec.Hydrate(ctx); err != nil {
+		return util.Wrapf(err, "Failed to retry run %s due to error hydrating workflow node status", runId)
+	}
+
 	if err := execSpec.CanRetry(); err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow retries", runId)
+		return util.Wrapf(err, "Failed to retry run %s as it does not allow retries", runId)
 	}
 
 	newExecSpec, podsToDelete, err := execSpec.GenerateRetryExecution()
 	if err != nil {
 		return util.Wrapf(err, "Failed to retry run %s", runId)
+	}
+
+	if err := newExecSpec.Dehydrate(ctx); err != nil {
+		return util.Wrapf(err, "Failed to retry run %s due to error dehydrating workflow node status", runId)
 	}
 
 	if namespace == "" {

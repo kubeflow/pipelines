@@ -918,6 +918,7 @@ func seedRetryWorkflow(t *testing.T, manager *ResourceManager, runID string, wor
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	require.NoError(t, err)
 	require.NoError(t, execSpec.Decompress())
+	require.NoError(t, execSpec.Hydrate(context.Background()))
 	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
 	require.NoError(t, err)
 	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
@@ -3795,7 +3796,27 @@ func TestRetryRun_FailedOffloadNodeStatus(t *testing.T) {
 	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Aborted))
 	assert.Contains(t, err.Error(), "Cannot retry workflow with offloaded node status")
+}
+
+func TestRetryRun_OffloadedNodeStatus_Hydrated(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
+	defer store.Close()
+
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	repo.Put(string(testWorkflow.UID), "offload-hash", map[string]v1alpha1.NodeStatus{
+		"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	})
+	util.SetWorkflowHydratorForTest(t, util.NewMemoryWorkflowHydrator(repo))
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	require.NoError(t, err)
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Contains(t, string(actualRunDetail.WorkflowRuntimeManifest), "Running")
+	assert.Equal(t, model.RuntimeStateRunning, actualRunDetail.RunDetails.State)
 }
 
 func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {

@@ -15,6 +15,7 @@
 package util
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
@@ -167,6 +168,12 @@ type ExecutionSpec interface {
 
 	// Decompress ExecutionSpec. In most case, decompress information in status
 	Decompress() error
+
+	// Hydrate restores compressed or offloaded node status so retry can inspect nodes.
+	Hydrate(ctx context.Context) error
+
+	// Dehydrate persists node status (compress/offload) before writing the spec back to Kubernetes.
+	Dehydrate(ctx context.Context) error
 
 	// Check if the ExecutionSpec allows retry, return error if not
 	CanRetry() error
