@@ -1509,6 +1509,15 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 			}
 		}
 
+		// A previous update attempt may have dehydrated newExecSpec before the
+		// Workflow disappeared. Restore those nodes while the old UID still
+		// identifies the offload row, then create a status-free placeholder and
+		// dehydrate the retry under the UID assigned to the replacement.
+		lastWorkflowAction = "rehydrating workflow node status for create"
+		if err := newExecSpec.Hydrate(ctx); err != nil {
+			lastWorkflowError = err
+			return err
+		}
 		createSpec, cloneError := cloneExecutionSpecWithoutNodeStatus(newExecSpec)
 		if cloneError != nil {
 			lastWorkflowError = cloneError
@@ -1565,6 +1574,7 @@ func adoptExecutionIdentity(dst, src util.ExecutionSpec) {
 	}
 	dstMeta.UID = srcMeta.UID
 	dstMeta.ResourceVersion = srcMeta.ResourceVersion
+	dstMeta.CreationTimestamp = srcMeta.CreationTimestamp
 }
 
 func cloneExecutionSpecWithoutNodeStatus(spec util.ExecutionSpec) (util.ExecutionSpec, error) {
@@ -1577,6 +1587,12 @@ func cloneExecutionSpecWithoutNodeStatus(spec util.ExecutionSpec) (util.Executio
 	if meta := clone.ExecutionObjectMeta(); meta != nil {
 		meta.UID = ""
 	}
+	workflow, ok := clone.(*util.Workflow)
+	if !ok {
+		return nil, fmt.Errorf("cannot create controller-inert placeholder for execution type %s", spec.ExecutionType())
+	}
+	suspend := true
+	workflow.Spec.Suspend = &suspend
 	return clone, nil
 }
 
@@ -2424,6 +2440,17 @@ func (r *ResourceManager) reportWorkflowResource(
 			execStatus = execSpec.ExecutionStatus()
 			state = workflowReportState(execSpec)
 		}
+	}
+
+	// Argo garbage-collects offloaded node-status rows after the Workflow CR is
+	// removed. Persist terminal workflows with their nodes hydrated so a later
+	// retry does not depend on that short-lived offload row.
+	if execStatus.IsInFinalState() {
+		if err := execSpec.Hydrate(ctx); err != nil {
+			return nil, util.Wrapf(err,
+				"Failed to preserve workflow node status for retry before finalizing run %s", runId)
+		}
+		execStatus = execSpec.ExecutionStatus()
 	}
 
 	if updateError == nil && !createdFromRecurringReport {
