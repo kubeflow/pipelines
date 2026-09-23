@@ -27,6 +27,8 @@ import click
 from click import testing
 from kfp.cli import cli
 from kfp.cli import compile_
+from kfp.cli import output
+from kfp.cli import pipeline
 import yaml
 
 
@@ -141,6 +143,50 @@ class TestCliVersion(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         matches = re.match(r'^kfp \d+\.\d+\.\d+.*', result.output)
         self.assertTrue(matches)
+
+
+class TestPipelineVersionCommands(unittest.TestCase):
+
+    def setUp(self):
+        self.context = mock.Mock()
+        self.client = mock.Mock()
+        self.context.obj = {
+            'client': self.client,
+            'output': output.OutputFormat.table,
+        }
+        self.version = mock.Mock()
+
+    @mock.patch('kfp.cli.pipeline.output.print_output')
+    def test_get_version_uses_pipeline_version_output(self, mock_print_output):
+        self.client.get_pipeline_version.return_value = self.version
+
+        pipeline.get_version.callback(
+            self.context, pipeline_id='pipeline-id', version_id='version-id')
+
+        mock_print_output.assert_called_once_with(
+            self.version,
+            output.ModelType.PIPELINE_VERSION,
+            output.OutputFormat.table,
+        )
+
+    @mock.patch('kfp.cli.pipeline.output.print_output')
+    def test_create_version_uses_pipeline_version_output(self,
+                                                         mock_print_output):
+        self.client.upload_pipeline_version.return_value = self.version
+
+        pipeline.create_version.callback(
+            self.context,
+            package_file='pipeline.yaml',
+            pipeline_version='version-name',
+            pipeline_id='pipeline-id',
+            pipeline_name=None,
+            description=None)
+
+        mock_print_output.assert_called_once_with(
+            self.version,
+            output.ModelType.PIPELINE_VERSION,
+            output.OutputFormat.table,
+        )
 
 
 class TestDslCompile(parameterized.TestCase):
