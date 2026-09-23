@@ -170,8 +170,8 @@ class TestPipelineVersionCommands(unittest.TestCase):
         )
 
     @mock.patch('kfp.cli.pipeline.output.print_output')
-    def test_create_version_uses_pipeline_version_output(self,
-                                                         mock_print_output):
+    def test_create_version_uses_pipeline_version_output(
+            self, mock_print_output):
         self.client.upload_pipeline_version.return_value = self.version
 
         pipeline.create_version.callback(
