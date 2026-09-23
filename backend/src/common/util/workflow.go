@@ -1016,7 +1016,10 @@ func (w *Workflow) CanRetry() error {
 		return NewInvalidInputError("Cannot retry an empty workflow; create a new run from pipeline IR")
 	}
 	if w.Workflow.Status.OffloadNodeStatusVersion != "" {
-		return NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
+		return NewBadRequestError(
+			errors.New("workflow cannot be retried"),
+			"Cannot retry workflow with offloaded node status. Hydrate node statuses from Argo offload storage, or clone the run instead of retrying",
+		)
 	}
 	// The IR compiler emits this format marker. It is not an authorization boundary.
 	metadata := w.Spec.PodMetadata

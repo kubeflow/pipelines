@@ -78,6 +78,7 @@ rules:
   - configmaps
   resourceNames:
   - kfp-launcher
+  - workflow-controller-configmap
   verbs:
   - get
 - apiGroups:
@@ -86,6 +87,8 @@ rules:
   - secrets
   resourceNames:
   - kfp-mlflow-credentials
+  - argo-postgres-config
+  - argo-postgres-config-bd
   verbs:
   - get
 # Leader election lease for the run garbage collector.

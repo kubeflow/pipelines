@@ -347,7 +347,16 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: DefaultPodNamespace,
 		},
-
+		{
+			name:     "GetArgoWorkflowControllerConfigMap defaults to workflow-controller-configmap",
+			getter:   func() interface{} { return GetArgoWorkflowControllerConfigMap() },
+			expected: "workflow-controller-configmap",
+		},
+		{
+			name:     "GetArgoWorkflowControllerNamespace defaults to pod namespace",
+			getter:   func() interface{} { return GetArgoWorkflowControllerNamespace() },
+			expected: DefaultPodNamespace,
+		},
 		{
 			name:     "GetKubeflowUserIDHeader defaults to GoogleIAPUserIdentityHeader",
 			getter:   func() interface{} { return GetKubeflowUserIDHeader() },
