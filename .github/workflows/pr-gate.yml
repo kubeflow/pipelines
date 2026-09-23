@@ -1,85 +1,70 @@
-name: CI Gatekeeper
+name: PR Gate
+
+on:
+  pull_request_target:
+    types: [opened, labeled, unlabeled, synchronize, reopened]
+  issue_comment:
+    types: [created]
 
 permissions:
-  actions: write
   contents: read
   pull-requests: write
   issues: write
 
-on:
-  pull_request_target:
-    types: [opened, labeled, synchronize, reopened]
-
-
 jobs:
   check-pr-author:
-    # Use the PR author, including when a maintainer triggers the event.
     if: >-
+      github.event_name == 'pull_request_target' &&
       github.event.pull_request.user.login != 'dependabot[bot]' &&
       github.event.pull_request.user.login != 'copybara-service[bot]'
+    concurrency:
+      group: pr-gate-check-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Check if author is a Kubeflow Organisation Member
-        id: membership-check
-        env:
-          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          echo "::group::PR Information"
-          echo "PR Number: #${PR_NUMBER}"
-          echo "PR Author: ${PR_AUTHOR}"
-          echo "Author Association: ${AUTHOR_ASSOCIATION}"
-          echo "::endgroup::"
+      - name: Checkout trusted admission script
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts/pr-gate.cjs
+          sparse-checkout-cone-mode: false
+      - name: Evaluate PR admission
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { handlePrGate } = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/pr-gate.cjs`);
+            const result = await handlePrGate({ github, context });
+            core.info(JSON.stringify(result));
+            if (result.status === 'closed') {
+              core.setFailed('PR admission requires a linked ready issue or a maintainer /allow override.');
+            }
 
-          # MEMBER = org member, OWNER = org owner, COLLABORATOR = invited collaborator
-          if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" || "$AUTHOR_ASSOCIATION" == "COLLABORATOR" ]]; then
-            printf '::notice::Author %s is a trusted contributor (association: %s). Bypassing gatekeeper checks.\n' "$PR_AUTHOR" "$AUTHOR_ASSOCIATION"
-            printf 'is_member=true\n' >> "$GITHUB_OUTPUT"
-          else
-            printf '::notice::Author %s is not a member of Kubeflow (association: %s). Checking for '\''ok-to-test'\'' label.\n' "$PR_AUTHOR" "$AUTHOR_ASSOCIATION"
-            printf 'is_member=false\n' >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Author is not a Kubeflow member, check for 'ready' label in the issue linked to the PR
-        if: steps.membership-check.outputs.is_member == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          # Get the issue linked to the PR via GitHub CLI using closingIssuesReferences
-          PR_JSON=$(gh pr view "$PR_NUMBER" --json closingIssuesReferences)
-          # Extract the linked issue number
-          ISSUE_NUMBER=$(echo "$PR_JSON" | jq -r '.closingIssuesReferences[0].number // empty')
-
-          if [[ -z "$ISSUE_NUMBER" ]]; then
-            printf '::error::No linked issue found for PR #%s. Please link an issue using closing keywords (e.g., '\''Fixes #123'\'') in the PR description.\n' "$PR_NUMBER"
-
-            COMMENT=$(printf '@%s: Hey, thank you for your PR! As you are not a member of Kubeflow organization, your PR must link to an issue with '\''ready'\'' label. Please read our [CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md), closing this PR' "$PR_AUTHOR")
-            gh pr comment "$PR_NUMBER" --body "$COMMENT"
-            gh pr close "$PR_NUMBER"
-            exit 1
-          fi
-
-          echo "Linked issue number found: #$ISSUE_NUMBER"
-
-          # Check if the found linked issue has a 'ready' label on it.
-          ISSUE_LABELS=$(gh issue view "$ISSUE_NUMBER" --json labels | jq -r '.labels[].name')
-
-          # Verify if the list of labels contains the 'ready' label
-          if echo "$ISSUE_LABELS" | grep -q "ready"; then
-            echo "::notice::Success! Linked issue #$ISSUE_NUMBER contains the 'ready' label. Proceeding with CI. Adding 'ok-to-test' to the PR #$PR_NUMBER..."
-            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "ok-to-test"
-            echo "::notice::'ok-to-test' label added. CI can now proceed."
-
-          else
-           echo "::error::Linked issue #$ISSUE_NUMBER does not contain the 'ready' label on it."
-
-           # Comment on the PR to inform the author about the missing label and close the PR
-            COMMENT_BODY="Hi @${{ github.event.pull_request.user.login }}, thank you for your PR! The linked issue (#$ISSUE_NUMBER) must be labeled \`ready\` before your contribution can be reviewed. Please check our [CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md) for details."
-            gh pr comment "$PR_NUMBER" --body "$COMMENT_BODY"
-            gh pr close "$PR_NUMBER"
-            exit 1
-          fi
+  allow-pr:
+    # This is only a scheduling filter; the trusted script validates the exact command and permissions.
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/allow')
+    concurrency:
+      # A label/push event or another comment must not replace a pending /allow command.
+      group: pr-gate-allow-${{ github.event.issue.number }}-${{ github.event.comment.id }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted admission script
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts/pr-gate.cjs
+          sparse-checkout-cone-mode: false
+      - name: Apply maintainer admission override
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { handlePrGate } = require(`${process.env.GITHUB_WORKSPACE}/.github/scripts/pr-gate.cjs`);
+            const result = await handlePrGate({ github, context });
+            core.info(JSON.stringify(result));

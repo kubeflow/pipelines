@@ -86,6 +86,41 @@ If a non-member pull request subject to this gate does not link to an issue, or
 the linked issue is not labeled `ready`, the gatekeeper workflow may comment on
 the PR and close it until the issue triage step is completed.
 
+#### Maintainer admission override
+
+A maintainer with current **write**, **maintain**, or **admin** permission on this
+repository can admit a contribution without the linked-issue requirement by
+posting a new PR comment containing only:
+
+```text
+/allow
+```
+
+The command adds `pr-gate/approved` and reopens the PR if it is closed and
+unmerged. The exemption persists across pushes and reopenings. Repeating a
+completed command does not duplicate labels or acknowledgement comments. Merged
+PRs are never reopened. Quoted commands, commands with additional text, and edits
+to existing comments are not processed.
+
+The workflow checks the command author's current repository permissions, not
+their organization association or the actor who reruns the workflow. Comments on
+ordinary issues do not grant PR admission.
+
+This is **admission only**, not code approval or CI authorization. It does not add
+`ok-to-test`, approve or rerun workflows, clear previous check results, remove
+merge holds, or bypass required reviews/checks. Reopening with `GITHUB_TOKEN` may
+create CI runs that require separate approval; see
+[GitHub's workflow-triggering rules](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs).
+
+Like other repository labels, `pr-gate/approved` can also be managed directly by
+users with GitHub label-editing permission. Removing it restores the normal
+admission rules; an otherwise ineligible open PR may then be closed. Use
+`/allow` when the PR also needs to be reopened.
+
+The command posts an acknowledgement when it changes admission or reopens the
+PR. If a GitHub API operation interrupts processing, inspect the workflow result
+and retry `/allow` as needed.
+
 ## Project Structure
 
 Kubeflow Pipelines consists of multiple components. Before you begin, learn how to [build the Kubeflow Pipelines component container images](./developer_guide.md##build-image). To get started, see the development guides:

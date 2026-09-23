@@ -223,6 +223,7 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         condition = _folded_scalar(_before_mapping(job, 'steps', 4), 'if', 4)
         self.assertEqual(
             condition,
+            "github.event_name == 'pull_request_target' && "
             "github.event.pull_request.user.login != 'dependabot[bot]' && "
             "github.event.pull_request.user.login != 'copybara-service[bot]'",
         )
@@ -230,6 +231,7 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         expression = condition.replace('github.event.pull_request.user.login',
                                        'author').replace(
                                            'github.actor', 'actor')
+        expression = expression.replace('github.event_name', 'event_name')
         parsed = ast.parse(expression.replace('&&', ' and '), mode='eval')
         cases = [
             ('dependabot[bot]', 'dependabot[bot]', False),
@@ -246,10 +248,57 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         for author, actor, should_run in cases:
             with self.subTest(author=author, actor=actor):
                 self.assertEqual(
-                    _evaluate_condition_node(parsed, {
-                        'author': author,
-                        'actor': actor,
-                    }), should_run)
+                    _evaluate_condition_node(
+                        parsed, {
+                            'author': author,
+                            'actor': actor,
+                            'event_name': 'pull_request_target',
+                        }), should_run)
+
+    def test_pr_gate_comment_job_cannot_cancel_other_allow_commands(self):
+        workflow = self._read_workflow('pr-gate.yml')
+        jobs = _mapping_block(workflow, 'jobs', 0)
+        gate = _mapping_block(jobs, 'check-pr-author', 2)
+        command = _mapping_block(jobs, 'allow-pr', 2)
+        condition = _folded_scalar(
+            _before_mapping(command, 'steps', 4), 'if', 4)
+        self.assertIn("github.event_name == 'issue_comment'", condition)
+        self.assertIn('github.event.issue.pull_request', condition)
+        self.assertIn("contains(github.event.comment.body, '/allow')",
+                      condition)
+        for job, group in [
+            (gate, 'pr-gate-check-${{ github.event.pull_request.number }}'),
+            (command,
+             'pr-gate-allow-${{ github.event.issue.number }}-${{ github.event.comment.id }}'
+            ),
+        ]:
+            concurrency = _mapping_block(job, 'concurrency', 4)
+            self.assertEqual(_plain_scalar(concurrency, 'group', 6), group)
+            self.assertEqual(
+                _plain_scalar(concurrency, 'cancel-in-progress', 6), 'false')
+
+    def test_pr_gate_checks_out_only_trusted_metadata_script(self):
+        workflow = self._read_workflow('pr-gate.yml')
+        steps = re.split(r'^      - ', workflow, flags=re.MULTILINE)[1:]
+        checkouts = [
+            step for step in steps if 'uses: actions/checkout@' in step
+        ]
+        self.assertEqual(len(checkouts), 2)
+        for checkout in checkouts:
+            self.assertIn('ref: ${{ github.workflow_sha }}', checkout)
+            self.assertIn('persist-credentials: false', checkout)
+            self.assertIn('sparse-checkout: .github/scripts/pr-gate.cjs',
+                          checkout)
+        permissions = _mapping_block(workflow, 'permissions', 0)
+        self.assertNotIn('actions: write', permissions)
+        self.assertNotIn('checks: write', permissions)
+        self.assertNotIn('${{ github.event.comment.body }}', workflow)
+
+    def test_pr_gate_node_tests_are_in_ci(self):
+        workflow = self._read_workflow('ci-scripts-tests.yml')
+        self.assertIn("'.github/scripts/*.cjs'", workflow)
+        self.assertIn("'.github/workflows/pr-gate.yml'", workflow)
+        self.assertIn('node --test .github/scripts/*.test.cjs', workflow)
 
     def test_eligibility_shell_receives_label_name_through_environment(self):
         workflow = self._read_workflow('ci-checks.yml')

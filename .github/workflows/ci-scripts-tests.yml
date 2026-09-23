@@ -1,6 +1,5 @@
-# Presubmit gate for the Python tooling and CI action wiring under .github:
-# the unit tests are stdlib-only and use the `*_test.py` suffix, so select
-# that pattern explicitly because it is not unittest discover's default.
+# Presubmit gate for dependency-free workflow tooling and CI action wiring.
+# Python tests use *_test.py; Node tests use the built-in test runner.
 name: CI Scripts Tests
 
 on:
@@ -23,11 +22,13 @@ on:
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
       - '.github/scripts/*.py'
+      - '.github/scripts/*.cjs'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
       - '.github/actions/junit-summary/**'
       - '.github/workflows/ci-checks.yml'
+      - '.github/workflows/pr-gate.yml'
       - '.github/workflows/create-manifest.yml'
       - '.github/actions/upload-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'
@@ -64,6 +65,17 @@ permissions:
   contents: read
 
 jobs:
+  node-script-tests:
+    name: Run .github Node script unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - run: node --test .github/scripts/*.test.cjs
+
   python-script-tests:
     name: Run .github scripts unit tests
     runs-on: ubuntu-latest
