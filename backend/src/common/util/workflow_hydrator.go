@@ -17,6 +17,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"testing"
 
@@ -74,6 +75,15 @@ func (w *Workflow) Dehydrate(ctx context.Context) error {
 	return nil
 }
 
+func (w *Workflow) ClearPersistedNodeStatus() {
+	if w == nil || w.Workflow == nil {
+		return
+	}
+	w.Status.Nodes = nil
+	w.Status.CompressedNodes = ""
+	w.Status.OffloadNodeStatusVersion = ""
+}
+
 // ParseArgoPersistConfig unmarshals the workflow-controller `persistence` YAML.
 func ParseArgoPersistConfig(persistenceYAML []byte) (*argoconfig.PersistConfig, error) {
 	if len(persistenceYAML) == 0 {
@@ -84,6 +94,33 @@ func ParseArgoPersistConfig(persistenceYAML []byte) (*argoconfig.PersistConfig, 
 		return nil, fmt.Errorf("failed to parse Argo persistence config: %w", err)
 	}
 	return &persist, nil
+}
+
+// ArgoPersistSecretNames returns unique Secret names referenced by Argo persistence credentials.
+func ArgoPersistSecretNames(persist *argoconfig.PersistConfig) []string {
+	if persist == nil {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	add := func(name string) {
+		if name != "" {
+			seen[name] = struct{}{}
+		}
+	}
+	if persist.PostgreSQL != nil {
+		add(persist.PostgreSQL.UsernameSecret.Name)
+		add(persist.PostgreSQL.PasswordSecret.Name)
+	}
+	if persist.MySQL != nil {
+		add(persist.MySQL.UsernameSecret.Name)
+		add(persist.MySQL.PasswordSecret.Name)
+	}
+	names := make([]string, 0, len(seen))
+	for name := range seen {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // InitWorkflowHydrator connects to Argo's offload database and installs the hydrator used by retry.
@@ -181,4 +218,40 @@ func (r *MemoryOffloadNodeStatusRepo) IsEnabled() bool {
 // NewMemoryWorkflowHydrator returns an Argo hydrator backed by an in-memory offload repo.
 func NewMemoryWorkflowHydrator(repo *MemoryOffloadNodeStatusRepo) hydrator.Interface {
 	return hydrator.New(repo)
+}
+
+type alwaysOffloadHydrator struct {
+	repo persistsqldb.OffloadNodeStatusRepo
+}
+
+// NewAlwaysOffloadWorkflowHydrator saves node status on every dehydrate, even when the
+// workflow is small enough to compress in the CR. Used to test offload UID handling.
+func NewAlwaysOffloadWorkflowHydrator(repo *MemoryOffloadNodeStatusRepo) hydrator.Interface {
+	return alwaysOffloadHydrator{repo: repo}
+}
+
+func (h alwaysOffloadHydrator) IsHydrated(wf *wfv1.Workflow) bool {
+	return wf.Status.CompressedNodes == "" && !wf.Status.IsOffloadNodeStatus()
+}
+
+func (h alwaysOffloadHydrator) Hydrate(ctx context.Context, wf *wfv1.Workflow) error {
+	return hydrator.New(h.repo).Hydrate(ctx, wf)
+}
+
+func (h alwaysOffloadHydrator) HydrateWithNodes(wf *wfv1.Workflow, nodes wfv1.Nodes) {
+	hydrator.New(h.repo).HydrateWithNodes(wf, nodes)
+}
+
+func (h alwaysOffloadHydrator) Dehydrate(ctx context.Context, wf *wfv1.Workflow) error {
+	if !h.IsHydrated(wf) {
+		return nil
+	}
+	version, err := h.repo.Save(ctx, string(wf.UID), wf.Namespace, wf.Status.Nodes)
+	if err != nil {
+		return err
+	}
+	wf.Status.Nodes = nil
+	wf.Status.CompressedNodes = ""
+	wf.Status.OffloadNodeStatusVersion = version
+	return nil
 }
