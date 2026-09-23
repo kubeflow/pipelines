@@ -43,7 +43,8 @@ _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
     '{{channel:task=%s;name=%s;type=%s;}}')
 # The regex for parsing PipelineChannel placeholders from a string.
 _PIPELINE_CHANNEL_PLACEHOLDER_REGEX = (
-    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=([\w\s.@_-]*);}}')
+    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=([\w\s{}":.@\[\]_-]*);}}'
+)
 
 
 class PipelineChannel(abc.ABC):

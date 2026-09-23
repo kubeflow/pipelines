@@ -160,6 +160,25 @@ class PipelineChannelTest(parameterized.TestCase):
         params = pipeline_channel.extract_pipeline_channels_from_any(payload)
         self.assertListEqual([p1, p2, p3], params)
 
+    def test_extract_pipeline_channels_with_complex_channel_types(self):
+        # regression test: channel types containing '.', '@', '[', ']'
+        # (e.g. typing.List[str] or system.Dataset@0.0.1) were previously
+        # silently dropped by _PIPELINE_CHANNEL_PLACEHOLDER_REGEX.
+        p1 = pipeline_channel.create_pipeline_channel(
+            name='channel1',
+            channel_type='typing.List[str]',
+            task_name='task1',
+        )
+        p2 = pipeline_channel.create_pipeline_channel(
+            name='channel2',
+            channel_type='system.Dataset@0.0.1',
+            task_name='task2',
+        )
+        stuff_chars = ' between '
+        payload = str(p1) + stuff_chars + str(p2)
+        params = pipeline_channel.extract_pipeline_channels_from_string(payload)
+        self.assertListEqual([p1, p2], params)
+
 
 @dsl.component
 def string_comp() -> str:
