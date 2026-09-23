@@ -17,7 +17,7 @@
 import * as React from 'react';
 import Viewer, { ViewerConfig, PlotType } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
-import { stylesheet } from 'typestyle';
+import { classes, stylesheet } from 'typestyle';
 
 import {
   Table,
@@ -75,6 +75,9 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
       fontSize: this._isSmall() ? fontsize.base : fontsize.medium,
       fontWeight: 'bold',
       paddingLeft: this._isSmall() ? 5 : 'invalid',
+    },
+    topBorder: {
+      borderTop: 'solid 1px ' + color.divider,
     },
     row: {
       borderBottom: '1px solid #ddd',
@@ -142,7 +145,13 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
                 return (
                   <TableRow hover={true} tabIndex={-1} key={index} className={this._css.row}>
                     {row.map((cell, i) => (
-                      <TableCell key={i} className={this._css.cell}>
+                      <TableCell
+                        key={i}
+                        className={classes(
+                          this._css.cell,
+                          labels.length === 0 && index === 0 ? this._css.topBorder : '',
+                        )}
+                      >
                         {cell}
                       </TableCell>
                     ))}

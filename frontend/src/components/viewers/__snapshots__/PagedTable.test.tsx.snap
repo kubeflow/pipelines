@@ -414,17 +414,17 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
           >
             col3
           </td>

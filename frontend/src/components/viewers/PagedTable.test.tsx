@@ -86,6 +86,64 @@ describe('PagedTable', () => {
     },
   );
 
+  it.each([undefined, 400])(
+    'renders a top border only on the first label-free data row at maxDimension %s',
+    (maxDimension) => {
+      const data = Array.from({ length: 12 }, (_, index) => [
+        `metric-${String(index).padStart(2, '0')}`,
+        String(index),
+      ]);
+      const { rerender } = render(
+        <PagedTable
+          configs={[{ data, labels: [], type: PlotType.TABLE }]}
+          maxDimension={maxDimension}
+        />,
+      );
+      forceRenderStyles();
+
+      const expectRowTopBorder = (name: string, bordered: boolean) => {
+        const row = screen.getByRole('cell', { name }).closest('tr')!;
+        for (const cell of within(row).getAllByRole('cell')) {
+          if (bordered) {
+            expect(cell).toHaveStyle({ borderTop: `1px solid ${color.divider}` });
+          } else {
+            expect(cell).not.toHaveStyle({ borderTop: `1px solid ${color.divider}` });
+          }
+        }
+      };
+
+      expectRowTopBorder('metric-00', true);
+      expectRowTopBorder('metric-01', false);
+      fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+      expectRowTopBorder('metric-10', true);
+      expectRowTopBorder('metric-11', false);
+      expect(screen.getByRole('cell', { name: '' })).not.toHaveStyle({
+        borderTop: `1px solid ${color.divider}`,
+      });
+
+      rerender(
+        <PagedTable
+          configs={[{ data, labels: ['name', 'value'], type: PlotType.TABLE }]}
+          maxDimension={maxDimension}
+        />,
+      );
+      expectRowTopBorder('metric-10', false);
+      for (const header of screen.getAllByRole('columnheader')) {
+        expect(header).not.toHaveStyle({ borderTop: `1px solid ${color.divider}` });
+      }
+
+      rerender(
+        <PagedTable
+          configs={[{ data: [], labels: [], type: PlotType.TABLE }]}
+          maxDimension={maxDimension}
+        />,
+      );
+      expect(screen.getByRole('cell', { name: '' })).not.toHaveStyle({
+        borderTop: `1px solid ${color.divider}`,
+      });
+    },
+  );
+
   it('renders updated table data when configs change', () => {
     const { rerender } = render(
       <PagedTable configs={[{ data: [['initial']], labels: ['value'], type: PlotType.TABLE }]} />,
