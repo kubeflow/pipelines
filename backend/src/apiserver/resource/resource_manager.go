@@ -2434,7 +2434,21 @@ func (r *ResourceManager) reportWorkflowResource(
 		execStatus = execSpec.ExecutionStatus()
 	}
 
-	if updateError == nil && !createdFromRecurringReport {
+	if updateError == nil && createdFromRecurringReport {
+		// CreateRun above may have stored a dehydrated offload pointer before
+		// hydrate ran. Rewrite the recurring-run row with hydrated nodes so
+		// RetryRun survives Workflow CR and offload GC.
+		if execStatus.IsInFinalState() {
+			run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
+			run.State = state
+			run.Conditions = string(state.ToV1())
+			run.FinishedAtInSec = execStatus.FinishedAt()
+			if err := r.runStore.UpdateRun(run); err != nil {
+				return nil, util.Wrapf(err,
+					"Failed to preserve hydrated workflow node status for recurring run %s", runId)
+			}
+		}
+	} else if updateError == nil {
 		run.K8SName = execSpec.ExecutionName()
 		run.State = state
 		run.Conditions = string(state.ToV1())

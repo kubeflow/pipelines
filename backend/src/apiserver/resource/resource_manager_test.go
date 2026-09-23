@@ -703,7 +703,7 @@ type deleteOnFirstUpdateWorkflowClient struct {
 func (c *deleteOnFirstUpdateWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
 	if c.deleteOnNextUpdate {
 		c.deleteOnNextUpdate = false
-		if err := c.FakeWorkflowClient.Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
+		if err := c.Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
 			return nil, err
 		}
 		return nil, apierrors.NewNotFound(
@@ -722,10 +722,10 @@ type replaceOnFirstUpdateWorkflowClient struct {
 func (c *replaceOnFirstUpdateWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
 	if c.replaceOnNextUpdate {
 		c.replaceOnNextUpdate = false
-		if err := c.FakeWorkflowClient.Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
+		if err := c.Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
 			return nil, err
 		}
-		_, err := c.FakeWorkflowClient.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		_, err := c.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
 			ObjectMeta: v1.ObjectMeta{Name: execSpec.ExecutionName(), Namespace: execSpec.ExecutionNamespace()},
 		}), v1.CreateOptions{})
 		if err != nil {
@@ -4045,6 +4045,56 @@ func TestRetryRun_OffloadedNodeStatus_SurvivesWorkflowAndOffloadGC(t *testing.T)
 
 	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID),
 		"retry must use the hydrated terminal manifest after the Workflow and its offload row are gone")
+}
+
+func TestReportWorkflowResource_RecurringOffloadedTerminalHydratesBeforePersist(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	util.SetWorkflowHydratorForTest(t, util.NewMemoryWorkflowHydrator(repo))
+
+	const runID = "recurring-offloaded-run-id"
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "recurring-offloaded-workflow",
+			Namespace: job.Namespace,
+			UID:       "recurring-offloaded-uid",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId: runID,
+			},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       job.K8SName,
+				UID:        types.UID(job.UUID),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:                    v1alpha1.WorkflowFailed,
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	repo.Put(string(workflow.UID), "offload-hash", map[string]v1alpha1.NodeStatus{
+		"node1": {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	})
+
+	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	createdRun, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	assert.Equal(t, job.UUID, createdRun.RecurringRunId)
+	assert.Contains(t, string(createdRun.WorkflowRuntimeManifest), "node1")
+	assert.NotContains(t, string(createdRun.WorkflowRuntimeManifest), "offload-hash")
+
+	require.NoError(t, store.ExecClient().Execution(job.Namespace).Delete(ctx, workflow.ExecutionName(), v1.DeleteOptions{}))
+	require.NoError(t, repo.Delete(ctx, string(workflow.UID), "offload-hash"))
+
+	require.NoError(t, manager.RetryRun(ctx, runID),
+		"retry must use the hydrated recurring-run manifest after Workflow and offload GC")
 }
 
 func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
