@@ -30,9 +30,9 @@ archive: true
 nodeStatusOffLoad: true
 clusterName: default
 postgresql:
-  host: kubeflow-argo-workflowbd.svc.dev.ivi.ru
-  port: 5000
-  database: kubeflow-argo-workflow
+  host: postgres.example.invalid
+  port: 5432
+  database: argo
   tableName: argo_workflows
 `))
 	require.NoError(t, err)
@@ -40,13 +40,31 @@ postgresql:
 	assert.True(t, persist.NodeStatusOffload)
 	assert.Equal(t, "default", persist.GetClusterName())
 	require.NotNil(t, persist.PostgreSQL)
-	assert.Equal(t, "kubeflow-argo-workflow", persist.PostgreSQL.Database)
+	assert.Equal(t, "argo", persist.PostgreSQL.Database)
 	assert.Equal(t, "argo_workflows", persist.PostgreSQL.TableName)
 }
 
 func TestParseArgoPersistConfig_Empty(t *testing.T) {
 	_, err := ParseArgoPersistConfig(nil)
 	require.Error(t, err)
+}
+
+func TestArgoPersistSecretNames(t *testing.T) {
+	persist, err := ParseArgoPersistConfig([]byte(`
+nodeStatusOffLoad: true
+postgresql:
+  host: postgres.example.invalid
+  database: argo
+  userNameSecret:
+    name: pg-user
+    key: username
+  passwordSecret:
+    name: pg-pass
+    key: password
+`))
+	require.NoError(t, err)
+	assert.Equal(t, []string{"pg-pass", "pg-user"}, ArgoPersistSecretNames(persist))
+	assert.Nil(t, ArgoPersistSecretNames(nil))
 }
 
 func TestWorkflow_HydrateAndRetryOffloadedNodes(t *testing.T) {
