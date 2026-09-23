@@ -10,13 +10,6 @@ exports[`PagedTable > does not break on empty data 1`] = `
       class="MuiTable-root css-rqglhn-MuiTable-root"
       style="display: block; overflow: auto;"
     >
-      <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
-        />
-      </thead>
       <tbody
         class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
       >
@@ -399,13 +392,6 @@ exports[`PagedTable > renders simple data without labels 1`] = `
       class="MuiTable-root css-rqglhn-MuiTable-root"
       style="display: block; overflow: auto;"
     >
-      <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
-        />
-      </thead>
       <tbody
         class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
       >

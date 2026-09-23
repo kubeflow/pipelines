@@ -114,29 +114,32 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     return (
       <div style={{ width: '100%' }} className={commonCss.page}>
         <Table style={{ display: 'block', overflow: 'auto' }}>
-          <TableHead>
-            <TableRow>
-              {labels.map((label, i) => {
-                return (
-                  <TableCell
-                    className={this._css.columnName}
-                    key={i}
-                    sortDirection={orderBy === i ? order : false}
-                  >
-                    <Tooltip title='Sort' enterDelay={300}>
-                      <TableSortLabel
-                        active={orderBy === i}
-                        direction={order}
-                        onClick={this._handleSort(i)}
-                      >
-                        {label}
-                      </TableSortLabel>
-                    </Tooltip>
-                  </TableCell>
-                );
-              }, this)}
-            </TableRow>
-          </TableHead>
+          {/* An empty header clips the body's collapsed top border in the scrollable table. */}
+          {labels.length > 0 && (
+            <TableHead>
+              <TableRow>
+                {labels.map((label, i) => {
+                  return (
+                    <TableCell
+                      className={this._css.columnName}
+                      key={i}
+                      sortDirection={orderBy === i ? order : false}
+                    >
+                      <Tooltip title='Sort' enterDelay={300}>
+                        <TableSortLabel
+                          active={orderBy === i}
+                          direction={order}
+                          onClick={this._handleSort(i)}
+                        >
+                          {label}
+                        </TableSortLabel>
+                      </Tooltip>
+                    </TableCell>
+                  );
+                }, this)}
+              </TableRow>
+            </TableHead>
+          )}
 
           <TableBody>
             {this._stableSort(data)

@@ -112,6 +112,7 @@ describe('PagedTable', () => {
         }
       };
 
+      expect(screen.getByRole('table').querySelector('thead')).toBeNull();
       expectRowTopBorder('metric-00', true);
       expectRowTopBorder('metric-01', false);
       fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
