@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-import { createHashHistory, createLocation } from 'history';
+import { createMemoryRouter, Location } from 'react-router';
 import { URLParser } from './URLParser';
 
-const history = createHashHistory();
-const location = createLocation('/');
+const location: Location = { pathname: '/', search: '', hash: '', state: null, key: 'default' };
 
 describe('URLParser', () => {
-  const routerProps = { location, history } as any;
+  let router: ReturnType<typeof createMemoryRouter>;
+  let routerProps: ConstructorParameters<typeof URLParser>[0];
+
+  beforeEach(() => {
+    router = createMemoryRouter([{ path: '*', element: null }]);
+    location.pathname = '/';
+    location.search = '';
+    routerProps = { location, navigate: router.navigate, params: {} };
+  });
+
+  afterEach(() => router.dispose());
 
   it('gets query string param by name', () => {
     location.pathname = '/test';
@@ -46,66 +55,64 @@ describe('URLParser', () => {
     location.search = '?searchkey=searchvalue';
 
     new URLParser(routerProps).set('searchkey' as any, 'newvalue');
-    expect(history.location.search).toEqual('?searchkey=newvalue');
+    expect(router.state.location.search).toEqual('?searchkey=newvalue');
   });
 
   it('creates new query string param when using set if not exists', () => {
     location.search = '?searchkey=searchvalue';
 
     new URLParser(routerProps).set('searchkey2' as any, 'searchvalue2');
-    expect(history.location.search).toEqual('?searchkey=searchvalue&searchkey2=searchvalue2');
+    expect(router.state.location.search).toEqual('?searchkey=searchvalue&searchkey2=searchvalue2');
   });
 
   it('removes the query string param when setting it to empty value', () => {
     location.search = '?searchkey=searchvalue';
 
     new URLParser(routerProps).set('searchkey' as any, '');
-    expect(history.location.search).toEqual('');
+    expect(router.state.location.search).toEqual('');
   });
 
   it('does not create new state when setting query param in-place', () => {
     location.search = '?searchkey=searchvalue';
 
-    const historyLength = history.length;
     new URLParser(routerProps).set('searchkey' as any, 'newvalue');
-    expect(history.length).toEqual(historyLength);
+    expect(router.state.historyAction).toEqual('REPLACE');
   });
 
   it('does not touch other query string params when setting one', () => {
     location.search = '?searchkey=searchvalue&k2=v2';
 
     new URLParser(routerProps).set('searchkey' as any, 'newvalue');
-    expect(history.location.search).toEqual('?searchkey=newvalue&k2=v2');
+    expect(router.state.location.search).toEqual('?searchkey=newvalue&k2=v2');
   });
 
   it('does not touch other query string params when clearing one', () => {
     location.search = '?searchkey=searchvalue&k2=v2';
 
     new URLParser(routerProps).clear('searchkey' as any);
-    expect(history.location.search).toEqual('?k2=v2');
+    expect(router.state.location.search).toEqual('?k2=v2');
   });
 
   it('sets query string param when using push', () => {
     location.search = '?searchkey=searchvalue&k2=v2';
 
     new URLParser(routerProps).push('searchkey' as any, 'newvalue');
-    expect(history.location.search).toEqual('?searchkey=newvalue&k2=v2');
+    expect(router.state.location.search).toEqual('?searchkey=newvalue&k2=v2');
   });
 
   it('removes query string param when push an empty value', () => {
     location.search = '?searchkey=searchvalue&k2=v2';
 
     new URLParser(routerProps).push('searchkey' as any, '');
-    expect(history.location.search).toEqual('?k2=v2');
+    expect(router.state.location.search).toEqual('?k2=v2');
   });
 
   it('creates a new history entry when using push', () => {
     location.search = '?searchkey=searchvalue&k2=v2';
 
-    const historyLength = history.length;
     new URLParser(routerProps).push('searchkey' as any, 'newvalue');
-    expect(history.location.search).toEqual('?searchkey=newvalue&k2=v2');
-    expect(history.length).toEqual(historyLength + 1);
+    expect(router.state.location.search).toEqual('?searchkey=newvalue&k2=v2');
+    expect(router.state.historyAction).toEqual('PUSH');
   });
 
   it('can build a search string', () => {

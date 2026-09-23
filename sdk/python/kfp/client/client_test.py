@@ -279,6 +279,15 @@ class TestClient(parameterized.TestCase):
             mock_get_run.assert_called_once_with(run_id='foo')
             assert response == mock_get_run.return_value
 
+    def test_wait_for_run_completion_canceled_run(self):
+        with patch.object(self.client._run_api,
+                          'run_service_get_run') as mock_get_run:
+            mock_get_run.return_value = Mock(state='CANCELED')
+            response = self.client.wait_for_run_completion(
+                run_id='foo', timeout=1, sleep_duration=0)
+            mock_get_run.assert_called_once_with(run_id='foo')
+            assert response == mock_get_run.return_value
+
     def test_wait_for_run_completion_run_timeout_should_raise_error(self):
         with self.assertRaises(TimeoutError):
             with patch.object(self.client._run_api,
@@ -287,6 +296,21 @@ class TestClient(parameterized.TestCase):
                 self.client.wait_for_run_completion(
                     run_id='foo', timeout=1, sleep_duration=0)
                 mock_get_run.assert_called_once_with(run_id='foo')
+
+    @patch('kfp.Client.get_user_namespace', return_value='ns2')
+    def test_list_recurring_runs_uses_user_namespace_when_not_provided(
+            self, mock_get_user_namespace):
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_list_recurring_runs') as mock_list:
+            self.client.list_recurring_runs()
+            mock_get_user_namespace.assert_called_once()
+            mock_list.assert_called_once_with(
+                page_token='',
+                page_size=10,
+                sort_by='',
+                namespace='ns2',
+                filter=None)
 
     @patch('kfp.Client.get_experiment', side_effect=ValueError)
     def test_create_experiment_no_experiment_should_raise_error(

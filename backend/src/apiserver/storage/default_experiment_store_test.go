@@ -23,13 +23,11 @@ import (
 )
 
 func TestInitializeDefaultExperimentTable(t *testing.T) {
-	db := NewFakeDBOrFatal()
-	defaultExperimentStore := NewDefaultExperimentStore(db)
-
-	// Initialize for the first time
-	err := defaultExperimentStore.initializeDefaultExperimentTable()
+	db, testDialect := NewFakeDBOrFatal()
+	defaultExperimentStore, err := NewDefaultExperimentStore(db, testDialect)
 	assert.Nil(t, err)
-	// Initialize again should be no-op and no error
+
+	// Initializing again should be no-op and no error
 	err = defaultExperimentStore.initializeDefaultExperimentTable()
 	assert.Nil(t, err)
 	// Default experiment ID is empty after table initialization
@@ -44,12 +42,10 @@ func TestInitializeDefaultExperimentTable(t *testing.T) {
 }
 
 func TestGetAndSetDefaultExperimentId(t *testing.T) {
-	db := NewFakeDBOrFatal()
-	defaultExperimentStore := NewDefaultExperimentStore(db)
-
-	// Initialize for the first time
-	err := defaultExperimentStore.initializeDefaultExperimentTable()
+	db, testDialect := NewFakeDBOrFatal()
+	defaultExperimentStore, err := NewDefaultExperimentStore(db, testDialect)
 	assert.Nil(t, err)
+
 	// Set the default experiment ID
 	err = defaultExperimentStore.SetDefaultExperimentId("test-ID")
 	assert.Nil(t, err)
@@ -73,12 +69,10 @@ func TestGetAndSetDefaultExperimentId(t *testing.T) {
 }
 
 func TestUnsetDefaultExperimentIdIfIdMatches(t *testing.T) {
-	db := NewFakeDBOrFatal()
-	defaultExperimentStore := NewDefaultExperimentStore(db)
-
-	// Initialize for the first time
-	err := defaultExperimentStore.initializeDefaultExperimentTable()
+	db, testDialect := NewFakeDBOrFatal()
+	defaultExperimentStore, err := NewDefaultExperimentStore(db, testDialect)
 	assert.Nil(t, err)
+
 	// Set the default experiment ID
 	err = defaultExperimentStore.SetDefaultExperimentId("test-ID")
 	assert.Nil(t, err)

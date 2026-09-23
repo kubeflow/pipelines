@@ -32,8 +32,7 @@ describe('RecurringRunDetailsV2FC', () => {
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
-  const historyPushSpy = vi.fn();
-  const historyReplaceSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const getRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
   const deleteRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'deleteRecurringRun');
   const enableRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'enableRecurringRun');
@@ -46,14 +45,9 @@ describe('RecurringRunDetailsV2FC', () => {
 
   function generateProps(): PageProps {
     return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      navigate: navigateSpy,
       location: '' as any,
-      match: {
-        params: { [RouteParams.recurringRunId]: fullTestV2RecurringRun.recurring_run_id },
-        isExact: true,
-        path: '',
-        url: '',
-      },
+      params: { [RouteParams.recurringRunId]: fullTestV2RecurringRun.recurring_run_id },
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -195,7 +189,7 @@ describe('RecurringRunDetailsV2FC', () => {
   });
 
   it('loads the recurring run given its id in query params', async () => {
-    // The run id is in the router match object, defined inside generateProps
+    // The run id is in the route params, defined inside generateProps
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />
@@ -211,7 +205,7 @@ describe('RecurringRunDetailsV2FC', () => {
 
   it('shows All runs -> run name when there is no experiment', async () => {
     fullTestV2RecurringRun.experiment_id = undefined;
-    // The run id is in the router match object, defined inside generateProps
+    // The run id is in the route params, defined inside generateProps
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />

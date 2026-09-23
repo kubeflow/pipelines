@@ -10,7 +10,8 @@ repos:
       - id: check-json
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        exclude: ^manifests/gcp_marketplace/test/
+        # Snapshot whitespace represents rendered text and is owned by Vitest.
+        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$)
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test
@@ -33,16 +34,19 @@ repos:
         name: pycln
         language: python
         entry: pycln --all
+        exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/pycqa/isort
     rev: 9.0.1
     hooks:
       - id: isort
         name: isort
         entry: isort --profile google
+        exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/google/yapf
     rev: "v0.43.0"
     hooks:
       - id: yapf
+        exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/pycqa/docformatter
     # v1.7.8 corrupts continuation and blank-line tokens, conflicting with YAPF.
     rev: v1.7.7

@@ -32,6 +32,7 @@ import * as StaticGraphParser from '../lib/StaticGraphParser';
 import { formatDateString, logger, sanitizeExternalHref } from '../lib/Utils';
 
 import { Button, FormControl, InputLabel, MenuItem, Paper, Select } from '@mui/material';
+import type { DagreGraph } from '../lib/GraphTypes';
 
 const summaryCardWidth = 500;
 
@@ -81,8 +82,8 @@ export const css = stylesheet({
 });
 
 export interface PipelineDetailsV1Props {
-  graph: dagre.graphlib.Graph | null;
-  reducedGraph: dagre.graphlib.Graph | null;
+  graph: DagreGraph | null;
+  reducedGraph: DagreGraph | null;
   pipeline: ApiPipeline | null;
   templateString?: string;
   updateBanner: (bannerProps: BannerProps) => void;
@@ -109,7 +110,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
 
   let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
   if (graphToShow && graphToShow.node(selectedNodeId)) {
-    selectedNodeInfo = graphToShow.node(selectedNodeId).info;
+    selectedNodeInfo = graphToShow.node(selectedNodeId).info ?? null;
     if (!!selectedNodeId && !selectedNodeInfo) {
       logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
     }

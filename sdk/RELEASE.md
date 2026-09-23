@@ -2,6 +2,12 @@
 
 ## Features
 
+* Add Kubernetes Dynamic Resource Allocation support. This feature requires
+  Kubernetes 1.31 or later with the `DynamicResourceAllocation` feature gate
+  enabled (GA and enabled by default in Kubernetes 1.34), an installed DRA
+  driver, and the KFP backend from the same release as this SDK. Older backends
+  reject pipelines containing the new DRA platform field.
+
 ## Breaking changes
 
 ## Deprecations
@@ -57,14 +63,14 @@
 
 ## Bug Fixes
 
-* **sdk:** chore: remove pin on protobuf 6 ver & use requirements.in for kfp-k8s and spec (#12345) 
-* **sdk:** chore: regenerate files for ver upgrade (#12341) 
+* **sdk:** chore: remove pin on protobuf 6 ver & use requirements.in for kfp-k8s and spec (#12345)
+* **sdk:** chore: regenerate files for ver upgrade (#12341)
 
 # 2.14.5
 
 ## Bug Fixes
 
-* **sdk:**  fix: include requirements files in python sdist (#12330) 
+* **sdk:**  fix: include requirements files in python sdist (#12330)
 
 # 2.14.4
 

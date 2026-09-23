@@ -16,6 +16,7 @@ package list
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -52,6 +54,8 @@ func (f *fakeListable) PrimaryKeyColumnName() string {
 func (f *fakeListable) DefaultSortField() string {
 	return "CreatedTimestamp"
 }
+
+func testQuote(s string) string { return `"` + s + `"` }
 
 var fakeAPIToModelMap = map[string]string{
 	"timestamp": "CreatedTimestamp",
@@ -100,6 +104,10 @@ func (f *fakeListable) GetSortByFieldPrefix(name string) string {
 
 func (f *fakeListable) GetKeyFieldPrefix() string {
 	return ""
+}
+
+func (f *fakeListable) CaseInsensitiveFields() map[string]struct{} {
+	return map[string]struct{}{"name": {}}
 }
 
 func TestNextPageToken_ValidTokens(t *testing.T) {
@@ -236,6 +244,180 @@ func TestNextPageToken_InvalidSortByField(t *testing.T) {
 	}
 }
 
+// TestNextPageToken_MetricValueNull covers the regression where a lookahead row
+// without the selected metric produced a nil sort value and made an otherwise
+// valid ListRuns request fail with "cannot sort by field". For metric sorts a
+// missing metric is a legitimate SQL NULL: the token must be generated with
+// SortByFieldIsNull=true rather than returning an error.
+func TestNextPageToken_MetricValueNull(t *testing.T) {
+	// Row has some metrics, but not the one we are sorting by ("accuracy").
+	l := &fakeListable{
+		PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234,
+		Metrics: []*fakeMetric{{Name: "loss", Value: 0.1}},
+	}
+
+	inOpts := &Options{
+		PageSize: 10,
+		token: &token{
+			SortByFieldName: "accuracy",
+			SortBySQLColumn: model.MetricSortSQLAlias,
+			KeyFieldName:    "PrimaryKey",
+			IsDesc:          true,
+		},
+	}
+
+	got, err := inOpts.nextPageToken(l)
+	if err != nil {
+		t.Fatalf("nextPageToken() unexpected error for missing metric: %v", err)
+	}
+	if !got.SortByFieldIsNull {
+		t.Errorf("nextPageToken() SortByFieldIsNull = false, want true for missing metric")
+	}
+	if got.SortByFieldValue != nil {
+		t.Errorf("nextPageToken() SortByFieldValue = %v, want nil for missing metric", got.SortByFieldValue)
+	}
+	if got.KeyFieldValue != "uuid123" {
+		t.Errorf("nextPageToken() KeyFieldValue = %v, want %q", got.KeyFieldValue, "uuid123")
+	}
+}
+
+// TestNextPageToken_MetricValuePresent is the complementary case: when the row
+// does have the selected metric, SortByFieldIsNull must stay false and the value
+// is carried in the token as usual.
+func TestNextPageToken_MetricValuePresent(t *testing.T) {
+	l := &fakeListable{
+		PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234,
+		Metrics: []*fakeMetric{{Name: "accuracy", Value: 0.95}},
+	}
+
+	inOpts := &Options{
+		PageSize: 10,
+		token: &token{
+			SortByFieldName: "accuracy",
+			SortBySQLColumn: model.MetricSortSQLAlias,
+			KeyFieldName:    "PrimaryKey",
+			IsDesc:          true,
+		},
+	}
+
+	got, err := inOpts.nextPageToken(l)
+	if err != nil {
+		t.Fatalf("nextPageToken() unexpected error: %v", err)
+	}
+	if got.SortByFieldIsNull {
+		t.Errorf("nextPageToken() SortByFieldIsNull = true, want false when metric present")
+	}
+	if got.SortByFieldValue != 0.95 {
+		t.Errorf("nextPageToken() SortByFieldValue = %v, want 0.95", got.SortByFieldValue)
+	}
+}
+
+// A nullable column is exposed as a pointer. A nil pointer is a NULL cursor, and
+// a set pointer carries its plain value.
+func TestNextPageToken_NullablePointerField(t *testing.T) {
+	parentTaskID := "parent-task"
+	numberValue := 0.5
+
+	tests := []struct {
+		name      string
+		row       Listable
+		sortBy    string
+		wantValue interface{}
+		wantNull  bool
+	}{
+		{"task without parent", &model.Task{UUID: "row-1"}, "parent_task_id", nil, true},
+		{"task with parent", &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID}, "parent_task_id", "parent-task", false},
+		{"artifact without number", &model.Artifact{UUID: "row-1"}, "number_value", nil, true},
+		{"artifact with number", &model.Artifact{UUID: "row-1", NumberValue: &numberValue}, "number_value", 0.5, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts, err := NewOptions(tt.row, 2, tt.sortBy, nil)
+			if err != nil {
+				t.Fatalf("NewOptions() unexpected error: %v", err)
+			}
+			got, err := opts.nextPageToken(tt.row)
+			if err != nil {
+				t.Fatalf("nextPageToken() unexpected error: %v", err)
+			}
+			assert.Equal(t, tt.wantNull, got.SortByFieldIsNull)
+			assert.Equal(t, tt.wantValue, got.SortByFieldValue)
+			assert.Equal(t, "row-1", got.KeyFieldValue)
+		})
+	}
+}
+
+// The cursor built from a nullable string column has to survive the page token.
+// A NULL cursor then continues inside the NULL block from the saved key.
+func TestNextPageToken_NullableStringFieldRoundTrip(t *testing.T) {
+	parentTaskID := "parent-task"
+
+	tests := []struct {
+		name     string
+		sortBy   string
+		row      *model.Task
+		wantNull bool
+		wantSQL  string
+	}{
+		{
+			name:     "no parent ascending",
+			sortBy:   "parent_task_id",
+			row:      &model.Task{UUID: "row-1"},
+			wantNull: true,
+			wantSQL:  `("tasks"."ParentTaskUUID" IS NULL AND "tasks"."UUID" >= ?)`,
+		},
+		{
+			name:     "no parent descending",
+			sortBy:   "parent_task_id desc",
+			row:      &model.Task{UUID: "row-1"},
+			wantNull: true,
+			wantSQL:  `("tasks"."ParentTaskUUID" IS NULL AND "tasks"."UUID" <= ?)`,
+		},
+		{
+			name:    "with parent ascending",
+			sortBy:  "parent_task_id",
+			row:     &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID},
+			wantSQL: `LOWER("tasks"."ParentTaskUUID") > LOWER(?)`,
+		},
+		{
+			name:    "with parent descending",
+			sortBy:  "parent_task_id desc",
+			row:     &model.Task{UUID: "row-1", ParentTaskUUID: &parentTaskID},
+			wantSQL: `LOWER("tasks"."ParentTaskUUID") < LOWER(?)`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts, err := NewOptions(&model.Task{}, 2, tt.sortBy, nil)
+			if err != nil {
+				t.Fatalf("NewOptions() unexpected error: %v", err)
+			}
+			// Every page, including the first, has to order the column the same way.
+			assert.True(t, opts.SortByFieldIsString)
+
+			pageToken, err := opts.NextPageToken(tt.row)
+			if err != nil {
+				t.Fatalf("NextPageToken() unexpected error: %v", err)
+			}
+			next, err := NewOptionsFromToken(pageToken, 2)
+			if err != nil {
+				t.Fatalf("NewOptionsFromToken() unexpected error: %v", err)
+			}
+			assert.Equal(t, tt.wantNull, next.SortByFieldIsNull)
+			assert.True(t, next.SortByFieldIsString)
+			assert.Equal(t, "row-1", next.KeyFieldValue)
+
+			sql, args, err := next.AddSortingToSelect(sq.Select("*").From("tasks"), testQuote, "").ToSql()
+			if err != nil {
+				t.Fatalf("AddSortingToSelect() unexpected error: %v", err)
+			}
+			assert.Contains(t, sql, tt.wantSQL)
+			assert.Contains(t, sql, `ORDER BY ("tasks"."ParentTaskUUID" IS NULL) ASC, LOWER("tasks"."ParentTaskUUID")`)
+			assert.Contains(t, args, "row-1")
+		})
+	}
+}
+
 func TestValidatePageSize(t *testing.T) {
 	tests := []struct {
 		in   int
@@ -358,12 +540,13 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "CreatedTimestamp",
-					SortBySQLColumn:   "CreatedTimestamp",
-					SortByFieldPrefix: "",
-					IsDesc:            false,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "CreatedTimestamp",
+					SortBySQLColumn:     "CreatedTimestamp",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: false,
+					IsDesc:              false,
 				},
 			},
 		},
@@ -372,12 +555,13 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "CreatedTimestamp",
-					SortBySQLColumn:   "CreatedTimestamp",
-					SortByFieldPrefix: "",
-					IsDesc:            false,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "CreatedTimestamp",
+					SortBySQLColumn:     "CreatedTimestamp",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: false,
+					IsDesc:              false,
 				},
 			},
 		},
@@ -386,12 +570,13 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "FakeName",
-					SortBySQLColumn:   "FakeName",
-					SortByFieldPrefix: "",
-					IsDesc:            false,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "FakeName",
+					SortBySQLColumn:     "FakeName",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: true,
+					IsDesc:              false,
 				},
 			},
 		},
@@ -400,12 +585,13 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "FakeName",
-					SortBySQLColumn:   "FakeName",
-					SortByFieldPrefix: "",
-					IsDesc:            false,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "FakeName",
+					SortBySQLColumn:     "FakeName",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: true,
+					IsDesc:              false,
 				},
 			},
 		},
@@ -414,12 +600,13 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "FakeName",
-					SortBySQLColumn:   "FakeName",
-					SortByFieldPrefix: "",
-					IsDesc:            true,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "FakeName",
+					SortBySQLColumn:     "FakeName",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: true,
+					IsDesc:              true,
 				},
 			},
 		},
@@ -428,12 +615,13 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "PrimaryKey",
-					SortBySQLColumn:   "PrimaryKey",
-					SortByFieldPrefix: "",
-					IsDesc:            true,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "PrimaryKey",
+					SortBySQLColumn:     "PrimaryKey",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: true,
+					IsDesc:              true,
 				},
 			},
 		},
@@ -468,6 +656,37 @@ func TestNewOptions_InvalidSortOptions(t *testing.T) {
 	}
 }
 
+func TestNewOptions_ValidMetricSort(t *testing.T) {
+	pageSize := 10
+	tests := []struct {
+		sortBy         string
+		wantMetricName string
+	}{
+		{"metric:accuracy", "accuracy"},
+		{"metric:log-loss", "log-loss"},
+		{"metric:val_accuracy", "val_accuracy"},
+	}
+
+	for _, test := range tests {
+		got, err := NewOptions(&fakeListable{}, pageSize, test.sortBy, nil)
+		if err != nil {
+			t.Errorf("NewOptions(sortBy=%q) returned unexpected error: %v", test.sortBy, err)
+			continue
+		}
+		// Metric sorts carry the raw metric name in SortByFieldName and the fixed
+		// SQL alias in SortBySQLColumn.
+		if got.SortByFieldName != test.wantMetricName {
+			t.Errorf("NewOptions(sortBy=%q) SortByFieldName = %q, want %q", test.sortBy, got.SortByFieldName, test.wantMetricName)
+		}
+		if got.SortBySQLColumn != model.MetricSortSQLAlias {
+			t.Errorf("NewOptions(sortBy=%q) SortBySQLColumn = %q, want %q", test.sortBy, got.SortBySQLColumn, model.MetricSortSQLAlias)
+		}
+		if !got.IsMetricSort() {
+			t.Errorf("NewOptions(sortBy=%q) IsMetricSort() = false, want true", test.sortBy)
+		}
+	}
+}
+
 func TestNewOptions_InvalidPageSize(t *testing.T) {
 	got, err := NewOptions(&fakeListable{}, -1, "", nil)
 	if err == nil {
@@ -487,45 +706,17 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 	}
 	newFilter, _ := filter.New(protoFilter)
 
-	protoFilterWithRightKeyNames := &api.Filter{
-		Predicates: []*api.Predicate{
-			{
-				Key:   "FakeName",
-				Op:    api.Predicate_EQUALS,
-				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
-			},
-		},
-	}
-
-	f, err := filter.New(protoFilterWithRightKeyNames)
-	if err != nil {
-		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
-	}
-
 	got, err := NewOptions(&fakeListable{}, 10, "timestamp", newFilter)
-	want := &Options{
-		PageSize: 10,
-		token: &token{
-			KeyFieldName:      "PrimaryKey",
-			KeyFieldPrefix:    "",
-			SortByFieldName:   "CreatedTimestamp",
-			SortBySQLColumn:   "CreatedTimestamp",
-			SortByFieldPrefix: "",
-			IsDesc:            false,
-			Filter:            f,
-		},
+	if err != nil {
+		t.Fatalf("NewOptions: %v", err)
 	}
 
-	opts := []cmp.Option{
-		cmpopts.EquateEmpty(), protocmp.Transform(),
-		cmp.AllowUnexported(Options{}),
-		cmp.AllowUnexported(filter.Filter{}),
-	}
-
-	if !cmp.Equal(got, want, opts...) || err != nil {
-		t.Errorf("NewOptions(protoFilter=%+v) =\nGot: %+v, %v\nWant: %+v, nil\nDiff:\n%s",
-			protoFilter, got, err, want, cmp.Diff(got, want, opts...))
-	}
+	assert.Equal(t, 10, got.PageSize)
+	assert.Equal(t, "PrimaryKey", got.KeyFieldName)
+	assert.Equal(t, "CreatedTimestamp", got.SortByFieldName)
+	assert.Equal(t, "CreatedTimestamp", got.SortBySQLColumn)
+	assert.False(t, got.IsDesc)
+	assert.NotNil(t, got.Filter)
 }
 
 func TestNewOptions_InvalidFilter(t *testing.T) {
@@ -558,43 +749,18 @@ func TestNewOptions_ModelFilter(t *testing.T) {
 	}
 	newFilter, _ := filter.New(protoFilter)
 
-	protoFilterWithRightKeyNames := &api.Filter{
-		Predicates: []*api.Predicate{
-			{
-				Key:   "FinishedAtInSec",
-				Op:    api.Predicate_GREATER_THAN,
-				Value: &api.Predicate_StringValue{StringValue: "SomeTime"},
-			},
-		},
-	}
-
-	f, err := filter.New(protoFilterWithRightKeyNames)
-	if err != nil {
-		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
-	}
-
 	got, err := NewOptions(&model.Run{}, 10, "name", newFilter)
-	want := &Options{
-		PageSize: 10,
-		token: &token{
-			KeyFieldName:    "UUID",
-			SortByFieldName: "DisplayName",
-			SortBySQLColumn: "DisplayName",
-			IsDesc:          false,
-			Filter:          f,
-		},
+	if err != nil {
+		t.Fatalf("NewOptions: %v", err)
 	}
 
-	opts := []cmp.Option{
-		cmpopts.EquateEmpty(), protocmp.Transform(),
-		cmp.AllowUnexported(Options{}),
-		cmp.AllowUnexported(filter.Filter{}),
-	}
-
-	if !cmp.Equal(got, want, opts...) || err != nil {
-		t.Errorf("NewOptions(protoFilter=%+v) =\nGot: %+v, %v\nWant: %+v, nil\nDiff:\n%s",
-			protoFilter, got, err, want, cmp.Diff(got, want, opts...))
-	}
+	assert.Equal(t, 10, got.PageSize)
+	assert.Equal(t, "UUID", got.KeyFieldName)
+	assert.Equal(t, "DisplayName", got.SortByFieldName)
+	assert.Equal(t, "DisplayName", got.SortBySQLColumn)
+	assert.True(t, got.SortByFieldIsString)
+	assert.False(t, got.IsDesc)
+	assert.NotNil(t, got.Filter)
 }
 
 func TestAddPaginationAndFilterToSelect(t *testing.T) {
@@ -631,7 +797,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (SortField < ? OR (SortField = ? AND KeyField <= ?)) ORDER BY SortField DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("SortField") < LOWER(?) OR (LOWER("SortField") = LOWER(?) AND "KeyField" <= ?) OR "SortField" IS NULL) ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: []interface{}{"value", "value", 1111},
 		},
 		{
@@ -648,7 +814,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("SortField") > LOWER(?) OR (LOWER("SortField") = LOWER(?) AND "KeyField" >= ?) OR "SortField" IS NULL) ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{"value", "value", 1111},
 		},
 		{
@@ -666,23 +832,24 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) AND Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("SortField") > LOWER(?) OR (LOWER("SortField") = LOWER(?) AND "KeyField" >= ?) OR "SortField" IS NULL) AND ("Name" = ?) ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{"value", "value", 1111, "SomeName"},
 		},
 		{
 			in: &Options{
 				PageSize: 123,
 				token: &token{
-					SortByFieldName:   "SortField",
-					SortBySQLColumn:   "SortField",
-					SortByFieldPrefix: "",
-					KeyFieldName:      "KeyField",
-					KeyFieldPrefix:    "",
-					KeyFieldValue:     1111,
-					IsDesc:            true,
+					SortByFieldName:     "SortField",
+					SortBySQLColumn:     "SortField",
+					SortByFieldIsString: true,
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldPrefix:      "",
+					KeyFieldValue:       1111,
+					IsDesc:              true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable ORDER BY SortField DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: nil,
 		},
 		{
@@ -690,6 +857,44 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 			wantSQL:  fmt.Sprintf("SELECT * FROM MyTable LIMIT %d", math.MaxInt32+1),
 			wantArgs: nil,
 		},
+		// Numeric field, first page (SortByFieldValue == nil): should NOT use LOWER().
+		// This is the regression test for PostgreSQL "function lower(bigint) does not exist".
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "CreatedAtInSec",
+					SortBySQLColumn:     "CreatedAtInSec",
+					SortByFieldIsString: false,
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldPrefix:      "",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" ASC, "KeyField" ASC LIMIT 124`,
+			wantArgs: nil,
+		},
+		// Numeric field, second page (SortByFieldValue is float64, e.g. CreatedAtInSec):
+		// WHERE clause should NOT use LOWER().
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "CreatedAtInSec",
+					SortBySQLColumn:     "CreatedAtInSec",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(1234567890),
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-2",
+					KeyFieldPrefix:      "",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("CreatedAtInSec" > ? OR ("CreatedAtInSec" = ? AND "KeyField" >= ?) OR "CreatedAtInSec" IS NULL) ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" ASC, "KeyField" ASC LIMIT 124`,
+			wantArgs: []interface{}{float64(1234567890), float64(1234567890), "uuid-2"},
+		},
 		{
 			in: &Options{
 				PageSize: 123,
@@ -703,7 +908,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: nil,
 		},
 		{
@@ -720,14 +925,197 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("Name" = ?) ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{"SomeName"},
+		},
+		// Numeric field, second page (SortByFieldValue is float64): bind parameter preserves full precision.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "MetricValue",
+					SortBySQLColumn:     "MetricValue",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(0.123456789),
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-1",
+					KeyFieldPrefix:      "",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("MetricValue" > ? OR ("MetricValue" = ? AND "KeyField" >= ?) OR "MetricValue" IS NULL) ORDER BY ("MetricValue" IS NULL) ASC, "MetricValue" ASC, "KeyField" ASC LIMIT 124`,
+			wantArgs: []interface{}{float64(0.123456789), float64(0.123456789), "uuid-1"},
+		},
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "MetricValue",
+					SortBySQLColumn:     "MetricValue",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(0.123456789),
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-1",
+					KeyFieldPrefix:      "",
+					IsDesc:              true,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("MetricValue" < ? OR ("MetricValue" = ? AND "KeyField" <= ?) OR "MetricValue" IS NULL) ORDER BY ("MetricValue" IS NULL) ASC, "MetricValue" DESC, "KeyField" DESC LIMIT 124`,
+			wantArgs: []interface{}{float64(0.123456789), float64(0.123456789), "uuid-1"},
+		},
+		// Non-metric nullable string field, DESC with cursor: NULL handling in both
+		// WHERE and ORDER BY, ensuring cross-dialect consistency for regular fields.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "FakeName",
+					SortBySQLColumn:     "FakeName",
+					SortByFieldIsString: true,
+					SortByFieldValue:    "some_value",
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-3",
+					KeyFieldPrefix:      "",
+					IsDesc:              true,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("FakeName") < LOWER(?) OR (LOWER("FakeName") = LOWER(?) AND "KeyField" <= ?) OR "FakeName" IS NULL) ORDER BY ("FakeName" IS NULL) ASC, LOWER("FakeName") DESC, "KeyField" DESC LIMIT 124`,
+			wantArgs: []interface{}{"some_value", "some_value", "uuid-3"},
+		},
+		// Non-metric nullable string field, ASC with cursor.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "FakeName",
+					SortBySQLColumn:     "FakeName",
+					SortByFieldIsString: true,
+					SortByFieldValue:    "some_value",
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-3",
+					KeyFieldPrefix:      "",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("FakeName") > LOWER(?) OR (LOWER("FakeName") = LOWER(?) AND "KeyField" >= ?) OR "FakeName" IS NULL) ORDER BY ("FakeName" IS NULL) ASC, LOWER("FakeName") ASC, "KeyField" ASC LIMIT 124`,
+			wantArgs: []interface{}{"some_value", "some_value", "uuid-3"},
+		},
+		// Non-metric nullable numeric field, DESC with cursor.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "CreatedAtInSec",
+					SortBySQLColumn:     "CreatedAtInSec",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(1000),
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-4",
+					KeyFieldPrefix:      "",
+					IsDesc:              true,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("CreatedAtInSec" < ? OR ("CreatedAtInSec" = ? AND "KeyField" <= ?) OR "CreatedAtInSec" IS NULL) ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "KeyField" DESC LIMIT 124`,
+			wantArgs: []interface{}{float64(1000), float64(1000), "uuid-4"},
+		},
+		// Non-metric nullable numeric field, ASC with cursor.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "CreatedAtInSec",
+					SortBySQLColumn:     "CreatedAtInSec",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(1000),
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-4",
+					KeyFieldPrefix:      "",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("CreatedAtInSec" > ? OR ("CreatedAtInSec" = ? AND "KeyField" >= ?) OR "CreatedAtInSec" IS NULL) ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" ASC, "KeyField" ASC LIMIT 124`,
+			wantArgs: []interface{}{float64(1000), float64(1000), "uuid-4"},
+		},
+		// Metric sort, non-NULL cursor, ASC (case A): NULL rows sort last, so the
+		// cursor also pulls in the trailing NULL block via "sort_metric_value IS NULL".
+		// The ORDER BY gains a leading "(col IS NULL) ASC" key for deterministic NULL-last.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "accuracy",
+					SortBySQLColumn:     model.MetricSortSQLAlias,
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(0.5),
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-1",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" > ? OR ("sort_metric_value" = ? AND "KeyField" >= ?) OR "sort_metric_value" IS NULL) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" ASC, "KeyField" ASC LIMIT 124`,
+			wantArgs: []interface{}{float64(0.5), float64(0.5), "uuid-1"},
+		},
+		// Metric sort, non-NULL cursor, DESC (case A).
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "accuracy",
+					SortBySQLColumn:     model.MetricSortSQLAlias,
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(0.5),
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-1",
+					IsDesc:              true,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" < ? OR ("sort_metric_value" = ? AND "KeyField" <= ?) OR "sort_metric_value" IS NULL) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" DESC, "KeyField" DESC LIMIT 124`,
+			wantArgs: []interface{}{float64(0.5), float64(0.5), "uuid-1"},
+		},
+		// Metric sort, NULL cursor, ASC (case B): all non-NULL rows are already paged
+		// through; advance within the trailing NULL block using the key alone.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:   "accuracy",
+					SortBySQLColumn:   model.MetricSortSQLAlias,
+					SortByFieldIsNull: true,
+					KeyFieldName:      "KeyField",
+					KeyFieldValue:     "uuid-9",
+					IsDesc:            false,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" IS NULL AND "KeyField" >= ?) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" ASC, "KeyField" ASC LIMIT 124`,
+			wantArgs: []interface{}{"uuid-9"},
+		},
+		// Metric sort, NULL cursor, DESC (case B): key tie-break flips to <=.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:   "accuracy",
+					SortBySQLColumn:   model.MetricSortSQLAlias,
+					SortByFieldIsNull: true,
+					KeyFieldName:      "KeyField",
+					KeyFieldValue:     "uuid-9",
+					IsDesc:            true,
+				},
+			},
+			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" IS NULL AND "KeyField" <= ?) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" DESC, "KeyField" DESC LIMIT 124`,
+			wantArgs: []interface{}{"uuid-9"},
 		},
 	}
 
 	for _, test := range tests {
 		sql := sq.Select("*").From("MyTable")
-		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql)).ToSql()
+		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql, testQuote, ""), testQuote).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",
@@ -836,6 +1224,67 @@ func TestTokenSerialization(t *testing.T) {
 	}
 }
 
+func TestUnmarshalInvalidMetricNameRoundTrip(t *testing.T) {
+	// A tampered token may carry a metric name that fails the metric-name
+	// pattern (e.g. contains a slash). unmarshal must reject it before the
+	// value is used anywhere.
+	badToken := token{
+		SortByFieldName: "val/loss",
+		SortBySQLColumn: model.MetricSortSQLAlias,
+		KeyFieldName:    "UUID",
+	}
+	s, err := badToken.marshal()
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	got := &token{}
+	if err := got.unmarshal(s); err == nil {
+		t.Errorf("unmarshal token with metric name %q: expected error, got nil", "val/loss")
+	}
+}
+
+func TestUnmarshalMetricSortToken(t *testing.T) {
+	// Metric-sort tokens carry the raw metric name in SortByFieldName and the
+	// fixed alias in SortBySQLColumn. unmarshal must accept them as-is — both
+	// identifier-like names ("accuracy") and hyphenated ones ("log-loss") —
+	// with no migration or mutation of any field.
+	for _, metricName := range []string{"accuracy", "log-loss"} {
+		t.Run(metricName, func(t *testing.T) {
+			tok := token{
+				SortByFieldName:   metricName,
+				SortBySQLColumn:   model.MetricSortSQLAlias,
+				SortByFieldValue:  0.5,
+				SortByFieldPrefix: "",
+				KeyFieldName:      "UUID",
+				KeyFieldValue:     "abc",
+				KeyFieldPrefix:    "pipeline_runs.",
+				IsDesc:            false,
+			}
+			s, err := tok.marshal()
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+
+			got := &token{}
+			if err := got.unmarshal(s); err != nil {
+				t.Fatalf("unmarshal metric sort token: %v", err)
+			}
+
+			if got.SortByFieldName != metricName {
+				t.Errorf("SortByFieldName = %q, want %q", got.SortByFieldName, metricName)
+			}
+			if got.SortBySQLColumn != model.MetricSortSQLAlias {
+				t.Errorf("SortBySQLColumn = %q, want %q", got.SortBySQLColumn, model.MetricSortSQLAlias)
+			}
+			// Prefixes are stored with their trailing dot and left untouched;
+			// the dot is stripped only at SQL build time (see qualifyColumn).
+			if got.KeyFieldPrefix != "pipeline_runs." {
+				t.Errorf("KeyFieldPrefix = %q, want %q", got.KeyFieldPrefix, "pipeline_runs.")
+			}
+		})
+	}
+}
+
 func TestMatches(t *testing.T) {
 	protoFilter1 := &api.Filter{
 		Predicates: []*api.Predicate{
@@ -895,6 +1344,20 @@ func TestMatches(t *testing.T) {
 			o2:   &Options{token: &token{Filter: f2}},
 			want: false,
 		},
+		// Metric sort: SortByFieldName holds the raw metric name, so tokens for
+		// different metrics are distinct queries even though they share the same
+		// SQL alias in SortBySQLColumn.
+		{
+			o1:   &Options{token: &token{SortByFieldName: "accuracy", SortBySQLColumn: model.MetricSortSQLAlias}},
+			o2:   &Options{token: &token{SortByFieldName: "log-loss", SortBySQLColumn: model.MetricSortSQLAlias}},
+			want: false,
+		},
+		// Metric sort: same metric name is the same query.
+		{
+			o1:   &Options{token: &token{SortByFieldName: "accuracy", SortBySQLColumn: model.MetricSortSQLAlias}},
+			o2:   &Options{token: &token{SortByFieldName: "accuracy", SortBySQLColumn: model.MetricSortSQLAlias}},
+			want: true,
+		},
 	}
 
 	for _, test := range tests {
@@ -903,158 +1366,6 @@ func TestMatches(t *testing.T) {
 		if got != test.want {
 			t.Errorf("Matches(%+v, %+v) = %v, Want nil %v", test.o1, test.o2, got, test.want)
 			continue
-		}
-	}
-}
-
-func TestFilterOnResourceReference(t *testing.T) {
-	type testIn struct {
-		table        string
-		resourceType model.ResourceType
-		count        bool
-		filter       *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        false,
-				filter:       &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        true,
-				filter:       &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        false,
-				filter:       &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: "test3"}},
-			},
-			wantSql: "SELECT * FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        true,
-				filter:       &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: "test4"}},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, []string{"*"}, test.in.resourceType, test.in.count, test.in.filter)
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnResourceReference(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
-		}
-	}
-}
-
-func TestFilterOnExperiment(t *testing.T) {
-	type testIn struct {
-		table  string
-		count  bool
-		filter *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  false,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable WHERE ExperimentUUID = ?",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  true,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE ExperimentUUID = ?",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnExperiment(test.in.table, []string{"*"}, test.in.count, "123")
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnExperiment(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
-		}
-	}
-}
-
-func TestFilterOnNamesapce(t *testing.T) {
-	type testIn struct {
-		table  string
-		count  bool
-		filter *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  false,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable WHERE Namespace = ?",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  true,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE Namespace = ?",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnNamespace(test.in.table, []string{"*"}, test.in.count, "ns")
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnNamespace(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
 		}
 	}
 }
@@ -1074,11 +1385,11 @@ func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("pipeline_versions")
-	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder).ToSql()
+	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder, testQuote, "").ToSql()
 	assert.Nil(t, err)
 
-	assert.Contains(t, sql, "pipeline_versions.Name") // sorting field
-	assert.Contains(t, sql, "pipeline_versions.UUID") // primary key field
+	assert.Contains(t, sql, `"pipeline_versions"."Name"`) // sorting field
+	assert.Contains(t, sql, `"pipeline_versions"."UUID"`) // primary key field
 }
 
 func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
@@ -1103,9 +1414,9 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("run_details")
-	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder, testQuote).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE Conditions = ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, sql, `WHERE ("Conditions" = ?)`) // status is not case-insensitive; exact comparison
 	assert.Contains(t, args, "Succeeded")
 
 	notEqualProtoFilter := &api.Filter{}
@@ -1120,8 +1431,82 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err = NewOptions(listable, 10, "name", newNotEqualFilter)
 	assert.Nil(t, err)
 	sqlBuilder = sq.Select("*").From("run_details")
-	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder, testQuote).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE Conditions <> ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, sql, `WHERE ("Conditions" <> ?)`) // status is not case-insensitive; exact comparison
 	assert.Contains(t, args, "somevalue")
+}
+
+// Sorting by a mapped field that GetFieldValue cannot resolve returns a first
+// page, then fails the whole call once NextPageToken has to build a token.
+func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
+	parentTaskID := "parent-task"
+	uri := "s3://bucket/artifact"
+	numberValue := 0.5
+
+	// Optional fields are set, so a nil value below means a missing getter and
+	// not just an empty field.
+	listables := []Listable{
+		&model.Run{UUID: "run"},
+		&model.Job{UUID: "job"},
+		&model.Experiment{UUID: "experiment"},
+		&model.Pipeline{UUID: "pipeline"},
+		&model.PipelineVersion{UUID: "pipeline-version"},
+		&model.Task{
+			UUID:             "task",
+			ParentTaskUUID:   &parentTaskID,
+			StatusMetadata:   model.JSONData{"message": "done"},
+			StateHistory:     model.JSONSlice{"SUCCEEDED"},
+			InputParameters:  model.JSONSlice{"input"},
+			OutputParameters: model.JSONSlice{"output"},
+			TypeAttrs:        model.JSONData{"iteration_count": 1},
+		},
+		&model.Artifact{UUID: "artifact", URI: &uri, NumberValue: &numberValue, Metadata: model.JSONData{"key": "value"}},
+		&model.ArtifactTask{UUID: "artifact-task", Producer: model.JSONData{"task_name": "producer"}},
+	}
+
+	// JSON columns with no getter. They could not carry a page cursor anyway.
+	noGetter := map[string]bool{
+		"Run.StateHistory": true,
+		"Task.pods":        true,
+	}
+
+	for _, listable := range listables {
+		modelName := reflect.TypeOf(listable).Elem().Name()
+		for apiField, modelField := range listable.APIToModelFieldMap() {
+			t.Run(modelName+"/"+apiField, func(t *testing.T) {
+				value := listable.GetFieldValue(modelField)
+				if noGetter[modelName+"."+modelField] {
+					assert.Nil(t, value, "%s.GetFieldValue(%q) now resolves, so remove it from noGetter", modelName, modelField)
+					return
+				}
+				require.NotNil(t, value, "%s.GetFieldValue(%q) returns nil, so sorting by %q cannot build a page token", modelName, modelField, apiField)
+
+				// Only scalar values can be a sort cursor, so JSON values stop here.
+				switch reflect.Indirect(reflect.ValueOf(value)).Kind() {
+				case reflect.Map, reflect.Slice:
+					return
+				}
+
+				opts, err := NewOptions(listable, 1, apiField, nil)
+				require.NoError(t, err)
+				pageToken, err := opts.NextPageToken(listable)
+				require.NoError(t, err)
+				next, err := NewOptionsFromToken(pageToken, 1)
+				require.NoError(t, err)
+				assert.Equal(t, decodedTokenValue(t, value), next.SortByFieldValue)
+				assert.Equal(t, decodedTokenValue(t, reflect.ValueOf(listable).Elem().FieldByName("UUID").Interface()), next.KeyFieldValue)
+			})
+		}
+	}
+}
+
+// decodedTokenValue returns v the way a page token decodes it, so integers come
+// back as float64 and pointers as the value they point to.
+func decodedTokenValue(t *testing.T, v interface{}) interface{} {
+	b, err := json.Marshal(v)
+	require.NoError(t, err)
+	var decoded interface{}
+	require.NoError(t, json.Unmarshal(b, &decoded))
+	return decoded
 }

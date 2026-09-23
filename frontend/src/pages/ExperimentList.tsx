@@ -32,7 +32,7 @@ import {
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from 'src/lib/Apis';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';

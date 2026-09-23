@@ -445,6 +445,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                   <a
                     aria-label="test run run-with-workflow"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run-with-workflow"
                     data-run-name="test run run-with-workflow"
@@ -496,6 +497,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run-with-workflow"
                   >
                     [View pipeline]
@@ -1299,6 +1301,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   <a
                     aria-label="test run run1-id"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run1-id"
                     data-run-name="test run run1-id"
@@ -1350,6 +1353,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run1-id"
                   >
                     [View pipeline]
@@ -1417,6 +1421,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   <a
                     aria-label="test run run2-id"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run2-id"
                     data-run-name="test run run2-id"
@@ -1468,6 +1473,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run2-id"
                   >
                     [View pipeline]
@@ -2236,7 +2242,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       class="legendItem_f91tlfr"
                     >
                       <span
-                        class="legendSwatch_ftbiuan"
+                        class="legendSwatch_fpc4t75"
                         style="background-color: rgb(66, 133, 244);"
                       />
                       <span>
@@ -2247,7 +2253,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                       class="legendItem_f91tlfr"
                     >
                       <span
-                        class="legendSwatch_ftbiuan"
+                        class="legendSwatch_fpc4t75"
                         style="background-color: rgb(43, 156, 30);"
                       />
                       <span>
@@ -3087,6 +3093,7 @@ exports[`CompareV1 > displays a run's metrics if the run has any 1`] = `
                   <a
                     aria-label="test run run-with-metrics"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run-with-metrics"
                     data-run-name="test run run-with-metrics"
@@ -3138,6 +3145,7 @@ exports[`CompareV1 > displays a run's metrics if the run has any 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run-with-metrics"
                   >
                     [View pipeline]
@@ -3592,6 +3600,7 @@ exports[`CompareV1 > displays metrics from multiple runs 1`] = `
                   <a
                     aria-label="test run run1"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run1"
                     data-run-name="test run run1"
@@ -3643,6 +3652,7 @@ exports[`CompareV1 > displays metrics from multiple runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run1"
                   >
                     [View pipeline]
@@ -3710,6 +3720,7 @@ exports[`CompareV1 > displays metrics from multiple runs 1`] = `
                   <a
                     aria-label="test run run2"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run2"
                     data-run-name="test run run2"
@@ -3761,6 +3772,7 @@ exports[`CompareV1 > displays metrics from multiple runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run2"
                   >
                     [View pipeline]
@@ -4231,6 +4243,7 @@ exports[`CompareV1 > displays parameters from multiple runs 1`] = `
                   <a
                     aria-label="test run run1"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run1"
                     data-run-name="test run run1"
@@ -4282,6 +4295,7 @@ exports[`CompareV1 > displays parameters from multiple runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run1"
                   >
                     [View pipeline]
@@ -4349,6 +4363,7 @@ exports[`CompareV1 > displays parameters from multiple runs 1`] = `
                   <a
                     aria-label="test run run2"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run2"
                     data-run-name="test run run2"
@@ -4400,6 +4415,7 @@ exports[`CompareV1 > displays parameters from multiple runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run2"
                   >
                     [View pipeline]
@@ -4890,6 +4906,7 @@ exports[`CompareV1 > displays run's parameters if the run has any 1`] = `
                   <a
                     aria-label="test run run-with-parameters"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run-with-parameters"
                     data-run-name="test run run-with-parameters"
@@ -4941,6 +4958,7 @@ exports[`CompareV1 > displays run's parameters if the run has any 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run-with-parameters"
                   >
                     [View pipeline]
@@ -5395,6 +5413,7 @@ exports[`CompareV1 > does not show viewers for deselected runs 1`] = `
                   <a
                     aria-label="test run run-with-workflow-1"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run-with-workflow-1"
                     data-run-name="test run run-with-workflow-1"
@@ -5446,6 +5465,7 @@ exports[`CompareV1 > does not show viewers for deselected runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run-with-workflow-1"
                   >
                     [View pipeline]
@@ -5513,6 +5533,7 @@ exports[`CompareV1 > does not show viewers for deselected runs 1`] = `
                   <a
                     aria-label="test run run-with-workflow-2"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run-with-workflow-2"
                     data-run-name="test run run-with-workflow-2"
@@ -5564,6 +5585,7 @@ exports[`CompareV1 > does not show viewers for deselected runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run-with-workflow-2"
                   >
                     [View pipeline]
@@ -5967,6 +5989,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                   <a
                     aria-label="test run run-with-workflow-1"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run-with-workflow-1"
                     data-run-name="test run run-with-workflow-1"
@@ -6018,6 +6041,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run-with-workflow-1"
                   >
                     [View pipeline]
@@ -6085,6 +6109,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                   <a
                     aria-label="test run run-with-workflow-2"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="run-with-workflow-2"
                     data-run-name="test run run-with-workflow-2"
@@ -6136,6 +6161,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=run-with-workflow-2"
                   >
                     [View pipeline]
@@ -7362,6 +7388,7 @@ exports[`CompareV1 > renders a page with multiple runs 1`] = `
                   <a
                     aria-label="test run mock-run-1-id"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="mock-run-1-id"
                     data-run-name="test run mock-run-1-id"
@@ -7413,6 +7440,7 @@ exports[`CompareV1 > renders a page with multiple runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=mock-run-1-id"
                   >
                     [View pipeline]
@@ -7480,6 +7508,7 @@ exports[`CompareV1 > renders a page with multiple runs 1`] = `
                   <a
                     aria-label="test run mock-run-2-id"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="mock-run-2-id"
                     data-run-name="test run mock-run-2-id"
@@ -7531,6 +7560,7 @@ exports[`CompareV1 > renders a page with multiple runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=mock-run-2-id"
                   >
                     [View pipeline]
@@ -7598,6 +7628,7 @@ exports[`CompareV1 > renders a page with multiple runs 1`] = `
                   <a
                     aria-label="test run mock-run-3-id"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     data-run-id="mock-run-3-id"
                     data-run-name="test run mock-run-3-id"
@@ -7649,6 +7680,7 @@ exports[`CompareV1 > renders a page with multiple runs 1`] = `
                 >
                   <a
                     class="link_f3dwag7"
+                    data-discover="true"
                     href="/pipelines/details/?fromRun=mock-run-3-id"
                   >
                     [View pipeline]

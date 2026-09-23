@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   verify:
-    name: Verify pinned Go builder image digests
+    name: Verify Go versions in pinned builder images
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

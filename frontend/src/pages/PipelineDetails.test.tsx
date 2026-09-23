@@ -18,7 +18,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
 import * as React from 'react';
 import * as JsYaml from 'js-yaml';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import { ApiJob } from 'src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
@@ -88,7 +88,7 @@ describe('PipelineDetails', () => {
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const getV1PipelineSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getV1PipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
   const getV1TemplateSpy = vi.spyOn(Apis.pipelineServiceApi, 'getTemplate');
@@ -142,18 +142,12 @@ describe('PipelineDetails', () => {
       search = `?${QUERY_PARAMS.fromRecurringRunId}=test-recurring-run-id`;
     }
 
-    const match = {
-      isExact: true,
-      params: params,
-      path: '',
-      url: '',
-    };
     const location = { search } as any;
     const pageProps = TestUtils.generatePageProps(
       PipelineDetails,
       location,
-      match,
-      historyPushSpy,
+      params,
+      navigateSpy,
       updateBannerSpy,
       updateDialogSpy,
       updateToolbarSpy,
@@ -799,8 +793,8 @@ describe('PipelineDetails', () => {
       const instance = tree.instance() as PipelineDetails;
       const cloneRunBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
       cloneRunBtn!.action();
-      expect(historyPushSpy).toHaveBeenCalledTimes(1);
-      expect(historyPushSpy).toHaveBeenLastCalledWith(
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(navigateSpy).toHaveBeenLastCalledWith(
         RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testV1Run.run!.id}`,
       );
     },
@@ -818,8 +812,8 @@ describe('PipelineDetails', () => {
       const cloneRecurringRunBtn =
         instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RECURRING_RUN];
       cloneRecurringRunBtn!.action();
-      expect(historyPushSpy).toHaveBeenCalledTimes(1);
-      expect(historyPushSpy).toHaveBeenLastCalledWith(
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(navigateSpy).toHaveBeenLastCalledWith(
         RoutePage.NEW_RUN +
           `?${QUERY_PARAMS.cloneFromRecurringRun}=${testV1RecurringRun.id}&recurring=1`,
       );
@@ -844,8 +838,8 @@ describe('PipelineDetails', () => {
     const newRunFromPipelineVersionBtn =
       instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     newRunFromPipelineVersionBtn.action();
-    expect(historyPushSpy).toHaveBeenCalledTimes(1);
-    expect(historyPushSpy).toHaveBeenLastCalledWith(
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN +
         `?${QUERY_PARAMS.pipelineId}=${testV2Pipeline.pipeline_id}&${QUERY_PARAMS.pipelineVersionId}=${originalTestV2PipelineVersion.pipeline_version_id}`,
     );
@@ -860,8 +854,8 @@ describe('PipelineDetails', () => {
     const newRunFromPipelineVersionBtn =
       instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
     newRunFromPipelineVersionBtn.action();
-    expect(historyPushSpy).toHaveBeenCalledTimes(1);
-    expect(historyPushSpy).toHaveBeenLastCalledWith(
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN +
         `?${QUERY_PARAMS.pipelineId}=${testV2Pipeline.pipeline_id}&${QUERY_PARAMS.pipelineVersionId}=${PIPELINE_VERSION_ID}`,
     );
@@ -879,8 +873,8 @@ describe('PipelineDetails', () => {
       const newRunFromPipelineVersionBtn =
         instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE_VERSION];
       newRunFromPipelineVersionBtn.action();
-      expect(historyPushSpy).toHaveBeenCalledTimes(1);
-      expect(historyPushSpy).toHaveBeenLastCalledWith(
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(navigateSpy).toHaveBeenLastCalledWith(
         RoutePage.NEW_RUN +
           `?${QUERY_PARAMS.pipelineId}=${testV2Pipeline.pipeline_id}&${QUERY_PARAMS.pipelineVersionId}=${PIPELINE_VERSION_ID}`,
       );
@@ -893,8 +887,8 @@ describe('PipelineDetails', () => {
     const instance = tree.instance() as PipelineDetails;
     const newExperimentBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_EXPERIMENT];
     await newExperimentBtn.action();
-    expect(historyPushSpy).toHaveBeenCalledTimes(1);
-    expect(historyPushSpy).toHaveBeenLastCalledWith(
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testV1Pipeline.id}`,
     );
   });
@@ -908,8 +902,8 @@ describe('PipelineDetails', () => {
       const instance = tree.instance() as PipelineDetails;
       const newExperimentBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_EXPERIMENT];
       await newExperimentBtn.action();
-      expect(historyPushSpy).toHaveBeenCalledTimes(1);
-      expect(historyPushSpy).toHaveBeenLastCalledWith(
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(navigateSpy).toHaveBeenLastCalledWith(
         RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testV1Pipeline.id}`,
       );
     },

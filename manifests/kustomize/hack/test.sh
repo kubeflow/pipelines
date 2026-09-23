@@ -31,11 +31,11 @@ kpt version
 kustomization_yamls=(
   "cluster-scoped-resources"
   "base/installs/generic"
-  "base/metadata/overlays/db"
-  "base/metadata/overlays/postgres"
   "env/dev"
+  "env/dev/postgresql"
   "env/gcp"
   "env/platform-agnostic"
+  "env/platform-agnostic-postgresql"
 )
 for path in "${kustomization_yamls[@]}"
 do
