@@ -60,6 +60,11 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   private _css = stylesheet({
     cell: {
       borderRight: 'solid 1px ' + color.divider,
+      $nest: {
+        '&:first-child': {
+          borderLeft: 'solid 1px ' + color.divider,
+        },
+      },
       color: color.foreground,
       fontSize: this._isSmall() ? fontsize.small : fontsize.base,
       paddingLeft: this._isSmall() ? 5 : 'invalid',

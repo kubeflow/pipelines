@@ -867,7 +867,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                     tabindex="-1"
                   >
                     <td
-                      class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fv9x3vv css-1ex1afd-MuiTableCell-root"
+                      class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1wamigo css-1ex1afd-MuiTableCell-root"
                     >
                       test
                     </td>
