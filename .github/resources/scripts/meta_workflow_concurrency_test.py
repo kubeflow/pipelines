@@ -37,8 +37,8 @@ def _has_mapping(document: str, key: str, indentation: int) -> bool:
 def _mapping_block(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
     marker = _mapping_marker(key, indentation)
-    start = next(index for index, line in enumerate(lines)
-                 if marker.match(line))
+    start = next(
+        index for index, line in enumerate(lines) if marker.match(line))
 
     end = len(lines)
     for index in range(start + 1, len(lines)):
@@ -56,8 +56,7 @@ def _mapping_block(document: str, key: str, indentation: int) -> str:
 def _before_mapping(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
     marker = _mapping_marker(key, indentation)
-    end = next(index for index, line in enumerate(lines)
-               if marker.match(line))
+    end = next(index for index, line in enumerate(lines) if marker.match(line))
     return '\n'.join(lines[:end]) + '\n'
 
 
@@ -65,8 +64,8 @@ def _folded_scalar(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
     marker = re.compile(r'^' + (' ' * indentation) + re.escape(key) +
                         r':\s*[>|][-+]?\s*$')
-    start = next(index for index, line in enumerate(lines)
-                 if marker.match(line))
+    start = next(
+        index for index, line in enumerate(lines) if marker.match(line))
 
     values = []
     for line in lines[start + 1:]:
@@ -94,8 +93,8 @@ def _evaluate_condition_node(node, values):
     if isinstance(node, ast.Expression):
         return _evaluate_condition_node(node.body, values)
     if isinstance(node, ast.BoolOp):
-        operands = (_evaluate_condition_node(value, values)
-                    for value in node.values)
+        operands = (
+            _evaluate_condition_node(value, values) for value in node.values)
         if isinstance(node.op, ast.And):
             return all(operands)
         if isinstance(node.op, ast.Or):
@@ -216,6 +215,41 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
             _plain_scalar(concurrency, 'cancel-in-progress', 6),
             "${{ github.event.action == 'synchronize' }}",
         )
+
+    def test_gatekeeper_exempts_only_trusted_automation_authors(self):
+        workflow = self._read_workflow('pr-gate.yml')
+        jobs = _mapping_block(workflow, 'jobs', 0)
+        job = _mapping_block(jobs, 'check-pr-author', 2)
+        condition = _folded_scalar(_before_mapping(job, 'steps', 4), 'if', 4)
+        self.assertEqual(
+            condition,
+            "github.event.pull_request.user.login != 'dependabot[bot]' && "
+            "github.event.pull_request.user.login != 'copybara-service[bot]'",
+        )
+
+        expression = condition.replace('github.event.pull_request.user.login',
+                                       'author').replace(
+                                           'github.actor', 'actor')
+        parsed = ast.parse(expression.replace('&&', ' and '), mode='eval')
+        cases = [
+            ('dependabot[bot]', 'dependabot[bot]', False),
+            ('dependabot[bot]', 'maintainer', False),
+            ('copybara-service[bot]', 'copybara-service[bot]', False),
+            ('copybara-service[bot]', 'maintainer', False),
+            ('contributor', 'dependabot[bot]', True),
+            ('contributor', 'copybara-service[bot]', True),
+            ('contributor', 'maintainer', True),
+            ('renovate[bot]', 'renovate[bot]', True),
+            ('dependabot-helper', 'dependabot-helper', True),
+            ('copybara-service', 'copybara-service', True),
+        ]
+        for author, actor, should_run in cases:
+            with self.subTest(author=author, actor=actor):
+                self.assertEqual(
+                    _evaluate_condition_node(parsed, {
+                        'author': author,
+                        'actor': actor,
+                    }), should_run)
 
     def test_eligibility_shell_receives_label_name_through_environment(self):
         workflow = self._read_workflow('ci-checks.yml')

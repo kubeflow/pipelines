@@ -13,6 +13,10 @@ on:
 
 jobs:
   check-pr-author:
+    # Use the PR author, including when a maintainer triggers the event.
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'copybara-service[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Check if author is a Kubeflow Organisation Member

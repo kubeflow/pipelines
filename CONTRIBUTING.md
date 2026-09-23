@@ -70,6 +70,9 @@ Kubeflow Pipelines uses GitHub Actions workflows to gate CI for pull requests.
 
 - Pull requests opened by Kubeflow organization members, owners, or invited
   collaborators are treated as trusted and can proceed without this extra gate.
+- Pull requests authored by `dependabot[bot]` or `copybara-service[bot]` are exempt
+  from this linked-issue gate. Required CI checks and merge requirements still
+  apply.
 - Pull requests opened by other contributors must link to a GitHub issue using
   a closing keyword such as `Fixes #1234` in the PR description.
 - The linked issue must be labeled `ready` by a Kubeflow Pipelines maintainer
@@ -79,9 +82,9 @@ If you plan to contribute regularly, becoming a Kubeflow GitHub organization
 member is straightforward. Follow the instructions in the
 [`kubeflow/internal-acls` guide](https://github.com/kubeflow/internal-acls/#joining-the-kubeflow-github-organization).
 
-If a pull request from a non-member does not link to an issue, or the linked
-issue is not labeled `ready`, the gatekeeper workflow may comment on the PR and
-close it until the issue triage step is completed.
+If a non-member pull request subject to this gate does not link to an issue, or
+the linked issue is not labeled `ready`, the gatekeeper workflow may comment on
+the PR and close it until the issue triage step is completed.
 
 ## Project Structure
 
