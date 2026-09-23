@@ -146,13 +146,12 @@ local.init(runner=local.SubprocessRunner(use_venv=False))
 ```
 
 :::{warning}
-On **PEP 668-protected interpreters**, such as Debian/Ubuntu system Python or
-Homebrew Python on macOS, a bare `pip install` is blocked with an
-`externally-managed-environment` error. When `use_venv=False`, KFP runs the
-task with `PIP_BREAK_SYSTEM_PACKAGES=1` to work around this, which means
-packages are **installed into your system or global Python environment** and
-can break other tools that share that interpreter. Virtual environments are
-strongly recommended.
+With `use_venv=False`, packages are installed into the Python environment
+you run KFP from. Interpreters that are marked as externally managed
+([PEP 668](https://peps.python.org/pep-0668/)), such as Debian/Ubuntu system
+Python or Homebrew Python on macOS, refuse such installs with an
+`externally-managed-environment` error. Keep the default `use_venv=True`, or run
+KFP from your own virtual environment.
 :::
 ::::
 

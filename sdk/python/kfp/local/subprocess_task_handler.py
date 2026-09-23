@@ -62,14 +62,6 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
                            'python -m pip install' in command_str or
                            '-m pip install' in command_str)
 
-        env_vars = dict(self.env_vars)
-        if not self.runner.use_venv:
-            # Without a venv, pip installs into the current interpreter, which
-            # PEP 668 marks as externally managed on e.g. Debian/Ubuntu system
-            # Python and Homebrew Python. Unlike the CLI flag, this env var is
-            # ignored by pip < 23.0. A user-provided value takes precedence.
-            env_vars.setdefault('PIP_BREAK_SYSTEM_PACKAGES', '1')
-
         with environment(
                 use_venv=self.runner.use_venv,
                 runner_config=self.runner,
@@ -80,7 +72,7 @@ class SubprocessTaskHandler(task_handler_interface.ITaskHandler):
             )
             return_code = run_local_subprocess(
                 full_command=full_command,
-                env_vars=env_vars,
+                env_vars=self.env_vars,
             )
             return status.Status.SUCCESS if return_code == 0 else status.Status.FAILURE
 
