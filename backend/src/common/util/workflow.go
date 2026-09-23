@@ -163,6 +163,17 @@ func (w *Workflow) ExecutionStatus() ExecutionStatus {
 	return w
 }
 
+// NewRetryPlaceholder creates a suspended Workflow for the first phase of retry recreation.
+func (w *Workflow) NewRetryPlaceholder() ExecutionSpec {
+	placeholder := NewWorkflow(w.DeepCopy())
+	placeholder.ClearPersistedNodeStatus()
+	placeholder.SetVersion("")
+	placeholder.UID = ""
+	suspend := true
+	placeholder.Spec.Suspend = &suspend
+	return placeholder
+}
+
 // SetServiceAccount Set the service account to run the workflow.
 func (w *Workflow) SetServiceAccount(serviceAccount string) {
 	w.Spec.ServiceAccountName = serviceAccount

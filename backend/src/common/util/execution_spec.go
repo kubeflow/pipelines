@@ -115,6 +115,10 @@ type ExecutionSpec interface {
 	// failed pods in the existing ExecutionSpec
 	GenerateRetryExecution() (ExecutionSpec, []string, error)
 
+	// NewRetryPlaceholder returns a controller-inert execution with no persisted
+	// node status, ready to be created before the retry status is installed.
+	NewRetryPlaceholder() ExecutionSpec
+
 	// Convert to JSON string
 	ToStringForStore() string
 
@@ -174,10 +178,6 @@ type ExecutionSpec interface {
 
 	// Dehydrate persists node status (compress/offload) before writing the spec back to Kubernetes.
 	Dehydrate(ctx context.Context) error
-
-	// ClearPersistedNodeStatus drops nodes, compressed nodes, and offload version so a Create
-	// request stays under etcd size limits. Call Hydrate first and keep the hydrated spec.
-	ClearPersistedNodeStatus()
 
 	// Check if the ExecutionSpec allows retry, return error if not
 	CanRetry() error

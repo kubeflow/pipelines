@@ -1485,6 +1485,11 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 		lastWorkflowAction = "getting workflow"
 		latestWorkflow, err := workflowClient.Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
 		if err == nil {
+			lastWorkflowAction = "rehydrating workflow node status for update"
+			if err := newExecSpec.Hydrate(ctx); err != nil {
+				lastWorkflowError = err
+				return err
+			}
 			newExecSpec.SetVersion(latestWorkflow.Version())
 			adoptExecutionIdentity(newExecSpec, latestWorkflow)
 			lastWorkflowAction = "dehydrating workflow node status"
@@ -1518,12 +1523,7 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 			lastWorkflowError = err
 			return err
 		}
-		createSpec, cloneError := cloneExecutionSpecWithoutNodeStatus(newExecSpec)
-		if cloneError != nil {
-			lastWorkflowError = cloneError
-			lastWorkflowAction = "preparing workflow create"
-			return cloneError
-		}
+		createSpec := newExecSpec.NewRetryPlaceholder()
 		lastWorkflowAction = "creating workflow"
 		newCreatedWorkflow, createError := workflowClient.Create(ctx, createSpec, v1.CreateOptions{})
 		if createError != nil {
@@ -1575,25 +1575,6 @@ func adoptExecutionIdentity(dst, src util.ExecutionSpec) {
 	dstMeta.UID = srcMeta.UID
 	dstMeta.ResourceVersion = srcMeta.ResourceVersion
 	dstMeta.CreationTimestamp = srcMeta.CreationTimestamp
-}
-
-func cloneExecutionSpecWithoutNodeStatus(spec util.ExecutionSpec) (util.ExecutionSpec, error) {
-	clone, err := util.NewExecutionSpecJSON(spec.ExecutionType(), []byte(spec.ToStringForStore()))
-	if err != nil {
-		return nil, err
-	}
-	clone.ClearPersistedNodeStatus()
-	clone.SetVersion("")
-	if meta := clone.ExecutionObjectMeta(); meta != nil {
-		meta.UID = ""
-	}
-	workflow, ok := clone.(*util.Workflow)
-	if !ok {
-		return nil, fmt.Errorf("cannot create controller-inert placeholder for execution type %s", spec.ExecutionType())
-	}
-	suspend := true
-	workflow.Spec.Suspend = &suspend
-	return clone, nil
 }
 
 func isRetryableWorkflowReconcileError(err error) bool {
