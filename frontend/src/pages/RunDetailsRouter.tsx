@@ -129,7 +129,7 @@ export default function RunDetailsRouter(props: PageProps & NavigationProps<RunD
   } = useQuery<string, Error>({
     queryKey: queryKeys.runPipelineSpec(runId),
     queryFn: async () => {
-      const fullRun = await Apis.runServiceApiV2.getRun(runId, 'FULL');
+      const fullRun = await Apis.runServiceApiV2.getRun(runId, undefined, 'FULL');
       return fullRun.pipeline_spec ? JsYaml.dump(fullRun.pipeline_spec) : '';
     },
     enabled:

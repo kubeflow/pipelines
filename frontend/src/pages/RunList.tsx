@@ -20,7 +20,7 @@ import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/Cu
 import { ExperimentInfo } from 'src/lib/ExperimentInfo';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { ResponseError, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link } from 'react-router';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
@@ -38,6 +38,7 @@ interface PipelineVersionInfo {
   recurringRunId?: string;
   pipelineId?: string;
   usePlaceholder: boolean;
+  unavailable?: boolean;
 }
 
 interface RecurringRunInfo {
@@ -207,6 +208,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   public _pipelineVersionCustomRenderer: React.FC<CustomRendererProps<PipelineVersionInfo>> = (
     props: CustomRendererProps<PipelineVersionInfo>,
   ) => {
+    if (props.value?.unavailable) {
+      return <span title='The pipeline version is no longer available.'>Unavailable</span>;
+    }
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
     if (!props.value || (!props.value.usePlaceholder && !props.value.pipelineId)) {
       return <div>-</div>;
@@ -486,6 +490,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
             );
             pipelineVersionsByKey.set(key, pipelineVersion);
           } catch (err) {
+            // Deleting a version does not delete the runs that reference it.
+            if (err instanceof ResponseError && err.response.status === 404) {
+              return;
+            }
             errorsByKey.set(key, await errorToMessage(err));
             logger.error(
               `Failed to get pipeline version ${pipelineVersionId} for pipeline ${pipelineId}`,
@@ -520,10 +528,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           usePlaceholder: false,
           versionId: pipelineVersion.pipeline_version_id,
         };
-      } else {
+      } else if (errorsByKey.has(key)) {
         const errorMessage = errorsByKey.get(key);
         displayRun.error =
           'Failed to get associated pipeline version' + (errorMessage ? ': ' + errorMessage : '');
+      } else {
+        displayRun.pipelineVersion = { usePlaceholder: false, unavailable: true };
       }
     } else if (displayRun.run.pipeline_spec) {
       displayRun.pipelineVersion = displayRun.recurringRun?.id

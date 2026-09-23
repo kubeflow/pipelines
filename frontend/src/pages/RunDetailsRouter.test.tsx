@@ -845,7 +845,7 @@ describe('RunDetailsRouter', () => {
         pipeline_version_id: TEST_PIPELINE_VERSION_ID,
       },
     };
-    getRunSpy.mockImplementation(async (_id, view) =>
+    getRunSpy.mockImplementation(async (_id, _experimentId, view) =>
       view === 'FULL' ? { ...run, pipeline_spec: v2PipelineSpec } : { ...run },
     );
     getPipelineVersionSpy.mockRejectedValue(new Error('Pipeline version not found'));
@@ -859,7 +859,7 @@ describe('RunDetailsRouter', () => {
     await screen.findByTestId('run-details-v2');
     const details = screen.getByTestId('run-details-v2');
     fireEvent.change(screen.getByTestId('run-details-mount'), { target: { value: 'selection' } });
-    expect(getRunSpy).toHaveBeenCalledWith(TEST_RUN_ID, 'FULL');
+    expect(getRunSpy).toHaveBeenCalledWith(TEST_RUN_ID, undefined, 'FULL');
     expect(props.updateBanner).not.toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
     expect(client.getQueryData(queryKeys.v2RunDetail(TEST_RUN_ID))).toEqual(run);
 
@@ -871,14 +871,14 @@ describe('RunDetailsRouter', () => {
     });
     expect(screen.getByTestId('run-details-v2')).toBe(details);
     expect(screen.getByTestId('run-details-mount')).toHaveValue('selection');
-    expect(getRunSpy.mock.calls.filter(([, mode]) => mode === 'FULL')).toHaveLength(1);
+    expect(getRunSpy.mock.calls.filter(([, , mode]) => mode === 'FULL')).toHaveLength(1);
 
     view.unmount();
     client.clear();
   });
 
   it('reports an error when neither the version nor the stored IR can be fetched', async () => {
-    getRunSpy.mockImplementation(async (_id, view) => {
+    getRunSpy.mockImplementation(async (_id, _experimentId, view) => {
       if (view === 'FULL') {
         throw new Error('Stored run unavailable');
       }
@@ -899,7 +899,7 @@ describe('RunDetailsRouter', () => {
     );
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load run details');
-    expect(getRunSpy).toHaveBeenCalledWith(TEST_RUN_ID, 'FULL');
+    expect(getRunSpy).toHaveBeenCalledWith(TEST_RUN_ID, undefined, 'FULL');
     await waitFor(() =>
       expect(props.updateBanner).toHaveBeenCalledWith(
         expect.objectContaining({ additionalInfo: 'Stored run unavailable' }),
