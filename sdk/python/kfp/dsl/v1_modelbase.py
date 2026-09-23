@@ -15,9 +15,12 @@
 from collections import abc
 from collections import OrderedDict
 import inspect
+
+# isort: off
 from typing import (Any, cast, Dict, get_type_hints, List, Mapping,
                     MutableMapping, MutableSequence, Sequence, Type, TypeVar,
                     Union)
+# isort: on
 
 T = TypeVar('T')
 
