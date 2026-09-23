@@ -64,6 +64,8 @@ const (
 	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"
 	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
 	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
+	ArgoWorkflowControllerConfigMap         string = "ARGO_WORKFLOW_CONTROLLER_CONFIGMAP"
+	ArgoWorkflowControllerNamespace         string = "ARGO_WORKFLOW_CONTROLLER_NAMESPACE"
 
 	// Database credential provider keys. DBCredentialProviderEnabled is the
 	// switch: when false, which is the default, the connection is built exactly
@@ -98,6 +100,14 @@ type PluginLimitsConfig struct {
 // while the run record is being written.
 func GetWorkflowGCGracePeriodSeconds() int {
 	return GetIntConfigWithDefault(WorkflowGCGracePeriodSeconds, 120)
+}
+
+func GetArgoWorkflowControllerConfigMap() string {
+	return GetStringConfigWithDefault(ArgoWorkflowControllerConfigMap, "workflow-controller-configmap")
+}
+
+func GetArgoWorkflowControllerNamespace() string {
+	return GetStringConfigWithDefault(ArgoWorkflowControllerNamespace, GetPodNamespace())
 }
 
 func IsNamespaceRequiredForPipelines() bool {
