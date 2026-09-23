@@ -2551,7 +2551,21 @@ func (r *ResourceManager) reportWorkflowResource(
 		execStatus = execSpec.ExecutionStatus()
 	}
 
-	if updateError == nil && !createdFromRecurringReport {
+	if updateError == nil && createdFromRecurringReport {
+		// CreateRun above may have stored a dehydrated offload pointer before
+		// hydrate ran. Rewrite the recurring-run row with hydrated nodes so
+		// RetryRun survives Workflow CR and offload GC.
+		if execStatus.IsInFinalState() {
+			run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
+			run.State = state
+			run.Conditions = string(state.ToExecutionPhase())
+			run.FinishedAtInSec = execStatus.FinishedAt()
+			if err := r.runStore.UpdateRun(run); err != nil {
+				return nil, util.Wrapf(err,
+					"Failed to preserve hydrated workflow node status for recurring run %s", runId)
+			}
+		}
+	} else if updateError == nil {
 		// Argo can report a newly created Workflow before assigning its phase.
 		// Preserve known active state while recording its runtime manifest. Do
 		// not relax the storage fences for canceling or terminal runs.
