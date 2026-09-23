@@ -148,7 +148,7 @@ class TestCliVersion(unittest.TestCase):
 class TestPipelineVersionCommands(unittest.TestCase):
 
     def setUp(self):
-        self.context = mock.Mock()
+        self.context = click.Context(pipeline.pipeline)
         self.client = mock.Mock()
         self.context.obj = {
             'client': self.client,
@@ -160,8 +160,9 @@ class TestPipelineVersionCommands(unittest.TestCase):
     def test_get_version_uses_pipeline_version_output(self, mock_print_output):
         self.client.get_pipeline_version.return_value = self.version
 
-        pipeline.get_version.callback(
-            self.context, pipeline_id='pipeline-id', version_id='version-id')
+        with self.context:
+            pipeline.get_version.callback(
+                pipeline_id='pipeline-id', version_id='version-id')
 
         mock_print_output.assert_called_once_with(
             self.version,
@@ -174,13 +175,13 @@ class TestPipelineVersionCommands(unittest.TestCase):
             self, mock_print_output):
         self.client.upload_pipeline_version.return_value = self.version
 
-        pipeline.create_version.callback(
-            self.context,
-            package_file='pipeline.yaml',
-            pipeline_version='version-name',
-            pipeline_id='pipeline-id',
-            pipeline_name=None,
-            description=None)
+        with self.context:
+            pipeline.create_version.callback(
+                package_file='pipeline.yaml',
+                pipeline_version='version-name',
+                pipeline_id='pipeline-id',
+                pipeline_name=None,
+                description=None)
 
         mock_print_output.assert_called_once_with(
             self.version,
