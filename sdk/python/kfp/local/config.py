@@ -46,13 +46,13 @@ class SubprocessRunner:
             temporary virtual environment for each task run, keeping them
             isolated from the current Python environment.
             If ``False``, dependencies are installed directly into the current
-            interpreter via ``pip install --break-system-packages``.  The
-            flag is required on PEP 668-protected interpreters (system Python
-            on Ubuntu >= 23.04, Homebrew Python on macOS); without it pip
-            refuses to install into an externally-managed environment.  Note
-            that this **modifies your current Python environment** and may
-            conflict with other installed packages.  Using a virtual
-            environment is strongly recommended.
+            interpreter. On PEP 668-protected interpreters (e.g. Debian/Ubuntu
+            system Python, Homebrew Python) pip would otherwise refuse with
+            ``externally-managed-environment``, so the task subprocess is run
+            with ``PIP_BREAK_SYSTEM_PACKAGES=1``. Note that this **modifies
+            your current Python environment** and may conflict with other
+            installed packages. Using a virtual environment is strongly
+            recommended.
         serialize_pip_installs: Whether to serialize pip installations across parallel tasks to avoid race conditions. Only applies when use_venv=True. Default is True for safety.
         max_concurrent_pip_installs: Maximum number of concurrent pip installations when serialize_pip_installs=False. Default is 1.
     """

@@ -131,7 +131,7 @@ Since `SubprocessRunner` runs your code in a subprocess, the `SubprocessRunner`:
 - Does not support custom images or easily support tasks with complex environment dependencies
 - Only allows execution of [Lightweight Python Component][lightweight-python-component]
 
-:::{tip}
+::::{tip}
 By default, `SubprocessRunner` installs component dependencies into a fresh
 temporary virtual environment, isolating them from your current Python
 environment.
@@ -146,15 +146,15 @@ local.init(runner=local.SubprocessRunner(use_venv=False))
 ```
 
 :::{warning}
-On **PEP 668-protected interpreters** — system Python on Ubuntu ≥ 23.04 or
-Homebrew Python on macOS — a bare `pip install` is blocked with an
-`externally-managed-environment` error.  KFP automatically passes
-`--break-system-packages` when `use_venv=False` to work around this, but
-doing so **installs packages into your system or global Python environment**,
-which can break other tools that share that interpreter.  Virtual environments
-are strongly recommended.
+On **PEP 668-protected interpreters**, such as Debian/Ubuntu system Python or
+Homebrew Python on macOS, a bare `pip install` is blocked with an
+`externally-managed-environment` error. When `use_venv=False`, KFP runs the
+task with `PIP_BREAK_SYSTEM_PACKAGES=1` to work around this, which means
+packages are **installed into your system or global Python environment** and
+can break other tools that share that interpreter. Virtual environments are
+strongly recommended.
 :::
-:::
+::::
 
 [lightweight-python-component]: ../components/lightweight-python-components.md
 [containerized-python-components]: ../components/containerized-python-components.md

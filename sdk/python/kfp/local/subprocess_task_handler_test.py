@@ -24,6 +24,7 @@ from absl.testing import parameterized
 from kfp import dsl
 from kfp import local
 from kfp.dsl import Artifact
+from kfp.dsl import component_factory
 from kfp.dsl import Dataset
 from kfp.dsl import Output
 from kfp.local import subprocess_task_handler
@@ -133,6 +134,50 @@ class TestRunLocalSubproces(unittest.TestCase):
         output = buffer.getvalue().strip()
 
         self.assertEqual(output, 'foo!')
+
+
+class TestPipBreakSystemPackages(unittest.TestCase):
+
+    def _run_and_get_env_vars(self, runner, env_vars=None):
+        handler = subprocess_task_handler.SubprocessTaskHandler(
+            image='python:3.11',
+            full_command=[
+                'sh', '-c', f'python3 -m {component_factory.EXECUTOR_MODULE}'
+            ],
+            pipeline_root='/tmp/pipeline_root',
+            runner=runner,
+            env_vars=env_vars,
+        )
+        with mock.patch.object(
+                subprocess_task_handler, 'run_local_subprocess',
+                return_value=0) as mock_run:
+            handler.run()
+        return mock_run.call_args.kwargs['env_vars']
+
+    def test_use_venv_false_sets_env_var(self):
+        env_vars = self._run_and_get_env_vars(
+            local.SubprocessRunner(use_venv=False))
+        self.assertEqual(env_vars.get('PIP_BREAK_SYSTEM_PACKAGES'), '1')
+
+    def test_use_venv_false_respects_user_value(self):
+        env_vars = self._run_and_get_env_vars(
+            local.SubprocessRunner(use_venv=False),
+            env_vars={'PIP_BREAK_SYSTEM_PACKAGES': '0'})
+        self.assertEqual(env_vars['PIP_BREAK_SYSTEM_PACKAGES'], '0')
+
+    def test_use_venv_false_does_not_mutate_handler_env_vars(self):
+        user_env_vars = {'FOO': 'bar'}
+        self._run_and_get_env_vars(
+            local.SubprocessRunner(use_venv=False), env_vars=user_env_vars)
+        self.assertEqual(user_env_vars, {'FOO': 'bar'})
+
+    def test_use_venv_true_does_not_set_env_var(self):
+        with mock.patch.object(subprocess_task_handler,
+                               'environment') as mock_env:
+            mock_env.return_value.__enter__.return_value = 'python3'
+            env_vars = self._run_and_get_env_vars(
+                local.SubprocessRunner(use_venv=True))
+        self.assertNotIn('PIP_BREAK_SYSTEM_PACKAGES', env_vars)
 
 
 class TestUseCurrentPythonExecutable(

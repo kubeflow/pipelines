@@ -123,29 +123,10 @@ def make_index_url_options(pip_index_urls: Optional[List[str]],
 def make_pip_install_command(
     install_parts: List[str],
     index_url_options: str,
-    break_system_packages: bool = False,
 ) -> str:
-    """Build a ``python3 -m pip install`` command string.
-
-    Args:
-        install_parts: Package specifiers / paths to install.
-        index_url_options: Pre-formatted ``--index-url`` / ``--extra-index-url``
-            flags string (may be empty).
-        break_system_packages: When ``True``, append
-            ``--break-system-packages`` to the command.  Required on
-            PEP 668-protected interpreters (e.g. Ubuntu >= 23.04 system
-            Python, Homebrew Python on macOS) when installing outside a
-            virtual environment.  Silently ignored by pip < 23.0.
-
-    Returns:
-        A shell-ready pip install command string.
-    """
     concat_package_list = ' '.join(
         [repr(str(package)) for package in install_parts])
-    break_flag = ' --break-system-packages' if break_system_packages else ''
-    return (
-        f'python3 -m pip install --quiet --no-warn-script-location'
-        f'{break_flag} {index_url_options}{concat_package_list}')
+    return f'python3 -m pip install --quiet --no-warn-script-location {index_url_options}{concat_package_list}'
 
 
 _install_python_packages_script_template = '''
@@ -192,19 +173,10 @@ def _get_packages_to_install_command(
     # This is particularly useful for development and
     # CI use-case when you want to install the spec
     # from source.
-    # On PEP 668-protected interpreters (Ubuntu >= 23.04 system Python,
-    # Homebrew Python on macOS) a bare pip install fails with
-    # "externally-managed-environment".  Pass --break-system-packages when
-    # use_venv=False so KFP can still install component dependencies.
-    # When use_venv=True the installs target a fresh temporary venv created in
-    # subprocess_task_handler.py, so no flag is needed there.
-    break_system_packages = not use_venv
-
     if packages_to_install:
         user_packages_pip_install_command = make_pip_install_command(
             install_parts=packages_to_install,
             index_url_options=index_url_options,
-            break_system_packages=break_system_packages,
         )
         pip_install_strings.append(user_packages_pip_install_command)
         if inject_kfp_install:
@@ -221,7 +193,6 @@ def _get_packages_to_install_command(
             kfp_pip_install_command = make_pip_install_command(
                 install_parts=install_parts,
                 index_url_options=index_url_options,
-                break_system_packages=break_system_packages,
             )
         else:
             kfp_pip_install_command = make_pip_install_command(
@@ -231,7 +202,6 @@ def _get_packages_to_install_command(
                     'typing-extensions>=3.7.4,<5; python_version<"3.9"',
                 ],
                 index_url_options=index_url_options,
-                break_system_packages=break_system_packages,
             )
         pip_install_strings.append(kfp_pip_install_command)
 
