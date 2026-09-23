@@ -24,6 +24,10 @@ on:
 
 env:
   PYTHON_VERSION: "3.9"
+  UV_VERSION: "0.10.3"
+  # Twine 7 validates current Hatch metadata and requires Python >=3.10.
+  TWINE_VERSION: "7.0.0"
+  TWINE_PYTHON_VERSION: "3.12"
 
 jobs:
   publish-kfp-pipeline-spec:
@@ -38,18 +42,21 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python
+      # The selected tag may predate repository-local uv actions.
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
       - name: Build kfp-pipeline-spec
         run: |
-          cd api
-          make python
-          cd ..
-          uv build --package kfp-pipeline-spec --out-dir api/v2alpha1/python/dist
-          uv run twine check api/v2alpha1/python/dist/*
+          make -C api python
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check api/v2alpha1/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -77,16 +84,22 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Build kfp-server-api
         run: |
           rm -rf backend/api/v2beta1/python_http_client/dist
-          uv build --package kfp-server-api --out-dir backend/api/v2beta1/python_http_client/dist
-          uv run twine check backend/api/v2beta1/python_http_client/dist/*
+          # A source-path build supports pyproject.toml and legacy setup.py tags.
+          uv build backend/api/v2beta1/python_http_client --out-dir backend/api/v2beta1/python_http_client/dist
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check backend/api/v2beta1/python_http_client/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -116,18 +129,20 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
       - name: Build kfp
         run: |
-          cd sdk
-          make python
-          cd ..
-          uv build --package kfp --out-dir sdk/python/dist
-          uv run twine check sdk/python/dist/*
+          make -C sdk python
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check sdk/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -157,18 +172,20 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
       - name: Build kfp-kubernetes
         run: |
-          cd kubernetes_platform
-          make python
-          cd ..
-          uv build --package kfp-kubernetes --out-dir kubernetes_platform/python/dist
-          uv run twine check kubernetes_platform/python/dist/*
+          make -C kubernetes_platform python
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check kubernetes_platform/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}

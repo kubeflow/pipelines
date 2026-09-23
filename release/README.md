@@ -86,6 +86,12 @@ independently of the backend `VERSION`. The server API generator reads the SDK
 version and runs before locking or building the workspace, including for
 SDK-only releases. Older release branches retain the pip-compile build path.
 
+Maintenance releases continue to dispatch the publishing workflow from their
+release branch. The current `publish-packages.yml` also accepts pre-uv tags:
+tool setup is independent of the selected checkout, and package builds use that
+tag's Makefiles or a setuptools-compatible source-path build. Use `dry_run=true`
+to build and validate distributions without uploading them to PyPI.
+
 If you complete a step outside `kfpr` (for example, manually creating an already-existing
 release branch), mark that step done before resuming:
 

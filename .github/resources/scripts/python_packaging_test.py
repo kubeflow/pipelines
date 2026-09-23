@@ -14,6 +14,7 @@
 # limitations under the License.
 """Regression coverage for Python packaging and dependency tooling."""
 
+import fnmatch
 import os
 from pathlib import Path
 import re
@@ -32,6 +33,12 @@ EXPORTS = (
     'kubernetes_platform/python/requirements.txt',
     'api/v2alpha1/python/requirements.txt',
 )
+PACKAGE_PATHS = {
+    'kfp-pipeline-spec': 'api/v2alpha1/python',
+    'kfp-server-api': 'backend/api/v2beta1/python_http_client',
+    'kfp': 'sdk/python',
+    'kfp-kubernetes': 'kubernetes_platform/python',
+}
 
 
 def package_version(path: Path) -> str:
@@ -44,6 +51,162 @@ def package_version(path: Path) -> str:
 
 
 class PythonPackagingTest(unittest.TestCase):
+
+    def test_backend_compiler_reuses_proto_downloader(self) -> None:
+        """Keep compiler dependencies and retry behavior in the API
+        Makefile."""
+        compiler = (ROOT / 'backend/Dockerfile').read_text().split(
+            ' AS compiler\n', 1)[1].split('# 3. Start', 1)[0]
+        self.assertIn('COPY api/Makefile ./api/Makefile', compiler)
+        self.assertIn(
+            'RUN make -C api fetch-protos && \\\n'
+            '    python3 /workspace/api/v2alpha1/python/generate_proto.py',
+            compiler)
+        self.assertNotIn('raw.githubusercontent.com', compiler)
+        dependencies = next(line for line in compiler.splitlines()
+                            if line.startswith('RUN apt-get')).split()
+        for tool in ('make', 'git', 'wget', 'protobuf-compiler'):
+            self.assertIn(tool, dependencies)
+
+    def test_lockfile_validation_covers_release_pushes(self) -> None:
+        """Check every master/release push while retaining filtered PR
+        checks."""
+        workflow = (ROOT / '.github/workflows/check-uv-lock.yml').read_text()
+        push, pull_request = workflow.split('  push:\n',
+                                            1)[1].split('  pull_request:\n', 1)
+        self.assertNotIn('paths:', push)
+        self.assertNotIn('paths-ignore:', push)
+        branch_list = re.search(r'branches: \[([^\]]+)\]', push)
+        if branch_list is None:
+            self.fail('Lockfile workflow has no push branch list')
+        patterns = [
+            branch.strip().strip("'\"")
+            for branch in branch_list.group(1).split(',')
+        ]
+        for branch, expected in (
+            ('master', True),
+            ('release-2.17', True),
+            ('release-2.18', True),
+            ('release-3.0', True),
+            ('feature', False),
+        ):
+            with self.subTest(branch=branch):
+                self.assertEqual(
+                    any(
+                        fnmatch.fnmatchcase(branch, pattern)
+                        for pattern in patterns), expected)
+        pull_request = pull_request.split('\njobs:', 1)[0]
+        for path in ('**/pyproject.toml', 'uv.lock',
+                     '.github/workflows/check-uv-lock.yml'):
+            self.assertIn(f"'{path}'", pull_request)
+
+    def test_publishing_setup_is_independent_of_source_tag(self) -> None:
+        """Old tags need neither a local action nor a uv workspace."""
+        workflow = (ROOT / '.github/workflows/publish-packages.yml').read_text()
+        self.assertNotIn('uses: ./', workflow)
+        self.assertNotIn('uv sync', workflow)
+        self.assertNotIn('uv run ', workflow)
+        self.assertEqual(workflow.count('uses: actions/setup-python@'), 4)
+        self.assertEqual(workflow.count('uses: astral-sh/setup-uv@'), 4)
+        self.assertEqual(
+            workflow.count('ref: ${{ github.event.inputs.tag }}'), 4)
+        self.assertEqual(
+            workflow.count("if: ${{ github.event.inputs.dry_run == 'false' }}"),
+            4)
+        self.assertEqual(
+            workflow.count("if: ${{ github.event.inputs.dry_run == 'true' }}"),
+            4)
+
+    def test_publishing_builds_each_selected_tag_once(self) -> None:
+        """Execute workflow build steps in legacy and migrated tag fixtures."""
+        workflow = (ROOT / '.github/workflows/publish-packages.yml').read_text()
+        build_steps = dict(
+            re.findall(
+                r'      - name: Build (kfp[\w-]*)\n'
+                r'        run: \|\n((?:          [^\n]*\n)+)', workflow))
+        self.assertEqual(set(build_steps), set(PACKAGE_PATHS))
+        make_directories = {
+            'kfp-pipeline-spec': 'api',
+            'kfp': 'sdk',
+            'kfp-kubernetes': 'kubernetes_platform',
+        }
+        for legacy in (True, False):
+            for package, relative_path in PACKAGE_PATHS.items():
+                with self.subTest(
+                        legacy=legacy, package=package
+                ), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    source = root / relative_path
+                    source.mkdir(parents=True)
+                    metadata = 'setup.py' if legacy else 'pyproject.toml'
+                    (source / metadata).touch()
+                    if not legacy:
+                        (root / 'uv.lock').touch()
+                    if package in make_directories:
+                        make_root = root / make_directories[package]
+                        distribution_path = source.relative_to(make_root)
+                        # Each tag owns its Makefile and build backend.
+                        (make_root / 'Makefile').write_text(
+                            '.PHONY: python\npython:\n'
+                            f'\tmkdir -p {distribution_path}/dist\n'
+                            f'\ttest -f {distribution_path}/{metadata}\n'
+                            f'\ttouch {distribution_path}/dist/package.tar.gz\n'
+                            f'\ttouch {distribution_path}/dist/package.whl\n'
+                            '\tprintf "build\\n" >> ../build-count\n')
+                    fake_bin = root / 'bin'
+                    fake_bin.mkdir()
+                    uv = fake_bin / 'uv'
+                    uv.write_text(f'#!{sys.executable}\n' + textwrap.dedent('''\
+                        from pathlib import Path
+                        import sys
+                        source = 'backend/api/v2beta1/python_http_client'
+                        assert sys.argv[1:] == ['build', source, '--out-dir', source + '/dist']
+                        assert any((Path(source) / name).exists()
+                                   for name in ('setup.py', 'pyproject.toml'))
+                        output = Path(source) / 'dist'
+                        output.mkdir()
+                        (output / 'package.tar.gz').touch()
+                        (output / 'package.whl').touch()
+                        with Path('build-count').open('a') as count:
+                            count.write('build\\n')
+                    '''))
+                    uv.chmod(0o755)
+                    uvx = fake_bin / 'uvx'
+                    uvx.write_text(f'#!{sys.executable}\n' +
+                                   textwrap.dedent('''\
+                        from pathlib import Path
+                        import sys
+                        assert sys.argv[1:7] == ['--python', '3.12', '--from', 'twine==7.0.0', 'twine', 'check']
+                        assert len(sys.argv[7:]) == 2
+                        assert all(Path(path).is_file() for path in sys.argv[7:])
+                    '''))
+                    uvx.chmod(0o755)
+                    result = subprocess.run(
+                        [
+                            'bash', '-e', '-c',
+                            textwrap.dedent(build_steps[package])
+                        ],
+                        cwd=root,
+                        env={
+                            **os.environ,
+                            'TWINE_VERSION':
+                                '7.0.0',
+                            'TWINE_PYTHON_VERSION':
+                                '3.12',
+                            'PATH':
+                                f'{fake_bin}{os.pathsep}{os.environ["PATH"]}',
+                        },
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(
+                        sorted(
+                            path.name for path in (source / 'dist').iterdir()),
+                        ['package.tar.gz', 'package.whl'])
+                    self.assertEqual((root / 'build-count').read_text(),
+                                     'build\n')
 
     def test_workspace_versions_and_public_dependency_ranges(self) -> None:
         """Keep the four distributions on one SDK release without exact
