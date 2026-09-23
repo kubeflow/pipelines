@@ -1321,6 +1321,7 @@ class Client:
         Returns:
             ``V2beta1ListRecurringRunsResponse`` object.
         """
+        namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
             return self._recurring_run_api.recurring_run_service_list_recurring_runs(
                 page_token=page_token,
@@ -1400,7 +1401,7 @@ class Client:
         if isinstance(timeout, datetime.timedelta):
             timeout = timeout.total_seconds()
         is_valid_token = False
-        finish_states = ['succeeded', 'failed', 'skipped', 'error']
+        finish_states = ['succeeded', 'failed', 'skipped', 'error', 'canceled']
         while True:
             try:
                 get_run_response = self._run_api.run_service_get_run(
