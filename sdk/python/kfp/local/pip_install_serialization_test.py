@@ -85,7 +85,6 @@ class TestPipInstallSerialization(
 
         @dsl.component(packages_to_install=['urllib3==1.26.18'])
         def process_data(value: int) -> int:
-            import urllib3
             return value * 2
 
         @dsl.pipeline
@@ -143,7 +142,6 @@ class TestPipInstallSerialization(
 
         @dsl.component(packages_to_install=['six==1.16.0'])
         def stats_test_task(num: int) -> int:
-            import six
             return num
 
         @dsl.pipeline

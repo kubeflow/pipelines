@@ -89,7 +89,7 @@ def get_kubectl_configuration(
         set to None calls will rely on current_context configured.
       namespace: default name space to be used for the commaand, if not specifeid
         --all-namespaces will be used.
-      human_readable: If true all output will be in human readable form insted of
+      human_readable: If true all output will be in human readable form instead of
         Json.
 
     Returns:
@@ -114,7 +114,7 @@ def get_kubectl_configuration(
 
 
 def _get_kfp_runtime() -> Text:
-    """Captures the current version of kpf in k8 cluster.
+    """Captures the current version of kfp in k8 cluster.
 
     Returns:
       Returns the run-time version of kfp in as a string.
