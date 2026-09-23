@@ -97,10 +97,11 @@ npm run test:dependencies
 
 These checks load the WebdriverIO configuration, confirm that the pinned browser
 installer exposes the API WebdriverIO calls, and confirm that our explicit
-Selenium connection skips automatic browser and driver installation. They do not
-require Selenium, a deployed KFP cluster, or a ZIP extractor. CI runs them once in
-the `frontend-integration-dependency-checks` job of `e2e-test-frontend.yml`; they
-are not part of `npm test`.
+Selenium connection skips automatic browser and driver installation. They also
+check selector-based readiness waits across element replacement during navigation.
+They do not require Selenium, a deployed KFP cluster, or a ZIP extractor. CI runs
+them once in the `frontend-integration-dependency-checks` job of
+`e2e-test-frontend.yml`; they are not part of `npm test`.
 
 `@puppeteer/browsers` is pinned to 3.2.2, and the override applies the same pin
 to `@wdio/utils`, because the 2.x line that `@wdio/utils` declares still depends
@@ -112,6 +113,14 @@ Node.js version above, and it made `proxy-agent` optional, so `HTTPS_PROXY` is
 ignored on the browser download path. That path never runs here because the
 Selenium host is explicit. Remove the pin and the override when `@wdio/utils`
 accepts the 3.x major.
+
+## Navigation readiness
+
+A matching URL hash does not guarantee that React has mounted the destination
+page. When a control's selector is shared across routes, use
+`waitForSelectorDisplayed` to resolve the selector on every poll. An element-bound
+`waitForDisplayed` can keep checking an outgoing element after its replacement is
+visible. Keep waits bounded; a destination that never renders must still fail.
 
 ## Pipeline fixtures
 

@@ -189,6 +189,14 @@ async function selectPipelineForRun(
   await $('#pipelineSelectorDialog').waitForDisplayed({ timeout, reverse: true });
 }
 
+async function waitForSelectorDisplayed(selector, { timeout = defaultTimeout } = {}) {
+  // Navigation can replace an element without changing its selector.
+  await waitForCondition(() => isSelectorDisplayed(selector), {
+    timeout,
+    timeoutMsg: `expected selector ${selector} to be displayed`,
+  });
+}
+
 async function isSelectorDisplayed(selector) {
   const element = await $(selector);
   return (await element.isExisting()) && (await element.isDisplayed());
@@ -338,5 +346,6 @@ module.exports = {
   waitForHashPrefix,
   waitForLogViewerText,
   waitForRunPageReady,
+  waitForSelectorDisplayed,
   waitForTableRows,
 };

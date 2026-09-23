@@ -25,6 +25,7 @@ const {
   waitForHashPrefix,
   waitForLogViewerText,
   waitForRunPageReady,
+  waitForSelectorDisplayed,
 } = require('./test-helpers');
 
 const experimentName = 'helloworld-experiment-' + Date.now();
@@ -269,7 +270,7 @@ describe('deploy helloworld sample run', () => {
       await waitForHashPrefix('#/runs', { timeout: uiTimeout });
     }
 
-    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
+    await waitForSelectorDisplayed('#tableFilterBox', { timeout: uiTimeout });
 
     const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
     await $('#tableFilterBox').click();
@@ -343,7 +344,7 @@ describe('deploy helloworld sample run', () => {
     await $('#pipelinesBtn').click();
     await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
 
-    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
+    await waitForSelectorDisplayed('#tableFilterBox', { timeout: uiTimeout });
     await $('#tableFilterBox').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);
