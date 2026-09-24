@@ -54,7 +54,7 @@ const COMPONENTS = [
   },
   {
     name: 'driver',
-    paths: ['backend/src/v2/cmd/driver/'],
+    paths: ['backend/src/driver/'],
     makeTarget: 'image_driver',
     imageTag: 'kfp-driver',
     deployment: null, // runtime image, no standing deployment

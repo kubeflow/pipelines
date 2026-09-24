@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package driver implements the runtime logic for KFP v2 driver tasks.
 package driver
 
 import (

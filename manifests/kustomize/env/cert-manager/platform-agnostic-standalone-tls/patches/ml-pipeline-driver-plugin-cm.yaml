@@ -7,6 +7,7 @@ data:
   sidecar.container: |
     name: driver-plugin
     image: ghcr.io/kubeflow/kfp-driver:dummy
+    terminationMessagePolicy: FallbackToLogsOnError
     env:
       - name: KFP_POD_NAME
         valueFrom:

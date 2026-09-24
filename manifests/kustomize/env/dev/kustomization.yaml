@@ -10,8 +10,6 @@ resources:
 images:
 - name: ghcr.io/kubeflow/kfp-api-server
   newTag: master
-- name: ghcr.io/kubeflow/kfp-driver
-  newTag: master
 - name: ghcr.io/kubeflow/kfp-frontend
   newTag: master
 - name: ghcr.io/kubeflow/kfp-persistence-agent

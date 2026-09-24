@@ -223,8 +223,7 @@ server locally.
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master"
       },
       "args": [
         "--config",
@@ -263,8 +262,7 @@ server locally.
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master"
       },
       "args": [
         "--config",
@@ -369,78 +367,37 @@ Alternatively, you can use this Make target that does both.
 make -C kind-build-and-load-driver-debug
 ```
 
-#### Run the API Server With Debug Configuration
+#### Configure the Executor Plugin for Delve
 
-You may use the following VS Code `launch.json` file to run the API server which overrides the Driver
-command to use Delve and the Driver image to use debug image built previously.
+The driver runs in the Argo agent Pod, so configure its image and command in the
+`ml-pipeline-driver-agent` executor-plugin ConfigMap. Update the embedded
+`sidecar.container` specification to use `kfp-driver:debug`, expose port 2345,
+and start the driver through Delve:
 
-VSCode configuration:
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Launch API server (Kind) (Debug Driver)",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/backend/src/apiserver",
-      "env": {
-        "POD_NAMESPACE": "kubeflow",
-        "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
-        "OBJECTSTORECONFIG_HOST": "localhost",
-        "OBJECTSTORECONFIG_PORT": "9000",
-        "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
-        "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-        "V2_DRIVER_IMAGE": "kfp-driver:debug",
-        "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
-      }
-    }
-  ]
-}
+```yaml
+image: kfp-driver:debug
+command: [/bin/dlv]
+args:
+  - --listen=:2345
+  - --headless=true
+  - --api-version=2
+  - --accept-multiclient
+  - exec
+  - /bin/driver
+  - --
+ports:
+  - containerPort: 8080
+  - containerPort: 2345
 ```
 
-GoLand configuration:
-
-1. Create a new Go Build configuration
-2. Set **Run Kind** to Directory and set **Directory** to /backend/src/apiserver absolute path
-3. Set the following environment variables
-
-   | Argument                                     | Value                                                                                       |
-   | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-   | POD_NAMESPACE                                | kubeflow                                                                                    |
-   | DBCONFIG_MYSQLCONFIG_HOST                    | localhost                                                                                   |
-   | OBJECTSTORECONFIG_HOST                       | localhost                                                                                   |
-   | OBJECTSTORECONFIG_PORT                       | 9000                                                                                        |
-   | METADATA_GRPC_SERVICE_SERVICE_HOST           | localhost                                                                                   |
-   | METADATA_GRPC_SERVICE_SERVICE_PORT           | 8080                                                                                        |
-   | V2_LAUNCHER_IMAGE                            | ghcr.io/kubeflow/kfp-launcher:master                                                        |
-   | V2_DRIVER_IMAGE                              | kfp-driver:debug                                                                            |
-   | V2_DRIVER_COMMAND                            | dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec /bin/driver -- |
-
-4. Set the following program arguments: --config ./backend/src/apiserver/config -logtostderr=true --sampleconfig ./backend/src/apiserver/config/test_sample_config.json
-
-#### Starting a Remote Debug Session
-
-Start by launching a pipeline. This will eventually create a Driver pod that is waiting for a remote debug connection.
-
-You can see the pods with the following command.
+Apply the ConfigMap before starting a new pipeline. Once its agent Pod appears,
+forward the Delve port from that Pod:
 
 ```bash
-kubectl -n kubeflow get pods -w
+kubectl -n kubeflow port-forward <agent-pod-name> 2345:2345
 ```
 
-Once you see a pod with `-driver` in the name such as `hello-world-clph9-system-dag-driver-10974850`, port forward
-the Delve port in the pod to your localhost (replace `<driver pod name>` with the actual name).
-
-```bash
-kubectl -n kubeflow port-forward <driver pod name> 2345:2345
-```
-
-Set a breakpoint on the Driver code in VS Code. Then remotely connect to the Delve debug session with the following VS
-Code `launch.json` file:
+Set a breakpoint in the driver code and connect with this VS Code configuration:
 
 VSCode configuration:
 
@@ -467,19 +424,14 @@ VSCode configuration:
 }
 ```
 
-GoLand configuration
+GoLand configuration:
 
 1. Create a new Go Remote configuration and title it "Delve debug session"
 2. Set **Host** to localhost
 3. Set **Port** to 2345
 
-Once the Driver pod succeeds, the remote debug session will close. Then repeat the process of forwarding the port
-of subsequent Driver pods and starting remote debug sessions in VS Code until the pipeline completes.
-
-For debugging a specific Driver pod, you'll need to continuously port forward and connect to the remote debug session
-without a breakpoint so that Delve will continue execution until the Driver pod you are interested in starts up. At that
-point, you can set a break point, port forward, and connect to the remote debug session to debug that specific Driver
-pod.
+The agent invokes the centralized driver for every driver task in its Workflow,
+so the same debug session can inspect all driver invocations for that run.
 
 ### Using a Webhook Proxy for Local Development in a Kind Cluster
 
