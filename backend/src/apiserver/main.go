@@ -780,6 +780,8 @@ func getPVCSpec() (*corev1.PersistentVolumeClaimSpec, error) {
 	return &pvcSpec, nil
 }
 
+// registerRPCServices wires the API server's v2 gRPC service implementations
+// onto the shared gRPC server.
 func registerRPCServices(s *grpc.Server, resourceManager *resource.ResourceManager) {
 	ExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
 
