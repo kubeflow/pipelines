@@ -37,10 +37,17 @@ ENV_IMAGES = {
 
 
 def observed_attachments(proxy_enabled=False, ready=False):
+    secrets = {
+        f"{NAMESPACE}/mlpipeline-minio-artifact": EXISTING_SECRET,
+    }
+    if ready:
+        secrets.update({
+            f"{NAMESPACE}/ml-pipeline-driver-agent-executor-plugin.service-account-token":
+                {},
+            f"{NAMESPACE}/default-editor.service-account-token": {},
+        })
     return {
-        "Secret.v1": {
-            f"{NAMESPACE}/mlpipeline-minio-artifact": EXISTING_SECRET,
-        },
+        "Secret.v1": secrets,
         "ConfigMap.v1": {
             "launcher": {},
             "repositories": {}
@@ -51,6 +58,13 @@ def observed_attachments(proxy_enabled=False, ready=False):
         "Service.v1": {
             "artifact": {}
         } if ready and proxy_enabled else {},
+        "ServiceAccount.v1": {
+            "driver-plugin": {}
+        } if ready else {},
+        "Role.rbac.authorization.k8s.io/v1": {},
+        "RoleBinding.rbac.authorization.k8s.io/v1": {
+            "driver-plugin": {}
+        } if ready else {},
     }
 
 
@@ -92,14 +106,19 @@ def post_sync(server, parent, attachments):
     return response.json()
 
 
-def assert_artifact_resources(result, expected_image):
+def assert_profile_resources(result, expected_image):
     resources = result["attachments"]
     identities = {(item["kind"], item["metadata"]["name"]) for item in resources
                  }
     expected = {
         ("Secret", "mlpipeline-minio-artifact"),
+        ("Secret",
+         "ml-pipeline-driver-agent-executor-plugin.service-account-token"),
+        ("Secret", "default-editor.service-account-token"),
         ("ConfigMap", "kfp-launcher"),
         ("ConfigMap", "artifact-repositories"),
+        ("ServiceAccount", "ml-pipeline-driver-agent-executor-plugin"),
+        ("RoleBinding", "ml-pipeline-driver-agent-executor-plugin-binding"),
     }
     if expected_image:
         expected.update({
@@ -134,12 +153,11 @@ def assert_artifact_resources(result, expected_image):
     indirect=["sync_server"],
 )
 @pytest.mark.parametrize("ready", [False, True])
-def test_sync_desires_only_artifact_resources(sync_server, expected_image,
-                                              ready):
+def test_sync_desires_profile_resources(sync_server, expected_image, ready):
     result = post_sync(sync_server, PARENT,
                        observed_attachments(bool(expected_image), ready))
     assert result["status"] == {"kubeflow-pipelines-ready": str(ready)}
-    assert_artifact_resources(result, expected_image)
+    assert_profile_resources(result, expected_image)
 
 
 def test_sync_server_with_direct_settings(start_sync_server):
@@ -153,7 +171,7 @@ def test_sync_server_with_direct_settings(start_sync_server):
     )
     result = post_sync(server, PARENT, observed_attachments(True, True))
     assert result["status"] == {"kubeflow-pipelines-ready": "True"}
-    assert_artifact_resources(result, "direct-image:direct-tag")
+    assert_profile_resources(result, "direct-image:direct-tag")
 
 
 @pytest.mark.parametrize("sync_server", [ENV_BASE], indirect=True)

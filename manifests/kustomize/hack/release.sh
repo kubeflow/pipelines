@@ -47,3 +47,23 @@ yq w -i ${API_SERVER_MANIFEST} \
 yq w -i ${API_SERVER_MANIFEST} \
   "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_DRIVER_IMAGE).value" \
   "ghcr.io/kubeflow/kfp-driver:${TAG_NAME}"
+
+# The executor-plugin container is stored as embedded YAML in ConfigMap data,
+# so Kustomize's image transformer and the yq image updates above cannot see it.
+# Keep both base and TLS plugin definitions aligned with the release tag.
+DRIVER_PLUGIN_MANIFESTS=(
+  "base/pipeline/ml-pipeline-driver-plugin-cm.yaml"
+  "env/cert-manager/platform-agnostic-standalone-tls/patches/ml-pipeline-driver-plugin-cm.yaml"
+)
+for path in "${DRIVER_PLUGIN_MANIFESTS[@]}"
+do
+  manifest="${MANIFEST_DIR}/$path"
+  contents="$(<"${manifest}")"
+  placeholder="image: ghcr.io/kubeflow/kfp-driver:dummy"
+  replacement="image: ghcr.io/kubeflow/kfp-driver:${TAG_NAME}"
+  if [[ "${contents}" != *"${placeholder}"* ]]; then
+    echo "Driver plugin image placeholder not found in ${manifest}" >&2
+    exit 1
+  fi
+  printf '%s\n' "${contents//${placeholder}/${replacement}}" > "${manifest}"
+done

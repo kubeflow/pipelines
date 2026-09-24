@@ -184,8 +184,8 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
-					util.V2ComponentKey:                    "true",
-					util.AnnotationKeyIstioSidecarInject:  util.AnnotationValueIstioSidecarInjectDisabled,
+					util.V2ComponentKey:                  "true",
+					util.AnnotationKeyIstioSidecarInject: util.AnnotationValueIstioSidecarInjectDisabled,
 				},
 				Labels: map[string]string{
 					util.V2ComponentKey: "true",

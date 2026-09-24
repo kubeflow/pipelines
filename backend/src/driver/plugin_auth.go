@@ -31,12 +31,38 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 const (
-	pluginAuthTokenPath = "/var/run/argo/token"
-	podNamespacePath    = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	pluginAuthTokenPath              = "/var/run/argo/token"
+	podNamespacePath                 = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	legacyServiceAccountTokenWarning = "Use tokens from the TokenRequest API or manually created secret-based tokens instead of auto-generated secret-based tokens."
 )
+
+type executorPluginWarningHandler struct {
+	delegate rest.WarningHandlerWithContext
+}
+
+func (h executorPluginWarningHandler) HandleWarningHeaderWithContext(ctx context.Context, code int, agent, message string) {
+	// Argo Workflows v4.1.2 can give an executor plugin a separate Kubernetes
+	// identity only by mounting its legacy ServiceAccount token Secret. The API
+	// server returns this warning for every request made with that token, so drop
+	// only the expected warning and preserve every other Kubernetes warning.
+	if message == legacyServiceAccountTokenWarning {
+		return
+	}
+	h.delegate.HandleWarningHeaderWithContext(ctx, code, agent, message)
+}
+
+func executorPluginKubernetesConfig() (*rest.Config, error) {
+	restConfig, err := util.GetKubernetesConfig()
+	if err != nil {
+		return nil, err
+	}
+	restConfig.WarningHandlerWithContext = executorPluginWarningHandler{delegate: rest.WarningLogger{}}
+	return restConfig, nil
+}
 
 func authenticatedPluginHandler(tokenPath string, next http.Handler) (http.Handler, error) {
 	token, err := os.ReadFile(tokenPath)
@@ -70,7 +96,7 @@ func newDriverClientManager(ctx context.Context, args driverapi.DriverPluginArgs
 	if err != nil {
 		return nil, nil, err
 	}
-	restConfig, err := util.GetKubernetesConfig()
+	restConfig, err := executorPluginKubernetesConfig()
 	if err != nil {
 		return nil, nil, err
 	}

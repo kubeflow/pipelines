@@ -147,6 +147,23 @@ type authenticatedRunServer struct {
 	go_client.UnimplementedRunServiceServer
 }
 
+type recordingWarningHandler struct {
+	messages []string
+}
+
+func (h *recordingWarningHandler) HandleWarningHeaderWithContext(_ context.Context, _ int, _, message string) {
+	h.messages = append(h.messages, message)
+}
+
+func TestExecutorPluginWarningHandlerFiltersOnlyLegacyTokenWarning(t *testing.T) {
+	delegate := &recordingWarningHandler{}
+	handler := executorPluginWarningHandler{delegate: delegate}
+	handler.HandleWarningHeaderWithContext(context.Background(), 299, "kubernetes", legacyServiceAccountTokenWarning)
+	handler.HandleWarningHeaderWithContext(context.Background(), 299, "kubernetes", "another warning")
+
+	assert.Equal(t, []string{"another warning"}, delegate.messages)
+}
+
 func (*authenticatedRunServer) GetRun(ctx context.Context, request *go_client.GetRunRequest) (*go_client.Run, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	auth := md.Get("authorization")

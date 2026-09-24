@@ -54,6 +54,7 @@ const (
 	pipelineJobCreateTimeUTCPlaceholder   = "{{$.pipeline_job_create_time_utc}}"
 	pipelineJobScheduleTimeUTCPlaceholder = "{{$.pipeline_job_schedule_time_utc}}"
 	caCertPathEnvVar                      = "CA_CERT_PATH"
+	driverLogPublicationTimeout           = 5 * time.Second
 )
 
 type driverLogArtifactContext struct {
@@ -93,7 +94,7 @@ func ExecutePlugin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Driver plugin requires at least one argument", http.StatusBadRequest)
 		return
 	}
-	execution, err := drive(*args)
+	execution, err := drive(r.Context(), *args)
 	outputs := extractOutputParameters(execution, args.Type)
 	if err != nil {
 		glog.Errorf("unable to drive execution: %v", err)
@@ -190,7 +191,7 @@ func getCurrentWorkflowMetadata(ctx context.Context, namespace string, workflowN
 	if workflowName == "" {
 		return nil, fmt.Errorf("workflow name is empty")
 	}
-	restConfig, err := util.GetKubernetesConfig()
+	restConfig, err := executorPluginKubernetesConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes config for workflow metadata: %w", err)
 	}
@@ -311,7 +312,7 @@ func resolvePipelineJobTimes(
 	return createTimeUTC, time.Unix(scheduleTimeEpoch, 0).UTC().Format(time.RFC3339), nil
 }
 
-func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err error) {
+func drive(ctx context.Context, args driverapi.DriverPluginArgs) (execution *driver.Execution, err error) {
 	var clientManager *client_manager.ClientManager
 	defer func() {
 		if clientManager != nil {
@@ -332,7 +333,7 @@ func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err er
 	logID := uuid.NewString()
 	logDir := "/kfp/log"
 	logFile := fmt.Sprintf("%s/%s.log", logDir, logID)
-	ctx, f, err := util.WithLogger(context.Background(), logFile)
+	ctx, f, err := util.WithLogger(ctx, logFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create driver logger: %v", err)
 	}
@@ -344,6 +345,11 @@ func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err er
 	}()
 	defer func() {
 		if pipelineRoot != "" {
+			// Argo v4.1.2 limits each executor-plugin HTTP attempt to 30 seconds.
+			// Driver log publication is best effort, so keep it from consuming an
+			// entire attempt and causing Argo to repeat the driver invocation.
+			uploadContext, cancel := context.WithTimeout(ctx, driverLogPublicationTimeout)
+			defer cancel()
 			logContext := &driverLogArtifactContext{
 				Execution:        execution,
 				Task:             args.TaskName,
@@ -356,7 +362,7 @@ func drive(args driverapi.DriverPluginArgs) (execution *driver.Execution, err er
 				StoreSessionInfo: storeSessionInfo,
 				OutputPathPrefix: outputPathPrefix,
 			}
-			uploadErr := uploadDriverLogArtifact(ctx, logContext)
+			uploadErr := uploadDriverLogArtifact(uploadContext, logContext)
 			if uploadErr != nil {
 				glog.Errorf("Failed to upload driver-logs artifact: %v", uploadErr)
 			}
@@ -536,7 +542,7 @@ func uploadDriverLogArtifact(ctx context.Context, logContext *driverLogArtifactC
 		return fmt.Errorf("logContext is nil")
 	}
 	if logContext.PipelineRoot != "" {
-		restConfig, err := util.GetKubernetesConfig()
+		restConfig, err := executorPluginKubernetesConfig()
 		if err != nil {
 			return fmt.Errorf("failed to get kubernetes config: %v", err)
 		}

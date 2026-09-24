@@ -98,9 +98,10 @@ func TestParseDriverRequestArgsRequiredFields(t *testing.T) {
 			require.NoError(t, err)
 
 			required := append([]string{}, commonFields...)
-			if driverType == CONTAINER {
+			switch driverType {
+			case CONTAINER:
 				required = append(required, "kubernetes_config")
-			} else if driverType == RootDag {
+			case RootDag:
 				required = append(required, "runtime_config")
 			}
 			for _, field := range required {
@@ -221,9 +222,10 @@ func validDriverArgs(driverType string) map[string]interface{} {
 		args["parent_task_id"] = ""
 		args["task_name"] = ""
 	}
-	if driverType == CONTAINER {
+	switch driverType {
+	case CONTAINER:
 		args["kubernetes_config"] = ""
-	} else if driverType == RootDag {
+	case RootDag:
 		args["runtime_config"] = ""
 	}
 	return args
