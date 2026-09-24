@@ -112,6 +112,30 @@ class KubeflowMembershipTest(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     membership.is_kubeflow_member('JerT33')
 
+    def test_duplicate_mapping_keys_fail_without_membership_output(self):
+        documents = [
+            'orgs:\n  kubeflow:\n    admins: [OrgAdmin]\n    admins: [RevokedUser]\n    members: [JerT33]\n',
+            'orgs:\n  kubeflow:\n    admins: [OrgAdmin]\n    members: [JerT33]\n    members: [RevokedUser]\n',
+            'orgs:\n  kubeflow:\n    admins: [OrgAdmin]\n    members: [RevokedUser]\n    members: [JerT33]\n',
+            'orgs:\n  kubeflow:\n    admins: [OrgAdmin]\n    members: [JerT33]\n    "members": [JerT33]\n',
+            'orgs:\n  kubeflow: {admins: [OrgAdmin], members: [JerT33]}\n  kubeflow: {admins: [OrgAdmin], members: [RevokedUser]}\n',
+            'orgs: {kubeflow: {admins: [OrgAdmin], members: [JerT33]}}\norgs: {kubeflow: {admins: [OrgAdmin], members: [RevokedUser]}}\n',
+            'orgs:\n  kubeflow:\n    <<: {admins: [OrgAdmin], members: [RevokedUser]}\n    members: [JerT33]\n',
+        ]
+        for document in documents:
+            with self.subTest(document=document), tempfile.TemporaryDirectory(
+            ) as directory:
+                output = Path(directory) / 'output'
+                with mock.patch.dict(os.environ, {
+                        'PR_AUTHOR': 'RevokedUser',
+                        'GITHUB_OUTPUT': str(output),
+                }), mock.patch.object(membership.subprocess, 'run') as request:
+                    request.return_value.stdout = document
+                    with self.assertRaisesRegex(RuntimeError,
+                                                'Invalid Kubeflow ACL'):
+                        membership.main()
+                self.assertFalse(output.exists())
+
     def test_cli_ignores_author_association(self):
         cases = [('JerT33', 'CONTRIBUTOR', True), ('jert33', 'NONE', True),
                  ('external', 'MEMBER', False), ('external', 'OWNER', False),

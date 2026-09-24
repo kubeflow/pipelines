@@ -26,9 +26,22 @@ ACL_PATH = 'repos/kubeflow/internal-acls/contents/github-orgs/kubeflow/org.yaml?
 LOGIN_PATTERN = r'[A-Za-z0-9][A-Za-z0-9-]{0,38}'
 
 
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+
+    def construct_mapping(self, node, deep=False):
+        mapping = super().construct_mapping(node, deep=deep)
+        # SafeLoader flattens YAML merges before construction; reject overrides too.
+        if len(mapping) != len(node.value):
+            raise yaml.constructor.ConstructorError(
+                None, None, 'Duplicate YAML mapping keys are not allowed',
+                node.start_mark)
+        return mapping
+
+
 def _parse_members(yaml_text: str) -> set[str]:
     try:
-        org = yaml.safe_load(yaml_text)['orgs']['kubeflow']
+        org = yaml.load(
+            yaml_text, Loader=_UniqueKeySafeLoader)['orgs']['kubeflow']
         groups = [org['admins'], org['members']]
     except (yaml.YAMLError, KeyError, TypeError) as error:
         raise RuntimeError(
