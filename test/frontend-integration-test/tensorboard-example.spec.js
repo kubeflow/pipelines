@@ -265,12 +265,12 @@ describe('deploy tensorboard example run', () => {
     await runPhase('create run', async () => {
       await $('#choosePipelineBtn').waitForDisplayed({ timeout: uiTimeout });
       await selectPipelineForRun(pipelineName, { timeout: uiTimeout });
-      const runFormVariant = await waitForRunPageReady({
+      const runFormSelectors = await waitForRunPageReady({
         timeout: runStartTimeout,
         timeoutMsg: 'expected a run creation form to load',
       });
 
-      await $(runFormVariant.selectors.runName).click();
+      await $(runFormSelectors.runName).click();
       await clearDefaultInput();
       await browser.keys(runName);
       await $('#startNewRunBtn').click();

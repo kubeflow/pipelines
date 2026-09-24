@@ -153,9 +153,9 @@ func (j *Job) DefaultSortField() string {
 }
 
 var jobAPIToModelFieldMap = map[string]string{
-	"id":               "UUID",        // v1beta1 API
+	"id":               "UUID",        // Legacy filter alias retained in the v2beta1 filter contract
 	"recurring_run_id": "UUID",        // v2beta1 API
-	"name":             "DisplayName", // v1beta1 API
+	"name":             "DisplayName", // Legacy filter alias retained in the v2beta1 filter contract
 	"display_name":     "DisplayName", // v2beta1 API
 	"created_at":       "CreatedAtInSec",
 	"updated_at":       "UpdatedAtInSec",

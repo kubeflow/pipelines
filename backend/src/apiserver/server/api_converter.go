@@ -25,7 +25,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -72,17 +71,10 @@ const (
 )
 
 // Converts API experiment to its internal representation.
-func toModelExperiment(e interface{}) (*model.Experiment, error) {
-	var namespace, name, description string
-	switch apiExperiment := e.(type) {
-
-	case *apiv2beta1.Experiment:
-		name = apiExperiment.GetDisplayName()
-		namespace = apiExperiment.GetNamespace()
-		description = apiExperiment.GetDescription()
-	default:
-		return nil, util.NewUnknownApiVersionError("Experiment", e)
-	}
+func toModelExperiment(apiExperiment *apiv2beta1.Experiment) (*model.Experiment, error) {
+	name := apiExperiment.GetDisplayName()
+	namespace := apiExperiment.GetNamespace()
+	description := apiExperiment.GetDescription()
 	if name == "" {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Experiment must have a non-empty name"), "Failed to convert API experiment to model experiment")
 	}
@@ -140,21 +132,12 @@ func toApiExperiments(experiments []*model.Experiment) []*apiv2beta1.Experiment 
 }
 
 // Converts API pipeline to its internal representation.
-func toModelPipeline(p interface{}) (*model.Pipeline, error) {
-	var name, displayName, namespace, description string
-	var tags map[string]string
-
-	switch apiPipeline := p.(type) {
-
-	case *apiv2beta1.Pipeline:
-		namespace = apiPipeline.GetNamespace()
-		name = apiPipeline.GetName()
-		displayName = apiPipeline.GetDisplayName()
-		description = apiPipeline.GetDescription()
-		tags = apiPipeline.GetTags()
-	default:
-		return nil, util.NewUnknownApiVersionError("Pipeline", p)
-	}
+func toModelPipeline(apiPipeline *apiv2beta1.Pipeline) (*model.Pipeline, error) {
+	namespace := apiPipeline.GetNamespace()
+	name := apiPipeline.GetName()
+	displayName := apiPipeline.GetDisplayName()
+	description := apiPipeline.GetDescription()
+	tags := apiPipeline.GetTags()
 
 	// Previously display_name was the required API field and name didn't exist. Name is now the required API field
 	// but if display_name is provided, we use it as the name.
@@ -263,24 +246,16 @@ func toApiPipelines(pipelines []*model.Pipeline) []*apiv2beta1.Pipeline {
 }
 
 // Converts API pipeline to its internal representation.
-func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
-	var name, displayName, description, pipelineId, pipelineUrl, codeUrl string
-	switch p := p.(type) {
-
-	case *apiv2beta1.PipelineVersion:
-		apiPipelineVersionV2 := p
-		if apiPipelineVersionV2.GetPackageUrl() == nil || len(apiPipelineVersionV2.GetPackageUrl().GetPipelineUrl()) == 0 {
-			return nil, util.NewInvalidInputError("Failed to convert v2beta1 API pipeline version to its internal representation due to missing pipeline URL")
-		}
-		name = apiPipelineVersionV2.GetName()
-		displayName = apiPipelineVersionV2.GetDisplayName()
-		pipelineId = apiPipelineVersionV2.GetPipelineId()
-		pipelineUrl = apiPipelineVersionV2.GetPackageUrl().GetPipelineUrl()
-		codeUrl = apiPipelineVersionV2.GetCodeSourceUrl()
-		description = apiPipelineVersionV2.GetDescription()
-	default:
-		return nil, util.NewUnknownApiVersionError("PipelineVersion", p)
+func toModelPipelineVersion(p *apiv2beta1.PipelineVersion) (*model.PipelineVersion, error) {
+	if p.GetPackageUrl() == nil || len(p.GetPackageUrl().GetPipelineUrl()) == 0 {
+		return nil, util.NewInvalidInputError("Failed to convert v2beta1 API pipeline version to its internal representation due to missing pipeline URL")
 	}
+	name := p.GetName()
+	displayName := p.GetDisplayName()
+	pipelineID := p.GetPipelineId()
+	pipelineURL := p.GetPackageUrl().GetPipelineUrl()
+	codeURL := p.GetCodeSourceUrl()
+	description := p.GetDescription()
 
 	// Previously display_name was the required API field and name didn't exist. Name is now the required API field
 	// but if display_name is provided, we use it as the name.
@@ -292,17 +267,14 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 		displayName = name
 	}
 	// Extract tags if present (v2beta1 only)
-	var tags map[string]string
-	if apiPv, ok := p.(*apiv2beta1.PipelineVersion); ok {
-		tags = apiPv.GetTags()
-	}
+	tags := p.GetTags()
 
 	pv := &model.PipelineVersion{
 		Name:            name,
 		DisplayName:     displayName,
-		PipelineId:      pipelineId,
-		PipelineSpecURI: model.LargeText(pipelineUrl),
-		CodeSourceUrl:   codeUrl,
+		PipelineId:      pipelineID,
+		PipelineSpecURI: model.LargeText(pipelineURL),
+		CodeSourceUrl:   codeURL,
 		Description:     model.LargeText(description),
 		Status:          model.PipelineVersionCreating,
 		Tags:            tags,
@@ -476,40 +448,33 @@ func toMapProtoStructParameters(p string) map[string]*structpb.Value {
 }
 
 // Converts API trigger to its internal representation.
-func toModelTrigger(t interface{}) (*model.Trigger, error) {
+// A nil API trigger converts to an empty model trigger, matching recurring
+// runs that do not declare a schedule.
+func toModelTrigger(apiTrigger *apiv2beta1.Trigger) *model.Trigger {
 	modelTrigger := model.Trigger{}
-	if t == nil {
-		return nil, util.NewInternalServerError(util.NewInvalidInputError("API Trigger cannot be nil"), "Failed to convert API trigger to its internal representation")
-	}
-	switch apiTrigger := t.(type) {
-	case *apiv2beta1.Trigger:
-		if apiTrigger.GetCronSchedule() != nil {
-			cronSchedule := apiTrigger.GetCronSchedule()
-			modelTrigger.CronSchedule = model.CronSchedule{Cron: &cronSchedule.Cron}
-			if cronSchedule.StartTime != nil {
-				modelTrigger.CronScheduleStartTimeInSec = &cronSchedule.StartTime.Seconds
-			}
-			if cronSchedule.EndTime != nil {
-				modelTrigger.CronScheduleEndTimeInSec = &cronSchedule.EndTime.Seconds
-			}
+	if apiTrigger.GetCronSchedule() != nil {
+		cronSchedule := apiTrigger.GetCronSchedule()
+		modelTrigger.CronSchedule = model.CronSchedule{Cron: &cronSchedule.Cron}
+		if cronSchedule.StartTime != nil {
+			modelTrigger.CronScheduleStartTimeInSec = &cronSchedule.StartTime.Seconds
 		}
-		if apiTrigger.GetPeriodicSchedule() != nil {
-			periodicSchedule := apiTrigger.GetPeriodicSchedule()
-			modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
-				IntervalSecond: &periodicSchedule.IntervalSecond,
-			}
-			if apiTrigger.GetPeriodicSchedule().StartTime != nil {
-				modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
-			}
-			if apiTrigger.GetPeriodicSchedule().EndTime != nil {
-				modelTrigger.PeriodicScheduleEndTimeInSec = &periodicSchedule.EndTime.Seconds
-			}
+		if cronSchedule.EndTime != nil {
+			modelTrigger.CronScheduleEndTimeInSec = &cronSchedule.EndTime.Seconds
 		}
-
-	default:
-		return nil, util.NewUnknownApiVersionError("Trigger", t)
 	}
-	return &modelTrigger, nil
+	if apiTrigger.GetPeriodicSchedule() != nil {
+		periodicSchedule := apiTrigger.GetPeriodicSchedule()
+		modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
+			IntervalSecond: &periodicSchedule.IntervalSecond,
+		}
+		if apiTrigger.GetPeriodicSchedule().StartTime != nil {
+			modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
+		}
+		if apiTrigger.GetPeriodicSchedule().EndTime != nil {
+			modelTrigger.PeriodicScheduleEndTimeInSec = &periodicSchedule.EndTime.Seconds
+		}
+	}
+	return &modelTrigger
 }
 
 // Converts internal trigger representation to its API counterpart.
@@ -554,7 +519,6 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 	}
 	var params, root string
 	switch obj := obj.(type) {
-
 	case *apiv2beta1.RuntimeConfig:
 		apiRuntimeConfigV2 := obj
 		p, err := toModelParameters(apiRuntimeConfigV2.GetParameters())
@@ -614,10 +578,7 @@ func toPipelineSpecRuntimeConfig(cfg *model.RuntimeConfig) *pipelinespec.Pipelin
 }
 
 // Converts API run to its internal representation.
-func toModelRun(r interface{}) (*model.Run, error) {
-	if r == nil {
-		return &model.Run{}, nil
-	}
+func toModelRun(apiRunV2 *apiv2beta1.Run) (*model.Run, error) {
 	var namespace, experimentId, pipelineName, pipelineId, pipelineVersionId string
 	var recRunId, runName, runDesc, runId, specParams, cfgParams string
 	var pipelineSpec, workflowSpec, runtimePipelineSpec, runtimeWorkflowSpec string
@@ -628,114 +589,106 @@ func toModelRun(r interface{}) (*model.Run, error) {
 	var stateHistory []*model.RuntimeStatus
 	var pluginsInputStr, pluginsOutputStr *string
 	var err error
-	switch r := r.(type) {
+	if temp, err := toModelRuntimeState(apiRunV2.GetState()); err == nil {
+		state = temp
+	} else {
+		return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state")
+	}
+	if temp, err := toModelRuntimeStatuses(apiRunV2.GetStateHistory()); err == nil {
+		stateHistory = temp
+	} else {
+		return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state history")
+	}
+	if pluginsInputStr, err = pluginsInputToJSON(apiRunV2.GetPluginsInput()); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
+	}
+	pluginLimitsConfig, err := common.GetPluginLimitsConfig()
+	if err != nil {
+		return nil, util.NewInvalidInputError("Invalid plugins limits configuration: %v", err)
+	}
+	if err = validatePluginsInputLimits(apiRunV2.GetPluginsInput(), pluginLimitsConfig); err != nil {
+		return nil, util.NewInvalidInputError("Invalid plugins_input: %v", err)
+	}
+	if err = validatePluginsOutputWithLimits(apiRunV2.GetPluginsOutput(), pluginLimitsConfig); err != nil {
+		return nil, util.NewInvalidInputError("Invalid plugins_output: %v", err)
+	}
+	if pluginsOutputStr, err = pluginsOutputToJSON(apiRunV2.GetPluginsOutput()); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to convert plugins_output to JSON")
+	}
 
-	case *apiv2beta1.Run:
-		apiRunV2 := r
-		if temp, err := toModelRuntimeState(apiRunV2.GetState()); err == nil {
-			state = temp
-		} else {
-			return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state")
-		}
-		if temp, err := toModelRuntimeStatuses(apiRunV2.GetStateHistory()); err == nil {
-			stateHistory = temp
-		} else {
-			return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state history")
-		}
-		if pluginsInputStr, err = pluginsInputToJSON(apiRunV2.GetPluginsInput()); err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
-		}
-		pluginLimitsConfig, err := common.GetPluginLimitsConfig()
-		if err != nil {
-			return nil, util.NewInvalidInputError("Invalid plugins limits configuration: %v", err)
-		}
-		if err = validatePluginsInputLimits(apiRunV2.GetPluginsInput(), pluginLimitsConfig); err != nil {
-			return nil, util.NewInvalidInputError("Invalid plugins_input: %v", err)
-		}
-		if err = validatePluginsOutputWithLimits(apiRunV2.GetPluginsOutput(), pluginLimitsConfig); err != nil {
-			return nil, util.NewInvalidInputError("Invalid plugins_output: %v", err)
-		}
-		if pluginsOutputStr, err = pluginsOutputToJSON(apiRunV2.GetPluginsOutput()); err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to convert plugins_output to JSON")
-		}
+	namespace = ""
+	workflowSpec = ""
+	// TODO(gkcalat): implement runtime details of a run logic based on the apiRunV2.RuDetails().
+	runtimePipelineSpec = ""
+	runtimeWorkflowSpec = ""
+	runName = apiRunV2.GetDisplayName()
+	if runName == "" {
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Run name cannot be empty"), "Failed to convert a API run detail to its internal representation")
+	}
+	pipelineId = apiRunV2.GetPipelineVersionReference().GetPipelineId()
+	pipelineVersionId = apiRunV2.GetPipelineVersionReference().GetPipelineVersionId()
+	experimentId = apiRunV2.GetExperimentId()
+	runId = apiRunV2.GetRunId()
+	recRunId = apiRunV2.GetRecurringRunId()
 
-		namespace = ""
-		workflowSpec = ""
-		// TODO(gkcalat): implement runtime details of a run logic based on the apiRunV2.RuDetails().
-		runtimePipelineSpec = ""
-		runtimeWorkflowSpec = ""
-		runName = apiRunV2.GetDisplayName()
-		if runName == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Run name cannot be empty"), "Failed to convert a API run detail to its internal representation")
-		}
-		pipelineId = apiRunV2.GetPipelineVersionReference().GetPipelineId()
-		pipelineVersionId = apiRunV2.GetPipelineVersionReference().GetPipelineVersionId()
-		experimentId = apiRunV2.GetExperimentId()
-		runId = apiRunV2.GetRunId()
-		recRunId = apiRunV2.GetRecurringRunId()
-
-		specMap := apiRunV2.GetPipelineSpec().AsMap()
-		if pv, ok := specMap["PipelineInfo"]; ok {
-			if pName, ok := pv.(map[string]interface{})["Name"]; ok {
-				resources := common.ParseResourceIdsFromFullName(pName.(string))
-				if namespace == "" {
-					namespace = resources["Namespace"]
-				}
-				if experimentId == "" {
-					experimentId = resources["ExperimentId"]
-				}
-				if pipelineId == "" {
-					pipelineId = resources[common.PipelineIDResourceNameKey]
-				}
-				if pipelineVersionId == "" {
-					pipelineVersionId = resources[common.PipelineVersionIDResourceNameKey]
-				}
-				if runId == "" {
-					runId = resources["RunID"]
-				}
-				if recRunId == "" {
-					recRunId = resources["RecurringRunId"]
-				}
+	specMap := apiRunV2.GetPipelineSpec().AsMap()
+	if pv, ok := specMap["PipelineInfo"]; ok {
+		if pName, ok := pv.(map[string]interface{})["Name"]; ok {
+			resources := common.ParseResourceIdsFromFullName(pName.(string))
+			if namespace == "" {
+				namespace = resources["Namespace"]
+			}
+			if experimentId == "" {
+				experimentId = resources["ExperimentId"]
+			}
+			if pipelineId == "" {
+				pipelineId = resources[common.PipelineIDResourceNameKey]
+			}
+			if pipelineVersionId == "" {
+				pipelineVersionId = resources[common.PipelineVersionIDResourceNameKey]
+			}
+			if runId == "" {
+				runId = resources["RunID"]
+			}
+			if recRunId == "" {
+				recRunId = resources["RecurringRunId"]
 			}
 		}
-		runDesc = apiRunV2.GetDescription()
-		serviceAcc = apiRunV2.GetServiceAccount()
-		if temp, err := toModelStorageState(apiRunV2.GetStorageState()); err == nil {
-			storageState = temp.ToString()
-		}
+	}
+	runDesc = apiRunV2.GetDescription()
+	serviceAcc = apiRunV2.GetServiceAccount()
+	if temp, err := toModelStorageState(apiRunV2.GetStorageState()); err == nil {
+		storageState = temp.ToString()
+	}
 
-		createTime = apiRunV2.GetCreatedAt().GetSeconds()
-		scheduleTime = apiRunV2.GetScheduledAt().GetSeconds()
-		finishTime = apiRunV2.GetFinishedAt().GetSeconds()
+	createTime = apiRunV2.GetCreatedAt().GetSeconds()
+	scheduleTime = apiRunV2.GetScheduledAt().GetSeconds()
+	finishTime = apiRunV2.GetFinishedAt().GetSeconds()
 
-		cfg, err := toModelRuntimeConfig(apiRunV2.GetRuntimeConfig())
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to convert API run to its internal representation due to runtime config conversion error")
-		}
-		cfgParams = string(cfg.Parameters)
-		pipelineRoot = string(cfg.PipelineRoot)
+	cfg, err := toModelRuntimeConfig(apiRunV2.GetRuntimeConfig())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert API run to its internal representation due to runtime config conversion error")
+	}
+	cfgParams = string(cfg.Parameters)
+	pipelineRoot = string(cfg.PipelineRoot)
 
-		if apiRunV2.GetPipelineSpec() == nil {
-			pipelineSpec = ""
-		} else if spec, err := pipelineSpecStructToYamlString(apiRunV2.GetPipelineSpec()); err == nil {
-			pipelineSpec = spec
-		} else {
-			pipelineSpec = ""
-		}
-		specParams = ""
+	if apiRunV2.GetPipelineSpec() == nil {
+		pipelineSpec = ""
+	} else if spec, err := pipelineSpecStructToYamlString(apiRunV2.GetPipelineSpec()); err == nil {
+		pipelineSpec = spec
+	} else {
+		pipelineSpec = ""
+	}
+	specParams = ""
 
-		if len(apiRunV2.Tasks) > 0 {
-			for _, apiTask := range apiRunV2.Tasks {
-				modelTask, err := toModelTask(apiTask)
-				if err != nil {
-					return nil, util.Wrap(err, "Failed to convert API run to its internal representation due to task conversion error")
-				}
-				modelTasks = append(modelTasks, modelTask)
+	if len(apiRunV2.Tasks) > 0 {
+		for _, apiTask := range apiRunV2.Tasks {
+			modelTask, err := toModelTask(apiTask)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to convert API run to its internal representation due to task conversion error")
 			}
+			modelTasks = append(modelTasks, modelTask)
 		}
-
-	default:
-		return nil, util.NewUnknownApiVersionError("Run", r)
 	}
 	if namespace != "" && pipelineVersionId != "" {
 		pipelineName = fmt.Sprintf("namespaces/%v/pipelines/%v", namespace, pipelineVersionId)
@@ -976,10 +929,7 @@ func toApiRuns(runs []*model.Run) []*apiv2beta1.Run {
 }
 
 // Converts API recurring run to its internal representation.
-func toModelJob(j interface{}) (*model.Job, error) {
-	if j == nil {
-		return &model.Job{}, nil
-	}
+func toModelJob(apiJob *apiv2beta1.RecurringRun) (*model.Job, error) {
 	var jobId, jobName, k8sName, namespace, serviceAcc, desc, experimentId, pipelineName string
 	var pipelineId, pipelineVersionId, pipelineSpec, workflowSpec, specParams, cfgParams, pipelineRoot string
 	var maxConcur, createTime, updateTime int64
@@ -987,69 +937,59 @@ func toModelJob(j interface{}) (*model.Job, error) {
 	var trigger *model.Trigger
 	var jobPluginsInputStr *string
 	resRefs := make([]*model.ResourceReference, 0)
-	switch apiJob := j.(type) {
+	pipelineId = apiJob.GetPipelineVersionReference().GetPipelineId()
+	pipelineVersionId = apiJob.GetPipelineVersionReference().GetPipelineVersionId()
 
-	case *apiv2beta1.RecurringRun:
-		pipelineId = apiJob.GetPipelineVersionReference().GetPipelineId()
-		pipelineVersionId = apiJob.GetPipelineVersionReference().GetPipelineVersionId()
-
-		if apiJob.GetPipelineSpec() != nil {
-			if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
-				pipelineSpec = spec
-			} else {
-				return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
-			}
-		}
-
-		cfg, err := toModelRuntimeConfig(apiJob.GetRuntimeConfig())
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to runtime config conversion error")
-		}
-		cfgParams = string(cfg.Parameters)
-		pipelineRoot = string(cfg.PipelineRoot)
-
-		jobName = apiJob.GetDisplayName()
-		if jobName == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Recurring run's name cannot be empty"), "Failed to convert a API recurring run to its internal representation")
-		}
-
-		if t, err := toModelTrigger(apiJob.GetTrigger()); err == nil {
-			trigger = t
+	if apiJob.GetPipelineSpec() != nil {
+		if spec, err := pipelineSpecStructToYamlString(apiJob.GetPipelineSpec()); err == nil {
+			pipelineSpec = spec
 		} else {
-			return nil, util.Wrap(err, "Failed to convert a API recurring run to its internal representation due to trigger parsing error")
+			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to pipeline spec conversion error")
 		}
-		isEnabled, err = toModelJobEnabled(apiJob.GetMode())
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to convert a API recurring run to its internal representation due to parsing error occurred in its mode field")
-		}
+	}
 
-		jobId = apiJob.GetRecurringRunId()
-		desc = apiJob.GetDescription()
-		namespace = apiJob.GetNamespace()
-		experimentId = apiJob.GetExperimentId()
-		serviceAcc = apiJob.GetServiceAccount()
-		noCatchup = apiJob.GetNoCatchup()
-		maxConcur = apiJob.GetMaxConcurrency()
-		createTime = apiJob.GetCreatedAt().GetSeconds()
-		updateTime = apiJob.GetUpdatedAt().GetSeconds()
+	cfg, err := toModelRuntimeConfig(apiJob.GetRuntimeConfig())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to runtime config conversion error")
+	}
+	cfgParams = string(cfg.Parameters)
+	pipelineRoot = string(cfg.PipelineRoot)
 
-		k8sName = jobName
-		specParams = ""
-		workflowSpec = ""
+	jobName = apiJob.GetDisplayName()
+	if jobName == "" {
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Recurring run's name cannot be empty"), "Failed to convert a API recurring run to its internal representation")
+	}
 
-		jobPluginsInputStr, err = pluginsInputToJSON(apiJob.GetPluginsInput())
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
-		}
-		pluginLimitsConfig, err := common.GetPluginLimitsConfig()
-		if err != nil {
-			return nil, util.NewInvalidInputError("Invalid plugins limits configuration: %v", err)
-		}
-		if err = validatePluginsInputLimits(apiJob.GetPluginsInput(), pluginLimitsConfig); err != nil {
-			return nil, util.NewInvalidInputError("Invalid plugins_input: %v", err)
-		}
-	default:
-		return nil, util.NewUnknownApiVersionError("RecurringRun", j)
+	trigger = toModelTrigger(apiJob.GetTrigger())
+	isEnabled, err = toModelJobEnabled(apiJob.GetMode())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert a API recurring run to its internal representation due to parsing error occurred in its mode field")
+	}
+
+	jobId = apiJob.GetRecurringRunId()
+	desc = apiJob.GetDescription()
+	namespace = apiJob.GetNamespace()
+	experimentId = apiJob.GetExperimentId()
+	serviceAcc = apiJob.GetServiceAccount()
+	noCatchup = apiJob.GetNoCatchup()
+	maxConcur = apiJob.GetMaxConcurrency()
+	createTime = apiJob.GetCreatedAt().GetSeconds()
+	updateTime = apiJob.GetUpdatedAt().GetSeconds()
+
+	k8sName = jobName
+	specParams = ""
+	workflowSpec = ""
+
+	jobPluginsInputStr, err = pluginsInputToJSON(apiJob.GetPluginsInput())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to convert plugins_input to JSON")
+	}
+	pluginLimitsConfig, err := common.GetPluginLimitsConfig()
+	if err != nil {
+		return nil, util.NewInvalidInputError("Invalid plugins limits configuration: %v", err)
+	}
+	if err = validatePluginsInputLimits(apiJob.GetPluginsInput(), pluginLimitsConfig); err != nil {
+		return nil, util.NewInvalidInputError("Invalid plugins_input: %v", err)
 	}
 	if maxConcur > 10 || maxConcur < 1 {
 		return nil, util.NewInvalidInputError("Max concurrency of a recurring run must be at least 1 and at most 10. Received %v", maxConcur)

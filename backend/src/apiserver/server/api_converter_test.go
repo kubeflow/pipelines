@@ -92,7 +92,7 @@ func createPluginOutputMapWithNKeys(n int) map[string]*apiv2beta1.PluginOutput {
 func TestToModelExperiment(t *testing.T) {
 	tests := []struct {
 		name                    string
-		experiment              interface{}
+		experiment              *apiv2beta1.Experiment
 		wantError               bool
 		errorMessage            string
 		expectedModelExperiment *model.Experiment
@@ -130,17 +130,6 @@ func TestToModelExperiment(t *testing.T) {
 			},
 		},
 		{
-			"Wrong API type",
-			&model.Experiment{
-				Name:        "test",
-				Description: "API V2beta1 test experiment",
-				Namespace:   "ns2",
-			},
-			true,
-			"UnknownApiVersionError: Error using Experiment with *model.Experiment",
-			nil,
-		},
-		{
 			"missing name v2",
 			&apiv2beta1.Experiment{
 				DisplayName: "",
@@ -174,7 +163,7 @@ func TestToModelExperiment(t *testing.T) {
 func TestToModelPipeline(t *testing.T) {
 	tests := []struct {
 		name                  string
-		pipeline              interface{}
+		pipeline              *apiv2beta1.Pipeline
 		wantError             bool
 		errorMessage          string
 		expectedModelPipeline *model.Pipeline
@@ -277,7 +266,7 @@ func TestToModelPipeline(t *testing.T) {
 func TestToModelPipelineVersion(t *testing.T) {
 	tests := []struct {
 		name                    string
-		pipeline                interface{}
+		pipeline                *apiv2beta1.PipelineVersion
 		expectedPipelineVersion *model.PipelineVersion
 		isError                 bool
 		errMsg                  string

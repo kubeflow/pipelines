@@ -865,8 +865,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	run.Namespace = k8sNamespace
 	run.K8SName = newExecSpec.ExecutionName()
 	run.ServiceAccount = newExecSpec.ServiceAccount()
-	run.RunDetails.State = model.RuntimeState(string(newExecSpec.ExecutionStatus().Condition())).ToV2()
-	run.Conditions = string(run.State.ToExecutionPhase())
 	// TODO(gkcalat): consider to avoid updating runtime manifest at create time and let
 	// persistence agent update the runtime data.
 	run.PipelineRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())

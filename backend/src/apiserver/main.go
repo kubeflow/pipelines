@@ -809,19 +809,15 @@ func registerRPCServices(s *grpc.Server, resourceManager *resource.ResourceManag
 	apiv2beta1.RegisterRunServiceServer(s, RunServer)
 	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
 	apiv2beta1.RegisterArtifactServiceServer(s, ArtifactServer)
-
 }
 
 func registerGatewayServices(register func(RegisterHttpHandlerFromEndpoint, string)) {
 	register(apiv2beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization")
 	register(apiv2beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService")
-
-	// Create gRPC HTTP MUX and register services for v2beta1 api.
 	register(apiv2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
 	register(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")
 	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
 	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
 	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
 	register(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
-
 }

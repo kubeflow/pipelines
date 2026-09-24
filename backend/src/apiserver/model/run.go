@@ -336,9 +336,9 @@ func (r *Run) DefaultSortField() string {
 
 var runAPIToModelFieldMap = map[string]string{
 	"run_id":           "UUID",        // v2beta1 API
-	"id":               "UUID",        // v1beta1 API
+	"id":               "UUID",        // Legacy filter alias retained in the v2beta1 filter contract
 	"display_name":     "DisplayName", // v2beta1 API
-	"name":             "DisplayName", // v1beta1 API
+	"name":             "DisplayName", // Legacy filter alias retained in the v2beta1 filter contract
 	"created_at":       "CreatedAtInSec",
 	"finished_at":      "FinishedAtInSec",
 	"description":      "Description",

@@ -58,11 +58,10 @@ async function waitForRunParameterField(selector) {
 }
 
 async function fillRunForm({ runName, description, message }) {
-  const runFormVariant = await waitForRunPageReady({
+  const selectors = await waitForRunPageReady({
     timeout: runStartTimeout,
     timeoutMsg: 'expected a run creation form to load',
   });
-  const selectors = runFormVariant.selectors;
 
   await $(selectors.runName).click();
   await clearDefaultInput();

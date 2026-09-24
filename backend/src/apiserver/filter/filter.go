@@ -147,7 +147,7 @@ func (f *Filter) UnmarshalJSON(b []byte) error {
 }
 
 // New creates a new Filter from parsing the API filter protocol buffer.
-func New(filterProto interface{}) (*Filter, error) {
+func New(filterProto *apiv2beta1.Filter) (*Filter, error) {
 	predicates, err := toPredicates(filterProto)
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func New(filterProto interface{}) (*Filter, error) {
 // model. For example, if the API name of a field is "name", the model name is "pipelines", and
 // the equivalent column name is "Name", then filterProto with predicates against key "name"
 // will be parsed as if the key value was "pipelines.Name".
-func NewWithKeyMap(filterProto interface{}, keyMap map[string]string, modelName string) (*Filter, error) {
+func NewWithKeyMap(filterProto *apiv2beta1.Filter, keyMap map[string]string, modelName string) (*Filter, error) {
 	// Fully qualify column name to avoid "ambiguous column name" error.
 	var modelNamePrefix string
 	if modelName != "" {
@@ -573,50 +573,34 @@ func (f *Filter) parsePredicates(preds []*Predicate) error {
 	return nil
 }
 
-func toPredicates(filterProto interface{}) ([]*Predicate, error) {
-	if filterProto == nil {
-		return nil, nil
-	}
+func toPredicates(filterProto *apiv2beta1.Filter) ([]*Predicate, error) {
 	predicates := make([]*Predicate, 0)
-	switch filterProto := filterProto.(type) {
-	case *apiv2beta1.Filter:
-		for _, p := range filterProto.GetPredicates() {
-			if pred, err := toPredicate(p); err != nil {
-				return nil, err
-			} else {
-				predicates = append(predicates, pred)
-			}
+	for _, p := range filterProto.GetPredicates() {
+		if pred, err := toPredicate(p); err != nil {
+			return nil, err
+		} else {
+			predicates = append(predicates, pred)
 		}
-
-	default:
-		return nil, util.NewUnknownApiVersionError("Filter", filterProto)
 	}
 	return predicates, nil
 }
 
-func toPredicate(p interface{}) (*Predicate, error) {
+func toPredicate(p *apiv2beta1.Predicate) (*Predicate, error) {
 	if p == nil {
 		return nil, nil
 	}
 	operation := ""
-	key := ""
+	key := p.GetKey()
 	var value interface{}
-	switch p := p.(type) {
-	case *apiv2beta1.Predicate:
-		key = p.GetKey()
-		if temp, err := toOperation(p.GetOperation()); err != nil {
-			return nil, err
-		} else {
-			operation = temp
-		}
-		if temp, err := toValue(p.GetValue()); err != nil {
-			return nil, err
-		} else {
-			value = temp
-		}
-
-	default:
-		return nil, util.NewUnknownApiVersionError("Filter.Predicate", p)
+	if temp, err := toOperation(p.GetOperation()); err != nil {
+		return nil, err
+	} else {
+		operation = temp
+	}
+	if temp, err := toValue(p.GetValue()); err != nil {
+		return nil, err
+	} else {
+		value = temp
 	}
 	if key == "" {
 		return nil, util.NewInvalidInputError("Predicate key cannot be empty for operation %v and value %v", operation, value)

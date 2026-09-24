@@ -253,8 +253,8 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 	token.KeyFieldPrefix = listable.GetKeyFieldPrefix()
 
 	// Probe the sort field type using the listable instance. SortByFieldName is
-	// the user-facing name, which GetFieldValue resolves for both regular fields
-	// names. String fields return "" (string type); numeric fields
+	// the user-facing name, which GetFieldValue resolves to the model field
+	// value. String fields return "" (string type); numeric fields
 	// return int64(0) or similar. Nullable string fields return a nil *string.
 	probeVal := listable.GetFieldValue(token.SortByFieldName)
 	_, isString := probeVal.(string)

@@ -123,7 +123,7 @@ func deserializePageToken(pageToken string) (*common.Token, error) {
 // parseAPIFilter attempts to decode a url-encoded JSON-stringified api
 // filter object. An empty string is considered valid input, and equivalent to
 // the nil filter, which trivially does nothing.
-func parseAPIFilter(encoded string, apiVersion string) (interface{}, error) {
+func parseAPIFilter(encoded string, apiVersion string) (*apiv2beta1.Filter, error) {
 	if encoded == "" {
 		return nil, nil
 	}

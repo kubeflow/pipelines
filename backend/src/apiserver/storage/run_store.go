@@ -743,7 +743,6 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				ArchivedAtInSec:         archivedAtInSec.Int64,
 				StateHistory:            stateHistoryNew,
 			},
-
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
 				PipelineVersionId:    pvID,
