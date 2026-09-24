@@ -62,16 +62,48 @@ class KubeflowMembershipTest(unittest.TestCase):
                                                 text=True,
                                                 timeout=30)
 
-    def test_lookup_rejects_incomplete_or_unexpected_acl_layout(self):
+    def test_lookup_accepts_equivalent_yaml_representations(self):
+        documents = [
+            ACL.split('        teams:', 1)[0],
+            '''orgs:
+  kubeflow:
+    teams: {}
+    members:
+      - "JerT33" # quoted username
+      - 'AnotherMember'
+    admins: [OrgAdmin]
+''',
+            'orgs: {kubeflow: {admins: [OrgAdmin], members: [JerT33]}}',
+        ]
+        for document in documents:
+            with self.subTest(document=document), mock.patch.object(
+                    membership.subprocess, 'run') as request:
+                request.return_value.stdout = document
+                self.assertTrue(membership.is_kubeflow_member('jert33'))
+                self.assertTrue(membership.is_kubeflow_member('orgadmin'))
+                self.assertFalse(membership.is_kubeflow_member('external'))
+
+    def test_lookup_rejects_invalid_yaml_or_membership_schema(self):
         invalid_documents = [
             '',
             'not YAML',
+            'orgs: [',
+            'orgs: []',
+            'orgs: {kubeflow: null}',
+            'orgs: {kubeflow: {admins: [], members: []}}',
+            '!!python/object/apply:os.system ["echo unsafe"]',
             ACL.replace('orgs:', 'something-else:', 1),
             ACL.replace('    kubeflow:', '    wrong-org:'),
             ACL.replace('        members:\n', '', 1),
-            ACL.split('        teams:', 1)[0],
-            ACL.replace('        - JerT33', '          - JerT33'),
+            ACL.replace('        admins:\n        - OrgAdmin',
+                        '        admins: null'),
+            ACL.replace('        admins:\n        - OrgAdmin',
+                        '        admins: OrgAdmin'),
             ACL.replace('        - JerT33', '        - [JerT33]'),
+            ACL.replace('        - JerT33', '        - {name: JerT33}'),
+            ACL.replace('        - JerT33', '        - 123'),
+            ACL.replace('        - JerT33', '        - true'),
+            ACL.replace('        - JerT33', '        - "invalid user"'),
         ]
         for document in invalid_documents:
             with self.subTest(document=document), mock.patch.object(

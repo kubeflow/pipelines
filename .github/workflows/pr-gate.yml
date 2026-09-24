@@ -25,8 +25,18 @@ jobs:
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
-          sparse-checkout: .github/scripts/kubeflow_membership.py
+          sparse-checkout: |
+            .github/scripts/kubeflow_membership.py
+            .github/scripts/requirements.txt
           sparse-checkout-cone-mode: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
 
       - name: Look up PR author in Kubeflow internal-acls
         id: membership-check

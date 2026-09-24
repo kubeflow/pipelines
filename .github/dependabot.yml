@@ -98,6 +98,7 @@ updates:
     # compatibility minimums and must be changed through API regeneration.
     directories:
       - "/.github/resources/scripts/kfp-readiness"
+      - "/.github/scripts"
       - "/api/v2alpha1/python"
       - "/backend"
       - "/backend/src/apiserver/visualization"

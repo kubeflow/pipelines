@@ -20,56 +20,33 @@ import re
 import subprocess
 import sys
 
+import yaml
+
 ACL_PATH = 'repos/kubeflow/internal-acls/contents/github-orgs/kubeflow/org.yaml?ref=master'
 LOGIN_PATTERN = r'[A-Za-z0-9][A-Za-z0-9-]{0,38}'
 
 
 def _parse_members(yaml_text: str) -> set[str]:
-    # This is the ACL's expected layout, not a general YAML parser. Reject layout
-    # changes instead of silently treating organization members as external.
-    members: set[str] = set()
-    in_orgs = False
-    in_kubeflow_org = False
-    current_list: str | None = None
-    seen_lists: set[str] = set()
-    complete = False
-
-    for raw_line in yaml_text.splitlines():
-        line = raw_line.replace('\t', '    ').split('#', 1)[0].rstrip()
-        if not line.strip():
-            continue
-        if line == 'orgs:':
-            in_orgs = True
-            continue
-        if not in_kubeflow_org:
-            if in_orgs and line == '    kubeflow:':
-                in_kubeflow_org = True
-            continue
-
-        if line == '        teams:':
-            complete = True
-            break
-        if line in ('        admins:', '        members:'):
-            current_list = line.strip().rstrip(':')
-            seen_lists.add(current_list)
-            continue
-        if re.match(r'^        [a-z_]+:', line):
-            current_list = None
-            continue
-        if current_list:
-            login = line[len('        - '):] if line.startswith(
-                '        - ') else ''
-            if not re.fullmatch(LOGIN_PATTERN, login):
-                raise RuntimeError(
-                    'Unexpected Kubeflow ACL member entry. Verify the org.yaml layout before retrying.'
-                )
-            members.add(login.lower())
-        elif not line.startswith('        '):
-            break
-
-    if not complete or seen_lists != {'admins', 'members'} or not members:
+    try:
+        org = yaml.safe_load(yaml_text)['orgs']['kubeflow']
+        groups = [org['admins'], org['members']]
+    except (yaml.YAMLError, KeyError, TypeError) as error:
         raise RuntimeError(
-            'Incomplete Kubeflow ACL membership data. Verify org.yaml contains admins and members before retrying.'
+            'Invalid Kubeflow ACL membership data. Verify org.yaml contains Kubeflow admins and members before retrying.'
+        ) from error
+
+    if any(not isinstance(group, list) for group in groups) or any(
+            not isinstance(login, str) or
+            not re.fullmatch(LOGIN_PATTERN, login)
+            for group in groups
+            for login in group):
+        raise RuntimeError(
+            'Invalid Kubeflow ACL member lists. Expected lists of GitHub usernames; verify org.yaml before retrying.'
+        )
+    members = {login.lower() for group in groups for login in group}
+    if not members:
+        raise RuntimeError(
+            'Empty Kubeflow ACL membership data. Verify org.yaml before retrying.'
         )
     return members
 

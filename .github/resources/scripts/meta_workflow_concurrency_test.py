@@ -266,7 +266,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertNotIn('contributor-report.py', workflow)
         self.assertIn('ref: ${{ github.workflow_sha }}', workflow)
         self.assertIn('persist-credentials: false', workflow)
-        self.assertIn('sparse-checkout: .github/scripts/kubeflow_membership.py',
+        self.assertIn('            .github/scripts/kubeflow_membership.py\n',
+                      workflow)
+        self.assertIn('            .github/scripts/requirements.txt\n',
                       workflow)
         self.assertIn('run: python3 .github/scripts/kubeflow_membership.py',
                       workflow)
@@ -274,6 +276,32 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                       workflow)
         self.assertIn("'.github/workflows/pr-gate.yml'",
                       self._read_workflow('ci-scripts-tests.yml'))
+
+    def test_membership_consumers_install_shared_requirements(self):
+        install = 'run: python3 -m pip install -r .github/scripts/requirements.txt'
+        consumers = {
+            'pr-gate.yml':
+                'run: python3 .github/scripts/kubeflow_membership.py',
+            'contributor-report.yml':
+                'run: python3 .github/scripts/contributor-report.py',
+            'ci-scripts-tests.yml':
+                'run: python3 -m unittest discover',
+        }
+        for name, consumer in consumers.items():
+            with self.subTest(workflow=name):
+                workflow = self._read_workflow(name)
+                self.assertLess(
+                    workflow.index('uses: actions/setup-python@'),
+                    workflow.index(install))
+                self.assertLess(
+                    workflow.index(install), workflow.index(consumer))
+                if name != 'ci-scripts-tests.yml':
+                    self.assertIn(
+                        '            .github/scripts/requirements.txt\n',
+                        workflow)
+                    self.assertIn('ref: ${{ github.workflow_sha }}', workflow)
+        requirements = (ROOT / '.github/scripts/requirements.txt').read_text()
+        self.assertRegex(requirements, r'(?m)^PyYAML==\d+\.\d+\.\d+$')
 
     @unittest.skipUnless(
         shutil.which('jq'), 'jq is required by the gate script')
