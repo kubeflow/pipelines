@@ -1087,12 +1087,6 @@ func TestMatches(t *testing.T) {
 			o2:   &Options{token: &token{Filter: f2}},
 			want: false,
 		},
-		// Metric sort: SortByFieldName holds the raw metric name, so tokens for
-		// different metrics are distinct queries even though they share the same
-		// SQL alias in SortBySQLColumn.
-
-		// Metric sort: same metric name is the same query.
-
 	}
 
 	for _, test := range tests {
