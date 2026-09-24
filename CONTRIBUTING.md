@@ -68,8 +68,10 @@ request issue to help reviewers catch up on the context.
 
 Kubeflow Pipelines uses GitHub Actions workflows to gate CI for pull requests.
 
-- Pull requests opened by Kubeflow organization members, owners, or invited
-  collaborators are treated as trusted and can proceed without this extra gate.
+- Pull requests opened by users listed under Kubeflow's `admins` or `members`
+  in [`kubeflow/internal-acls/github-orgs/kubeflow/org.yaml`](https://github.com/kubeflow/internal-acls/blob/master/github-orgs/kubeflow/org.yaml)
+  can proceed without this extra gate. This lookup is case-insensitive and does
+  not depend on public membership visibility or GitHub's `author_association`.
 - Pull requests authored by `dependabot[bot]` or `copybara-service[bot]` are exempt
   from this linked-issue gate. Required CI checks and merge requirements still
   apply.
@@ -84,7 +86,9 @@ member is straightforward. Follow the instructions in the
 
 If a non-member pull request subject to this gate does not link to an issue, or
 the linked issue is not labeled `ready`, the gatekeeper workflow may comment on
-the PR and close it until the issue triage step is completed.
+the PR and close it until the issue triage step is completed. If the membership
+lookup fails, the workflow fails without closing the PR; a maintainer can rerun
+it after the lookup problem is resolved.
 
 ## Project Structure
 
