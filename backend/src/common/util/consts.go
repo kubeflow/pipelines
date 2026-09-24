@@ -68,9 +68,6 @@ const (
 	// identify the logical role of the pod (driver, launcher, etc.).  It is
 	// used by UpsertRuntimeEnvVars to target the right containers.
 	AnnotationKeyRuntimeRole = "pipelines.kubeflow.org/runtime-role"
-
-	// It captures whether this step will be selected by cache service.
-	// To disable/enable cache for a single run, this label needs to be added in every step under a run.
 )
 
 // GetMaxParameterBytes returns the maximum byte size of parameters.
