@@ -2298,6 +2298,23 @@ func (r *ResourceManager) reportWorkflowResource(
 		if err := r.experimentStore.SetLastRunTimestamp(run); err != nil {
 			return nil, util.Wrapf(err, "Failed to report a workflow for existing run %s during updating the owning experiment.", runId)
 		}
+		if execStatus.IsInFinalState() && !execSpec.PersistedFinalState() {
+			// The run row for this terminal workflow was created by this
+			// report, so run metrics the persistence agent reported before it
+			// could not have been persisted: there was no run to attach them
+			// to. Adding the persistedFinalState label now would stop the
+			// agent from ever reporting this workflow again, losing those
+			// metrics. Defer instead: the run row is committed above, and the
+			// retried report finds it, so metrics land before the label does.
+			// A workflow that already carries the label was finalized by an
+			// earlier report, so it skips the deferral and proceeds to the
+			// garbage-collection path below.
+			return nil, terminalWorkflowReportDeferredError(
+				runId,
+				execSpec,
+				"run row was created by this terminal report, so run metrics may still be pending",
+			)
+		}
 	}
 
 	// Fence terminal reports from stale pre-retry workflow snapshots.

@@ -20,6 +20,7 @@ import (
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -106,11 +107,26 @@ func aggregateErrors(errors []error) error {
 	code := util.CUSTOM_CODE_PERMANENT
 	var errorMsgs []string
 	for _, err := range errors {
-		if util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT) {
+		if isTransientMetricsError(err) {
 			// Try our  best to recover partial failures.
 			code = util.CUSTOM_CODE_TRANSIENT
 		}
 		errorMsgs = append(errorMsgs, err.Error())
 	}
 	return util.NewCustomErrorf(code, "%s", strings.Join(errorMsgs, "\n"))
+}
+
+// isTransientMetricsError reports whether a metrics collection or reporting
+// failure is retryable. Transient failures are signaled either as a
+// util.CustomError (metric processing and gRPC reporting) or as an
+// *artifactclient.Error from reading the metrics artifact; the latter must
+// not be misclassified as permanent, or a temporary artifact-store failure
+// would let the terminal workflow report finalize with the metrics
+// unreported and permanently lost.
+func isTransientMetricsError(err error) bool {
+	if util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT) {
+		return true
+	}
+	var artifactError *artifactclient.Error
+	return errors.As(err, &artifactError) && artifactError.Code == artifactclient.ErrorCodeTransient
 }

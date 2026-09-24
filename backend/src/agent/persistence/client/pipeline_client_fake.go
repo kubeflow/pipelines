@@ -82,6 +82,10 @@ func (p *PipelineClientFake) GetReadArtifactRequest() *artifactclient.ReadArtifa
 	return p.artifactClient.GetReadArtifactRequest()
 }
 
+func (p *PipelineClientFake) StubArtifactError(err error) {
+	p.artifactClient.SetError(err)
+}
+
 func (p *PipelineClientFake) StubReportRunMetrics(response *api.ReportRunMetricsResponse, err error) {
 	p.reportMetricsResponseStub = response
 	p.reportMetricsErrorStub = err
