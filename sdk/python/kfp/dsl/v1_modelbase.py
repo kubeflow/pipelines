@@ -15,9 +15,12 @@
 from collections import abc
 from collections import OrderedDict
 import inspect
+
+# isort: off
 from typing import (Any, cast, Dict, get_type_hints, List, Mapping,
                     MutableMapping, MutableSequence, Sequence, Type, TypeVar,
                     Union)
+# isort: on
 
 T = TypeVar('T')
 
@@ -25,7 +28,7 @@ T = TypeVar('T')
 def verify_object_against_type(x: Any, typ: Type[T]) -> T:
     """Verifies that the object is compatible to the specified type (types from
     the typing package can be used)."""
-    #TODO: Merge with parse_object_from_struct_based_on_type which has almost the same code
+    # TODO: Merge with parse_object_from_struct_based_on_type which has almost the same code
     if typ is type(None):
         if x is None:
             return x
@@ -240,7 +243,7 @@ def convert_object_to_struct(obj, serialized_names: Mapping[str, str] = {}):
     """
     signature = inspect.signature(obj.__init__)  #Needed for default values
     result = {}
-    for python_name in signature.parameters:  #TODO: Make it possible to specify the field ordering regardless of the presence of default values
+    for python_name in signature.parameters:  # TODO: Make it possible to specify the field ordering regardless of the presence of default values
         value = getattr(obj, python_name)
         if python_name.startswith('_'):
             continue
