@@ -15,6 +15,17 @@ SPEC.loader.exec_module(MODULE)
 
 class ContributorReportTest(unittest.TestCase):
 
+    def test_workflow_skips_dependency_and_sync_bot_authors_at_job_level(self):
+        workflow_path = MODULE_PATH.parent.parent / "workflows" / "contributor-report.yml"
+        workflow = workflow_path.read_text()
+        self.assertIn(
+            "  contributor-report:\n"
+            "    if: >-\n"
+            "      github.event.pull_request.user.login != 'dependabot[bot]' &&\n"
+            "      github.event.pull_request.user.login != 'copybara-service[bot]'\n",
+            workflow,
+        )
+
     def test_parse_kubeflow_org_members_includes_admins_and_members(self):
         members = MODULE.parse_kubeflow_org_members("""
 orgs:
