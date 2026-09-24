@@ -1,10 +1,4 @@
 #!/bin/bash -e
-
-API_VERSION=${API_VERSION:-v2beta1}
-if [[ "$API_VERSION" != "v2beta1" ]]; then
-    echo "Only the v2beta1 API is supported." >&2
-    exit 1
-fi
 #
 # Copyright 2018-2021 The Kubeflow Authors
 #
@@ -20,6 +14,11 @@ fi
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+API_VERSION=${API_VERSION:-v2beta1}
+if [[ "$API_VERSION" != "v2beta1" ]]; then
+    echo "Only the v2beta1 API is supported." >&2
+    exit 1
+fi
 
 # The scripts creates a the KF Pipelines API python package.
 # Requirements: jq and Java

@@ -47,6 +47,40 @@ The current SDK cannot perform the legacy-to-IR conversion. Legacy graph
 implementations and Argo Workflow YAML must be rewritten as v2 pipelines; they
 are not covered by the container conversion path above.
 
+## Existing runs and recurring runs
+
+Historical database records are retained, but the v1 run-details, graph, output,
+and comparison UI views are removed. Retaining a record does not preserve
+read-only access to its old UI. Export any required historical information before
+upgrading. The v2 API continues to expose stored parameters, including historical
+name/value arrays.
+
+New runs and recurring runs store ownership and pipeline references in their
+native database columns only; they no longer populate `resource_references`.
+Existing reference rows remain available for historical ownership fallback,
+migrations, and deletion cleanup. Integrations that query the database directly
+must use the native columns for new records.
+
+Existing recurring runs with unsupported embedded workflow templates stop firing
+after upgrade, regardless of the former `BLOCK_V1_PIPELINES` setting. An embedded
+template must contain `spec.podMetadata.labels` or `spec.podMetadata.annotations`
+with `pipelines.kubeflow.org/v2_component: "true"`, as emitted by the IR compiler.
+The old workflow-level `pipelines.kubeflow.org/v2_pipeline` marker alone is not
+sufficient, and malformed templates are rejected too. The controller currently
+reports an error on each attempted submission; it does not automatically disable
+the schedule or record a dedicated unsupported-template status. Disable affected
+recurring runs before upgrading, then recreate them from recompiled IR pipelines.
+Do not add a marker to an old workflow as a substitute for recompilation.
+
+Retry uses the persisted workflow manifest and requires the same pod-metadata
+marker. Controllers and admission webhooks must preserve `spec.podMetadata`;
+removing it makes even an originally IR-compiled run non-retriable. Create a new
+run from pipeline IR if the stored manifest no longer carries the marker.
+
+The `kubeflow.org/v1beta1` ScheduledWorkflow Kubernetes CRD is still used by native
+v2 recurring runs. Its version is independent of the removed KFP v1beta1 REST and
+gRPC APIs; do not delete this CRD when upgrading.
+
 ## Submit and inspect runs
 
 Use `kfp.Client` to upload the compiled pipeline, create an experiment in the

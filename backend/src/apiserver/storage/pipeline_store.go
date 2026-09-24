@@ -26,32 +26,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-func (s *PipelineStore) selectJoinedColumns() []string {
-	q := s.dbDialect.QuoteIdentifier
-	p := dialect.QualifiedColumn(q, "pipelines")
-	v := dialect.QualifiedColumn(q, "pipeline_versions")
-	return []string{
-		p("UUID"),
-		p("CreatedAtInSec"),
-		p("Name"),
-		p("DisplayName"),
-		p("Description"),
-		p("Status"),
-		p("Namespace"),
-		v("UUID"),
-		v("CreatedAtInSec"),
-		v("Name"),
-		v("DisplayName"),
-		v("Parameters"),
-		v("PipelineId"),
-		v("Status"),
-		v("CodeSourceUrl"),
-		v("Description"),
-		v("PipelineSpec"),
-		v("PipelineSpecURI"),
-	}
-}
-
 func (s *PipelineStore) selectPipelineColumns() []string {
 	q := s.dbDialect.QuoteIdentifier
 	p := dialect.QualifiedColumn(q, "pipelines")
@@ -313,71 +287,6 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 	}
 	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
 	return pipelines[:opts.PageSize], totalSize, npt, err
-}
-
-// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Parses SQL results of joining `pipelines` and `pipeline_versions` tables into []Pipelines.
-func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*model.PipelineVersion, error) {
-	var pipelines []*model.Pipeline
-	var pipelineVersions []*model.PipelineVersion
-	for rows.Next() {
-		var uuid, name, displayName, description string
-		var namespace sql.NullString
-		var status model.PipelineStatus
-		var versionUUID, versionName, versionDisplayName, versionParameters, versionPipelineId, versionCodeSourceUrl, versionStatus, versionDescription, pipelineSpec, pipelineSpecURI sql.NullString
-		var createdAtInSec, versionCreatedAtInSec sql.NullInt64
-		if err := rows.Scan(
-			&uuid,
-			&createdAtInSec,
-			&name,
-			&displayName,
-			&description,
-			&status,
-			&namespace,
-			&versionUUID,
-			&versionCreatedAtInSec,
-			&versionName,
-			&versionDisplayName,
-			&versionParameters,
-			&versionPipelineId,
-			&versionStatus,
-			&versionCodeSourceUrl,
-			&versionDescription,
-			&pipelineSpec,
-			&pipelineSpecURI,
-		); err != nil {
-			return nil, nil, err
-		}
-		pipelines = append(
-			pipelines,
-			&model.Pipeline{
-				UUID:           uuid,
-				CreatedAtInSec: createdAtInSec.Int64,
-				Name:           name,
-				DisplayName:    displayName,
-				Description:    model.LargeText(description),
-				Status:         status,
-				Namespace:      namespace.String,
-			},
-		)
-		pipelineVersions = append(
-			pipelineVersions,
-			&model.PipelineVersion{
-				UUID:            versionUUID.String,
-				CreatedAtInSec:  versionCreatedAtInSec.Int64,
-				Name:            versionName.String,
-				DisplayName:     versionDisplayName.String,
-				Parameters:      model.LargeText(versionParameters.String),
-				PipelineId:      versionPipelineId.String,
-				Status:          model.PipelineVersionStatus(versionStatus.String),
-				CodeSourceUrl:   versionCodeSourceUrl.String,
-				Description:     model.LargeText(versionDescription.String),
-				PipelineSpec:    model.LargeText(pipelineSpec.String),
-				PipelineSpecURI: model.LargeText(pipelineSpecURI.String),
-			},
-		)
-	}
-	return pipelines, pipelineVersions, nil
 }
 
 // Converts SQL response into []Pipeline (default version is set to nil).

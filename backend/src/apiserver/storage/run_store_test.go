@@ -124,13 +124,6 @@ func initializeRunStore() (*sql.DB, dialect.DBDialect, *RunStore) {
 	runStore.CreateRun(run2)
 	runStore.CreateRun(run3)
 
-	for _, id := range []string{"1", "2"} {
-		_, err := db.Exec("INSERT INTO resource_references (ResourceUUID, ResourceType, ReferenceUUID, ReferenceType, Relationship, ReferenceName, Payload) VALUES (?, ?, ?, ?, ?, ?, ?)", id, "Run", defaultFakeExpId, "Experiment", "Owner", "", "{}")
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	return db, testDialect, runStore
 }
 
@@ -897,7 +890,8 @@ func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
 	}
 	_, err := runStore.CreateRun(run)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to create a new transaction to create run")
+	assert.Contains(t, err.Error(), "Failed to store run")
+	assert.Contains(t, err.Error(), "database is closed")
 	err = runStore.UpdateRun(&model.Run{DisplayName: "Test display name"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "transaction creation failed")
@@ -1186,6 +1180,11 @@ func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
 func TestArchiveRun(t *testing.T) {
 	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
+	seedLegacyResourceReferences(t, db, testDialect, &model.ResourceReference{
+		ResourceUUID: "1", ResourceType: model.RunResourceType,
+		ReferenceUUID: defaultFakeExpId, ReferenceType: model.ExperimentResourceType,
+		Relationship: model.OwnerRelationship,
+	})
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
@@ -1218,6 +1217,11 @@ func TestArchiveRun_InternalError(t *testing.T) {
 func TestUnarchiveRun(t *testing.T) {
 	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
+	seedLegacyResourceReferences(t, db, testDialect, &model.ResourceReference{
+		ResourceUUID: "1", ResourceType: model.RunResourceType,
+		ReferenceUUID: defaultFakeExpId, ReferenceType: model.ExperimentResourceType,
+		Relationship: model.OwnerRelationship,
+	})
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
@@ -1311,6 +1315,11 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 func TestDeleteRun(t *testing.T) {
 	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
+	seedLegacyResourceReferences(t, db, testDialect, &model.ResourceReference{
+		ResourceUUID: "1", ResourceType: model.RunResourceType,
+		ReferenceUUID: defaultFakeExpId, ReferenceType: model.ExperimentResourceType,
+		Relationship: model.OwnerRelationship,
+	})
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)

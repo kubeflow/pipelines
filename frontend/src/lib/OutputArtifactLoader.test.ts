@@ -399,6 +399,12 @@ describe('OutputArtifactLoader', () => {
       ).rejects.toThrowError('Malformed metadata, property "source" is required.');
     });
 
+    it('allows the server to resolve a missing standalone namespace', async () => {
+      expect(
+        await OutputArtifactLoader.buildTensorboardConfig({ source: 'gs://path' }),
+      ).toMatchObject({ namespace: '', type: PlotType.TENSORBOARD, url: 'gs://path' });
+    });
+
     it('returns a tensorboard config with basic metadata', async () => {
       const metadata = { source: 'gs://path' };
       expect(await OutputArtifactLoader.buildTensorboardConfig(metadata as any, 'test-ns')).toEqual(

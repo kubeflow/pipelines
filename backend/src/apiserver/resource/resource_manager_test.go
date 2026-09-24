@@ -2805,6 +2805,47 @@ func TestRetryRun_ServiceAccountSAR_Unauthorized_NoWorkflowMutation(t *testing.T
 	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(liveWorkflow.ExecutionStatus().Condition()))
 }
 
+func TestRetryRun_PersistedIRCompiledManifest(t *testing.T) {
+	for _, removeMarker := range []bool{false, true} {
+		t.Run(fmt.Sprintf("remove-pod-metadata=%t", removeMarker), func(t *testing.T) {
+			store, manager, run := initWithOneTimeRun(t)
+			defer store.Close()
+			// Use the compiler output, rather than a hand-authored workflow fixture.
+			workflow, err := util.NewWorkflowFromBytesJSON([]byte(run.PipelineRuntimeManifest))
+			require.NoError(t, err)
+			require.NotNil(t, workflow.Spec.PodMetadata)
+			assert.NoError(t, workflow.CanRetry())
+			if removeMarker {
+				workflow.Spec.PodMetadata = nil
+			}
+			workflow.Status.Phase = v1alpha1.WorkflowFailed
+			syncWorkflowReportWithFakeCluster(t, store, workflow)
+			_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+			require.NoError(t, err)
+
+			stored, err := manager.GetRun(run.UUID)
+			require.NoError(t, err)
+			persisted, err := util.NewWorkflowFromBytesJSON([]byte(stored.WorkflowRuntimeManifest))
+			require.NoError(t, err)
+			assert.Equal(t, workflow.Spec.PodMetadata, persisted.Spec.PodMetadata)
+
+			err = manager.RetryRun(context.Background(), run.UUID)
+			if removeMarker {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "missing the IR compiler's v2_component pod metadata marker")
+				stored, err = manager.GetRun(run.UUID)
+				require.NoError(t, err)
+				assert.Equal(t, model.RuntimeStateFailed, stored.State)
+			} else {
+				require.NoError(t, err)
+				stored, err = manager.GetRun(run.UUID)
+				require.NoError(t, err)
+				assert.Equal(t, model.RuntimeStateRunning, stored.State)
+			}
+		})
+	}
+}
+
 func TestRetryRun_RefreshesDivergentWorkflowName(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()

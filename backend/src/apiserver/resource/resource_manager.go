@@ -1827,9 +1827,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	job.UUID = string(swf.UID)
 	job.K8SName = swf.Name
 	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
-	for _, modelRef := range job.ResourceReferences {
-		modelRef.ResourceUUID = string(swf.UID)
-	}
 
 	if tmpl == nil {
 		return r.jobStore.CreateJob(job)

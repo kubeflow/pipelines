@@ -658,6 +658,54 @@ func TestToMapProtoStructParameters(t *testing.T) {
 
 }
 
+func TestToMapProtoStructParameters_HistoricalArrays(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		parameters string
+		want       map[string]interface{}
+	}{
+		{"legacy strings", `[{"name":"text","value":"hello"},{"name":"number","value":"2"},{"name":"flag","value":"true"},{"name":"empty","value":""}]`, map[string]interface{}{"text": "hello", "number": "2", "flag": "true", "empty": ""}},
+		{"native types", `{"number":2,"flag":true,"nested":{"key":"value"}}`, map[string]interface{}{"number": float64(2), "flag": true, "nested": map[string]interface{}{"key": "value"}}},
+		{"malformed JSON", `[{`, nil},
+		{"invalid legacy value", `[{"name":"number","value":2}]`, nil},
+		{"scalar", `42`, nil},
+		{"empty array", `[]`, map[string]interface{}{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := toMapProtoStructParameters(tc.parameters)
+			if tc.want == nil {
+				assert.Nil(t, got)
+				return
+			}
+			assert.Equal(t, tc.want, (&structpb.Struct{Fields: got}).AsMap())
+		})
+	}
+}
+
+func TestHistoricalParametersRemainVisible(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		runtimeParameters model.LargeText
+		want              string
+	}{
+		{"legacy fallback", "", "historical"},
+		{"native takes precedence", `{"text":"native"}`, "native"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := model.PipelineSpec{
+				Parameters:    `[{"name":"text","value":"historical"}]`,
+				RuntimeConfig: model.RuntimeConfig{Parameters: tc.runtimeParameters},
+			}
+			run := toApiRun(&model.Run{PipelineSpec: spec})
+			require.NotNil(t, run.GetRuntimeConfig())
+			assert.Equal(t, tc.want, run.GetRuntimeConfig().GetParameters()["text"].GetStringValue())
+			job := toApiRecurringRun(&model.Job{PipelineSpec: spec})
+			require.NotNil(t, job.GetRuntimeConfig())
+			assert.Equal(t, tc.want, job.GetRuntimeConfig().GetParameters()["text"].GetStringValue())
+		})
+	}
+}
+
 func TestToApiRecurringRun(t *testing.T) {
 	modelJob := &model.Job{
 		UUID:        "job1",

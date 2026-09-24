@@ -102,10 +102,6 @@ func initializeDBAndStore() (*sql.DB, dialect.DBDialect, *JobStore) {
 		ExperimentId:   defaultFakeExpIdTwo,
 	}
 	jobStore.CreateJob(job2.ToV2())
-	_, err = db.Exec("INSERT INTO resource_references (ResourceUUID, ResourceType, ReferenceUUID, ReferenceType, Relationship, ReferenceName, Payload) VALUES (?, ?, ?, ?, ?, ?, ?)", "1", "Job", defaultFakeExpId, "Experiment", "Owner", "", "{}")
-	if err != nil {
-		panic(err)
-	}
 
 	return db, testDialect, jobStore
 }
@@ -942,6 +938,11 @@ func TestUpdateJob_InternalError(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	db, testDialect, jobStore := initializeDBAndStore()
 	defer db.Close()
+	seedLegacyResourceReferences(t, db, testDialect, &model.ResourceReference{
+		ResourceUUID: "1", ResourceType: model.JobResourceType,
+		ReferenceUUID: defaultFakeExpId, ReferenceType: model.ExperimentResourceType,
+		Relationship: model.OwnerRelationship,
+	})
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)

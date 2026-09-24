@@ -78,7 +78,8 @@ familiar and simple query experience from the `kubectl` CLI without needing to m
 
 1. Kubeflow pipeline runs will not be included in the Kubernetes native API at this time. It is a desire to eventually
    do this, but it has scale concerns (e.g. 80k+ runs by some users) that require a different approach with tradeoffs.
-1. Kubernetes-native pipeline storage serves the v2beta1 API.
+1. This will not support the v1 API of Kubeflow pipelines. To continue using the v1 API, the user must continue using
+   the default database solution.
 
 ## Proposal
 

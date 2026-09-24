@@ -276,11 +276,11 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2beta1.Ge
 	return toApiPipeline(pipeline), nil
 }
 
-// Fetches pipeline and (optionally) pipeline version for a given name and namespace.
-func (s *BasePipelineServer) getPipelineByName(ctx context.Context, name string, namespace string, apiRequestVersion string) (*model.Pipeline, *model.PipelineVersion, error) {
+// Fetches a pipeline for a given name and namespace.
+func (s *BasePipelineServer) getPipelineByName(ctx context.Context, name string, namespace string) (*model.Pipeline, error) {
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if err := validation.ValidateNamespaceRequired(namespace); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
@@ -288,19 +288,9 @@ func (s *BasePipelineServer) getPipelineByName(ctx context.Context, name string,
 		Verb:      common.RbacResourceVerbGet,
 	}
 	if err := s.canAccessPipeline(ctx, "", resourceAttributes); err != nil {
-		return nil, nil, util.Wrapf(err, "Failed to fetch a pipeline due to authorization error. Check if you have read permission to namespace %v", namespace)
+		return nil, util.Wrapf(err, "Failed to fetch a pipeline due to authorization error. Check if you have read permission to namespace %v", namespace)
 	}
-	switch apiRequestVersion {
-
-	case "v2beta1":
-		p, err := s.resourceManager.GetPipelineByNameAndNamespace(name, namespace)
-		return p, nil, err
-	default:
-		return nil, nil, util.NewInternalServerError(
-			util.NewInvalidInputError("Invalid api version detected"),
-			"Failed to get a pipeline by name and namespace. API request version %v",
-			apiRequestVersion)
-	}
+	return s.resourceManager.GetPipelineByNameAndNamespace(name, namespace)
 }
 
 // Returns a pipeline given name and namespace.
@@ -313,43 +303,32 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2be
 	namespace := request.GetNamespace()
 	name := request.GetName()
 
-	pipeline, _, err := s.getPipelineByName(ctx, name, namespace, "v2beta1")
+	pipeline, err := s.getPipelineByName(ctx, name, namespace)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline with name %s and namespace %s. Check error stack.", name, namespace)
 	}
 	return toApiPipeline(pipeline), nil
 }
 
-// Fetches an array of pipelines and an array of pipeline versions for given search query parameters.
-func (s *BasePipelineServer) listPipelines(ctx context.Context, namespace string, pageToken string, pageSize int32, sortBy string, opts *list.Options, apiRequestVersion string, tagFilters map[string]string) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
+// Fetches pipelines for the given search query parameters.
+func (s *BasePipelineServer) listPipelines(ctx context.Context, namespace string, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
 	// Fill in the default namespace
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	if err := validation.ValidateNamespaceRequired(namespace); err != nil {
-		return nil, nil, 0, "", err
+		return nil, 0, "", err
 	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      common.RbacResourceVerbList,
 	}
 	if err := s.canAccessPipeline(ctx, "", resourceAttributes); err != nil {
-		return nil, nil, 0, "", util.Wrapf(err, "Failed to list pipelines due to authorization error. Check if you have read permission to namespace %v", namespace)
+		return nil, 0, "", util.Wrapf(err, "Failed to list pipelines due to authorization error. Check if you have read permission to namespace %v", namespace)
 	}
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
 	}
 
-	// List pipelines
-	switch apiRequestVersion {
-
-	case "v2beta1":
-		pipelines, size, token, err := s.resourceManager.ListPipelines(filterContext, opts, tagFilters)
-		return pipelines, nil, size, token, err
-	default:
-		return nil, nil, 0, "", util.NewInternalServerError(
-			util.NewInvalidInputError("Invalid api version detected"),
-			"Failed to list pipelines due to unsupported API request. API request version %v",
-			apiRequestVersion)
-	}
+	return s.resourceManager.ListPipelines(filterContext, opts, tagFilters)
 }
 
 // Returns pipelines for a given query.
@@ -379,7 +358,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.
 		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	}
 
-	pipelines, _, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, pageToken, pageSize, sortBy, opts, "v2beta1", tagFilters)
+	pipelines, totalSize, nextPageToken, err := s.listPipelines(ctx, namespace, opts, tagFilters)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipelines in namespace %s. Check error stack", namespace)
 	}
@@ -889,7 +868,7 @@ func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *api
 	return toApiPipelineVersion(updatedVersion), nil
 }
 
-// // Checks if a user can access a pipeline version.
+// Checks if a user can access a pipeline version.
 // Adds namespace of the parent pipeline if version id is not empty,
 // API group, version, and resource type.
 func (s *BasePipelineServer) canAccessPipelineVersion(ctx context.Context, versionId string, resourceAttributes *authorizationv1.ResourceAttributes) error {

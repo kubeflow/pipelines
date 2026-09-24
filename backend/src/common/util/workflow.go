@@ -1022,7 +1022,7 @@ func (w *Workflow) CanRetry() error {
 	const componentMarker = "pipelines.kubeflow.org/v2_component"
 	metadata := w.Spec.PodMetadata
 	if metadata == nil || (metadata.Labels[componentMarker] != "true" && metadata.Annotations[componentMarker] != "true") {
-		return NewInvalidInputError("Legacy workflow templates cannot be retried; create a new run from pipeline IR")
+		return NewInvalidInputError("Cannot retry workflow missing the IR compiler's v2_component pod metadata marker; create a new run from pipeline IR and ensure controllers and webhooks preserve spec.podMetadata")
 	}
 	return nil
 }

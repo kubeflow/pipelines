@@ -440,9 +440,20 @@ func toMapProtoStructParameters(p string) map[string]*structpb.Value {
 	if p == "" || p == "null" || p == "[]" {
 		return protoParams
 	}
-	err := json.Unmarshal([]byte(p), &protoParams)
-	if err != nil {
+	if err := json.Unmarshal([]byte(p), &protoParams); err == nil {
+		return protoParams
+	}
+	// Historical records stored string parameters as an array, not an IR map.
+	var legacyParams []struct {
+		Name  string `json:"name"`
+		Value string `json:"value"`
+	}
+	if err := json.Unmarshal([]byte(p), &legacyParams); err != nil {
 		return nil
+	}
+	protoParams = make(map[string]*structpb.Value, len(legacyParams))
+	for _, param := range legacyParams {
+		protoParams[param.Name] = structpb.NewStringValue(param.Value)
 	}
 	return protoParams
 }
@@ -936,7 +947,6 @@ func toModelJob(apiJob *apiv2beta1.RecurringRun) (*model.Job, error) {
 	var noCatchup, isEnabled bool
 	var trigger *model.Trigger
 	var jobPluginsInputStr *string
-	resRefs := make([]*model.ResourceReference, 0)
 	pipelineId = apiJob.GetPipelineVersionReference().GetPipelineId()
 	pipelineVersionId = apiJob.GetPipelineVersionReference().GetPipelineVersionId()
 
@@ -1032,7 +1042,6 @@ func toModelJob(apiJob *apiv2beta1.RecurringRun) (*model.Job, error) {
 		Enabled:            isEnabled,
 		Conditions:         status.ToString(),
 		ExperimentId:       experimentId,
-		ResourceReferences: resRefs,
 		PluginsInputString: stringToLargeText(jobPluginsInputStr),
 		Trigger:            *trigger,
 		PipelineSpec: model.PipelineSpec{

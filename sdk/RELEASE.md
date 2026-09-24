@@ -19,6 +19,21 @@
   with an older compatible KFP v2 SDK before upgrading, then update consumers to
   load the IR files. See the [migration guide](../docs/user-guides/migration.md).
 
+* The accompanying backend/UI release removes v1 APIs, execution, and historical
+  v1 run-details, graph, output, and comparison views. Database records are
+  retained, but their old UI views are not. Export required history before
+  upgrading.
+* Existing recurring runs with malformed embedded templates or templates without
+  the IR compiler's `v2_component` pod-metadata marker stop firing, regardless of
+  the former `BLOCK_V1_PIPELINES` setting. A workflow-level `v2_pipeline` marker
+  alone no longer suffices. Disable these schedules before upgrading and recreate
+  them from pipeline IR; otherwise the controller reports repeated submission
+  errors. Retrying a stored workflow also requires the pod-metadata marker.
+* New runs and recurring runs no longer write legacy `resource_references` rows.
+  Ownership and pipeline references are stored in native columns. Historical
+  reference reads and deletion cleanup remain supported. See the
+  [migration guide](../docs/user-guides/migration.md#existing-runs-and-recurring-runs).
+
 ## Deprecations
 
 ## Bug fixes and other changes

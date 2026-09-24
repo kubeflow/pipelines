@@ -851,16 +851,9 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			r.Namespace, r.DisplayName)
 	}
 
-	// Use a transaction to make sure both run and its resource references are stored.
-	tx, err := s.db.Begin()
+	// New runs persist ownership in native columns, not legacy resource references.
+	_, err = s.db.Exec(runSQL, runArgs...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create run")
-	}
-	defer tx.Rollback()
-
-	_, err = tx.Exec(runSQL, runArgs...)
-	if err != nil {
-		tx.Rollback()
 		// A concurrent recurring-run trigger may have already created this run. Such runs
 		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
 		// duplicate insert collides on the primary key. Resolve it idempotently by
@@ -875,18 +868,6 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.DisplayName)
 	}
 
-	// TODO(gkcalat): consider moving resource reference management to ResourceManager
-	// and provide logic for data migration for v1beta1 data.
-	err = s.resourceReferenceStore.CreateResourceReferences(tx, r.ResourceReferences)
-	if err != nil {
-		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store resource references to table for run %v ", r.DisplayName)
-	}
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store run %v and its resource references to table", r.DisplayName)
-	}
 	return r, nil
 }
 
