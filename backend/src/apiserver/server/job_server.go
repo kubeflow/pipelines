@@ -99,6 +99,17 @@ func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.J
 	if job.DisplayName == "" {
 		return nil, util.NewInvalidInputError("Recurring run name is empty. Please specify a valid name")
 	}
+	// Resolving an empty experiment id creates the namespace's default
+	// experiment, so authorize the requested namespace before that write.
+	if common.IsMultiUserMode() && job.ExperimentId == "" {
+		if err := s.canAccessJob(ctx, "", &authorizationv1.ResourceAttributes{
+			Namespace: job.Namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Name:      job.DisplayName,
+		}); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a recurring run due to authorization error. Check if you have write permission to namespace %s", job.Namespace)
+		}
+	}
 	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(job.ExperimentId, job.Namespace)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to create a recurring run due to invalid experimentId and namespace combination")
