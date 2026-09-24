@@ -42,8 +42,6 @@ class YamlComponent(base_component.BaseComponent):
         """Returns the pipeline spec of the component."""
         component_dict = structures.load_documents_from_yaml(
             self.component_yaml)[0]
-        if 'implementation' in component_dict:
-            return self.component_spec.to_pipeline_spec()
         return json_format.ParseDict(component_dict,
                                      pipeline_spec_pb2.PipelineSpec())
 

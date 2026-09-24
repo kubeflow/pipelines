@@ -12,9 +12,12 @@
 
 * Component loaders now accept only PipelineSpec IR YAML, optionally followed by
   a PlatformSpec document. Old `implementation: container:` component YAML is
-  rejected. Define components with the current DSL and compile them with
-  `kfp.compiler.Compiler().compile()` before using `load_component_from_text`,
-  `load_component_from_file`, or `load_component_from_url`.
+  rejected, including when loaded by a v2 pipeline. Define components with the
+  current DSL and compile them with `kfp.compiler.Compiler().compile()` before
+  using `load_component_from_text`, `load_component_from_file`, or
+  `load_component_from_url`. Alternatively, convert legacy container files to IR
+  with an older compatible KFP v2 SDK before upgrading, then update consumers to
+  load the IR files. See the [migration guide](../docs/user-guides/migration.md).
 
 ## Deprecations
 

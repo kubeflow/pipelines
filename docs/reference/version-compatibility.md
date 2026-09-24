@@ -10,7 +10,8 @@ the [release notes](https://github.com/kubeflow/pipelines/releases) for the rele
 you deploy.
 
 Argo Workflow YAML is an internal runtime output, not a supported pipeline upload
-format. Component loaders accept compiled IR and retain a compile-time adapter
-for legacy `implementation: container:` component YAML used by v2 pipelines.
-See [upgrading pipeline definitions](../user-guides/migration.md) before upgrading
-an existing installation.
+format. Component loaders accept only compiled PipelineSpec IR YAML. Loading
+legacy v1 container component YAML is no longer supported, including from v2
+pipeline sources. Convert those files with an older compatible KFP v2 SDK before
+upgrading, or rewrite the components with v2 decorators. See
+[upgrading pipeline definitions](../user-guides/migration.md).

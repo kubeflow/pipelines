@@ -3,9 +3,9 @@
 Current Kubeflow Pipelines supports v2 SDK pipelines compiled to
 [IR YAML](../concepts/ir-yaml.md) and the `/apis/v2beta1` REST API. Before upgrading,
 export the source of your pipelines and recompile them with the current SDK.
-Historical Argo-format pipelines are unsupported. Existing v2 pipelines may
-continue loading legacy `implementation: container:` component YAML: the SDK
-converts those components to native v2 IR without v1 backend support.
+Historical Argo-format pipelines and legacy v1 component YAML are unsupported.
+This is a breaking change for existing v2 pipeline sources that load
+`implementation: container:` component files, as well as for v1 pipelines.
 
 ## Author and compile components
 
@@ -17,19 +17,35 @@ for existing container entrypoints. Use `dsl.Input`, `dsl.Output`,
 
 Compile both components and pipelines with `kfp.compiler.Compiler().compile()`.
 The `load_component_from_file`, `load_component_from_text`, and
-`load_component_from_url` helpers accept both the resulting IR and legacy
-container component YAML. To migrate a shared component file without rewriting
-its implementation, load it and compile it to IR:
+`load_component_from_url` helpers accept only the resulting PipelineSpec IR,
+optionally followed by a PlatformSpec document.
 
-```python
-from kfp import compiler, components
+## Migrate legacy container component files before upgrading
 
-component = components.load_component_from_file('legacy-component.yaml')
-compiler.Compiler().compile(component, 'component-ir.yaml')
-```
+Choose one of these migration paths:
 
-This compatibility adapter does not accept Argo Workflow YAML or restore v1
-pipeline compilation. New components should use the v2 decorators above.
+- Rewrite the component using `@dsl.container_component` and compile it with the
+  current SDK. Preserve its image, command, arguments, typed inputs/outputs,
+  defaults, and optional-input behavior.
+- Before upgrading, use an older KFP v2 SDK that still supports legacy container
+  YAML, in a separate environment, to convert the file to IR:
+
+  ```python
+  # Run with an older compatible KFP v2 SDK, not the current SDK.
+  from kfp import compiler, components
+
+  component = components.load_component_from_file('legacy-component.yaml')
+  compiler.Compiler().compile(component, 'component-ir.yaml')
+  ```
+
+Then change the pipeline source or component package to load `component-ir.yaml`
+instead of the legacy file. Recompile and test the pipeline with the current SDK
+before deploying it. If a third-party package loads legacy YAML during import,
+use a migrated package release or coordinate migration with its publisher.
+
+The current SDK cannot perform the legacy-to-IR conversion. Legacy graph
+implementations and Argo Workflow YAML must be rewritten as v2 pipelines; they
+are not covered by the container conversion path above.
 
 ## Submit and inspect runs
 

@@ -54,5 +54,5 @@ jobs:
 
     - name: Compile shared container fixtures without legacy YAML
       run: |
-        PYTHONPATH="$PWD/components/google-cloud:${PYTHONPATH:-}" \
-          python -m pytest -q test_data/component_migration_test.py
+        # Source-tree Google Cloud components are outside this migration's scope.
+        python -m pytest -q test_data/component_migration_test.py

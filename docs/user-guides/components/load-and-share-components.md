@@ -4,10 +4,11 @@ This section describes how to load and use existing components. In this section,
 
 IR YAML serves as a portable, sharable computational template. This allows you compile and share your components with others, as well as leverage an ecosystem of existing components.
 
-All three loaders accept compiled IR and legacy `implementation: container:`
-component YAML. Legacy components are converted to native v2 components during
-loading, so existing v2 pipeline sources can keep using shared component files.
-Prefer compiled IR when publishing new components.
+All three loaders accept only compiled PipelineSpec IR YAML, optionally followed
+by a PlatformSpec document. Legacy `implementation: container:` and
+`implementation: graph:` component YAML and raw Argo Workflow YAML are not
+supported. This also affects v2 pipelines that load older component files; see
+[migrating component files before upgrading](../migration.md).
 
 To use an existing component, you can load it using the [`components`][components-module] module and use it with other components in a pipeline:
 

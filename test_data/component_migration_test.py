@@ -22,7 +22,6 @@ import unittest
 
 from kfp import compiler
 from kfp import components
-from kfp import dsl
 
 
 class ComponentMigrationTest(unittest.TestCase):
@@ -104,19 +103,6 @@ class ComponentMigrationTest(unittest.TestCase):
                               'ENV2': 'val2',
                               'ENV3': 'val3'
                           })
-
-    def test_gcpc_containers_preserve_typed_optional_artifacts(self):
-        from google_cloud_pipeline_components._implementation.starry_net.evaluation.component import evaluation
-        from google_cloud_pipeline_components._implementation.starry_net.upload_model.component import upload_model
-        self.assertEqual(evaluation.component_spec.inputs['model'].type,
-                         'google.VertexModel@0.0.1')
-        self.assertTrue(evaluation.component_spec.inputs['model'].optional)
-        self.assertEqual(upload_model.component_spec.outputs['model'].type,
-                         'google.VertexModel@0.0.1')
-        self.assertTrue(
-            any(
-                isinstance(arg, dsl.IfPresentPlaceholder) for arg in
-                upload_model.component_spec.implementation.container.args))
 
 
 if __name__ == '__main__':

@@ -20,9 +20,15 @@ The compiler records the component's typed interface in `root` and its container
 implementation in `deploymentSpec.executors`. The authoritative schema is
 [`api/v2alpha1/pipeline_spec.proto`](https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto).
 
+## Loading component definitions
+
 Load compiled components with
 [`kfp.components.load_component_from_file`](../user-guides/components/load-and-share-components.md).
-The file, text, and URL loaders accept IR and legacy container component YAML
-with `inputs`, `outputs`, and `implementation` at the top level. The SDK
-converts the legacy format to native v2 components; it does not require v1
-backend APIs. See [migrating component files](../user-guides/migration.md).
+The file, text, and URL loaders accept only PipelineSpec IR YAML, optionally
+followed by a PlatformSpec document.
+
+Legacy v1 component YAML with top-level `implementation: container:` or
+`implementation: graph:` is not supported, even when used by a v2 pipeline.
+Raw Argo Workflow YAML is also unsupported. Rewrite components with the v2 SDK,
+or convert legacy container files to IR using an older compatible KFP v2 SDK
+**before upgrading**. See [migrating component files](../user-guides/migration.md).

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for public IR and legacy container component loaders."""
+"""Tests for public IR component loaders and unsupported legacy formats."""
 
 import os
 import tempfile
@@ -87,92 +87,43 @@ class LoadYamlTests(parameterized.TestCase):
                 get.assert_called_once_with(url, auth=auth)
                 response.raise_for_status.assert_called_once_with()
 
-    @parameterized.product(entrypoint=['text', 'file', 'url'])
-    def test_legacy_container_compiles_to_native_ir(self, entrypoint):
-        text = '''name: shared-component
+    @parameterized.product(
+        entrypoint=['text', 'file', 'url'],
+        definition=[
+            '''name: legacy-container
 inputs:
 - {name: message, type: String, default: hello}
-- {name: enabled, type: Boolean, default: 'false'}
-- {name: number, type: Integer, default: '0'}
-- {name: items, type: JsonArray, default: '[]'}
-- {name: config, type: JsonObject, default: '{}'}
-- {name: dataset, type: Dataset}
-- {name: optional_dataset, type: Dataset, optional: true}
-outputs:
-- {name: model, type: Model}
-- {name: count, type: Integer}
 implementation:
   container:
     image: alpine
     command: [echo]
-    env: {MESSAGE: hello}
     args:
     - {inputValue: message}
-    - {inputPath: dataset}
-    - {inputUri: dataset}
-    - {outputPath: model}
-    - {outputUri: model}
-    - {outputPath: count}
-    - {executorInput: null}
-    - if:
-        cond: {isPresent: optional_dataset}
-        then:
-        - concat: ['--dataset=', {inputUri: optional_dataset}]
-        else: ['--no-dataset']
-'''
-        with tempfile.TemporaryDirectory() as directory:
-            loaded = self.load(entrypoint, text, directory)
-            self.assertEqual(loaded.component_spec.inputs['dataset'].type,
-                             'system.Dataset@0.0.1')
-            self.assertTrue(
-                loaded.component_spec.inputs['optional_dataset'].optional)
-            for name, default in {
-                    'enabled': False,
-                    'number': 0,
-                    'items': [],
-                    'config': {}
-            }.items():
-                self.assertEqual(loaded.component_spec.inputs[name].default,
-                                 default)
-            self.assertEqual(loaded.component_spec.outputs['model'].type,
-                             'system.Model@0.0.1')
-            component_path = os.path.join(directory, 'component.yaml')
-            compiler.Compiler().compile(loaded, component_path)
-            reloaded = components.load_component_from_file(component_path)
-            self.assertEqual(reloaded.pipeline_spec, loaded.pipeline_spec)
-            with open(component_path) as f:
-                compiled_component = yaml.safe_load(f)
-            executor = compiled_component['deploymentSpec']['executors'][
-                'exec-shared-component']['container']
-            self.assertEqual(executor['env'], [{
-                'name': 'MESSAGE',
-                'value': 'hello'
-            }])
-            self.assertIn("{{$.outputs.parameters['count'].output_file}}",
-                          executor['args'])
-
-            @dsl.pipeline
-            def pipeline(dataset: dsl.Input[dsl.Dataset]):
-                loaded(dataset=dataset)
-
-            pipeline_path = os.path.join(directory, 'pipeline.yaml')
-            compiler.Compiler().compile(pipeline, pipeline_path)
-            with open(pipeline_path) as f:
-                ir = yaml.safe_load(f)
-            self.assertEqual(ir['schemaVersion'], '2.1.0')
-            self.assertIn('shared-component', ir['root']['dag']['tasks'])
-            self.assertNotIn('implementation', ir)
-
-    def test_legacy_graph_implementation_remains_unsupported(self):
-        text = '''name: old-graph
+''',
+            '''name: legacy-graph
 implementation:
   graph:
     tasks: {}
     outputValues: {}
-'''
-        with self.assertRaisesRegex(NotImplementedError,
-                                    'Container implementation not found'):
-            components.load_component_from_text(text)
+''',
+            '''apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: legacy-workflow-
+spec:
+  entrypoint: echo
+  templates:
+  - name: echo
+    container:
+      image: alpine
+      command: [echo, hello]
+''',
+        ])
+    def test_legacy_formats_rejected(self, entrypoint, definition):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError,
+                                        'PipelineSpec IR.*before upgrading'):
+                self.load(entrypoint, definition, directory)
 
     @parameterized.product(entrypoint=['text', 'file', 'url'])
     def test_container_component_round_trip(self, entrypoint):
