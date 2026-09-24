@@ -417,12 +417,40 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 		return nil, err
 	}
 
-	executorOutput, err := l.execute(ctx, compiledCmd, compiledArgs)
-	if err != nil {
-		if uploadErr := l.uploadExecutorLogsArtifact(ctx); uploadErr != nil {
-			return nil, fmt.Errorf("failed to execute component: %w (executor log upload failed: %v)", err, uploadErr)
+	debugPauseCfg := NewDebugPauseConfigFromEnv()
+	if debugPauseCfg.Enabled() {
+		signaler := NewKFPAPIPauseSignaler(l.clientManager.KFPAPIClient(), l.options.Run.GetRunId(), l.options.Task.GetTaskId())
+		if debugPauseCfg.Before {
+			if err := Pause(ctx, signaler, DebugPauseBarrierBefore, debugPauseCfg); err != nil {
+				return nil, fmt.Errorf("debug pause before execution: %w", err)
+			}
 		}
-		return nil, err
+	}
+
+	executorOutput, execErr := l.execute(ctx, compiledCmd, compiledArgs)
+
+	if debugPauseCfg.Enabled() {
+		signaler := NewKFPAPIPauseSignaler(l.clientManager.KFPAPIClient(), l.options.Run.GetRunId(), l.options.Task.GetTaskId())
+		if barrier := BarrierForError(debugPauseCfg, execErr != nil); barrier != debugPauseBarrierNone {
+			if pauseErr := Pause(ctx, signaler, barrier, debugPauseCfg); pauseErr != nil {
+				// A pause-after/on_error timeout or cancellation is reported
+				// as the task's failure reason, but must never mask a real
+				// execution error that already happened execErr, if any,
+				// takes precedence.
+				if execErr == nil {
+					execErr = fmt.Errorf("debug pause after execution: %w", pauseErr)
+				} else {
+					glog.Warningf("debug pause after execution also failed, but preserving original execution error: %v", pauseErr)
+				}
+			}
+		}
+	}
+	
+	if execErr != nil {
+		if uploadErr := l.uploadExecutorLogsArtifact(ctx); uploadErr != nil {
+			return nil, fmt.Errorf("failed to execute component: %w (executor log upload failed: %v)", execErr, uploadErr)
+		}
+		return nil, execErr
 	}
 
 	// collectOutputParameters() stays at the executeV2() layer because it is part

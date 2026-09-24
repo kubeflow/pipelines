@@ -40,6 +40,7 @@ import {
   TaskType,
 } from 'src/lib/v2/StaticFlow';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import { getDebugPauseBarrier } from 'src/lib/v2/DebugPauseUtils';
 import {
   formatRuntimeIterationLayer,
   isRuntimeIterationLayer,
@@ -189,6 +190,7 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+      data.debugPauseBarrier = getDebugPauseBarrier(runtimeInfo.task);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
       data.state = getRuntimeTaskState(
