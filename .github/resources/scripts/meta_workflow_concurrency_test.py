@@ -14,8 +14,14 @@
 # limitations under the License.
 
 import ast
+import json
+import os
 from pathlib import Path
 import re
+import shutil
+import subprocess
+import tempfile
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -250,6 +256,98 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                         'author': author,
                         'actor': actor,
                     }), should_run)
+
+    def test_gatekeeper_uses_trusted_shared_membership_module(self):
+        workflow = self._read_workflow('pr-gate.yml')
+        self.assertIn("if: steps.membership-check.outputs.is_member == 'false'",
+                      workflow)
+        self.assertNotIn('continue-on-error', workflow)
+        self.assertNotIn('author_association', workflow)
+        self.assertNotIn('contributor-report.py', workflow)
+        self.assertIn('ref: ${{ github.workflow_sha }}', workflow)
+        self.assertIn('persist-credentials: false', workflow)
+        self.assertIn('sparse-checkout: .github/scripts/kubeflow_membership.py',
+                      workflow)
+        self.assertIn('run: python3 .github/scripts/kubeflow_membership.py',
+                      workflow)
+        self.assertIn('PR_AUTHOR: ${{ github.event.pull_request.user.login }}',
+                      workflow)
+        self.assertIn("'.github/workflows/pr-gate.yml'",
+                      self._read_workflow('ci-scripts-tests.yml'))
+
+    @unittest.skipUnless(
+        shutil.which('jq'), 'jq is required by the gate script')
+    def test_gatekeeper_closure_message_and_guidelines_link(self):
+        workflow = self._read_workflow('pr-gate.yml')
+        message = textwrap.dedent(
+            workflow.split('          CLOSURE_MESSAGE: |\n',
+                           1)[1].split('        run: |', 1)[0]).strip()
+        heading = 'Pull Request Admission for External Contributors'
+        anchor = heading.lower().replace(' ', '-')
+        self.assertIn('### ' + heading, (ROOT / 'CONTRIBUTING.md').read_text())
+        self.assertEqual(
+            message,
+            'PRs from external contributors must link to an issue that a maintainer has labeled `ready`.\n\n'
+            'This PR does not currently meet that requirement. This is not a judgment on the quality of your contribution.\n\n'
+            'To continue, please work with maintainers to get the associated issue triaged and labeled `ready`, then link to it in the PR description.\n\n'
+            f'See [{heading}](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md#{anchor}) for the updated contribution guidelines.',
+        )
+        script = textwrap.dedent(workflow.rsplit('        run: |\n', 1)[1])
+        fake_gh = '''
+        gh() {
+          case "$1 $2" in
+            'pr view') printf '%s' "$ISSUE_JSON" ;;
+            'issue view') printf '%s' "$LABELS_JSON" ;;
+            'pr comment') printf '%s' "$5" > "$COMMENT_FILE" ;;
+            'pr close') printf 'closed' > "$STATE_FILE" ;;
+            'pr edit') printf 'admitted' > "$STATE_FILE" ;;
+            *) return 99 ;;
+          esac
+        }
+        '''
+        cases = [([], [], 'closed'), ([{
+            'number': 123
+        }], [], 'closed'), ([{
+            'number': 123
+        }], [{
+            'name': 'ready'
+        }], 'admitted')]
+        for issues, labels, expected_state in cases:
+            with self.subTest(
+                    issues=issues,
+                    labels=labels), tempfile.TemporaryDirectory() as directory:
+                comment_file = Path(directory) / 'comment'
+                state_file = Path(directory) / 'state'
+                result = subprocess.run(
+                    ['bash', '-eo', 'pipefail', '-c', fake_gh + script],
+                    env={
+                        **os.environ,
+                        'PR_NUMBER':
+                            '456',
+                        'GITHUB_REPOSITORY':
+                            'kubeflow/pipelines',
+                        'CLOSURE_MESSAGE':
+                            message,
+                        'ISSUE_JSON':
+                            json.dumps({'closingIssuesReferences': issues}),
+                        'LABELS_JSON':
+                            json.dumps({'labels': labels}),
+                        'COMMENT_FILE':
+                            str(comment_file),
+                        'STATE_FILE':
+                            str(state_file),
+                    },
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                closed = expected_state == 'closed'
+                self.assertEqual(result.returncode, 1 if closed else 0,
+                                 result.stderr)
+                self.assertEqual(state_file.read_text(), expected_state)
+                self.assertEqual(comment_file.exists(), closed)
+                if closed:
+                    self.assertEqual(comment_file.read_text(), message)
 
     def test_eligibility_shell_receives_label_name_through_environment(self):
         workflow = self._read_workflow('ci-checks.yml')

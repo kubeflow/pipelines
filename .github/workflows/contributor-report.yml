@@ -26,6 +26,7 @@ jobs:
           ref: ${{ github.workflow_sha }}
           sparse-checkout: |
             .github/scripts/contributor-report.py
+            .github/scripts/kubeflow_membership.py
           sparse-checkout-cone-mode: false
 
       - name: Generate contributor report

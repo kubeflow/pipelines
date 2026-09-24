@@ -42,6 +42,7 @@ on:
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
       - '.github/workflows/pre-commit.yml'
+      - '.github/workflows/pr-gate.yml'
       - '.github/workflows/gh-workflow-approve.yml'
       - '.github/workflows/contributor-report.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
