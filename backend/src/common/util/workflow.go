@@ -164,11 +164,14 @@ func (w *Workflow) ExecutionStatus() ExecutionStatus {
 }
 
 // NewRetryPlaceholder creates a suspended Workflow for the first phase of retry recreation.
+// The retry-generation claim stays off this object so a create-only partial failure is not
+// mistaken for a completed activation when RetryRun re-reads the live Workflow.
 func (w *Workflow) NewRetryPlaceholder() ExecutionSpec {
 	placeholder := NewWorkflow(w.DeepCopy())
 	placeholder.ClearPersistedNodeStatus()
 	placeholder.SetVersion("")
 	placeholder.UID = ""
+	delete(placeholder.Annotations, AnnotationKeyRetryGeneration)
 	suspend := true
 	placeholder.Spec.Suspend = &suspend
 	return placeholder
