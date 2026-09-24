@@ -4,7 +4,6 @@
 #              dependencies.
 # Inputs:
 #    backend_compiler: system.Artifact
-#    driver_image: str [Default: 'gcr.io/ml-pipeline/kfp-driver:latest']
 #    external_host: str
 #    gcs_root: str
 #    host: str [Default: 'http://ml-pipeline:8888']
@@ -21,10 +20,6 @@ components:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
       parameters:
-        driver_image:
-          defaultValue: gcr.io/ml-pipeline/kfp-driver:latest
-          isOptional: true
-          parameterType: STRING
         external_host:
           parameterType: STRING
         gcs_root:
@@ -50,20 +45,18 @@ deploymentSpec:
         - -exc
         - "backend_compiler_path=\"$0\"\nsample_path=\"$1\"\noutput_dir=\"$2\"\nexport\
           \ KF_PIPELINES_ENDPOINT=\"$3\"\nexport KF_PIPELINES_UI_ENDPOINT=\"$4\"\n\
-          launcher_v2_image=\"$5\"\ndriver_image=\"$6\"\n\n# install kfp v2 backend\
-          \ compiler\nchmod +x \"$backend_compiler_path\"\ncp \"$backend_compiler_path\"\
-          \ /usr/local/bin/kfp-v2-compiler\n# Run with the checkout's native SDK and\
-          \ sample runner dependencies.\npip install uv\nuv run --frozen --extra backend-v2-test\
-          \ python3 \\\n  -u \\\n  -m \"$sample_path\" \\\n  --pipeline_root \"$output_dir\"\
-          \ \\\n  --launcher_v2_image \"$launcher_v2_image\" \\\n  --driver_image\
-          \ \"$driver_image\"\n"
+          launcher_v2_image=\"$5\"\n\n# install kfp v2 backend compiler\nchmod +x\
+          \ \"$backend_compiler_path\"\ncp \"$backend_compiler_path\" /usr/local/bin/kfp-v2-compiler\n\
+          # Run with the checkout's native SDK and sample runner dependencies.\npip\
+          \ install uv\nuv run --frozen --extra backend-v2-test python3 \\\n  -u \\\
+          \n  -m \"$sample_path\" \\\n  --pipeline_root \"$output_dir\" \\\n  --launcher_v2_image\
+          \ \"$launcher_v2_image\"\n"
         - '{{$.inputs.artifacts[''backend_compiler''].path}}'
         - '{{$.inputs.parameters[''sample_path'']}}'
         - '{"Concat": ["{{$.inputs.parameters[''gcs_root'']}}", "/", "{{$.inputs.parameters[''name'']}}"]}'
         - '{{$.inputs.parameters[''host'']}}'
         - '{{$.inputs.parameters[''external_host'']}}'
         - '{{$.inputs.parameters[''launcher_v2_image'']}}'
-        - '{{$.inputs.parameters[''driver_image'']}}'
         image: python:3.11-alpine
 pipelineInfo:
   name: run-sample
@@ -80,8 +73,6 @@ root:
             backend_compiler:
               componentInputArtifact: backend_compiler
           parameters:
-            driver_image:
-              componentInputParameter: driver_image
             external_host:
               componentInputParameter: external_host
             gcs_root:
@@ -103,10 +94,6 @@ root:
           schemaTitle: system.Artifact
           schemaVersion: 0.0.1
     parameters:
-      driver_image:
-        defaultValue: gcr.io/ml-pipeline/kfp-driver:latest
-        isOptional: true
-        parameterType: STRING
       external_host:
         parameterType: STRING
       gcs_root:

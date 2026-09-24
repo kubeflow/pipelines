@@ -52,6 +52,14 @@ ${DIR}/test.sh
 # verify release script runs properly
 
 ${DIR}/release.sh v1.2.3-dummy
+# Embedded plugin images must be updated as well as ordinary container images.
+for manifest in \
+  "base/pipeline/ml-pipeline-driver-plugin-cm.yaml" \
+  "env/cert-manager/platform-agnostic-standalone-tls/patches/ml-pipeline-driver-plugin-cm.yaml"
+do
+  plugin_image="$(yq r "${DIR}/../${manifest}" 'data."sidecar.container"' | yq r - image)"
+  test "${plugin_image}" = "ghcr.io/kubeflow/kfp-driver:v1.2.3-dummy"
+done
 # --no-pager sends output to stdout
 # Show git diff, so people can manually verify results of the release script
 git --no-pager diff
