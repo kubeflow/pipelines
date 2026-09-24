@@ -652,8 +652,15 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
 	syncWorkflowReportWithFakeCluster(t, store, updatedWorkflow)
-	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
-	assert.Nil(t, err)
+
+	// Persist an offloaded terminal snapshot without ReportWorkflowResource's
+	// hydrate-on-finalize gate so RetryRun tests can exercise hydrate-at-retry
+	// (and the CanRetry rejection when hydration is unavailable).
+	runDetail.WorkflowRuntimeManifest = model.LargeText(updatedWorkflow.ToStringForStore())
+	runDetail.Conditions = string(v1alpha1.WorkflowFailed)
+	runDetail.State = model.RuntimeStateFailed
+	runDetail.FinishedAtInSec = 1
+	require.NoError(t, manager.runStore.UpdateRun(runDetail))
 	return store, manager, runDetail
 }
 
@@ -3866,8 +3873,9 @@ func TestRetryRun_FailedOffloadNodeStatus(t *testing.T) {
 	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Aborted))
-	assert.Contains(t, err.Error(), "Cannot retry workflow with offloaded node status")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Internal))
+	assert.Contains(t, err.Error(), "OffloadNodeStatusVersion")
+	assert.Contains(t, err.Error(), "hydrating workflow node status")
 }
 
 func TestRetryRun_OffloadedNodeStatus_Hydrated(t *testing.T) {
@@ -3925,6 +3933,9 @@ func TestRetryRun_OffloadedNodeStatus_RecreateUsesNewUID(t *testing.T) {
 		"the status-free create must remain inert until the retry status is installed")
 	assert.Empty(t, recordingClient.createdSpec.Status.Nodes)
 	assert.Empty(t, recordingClient.createdSpec.Status.OffloadNodeStatusVersion)
+	_, hasRetryGeneration := recordingClient.createdSpec.Annotations[util.AnnotationKeyRetryGeneration]
+	assert.False(t, hasRetryGeneration,
+		"placeholder must omit the claim marker so create-only failures are not treated as applied")
 	assert.True(t, recordingClient.updateSawCreationTimestamp,
 		"the activating update must carry the server-assigned creation timestamp")
 

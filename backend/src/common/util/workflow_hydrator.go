@@ -65,6 +65,15 @@ func (w *Workflow) Hydrate(ctx context.Context) error {
 	if err := workflowHydrator.Hydrate(withArgoLogger(ctx), w.Workflow); err != nil {
 		return NewInternalServerError(err, "Failed to hydrate offloaded workflow node status")
 	}
+	// Argo's no-op hydrator returns nil without clearing OffloadNodeStatusVersion when
+	// persistence was not initialized. Treat a remaining marker as failure so callers
+	// keep the live Workflow and retry hydration instead of persisting a stale pointer.
+	if w.Status.OffloadNodeStatusVersion != "" {
+		return NewInternalServerError(
+			fmt.Errorf("OffloadNodeStatusVersion %q remains set after hydrate", w.Status.OffloadNodeStatusVersion),
+			"Failed to hydrate offloaded workflow node status",
+		)
+	}
 	return nil
 }
 
