@@ -91,6 +91,26 @@ data:
   ## If this value doesn't include a unit abbreviation, the units will be assumed
   ## to be nanoseconds.
   ConMaxLifeTime: "120s"
+  ## dbCredentialProviderEnabled: obtain the database password from a
+  ## credential provider instead of the password in the database Secret. When
+  ## "false" (the default) the connection is built exactly as it was before
+  ## credential providers existed, and the three settings below have no effect.
+  ## Valid values are 'true' and 'false'.
+  dbCredentialProviderEnabled: "false"
+  ## dbCredentialProvider: which provider supplies the credential. Required when
+  ## dbCredentialProviderEnabled is "true". 'aws-iam' is the only one that ships
+  ## today; it names a cloud, so it has no default.
+  dbCredentialProvider: ""
+  ## dbCredentialProviderSettings: settings for the credential provider, as a
+  ## JSON object. Keys are defined by the provider; aws-iam reads "region".
+  ## Example: '{"region":"us-east-1"}'
+  dbCredentialProviderSettings: ""
+  ## dbTLSCAPath: path to a CA bundle used to verify the database server
+  ## certificate. Empty leaves the connection unencrypted. It configures the
+  ## credential provider, so it only takes effect while
+  ## dbCredentialProviderEnabled is "true"; setting it otherwise is reported and
+  ## ignored. aws-iam requires it.
+  dbTLSCAPath: ""
   LOG_LEVEL: "info"
   ## ARTIFACTS_PROXY_ENABLED: Controls whether the artifact proxy is enabled
   ## to support accessing out-of-kubeflow scope buckets. The artifact proxy

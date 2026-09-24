@@ -1,0 +1,8 @@
+# Bind the cache server to its own IAM role, so database access stays
+# attributable per component. Replace the account id and role name.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubeflow-pipelines-cache
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::CHANGE_ME:role/kfp-cache-rds

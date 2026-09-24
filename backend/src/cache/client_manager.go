@@ -15,11 +15,11 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"encoding/json"
@@ -31,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
+	"github.com/kubeflow/pipelines/backend/src/common/dbcreds"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -79,20 +80,36 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	driverName := params.dbDriver
 
 	dbDialect := dialect.NewDBDialect(driverName)
-	arg := initDBDriver(params, initConnectionTimeout)
+
+	settings := dbSettings(params)
+	util.TerminateIfError(settings.Validate())
+	// The standard logger, not glog: the cache server's entrypoint passes no
+	// -logtostderr, and glog writes only ERROR and above to stderr.
+	if warning := settings.IgnoredProviderWarning(); warning != "" {
+		log.Print(warning)
+	}
+	if warning := settings.IgnoredTLSWarning(); warning != "" {
+		log.Print(warning)
+	}
+	log.Print(settings.Describe(driverName))
 
 	var dialector gorm.Dialector
-	switch driverName {
-	case "mysql":
-		// DefaultStringSize dictates non-indexable string fields map to VARCHAR(255) for backward compatibility with GORM v1.
-		dialector = mysql.New(mysql.Config{
-			DSN:               arg,
-			DefaultStringSize: 255,
-		})
-	case "pgx":
-		dialector = postgres.Open(arg)
-	default:
-		glog.Fatalf("Driver %v is not supported", driverName)
+	if settings.Enabled {
+		dialector = initDriverWithProvider(params, settings, dbDialect, initConnectionTimeout)
+	} else {
+		arg := initDBDriver(params, initConnectionTimeout)
+		switch driverName {
+		case "mysql":
+			// DefaultStringSize dictates non-indexable string fields map to VARCHAR(255) for backward compatibility with GORM v1.
+			dialector = mysql.New(mysql.Config{
+				DSN:               arg,
+				DefaultStringSize: 255,
+			})
+		case "pgx":
+			dialector = postgres.Open(arg)
+		default:
+			glog.Fatalf("Driver %v is not supported", driverName)
+		}
 	}
 
 	// db is safe for concurrent use by multiple goroutines
@@ -231,7 +248,7 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		// Create database, ignoring "already exists" error
 		pgDialect := dialect.NewDBDialect(params.dbDriver)
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", pgDialect.QuoteIdentifier(params.dbName)))
-		if err != nil && !strings.Contains(err.Error(), "already exists") {
+		if err != nil && !pgDialect.IsDuplicateDatabaseError(err) {
 			db.Close()
 			glog.Fatalf("Failed to create database: %v", err)
 		}
@@ -254,4 +271,94 @@ func NewClientManager(params WhSvrDBParameters, clientParams util.ClientParamete
 	clientManager.init(params, clientParams)
 
 	return clientManager
+}
+
+// dbSettings resolves the credential-provider configuration from flags.
+// Everything after this point is shared with the API server.
+func dbSettings(params WhSvrDBParameters) dbcreds.Settings {
+	return dbcreds.Settings{
+		Enabled:          dbcreds.ParseEnabled(params.dbProviderEnabled),
+		ProviderName:     params.dbCredentialProvider,
+		CABundlePath:     params.dbTLSCAPath,
+		ProviderSettings: params.dbProviderSettings,
+	}
+}
+
+// initDriverWithProvider is the opt-in counterpart of initDBDriver. It obtains
+// the connection from a credential provider, which allows a credential that is
+// regenerated per connection and a verified TLS connection. It returns a
+// dialector over a live handle rather than a DSN, because a provider's
+// credential cannot be written into a connection string.
+//
+// The connection lifecycle itself is dbcreds.Bootstrap, shared with the API
+// server. What stays here is what is genuinely this binary's: the flags the
+// configuration comes from, the standard logger, and the GORM dialector.
+func initDriverWithProvider(params WhSvrDBParameters, settings dbcreds.Settings, dbDialect dialect.DBDialect, initConnectionTimeout time.Duration) gorm.Dialector {
+	// Warn before building, so that a password left behind is reported even if
+	// the provider itself then fails to build.
+	if warning := settings.IgnoredPasswordWarning(params.dbPwd); warning != "" {
+		log.Print(warning)
+	}
+	provider, err := settings.NewProvider(params.dbPwd)
+	util.TerminateIfError(err)
+
+	db, warning, err := dbcreds.Bootstrap(context.Background(), provider, targetFromParams(params), dbcreds.BootstrapOptions{
+		DBName:          params.dbName,
+		QuoteIdentifier: dbDialect.QuoteIdentifier,
+		// The dialect knows each engine's duplicate-database code, which a
+		// substring of the message only approximates. EnsureDatabase probes
+		// when creation is refused for lack of privilege instead.
+		Tolerate: func(err error) error {
+			if err == nil || dbDialect.IsDuplicateDatabaseError(err) {
+				return nil
+			}
+			return err
+		},
+		Timeout: initConnectionTimeout,
+	})
+	util.TerminateIfError(err)
+	if warning != "" {
+		log.Print(warning)
+	}
+
+	switch params.dbDriver {
+	case mysqlDBDriverDefault:
+		// DefaultStringSize dictates non-indexable string fields map to VARCHAR(255) for backward compatibility with GORM v1.
+		return mysql.New(mysql.Config{Conn: db, DefaultStringSize: 255})
+	default:
+		return postgres.New(postgres.Config{Conn: db})
+	}
+}
+
+// targetFromParams describes the database endpoint to connect to. The resulting
+// parameters match those the cache server has always used, so the connection is
+// configured identically whichever provider supplies the credential.
+//
+// The flags are the only argument, because they are the only source: the
+// settings this also needs are themselves derived from them, so taking both
+// would be taking the same configuration twice and inviting the two copies to
+// disagree.
+func targetFromParams(params WhSvrDBParameters) dbcreds.Target {
+	connectionParams := map[string]string{}
+	// group_concat_max_len is a MySQL session variable; the flag documents
+	// itself as MySQL-only and PostgreSQL would reject it as a setting.
+	if params.dbDriver == mysqlDBDriverDefault {
+		connectionParams["group_concat_max_len"] = params.dbGroupConcatMaxLen
+	}
+	extraParams, err := parseDBExtraParams(params.dbExtraParams)
+	if err != nil {
+		glog.Fatalf("Failed to parse db extra params: %v", err)
+	}
+	for key, value := range extraParams {
+		connectionParams[key] = value
+	}
+
+	return dbcreds.Target{
+		Driver: params.dbDriver,
+		Host:   params.dbHost,
+		Port:   params.dbPort,
+		User:   params.dbUser,
+		Params: connectionParams,
+		TLS:    dbSettings(params).TLSOptions(),
+	}
 }
