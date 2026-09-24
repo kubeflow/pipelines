@@ -61,6 +61,7 @@ on:
       - 'kubernetes_platform/python/docs/.readthedocs.yml'
       - 'sdk/python/kfp/version.py'
       - 'kubernetes_platform/python/kfp/kubernetes/__init__.py'
+      - 'kubernetes_platform/python/release.sh'
       - 'backend/src/common/types.go'
       - 'go.mod'
       - 'go.sum'

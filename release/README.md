@@ -86,6 +86,11 @@ independently of the backend `VERSION`. The server API generator reads the SDK
 version and runs before locking or building the workspace, including for
 SDK-only releases. Older release branches retain the pip-compile build path.
 
+Requirements exports retain editable workspace packages and pinned dependencies,
+but omit hashes because pip cannot hash editable sources. Consume these files
+with `pip install -r <export>` from the repository root. The uv lockfile retains
+dependency hashes; CI checks both export freshness and actual pip resolution.
+
 Maintenance releases continue to dispatch the publishing workflow from their
 release branch. The current `publish-packages.yml` also accepts pre-uv tags:
 tool setup is independent of the selected checkout, and package builds use that

@@ -1561,8 +1561,8 @@ class UvReleasePackagesTest(unittest.TestCase):
                 ])
                 runner.run.assert_any_call(
                     [
-                        'uv', 'export', '--frozen', '--no-dev', '--format',
-                        'requirements-txt', '-o', 'requirements.txt'
+                        'uv', 'export', '--frozen', '--no-dev', '--no-hashes',
+                        '--format', 'requirements-txt', '-o', 'requirements.txt'
                     ],
                     cwd=root,
                 )
@@ -1582,7 +1582,7 @@ class UvReleasePackagesTest(unittest.TestCase):
                         runner.run.assert_any_call(
                             [
                                 'uv', 'export', '--frozen', '--no-dev',
-                                '--package', package, '--format',
+                                '--no-hashes', '--package', package, '--format',
                                 'requirements-txt', '-o',
                                 f'{path}/requirements.txt'
                             ],

@@ -26,12 +26,17 @@ Some steps require elevated permissions to push branches, publish the package, a
     By the end, you
     should have pushed a modified `__init__.py`, `conf.py` (from Step 1), and `.gitignore`, `kubernetes_executor_config_pb2.py` and two modified `.readthedocs.yml` files (from Step 2) to the release branch.
 
-1.  [Requires credentials] Ensure you have run `uv sync --extra ci` (or `pip install build`) first, then from the `kubernetes_platform/python` directory with
+1.  [Requires credentials] Install uv and ensure `build` is available in your active
+    Python environment (`uv sync --extra ci` and activate `.venv`, or
+    `python3 -m pip install build`). Then from the `kubernetes_platform/python` directory with
     `KFP_KUBERNETES_VERSION` set, run:
 
     ```
     source release.sh
     ```
+    The script uses portable version extraction and runs Twine 7.0.0 on an isolated
+    Python 3.12 interpreter for both validation and upload. uv provisions that
+    interpreter if needed. Validation must succeed before any upload is attempted.
     To upload packages, you need an [API token](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#create-an-account) (contact @chensun for help).
     Visit https://pypi.org/project/kfp-kubernetes/ and confirm the package was published.
 

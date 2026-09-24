@@ -234,7 +234,9 @@ class PythonPackagingTest(unittest.TestCase):
         workflow = (ROOT /
                     '.github/workflows/check-requirements-txt.yml').read_text()
         self.assertNotIn('working-directory:', workflow)
-        command = textwrap.dedent(workflow.split('        run: |\n', 1)[1])
+        command = textwrap.dedent(
+            workflow.split('        run: |\n', 1)[1].split('      - name:',
+                                                           1)[0])
         for stale_path in (None, *EXPORTS):
             with self.subTest(stale_path=stale_path
                              ), tempfile.TemporaryDirectory() as directory:
@@ -252,6 +254,7 @@ class PythonPackagingTest(unittest.TestCase):
                 uv.write_text(f'#!{sys.executable}\n' + textwrap.dedent('''\
                     from pathlib import Path
                     import sys
+                    assert '--no-hashes' in sys.argv
                     output = Path(sys.argv[sys.argv.index('-o') + 1])
                     output.write_text('current\\n')
                 '''))
@@ -271,6 +274,142 @@ class PythonPackagingTest(unittest.TestCase):
                                  result.stderr)
                 if stale_path is not None:
                     self.assertIn(f'diff --git a/{stale_path}', result.stdout)
+
+    def test_requirements_exports_do_not_hash_editable_packages(self) -> None:
+        """Keep pip's incompatible hash-checking mode out of editable
+        exports."""
+        for relative_path in EXPORTS:
+            with self.subTest(path=relative_path):
+                requirements = (ROOT / relative_path).read_text()
+                self.assertRegex(requirements, r'(?m)^-e \./')
+                self.assertNotIn('--hash=', requirements)
+                self.assertNotIn('--require-hashes', requirements)
+                self.assertIn('--no-hashes', requirements.splitlines()[1])
+
+    def _prepare_kubernetes_publisher(self, root: Path) -> Path:
+        """Copy the real publisher and replace builders/uploaders with
+        fixtures."""
+        package = root / 'kubernetes_platform/python'
+        version_file = package / 'kfp/kubernetes/__init__.py'
+        version_file.parent.mkdir(parents=True)
+        version_file.write_text(
+            "__version__ = '2.17.0'\n"
+            "raise AssertionError('Version extraction must not import the package')\n"
+        )
+        shutil.copy(ROOT / 'kubernetes_platform/python/release.sh', package)
+        fake_bin = root / 'bin'
+        fake_bin.mkdir()
+        scripts = {
+            'python3':
+                '''\
+                import os
+                from pathlib import Path
+                import shutil
+                import sys
+                args = sys.argv[1:]
+                if args[:2] == ['-m', 'build']:
+                    output = Path(args[args.index('--outdir') + 1])
+                    output.mkdir(exist_ok=True)
+                    (output / 'kfp_kubernetes-2.17.0.tar.gz').touch()
+                    (output / 'kfp_kubernetes-2.17.0-py3-none-any.whl').touch()
+                elif args[:2] == ['-m', 'venv']:
+                    bin_dir = Path(args[2]) / 'bin'
+                    bin_dir.mkdir(parents=True)
+                    shutil.copy(Path(os.environ['FAKE_BIN']) / 'pip', bin_dir)
+                else:
+                    raise AssertionError(args)
+            ''',
+            'pip':
+                '''\
+                from pathlib import Path
+                import sys
+                if sys.argv[1] == 'install':
+                    assert Path(sys.argv[2]).is_file()
+                elif sys.argv[1:] == ['list']:
+                    print('kfp-kubernetes 2.17.0')
+                else:
+                    raise AssertionError(sys.argv)
+            ''',
+            'uvx':
+                '''\
+                import os
+                from pathlib import Path
+                import sys
+                assert sys.argv[1:6] == [
+                    '--python', '3.12', '--from', 'twine==7.0.0', 'twine']
+                command = sys.argv[6]
+                assert command in ('check', 'upload')
+                assert sys.argv[7:] == ['kfp-kubernetes-2.17.0.tar.gz']
+                assert Path(sys.argv[7]).is_file()
+                with Path(os.environ['TWINE_CALLS']).open('a') as calls:
+                    calls.write(command + '\\n')
+                if command == 'check':
+                    sys.exit(int(os.environ['CHECK_EXIT_CODE']))
+            ''',
+        }
+        for name, script in scripts.items():
+            executable = fake_bin / name
+            executable.write_text(f'#!{sys.executable}\n' +
+                                  textwrap.dedent(script))
+            executable.chmod(0o755)
+        shutil.copy(fake_bin / 'python3', fake_bin / 'python')
+        grep = fake_bin / 'grep'
+        grep.write_text('#!/bin/sh\n'
+                        'if [ "$1" = "-oP" ] || [ "$1" = "-P" ]; then\n'
+                        '  echo "grep: invalid option -- P" >&2\n'
+                        '  exit 2\n'
+                        'fi\n'
+                        'exec /usr/bin/grep "$@"\n')
+        grep.chmod(0o755)
+        (root / 'tmp').mkdir()
+        return package
+
+    def test_kubernetes_publisher_uses_portable_version_and_isolated_twine(
+            self) -> None:
+        """Exercise executed/sourced publishing and block upload after bad
+        metadata."""
+        workflow = (ROOT / '.github/workflows/publish-packages.yml').read_text()
+        self.assertIn('TWINE_VERSION: "7.0.0"', workflow)
+        self.assertIn('TWINE_PYTHON_VERSION: "3.12"', workflow)
+        for sourced in (False, True):
+            for check_exit_code in (0, 1):
+                with self.subTest(
+                        sourced=sourced, check_exit_code=check_exit_code
+                ), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    package = self._prepare_kubernetes_publisher(root)
+                    calls = root / 'twine-calls'
+                    command = (['bash', '-c', 'source ./release.sh']
+                               if sourced else ['bash', '-e', 'release.sh'])
+                    result = subprocess.run(
+                        command,
+                        cwd=package,
+                        env={
+                            **os.environ,
+                            'PATH':
+                                f'{root / "bin"}{os.pathsep}{os.environ["PATH"]}',
+                            'FAKE_BIN':
+                                str(root / 'bin'),
+                            'TMPDIR':
+                                str(root / 'tmp'),
+                            'KFP_KUBERNETES_VERSION':
+                                '2.17.0',
+                            'TWINE_CALLS':
+                                str(calls),
+                            'CHECK_EXIT_CODE':
+                                str(check_exit_code),
+                        },
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, check_exit_code,
+                                     result.stdout + result.stderr)
+                    self.assertTrue(calls.exists(),
+                                    result.stdout + result.stderr)
+                    self.assertEqual(calls.read_text().splitlines(),
+                                     ['check', 'upload']
+                                     if check_exit_code == 0 else ['check'])
 
     def test_readthedocs_uses_generated_workspace_packages(self) -> None:
         """Build both documentation sites with uv rather than pip-installing

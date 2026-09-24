@@ -22,15 +22,15 @@ PKG_ROOT=$(pwd)
 REPO_ROOT=$(dirname $(dirname $PKG_ROOT))
 echo $REPO_ROOT
 
-# Extract version from __init__.py without importing (avoids needing protobuf installed)
-SETUPPY_VERSION=$(grep -oP "^__version__ = '\K[^']+" kfp/kubernetes/__init__.py)
+# Read the version without importing SDK/protobuf dependencies or requiring GNU grep.
+PACKAGE_VERSION=$(sed -n "s/^__version__ = ['\"]\([^'\"]*\)['\"].*/\1/p" kfp/kubernetes/__init__.py)
 
 if [ -z "$KFP_KUBERNETES_VERSION" ]
 then
     echo "Set \$KFP_KUBERNETES_VERSION to use this script. Got empty variable."
-elif [[ "$KFP_KUBERNETES_VERSION" != "$SETUPPY_VERSION" ]]
+elif [[ "$KFP_KUBERNETES_VERSION" != "$PACKAGE_VERSION" ]]
 then
-    echo "\$KFP_KUBERNETES_VERSION '$KFP_KUBERNETES_VERSION' does not match version in __init__.py '$SETUPPY_VERSION'."
+    echo "\$KFP_KUBERNETES_VERSION '$KFP_KUBERNETES_VERSION' does not match version in __init__.py '$PACKAGE_VERSION'."
 else
     echo "Got version $KFP_KUBERNETES_VERSION from env var \$KFP_KUBERNETES_VERSION"
 
@@ -53,6 +53,7 @@ else
     then
         echo "Something went wrong! Expected version $KFP_KUBERNETES_VERSION but found version $INSTALLED_VERSION"
     else
-        python -m twine upload $TARGET_TAR_FILE
+        uvx --python 3.12 --from twine==7.0.0 twine check "$TARGET_TAR_FILE" &&
+            uvx --python 3.12 --from twine==7.0.0 twine upload "$TARGET_TAR_FILE"
     fi
 fi

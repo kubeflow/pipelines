@@ -609,7 +609,7 @@ def _refresh_uv_release_packages(context: ReleaseContext) -> None:
         ['make', 'API_VERSION=v2beta1', 'generate-kfp-server-api-package'],
         cwd=context.root / 'backend/api')
     context.runner.run(['uv', 'lock'], cwd=context.root)
-    export_command = ['uv', 'export', '--frozen', '--no-dev']
+    export_command = ['uv', 'export', '--frozen', '--no-dev', '--no-hashes']
     context.runner.run(
         export_command +
         ['--format', 'requirements-txt', '-o', 'requirements.txt'],
