@@ -368,6 +368,7 @@ func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
+		Namespace:      run.Namespace,
 		DisplayName:    "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
 		State:          run.State,
@@ -395,6 +396,7 @@ func (s *RunAPITestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
+		Namespace:      run.Namespace,
 		DisplayName:    "hello world",
 		Description:    "this is hello world",
 		State:          run.State,
@@ -433,6 +435,7 @@ func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
+		Namespace:      run.Namespace,
 		DisplayName:    "argument parameter",
 		Description:    "this is argument parameter",
 		State:          run.State,

@@ -47,6 +47,8 @@ class RecurringRunServiceApi(object):
 
         :param recurring_run: The recurring run to be created. (required)
         :type recurring_run: V2beta1RecurringRun
+        :param namespace: Optional input field. Namespace for the recurring run. Ignored when recurring_run.namespace is set.
+        :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -75,6 +77,8 @@ class RecurringRunServiceApi(object):
 
         :param recurring_run: The recurring run to be created. (required)
         :type recurring_run: V2beta1RecurringRun
+        :param namespace: Optional input field. Namespace for the recurring run. Ignored when recurring_run.namespace is set.
+        :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -97,7 +101,8 @@ class RecurringRunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'recurring_run'
+            'recurring_run',
+            'namespace'
         ]
         all_params.extend(
             [
@@ -126,6 +131,8 @@ class RecurringRunServiceApi(object):
         path_params = {}
 
         query_params = []
+        if 'namespace' in local_var_params and local_var_params['namespace'] is not None:  # noqa: E501
+            query_params.append(('namespace', local_var_params['namespace']))  # noqa: E501
 
         header_params = {}
 

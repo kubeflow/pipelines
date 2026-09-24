@@ -868,6 +868,8 @@ class RunServiceApi(object):
         :type run: V2beta1Run
         :param experiment_id: The ID of the parent experiment.
         :type experiment_id: str
+        :param namespace: Optional input field. Namespace for the run. Ignored when run.namespace is set.
+        :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -898,6 +900,8 @@ class RunServiceApi(object):
         :type run: V2beta1Run
         :param experiment_id: The ID of the parent experiment.
         :type experiment_id: str
+        :param namespace: Optional input field. Namespace for the run. Ignored when run.namespace is set.
+        :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -921,7 +925,8 @@ class RunServiceApi(object):
 
         all_params = [
             'run',
-            'experiment_id'
+            'experiment_id',
+            'namespace'
         ]
         all_params.extend(
             [
@@ -952,6 +957,8 @@ class RunServiceApi(object):
         query_params = []
         if 'experiment_id' in local_var_params and local_var_params['experiment_id'] is not None:  # noqa: E501
             query_params.append(('experiment_id', local_var_params['experiment_id']))  # noqa: E501
+        if 'namespace' in local_var_params and local_var_params['namespace'] is not None:  # noqa: E501
+            query_params.append(('namespace', local_var_params['namespace']))  # noqa: E501
 
         header_params = {}
 
