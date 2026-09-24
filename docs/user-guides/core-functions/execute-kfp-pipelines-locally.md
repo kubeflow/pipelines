@@ -131,17 +131,29 @@ Since `SubprocessRunner` runs your code in a subprocess, the `SubprocessRunner`:
 - Does not support custom images or easily support tasks with complex environment dependencies
 - Only allows execution of [Lightweight Python Component][lightweight-python-component]
 
-:::{tip}
-By default, the `SubprocessRunner` will install your dependencies into a virtual environment.
+::::{tip}
+By default, `SubprocessRunner` installs component dependencies into a fresh
+temporary virtual environment, isolating them from your current Python
+environment.
 
-This is recommended, but can be disabled by setting `use_venv=False`:
+You can disable this by setting `use_venv=False`, which installs dependencies
+directly into the current interpreter instead:
 
 ```python
 from kfp import local
 
 local.init(runner=local.SubprocessRunner(use_venv=False))
 ```
+
+:::{warning}
+With `use_venv=False`, packages are installed into the Python environment
+you run KFP from. Interpreters that are marked as externally managed
+([PEP 668](https://peps.python.org/pep-0668/)), such as Debian/Ubuntu system
+Python or Homebrew Python on macOS, refuse such installs with an
+`externally-managed-environment` error. Keep the default `use_venv=True`, or run
+KFP from your own virtual environment.
 :::
+::::
 
 [lightweight-python-component]: ../components/lightweight-python-components.md
 [containerized-python-components]: ../components/containerized-python-components.md
