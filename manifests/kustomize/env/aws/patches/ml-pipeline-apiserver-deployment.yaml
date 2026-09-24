@@ -1,0 +1,50 @@
+# Mount the database CA bundle so the API server can verify the RDS server
+# certificate. IAM authentication sends the token using the cleartext password
+# plugin, so the API server refuses to start without this.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+      - name: ml-pipeline-api-server
+        env:
+        - name: DBCONFIG_MYSQLCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: kfp-db-users
+              key: apiserverUser
+        # The password is unused while a credential provider is enabled, but the
+        # base deployment still requires the Secret to exist: a missing one is a
+        # CreateContainerConfigError, before any of this code runs. Mark the
+        # references optional so an operator who removes mysql-secret does not
+        # discover that by way of pods that will not start. Keep the Secret
+        # while a rollback to password authentication is still wanted.
+        - name: DBCONFIG_MYSQLCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+              optional: true
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+              optional: true
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+              optional: true
+        volumeMounts:
+        - name: db-ca-bundle
+          mountPath: /etc/db-tls
+          readOnly: true
+      volumes:
+      - name: db-ca-bundle
+        configMap:
+          name: db-ca-bundle
