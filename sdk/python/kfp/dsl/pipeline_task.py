@@ -739,13 +739,12 @@ class PipelineTask:
         """Enable interactive debug-pause for the pipeline task.
 
         Keeps the pod alive so you can ``kubectl exec`` into it
-        interactively.
+        interactively, and lets you resume the task from the KFP UI.
 
-        When enabled, Argo Workflows' executor (the ``wait`` container)
-        detects the corresponding ``ARGO_DEBUG_PAUSE_*`` environment variable
-        and pauses the workflow node, preventing the pod from terminating.
-
-        This requires Argo Workflows 3.5.0 or later.
+        When enabled, the KFP launcher (not Argo's executor) detects the
+        corresponding ``KFP_DEBUG_PAUSE_*`` environment variable and parks
+        the task at the requested barrier, reporting tis paused status to
+        the KFP API server so it can be resumed from the UI.
 
         Args:
             before: If ``True``, pause before the main process starts.
@@ -754,8 +753,8 @@ class PipelineTask:
             after: If ``True`` (default), pause after the main process
                 completes. Modified by ``on_error``.
             on_error: If ``True``, only pause after execution when the
-                component fails (sets ``ARGO_DEBUG_PAUSE_ON_ERROR`` instead
-                of ``ARGO_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
+                component fails (sets ``KFP_DEBUG_PAUSE_ON_ERROR`` instead
+                of ``KFP_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
 
         Returns:
             Self return to allow chained setting calls.
@@ -791,12 +790,12 @@ class PipelineTask:
                 'Got before=False, after=False - nothing to pause on.')
 
         if before:
-            self.set_env_variable('ARGO_DEBUG_PAUSE_BEFORE', 'true')
+            self.set_env_variable('KFP_DEBUG_PAUSE_BEFORE', 'true')
         if after:
             if on_error:
-                self.set_env_variable('ARGO_DEBUG_PAUSE_ON_ERROR', 'true')
+                self.set_env_variable('KFP_DEBUG_PAUSE_ON_ERROR', 'true')
             else:
-                self.set_env_variable('ARGO_DEBUG_PAUSE_AFTER', 'true')
+                self.set_env_variable('KFP_DEBUG_PAUSE_AFTER', 'true')
 
         return self
 

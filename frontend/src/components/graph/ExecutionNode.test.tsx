@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
+import ExecutionNode, { getIcon, getExecutionIcon, getDebugPauseIcon } from './ExecutionNode';
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
@@ -93,6 +93,32 @@ describe('ExecutionNode', () => {
       expect(handle).not.toHaveClass('connectableend');
       expect(handle).not.toHaveClass('connectionindicator');
     });
+  });
+
+  it('renders the debug-pause icon instead of the normal state icon when debugPauseBarrier is set', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'paused-step',
+          state: PipelineTaskTaskState.RUNNING,
+          debugPauseBarrier: 'before',
+        }}
+      />,
+    );
+    expect(screen.getByTestID('execution-icon-debug-pause')).toBeInTheDocument();
+    // The normal RUNNING icon must not also render - the badge takes precedence.
+    expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
+  });
+
+  it('renders the normal state icon when debugPauseBarrier is absent', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{ label: 'running-step', state: PipelineTaskTaskState.RUNNING }}
+      />,
+    );
+    expect(screen.queryByTestId('execution-icon-debug-paused')).not.toBeInTheDocument();
   });
 });
 
