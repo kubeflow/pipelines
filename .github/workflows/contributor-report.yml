@@ -10,6 +10,9 @@ permissions:
 
 jobs:
   contributor-report:
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'copybara-service[bot]'
     concurrency:
       group: contributor-report-${{ github.event.pull_request.number }}
       cancel-in-progress: true
