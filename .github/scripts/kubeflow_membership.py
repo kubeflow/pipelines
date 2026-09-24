@@ -75,9 +75,9 @@ def _parse_members(yaml_text: str) -> set[str]:
 
 
 def is_kubeflow_member(username: str) -> bool:
-    """Check the authoritative ACL; raise on lookup errors, never infer non-membership.
+    """Check the authoritative ACL, raising on lookup errors.
 
-    Requires the gh CLI, authenticated through GH_TOKEN or GITHUB_TOKEN in CI.
+    Requires gh authenticated through GH_TOKEN or GITHUB_TOKEN.
     """
     if not re.fullmatch(LOGIN_PATTERN, username):
         raise ValueError(
