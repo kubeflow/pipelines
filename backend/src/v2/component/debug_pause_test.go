@@ -28,7 +28,7 @@ import (
 // control flow without any real network call. Each behavior is independently
 // configurable so tests can exercise the specific failure modes Pause() is 
 // required to handle.
-type mockauseSignaler struct {
+type mockPauseSignaler struct {
 	mu sync.Mutex
 
 	publishErr error
@@ -75,14 +75,14 @@ func (m *mockPauseSignaler) IsResumeRequested(ctx context.Context) (bool, error)
 	return m.resumeSequence[len(m.resumeSequence)-1], nil
 }
 
-func (m *mockPausesSignaler) ClearBarrier(ctx context.Context) error {
+func (m *mockPauseSignaler) ClearBarrier(ctx context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.clearCalled = true
 	return m.clearErr
 }
 
-func (m *mockPausesSignaler) pollCountSafe() int {
+func (m *mockPauseSignaler) pollCountSafe() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pollCount
@@ -97,9 +97,9 @@ func fastTestConfig() DebugPauseConfig {
 }
 
 func TestPause_ResumesOnFirstPollThatSaysYes(t *testing.T) {
-	signaler := &mockPausesSignaler{resumeSequence: []bool{false, false, true}}
+	signaler := &mockPauseSignaler{resumeSequence: []bool{false, false, true}}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
-	require.NoError(t, eerr)
+	require.NoError(t, err)
 	require.Equal(t, []DebugPauseBarrier{DebugPauseBarrierBefore}, signaler.publishes)
 	require.True(t, signaler.clearCalled, "barrier must be cleared once resumed")
 	require.GreaterOrEqual(t, signaler.pollCountSafe(), 3)
@@ -118,8 +118,8 @@ func TestPause_NoOpWhenBarrierIsNone(t *testing.T) {
 // session must not be lost to a transient reporting error. Confirmed by the
 // loop still requiring a real resume signal before returning
 func TestPause_PublishFailuresStillParks(t *testing.T) {
-	signaler := &mockPausesSignaler{
-		publishErr:     errors.New("api server unreachable"), 
+	signaler := &mockPauseSignaler{
+		publishErr:     errors.New("api server unreachable"),
 		resumeSequence: []bool{false, true}, 
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
@@ -132,8 +132,8 @@ func TestPause_PublishFailuresStillParks(t *testing.T) {
 // (which would either silently release or wedge the pause).
 func TestPause_PollErrorsDoNotAbortWait(t *testing.T) {
 	flaky := errors.New("transient network error")
-	signaler := &mockPausesSignaler{
-		resumeErrs:     []error{flaky, flaky, flaky, nil, nil}, 
+	signaler := &mockPauseSignaler{
+		resumeErrs:     []error{flaky, flaky, flaky, nil, nil},
 		resumeSequence: []bool{false, false, false, false, true}, 
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
@@ -145,14 +145,14 @@ func TestPause_PollErrorsDoNotAbortWait(t *testing.T) {
 // to return an error on its own: nobody ever resumes it, and the max 
 // duration elapses. This must surface as a real, identifiable failure -
 // not a silent hang.
-func TestPAuse_SafetyValveTimesOut(t *testing.T) {
-	signaler := &mockPausesSignaler{} //never resumes
+func TestPause_SafetyValveTimesOut(t *testing.T) {
+	signaler := &mockPauseSignaler{} // never resumes
 	cfg := DebugPauseConfig{
 		Before:       true,
 		MaxDuration:  30 * time.Millisecond,
 		PollInterval: 5 * time.Millisecond,
 	}
-	err := Pause(context.Background(), signaler, DebugPauseBarrierBEfore, cfg)
+	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, cfg)
 	require.Error(t, err)
 	require.True(t, IsDebugPauseTimeout(err), "timeout must be identifiable via IsDebugPauseTimeout")
 	require.True(t, signaler.clearCalled, "barrier must still be cleared, best effort, after a timeout")
@@ -163,7 +163,7 @@ func TestPAuse_SafetyValveTimesOut(t *testing.T) {
 // promptly with the context's error, while still attempting a best-effort
 // clear using a fresh, uncancelled context for cleanup.
 func TestPause_ContextCancellationClearsBestEffort(t *testing.T) {
-	signaler := &mockPausesSignaler{} // never resumes
+	signaler := &mockPauseSignaler{} // never resumes
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
@@ -176,7 +176,7 @@ func TestPause_ContextCancellationClearsBestEffort(t *testing.T) {
 	require.True(t, signaler.clearCalled, "clear must still be attempty after cancellation, via a fresh context")
 }
 
-func TestVarrierForError(t *testing.T){
+func TestBarrierForError(t *testing.T) {
 	tests := []struct {
 		name          string
 		cfg           DebugPauseConfig
@@ -186,9 +186,9 @@ func TestVarrierForError(t *testing.T){
 		{"after only, succeeded", DebugPauseConfig{After: true}, false, DebugPauseBarrierAfter},
 		{"after only, failed", DebugPauseConfig{After: true}, true, DebugPauseBarrierAfter},
 		{"after+on_error, succeeded", DebugPauseConfig{After: true, OnError: true}, false, DebugPauseBarrierAfter},
-		{"after+on_error, failed", DebugPauseConfig{After: true, OnError: true}, true, DebugPauseBarrierAfter},
-		{"neither configured", DebugPauseConfig{}, true, DebugPauseBarrierNone},
-		{"before only, ignored post-execution", DebugPauseConfig{Before: true}, true, DebugPauseBarrierNone},
+		{"after+on_error, failed", DebugPauseConfig{After: true, OnError: true}, true, DebugPauseBarrierOnError},
+		{"neither configured", DebugPauseConfig{}, true, debugPauseBarrierNone},
+		{"before only, ignored post-execution", DebugPauseConfig{Before: true}, true, debugPauseBarrierNone},
 	}
 	for _, tt := range tests{ 
 		t.Run(tt.name, func(t *testing.T){
@@ -216,7 +216,7 @@ func TestNewDebugPauseConfigFromEnv_Disabled(t *testing.T) {
 	t.Setenv(envKFPDebugPauseAfter, "")
 	t.Setenv(envKFPDebugPauseOnError, "")
 
-	cfg := NewDebugPauseCofnigFromEnv()
+	cfg := NewDebugPauseConfigFromEnv()
 	require.False(t, cfg.Enabled(), "a task that never called set_debug_pause() must be a no-op")
 }
 
@@ -229,7 +229,7 @@ func TestNewDebugPauseConfigFromEnv_InvalidMaxDurationFallsBAckToDefault(t *test
 }
 
 func TestNewDebugPauseConfigFromEnv_ValidMaxDurationOverride(t *testing.T) {
-	t.Setenv(envKFPDebugPAuseBefore, "true")
+	t.Setenv(envKFPDebugPauseBefore, "true")
 	t.Setenv(envKFPDebugPauseMaxDuration, "45m")
 
 	cfg := NewDebugPauseConfigFromEnv()
