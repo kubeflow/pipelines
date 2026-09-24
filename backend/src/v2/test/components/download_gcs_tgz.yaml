@@ -1,6 +1,7 @@
 # PIPELINE DEFINITION
 # Name: download-gcs-tgz
-# Description: Download a GCS tarball and extract it to the output artifact directory.
+# Description: Download a GCS tarball and extract it to the output artifact
+#              directory.
 # Inputs:
 #    gcs_path: str
 # Outputs:
@@ -72,4 +73,4 @@ root:
           schemaTitle: system.Artifact
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.15.2
+sdkVersion: kfp-2.17.0

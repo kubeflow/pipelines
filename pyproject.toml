@@ -119,25 +119,10 @@ backend-v2-test = [
   "fire",
 ]
 
-# Legacy backend API client test helpers
-backend-v1-client-test = [
-  "pytest-randomly>=3.12",
-]
-
 # Legacy SageMaker development tools
 sagemaker-dev-tools = [
   "black==19.10b0",
   "coverage>=5.2.1",
-]
-
-# Legacy SDK deprecated runtime helpers
-sdk-deprecated-runtime = [
-  "Deprecated>=1.2.7",
-  "cloudpickle>=2.0.0",
-  "jsonschema>=4.25.1",
-  "strip-hints>=0.1.8",
-  "typer>=0.3.2",
-  "uritemplate>=3.0.1",
 ]
 
 # Legacy requirement entries that are compatible with the workspace's

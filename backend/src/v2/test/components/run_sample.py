@@ -28,10 +28,9 @@ driver_image="$6"
 # install kfp v2 backend compiler
 chmod +x "$backend_compiler_path"
 cp "$backend_compiler_path" /usr/local/bin/kfp-v2-compiler
-# Install the native SDK and sample runner dependencies from this checkout.
-(cd backend/src/v2/test && pip install -r requirements.txt)
-# run test sample
-python3 \
+# Run with the checkout's native SDK and sample runner dependencies.
+pip install uv
+uv run --frozen --extra backend-v2-test python3 \
   -u \
   -m "$sample_path" \
   --pipeline_root "$output_dir" \

@@ -1,6 +1,7 @@
 # PIPELINE DEFINITION
 # Name: run-sample
-# Description: Run a v2 sample using the compiler artifact and native SDK dependencies.
+# Description: Run a v2 sample using the compiler artifact and native SDK
+#              dependencies.
 # Inputs:
 #    backend_compiler: system.Artifact
 #    driver_image: str [Default: 'gcr.io/ml-pipeline/kfp-driver:latest']
@@ -51,11 +52,11 @@ deploymentSpec:
           \ KF_PIPELINES_ENDPOINT=\"$3\"\nexport KF_PIPELINES_UI_ENDPOINT=\"$4\"\n\
           launcher_v2_image=\"$5\"\ndriver_image=\"$6\"\n\n# install kfp v2 backend\
           \ compiler\nchmod +x \"$backend_compiler_path\"\ncp \"$backend_compiler_path\"\
-          \ /usr/local/bin/kfp-v2-compiler\n# Install the native SDK and sample runner\
-          \ dependencies from this checkout.\n(cd backend/src/v2/test && pip install\
-          \ -r requirements.txt)\n# run test sample\npython3 \\\n  -u \\\n  -m \"\
-          $sample_path\" \\\n  --pipeline_root \"$output_dir\" \\\n  --launcher_v2_image\
-          \ \"$launcher_v2_image\" \\\n  --driver_image \"$driver_image\"\n"
+          \ /usr/local/bin/kfp-v2-compiler\n# Run with the checkout's native SDK and\
+          \ sample runner dependencies.\npip install uv\nuv run --frozen --extra backend-v2-test\
+          \ python3 \\\n  -u \\\n  -m \"$sample_path\" \\\n  --pipeline_root \"$output_dir\"\
+          \ \\\n  --launcher_v2_image \"$launcher_v2_image\" \\\n  --driver_image\
+          \ \"$driver_image\"\n"
         - '{{$.inputs.artifacts[''backend_compiler''].path}}'
         - '{{$.inputs.parameters[''sample_path'']}}'
         - '{"Concat": ["{{$.inputs.parameters[''gcs_root'']}}", "/", "{{$.inputs.parameters[''name'']}}"]}'
@@ -123,4 +124,4 @@ root:
       sample_path:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.15.2
+sdkVersion: kfp-2.17.0

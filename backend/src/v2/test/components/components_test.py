@@ -93,13 +93,12 @@ def test_ir_components_compose_with_uri_and_artifact_context(tmp_path):
         'host'].default == 'http://ml-pipeline:8888'
 
 
-def test_sample_runner_installs_native_requirements_and_preserves_arguments(
-        tmp_path):
+def test_sample_runner_uses_uv_workspace_and_preserves_arguments(tmp_path):
     repo = tmp_path / 'checkout'
-    dependencies = repo / 'backend/src/v2/test'
-    dependencies.mkdir(parents=True)
-    requirements = COMPONENTS_DIR.parent / 'requirements.txt'
-    (dependencies / 'requirements.txt').write_text(requirements.read_text())
+    repo.mkdir()
+    source_root = COMPONENTS_DIR.parents[4]
+    for name in ('pyproject.toml', 'uv.lock'):
+        (repo / name).write_text((source_root / name).read_text())
     (repo / 'sdk/python').mkdir(parents=True)
     binaries = tmp_path / 'bin'
     binaries.mkdir()
@@ -108,11 +107,13 @@ def test_sample_runner_installs_native_requirements_and_preserves_arguments(
             'exit 0\n',
         'cp':
             'exit 0\n',
-        'pip': ('test -f requirements.txt\n'
-                'test -d ../../../../sdk/python\n'
-                'printf "%s\\n" "$PWD" "$@" > "$TRACE_DIR/install"\n'),
-        'python3': ('printf "%s\\n" "$KF_PIPELINES_ENDPOINT" '
-                    '"$KF_PIPELINES_UI_ENDPOINT" "$@" > "$TRACE_DIR/run"\n'),
+        'pip':
+            'printf "%s\\n" "$@" > "$TRACE_DIR/install"\n',
+        'uv': ('test -f pyproject.toml\n'
+               'test -f uv.lock\n'
+               'test -d sdk/python\n'
+               'printf "%s\\n" "$KF_PIPELINES_ENDPOINT" '
+               '"$KF_PIPELINES_UI_ENDPOINT" "$@" > "$TRACE_DIR/run"\n'),
     }
     for name, body in scripts.items():
         executable = binaries / name
@@ -131,14 +132,10 @@ def test_sample_runner_installs_native_requirements_and_preserves_arguments(
                    cwd=repo,
                    env=env,
                    check=True)
-    assert (tmp_path / 'install').read_text().splitlines() == [
-        str(dependencies), 'install', '-r', 'requirements.txt'
-    ]
-    assert requirements.read_text().splitlines()[1:] == [
-        '-e ../../../../sdk/python', 'fire'
-    ]
+    assert (tmp_path / 'install').read_text().splitlines() == ['install', 'uv']
     assert (tmp_path / 'run').read_text().splitlines() == [
-        'http://ml-pipeline:8888', 'http://pipeline-ui', '-u', '-m',
+        'http://ml-pipeline:8888', 'http://pipeline-ui', 'run', '--frozen',
+        '--extra', 'backend-v2-test', 'python3', '-u', '-m',
         'samples.v2.hello_world', '--pipeline_root', 'gs://bucket/output/hello',
         '--launcher_v2_image', 'launcher:test', '--driver_image', 'driver:test'
     ]

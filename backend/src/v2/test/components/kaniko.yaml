@@ -1,6 +1,7 @@
 # PIPELINE DEFINITION
 # Name: kaniko
-# Description: Build an image from context_uri or context_artifact and write its URI/digest.
+# Description: Build an image from context_uri or context_artifact and write its
+#              URI/digest.
 # Inputs:
 #    cache: str [Default: 'true']
 #    cache_ttl: str [Default: '24h']
@@ -146,4 +147,4 @@ root:
           schemaTitle: system.Artifact
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.15.2
+sdkVersion: kfp-2.17.0

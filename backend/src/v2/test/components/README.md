@@ -20,10 +20,10 @@ parameters. Compiler binaries, downloaded folders, optional Kaniko context, and
 Kaniko's digest file use `system.Artifact` paths. Kaniko can use either a URI
 context or the optional context artifact.
 
-`run_sample` installs the checkout's native SDK and `fire` using
-`backend/src/v2/test/requirements.txt`, from that directory so the editable SDK
-path resolves correctly. This matches the test image's Dockerfile and does not
-require the removed deprecated SDK requirements bundle.
+`run_sample` installs uv and runs from the checkout root with
+`uv run --frozen --extra backend-v2-test`. The workspace supplies the native SDK
+and `fire`, matching the test image's Dockerfile without requiring deleted
+requirements files.
 
 The tests compile and reload all three IR files, compose both Kaniko context
 variants, and execute the sample runner shell with stubbed tools. They do not
