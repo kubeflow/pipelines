@@ -1,4 +1,4 @@
-name: CI Gatekeeper
+name: PR Gate
 
 permissions:
   actions: write
