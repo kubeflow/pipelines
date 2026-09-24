@@ -331,11 +331,13 @@ func (c *ClientManager) init(options *Options) error {
 	}
 	c.defaultExperimentStore = defaultExperimentStore
 
-	// Use default value of client QPS (5) & burst (10) defined in
-	// k8s.io/client-go/rest/config.go#RESTClientFor
+	// The centralized driver adds KFP API requests to register driver-log metadata
+	// for every invocation. In multi-user mode, each request also requires Kubernetes
+	// authentication and authorization, so client-go's 5 QPS / 10 burst defaults are
+	// insufficient for highly parallel workloads.
 	clientParams := util.ClientParameters{
-		QPS:   common.GetFloat64ConfigWithDefault(clientQPS, 5),
-		Burst: common.GetIntConfigWithDefault(clientBurst, 10),
+		QPS:   common.GetFloat64ConfigWithDefault(clientQPS, 10),
+		Burst: common.GetIntConfigWithDefault(clientBurst, 20),
 	}
 
 	c.execClient = util.NewExecutionClientOrFatal(util.CurrentExecutionType(), common.GetDurationConfig(initConnectionTimeout), clientParams)

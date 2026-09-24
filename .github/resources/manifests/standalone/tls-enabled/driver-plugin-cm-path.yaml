@@ -6,6 +6,7 @@ data:
   sidecar.container: |
     name: driver-plugin
     image: kind-registry:5000/driver:ci
+    terminationMessagePolicy: FallbackToLogsOnError
     imagePullPolicy: IfNotPresent
     ports:
       - containerPort: 8080

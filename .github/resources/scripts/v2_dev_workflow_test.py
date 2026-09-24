@@ -40,6 +40,9 @@ elif name == 'go':
     output.chmod(0o755)
 elif name == 'kfp' and args[:2] == ['dsl', 'compile']:
     Path(args[args.index('--output') + 1]).write_text('pipelineInfo: {name: test}')
+elif name == 'kubectl' and 'get' in args:
+    print(json.dumps({'data': {'sidecar.container':
+        'name: driver-plugin\\nimage: old-driver:ci\\n'}}))
 elif name == 'kubectl' and 'rollout' in args and os.environ.get('FAIL_ROLLOUT'):
     sys.exit(1)
 '''
@@ -98,13 +101,23 @@ class V2DevWorkflowTest(unittest.TestCase):
         self.assertIn('dev-cluster', update)
         self.assertIn('dev-ns', update)
         self.assertIn('deployment/ml-pipeline', update)
-        for name, image in (('DRIVER', 'driver'), ('LAUNCHER', 'launcher-v2')):
-            self.assertIn(
-                f'V2_{name}_IMAGE=registry.test/dev-{image}@sha256:' + 'a' * 64,
-                update)
+        self.assertIn(
+            'V2_LAUNCHER_IMAGE=registry.test/dev-launcher-v2@sha256:' +
+            'a' * 64, update)
+        self.assertFalse(any('V2_DRIVER_IMAGE=' in arg for arg in update))
+        plugin_get = next(c for c in calls if c[0] == 'kubectl' and 'get' in c)
+        plugin_patch = next(
+            c for c in calls if c[0] == 'kubectl' and 'patch' in c)
+        self.assertIn('configmap/ml-pipeline-driver-agent', plugin_get)
+        self.assertIn('configmap/ml-pipeline-driver-agent', plugin_patch)
+        patch = json.loads(plugin_patch[plugin_patch.index('--patch') + 1])
+        self.assertIn('image: registry.test/dev-driver@sha256:' + 'a' * 64,
+                      patch['data']['sidecar.container'])
         rollout = next(c for c in calls if c[0] == 'kubectl' and 'rollout' in c)
         submit = next(c for c in calls if c[:3] == ['kfp', 'run', 'submit'])
         self.assertLess(calls.index(update), calls.index(rollout))
+        self.assertLess(calls.index(plugin_get), calls.index(plugin_patch))
+        self.assertLess(calls.index(plugin_patch), calls.index(rollout))
         self.assertLess(calls.index(rollout), calls.index(submit))
         self.assertTrue(submit[submit.index('-f') + 1].endswith('-spec.yaml'))
 

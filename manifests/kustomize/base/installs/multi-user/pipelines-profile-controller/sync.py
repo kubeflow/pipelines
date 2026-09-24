@@ -265,7 +265,8 @@ def server_factory(frontend_image,
                     )
 
         def executor_plugin_resources(self, namespace):
-            print('Creating executor-plugin resources for namespace:', namespace)
+            print('Creating executor-plugin resources for namespace:',
+                  namespace)
             # Argo Workflow Executor Plugin Necessary Resources
             agent_service_account_name = 'ml-pipeline-driver-agent-executor-plugin'
             agent_secret_name = f'{agent_service_account_name}.service-account-token'
@@ -288,8 +289,10 @@ def server_factory(frontend_image,
                     'apiVersion': 'rbac.authorization.k8s.io/v1',
                     'kind': 'RoleBinding',
                     'metadata': {
-                        'name': 'ml-pipeline-driver-agent-executor-plugin-binding',
-                        'namespace': namespace,
+                        'name':
+                            'ml-pipeline-driver-agent-executor-plugin-binding',
+                        'namespace':
+                            namespace,
                     },
                     'subjects': [{
                         'kind': 'ServiceAccount',
@@ -297,9 +300,12 @@ def server_factory(frontend_image,
                         'namespace': namespace,
                     }],
                     'roleRef': {
-                        'kind': 'ClusterRole',
-                        'name': 'ml-pipeline-driver-agent-executor-plugin-cluster-role',
-                        'apiGroup': 'rbac.authorization.k8s.io',
+                        'kind':
+                            'ClusterRole',
+                        'name':
+                            'ml-pipeline-driver-agent-executor-plugin-cluster-role',
+                        'apiGroup':
+                            'rbac.authorization.k8s.io',
                     }
                 },
                 {
@@ -309,7 +315,8 @@ def server_factory(frontend_image,
                         'name': agent_secret_name,
                         'namespace': namespace,
                         'annotations': {
-                            'kubernetes.io/service-account.name': agent_service_account_name,
+                            'kubernetes.io/service-account.name':
+                                agent_service_account_name,
                         },
                     },
                     'type': 'kubernetes.io/service-account-token',
@@ -502,7 +509,8 @@ def server_factory(frontend_image,
                 },
             ]
 
-            executor_plugin_resources = self.executor_plugin_resources(namespace)
+            executor_plugin_resources = self.executor_plugin_resources(
+                namespace)
             desired_resources.extend(executor_plugin_resources)
 
             if artifacts_proxy_enabled.lower() == "true":
@@ -605,7 +613,8 @@ def server_factory(frontend_image,
                         "name": "default-editor.service-account-token",
                         "namespace": namespace,
                         "annotations": {
-                            "kubernetes.io/service-account.name": "default-editor"
+                            "kubernetes.io/service-account.name":
+                                "default-editor"
                         }
                     },
                     "type": "kubernetes.io/service-account-token"

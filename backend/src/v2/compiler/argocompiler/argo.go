@@ -40,8 +40,6 @@ import (
 type Options struct {
 	// optional, use official image if not provided
 	LauncherImage string
-	// Deprecated: configure the driver image in the executor plugin instead.
-	DriverImage string
 	// optional
 	PipelineRoot string
 	// optional
@@ -184,8 +182,8 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
-					util.V2ComponentKey:                    "true",
-					util.AnnotationKeyIstioSidecarInject:  util.AnnotationValueIstioSidecarInjectDisabled,
+					util.V2ComponentKey:                  "true",
+					util.AnnotationKeyIstioSidecarInject: util.AnnotationValueIstioSidecarInjectDisabled,
 				},
 				Labels: map[string]string{
 					util.V2ComponentKey: "true",
