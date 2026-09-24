@@ -148,13 +148,13 @@ swagger generate client \
     -m healthz_model \
     -t backend/api/${API_VERSION}/go_http_client
 
-# Hack to fix an issue with go-swagger
+# Fix go-swagger's generated types and JSON tags for int64 query-compatible fields.
 # See https://github.com/go-swagger/go-swagger/issues/1381 for details.
-    sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_recurring_run.go
-    sed -i -- 's/IntervalSecond int64 `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_periodic_schedule.go
-    sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_recurring_run.go
-    sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_periodic_schedule.go
-# Fix: go-swagger omitempty on map fields prevents sending empty maps to clear tags.
+sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_recurring_run.go
+sed -i -- 's/IntervalSecond int64 `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_periodic_schedule.go
+sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_recurring_run.go
+sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/recurring_run_model/${API_VERSION}_periodic_schedule.go
+# Fix go-swagger's omitempty on map fields; omitempty prevents sending empty maps to clear tags.
 # See https://github.com/go-swagger/go-swagger/issues/1381
 sed -i -- 's/Tags map\[string\]string `json:"tags,omitempty"`/Tags map[string]string `json:"tags"`/g' \
     backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service/pipeline_service_update_pipeline_responses.go \
