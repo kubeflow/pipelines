@@ -1,0 +1,37 @@
+name: model_upload
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: display_name, type: String}
+- {name: description, type: String, optional: true, default: ''}
+- {name: unmanaged_container_model, type: google.UnmanagedContainerModel, optional: true}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
+- {name: labels, type: JsonObject, optional: true, default: '{}'}
+- {name: parent_model, type: google.VertexModel, optional: true}
+outputs:
+- {name: model, type: google.VertexModel}
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/automl-tables-private:1.0.17
+    command: [python3, -u, -m, launcher]
+    args: [
+      --type, UploadModel,
+      --payload,
+      concat: [
+          '{',
+          '"display_name": "', {inputValue: display_name}, '"',
+          ', "description": "', {inputValue: description}, '"',
+          ', "encryption_spec": {"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
+          ', "labels": ', {inputValue: labels},
+          '}'
+      ],
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --executor_input, "{{$}}",
+      {if: {
+        cond: {isPresent: parent_model},
+        then: ["--parent_model_name", "{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}",]
+      }},
+    ]
