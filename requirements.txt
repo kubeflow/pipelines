@@ -35,7 +35,7 @@ click-option-group==0.5.7
     # via kfp
 colorama==0.4.6 ; sys_platform == 'win32'
     # via click
-cryptography==46.0.4
+cryptography==50.0.0
     # via google-auth
 docstring-parser==0.17.0
     # via kfp
