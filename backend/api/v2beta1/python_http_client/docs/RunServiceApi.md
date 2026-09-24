@@ -495,7 +495,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **run_service_create_run**
-> V2beta1Run run_service_create_run(run, experiment_id=experiment_id)
+> V2beta1Run run_service_create_run(run, experiment_id=experiment_id, namespace=namespace)
 
 Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
 
@@ -535,10 +535,11 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     api_instance = kfp_server_api.RunServiceApi(api_client)
     run = kfp_server_api.V2beta1Run() # V2beta1Run | Run to be created.
 experiment_id = 'experiment_id_example' # str | The ID of the parent experiment. (optional)
+namespace = 'namespace_example' # str | Optional input field. Namespace for the run. Ignored when run.namespace is set. (optional)
 
     try:
         # Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
-        api_response = api_instance.run_service_create_run(run, experiment_id=experiment_id)
+        api_response = api_instance.run_service_create_run(run, experiment_id=experiment_id, namespace=namespace)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->run_service_create_run: %s\n" % e)
@@ -550,6 +551,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **run** | [**V2beta1Run**](V2beta1Run.md)| Run to be created. | 
  **experiment_id** | **str**| The ID of the parent experiment. | [optional] 
+ **namespace** | **str**| Optional input field. Namespace for the run. Ignored when run.namespace is set. | [optional] 
 
 ### Return type
 

@@ -162,7 +162,8 @@ class TestV2beta1Run(unittest.TestCase):
                                     parameter_key = '0', )
                                 ], ), 
                         scope_path = '0', )
-                    ]
+                    ], 
+                namespace = '0'
             )
         else :
             return V2beta1Run(

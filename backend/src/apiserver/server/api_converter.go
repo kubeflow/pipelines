@@ -702,10 +702,11 @@ func toModelRun(apiRunV2 *apiv2beta1.Run) (*model.Run, error) {
 		pipelineName = fmt.Sprintf("pipelines/%v", pipelineVersionId)
 	}
 	modelRun := model.Run{
-		UUID:           runId,
-		DisplayName:    runName,
-		Description:    runDesc,
-		Namespace:      namespace,
+		UUID:        runId,
+		DisplayName: runName,
+		Description: runDesc,
+		// Optional; resolves the default experiment when experiment_id is omitted.
+		Namespace:      apiRunV2.GetNamespace(),
 		ExperimentId:   experimentId,
 		RecurringRunId: recRunId,
 		StorageState:   model.StorageState(storageState),
@@ -802,6 +803,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	apiRunV2 := &apiv2beta1.Run{
 		RunId:          r.UUID,
 		ExperimentId:   r.ExperimentId,
+		Namespace:      r.Namespace,
 		RecurringRunId: r.RecurringRunId,
 		DisplayName:    r.DisplayName,
 		Description:    r.Description,
