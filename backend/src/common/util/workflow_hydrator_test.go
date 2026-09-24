@@ -104,6 +104,7 @@ func TestWorkflow_HydrateAndRetryOffloadedNodes(t *testing.T) {
 	require.Error(t, workflow.CanRetry())
 	require.NoError(t, workflow.Hydrate(context.Background()))
 	require.NoError(t, workflow.CanRetry())
+	assert.Empty(t, workflow.Status.OffloadNodeStatusVersion)
 	assert.Equal(t, workflowapi.NodeFailed, workflow.Status.Nodes["fail"].Phase)
 
 	retryExec, podsToDelete, err := workflow.GenerateRetryExecution()
@@ -117,4 +118,20 @@ func TestWorkflow_HydrateAndRetryOffloadedNodes(t *testing.T) {
 	assert.True(t, succeededExists)
 	assert.False(t, failedExists)
 	require.NoError(t, retryExec.Dehydrate(context.Background()))
+}
+
+func TestWorkflow_Hydrate_RejectsRemainingOffloadMarker(t *testing.T) {
+	// Default Noop hydrator returns success without clearing the marker.
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			Phase:                    workflowapi.WorkflowFailed,
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	})
+
+	err := workflow.Hydrate(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "OffloadNodeStatusVersion")
+	assert.Equal(t, "offload-hash", workflow.Status.OffloadNodeStatusVersion)
 }
