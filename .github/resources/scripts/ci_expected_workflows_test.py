@@ -281,12 +281,12 @@ gate.verifyExpectedWorkflows({{github, owner: 'owner', repo: 'repo', ...inventor
         result = verify(files=[{'filename': 'README.md'}])
         self.assertFalse(result['passed'])
 
-    def test_real_inventory_preserves_metadata_envoy_coverage(self):
+    def test_real_inventory_uses_current_frontend_coverage(self):
         result = node('''
 const {inventory} = gate.loadLocalInventory(process.cwd());
 console.log(JSON.stringify(inventory.workflows.filter(workflow =>
   workflow.pull_request !== null && gate.applicable(workflow.pull_request,
-    'master', ['third_party/metadata_envoy/Dockerfile']))
+    'master', ['frontend/package.json']))
   .map(workflow => workflow.path)));
 ''')
         self.assertIn('.github/workflows/e2e-test-frontend.yml', result)
