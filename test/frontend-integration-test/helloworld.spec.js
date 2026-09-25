@@ -18,6 +18,7 @@ const {
   buildTableRowSelector,
   clearDefaultInput,
   getValueFromDetailsTable,
+  runPhase,
   saveDebugScreenshot,
   selectPipelineForRun,
   waitForCondition,
@@ -37,6 +38,7 @@ const runWithoutExperimentName = 'helloworld-2-' + Date.now();
 const runWithoutExperimentDescription =
   'test run without experiment description ' + runWithoutExperimentName;
 const uiTimeout = 5000;
+const pageReadyTimeout = 30000;
 const runStartTimeout = 30000;
 const runCompletionTimeout = 180000;
 const logsLoadTimeout = 60000;
@@ -340,10 +342,24 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('deletes the uploaded pipeline', async () => {
-    await $('#pipelinesBtn').click();
-    await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
+    await runPhase('open pipelines list for cleanup', async () => {
+      await $('#pipelinesBtn').click();
+      await waitForHashPrefix('#/pipelines', { timeout: pageReadyTimeout });
+      await waitForCondition(
+        async () =>
+          browser.execute(
+            () =>
+              document.querySelector('label[for="tableFilterBox"]')?.textContent?.trim() ===
+              'Filter pipelines',
+          ),
+        {
+          timeout: pageReadyTimeout,
+          timeoutMsg: 'expected the Pipelines list filter to load after navigation',
+        },
+      );
+      await waitForSelectorDisplayed('#tableFilterBox', { timeout: pageReadyTimeout });
+    });
 
-    await waitForSelectorDisplayed('#tableFilterBox', { timeout: uiTimeout });
     await $('#tableFilterBox').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);
