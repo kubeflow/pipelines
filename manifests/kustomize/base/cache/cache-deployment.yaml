@@ -87,6 +87,30 @@ spec:
           # containerPort "webhook-api" to match.
           - name: WEBHOOK_PORT
             value: "8443"
+          - name: DB_CREDENTIAL_PROVIDER_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: dbCredentialProviderEnabled
+                optional: true
+          - name: DB_CREDENTIAL_PROVIDER
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: dbCredentialProvider
+                optional: true
+          - name: DB_TLS_CA_PATH
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: dbTLSCAPath
+                optional: true
+          - name: DB_CREDENTIAL_PROVIDER_SETTINGS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: dbCredentialProviderSettings
+                optional: true
         args: ["--db_driver=$(DBCONFIG_DRIVER)",
                "--db_host=$(DBCONFIG_HOST_NAME)",
                "--db_port=$(DBCONFIG_PORT)",

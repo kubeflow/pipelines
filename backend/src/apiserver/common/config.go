@@ -65,6 +65,16 @@ const (
 	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
 	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
 
+	// Database credential provider keys. DBCredentialProviderEnabled is the
+	// switch: when false, which is the default, the connection is built exactly
+	// as it was before providers existed. DBCredentialProvider names which
+	// provider to use, and DBTLSCAPath and DBCredentialProviderSettings
+	// configure it. None of the three has any effect while the switch is off.
+	DBCredentialProviderEnabled  string = "DB_CREDENTIAL_PROVIDER_ENABLED"
+	DBCredentialProvider         string = "DB_CREDENTIAL_PROVIDER"
+	DBCredentialProviderSettings string = "DB_CREDENTIAL_PROVIDER_SETTINGS"
+	DBTLSCAPath                  string = "DB_TLS_CA_PATH"
+
 	// Run garbage collection configuration keys.
 	// Disabled by default (zero values).
 	RunsRetentionTime         string = "RUNS_RETENTION_TIME"
@@ -269,6 +279,35 @@ func GetMLPipelineGRPCMinConnectTimeout() string {
 // the MLMD runtime wiring continue to build until PR 2 removes those call sites.
 func GetMetadataTLSEnabled() bool {
 	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
+}
+
+// GetDBCredentialProviderRaw returns the switch as configured, without
+// interpreting it. dbcreds.ParseEnabled does that, so both binaries read an
+// empty or malformed value the same forgiving way; GetBoolConfigWithDefault
+// would terminate the process on one the cache server merely logs.
+func GetDBCredentialProviderRaw() string {
+	return GetStringConfigWithDefault(DBCredentialProviderEnabled, strconv.FormatBool(DefaultDBCredentialProviderEnabled))
+}
+
+// GetDBCredentialProvider returns which provider supplies the credential.
+//
+// There is no default, because the name identifies a cloud: defaulting it would
+// let an installation authenticate against the wrong one by omission.
+func GetDBCredentialProvider() string {
+	return GetStringConfigWithDefault(DBCredentialProvider, "")
+}
+
+// GetDBCredentialProviderSettings returns provider-specific settings as the raw
+// JSON object the operator supplied. It is parsed by the credential provider
+// layer, so both binaries parse it the same way.
+func GetDBCredentialProviderSettings() string {
+	return GetStringConfigWithDefault(DBCredentialProviderSettings, "")
+}
+
+// GetDBTLSCAPath returns the CA bundle used to verify the database server
+// certificate. Empty leaves the connection unencrypted.
+func GetDBTLSCAPath() string {
+	return GetStringConfigWithDefault(DBTLSCAPath, "")
 }
 
 func GetCaBundleSecretName() string {

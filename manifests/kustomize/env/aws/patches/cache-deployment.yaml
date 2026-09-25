@@ -1,0 +1,34 @@
+# Mount the database CA bundle so the cache server can verify the RDS server
+# certificate.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-server
+spec:
+  template:
+    spec:
+      containers:
+      - name: server
+        env:
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: kfp-db-users
+              key: cacheUser
+        # Optional for the same reason as the API server's: the password is
+        # unused under a credential provider, but a missing Secret would stop
+        # the pod before the provider code runs.
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+              optional: true
+        volumeMounts:
+        - name: db-ca-bundle
+          mountPath: /etc/db-tls
+          readOnly: true
+      volumes:
+      - name: db-ca-bundle
+        configMap:
+          name: db-ca-bundle
