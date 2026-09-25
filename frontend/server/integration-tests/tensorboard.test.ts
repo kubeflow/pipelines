@@ -22,6 +22,7 @@ import { UIServer } from '../app.js';
 import { loadConfigs as loadApplicationConfigs, type ProcessEnv } from '../configs.js';
 import { createTensorboardProxyPath } from '../handlers/tensorboard-proxy.js';
 import { TEST_ONLY as K8S_TEST_EXPORT } from '../k8s-helper.js';
+import * as k8sHelper from '../k8s-helper.js';
 import { buildQuery, commonSetup, mkTempDir } from './test-helper.js';
 
 beforeEach(() => {
@@ -148,14 +149,65 @@ describe('/apps/tensorboard', () => {
     }
   });
 
+  it.each(['get', 'post', 'delete'] as const)(
+    'resolves an omitted standalone namespace for %s without hardcoding kubeflow',
+    async (method) => {
+      app = new UIServer(loadConfigs(argv, { FRONTEND_SERVER_NAMESPACE: 'custom-install' }));
+      const lookup = vi.spyOn(k8sHelper, 'getTensorboardInstance').mockResolvedValue({
+        viewerName: 'viewer-example',
+        image: 'tensorflow:2.0.0',
+        tfVersion: '2.0.0',
+      });
+      const create = vi.spyOn(k8sHelper, 'newTensorboardInstance').mockResolvedValue(undefined);
+      vi.spyOn(k8sHelper, 'waitForTensorboardInstance').mockResolvedValue('viewer-example');
+      const remove = vi.spyOn(k8sHelper, 'deleteTensorboardInstance').mockResolvedValue(undefined);
+      await requests(app.app)
+        [method]('/apps/tensorboard?logdir=gs%3A%2F%2Flogs&namespace=&image=tensorflow:2.0.0')
+        .expect(200);
+      const operation = method === 'get' ? lookup : method === 'post' ? create : remove;
+      expect(operation.mock.calls[0].slice(0, 2)).toEqual(['gs://logs', 'custom-install']);
+    },
+  );
+
+  it.each(['get', 'post', 'delete'] as const)(
+    'requires an explicit namespace for authenticated %s',
+    async (method) => {
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: 'true',
+          FRONTEND_SERVER_NAMESPACE: 'custom-install',
+        }),
+      );
+      await requests(app.app)
+        [method]('/apps/tensorboard?logdir=gs%3A%2F%2Flogs')
+        .expect(400, 'namespace argument is required');
+      expect(k8sGetCustomObjectSpy).not.toHaveBeenCalled();
+      expect(k8sCreateCustomObjectSpy).not.toHaveBeenCalled();
+      expect(k8sDeleteCustomObjectSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['get', 'post', 'delete'] as const)(
+    'rejects malformed standalone namespace for %s instead of using the default',
+    async (method) => {
+      app = new UIServer(loadConfigs(argv, { FRONTEND_SERVER_NAMESPACE: 'custom-install' }));
+      await requests(app.app)
+        [method]('/apps/tensorboard?logdir=gs%3A%2F%2Flogs&namespace=a&namespace=b')
+        .expect(400, 'invalid namespace');
+      expect(k8sGetCustomObjectSpy).not.toHaveBeenCalled();
+      expect(k8sCreateCustomObjectSpy).not.toHaveBeenCalled();
+      expect(k8sDeleteCustomObjectSpy).not.toHaveBeenCalled();
+    },
+  );
+
   describe('get', () => {
     it('requires logdir for get tensorboard', async () => {
       app = new UIServer(loadConfigs(argv, {}));
       await requests(app.app).get('/apps/tensorboard').expect(400, 'logdir argument is required');
     });
 
-    it('requires namespace for get tensorboard', async () => {
-      app = new UIServer(loadConfigs(argv, {}));
+    it('requires namespace for authenticated get tensorboard', async () => {
+      app = new UIServer(loadConfigs(argv, { ENABLE_AUTHZ: 'true' }));
       await requests(app.app)
         .get('/apps/tensorboard?logdir=some-log-dir')
         .expect(400, 'namespace argument is required');
@@ -176,7 +228,7 @@ describe('/apps/tensorboard', () => {
     function setupMockKfpApiService({ port = 3001 }: { port?: number } = {}) {
       const receivedHeaders: any[] = [];
       kfpApiServer = express()
-        .get('/apis/v1beta1/auth', (req, res) => {
+        .get('/apis/v2beta1/auth', (req, res) => {
           receivedHeaders.push(req.headers);
           res.status(200).send('{}'); // Authorized
         })
@@ -231,7 +283,7 @@ describe('/apps/tensorboard', () => {
 
       const apiServerPort = 3001;
       kfpApiServer = express()
-        .get('/apis/v1beta1/auth', (_, res) => {
+        .get('/apis/v2beta1/auth', (_, res) => {
           res.status(400).send(
             JSON.stringify({
               error: 'User xxx is not unauthorized to list viewers',
@@ -352,8 +404,8 @@ describe('/apps/tensorboard', () => {
       await requests(app.app).post('/apps/tensorboard').expect(400, 'logdir argument is required');
     });
 
-    it('requires namespace', async () => {
-      app = new UIServer(loadConfigs(argv, {}));
+    it('requires namespace when authenticated', async () => {
+      app = new UIServer(loadConfigs(argv, { ENABLE_AUTHZ: 'true' }));
       await requests(app.app)
         .post('/apps/tensorboard?logdir=some-log-dir')
         .expect(400, 'namespace argument is required');
@@ -827,8 +879,8 @@ describe('/apps/tensorboard', () => {
         .expect(400, 'logdir argument is required');
     });
 
-    it('requires namespace', async () => {
-      app = new UIServer(loadConfigs(argv, {}));
+    it('requires namespace when authenticated', async () => {
+      app = new UIServer(loadConfigs(argv, { ENABLE_AUTHZ: 'true' }));
       await requests(app.app)
         .delete('/apps/tensorboard?logdir=some-log-dir')
         .expect(400, 'namespace argument is required');

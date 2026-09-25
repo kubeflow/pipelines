@@ -43,7 +43,6 @@ CONTAINER_ENGINE ?= $(shell \
 IMG_REGISTRY ?=
 IMG_TAG_APISERVER         ?= apiserver
 IMG_TAG_PERSISTENCEAGENT  ?= persistence-agent
-IMG_TAG_CACHESERVER       ?= cache-server
 IMG_TAG_SCHEDULEDWORKFLOW ?= scheduledworkflow
 IMG_TAG_VIEWERCONTROLLER  ?= viewercontroller
 IMG_TAG_VISUALIZATION     ?= visualization
@@ -66,7 +65,7 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: image_all
-image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_visualization image_driver image_launcher
+image_all: image_apiserver image_persistence_agent image_swf image_viewer image_visualization image_driver image_launcher
 
 .PHONY: image_apiserver
 image_apiserver:
@@ -74,9 +73,6 @@ image_apiserver:
 .PHONY: image_persistence_agent
 image_persistence_agent:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent .
-.PHONY: image_cache
-image_cache:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_CACHESERVER} -f backend/Dockerfile.cacheserver .
 .PHONY: image_swf
 image_swf:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow .

@@ -131,7 +131,7 @@ wait_for_namespace () {
 
 wait_for_pods () {
     C_DIR="${BASH_SOURCE%/*}"
-    pip install -r "${C_DIR}"/kfp-readiness/requirements.txt
+    python -m pip install "kubernetes==30.1.0" "urllib3==2.6.3"
     python "${C_DIR}"/kfp-readiness/wait_for_pods.py
 }
 
@@ -140,13 +140,13 @@ deploy_with_retries () {
     then
         echo "Usage: deploy_with_retries (-f FILENAME | -k DIRECTORY) manifest max_retries sleep_time"
         return 1
-    fi 
+    fi
 
     local flag="$1"
     local manifest="$2"
     local max_retries="$3"
     local sleep_time="$4"
-    
+
     local i=0
 
     while [[ $i -lt $max_retries ]]
@@ -159,7 +159,7 @@ deploy_with_retries () {
         then
             return 0
         fi
-        
+
         echo "Deploy unsuccessful with error code $exit_code. Trying again in ${sleep_time}s."
         sleep "$sleep_time"
         i=$((i+1))

@@ -24,6 +24,10 @@ on:
 
 env:
   PYTHON_VERSION: "3.9"
+  UV_VERSION: "0.10.3"
+  # Twine 7 validates current Hatch metadata and requires Python >=3.10.
+  TWINE_VERSION: "7.0.0"
+  TWINE_PYTHON_VERSION: "3.12"
 
 jobs:
   publish-kfp-pipeline-spec:
@@ -38,22 +42,21 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
 
+      # The selected tag may predate repository-local uv actions.
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Build kfp-pipeline-spec
         run: |
-          cd api
-          make python
-          cd v2alpha1/python
-          twine check dist/*
+          make -C api python
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check api/v2alpha1/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -86,17 +89,17 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install twine
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Build kfp-server-api
         run: |
-          cd backend/api/v2beta1/python_http_client
-          rm -rf dist
-          python setup.py --quiet sdist
-          twine check dist/*
+          rm -rf backend/api/v2beta1/python_http_client/dist
+          # A source-path build supports pyproject.toml and legacy setup.py tags.
+          uv build backend/api/v2beta1/python_http_client --out-dir backend/api/v2beta1/python_http_client/dist
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check backend/api/v2beta1/python_http_client/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -131,17 +134,15 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Build kfp
         run: |
-          cd sdk
-          make python
-          cd python
-          twine check dist/*
+          make -C sdk python
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check sdk/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}
@@ -176,17 +177,15 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
 
       - name: Build kfp-kubernetes
         run: |
-          cd kubernetes_platform
-          make python
-          cd python
-          twine check dist/*
+          make -C kubernetes_platform python
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" twine check kubernetes_platform/python/dist/*
 
       - name: Publish to PyPI
         if: ${{ github.event.inputs.dry_run == 'false' }}

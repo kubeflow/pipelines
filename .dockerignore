@@ -1,10 +1,11 @@
 .git
+.venv
+**/.venv
 bower_components
 dist
 **/node_modules
 backend/build
 backend/Dockerfile
-backend/Dockerfile.cacheserver
 backend/Dockerfile.conformance
 backend/Dockerfile.driver
 backend/Dockerfile.launcher

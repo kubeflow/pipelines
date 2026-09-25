@@ -177,7 +177,7 @@ func (s *ScheduledWorkflow) NewWorkflow(
 
 	execSpec.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
 	execSpec.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
-	// Pod pipeline/runid label is used by v2 compatible mode.
+	// The run label associates executor pods with their run.
 	execSpec.SetPodMetadataLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Replace {{workflow.uid}} with runId
 	err = execSpec.ReplaceUID(uuid.String())

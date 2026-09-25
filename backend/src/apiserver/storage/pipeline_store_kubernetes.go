@@ -27,7 +27,6 @@ import (
 const pollTimeout = 3 * time.Second
 
 var (
-	ErrNoV1             = errors.New("the v1 API is not available for the Kubernetes pipeline store")
 	ErrUnsupportedField = errors.New("the field is unsupported")
 )
 
@@ -40,12 +39,15 @@ func NewPipelineStoreKubernetes(k8sClient ctrlclient.Client, k8sClientNoCache ct
 	return &PipelineStoreKubernetes{client: k8sClient, clientNoCache: k8sClientNoCache}
 }
 
-func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
-	return nil, nil, ErrNoV1
-}
-
 func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	if namespace == "" {
+		// The pod namespace is where KFP itself runs; falling back to it would cross tenants.
+		if common.IsMultiUserMode() {
+			return nil, util.NewInvalidInputError(
+				"A namespace is required to look up pipeline %v in multi-user mode", name,
+			)
+		}
+
 		namespace = common.GetPodNamespace()
 	}
 
@@ -61,10 +63,6 @@ func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, nam
 	}
 
 	return k8sPipeline.ToModel(), nil
-}
-
-func (k *PipelineStoreKubernetes) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	return nil, nil, 0, "", ErrNoV1
 }
 
 func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
@@ -332,12 +330,6 @@ func (k *PipelineStoreKubernetes) CreatePipelineVersion(pipelineVersion *model.P
 	}
 
 	return k.createPipelineVersionWithPipeline(context.TODO(), pipeline, pipelineVersion)
-}
-
-func (k *PipelineStoreKubernetes) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-	// Default version was used in KFPv1 and is deprecated. In KFPv2, we do not support this.
-	return util.NewBadRequestError(errors.New("pipeline default version is unsupported"),
-		"pipeline default version is unsupported when storing in Kubernetes")
 }
 
 func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {

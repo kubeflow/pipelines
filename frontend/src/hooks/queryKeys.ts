@@ -42,14 +42,13 @@ export const queryKeys = {
 
   v2RunComparison: (runId: string) => ['v2_run_comparison', { id: runId }] as const,
 
+  runPipelineSpec: (runId: string) => ['run_pipeline_spec', { id: runId }] as const,
+
   v2RecurringRunDetail: (recurringRunId: string | null | undefined) =>
     ['v2_recurring_run_detail', { id: recurringRunId }] as const,
 
   recurringRun: (recurringRunId: string | null | undefined) =>
     ['recurringRun', recurringRunId] as const,
-
-  runDetailForComparisonRouting: (runId: string) =>
-    ['run_detail_for_comparison_routing', { id: runId }] as const,
 
   // --- Runtime metadata ---
 
@@ -88,12 +87,6 @@ export const queryKeys = {
 
   pipelineVersions: (pipelineId: string | null | undefined) =>
     ['pipeline_versions', pipelineId ?? ''] as const,
-
-  // Includes both IDs for correct cache invalidation (version IDs may not be globally unique).
-  v1PipelineVersionTemplate: (
-    pipelineId: string | null | undefined,
-    pipelineVersionId: string | null | undefined,
-  ) => ['v1PipelineVersionTemplate', pipelineId, pipelineVersionId] as const,
 
   // --- Experiment ---
 

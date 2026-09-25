@@ -1,0 +1,25 @@
+name: Check uv.lock sync
+
+on:
+  push:
+    branches: [master, 'release-*']
+  pull_request:
+    paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/check-uv-lock.yml'
+
+jobs:
+  check-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.3"
+
+      - name: Check if uv.lock is in sync
+        run: uv lock --check

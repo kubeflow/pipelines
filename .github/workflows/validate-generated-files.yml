@@ -5,10 +5,12 @@ on:
       - master
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/validate-generated-files.yml'
       - '.github/resources/scripts/generated_files_dependency_change.py'
       - '.github/resources/scripts/check_generated_diff.py'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - 'go.mod'
       - 'go.sum'
       - 'backend/api/Dockerfile'
@@ -81,12 +83,10 @@ jobs:
       - name: Install Go
         uses: ./.github/actions/setup-go
 
-      - name: Set up Python
-        uses: ./.github/actions/setup-python-pip-cache
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
-          python-version: 3.9
-          cache-scope: validate-generated-files
-          cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
+          python-version: '3.9'
 
       - name: Set up Docker Buildx with caching
         shell: bash
@@ -114,22 +114,10 @@ jobs:
           API_VERSION: v2beta1
         run: make generate
 
-      - name: Generate backend proto code v1beta1
-        working-directory: ./backend/api
-        env:
-          API_VERSION: v1beta1
-        run: make generate
-
       - name: Generate backend proto code v2beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v2beta1
-        run: make generate-kfp-server-api-package
-
-      - name: Generate backend proto code v1beta1
-        working-directory: ./backend/api
-        env:
-          API_VERSION: v1beta1
         run: make generate-kfp-server-api-package
 
       - name: Check for Changes

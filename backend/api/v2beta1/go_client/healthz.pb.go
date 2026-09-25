@@ -40,11 +40,7 @@ const (
 
 type GetHealthzResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// TODO(gkcalat): redesign this service to return status
-	// and move server configuration into a separate service
-	// TODO(gkcalat): rename or deprecate v1beta1 HealthzService
-	//
-	// Returns if KFP in multi-user mode
+	// Returns whether KFP is in multi-user mode.
 	MultiUser bool `protobuf:"varint,3,opt,name=multi_user,json=multiUser,proto3" json:"multi_user,omitempty"`
 	// Returns the pipeline storage type (database or kubernetes)
 	PipelineStore string `protobuf:"bytes,4,opt,name=pipeline_store,json=pipelineStore,proto3" json:"pipeline_store,omitempty"`

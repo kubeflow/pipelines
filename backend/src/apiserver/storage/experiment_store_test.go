@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
@@ -466,13 +466,13 @@ func TestListExperiments_Filtering(t *testing.T) {
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDFour, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment4"))
 
-	filterProto := &apiv1beta1.Filter{
-		Predicates: []*apiv1beta1.Predicate{
+	filterProto := &apiv2beta1.Filter{
+		Predicates: []*apiv2beta1.Predicate{
 			{
-				Key: "name",
-				Op:  apiv1beta1.Predicate_IN,
-				Value: &apiv1beta1.Predicate_StringValues{
-					StringValues: &apiv1beta1.StringValues{
+				Key:       "name",
+				Operation: apiv2beta1.Predicate_IN,
+				Value: &apiv2beta1.Predicate_StringValues_{
+					StringValues: &apiv2beta1.Predicate_StringValues{
 						Values: []string{"experiment2", "experiment4", "experiment3"},
 					},
 				},
@@ -599,8 +599,8 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	runs, totalRunSize, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalRunSize)
-	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_AVAILABLE.String(), string(runs[0].StorageState.ToV1()))
-	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_AVAILABLE.String(), string(runs[0].StorageState.ToV2()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), string(runs[1].StorageState.ToV2()))
 	assert.Equal(t, apiv2beta1.Run_AVAILABLE.String(), runs[0].StorageState.ToString())
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
 
@@ -656,8 +656,8 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	runs, totalRunSize, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalRunSize)
-	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[0].StorageState.ToV1()))
-	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), string(runs[0].StorageState.ToV2()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), string(runs[1].StorageState.ToV2()))
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[0].StorageState.ToString())
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
 	jobs, total_job_size, _, err := jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
@@ -675,8 +675,8 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	runs, totalRunSize, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, totalRunSize, 2)
-	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[0].StorageState.ToV1()))
-	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), string(runs[0].StorageState.ToV2()))
+	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), string(runs[1].StorageState.ToV2()))
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[0].StorageState.ToString())
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[1].StorageState.ToString())
 	jobs, total_job_size, _, err = jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)

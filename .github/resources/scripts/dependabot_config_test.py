@@ -16,6 +16,7 @@
 from pathlib import Path
 from pathlib import PurePosixPath
 import re
+import subprocess
 import unittest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -23,7 +24,6 @@ DEPENDABOT_PATH = REPOSITORY_ROOT / '.github/dependabot.yml'
 CI_SCRIPTS_WORKFLOW_PATH = (
     REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml')
 GENERATED_PYTHON_CLIENTS = {
-    '/backend/api/v1beta1/python_http_client',
     '/backend/api/v2beta1/python_http_client',
 }
 
@@ -179,9 +179,21 @@ class DependabotConfigTest(unittest.TestCase):
                 for npm_directory in npm_directories))
 
     def test_all_maintained_python_projects_are_covered(self):
-        python_manifests = set(REPOSITORY_ROOT.rglob('setup.py'))
-        python_manifests.update(REPOSITORY_ROOT.rglob('pyproject.toml'))
-        python_manifests.update(REPOSITORY_ROOT.rglob('requirements*.txt'))
+        # Installed dependencies in .venv are not repository manifests.
+        tracked_manifests = subprocess.check_output(
+            [
+                'git', 'ls-files', '-z', '--', 'setup.py', '**/setup.py',
+                'pyproject.toml', '**/pyproject.toml', 'requirements*.txt',
+                '**/requirements*.txt'
+            ],
+            cwd=REPOSITORY_ROOT,
+            text=True,
+        )
+        python_manifests = {
+            REPOSITORY_ROOT / path
+            for path in tracked_manifests.split('\0')
+            if path
+        }
         python_directories = {
             repository_directory(path)
             for path in python_manifests

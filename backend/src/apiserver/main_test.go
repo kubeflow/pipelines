@@ -721,13 +721,10 @@ func noOpHandler(w http.ResponseWriter, r *http.Request) {}
 
 func newNoOpHTTPRouterDeps() HTTPRouterDeps {
 	return HTTPRouterDeps{
-		UploadPipelineV1:        noOpHandler,
-		UploadPipelineVersionV1: noOpHandler,
-		UploadPipeline:          noOpHandler,
-		UploadPipelineVersion:   noOpHandler,
-		ReadRunLogV1:            noOpHandler,
-		ReadArtifactV1:          noOpHandler,
-		ReadArtifact:            noOpHandler,
+		UploadPipeline:        noOpHandler,
+		UploadPipelineVersion: noOpHandler,
+		ReadRunLog:            noOpHandler,
+		ReadArtifact:          noOpHandler,
 	}
 }
 
@@ -757,14 +754,10 @@ func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
 		path            string
 		expectedMethods []string
 	}{
-		{"/apis/v1beta1/pipelines/upload", nil},
-		{"/apis/v1beta1/pipelines/upload_version", nil},
-		{"/apis/v1beta1/healthz", nil},
 		{"/apis/v2beta1/pipelines/upload", nil},
 		{"/apis/v2beta1/pipelines/upload_version", nil},
 		{"/apis/v2beta1/healthz", nil},
-		{"/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", nil},
-		{"/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
+		{"/apis/v2beta1/runs/{run_id}/nodes/{node_id}/log", []string{"GET"}},
 		{"/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
 		{"/metrics", nil},
 	}
@@ -790,13 +783,7 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 		multiUser     bool
 		wantV2Store   bool
 	}{
-		{
-			name:      "v1beta1 healthz",
-			path:      "/apis/v1beta1/healthz",
-			commitSHA: `sha-"v1"`,
-			tagName:   "tag-v1\nline",
-			multiUser: true,
-		},
+
 		{
 			name:          "v2beta1 healthz with database store",
 			path:          "/apis/v2beta1/healthz",
@@ -856,12 +843,12 @@ func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
 		path       string
 		setHandler func(deps *HTTPRouterDeps, handler http.HandlerFunc)
 	}{
-		{"v1beta1 upload pipeline", http.MethodPost, "/apis/v1beta1/pipelines/upload",
-			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineV1 = handler }},
+		{"v2beta1 upload pipeline", http.MethodPost, "/apis/v2beta1/pipelines/upload",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipeline = handler }},
 		{"v2beta1 upload pipeline version", http.MethodPost, "/apis/v2beta1/pipelines/upload_version",
 			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineVersion = handler }},
-		{"v1alpha1 run log", http.MethodGet, "/apis/v1alpha1/runs/run-123/nodes/node-456/log",
-			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadRunLogV1 = handler }},
+		{"v2beta1 run log", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/log",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadRunLog = handler }},
 		{"v2beta1 artifact read", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/artifacts/my-artifact:read",
 			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadArtifact = handler }},
 	}
@@ -901,4 +888,26 @@ func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
 	router.ServeHTTP(recorder, request)
 
 	assert.True(t, gatewayHandlerCalled, "requests to /apis/ paths not matching explicit routes should reach the gRPC gateway handler")
+}
+
+func TestInitConfigRejectsInvalidWorkflowIdentityMode(t *testing.T) {
+	viper.Reset()
+	tempDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "config.json"), []byte(`{}`), 0600))
+	originalConfigPath := *configPath
+	*configPath = tempDir
+	t.Cleanup(func() { *configPath = originalConfigPath; viper.Reset() })
+	t.Setenv(common.WorkflowIdentityMode, "true")
+	err := initConfig()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), common.WorkflowIdentityMode)
+}
+
+func TestBuildHTTPRouter_RunLogRequiresGET(t *testing.T) {
+	deps := newNoOpHTTPRouterDeps()
+	deps.ReadRunLog = func(http.ResponseWriter, *http.Request) { t.Error("POST reached run log streaming handler") }
+	router := buildHTTPRouter(deps, http.NotFoundHandler(), "database")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/apis/v2beta1/runs/run-id/nodes/node-id/log?follow=true", nil))
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
 }

@@ -24,7 +24,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	v2beta1crd "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
@@ -34,7 +34,7 @@ import (
 
 func testQuote(s string) string { return `"` + s + `"` }
 
-func TestValidNewFiltersV1(t *testing.T) {
+func TestValidNewFiltersMigrated(t *testing.T) {
 	opts := []cmp.Option{
 		cmp.AllowUnexported(Filter{}),
 		cmpopts.EquateEmpty(),
@@ -45,56 +45,56 @@ func TestValidNewFiltersV1(t *testing.T) {
 		want     *Filter
 	}{
 		{
-			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
+			`predicates { key: "status" operation: EQUALS string_value: "Running" }`,
 			&Filter{eq: map[string][]interface{}{"status": {"Running"}}},
 		},
 		{
-			`predicates { key: "status" op: NOT_EQUALS string_value: "Running" }`,
+			`predicates { key: "status" operation: NOT_EQUALS string_value: "Running" }`,
 			&Filter{neq: map[string][]interface{}{"status": {"Running"}}},
 		},
 		{
-			`predicates { key: "total" op: GREATER_THAN int_value: 10 }`,
+			`predicates { key: "total" operation: GREATER_THAN int_value: 10 }`,
 			&Filter{gt: map[string][]interface{}{"total": {int32(10)}}},
 		},
 		{
-			`predicates { key: "total" op: GREATER_THAN_EQUALS long_value: 10 }`,
+			`predicates { key: "total" operation: GREATER_THAN_EQUALS long_value: 10 }`,
 			&Filter{gte: map[string][]interface{}{"total": {int64(10)}}},
 		},
 		{
-			`predicates { key: "total" op: LESS_THAN timestamp_value { seconds: 10 }}`,
+			`predicates { key: "total" operation: LESS_THAN timestamp_value { seconds: 10 }}`,
 			&Filter{lt: map[string][]interface{}{"total": {int64(10)}}},
 		},
 		{
-			`predicates { key: "total" op: LESS_THAN_EQUALS timestamp_value { seconds: 10 }}`,
+			`predicates { key: "total" operation: LESS_THAN_EQUALS timestamp_value { seconds: 10 }}`,
 			&Filter{lte: map[string][]interface{}{"total": {int64(10)}}},
 		},
 		{
 			`predicates {
-				key: "label" op: IN
+				key: "label" operation: IN
 				string_values { values: 'label_1' values: 'label_2' } }`,
 			&Filter{in: map[string][]interface{}{"label": {[]string{"label_1", "label_2"}}}},
 		},
 		{
 			`predicates {
-				key: "intvalues" op: IN
+				key: "intvalues" operation: IN
 				int_values { values: 10 values: 20 } }`,
 			&Filter{in: map[string][]interface{}{"intvalues": {[]int32{10, 20}}}},
 		},
 		{
 			`predicates {
-				key: "longvalues" op: IN
+				key: "longvalues" operation: IN
 				long_values { values: 100 values: 200 } }`,
 			&Filter{in: map[string][]interface{}{"longvalues": {[]int64{100, 200}}}},
 		},
 		{
 			`predicates {
-				key: "label" op: IS_SUBSTRING string_value: "label_substring" }`,
+				key: "label" operation: IS_SUBSTRING string_value: "label_substring" }`,
 			&Filter{substring: map[string][]interface{}{"label": {"label_substring"}}},
 		},
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv1beta1.Filter{}
+		filterProto := &apiv2beta1.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -180,7 +180,7 @@ func TestValidNewFilters(t *testing.T) {
 	}
 }
 
-func TestValidNewFiltersWithKeyMapV1(t *testing.T) {
+func TestValidNewFiltersWithKeyMapMigrated(t *testing.T) {
 	opts := []cmp.Option{
 		cmp.AllowUnexported(Filter{}),
 		cmpopts.EquateEmpty(),
@@ -191,28 +191,28 @@ func TestValidNewFiltersWithKeyMapV1(t *testing.T) {
 		want     *Filter
 	}{
 		{
-			`predicates { key: "name" op: EQUALS string_value: "pipeline" }`,
+			`predicates { key: "name" operation: EQUALS string_value: "pipeline" }`,
 			&Filter{eq: map[string][]interface{}{"pipelines.Name": {"pipeline"}}},
 		},
 		{
-			`predicates { key: "name" op: NOT_EQUALS string_value: "pipeline" }`,
+			`predicates { key: "name" operation: NOT_EQUALS string_value: "pipeline" }`,
 			&Filter{neq: map[string][]interface{}{"pipelines.Name": {"pipeline"}}},
 		},
 		{
 			`predicates {
-				key: "name" op: IN
+				key: "name" operation: IN
 				string_values { values: 'pipeline_1' values: 'pipeline_2' } }`,
 			&Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"pipeline_1", "pipeline_2"}}}},
 		},
 		{
 			`predicates {
-				key: "name" op: IS_SUBSTRING string_value: "pipeline" }`,
+				key: "name" operation: IS_SUBSTRING string_value: "pipeline" }`,
 			&Filter{substring: map[string][]interface{}{"pipelines.Name": {"pipeline"}}},
 		},
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv1beta1.Filter{}
+		filterProto := &apiv2beta1.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -284,54 +284,54 @@ func TestValidNewFiltersWithKeyMap(t *testing.T) {
 	}
 }
 
-func TestInvalidFiltersV1(t *testing.T) {
+func TestInvalidFiltersMigrated(t *testing.T) {
 	tests := []struct {
 		protoStr string
 	}{
 		{
-			`predicates { key: "status" op: EQUALS
+			`predicates { key: "status" operation: EQUALS
 			 string_values { values: "v1" values: "v2" }} `,
 		},
 		{
-			`predicates { key: "status" op: NOT_EQUALS
+			`predicates { key: "status" operation: NOT_EQUALS
 			 string_values { values: "v1" values: "v2"} }`,
 		},
 		{
-			`predicates { key: "total" op: GREATER_THAN
+			`predicates { key: "total" operation: GREATER_THAN
 			 int_values { values: 10  values: 20} }`,
 		},
 		{
-			`predicates { key: "total" op: GREATER_THAN_EQUALS
+			`predicates { key: "total" operation: GREATER_THAN_EQUALS
 			 long_values { values: 10 values: 20} }`,
 		},
 		{
-			`predicates { key: "total" op: LESS_THAN
+			`predicates { key: "total" operation: LESS_THAN
 			 int_values { values: 10  values: 20} }`,
 		},
 		{
-			`predicates { key: "total" op: LESS_THAN_EQUALS
+			`predicates { key: "total" operation: LESS_THAN_EQUALS
 			 long_values { values: 10 values: 20} }`,
 		},
 		{
-			`predicates { key: "total" op: IS_SUBSTRING
+			`predicates { key: "total" operation: IS_SUBSTRING
 			 long_values { values: 10 values: 20} }`,
 		},
 		{
-			`predicates { key: "total" op: IS_SUBSTRING
+			`predicates { key: "total" operation: IS_SUBSTRING
 			 int_values { values: 10  values: 20} }`,
 		},
 
 		{
-			`predicates { key: "total" op: IN int_value: 10 }`,
+			`predicates { key: "total" operation: IN int_value: 10 }`,
 		},
 		{
-			`predicates { key: "total" op: IN long_value: 200}`,
+			`predicates { key: "total" operation: IN long_value: 200}`,
 		},
 		{
-			`predicates { key: "total" op: IN string_value: "value"}`,
+			`predicates { key: "total" operation: IN string_value: "value"}`,
 		},
 		{
-			`predicates { key: "total" op: IN timestamp_value { seconds: 10 }}`,
+			`predicates { key: "total" operation: IN timestamp_value { seconds: 10 }}`,
 		},
 		// Invalid predicate
 		{
@@ -339,14 +339,14 @@ func TestInvalidFiltersV1(t *testing.T) {
 		},
 		// No value
 		{
-			`predicates { key: "total" op: IN }`,
+			`predicates { key: "total" operation: IN }`,
 		},
 		// Note: empty IN lists (int_values {}, long_values {}, string_values {})
 		// are intentionally NOT errors. They produce a match-nothing predicate.
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv1beta1.Filter{}
+		filterProto := &apiv2beta1.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -489,76 +489,76 @@ func TestQualifyIdentifier(t *testing.T) {
 	}
 }
 
-func TestAddToSelectV1(t *testing.T) {
+func TestAddToSelectMigrated(t *testing.T) {
 	tests := []struct {
 		protoStr string
 		wantSQL  string
 		wantArgs []interface{}
 	}{
 		{
-			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
+			`predicates { key: "status" operation: EQUALS string_value: "Running" }`,
 			`SELECT mycolumn WHERE ("status" = ?)`,
 			[]interface{}{"Running"},
 		},
 		{
-			`predicates { key: "status" op: EQUALS string_value: "Running" }
-			 predicates { key: "status" op: EQUALS string_value: "Stopped" }`,
+			`predicates { key: "status" operation: EQUALS string_value: "Running" }
+			 predicates { key: "status" operation: EQUALS string_value: "Stopped" }`,
 			`SELECT mycolumn WHERE ("status" = ? AND "status" = ?)`,
 			[]interface{}{"Running", "Stopped"},
 		},
 		{
-			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
+			`predicates { key: "status" operation: EQUALS string_value: "Running" }`,
 			`SELECT mycolumn WHERE ("status" = ?)`,
 			[]interface{}{"Running"},
 		},
 		{
-			`predicates { key: "status" op: EQUALS string_value: "Running" }
-		   predicates { key: "total" op: GREATER_THAN_EQUALS  long_value: 100 }`,
+			`predicates { key: "status" operation: EQUALS string_value: "Running" }
+		   predicates { key: "total" operation: GREATER_THAN_EQUALS  long_value: 100 }`,
 			`SELECT mycolumn WHERE ("status" = ? AND "total" >= ?)`,
 			[]interface{}{"Running", int64(100)},
 		},
 		{
-			`predicates { key: "status" op: NOT_EQUALS string_value: "Running" }
-		   predicates { key: "total" op: GREATER_THAN  long_value: 100 }`,
+			`predicates { key: "status" operation: NOT_EQUALS string_value: "Running" }
+		   predicates { key: "total" operation: GREATER_THAN  long_value: 100 }`,
 			`SELECT mycolumn WHERE ("status" <> ? AND "total" > ?)`,
 			[]interface{}{"Running", int64(100)},
 		},
 		{
-			`predicates { key: "date" op: LESS_THAN timestamp_value { seconds: 10 } }
-		   predicates { key: "total" op: LESS_THAN_EQUALS  int_value: 100 }`,
+			`predicates { key: "date" operation: LESS_THAN timestamp_value { seconds: 10 } }
+		   predicates { key: "total" operation: LESS_THAN_EQUALS  int_value: 100 }`,
 			`SELECT mycolumn WHERE ("date" < ? AND "total" <= ?)`,
 			[]interface{}{int64(10), int32(100)},
 		},
 		{
-			`predicates { key: "total" op: IN int_values {values: 1 values: 2 values: 3} }`,
+			`predicates { key: "total" operation: IN int_values {values: 1 values: 2 values: 3} }`,
 			`SELECT mycolumn WHERE ("total" IN (?,?,?))`,
 			[]interface{}{int32(1), int32(2), int32(3)},
 		},
 		{
-			`predicates { key: "runs" op: IN  long_values {values: 100 values: 200}}`,
+			`predicates { key: "runs" operation: IN  long_values {values: 100 values: 200}}`,
 			`SELECT mycolumn WHERE ("runs" IN (?,?))`,
 			[]interface{}{int64(100), int64(200)},
 		},
 		{
-			`predicates { key: "label" op: IN  string_values {values: "l1" values: "l2"}}`,
+			`predicates { key: "label" operation: IN  string_values {values: "l1" values: "l2"}}`,
 			`SELECT mycolumn WHERE ("label" IN (?,?))`,
 			[]interface{}{"l1", "l2"},
 		},
 		{
-			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring" }`,
+			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring" }`,
 			`SELECT mycolumn WHERE (LOWER("label") LIKE LOWER(?))`,
 			[]interface{}{"%label_substring%"},
 		},
 		{
-			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring1" }
-			 predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring2" }`,
+			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring1" }
+			 predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring2" }`,
 			`SELECT mycolumn WHERE (LOWER("label") LIKE LOWER(?) AND LOWER("label") LIKE LOWER(?))`,
 			[]interface{}{"%label_substring1%", "%label_substring2%"},
 		},
 	}
 
 	for _, test := range tests {
-		filterProto := &apiv1beta1.Filter{}
+		filterProto := &apiv2beta1.Filter{}
 		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
@@ -1137,12 +1137,12 @@ func TestFilterK8sPipelineVersions_SUBSTRING_AND(t *testing.T) {
 }
 
 func TestNewWithKeyMap(t *testing.T) {
-	filterProto := &apiv1beta1.Filter{
-		Predicates: []*apiv1beta1.Predicate{
+	filterProto := &apiv2beta1.Filter{
+		Predicates: []*apiv2beta1.Predicate{
 			{
-				Key:   "finished_at",
-				Op:    apiv1beta1.Predicate_GREATER_THAN,
-				Value: &apiv1beta1.Predicate_StringValue{StringValue: "SomeTime"},
+				Key:       "finished_at",
+				Operation: apiv2beta1.Predicate_GREATER_THAN,
+				Value:     &apiv2beta1.Predicate_StringValue{StringValue: "SomeTime"},
 			},
 		},
 	}

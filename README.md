@@ -22,7 +22,7 @@ The Kubeflow pipelines service has the following goals:
 
 * Kubeflow Pipelines can be installed as part of the [Kubeflow Platform](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-platform). Alternatively you can deploy [Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/) as a standalone service.
 
-* The Docker container runtime has been deprecated on Kubernetes 1.20+. Kubeflow Pipelines has switched to use [Emissary Executor](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/installation/choose-executor/#emissary-executor) by default from Kubeflow Pipelines 1.8. Emissary executor is Container runtime agnostic, meaning you are able to run Kubeflow Pipelines on Kubernetes cluster with any [Container runtimes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/).
+* Pipeline execution uses the [Argo Emissary executor](https://argo-workflows.readthedocs.io/en/latest/workflow-executors/), which is independent of the Kubernetes container runtime.
 
 ### Dependencies Compatibility Matrix
 
@@ -49,7 +49,7 @@ See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/components/pi
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
 
 ## Deep Wiki
-Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines). 
+Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines).
 
 > :warning: Please note, this is AI generated and may not have completely accurate information.
 

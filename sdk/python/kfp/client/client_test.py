@@ -35,6 +35,31 @@ import kubernetes as k8s
 import yaml
 
 
+class TestRecurringRunAliases(parameterized.TestCase):
+
+    @parameterized.parameters('delete', 'disable', 'enable')
+    def test_job_alias_uses_recurring_run_service(self, operation):
+        sdk_client = client.Client.__new__(client.Client)
+        sdk_client._recurring_run_api = Mock(
+            spec=kfp_server_api.RecurringRunServiceApi)
+        service_method = getattr(
+            sdk_client._recurring_run_api,
+            f'recurring_run_service_{operation}_recurring_run')
+        with self.assertWarns(DeprecationWarning):
+            result = getattr(sdk_client, f'{operation}_job')('run-id')
+        service_method.assert_called_once_with(recurring_run_id='run-id')
+        self.assertIs(result, service_method.return_value)
+
+    def test_job_id_alias_uses_recurring_run_service(self):
+        sdk_client = client.Client.__new__(client.Client)
+        sdk_client._recurring_run_api = Mock(
+            spec=kfp_server_api.RecurringRunServiceApi)
+        with self.assertWarns(DeprecationWarning):
+            sdk_client.get_recurring_run(recurring_run_id=None, job_id='run-id')
+        sdk_client._recurring_run_api.recurring_run_service_get_recurring_run.assert_called_once_with(
+            recurring_run_id='run-id')
+
+
 class TestValidatePipelineName(parameterized.TestCase):
 
     @parameterized.parameters([
@@ -279,6 +304,15 @@ class TestClient(parameterized.TestCase):
             mock_get_run.assert_called_once_with(run_id='foo')
             assert response == mock_get_run.return_value
 
+    def test_wait_for_run_completion_canceled_run(self):
+        with patch.object(self.client._run_api,
+                          'run_service_get_run') as mock_get_run:
+            mock_get_run.return_value = Mock(state='CANCELED')
+            response = self.client.wait_for_run_completion(
+                run_id='foo', timeout=1, sleep_duration=0)
+            mock_get_run.assert_called_once_with(run_id='foo')
+            assert response == mock_get_run.return_value
+
     def test_wait_for_run_completion_run_timeout_should_raise_error(self):
         with self.assertRaises(TimeoutError):
             with patch.object(self.client._run_api,
@@ -287,6 +321,21 @@ class TestClient(parameterized.TestCase):
                 self.client.wait_for_run_completion(
                     run_id='foo', timeout=1, sleep_duration=0)
                 mock_get_run.assert_called_once_with(run_id='foo')
+
+    @patch('kfp.Client.get_user_namespace', return_value='ns2')
+    def test_list_recurring_runs_uses_user_namespace_when_not_provided(
+            self, mock_get_user_namespace):
+        with patch.object(
+                self.client._recurring_run_api,
+                'recurring_run_service_list_recurring_runs') as mock_list:
+            self.client.list_recurring_runs()
+            mock_get_user_namespace.assert_called_once()
+            mock_list.assert_called_once_with(
+                page_token='',
+                page_size=10,
+                sort_by='',
+                namespace='ns2',
+                filter=None)
 
     @patch('kfp.Client.get_experiment', side_effect=ValueError)
     def test_create_experiment_no_experiment_should_raise_error(

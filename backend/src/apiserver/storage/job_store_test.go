@@ -21,7 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -77,7 +77,7 @@ func initializeDBAndStore() (*sql.DB, dialect.DBDialect, *JobStore) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobStore.CreateJob(job1.ToV1())
+	jobStore.CreateJob(job1.ToV2())
 	job2 := &model.Job{
 		UUID:        "2",
 		DisplayName: "pp 2",
@@ -101,7 +101,8 @@ func initializeDBAndStore() (*sql.DB, dialect.DBDialect, *JobStore) {
 		UpdatedAtInSec: 2,
 		ExperimentId:   defaultFakeExpIdTwo,
 	}
-	jobStore.CreateJob(job2.ToV1())
+	jobStore.CreateJob(job2.ToV2())
+
 	return db, testDialect, jobStore
 }
 
@@ -133,11 +134,11 @@ func TestListJobs_Pagination(t *testing.T) {
 			ExperimentId:   defaultFakeExpId,
 		},
 	}
-	jobsExpected[0] = jobsExpected[0].ToV1()
+	jobsExpected[0] = jobsExpected[0].ToV2()
 	opts, err := list.NewOptions(&model.Job{}, 1, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
-	jobs[0] = jobs[0].ToV1()
+	jobs[0] = jobs[0].ToV2()
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -169,12 +170,12 @@ func TestListJobs_Pagination(t *testing.T) {
 			ExperimentId:   defaultFakeExpIdTwo,
 		},
 	}
-	jobsExpected2[0] = jobsExpected2[0].ToV1()
+	jobsExpected2[0] = jobsExpected2[0].ToV2()
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
-	jobs[0] = jobs[0].ToV1()
+	jobs[0] = jobs[0].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, 2, total_size)
@@ -202,10 +203,10 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key: "name",
-				Op:  api.Predicate_IN,
-				Value: &api.Predicate_StringValues{
-					StringValues: &api.StringValues{
+				Key:       "name",
+				Operation: api.Predicate_IN,
+				Value: &api.Predicate_StringValues_{
+					StringValues: &api.Predicate_StringValues{
 						Values: []string{"pp 1"},
 					},
 				},
@@ -249,11 +250,11 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			ExperimentId:   defaultFakeExpIdTwo,
 		},
 	}
-	jobsExpected[0] = jobsExpected[0].ToV1()
+	jobsExpected[0] = jobsExpected[0].ToV2()
 	opts, err := list.NewOptions(&model.Job{}, 1, "name desc", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
-	jobs[0] = jobs[0].ToV1()
+	jobs[0] = jobs[0].ToV2()
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 2, total_size)
@@ -284,11 +285,11 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			ExperimentId:   defaultFakeExpId,
 		},
 	}
-	jobsExpected2[0] = jobsExpected2[0].ToV1()
+	jobsExpected2[0] = jobsExpected2[0].ToV2()
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
-	jobs[0] = jobs[0].ToV1()
+	jobs[0] = jobs[0].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, 2, total_size)
@@ -346,13 +347,13 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			ExperimentId:   defaultFakeExpIdTwo,
 		},
 	}
-	jobsExpected[0] = jobsExpected[0].ToV1()
-	jobsExpected[1] = jobsExpected[1].ToV1()
+	jobsExpected[0] = jobsExpected[0].ToV2()
+	jobsExpected[1] = jobsExpected[1].ToV2()
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
-	jobs[0] = jobs[0].ToV1()
-	jobs[1] = jobs[1].ToV1()
+	jobs[0] = jobs[0].ToV2()
+	jobs[1] = jobs[1].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, total_size)
@@ -387,12 +388,12 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 			ExperimentId:   defaultFakeExpId,
 		},
 	}
-	jobsExpected[0] = jobsExpected[0].ToV1()
+	jobsExpected[0] = jobsExpected[0].ToV2()
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
-	jobs[0] = jobs[0].ToV1()
+	jobs[0] = jobs[0].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -400,7 +401,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 
 	jobs, total_size, nextPageToken, err = jobStore.ListJobs(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "n1"}}, opts)
-	jobs[0] = jobs[0].ToV1()
+	jobs[0] = jobs[0].ToV2()
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, total_size) // both test jobs belong to namespace `n1`
@@ -445,10 +446,10 @@ func TestGetJob(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected = jobExpected.ToV1()
+	jobExpected = jobExpected.ToV2()
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected job")
+	assert.Equal(t, jobExpected, job.ToV2(), "Got unexpected job")
 }
 
 func TestGetJob_NotFoundError(t *testing.T) {
@@ -495,7 +496,7 @@ func TestCreateJob(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 	}
 
-	job, err = jobStore.CreateJob(job.ToV1())
+	job, err = jobStore.CreateJob(job.ToV2())
 	assert.Nil(t, err)
 	jobExpected := &model.Job{
 		UUID:        "1",
@@ -512,18 +513,14 @@ func TestCreateJob(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   experiment.UUID,
 	}
-	jobExpected = jobExpected.ToV1()
-	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
+	jobExpected = jobExpected.ToV2()
+	assert.Equal(t, jobExpected, job.ToV2(), "Got unexpected jobs")
 
 	newJob, err := jobStore.GetJob(job.UUID)
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, newJob.ToV1(), "Got unexpected jobs")
+	assert.Equal(t, jobExpected, newJob.ToV2(), "Got unexpected jobs")
 
-	// Check resource reference exists
-	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
-	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
-	assert.Nil(t, err)
-	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
+	assert.Equal(t, defaultFakeExpId, job.ExperimentId)
 }
 
 func TestCreateJob_V2(t *testing.T) {
@@ -554,7 +551,7 @@ func TestCreateJob_V2(t *testing.T) {
 		ExperimentId:   defaultFakeExpId,
 	}
 
-	job, err = jobStore.CreateJob(job.ToV1())
+	job, err = jobStore.CreateJob(job.ToV2())
 	assert.Nil(t, err)
 	jobExpected := &model.Job{
 		UUID:        "1",
@@ -574,14 +571,10 @@ func TestCreateJob_V2(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ExperimentId:   defaultFakeExpId,
 	}
-	jobExpected = jobExpected.ToV1()
-	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
+	jobExpected = jobExpected.ToV2()
+	assert.Equal(t, jobExpected, job.ToV2(), "Got unexpected jobs")
 
-	// Check resource reference exists
-	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
-	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
-	assert.Nil(t, err)
-	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
+	assert.Equal(t, defaultFakeExpId, job.ExperimentId)
 }
 
 func TestCreateJobError(t *testing.T) {
@@ -639,7 +632,7 @@ func TestEnableJob(t *testing.T) {
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected.ToV1(), job.ToV1(), "Got unexpected job")
+	assert.Equal(t, jobExpected.ToV2(), job.ToV2(), "Got unexpected job")
 
 	err = jobStore.ChangeJobMode("1", true)
 	assert.Nil(t, err)
@@ -669,7 +662,7 @@ func TestEnableJob(t *testing.T) {
 
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected2.ToV1(), job.ToV1(), "Got unexpected job")
+	assert.Equal(t, jobExpected2.ToV2(), job.ToV2(), "Got unexpected job")
 }
 
 func TestEnableJob_SkipUpdate(t *testing.T) {
@@ -704,7 +697,7 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected.ToV1(), job.ToV1(), "Got unexpected job")
+	assert.Equal(t, jobExpected.ToV2(), job.ToV2(), "Got unexpected job")
 }
 
 func TestEnableJob_DatabaseError(t *testing.T) {
@@ -747,7 +740,7 @@ func TestUpdateJob_Success(t *testing.T) {
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
+	assert.Equal(t, jobExpected.ToV2(), job.ToV2())
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		TypeMeta: metav1.TypeMeta{
@@ -828,7 +821,7 @@ func TestUpdateJob_Success(t *testing.T) {
 	}
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
+	assert.Equal(t, jobExpected.ToV2(), job.ToV2())
 }
 
 func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
@@ -860,7 +853,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 
 	job, err := jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
+	assert.Equal(t, jobExpected.ToV2(), job.ToV2())
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -903,7 +896,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobExpected.ToV1(), job.ToV1())
+	assert.Equal(t, jobExpected.ToV2(), job.ToV2())
 }
 
 func TestUpdateJob_RecordNotFound(t *testing.T) {
@@ -945,6 +938,11 @@ func TestUpdateJob_InternalError(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	db, testDialect, jobStore := initializeDBAndStore()
 	defer db.Close()
+	seedLegacyResourceReferences(t, db, testDialect, &model.ResourceReference{
+		ResourceUUID: "1", ResourceType: model.JobResourceType,
+		ReferenceUUID: defaultFakeExpId, ReferenceType: model.ExperimentResourceType,
+		Relationship: model.OwnerRelationship,
+	})
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
@@ -1068,7 +1066,7 @@ func TestCreateJobPluginsInput(t *testing.T) {
 			PluginsInputString: testLargeTextPtr(`{"mlflow":{"experiment_name":"job-exp"}}`),
 		}
 
-		created, err := jobStore.CreateJob(job.ToV1())
+		created, err := jobStore.CreateJob(job.ToV2())
 		require.NoError(t, err)
 		require.NotNil(t, created)
 
@@ -1095,7 +1093,7 @@ func TestCreateJobPluginsInput(t *testing.T) {
 			ExperimentId:   experiment.UUID,
 		}
 
-		created, err := jobStore.CreateJob(job.ToV1())
+		created, err := jobStore.CreateJob(job.ToV2())
 		require.NoError(t, err)
 		require.NotNil(t, created)
 

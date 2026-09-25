@@ -5,12 +5,15 @@ on:
     branches: [master]
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - 'api/**'
       - 'sdk/**'
       - 'test_data/sdk_compiled_pipelines/**'
+      - 'test_data/component_migration_test.py'
       - 'test/presubmit-tests-sdk.sh'
       - '.github/workflows/kfp-sdk-tests.yml'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -30,30 +33,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v7
 
-    - name: Set up Python
-      uses: ./.github/actions/setup-python-pip-cache
+    - name: Setup Python with uv
+      uses: ./.github/actions/setup-python
       with:
         python-version: ${{ matrix.python-version }}
-        cache-scope: kfp-sdk-tests
-        cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
 
-    - name: Install protobuf dependencies & kfp-pipeline-spec
+    - name: Install protobuf dependencies & generate proto files
       id: install-protobuf-deps
       uses: ./.github/actions/protobuf
-
-    - name: Install kfp & kfp-kubernetes from source
-      id: install-kfp-k8s-deps
-      uses: ./.github/actions/kfp-k8s
-
-    - name: Install Test dependencies
-      run: |
-        pip install -r sdk/python/requirements-dev.txt
-        pip install pytest
-        pip install docker
-        pip install pytest-cov
-        pip install pytest-xdist
-        pip install google_cloud_pipeline_components
-        pip install requests==2.28.1
 
     - name: Run SDK Tests
       env:
@@ -64,3 +51,8 @@ jobs:
         PYTEST_PARALLEL_WORKERS: 2
       run: |
         ./test/presubmit-tests-sdk.sh
+
+    - name: Compile shared container fixtures without legacy YAML
+      run: |
+        # Source-tree Google Cloud components are outside this migration's scope.
+        python -m pytest -q test_data/component_migration_test.py

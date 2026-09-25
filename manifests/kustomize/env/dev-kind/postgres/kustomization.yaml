@@ -5,8 +5,6 @@ resources:
   - ../../platform-agnostic-postgresql
   - ./default-allow-same-namespace-networkpolicy.yaml
 
-# !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
 
 patches:
@@ -176,33 +174,6 @@ patches:
                   - name: DBCONFIG_POSTGRESQLCONFIG_EXTRAPARAMS
                     value: '{"sslmode":"disable"}'
                     valueFrom: null
-  - patch: |-
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: cache-server
-        namespace: kubeflow
-      spec:
-        template:
-          spec:
-            containers:
-              - name: server
-                args:
-                  - "--db_driver=$(DBCONFIG_DRIVER)"
-                  - "--db_host=$(DBCONFIG_POSTGRESQLCONFIG_HOST)"
-                  - "--db_port=$(DBCONFIG_POSTGRESQLCONFIG_PORT)"
-                  - "--db_name=$(DBCONFIG_DB_NAME)"
-                  - "--db_user=$(DBCONFIG_POSTGRESQLCONFIG_USER)"
-                  - "--db_password=$(DBCONFIG_POSTGRESQLCONFIG_PASSWORD)"
-                  - "--db_extra_params={\"sslmode\":\"disable\"}"
-                  - "--namespace_to_watch=$(NAMESPACE_TO_WATCH)"
-                  - "--listen_port=$(WEBHOOK_PORT)"
-
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
     newTag: master
-  - name: ghcr.io/kubeflow/kfp-cache-server
-    newTag: master
-# TODO:Once a stable release (e.g., v2.15.0) includes PostgreSQL support:
-# 1. Update base/pipeline/kustomization.yaml to use the new version
-# 2. Remove this images override section from PostgreSQL overlays

@@ -174,7 +174,7 @@ func init() {
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
 	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineAPIServerTLSEnabledFlagName, false, "Set to true if ML pipeline API server serves over TLS.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
-		"/apis/v1beta1", "The base path for the ML pipeline API server.")
+		"/apis/v2beta1", "The base path for the ML pipeline API server.")
 	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
 	flag.Int64Var(&ttlSecondsAfterWorkflowFinish, ttlSecondsAfterWorkflowFinishFlagName, 604800 /* 7 days */, "The TTL for Argo workflow to persist after workflow finish.")
 	flag.IntVar(&numWorker, numWorkerName, 2, "Number of worker for sync job.")

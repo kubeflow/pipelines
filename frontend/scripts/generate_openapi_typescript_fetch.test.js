@@ -9,6 +9,7 @@ const {
   normalizeGeneratedTypeScriptSource,
   resolvePrettierModule,
   runPool,
+  resolveTargets,
 } = require('./generate_openapi_typescript_fetch.js');
 
 describe('generate_openapi_typescript_fetch', () => {
@@ -18,29 +19,6 @@ describe('generate_openapi_typescript_fetch', () => {
 
     expect(prettier).toBeTruthy();
     expect(typeof prettier.format).toBe('function');
-  });
-
-  it('renames v1 api symbols without touching unrelated identifiers', () => {
-    const original = `
-export interface ArchiveRunV1Request {}
-const apiVersionV1 = 'v1';
-async archiveRunV1Raw() {}
-async archiveRunV1() {
-  return this.archiveRunV1Raw();
-}
-throw new Error('Required parameter "id" was null or undefined when calling archiveRunV1().');
-`;
-
-    const updated = normalizeGeneratedTypeScriptSource(original, {
-      renameV1ApiSymbols: true,
-    });
-
-    expect(updated).toContain('export interface ArchiveRunRequest {}');
-    expect(updated).toContain('async archiveRunRaw() {}');
-    expect(updated).toContain('async archiveRun() {');
-    expect(updated).toContain('return this.archiveRunRaw();');
-    expect(updated).toContain('calling archiveRun().');
-    expect(updated).toContain("const apiVersionV1 = 'v1';");
   });
 
   it('rewrites server fetch types without touching other output', () => {
@@ -174,27 +152,27 @@ private fetchApi = async (url: string, init: RequestInit) => {
       const prepared = [];
 
       await expect(
-        generateTargetsParallel('/fake', ['v1:experiment', 'v1:job', 'v1:pipeline'], 1, {
+        generateTargetsParallel('/fake', ['v2beta1:experiment', 'v2beta1:recurringrun', 'v2beta1:pipeline'], 1, {
           prepare: (_rr, tk) => prepared.push(tk),
           dockerGenerate: async (_rr, tk) => {
-            if (tk === 'v1:experiment') throw new Error('gen fail');
+            if (tk === 'v2beta1:experiment') throw new Error('gen fail');
           },
           postProcess: () => {},
           pullImage: () => {},
         }),
       ).rejects.toThrow('gen fail');
 
-      expect(prepared).toEqual(['v1:experiment']);
+      expect(prepared).toEqual(['v2beta1:experiment']);
     });
 
     it('post-processes successful targets even when a later target fails', async () => {
       const postProcessed = [];
 
       await expect(
-        generateTargetsParallel('/fake', ['v1:experiment', 'v1:job', 'v1:pipeline'], 2, {
+        generateTargetsParallel('/fake', ['v2beta1:experiment', 'v2beta1:recurringrun', 'v2beta1:pipeline'], 2, {
           prepare: () => {},
           dockerGenerate: async (_rr, tk) => {
-            if (tk === 'v1:job') throw new Error('gen fail');
+            if (tk === 'v2beta1:recurringrun') throw new Error('gen fail');
             await new Promise((r) => setTimeout(r, 10));
           },
           postProcess: (_rr, tk) => postProcessed.push(tk),
@@ -202,15 +180,15 @@ private fetchApi = async (url: string, init: RequestInit) => {
         }),
       ).rejects.toThrow('gen fail');
 
-      expect(postProcessed).toContain('v1:experiment');
-      expect(postProcessed).not.toContain('v1:job');
-      expect(postProcessed).not.toContain('v1:pipeline');
+      expect(postProcessed).toContain('v2beta1:experiment');
+      expect(postProcessed).not.toContain('v2beta1:recurringrun');
+      expect(postProcessed).not.toContain('v2beta1:pipeline');
     });
 
     it('runs the full prepare-generate-postprocess lifecycle per target', async () => {
       const events = [];
 
-      await generateTargetsParallel('/fake', ['v1:experiment', 'v1:job'], 1, {
+      await generateTargetsParallel('/fake', ['v2beta1:experiment', 'v2beta1:recurringrun'], 1, {
         prepare: (_rr, tk) => events.push(`prepare:${tk}`),
         dockerGenerate: async (_rr, tk) => events.push(`generate:${tk}`),
         postProcess: (_rr, tk) => events.push(`postprocess:${tk}`),
@@ -219,12 +197,12 @@ private fetchApi = async (url: string, init: RequestInit) => {
 
       expect(events).toEqual([
         'pull',
-        'prepare:v1:experiment',
-        'generate:v1:experiment',
-        'postprocess:v1:experiment',
-        'prepare:v1:job',
-        'generate:v1:job',
-        'postprocess:v1:job',
+        'prepare:v2beta1:experiment',
+        'generate:v2beta1:experiment',
+        'postprocess:v2beta1:experiment',
+        'prepare:v2beta1:recurringrun',
+        'generate:v2beta1:recurringrun',
+        'postprocess:v2beta1:recurringrun',
       ]);
     });
   });
@@ -246,11 +224,11 @@ export class ResponseError extends Error {
 
   describe('shared OpenAPI support dedupe', () => {
     it('normalizes version-specific generated comments out of shared support files', () => {
-      const v1Status = `
+      const runStatus = `
 /* tslint:disable */
 /* eslint-disable */
 /**
- * backend/api/v1beta1/run.proto
+ * backend/api/v2beta1/run.proto
  * No description provided.
  */
 
@@ -289,15 +267,15 @@ export interface GoogleRpcStatus {
 }
 `;
 
-      const normalizedV1 = createSharedOpenApiSupportSource(v1Status);
+      const normalizedRun = createSharedOpenApiSupportSource(runStatus);
       const normalizedV2 = createSharedOpenApiSupportSource(v2Status);
 
-      expect(normalizedV1).toEqual(normalizedV2);
-      expect(normalizedV1).not.toContain('backend/api/');
-      expect(normalizedV1).not.toContain('/**');
-      expect(normalizedV1).toContain('export interface GoogleRpcStatus');
-      expect(normalizedV1).toContain('\n  code?: number;');
-      expect(normalizedV1).not.toContain('\n    code?: number;');
+      expect(normalizedRun).toEqual(normalizedV2);
+      expect(normalizedRun).not.toContain('backend/api/');
+      expect(normalizedRun).not.toContain('/**');
+      expect(normalizedRun).toContain('export interface GoogleRpcStatus');
+      expect(normalizedRun).toContain('\n  code?: number;');
+      expect(normalizedRun).not.toContain('\n    code?: number;');
     });
 
     it('rewrites generated client and server support files to shared re-export shims', () => {
@@ -310,22 +288,22 @@ export interface GoogleRpcStatus {
 
       try {
         write(
-          'frontend/src/apis/run/runtime.ts',
+          'frontend/src/apisv2beta1/run/runtime.ts',
           `/* tslint:disable */
 /* eslint-disable */
 /**
- * backend/api/v1beta1/run.proto
+ * backend/api/v2beta1/run.proto
  */
 
 export const BASE_PATH = 'http://localhost';
 `,
         );
         write(
-          'frontend/src/apis/run/models/ProtobufAny.ts',
+          'frontend/src/apisv2beta1/run/models/ProtobufAny.ts',
           `/* tslint:disable */
 /* eslint-disable */
 /**
- * backend/api/v1beta1/run.proto
+ * backend/api/v2beta1/run.proto
  */
 
 import { mapValues } from '../runtime';
@@ -339,11 +317,11 @@ export interface ProtobufAny {
 `,
         );
         write(
-          'frontend/src/apis/run/models/GoogleRpcStatus.ts',
+          'frontend/src/apisv2beta1/run/models/GoogleRpcStatus.ts',
           `/* tslint:disable */
 /* eslint-disable */
 /**
- * backend/api/v1beta1/run.proto
+ * backend/api/v2beta1/run.proto
  */
 
 import { mapValues } from '../runtime';
@@ -359,22 +337,22 @@ export interface GoogleRpcStatus {
 `,
         );
         write(
-          'frontend/server/src/generated/apis/auth/runtime.ts',
+          'frontend/server/src/generated/apisv2beta1/auth/runtime.ts',
           `/* tslint:disable */
 /* eslint-disable */
 /**
- * backend/api/v1beta1/auth.proto
+ * backend/api/v2beta1/auth.proto
  */
 
 export const BASE_PATH = 'http://localhost';
 `,
         );
         write(
-          'frontend/server/src/generated/apis/auth/models/ProtobufAny.ts',
+          'frontend/server/src/generated/apisv2beta1/auth/models/ProtobufAny.ts',
           `/* tslint:disable */
 /* eslint-disable */
 /**
- * backend/api/v1beta1/auth.proto
+ * backend/api/v2beta1/auth.proto
  */
 
 import { mapValues } from '../runtime.js';
@@ -385,11 +363,11 @@ export interface ProtobufAny {
 `,
         );
         write(
-          'frontend/server/src/generated/apis/auth/models/GoogleRpcStatus.ts',
+          'frontend/server/src/generated/apisv2beta1/auth/models/GoogleRpcStatus.ts',
           `/* tslint:disable */
 /* eslint-disable */
 /**
- * backend/api/v1beta1/auth.proto
+ * backend/api/v2beta1/auth.proto
  */
 
 import { mapValues } from '../runtime.js';
@@ -402,21 +380,21 @@ export interface GoogleRpcStatus {
 `,
         );
 
-        dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v1:run');
-        dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v1:auth');
+        dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v2beta1:run');
+        dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v2beta1:auth');
 
         expect(
-          fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/apis/run/runtime.ts'), 'utf8'),
+          fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/apisv2beta1/run/runtime.ts'), 'utf8'),
         ).toContain("export * from '../../generated/openapi/runtime';");
         expect(
           fs.readFileSync(
-            path.join(tempRepoRoot, 'frontend/src/apis/run/models/ProtobufAny.ts'),
+            path.join(tempRepoRoot, 'frontend/src/apisv2beta1/run/models/ProtobufAny.ts'),
             'utf8',
           ),
         ).toContain("export * from '../../../generated/openapi/models/ProtobufAny';");
         expect(
           fs.readFileSync(
-            path.join(tempRepoRoot, 'frontend/server/src/generated/apis/auth/runtime.ts'),
+            path.join(tempRepoRoot, 'frontend/server/src/generated/apisv2beta1/auth/runtime.ts'),
             'utf8',
           ),
         ).toContain("export * from '../../openapi/runtime.js';");
@@ -424,7 +402,7 @@ export interface GoogleRpcStatus {
           fs.readFileSync(
             path.join(
               tempRepoRoot,
-              'frontend/server/src/generated/apis/auth/models/GoogleRpcStatus.ts',
+              'frontend/server/src/generated/apisv2beta1/auth/models/GoogleRpcStatus.ts',
             ),
             'utf8',
           ),
@@ -435,7 +413,7 @@ export interface GoogleRpcStatus {
           'utf8',
         );
         expect(clientSharedRuntime).toContain("export const BASE_PATH = 'http://localhost';");
-        expect(clientSharedRuntime).not.toContain('backend/api/v1beta1/run.proto');
+        expect(clientSharedRuntime).not.toContain('backend/api/v2beta1/run.proto');
         expect(clientSharedRuntime).not.toContain('/**');
 
         const serverSharedStatus = fs.readFileSync(
@@ -443,7 +421,7 @@ export interface GoogleRpcStatus {
           'utf8',
         );
         expect(serverSharedStatus).toContain("import type { ProtobufAny } from './ProtobufAny.js';");
-        expect(serverSharedStatus).not.toContain('backend/api/v1beta1/auth.proto');
+        expect(serverSharedStatus).not.toContain('backend/api/v2beta1/auth.proto');
       } finally {
         fs.rmSync(tempRepoRoot, { recursive: true, force: true });
       }
@@ -459,14 +437,14 @@ export interface GoogleRpcStatus {
 
       try {
         write(
-          'frontend/src/apis/run/runtime.ts',
+          'frontend/src/apisv2beta1/run/runtime.ts',
           `/* tslint:disable */
 /* eslint-disable */
 export const BASE_PATH = 'run';
 `,
         );
         write(
-          'frontend/src/apis/run/models/ProtobufAny.ts',
+          'frontend/src/apisv2beta1/run/models/ProtobufAny.ts',
           `/* tslint:disable */
 /* eslint-disable */
 export interface ProtobufAny {
@@ -475,7 +453,7 @@ export interface ProtobufAny {
 `,
         );
         write(
-          'frontend/src/apis/run/models/GoogleRpcStatus.ts',
+          'frontend/src/apisv2beta1/run/models/GoogleRpcStatus.ts',
           `/* tslint:disable */
 /* eslint-disable */
 export interface GoogleRpcStatus {
@@ -484,14 +462,14 @@ export interface GoogleRpcStatus {
 `,
         );
         write(
-          'frontend/src/apis/pipeline/runtime.ts',
+          'frontend/src/apisv2beta1/pipeline/runtime.ts',
           `/* tslint:disable */
 /* eslint-disable */
 export const BASE_PATH = 'pipeline';
 `,
         );
         write(
-          'frontend/src/apis/pipeline/models/ProtobufAny.ts',
+          'frontend/src/apisv2beta1/pipeline/models/ProtobufAny.ts',
           `/* tslint:disable */
 /* eslint-disable */
 export interface ProtobufAny {
@@ -500,7 +478,7 @@ export interface ProtobufAny {
 `,
         );
         write(
-          'frontend/src/apis/pipeline/models/GoogleRpcStatus.ts',
+          'frontend/src/apisv2beta1/pipeline/models/GoogleRpcStatus.ts',
           `/* tslint:disable */
 /* eslint-disable */
 export interface GoogleRpcStatus {
@@ -509,20 +487,27 @@ export interface GoogleRpcStatus {
 `,
         );
 
-        dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v1:run');
+        dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v2beta1:run');
 
-        expect(() => dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v1:pipeline')).toThrow(
+        expect(() => dedupeGeneratedOpenApiSupportFiles(tempRepoRoot, 'v2beta1:pipeline')).toThrow(
           'Shared OpenAPI support mismatch for runtime.ts.',
         );
         expect(
           fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/generated/openapi/runtime.ts'), 'utf8'),
         ).toContain("export const BASE_PATH = 'run';");
         expect(
-          fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/apis/pipeline/runtime.ts'), 'utf8'),
+          fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/apisv2beta1/pipeline/runtime.ts'), 'utf8'),
         ).toContain("export const BASE_PATH = 'pipeline';");
       } finally {
         fs.rmSync(tempRepoRoot, { recursive: true, force: true });
       }
     });
   });
+});
+
+it('only generates native API clients', () => {
+  const targets = resolveTargets(['all']);
+  expect(targets.length).toBeGreaterThan(0);
+  expect(targets.every(target => target.startsWith('v2beta1:'))).toBe(true);
+  expect(resolveTargets(['run'])).toEqual(['v2beta1:run']);
 });

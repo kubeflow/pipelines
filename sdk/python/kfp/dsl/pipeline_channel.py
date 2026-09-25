@@ -14,11 +14,9 @@
 """Definition of PipelineChannel."""
 
 import abc
-import contextlib
 import dataclasses
-import json
 import re
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 from kfp.dsl.types import type_utils
 
@@ -45,7 +43,7 @@ _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
     '{{channel:task=%s;name=%s;type=%s;}}')
 # The regex for parsing PipelineChannel placeholders from a string.
 _PIPELINE_CHANNEL_PLACEHOLDER_REGEX = (
-    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=([\w\s{}":_-]*);}}')
+    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=([\w\s.@_-]*);}}')
 
 
 class PipelineChannel(abc.ABC):
@@ -71,7 +69,7 @@ class PipelineChannel(abc.ABC):
     def __init__(
         self,
         name: str,
-        channel_type: Union[str, Dict],
+        channel_type: str,
         task_name: Optional[str] = None,
     ):
         """Initializes a PipelineChannel instance.
@@ -92,6 +90,11 @@ class PipelineChannel(abc.ABC):
         if not re.match(valid_name_regex, name):
             raise ValueError(
                 f'Only letters, numbers, spaces, "_", and "-" are allowed in the name. Must begin with a letter. Got name: {name}'
+            )
+
+        if not isinstance(channel_type, str):
+            raise TypeError(
+                'channel_type must be a parameter type name or a bundled artifact type string.'
             )
 
         self.name = name
@@ -151,8 +154,6 @@ class PipelineChannel(abc.ABC):
         task_name = self.task_name or ''
         name = self.name
         channel_type = self.channel_type or ''
-        if isinstance(channel_type, dict):
-            channel_type = json.dumps(channel_type)
         return _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE % (task_name, name,
                                                          channel_type)
 
@@ -208,7 +209,7 @@ class PipelineParameterChannel(PipelineChannel):
     def __init__(
         self,
         name: str,
-        channel_type: Union[str, Dict],
+        channel_type: str,
         task_name: Optional[str] = None,
         value: Optional[type_utils.PARAMETER_TYPES] = None,
     ):
@@ -256,7 +257,7 @@ class PipelineArtifactChannel(PipelineChannel):
     def __init__(
         self,
         name: str,
-        channel_type: Union[str, Dict],
+        channel_type: str,
         task_name: Optional[str],
         is_artifact_list: bool,
     ):
@@ -395,8 +396,6 @@ class OneOfMixin(PipelineChannel):
         task_name = self.task_name or ''
         name = self.name
         channel_type = self.channel_type or ''
-        if isinstance(channel_type, dict):
-            channel_type = json.dumps(channel_type)
         return _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE % (task_name, name,
                                                          channel_type)
 
@@ -509,7 +508,7 @@ class OneOf:
 
 def create_pipeline_channel(
     name: str,
-    channel_type: Union[str, Dict],
+    channel_type: str,
     task_name: Optional[str] = None,
     value: Optional[type_utils.PARAMETER_TYPES] = None,
     is_artifact_list: bool = False,
@@ -558,13 +557,6 @@ def extract_pipeline_channels_from_string(
     unique_channels = set()
     for match in matches:
         task_name, name, channel_type = match
-
-        # channel_type could be either a string (e.g. "Integer") or a dictionary
-        # (e.g.: {"custom_type": {"custom_property": "some_value"}}).
-        # Try loading it into dictionary, if failed, it means channel_type is a
-        # string.
-        with contextlib.suppress(json.JSONDecodeError):
-            channel_type = json.loads(channel_type)
 
         if type_utils.is_parameter_type(channel_type):
             pipeline_channel = PipelineParameterChannel(

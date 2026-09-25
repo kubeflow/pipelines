@@ -16,15 +16,9 @@ data:
   mysqlHost: mysql
   mysqlPort: "3306"
   mlmdDb: metadb
-  cacheDb: cachedb
   pipelineDb: mlpipeline
   bucketName: mlpipeline
-  ## defaultPipelineRoot: Optional. Default pipeline root in v2 compatible mode.
-  ## https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/
-  ##
-  ## If the field is not set, kfp-launcher configmaps won't be created and
-  ## v2 compatible mode defaults to minio://mlpipeline/v2/artifacts as pipeline
-  ## root.
+  ## defaultPipelineRoot: Optional default artifact root for v2 pipelines.
   ##
   ## When not in Kubeflow Pipelines multi-user mode, the config works as you
   ## would normally expect.
@@ -43,14 +37,7 @@ data:
   ## defaultPipelineRoot: minio://mlpipeline/v2/artifacts
   ## defaultPipelineRoot: gs://your-bucket/path/to/artifacts
   ## defaultPipelineRoot: s3://your-bucket/path/to/artifacts
-  ##
-  ## V2 Compatible Mode Feature stage:
-  ## [Beta](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#beta)
   defaultPipelineRoot: ""
-  ## autoUpdatePipelineDefaultVersion: States if the pipeline version
-  ## should be updated by defult for a versioned pipeline or not when a new
-  ## version is uploaded. This sets the deployment wide definition.
-  autoUpdatePipelineDefaultVersion: "true"
   ## cronScheduleTimezone: States the timezone which should be used for
   ## the cron scheduler. If not specified the local timezone of the
   ## cluster will be used. Valid values are UTC, Local or values according to
@@ -58,32 +45,6 @@ data:
   ## Feature stage:
   ## [Alpha](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha)
   cronScheduleTimezone: "UTC"
-  ## cacheImage is the image that the mutating webhook will use to patch
-  ## cached steps with. Will be used to echo a message announcing that
-  ## the cached step result will be used. If not set it will default to
-  ## 'ghcr.io/containerd/busybox'
-  cacheImage: "ghcr.io/containerd/busybox"
-  ## cacheNodeRestrictions the dummy container runing if output is cached
-  ## will run with the same affinity and node selector as the default pipeline
-  ## step. This is defaulted to 'false' to allow the pod to be scheduled on
-  ## any node and avoid defaulting to specific nodes. Allowed values are:
-  ## 'false' and 'true'.
-  cacheNodeRestrictions: "false"
-  ## MAXIMUM_CACHE_STALENESS configures caching according to
-  ## https://www.kubeflow.org/docs/components/pipelines/overview/caching/ and
-  ## https://www.kubeflow.org/docs/components/pipelines/overview/caching-v2/.
-  ## Larger than MAXIMUM_CACHE_STALENESS per pipeline user set values are
-  ## reduced to MAXIMUM_CACHE_STALENESS.
-  ## The administrator of the storage backend can rely on it to delete old cache
-  ## artifacts.
-  MAXIMUM_CACHE_STALENESS: ""
-  ## MAXIMUM_CACHE_STALENESS: "P30D"
-  ## DEFAULT_CACHE_STALENESS configures caching according to
-  ## https://www.kubeflow.org/docs/components/pipelines/overview/caching/ and
-  ## https://www.kubeflow.org/docs/components/pipelines/overview/caching-v2/.
-  ## This value is used if the user did not set a value in the pipeline.
-  DEFAULT_CACHE_STALENESS: ""
-  ## DEFAULT_CACHE_STALENESS: "P7D"
   ## ConMaxLifeTime will set the connection max lifetime for MySQL
   ## this is very important to setup when using external databases.
   ## See this issue for more details: https://github.com/kubeflow/pipelines/issues/5329
@@ -138,12 +99,6 @@ data:
   ## namespace isolation for customer workloads. When "false", UID 0 inside
   ## the pod maps to an unprivileged host UID. Set "" to disable.
   defaultSecurityContextHostUsers: ""
-  ## BLOCK_V1_PIPELINES: Controls whether v1 pipelines are allowed to be created and run.
-  ## Valid values are 'true' and 'false'. Defaults to 'false'.
-  BLOCK_V1_PIPELINES: "false"
-  ## V1_ALLOWED_NAMESPACES: Comma-separated list of namespaces that are allowed to use v1 pipelines
-  ## when BLOCK_V1_PIPELINES is set to true. This is only evaluated if BLOCK_V1_PIPELINES is set to true.
-  V1_ALLOWED_NAMESPACES: ""
   ## USERID_HEADER and USERID_PREFIX define the multi-user identity contract shared
   ## by the API server, the UI, and the scheduled-workflow controller. They are only
   ## consumed by the multi-user overlay; in single-user installs they are ignored.

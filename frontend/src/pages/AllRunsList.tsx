@@ -68,7 +68,6 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
           storageState={V2beta1RunStorageState.AVAILABLE}
-          hideMetricMetadata={true}
           namespaceMask={this.props.namespace}
           {...this.props}
         />

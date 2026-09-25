@@ -21,7 +21,7 @@ import 'ace-builds/src-noconflict/theme-github';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, commonCss, spacing } from '../Css';
-import { KeyValue } from '../lib/StaticGraphParser';
+import { KeyValue } from '../lib/DetailsTableTypes';
 import Editor from './Editor';
 
 export const css = stylesheet({

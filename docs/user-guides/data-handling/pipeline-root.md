@@ -10,11 +10,11 @@ guide](../../operator-guides/installation.md) to deploy Kubeflow Pipelines) on a
 ## What is pipeline root?
 
 [Pipeline root](../../concepts/pipeline-root.md) represents the path within an object store bucket where Kubeflow Pipelines stores a pipeline's artifacts.
-This feature supports SeaweedFS, S3, GCS natively using [Go CDK](https://github.com/google/go-cloud). 
+This feature supports SeaweedFS, S3, GCS natively using [Go CDK](https://github.com/google/go-cloud).
 
 Artifacts can be more accessible in S3 and GCS when integrating Kubeflow Pipelines with other systems.
 
-## How to configure pipeline root authentication 
+## How to configure pipeline root authentication
 #### SeaweedFS
 You don't need to pass the authentication for SeaweedFS.
 Kubeflow Pipelines is configured with the authentication of the SeaweedFS instance deployed with itself.
@@ -45,12 +45,12 @@ The default Pipeline root at the Kubeflow pipeline deployment level can be chang
 Instructions can be found [here](../../operator-guides/configure-object-store.md#kfp-launcher-object-store-configuration).
 
 ####  Via Building Pipelines
-You can configure a pipeline root through the `kfp.dsl.pipeline` annotation when [building pipelines](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk/build-pipeline/#build-your-pipeline).
+You can configure a pipeline root through the `kfp.dsl.pipeline` annotation when [building pipelines](../components/compose-components-into-pipelines.md).
 
 ####  Via Submitting a Pipeline through SDK
 You can configure pipeline root via `pipeline_root` argument when you submit a Pipeline using one of the following:
 * [create_run_from_pipeline_func](https://kubeflow-pipelines.readthedocs.io/en/stable/source/client.html#kfp.Client.create_run_from_pipeline_func)
-* [create_run_from_pipeline_package](https://kubeflow-pipelines.readthedocs.io/en/stable/source/client.html#kfp.Client.create_run_from_pipeline_package) 
+* [create_run_from_pipeline_package](https://kubeflow-pipelines.readthedocs.io/en/stable/source/client.html#kfp.Client.create_run_from_pipeline_package)
 * [run_pipeline](https://kubeflow-pipelines.readthedocs.io/en/stable/source/client.html#kfp.Client.run_pipeline).
 
 ####  Via Submitting a Pipeline Run through UI

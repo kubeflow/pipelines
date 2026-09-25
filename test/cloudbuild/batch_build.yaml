@@ -40,14 +40,6 @@ steps:
     name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', '$_GCR_BASE/metadata-writer', '-f', 'backend/metadata_writer/Dockerfile', '.']
     waitFor: ["-"]
-  - id: 'buildCacheServer'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/cache-server', '-f', 'backend/Dockerfile.cacheserver', '.']
-    waitFor: ["-"]
-  - id: 'buildCacheDeployer'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/cache-deployer', '-f', 'backend/src/cache/deployer/Dockerfile', '.']
-    waitFor: ["-"]
   - id: 'buildMetadataEnvoy'
     name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', '$_GCR_BASE/metadata-envoy', '-f', 'third_party/metadata_envoy/Dockerfile', '.']
@@ -62,7 +54,5 @@ images:
   - "$_GCR_BASE/visualization-server"
   - "$_GCR_BASE/inverse-proxy-agent"
   - "$_GCR_BASE/metadata-writer"
-  - "$_GCR_BASE/cache-server"
-  - "$_GCR_BASE/cache-deployer"
   - "$_GCR_BASE/metadata-envoy"
 timeout: 1800s # 30min

@@ -47,6 +47,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	swfclientv1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/spf13/viper"
@@ -54,6 +55,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	authzv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -62,9 +64,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-// v1AllowedNamespaces mirrors the unexported constant in backend/src/common/util/v1_support.go.
-const v1AllowedNamespaces = "V1_ALLOWED_NAMESPACES"
 
 type duplicateRecurringRunStore struct {
 	storage.RunStoreInterface
@@ -242,9 +241,10 @@ func createPipelineVersion(pipelineId string, name string, description string, u
 
 var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
+	ObjectMeta: v1.ObjectMeta{Name: "hello-world-0", UID: "workflow1", Namespace: "ns1"},
 	Spec: v1alpha1.WorkflowSpec{
-		Entrypoint: "testy",
+		PodMetadata: &v1alpha1.Metadata{Labels: map[string]string{"pipelines.kubeflow.org/v2_component": "true"}},
+		Entrypoint:  "testy",
 		Templates: []v1alpha1.Template{{
 			Name: "testy",
 			Container: &corev1.Container{
@@ -257,6 +257,12 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
+
+func testWorkflowWithoutStatus() *util.Workflow {
+	workflow := testWorkflow.DeepCopy()
+	workflow.Status = v1alpha1.WorkflowStatus{}
+	return util.NewWorkflow(workflow)
+}
 
 type retryDuringTerminalReportDispatcher struct {
 	manager  *ResourceManager
@@ -300,6 +306,48 @@ func (d *countingTerminalReportDispatcher) OnRunRetry(context.Context, *apiserve
 
 func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
 	return true
+}
+
+type serviceAccountMutatingDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
+	output    *apiv2beta1.PluginOutput
+	endedRuns []*apiserverPlugins.PersistedRun
+}
+
+func (serviceAccountMutatingDispatcher) PluginsRegistered() bool {
+	return true
+}
+
+func (d *serviceAccountMutatingDispatcher) OnBeforeRunCreation(_ context.Context, run *apiserverPlugins.PendingRun, executionSpec util.ExecutionSpec) error {
+	executionSpec.SetServiceAccount("plugin-sa")
+	return apiserverPlugins.SetPendingRunPluginOutput(run, apiservermlflow.PluginName, d.output)
+}
+
+func (d *serviceAccountMutatingDispatcher) OnRunEnd(_ context.Context, run *apiserverPlugins.PersistedRun) bool {
+	d.endedRuns = append(d.endedRuns, run)
+	return true
+}
+
+type patchCountingSwfClient struct {
+	client.SwfClientInterface
+	patchCalls int
+}
+
+func (c *patchCountingSwfClient) ScheduledWorkflow(namespace string) swfclientv1beta1.ScheduledWorkflowInterface {
+	return &patchCountingScheduledWorkflowClient{
+		ScheduledWorkflowInterface: c.SwfClientInterface.ScheduledWorkflow(namespace),
+		patchCalls:                 &c.patchCalls,
+	}
+}
+
+type patchCountingScheduledWorkflowClient struct {
+	swfclientv1beta1.ScheduledWorkflowInterface
+	patchCalls *int
+}
+
+func (c *patchCountingScheduledWorkflowClient) Patch(ctx context.Context, name string, patchType types.PatchType, data []byte, subresources ...string) (*swfapi.ScheduledWorkflow, error) {
+	*c.patchCalls++
+	return c.ScheduledWorkflowInterface.Patch(ctx, name, patchType, data, subresources...)
 }
 
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
@@ -411,7 +459,7 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 		"p1/v1",
 		"v1",
 		"url://namespaces/ns1/pipelines/p1/versions/v1",
-		testWorkflow.ToStringForStore(),
+		v2SpecHelloWorld,
 		"uri://namespaces/ns1/pipelines/p1/versions/v1/p1v1.yaml",
 		"ns1",
 	)
@@ -444,7 +492,7 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 		"p1/v1",
 		"v1",
 		"url://namespaces/ns1/pipelines/p1/versions/v1",
-		testWorkflow.ToStringForStore(),
+		v2SpecHelloWorld,
 		"uri://namespaces/ns1/pipelines/p1/versions/v1/p1v1.yaml",
 		"ns1",
 	)
@@ -461,8 +509,8 @@ func initWithExperimentAndPipelineAndRun(t *testing.T) (*FakeClientManager, *Res
 		DisplayName:  "run1",
 		ExperimentId: exp.UUID,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: pipeline.UUID,
-			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineId:    pipeline.UUID,
+			RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	run, err := manager.CreateRun(context.Background(), apiRun)
@@ -477,7 +525,7 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 		DisplayName: "j1",
 		Enabled:     true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -513,8 +561,8 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -569,29 +617,13 @@ func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *
 	return store, manager, runDetail
 }
 
-func initWithPatchedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Run) {
-	store, manager, exp := initWithExperiment(t)
-	apiRun := &model.Run{
-		DisplayName: "run1",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-
-			Parameters: "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
-		},
-		ExperimentId: exp.UUID,
-	}
-	runDetail, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-	return store, manager, runDetail
-}
-
 func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Run) {
 	store, manager, exp := initWithExperiment(t)
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -599,6 +631,7 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	runDetail, err := manager.CreateRun(ctx, apiRun)
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetServiceAccount(runDetail.ServiceAccount)
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
@@ -613,8 +646,8 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -622,6 +655,7 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	runDetail, err := manager.CreateRun(ctx, apiRun)
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetServiceAccount(runDetail.ServiceAccount)
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	nodes := map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
@@ -639,8 +673,8 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -648,6 +682,7 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	runDetail, err := manager.CreateRun(ctx, apiRun)
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetServiceAccount(runDetail.ServiceAccount)
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
@@ -944,14 +979,14 @@ func TestCreatePipeline(t *testing.T) {
 	}{
 		{
 			msg:         "HappyCase",
-			template:    testWorkflow.ToStringForStore(),
+			template:    v2SpecHelloWorld,
 			name:        "p_v",
 			description: "test",
 			model:       createPipeline("p_v", "test", "user1"),
 		},
 		{
 			msg:      "ComplexPipeline",
-			template: complexPipeline,
+			template: v2SpecHelloWorld,
 			name:     "complex",
 			model:    createPipeline("complex", "", "user1"),
 		},
@@ -964,7 +999,7 @@ func TestCreatePipeline(t *testing.T) {
 		},
 		{
 			msg:       "BadDB",
-			template:  testWorkflow.ToStringForStore(),
+			template:  v2SpecHelloWorld,
 			badDB:     true,
 			errorCode: codes.Internal,
 			errorMsg:  "database is closed",
@@ -1061,7 +1096,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 	}{
 		{
 			msg:      "HappyCase",
-			template: testWorkflow.ToStringForStore(),
+			template: v2SpecHelloWorld,
 			version: &model.PipelineVersion{
 				Name:        "p_v",
 				Description: model.LargeText("test"),
@@ -1070,19 +1105,19 @@ func TestCreatePipelineVersion(t *testing.T) {
 				Name:         "p_v",
 				Parameters:   "[{\"name\":\"param1\"}]",
 				Description:  model.LargeText("test"),
-				PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
+				PipelineSpec: model.LargeText(v2SpecHelloWorld),
 			},
 		},
 		{
 			msg:      "ComplexPipeline",
-			template: complexPipeline,
+			template: v2SpecHelloWorld,
 			version: &model.PipelineVersion{
 				Name: "complex",
 			},
 			model: &model.PipelineVersion{
 				Name:         "complex",
 				Parameters:   "[{\"name\":\"output\"},{\"name\":\"project\"},{\"name\":\"schema\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json\"},{\"name\":\"train\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv\"},{\"name\":\"evaluation\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv\"},{\"name\":\"preprocess-mode\",\"value\":\"local\"},{\"name\":\"preprocess-module\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py\"},{\"name\":\"target\",\"value\":\"tips\"},{\"name\":\"learning-rate\",\"value\":\"0.1\"},{\"name\":\"hidden-layer-size\",\"value\":\"1500\"},{\"name\":\"steps\",\"value\":\"3000\"},{\"name\":\"workers\",\"value\":\"0\"},{\"name\":\"pss\",\"value\":\"0\"},{\"name\":\"predict-mode\",\"value\":\"local\"},{\"name\":\"analyze-mode\",\"value\":\"local\"},{\"name\":\"analyze-slice-column\",\"value\":\"trip_start_hour\"}]",
-				PipelineSpec: complexPipeline,
+				PipelineSpec: model.LargeText(v2SpecHelloWorld),
 			},
 		},
 		{
@@ -1093,7 +1128,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 		},
 		{
 			msg:       "BadDB",
-			template:  testWorkflow.ToStringForStore(),
+			template:  v2SpecHelloWorld,
 			badDB:     true,
 			errorCode: codes.Internal,
 			errorMsg:  "database is closed",
@@ -1108,7 +1143,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 				Name: "v2spec",
 				// TODO(v2): when parameter extraction is implemented, this won't be empty.
 				Parameters:   "[{\"name\":\"param1\"}]",
-				PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
+				PipelineSpec: model.LargeText(v2SpecHelloWorld),
 			},
 		},
 	}
@@ -1125,7 +1160,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 				"my_pipeline",
 				"",
 				"",
-				testWorkflow.ToStringForStore(),
+				v2SpecHelloWorld,
 				"",
 				"",
 			)
@@ -1193,10 +1228,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 		// expected
 		pipelineName string
 	}{
-		{name: "v2-compat", namespace: "", pipelineName: "two-step-pipeline"},
-		{name: "pipe3", namespace: "", pipelineName: "two-step-pipeline"},
-		{name: "pipeline2", namespace: "kubeflow", pipelineName: "two-step-pipeline"},
-		{name: "abcd", namespace: "user", pipelineName: "two-step-pipeline"},
+
 		{name: "v2-spec1", namespace: "", template: v2SpecHelloWorld, pipelineName: "hello-world"},
 		{name: "v2-spec2", namespace: "user", template: v2SpecHelloWorld, pipelineName: "hello-world"},
 	}
@@ -1209,7 +1241,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
 			if test.template == "" {
-				test.template = strings.TrimSpace(v2compatPipeline)
+				test.template = v2SpecHelloWorld
 			}
 
 			// Verify v2 pipeline name of CreatePipeline template.
@@ -1232,7 +1264,7 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 				"",
 			)
 			if pv.PipelineSpec == "" {
-				pv.PipelineSpec = v2compatPipeline
+				pv.PipelineSpec = model.LargeText(v2SpecHelloWorld)
 			}
 			version, err := manager.CreatePipelineVersion(pv)
 			require.Nil(t, err)
@@ -1341,44 +1373,6 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 			false,
 			"",
 		},
-		{
-			"Valid - pipeline v1",
-			&model.Pipeline{
-				Name:        "pipeline v1",
-				Description: model.LargeText("pipeline one"),
-				Parameters:  `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
-			},
-			&model.PipelineVersion{
-				Name:            "pipeline v1 version 1",
-				Description:     model.LargeText("pipeline v1 version description"),
-				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
-				PipelineSpec:    model.LargeText(complexPipeline),
-				PipelineSpecURI: model.LargeText("pipeline_version_one.yaml"),
-			},
-			&model.Pipeline{
-				UUID:           DefaultFakePipelineIdTwo,
-				CreatedAtInSec: 1,
-				Name:           "pipeline v1",
-				DisplayName:    "pipeline v1",
-				Description:    model.LargeText("pipeline one"),
-				Parameters:     `[{"name":"param1","value":"one"},{"name":"param2","value":"two"}]`,
-				Status:         model.PipelineReady,
-			},
-			&model.PipelineVersion{
-				UUID:            DefaultFakePipelineIdTwo,
-				CreatedAtInSec:  2,
-				PipelineId:      DefaultFakePipelineIdTwo,
-				Name:            "pipeline v1 version 1",
-				DisplayName:     "pipeline v1 version 1",
-				Description:     model.LargeText("pipeline v1 version description"),
-				Status:          model.PipelineVersionReady,
-				CodeSourceUrl:   "gs://my-bucket/pipeline_v1.py",
-				PipelineSpec:    model.LargeText(complexPipeline),
-				PipelineSpecURI: model.LargeText("pipeline_version_one.yaml"),
-			},
-			false,
-			"",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1406,13 +1400,9 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 	}
 }
 
-func TestCreatePipelineAndPipelineVersion_V1Blocked(t *testing.T) {
-	viper.Set(util.BlockV1Pipelines, "true")
-	viper.Set(v1AllowedNamespaces, "ns1")
+func TestCreatePipelineAndPipelineVersion_RejectsArgo(t *testing.T) {
 	viper.Set(common.PodNamespace, "ns1")
 	defer func() {
-		viper.Set(util.BlockV1Pipelines, nil)
-		viper.Set(v1AllowedNamespaces, nil)
 		viper.Set(common.PodNamespace, nil)
 	}()
 
@@ -1428,16 +1418,13 @@ func TestCreatePipelineAndPipelineVersion_V1Blocked(t *testing.T) {
 		},
 	)
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
+	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
 
-func TestCreatePipelineAndPipelineVersion_V1Blocked_PodNamespaceFallback(t *testing.T) {
-	viper.Set(util.BlockV1Pipelines, "true")
-	viper.Set(v1AllowedNamespaces, "ns1")
+func TestCreatePipelineAndPipelineVersion_RejectsArgo_PodNamespaceFallback(t *testing.T) {
 	viper.Set(common.PodNamespace, "other-ns")
 	defer func() {
-		viper.Set(util.BlockV1Pipelines, nil)
-		viper.Set(v1AllowedNamespaces, nil)
 		viper.Set(common.PodNamespace, nil)
 	}()
 
@@ -1453,16 +1440,13 @@ func TestCreatePipelineAndPipelineVersion_V1Blocked_PodNamespaceFallback(t *test
 		},
 	)
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
+	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
 
-func TestCreatePipelineVersion_V1Blocked(t *testing.T) {
-	viper.Set(util.BlockV1Pipelines, "true")
-	viper.Set(v1AllowedNamespaces, "ns1")
+func TestCreatePipelineVersion_RejectsArgo(t *testing.T) {
 	viper.Set(common.PodNamespace, "ns1")
 	defer func() {
-		viper.Set(util.BlockV1Pipelines, nil)
-		viper.Set(v1AllowedNamespaces, nil)
 		viper.Set(common.PodNamespace, nil)
 	}()
 
@@ -1479,7 +1463,8 @@ func TestCreatePipelineVersion_V1Blocked(t *testing.T) {
 		PipelineSpec: complexPipeline,
 	})
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
+	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
 
 // Tests GetPipelineByNameAndNamespace
@@ -1546,71 +1531,6 @@ func TestGetPipelineByNameAndNamespace(t *testing.T) {
 	}
 }
 
-// Tests GetPipelineByNameAndNamespaceV1
-func TestGetPipelineByNameAndNamespaceV1(t *testing.T) {
-	tt := []struct {
-		msg          string
-		pipelineName string
-		namespace    string
-		badDB        bool
-		errorCode    codes.Code
-		errMsg       string
-	}{
-		{
-			msg:          "OK",
-			pipelineName: "p1",
-			namespace:    "ns1",
-			errorCode:    codes.OK,
-		},
-		{
-			msg:          "NotFount",
-			pipelineName: "doesNotExists",
-			namespace:    "ns1",
-			errorCode:    codes.NotFound,
-		},
-		{
-			msg:          "SharedPipelineNotFound",
-			pipelineName: "p1",
-			namespace:    "wrongNamespace",
-			errorCode:    codes.NotFound,
-		},
-		{
-			msg:          "BadDB",
-			pipelineName: "p1",
-			namespace:    "ns1",
-			badDB:        true,
-			errorCode:    codes.Internal,
-			errMsg:       "database is closed",
-		},
-	}
-	for _, test := range tt {
-		t.Run(test.msg, func(t *testing.T) {
-			store, manager, p, pv := initWithPipeline(t)
-			if test.badDB {
-				store.Close()
-			}
-
-			resp, respv, err := manager.GetPipelineByNameAndNamespaceV1(
-				test.pipelineName,
-				test.namespace,
-			)
-
-			// verify result
-			if test.errorCode != 0 {
-				require.NotNil(t, err)
-				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
-				if test.errMsg != "" {
-					assert.Contains(t, err.Error(), test.errMsg)
-				}
-				return
-			}
-			require.Nil(t, err)
-			assert.Equal(t, p, resp)
-			assert.Equal(t, pv, respv)
-		})
-	}
-}
-
 // Tests GetPipelineLatestTemplate (from PipelineSpec)
 func TestGetLatestPipelineVersion(t *testing.T) {
 	store, manager, p, pv := initWithPipeline(t)
@@ -1627,7 +1547,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 		"new version",
 		"new version desc",
 		"url://pipelines/p1/versions/v2",
-		testWorkflow.ToStringForStore(),
+		v2SpecHelloWorld,
 		"uri://pipelines/p1/versions/v2/spec.yaml",
 		p.Namespace,
 	)
@@ -1646,7 +1566,7 @@ func TestGetPipelineTemplate(t *testing.T) {
 	defer store.Close()
 	actualTemplate, err := manager.GetPipelineLatestTemplate(p.UUID)
 	assert.Nil(t, err)
-	assert.Equal(t, []byte(testWorkflow.ToStringForStore()), actualTemplate)
+	assert.YAMLEq(t, v2SpecHelloWorld, string(actualTemplate))
 }
 
 // Tests GetPipelineLatestTemplate (from PipelineSpecURI)
@@ -1657,7 +1577,7 @@ func TestGetPipelineTemplate_FromPipelineURI(t *testing.T) {
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
 	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
-	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), p.UUID)
+	manager.objectStore.AddFile(context.TODO(), []byte(v2SpecHelloWorld), p.UUID)
 	pv := &model.PipelineVersion{
 		PipelineId:      p.UUID,
 		Name:            "new_version",
@@ -1668,7 +1588,7 @@ func TestGetPipelineTemplate_FromPipelineURI(t *testing.T) {
 
 	tmpl, err := manager.GetPipelineLatestTemplate(p.UUID)
 	assert.Nil(t, err)
-	assert.Contains(t, string(tmpl), "argoproj.io/v1alpha1")
+	assert.Contains(t, string(tmpl), "pipelineInfo")
 }
 
 // Tests GetPipelineLatestTemplate (from PipelineVersionId)
@@ -1690,14 +1610,14 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	assert.True(t, ok)
 
-	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey(p.UUID))
+	manager.objectStore.AddFile(context.TODO(), []byte(v2SpecHelloWorld), manager.objectStore.GetPipelineKey(p.UUID))
 	pv2, err := manager.CreatePipelineVersion(pv)
 	require.Nil(t, err, "CreatePipelineVersion failed: %v", err)
 	assert.NotEqual(t, p.UUID, pv2.UUID)
 
 	tmpl, err := manager.GetPipelineLatestTemplate(p.UUID)
 	assert.Nil(t, err)
-	assert.Contains(t, string(tmpl), "argoproj.io/v1alpha1")
+	assert.Contains(t, string(tmpl), "pipelineInfo")
 }
 
 // Tests GetPipelineLatestTemplate (from PipelineId)
@@ -1714,7 +1634,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 		PipelineSpecURI: model.LargeText(manager.objectStore.GetPipelineKey(p.UUID)),
 	}
 
-	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey(p.UUID))
+	manager.objectStore.AddFile(context.TODO(), []byte(v2SpecHelloWorld), manager.objectStore.GetPipelineKey(p.UUID))
 
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
@@ -1725,7 +1645,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 
 	tmpl, err := manager.GetPipelineLatestTemplate(p.UUID)
 	assert.Nil(t, err)
-	assert.Contains(t, string(tmpl), "argoproj.io/v1alpha1")
+	assert.Contains(t, string(tmpl), "pipelineInfo")
 }
 
 // Tests GetPipelineLatestTemplate (NotFound)
@@ -1769,7 +1689,7 @@ func TestListPipelines(t *testing.T) {
 		"pipeline",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -1812,64 +1732,6 @@ func TestListPipelines(t *testing.T) {
 	assert.Equal(t, 1, nTotal)
 }
 
-// Tests ListPipelinesV1
-func TestListPipelinesV1(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	// Create a pipeline.
-	p1 := createPipelineV1(
-		"pipeline1",
-	)
-	pnew1, err := manager.CreatePipeline(p1)
-	assert.Nil(t, err)
-
-	pv := createPipelineVersion(
-		pnew1.UUID,
-		"pipeline",
-		"",
-		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
-		"",
-		"",
-	)
-
-	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
-	assert.True(t, ok)
-
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	_, err = manager.CreatePipelineVersion(pv)
-	assert.Nil(t, err)
-
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	p2 := createPipelineV1(
-		"pipeline2",
-	)
-	pnew2, err := manager.CreatePipeline(p2)
-	assert.Nil(t, err)
-
-	opts, err := list.NewOptions(&model.Pipeline{}, 10, "", nil)
-	assert.Nil(t, err)
-
-	_, _, nTotal, _, err := manager.ListPipelinesV1(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
-		opts,
-	)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, nTotal)
-
-	// Delete the above pipeline.
-	err = manager.DeletePipeline(pnew2.UUID, false)
-	assert.Nil(t, err)
-
-	_, _, nTotal, _, err = manager.ListPipelinesV1(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""}},
-		opts,
-	)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, nTotal)
-}
-
 // Tests ListPipelineVersions
 func TestListPipelineVersions(t *testing.T) {
 	initEnvVars()
@@ -1889,7 +1751,7 @@ func TestListPipelineVersions(t *testing.T) {
 		"pipeline",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -1898,7 +1760,7 @@ func TestListPipelineVersions(t *testing.T) {
 		"pipelinev2",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -1985,7 +1847,7 @@ func TestUpdatePipelineStatus(t *testing.T) {
 		"pipeline",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -1994,7 +1856,7 @@ func TestUpdatePipelineStatus(t *testing.T) {
 		"pipelinev2",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -2152,7 +2014,7 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 		"pipeline",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -2161,7 +2023,7 @@ func TestUpdatePipelineVersionStatus(t *testing.T) {
 		"pipelinev2",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -2211,7 +2073,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 		"pipeline",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -2227,7 +2089,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 		"pipeline_version",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -2250,7 +2112,7 @@ func TestDeletePipelineVersion(t *testing.T) {
 	// Verify the latest version
 	pvLatestTeplate, err := manager.GetPipelineLatestTemplate(DefaultFakeUUID)
 	assert.Nil(t, err)
-	assert.Equal(t, "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}", string(pvLatestTeplate))
+	assert.YAMLEq(t, v2SpecHelloWorld, string(pvLatestTeplate))
 }
 
 // Tests DeletePipelineVersion (NotFound)
@@ -2272,7 +2134,7 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 		"pipeline",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -2314,7 +2176,7 @@ func TestDeletePipeline(t *testing.T) {
 		"pipeline",
 		"",
 		"",
-		"apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -2351,200 +2213,6 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
 
-func TestCreateRun_BlockV1Pipelines(t *testing.T) {
-	tt := []struct {
-		msg               string
-		blockV1           bool
-		allowedNamespaces string
-		namespace         string
-		useV2Spec         bool
-		errorCode         codes.Code
-		errorMsg          string
-	}{
-		{
-			msg:               "BlockV1_NamespaceNotAllowed",
-			blockV1:           true,
-			allowedNamespaces: "",
-			namespace:         "ns1",
-			useV2Spec:         false,
-			errorCode:         codes.InvalidArgument,
-			errorMsg:          "not allowed to run v1 pipelines",
-		},
-		{
-			msg:               "BlockV1_NamespaceAllowed",
-			blockV1:           true,
-			allowedNamespaces: "ns1",
-			namespace:         "ns1",
-			useV2Spec:         false,
-		},
-		{
-			msg:               "BlockV1_NamespaceAllowed_MultipleNamespaces",
-			blockV1:           true,
-			allowedNamespaces: "ns1,ns2,ns3",
-			namespace:         "ns2",
-			useV2Spec:         false,
-		},
-		{
-			msg:               "BlockV1_Disabled_AnyNamespaceAllowed",
-			blockV1:           false,
-			allowedNamespaces: "",
-			namespace:         "ns1",
-			useV2Spec:         false,
-		},
-		{
-			msg:               "BlockV1_V2PipelineNotBlocked",
-			blockV1:           true,
-			allowedNamespaces: "",
-			namespace:         "ns1",
-			useV2Spec:         true,
-		},
-		{
-			msg:               "BlockV1_NamespaceNotInAllowedList",
-			blockV1:           true,
-			allowedNamespaces: "ns2,ns3",
-			namespace:         "ns1",
-			useV2Spec:         false,
-			errorCode:         codes.InvalidArgument,
-			errorMsg:          "Namespace ns1 is not allowed to run v1 pipelines",
-		},
-		{
-			msg:               "BlockV1_CaseInsensitiveNamespaceMatch",
-			blockV1:           true,
-			allowedNamespaces: "NS1",
-			namespace:         "ns1",
-			useV2Spec:         false,
-		},
-	}
-
-	for _, test := range tt {
-		t.Run(test.msg, func(t *testing.T) {
-			viper.Set(util.BlockV1Pipelines, test.blockV1)
-			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
-			defer func() {
-				viper.Set(util.BlockV1Pipelines, nil)
-				viper.Set(v1AllowedNamespaces, nil)
-			}()
-
-			store, manager, exp := initWithExperiment(t)
-			defer store.Close()
-
-			var apiRun *model.Run
-			if test.useV2Spec {
-				apiRun = &model.Run{
-					DisplayName:  "run1",
-					ExperimentId: exp.UUID,
-					Namespace:    test.namespace,
-					PipelineSpec: model.PipelineSpec{
-						PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
-						RuntimeConfig: model.RuntimeConfig{
-							Parameters: `{"text":"world"}`,
-						},
-					},
-				}
-			} else {
-				apiRun = &model.Run{
-					DisplayName:  "run1",
-					ExperimentId: exp.UUID,
-					Namespace:    test.namespace,
-					PipelineSpec: model.PipelineSpec{
-						WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-						Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
-					},
-				}
-			}
-
-			_, err := manager.CreateRun(context.Background(), apiRun)
-
-			if test.errorCode != 0 {
-				require.NotNil(t, err)
-				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
-				if test.errorMsg != "" {
-					assert.Contains(t, err.Error(), test.errorMsg)
-				}
-				return
-			}
-			assert.Nil(t, err)
-		})
-	}
-}
-
-// TODO: use table driven test to test CreateRun api
-func TestCreateRun_ThroughPipelineID(t *testing.T) {
-	store, manager, p, _ := initWithPipeline(t)
-	defer store.Close()
-	apiExperiment := &model.Experiment{Name: "e1"}
-	experiment, err := manager.CreateExperiment(apiExperiment)
-	assert.Nil(t, err)
-
-	// Create a new pipeline version with UUID being FakeUUID.
-	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
-	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	pv := createPipelineVersion(p.UUID, "version_for_run", "", "", testWorkflow.ToStringForStore(), "", "")
-	version, err := manager.CreatePipelineVersion(pv)
-	assert.Nil(t, err)
-
-	// The pipeline specified via pipeline id will be converted to this
-	// pipeline's default version, which will be used to create run.
-	apiRun := &model.Run{
-		DisplayName: "run1",
-		PipelineSpec: model.PipelineSpec{
-			PipelineId: p.UUID,
-			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
-		},
-		ExperimentId: experiment.UUID,
-	}
-	runDetail, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	expectedRuntimeWorkflow.ResourceVersion = "1"
-	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
-	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
-	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
-	expectedRuntimeWorkflow.ObjectMeta.Namespace = "ns1"
-	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
-		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
-		},
-	}
-	expectedRunDetail := &model.Run{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		ExperimentId:   experiment.UUID,
-		DisplayName:    "run1",
-		K8SName:        "workflow-name",
-		Namespace:      "ns1",
-		ServiceAccount: "pipeline-runner",
-		StorageState:   model.StorageStateAvailable,
-		PipelineSpec: model.PipelineSpec{
-			PipelineVersionId:    version.UUID,
-			PipelineId:           p.UUID,
-			PipelineName:         "version_for_run",
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
-		},
-		RunDetails: model.RunDetails{
-			CreatedAtInSec:          5,
-			ScheduledAtInSec:        5,
-			Conditions:              "Pending",
-			WorkflowRuntimeManifest: model.LargeText(util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore()),
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 6,
-					State:           model.RuntimeStatePending,
-				},
-			},
-		},
-	}
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
-	runDetail, err = manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
-}
-
 func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRunV2(t)
 	expectedExperimentUUID := runDetail.ExperimentId
@@ -2576,312 +2244,13 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 			},
 		},
 	}
-	expectedRunDetail.PipelineSpec.PipelineSpecManifest = runDetail.PipelineSpec.PipelineSpecManifest
-	expectedRunDetail.RunDetails.PipelineRuntimeManifest = runDetail.RunDetails.PipelineRuntimeManifest
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
+	expectedRunDetail.PipelineSpecManifest = runDetail.PipelineSpecManifest
+	expectedRunDetail.PipelineRuntimeManifest = runDetail.PipelineRuntimeManifest
+	assert.Equal(t, expectedRunDetail.ToV2(), runDetail.ToV2(), "The CreateRun return has unexpected value")
 	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
-}
-
-func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
-	store, manager, runDetail := initWithOneTimeRun(t)
-	expectedExperimentUUID := runDetail.ExperimentId
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	expectedRuntimeWorkflow.ResourceVersion = "1"
-	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
-	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
-	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
-	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
-		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
-		},
-	}
-
-	expectedRunDetail := &model.Run{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		ExperimentId:   expectedExperimentUUID,
-		DisplayName:    "run1",
-		K8SName:        "workflow-name",
-		Namespace:      "ns1",
-		ServiceAccount: "pipeline-runner",
-		StorageState:   model.StorageStateAvailable,
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
-		},
-		RunDetails: model.RunDetails{
-			CreatedAtInSec:   2,
-			ScheduledAtInSec: 2,
-			Conditions:       "Pending",
-			State:            "PENDING",
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 3,
-					State:           model.RuntimeStatePending,
-				},
-			},
-			WorkflowRuntimeManifest: model.LargeText(util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore()),
-		},
-	}
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
-	runDetail, err := manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
-}
-
-func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
-	viper.Set(common.HasDefaultBucketEnvVar, "true")
-	viper.Set(common.ProjectIDEnvVar, "test-project-id")
-	viper.Set(common.DefaultBucketNameEnvVar, "test-default-bucket")
-	store, manager, runDetail := initWithPatchedRun(t)
-	expectedExperimentUUID := runDetail.ExperimentId
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	expectedRuntimeWorkflow.ResourceVersion = "1"
-	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
-	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
-	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
-	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
-		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
-		},
-	}
-
-	expectedRunDetail := &model.Run{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		ExperimentId:   expectedExperimentUUID,
-		DisplayName:    "run1",
-		K8SName:        "workflow-name",
-		Namespace:      "ns1",
-		ServiceAccount: "pipeline-runner",
-		StorageState:   model.StorageStateAvailable,
-		RunDetails: model.RunDetails{
-			CreatedAtInSec:   2,
-			ScheduledAtInSec: 2,
-			Conditions:       "Pending",
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 3,
-					State:           model.RuntimeStatePending,
-				},
-			},
-			WorkflowRuntimeManifest: model.LargeText(util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore()),
-		},
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
-		},
-	}
-	expectedRunDetail.PipelineSpec.PipelineName = runDetail.PipelineSpec.PipelineName
-	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
-	runDetail, err := manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
-}
-
-func TestCreateRun_ThroughWorkflowSpecSameManifest(t *testing.T) {
-	viper.Set(common.HasDefaultBucketEnvVar, "true")
-	viper.Set(common.ProjectIDEnvVar, "test-project-id")
-	viper.Set(common.DefaultBucketNameEnvVar, "test-default-bucket")
-	_, manager, runDetail := initWithPatchedRun(t)
-
-	manager.uuid = util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil)
-	pipelineStore, _ := manager.pipelineStore.(*storage.PipelineStore)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdTwo, nil))
-
-	newRun, err := manager.CreateRun(
-		context.Background(),
-		&model.Run{
-			DisplayName: "run1",
-			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"{{kfp-default-bucket}}\"}]",
-			},
-			ExperimentId: runDetail.ExperimentId,
-		},
-	)
-	assert.Nil(t, err)
-	assert.Equal(t, "run1", newRun.DisplayName)
-	assert.Empty(t, newRun.PipelineId)
-	assert.Empty(t, newRun.PipelineVersionId)
-	assert.NotEqual(t, runDetail.WorkflowRuntimeManifest, newRun.WorkflowRuntimeManifest)
-	assert.Equal(t, runDetail.WorkflowSpecManifest, newRun.WorkflowSpecManifest)
-	assert.Empty(t, newRun.PipelineSpecManifest)
-}
-
-func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
-	viper.Set(common.AllowedServiceAccountsFlag, "sa1")
-	defer viper.Set(common.AllowedServiceAccountsFlag, "")
-	// Create experiment, pipeline, and pipeline version.
-	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
-	defer store.Close()
-	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
-	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	pv := createPipelineVersion(
-		pipeline.UUID,
-		"version_for_run",
-		"",
-		"",
-		testWorkflow.ToStringForStore(),
-		"",
-		"",
-	)
-	version, err := manager.CreatePipelineVersion(pv)
-	assert.Nil(t, err)
-
-	apiRun := &model.Run{
-		DisplayName: "run1",
-		PipelineSpec: model.PipelineSpec{
-			Parameters:        "[{\"name\":\"param1\",\"value\":\"world\"}]",
-			PipelineVersionId: version.UUID,
-		},
-		ExperimentId:   experiment.UUID,
-		ServiceAccount: "sa1",
-	}
-	runDetail, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	expectedRuntimeWorkflow.ResourceVersion = "1"
-	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
-	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
-	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-	expectedRuntimeWorkflow.Namespace = "ns1"
-	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
-		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
-		},
-	}
-
-	expectedRunDetail := &model.Run{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		ExperimentId:   experiment.UUID,
-		DisplayName:    "run1",
-		K8SName:        "workflow-name",
-		Namespace:      "ns1",
-		ServiceAccount: "sa1",
-		StorageState:   model.StorageStateAvailable,
-		PipelineSpec: model.PipelineSpec{
-			PipelineVersionId:    version.UUID,
-			PipelineId:           version.PipelineId,
-			PipelineName:         version.Name,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
-		},
-		RunDetails: model.RunDetails{
-			WorkflowRuntimeManifest: model.LargeText(util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore()),
-			CreatedAtInSec:          5,
-			ScheduledAtInSec:        5,
-			Conditions:              "Pending",
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 6,
-					State:           model.RuntimeStatePending,
-				},
-			},
-		},
-	}
-	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
-	runDetail, err = manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
-}
-
-func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
-	viper.Set(common.AllowedServiceAccountsFlag, "sa1")
-	defer viper.Set(common.AllowedServiceAccountsFlag, "")
-	// Create experiment, pipeline, and pipeline version.
-	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
-	defer store.Close()
-	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
-	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	pv := createPipelineVersion(
-		pipeline.UUID,
-		"version_for_run",
-		"",
-		"",
-		testWorkflow.ToStringForStore(),
-		"",
-		"",
-	)
-	version, err := manager.CreatePipelineVersion(pv)
-	assert.Nil(t, err)
-
-	apiRun := &model.Run{
-		DisplayName:  "run1",
-		ExperimentId: experiment.UUID,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:        pipeline.UUID,
-			PipelineVersionId: version.UUID,
-			Parameters:        "[{\"name\":\"param1\",\"value\":\"world\"}]",
-		},
-		ServiceAccount: "sa1",
-	}
-	runDetail, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	expectedRuntimeWorkflow.ResourceVersion = "1"
-	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
-	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
-	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
-	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
-	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
-	expectedRuntimeWorkflow.Namespace = "ns1"
-	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
-		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
-		},
-	}
-
-	expectedRunDetail := &model.Run{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		ExperimentId:   experiment.UUID,
-		DisplayName:    "run1",
-		K8SName:        "workflow-name",
-		Namespace:      "ns1",
-		ServiceAccount: "sa1",
-		StorageState:   model.StorageStateAvailable,
-		RunDetails: model.RunDetails{
-			WorkflowRuntimeManifest: model.LargeText(util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore()),
-			CreatedAtInSec:          5,
-			ScheduledAtInSec:        5,
-			Conditions:              "Pending",
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 6,
-					State:           model.RuntimeStatePending,
-				},
-			},
-		},
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:           pipeline.UUID,
-			PipelineVersionId:    version.UUID,
-			PipelineName:         version.Name,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
-		},
-	}
-	expectedRunDetail = expectedRunDetail.ToV2().ToV1()
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "The CreateRun return has unexpected value")
-	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created")
-	runDetail, err = manager.GetRun(runDetail.UUID)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1(), "CreateRun stored invalid data in database")
+	assert.Equal(t, expectedRunDetail.ToV2(), runDetail.ToV2(), "CreateRun stored invalid data in database")
 }
 
 func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
@@ -2893,7 +2262,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
 		PipelineSpec: model.PipelineSpec{
-			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
@@ -2910,8 +2279,8 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText("I am invalid"),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText("I am invalid"),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
@@ -2928,8 +2297,8 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: "null", // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: "null", // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
@@ -2946,13 +2315,13 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param2\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"param2":"world"}`},
 		},
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unrecognized input parameter")
+	assert.Contains(t, err.Error(), "parameter(s) provided are not required by pipeline")
 }
 
 func TestCreateRun_CreateWorkflowError(t *testing.T) {
@@ -2965,8 +2334,8 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
@@ -2984,8 +2353,8 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	_, err := manager.CreateRun(context.Background(), apiRun)
@@ -3032,8 +2401,8 @@ func TestCreateRun_WithMLflowPlugin(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "mlflow-test-run",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: exp.UUID,
 		RunDetails: model.RunDetails{
@@ -3086,8 +2455,8 @@ func TestCreateRun_NoMLflowConfig(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "no-mlflow-run",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -3384,6 +2753,97 @@ func TestRetryRun(t *testing.T) {
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
 }
 
+func TestRetryRun_V2CompilerPodSpecPatch(t *testing.T) {
+	store, manager, run := initWithOneTimeRunV2(t)
+	defer store.Close()
+	executionSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.PipelineRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, executionSpec.Decompress())
+	workflow := executionSpec.(*util.Workflow)
+	require.Contains(t, workflow.ToStringForStore(), `{{inputs.parameters.pod-spec-patch}}`)
+	workflow.Status.Phase = v1alpha1.WorkflowFailed
+	run.WorkflowRuntimeManifest = model.LargeText(workflow.ToStringForStore())
+	run.State = model.RuntimeStateFailed
+	run.Conditions = string(model.RuntimeStateFailed.ToExecutionPhase())
+	require.NoError(t, manager.runStore.UpdateRun(run))
+
+	require.NoError(t, manager.RetryRun(context.Background(), run.UUID))
+}
+
+func TestRetryRun_ServiceAccountSAR_Unauthorized_NoWorkflowMutation(t *testing.T) {
+	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	run, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName:  "run1",
+		PipelineSpec: pipelineSpecWithTemplateServiceAccount(t, "nested-sa"),
+		ExperimentId: experiment.UUID,
+	})
+	require.NoError(t, err)
+
+	failedWorkflow, err := util.NewWorkflowFromBytesJSON([]byte(run.PipelineRuntimeManifest))
+	require.NoError(t, err)
+	failedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, run.UUID)
+	failedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	failedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
+	syncWorkflowReportWithFakeCluster(t, store, failedWorkflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), failedWorkflow)
+	require.NoError(t, err)
+
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	manager.subjectAccessReviewClient = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	err = manager.RetryRun(multiUserContext(), run.UUID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+	liveWorkflow, getErr := store.ExecClientFake.Execution("ns1").Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, getErr)
+	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(liveWorkflow.ExecutionStatus().Condition()))
+}
+
+func TestRetryRun_PersistedIRCompiledManifest(t *testing.T) {
+	for _, removeMarker := range []bool{false, true} {
+		t.Run(fmt.Sprintf("remove-pod-metadata=%t", removeMarker), func(t *testing.T) {
+			store, manager, run := initWithOneTimeRun(t)
+			defer store.Close()
+			// Use the compiler output, rather than a hand-authored workflow fixture.
+			workflow, err := util.NewWorkflowFromBytesJSON([]byte(run.PipelineRuntimeManifest))
+			require.NoError(t, err)
+			require.NotNil(t, workflow.Spec.PodMetadata)
+			assert.NoError(t, workflow.CanRetry())
+			if removeMarker {
+				workflow.Spec.PodMetadata = nil
+			}
+			workflow.Status.Phase = v1alpha1.WorkflowFailed
+			syncWorkflowReportWithFakeCluster(t, store, workflow)
+			_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+			require.NoError(t, err)
+
+			stored, err := manager.GetRun(run.UUID)
+			require.NoError(t, err)
+			persisted, err := util.NewWorkflowFromBytesJSON([]byte(stored.WorkflowRuntimeManifest))
+			require.NoError(t, err)
+			assert.Equal(t, workflow.Spec.PodMetadata, persisted.Spec.PodMetadata)
+
+			err = manager.RetryRun(context.Background(), run.UUID)
+			if removeMarker {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "missing the IR compiler's v2_component pod metadata marker")
+				stored, err = manager.GetRun(run.UUID)
+				require.NoError(t, err)
+				assert.Equal(t, model.RuntimeStateFailed, stored.State)
+			} else {
+				require.NoError(t, err)
+				stored, err = manager.GetRun(run.UUID)
+				require.NoError(t, err)
+				assert.Equal(t, model.RuntimeStateRunning, stored.State)
+			}
+		})
+	}
+}
+
 func TestRetryRun_RefreshesDivergentWorkflowName(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
@@ -3631,13 +3091,14 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 	runDetail, err := manager.CreateRun(context.Background(), &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: experiment.UUID,
 	})
 	require.NoError(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
@@ -3937,118 +3398,6 @@ func TestUnarchiveRun_Failed_ResourceNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
-func TestCreateJob_BlocksV1Pipelines(t *testing.T) {
-	tt := []struct {
-		msg               string
-		blockV1           bool
-		allowedNamespaces string
-		namespace         string
-		useV2Spec         bool
-		errorCode         codes.Code
-		errorMsg          string
-	}{
-		{
-			msg:               "BlockV1_NamespaceNotAllowed",
-			blockV1:           true,
-			allowedNamespaces: "",
-			namespace:         "ns1",
-			useV2Spec:         false,
-			errorCode:         codes.InvalidArgument,
-			errorMsg:          "not allowed to run v1 pipelines",
-		},
-		{
-			msg:               "BlockV1_NamespaceAllowed",
-			blockV1:           true,
-			allowedNamespaces: "ns1",
-			namespace:         "ns1",
-			useV2Spec:         false,
-		},
-		{
-			msg:               "BlockV1_NamespaceAllowed_MultipleNamespaces",
-			blockV1:           true,
-			allowedNamespaces: "ns1,ns2,ns3",
-			namespace:         "ns2",
-			useV2Spec:         false,
-		},
-		{
-			msg:               "BlockV1_Disabled_AnyNamespaceAllowed",
-			blockV1:           false,
-			allowedNamespaces: "",
-			namespace:         "ns1",
-			useV2Spec:         false,
-		},
-		{
-			msg:               "BlockV1_V2PipelineNotBlocked",
-			blockV1:           true,
-			allowedNamespaces: "",
-			namespace:         "ns1",
-			useV2Spec:         true,
-		},
-		{
-			msg:               "BlockV1_NamespaceNotInAllowedList",
-			blockV1:           true,
-			allowedNamespaces: "ns2,ns3",
-			namespace:         "ns1",
-			useV2Spec:         false,
-			errorCode:         codes.InvalidArgument,
-			errorMsg:          "Namespace ns1 is not allowed to run v1 pipelines",
-		},
-		{
-			msg:               "BlockV1_CaseInsensitiveNamespaceMatch",
-			blockV1:           true,
-			allowedNamespaces: "NS1",
-			namespace:         "ns1",
-			useV2Spec:         false,
-		},
-	}
-
-	for _, test := range tt {
-		t.Run(test.msg, func(t *testing.T) {
-			viper.Set(util.BlockV1Pipelines, test.blockV1)
-			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
-			defer func() {
-				viper.Set(util.BlockV1Pipelines, nil)
-				viper.Set(v1AllowedNamespaces, nil)
-			}()
-
-			store, manager, exp := initWithExperiment(t)
-			defer store.Close()
-
-			job := &model.Job{
-				DisplayName:  "j1",
-				Enabled:      true,
-				ExperimentId: exp.UUID,
-				Namespace:    test.namespace,
-			}
-			if test.useV2Spec {
-				job.PipelineSpec = model.PipelineSpec{
-					PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
-					RuntimeConfig: model.RuntimeConfig{
-						Parameters:   "{\"text\":\"world\"}",
-						PipelineRoot: "job-1-root",
-					},
-				}
-			} else {
-				job.PipelineSpec = model.PipelineSpec{
-					WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-				}
-			}
-
-			_, err := manager.CreateJob(context.Background(), job)
-
-			if test.errorCode != 0 {
-				require.NotNil(t, err)
-				assert.Equal(t, test.errorCode, err.(*util.UserError).ExternalStatusCode())
-				if test.errorMsg != "" {
-					assert.Contains(t, err.Error(), test.errorMsg)
-				}
-				return
-			}
-			assert.Nil(t, err)
-		})
-	}
-}
-
 // TODO Use table driven to write UT to test CreateJob
 func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	store, _, job := initWithJob(t)
@@ -4065,11 +3414,13 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 		UpdatedAtInSec: 2,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 	}
 	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
-	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
+	assert.YAMLEq(t, string(expectedJob.PipelineSpecManifest), string(job.PipelineSpecManifest))
+	expectedJob.PipelineSpecManifest = job.PipelineSpecManifest
+	assert.Equal(t, expectedJob.ToV2(), job.ToV2())
 }
 
 func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
@@ -4095,10 +3446,12 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		},
 	}
 	expectedJob.PipelineSpec.PipelineName = job.PipelineSpec.PipelineName
-	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
+	assert.YAMLEq(t, string(expectedJob.PipelineSpecManifest), string(job.PipelineSpecManifest))
+	expectedJob.PipelineSpecManifest = job.PipelineSpecManifest
+	assert.Equal(t, expectedJob.ToV2(), job.ToV2())
 	fetchedJob, err := manager.GetJob(job.UUID)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedJob.ToV1(), fetchedJob.ToV1(), "CreateJob stored invalid data in database")
+	assert.Equal(t, expectedJob.ToV2(), fetchedJob.ToV2(), "CreateJob stored invalid data in database")
 }
 
 func TestCreateJobDifferentDefaultServiceAccountName_ThroughWorkflowSpecV2(t *testing.T) {
@@ -4129,10 +3482,10 @@ func TestCreateJobDifferentDefaultServiceAccountName_ThroughWorkflowSpecV2(t *te
 		},
 	}
 	expectedJob.PipelineName = job.PipelineName
-	require.Equal(t, expectedJob.ToV1(), job.ToV1())
+	require.Equal(t, expectedJob.ToV2(), job.ToV2())
 	fetchedJob, err := manager.GetJob(job.UUID)
 	require.Nil(t, err)
-	require.Equal(t, expectedJob.ToV1(), fetchedJob.ToV1(), "CreateJob stored invalid data in database")
+	require.Equal(t, expectedJob.ToV2(), fetchedJob.ToV2(), "CreateJob stored invalid data in database")
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
@@ -4145,8 +3498,8 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		Enabled:      true,
 		ExperimentId: experiment.UUID,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: pipeline.UUID,
-			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineId:    pipeline.UUID,
+			RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 
@@ -4171,13 +3524,15 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		UpdatedAtInSec: 4,
 		Conditions:     "STATUS_UNSPECIFIED",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: pipeline.UUID,
-			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineId:    pipeline.UUID,
+			RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: experiment.UUID,
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, expectedJob.ToV1(), newJob.ToV1())
+	assert.YAMLEq(t, string(expectedJob.PipelineSpecManifest), string(newJob.PipelineSpecManifest))
+	expectedJob.PipelineSpecManifest = newJob.PipelineSpecManifest
+	assert.Equal(t, expectedJob.ToV2(), newJob.ToV2())
 }
 
 func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
@@ -4192,7 +3547,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 		"version_for_job",
 		"",
 		"",
-		testWorkflow.ToStringForStore(),
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -4205,7 +3560,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 		ExperimentId: experiment.UUID,
 		PipelineSpec: model.PipelineSpec{
 			PipelineVersionId: version.UUID,
-			Parameters:        "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			RuntimeConfig:     model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	newJob, err := manager.CreateJob(context.Background(), job)
@@ -4224,12 +3579,14 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 			PipelineId:           version.PipelineId,
 			PipelineName:         version.Name,
 			PipelineVersionId:    version.UUID,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, expectedJob.ToV1(), newJob.ToV1())
+	assert.YAMLEq(t, string(expectedJob.PipelineSpecManifest), string(newJob.PipelineSpecManifest))
+	expectedJob.PipelineSpecManifest = newJob.PipelineSpecManifest
+	assert.Equal(t, expectedJob.ToV2(), newJob.ToV2())
 }
 
 func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
@@ -4244,7 +3601,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 		"version_for_job",
 		"",
 		"",
-		testWorkflow.ToStringForStore(),
+		v2SpecHelloWorld,
 		"",
 		"",
 	)
@@ -4258,7 +3615,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:        pipeline.UUID,
-			Parameters:        "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			RuntimeConfig:     model.RuntimeConfig{Parameters: `{"text":"world"}`},
 			PipelineVersionId: version.UUID,
 		},
 	}
@@ -4279,12 +3636,14 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			PipelineName:         version.Name,
 			PipelineId:           pipeline.UUID,
 			PipelineVersionId:    version.UUID,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, expectedJob.ToV1(), newJob.ToV1())
+	assert.YAMLEq(t, string(expectedJob.PipelineSpecManifest), string(newJob.PipelineSpecManifest))
+	expectedJob.PipelineSpecManifest = newJob.PipelineSpecManifest
+	assert.Equal(t, expectedJob.ToV2(), newJob.ToV2())
 }
 
 func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
@@ -4298,7 +3657,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 		Enabled:      true,
 		ExperimentId: experimentID,
 		PipelineSpec: model.PipelineSpec{
-			Parameters: "[{\"name\":\"param2\",\"value\":\"world\"}]",
+			RuntimeConfig: model.RuntimeConfig{Parameters: `{"param2":"world"}`},
 		},
 	}
 	_, err := manager.CreateJob(context.Background(), job)
@@ -4320,8 +3679,8 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 		ExperimentId: experimentID,
 		Enabled:      true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText("I am invalid"),
-			Parameters:           "[{\"name\":\"param2\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText("I am invalid"),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"param2":"world"}`},
 		},
 	}
 	_, err := manager.CreateJob(context.Background(), job)
@@ -4339,8 +3698,8 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 		ExperimentId: experimentID,
 		Enabled:      true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText("null"), // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
-			Parameters:           "[{\"name\":\"param2\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText("null"), // this situation occurs for real when the manifest file disappears from object store in some way due to retention policy or manual deletion.
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"param2":"world"}`},
 		},
 	}
 	_, err := manager.CreateJob(context.Background(), job)
@@ -4357,14 +3716,14 @@ func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 		ExperimentId: experimentID,
 		Enabled:      true,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: p.UUID,
-			Parameters: "[{\"name\":\"param2\",\"value\":\"world\"}]",
+			PipelineId:    p.UUID,
+			RuntimeConfig: model.RuntimeConfig{Parameters: `{"param2":"world"}`},
 		},
 	}
 	_, err := manager.CreateJob(context.Background(), job)
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Unrecognized input parameter: param2")
+	assert.Contains(t, err.Error(), "parameter(s) provided are not required by pipeline: param2")
 }
 
 func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
@@ -4403,11 +3762,43 @@ func TestEnableJob(t *testing.T) {
 			PipelineId:           job.PipelineSpec.PipelineId,
 			PipelineName:         job.PipelineSpec.PipelineName,
 			PipelineVersionId:    job.PipelineSpec.PipelineVersionId,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, expectedJob.ToV1(), job.ToV1())
+	assert.Equal(t, expectedJob.ToV2(), job.ToV2())
+}
+
+func TestEnableJob_ReauthorizesEmbeddedWorkflowServiceAccounts(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa")
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, "false")
+		viper.Set(common.AllowedServiceAccountsFlag, "")
+	})
+
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName:  "j1",
+		Enabled:      false,
+		ExperimentId: experiment.UUID,
+		PipelineSpec: pipelineSpecWithTemplateServiceAccount(t, "nested-sa"),
+	})
+	require.NoError(t, err)
+
+	patchCounter := &patchCountingSwfClient{SwfClientInterface: manager.swfClient}
+	manager.swfClient = patchCounter
+	manager.subjectAccessReviewClient = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	viper.Set(common.MultiUserMode, "true")
+
+	err = manager.ChangeJobMode(multiUserContext(), job.UUID, true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+	assert.Zero(t, patchCounter.patchCalls, "the ScheduledWorkflow must not be enabled when authorization fails")
+	storedJob, getErr := manager.GetJob(job.UUID)
+	require.NoError(t, getErr)
+	assert.False(t, storedJob.Enabled)
 }
 
 func TestEnableJob_JobNotExist(t *testing.T) {
@@ -4579,7 +3970,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
-		K8SName:        "workflow-name",
+		K8SName:        "hello-world-0",
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
@@ -4599,13 +3990,14 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 			},
 		},
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 	}
 	expectedRun.PipelineSpec.PipelineName = run.PipelineSpec.PipelineName
 	expectedRun.RunDetails.WorkflowRuntimeManifest = run.RunDetails.WorkflowRuntimeManifest
-	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
+	expectedRun.PipelineRuntimeManifest = run.PipelineRuntimeManifest
+	assert.Equal(t, expectedRun.ToV2(), run.ToV2())
 }
 
 type runStoreWithBeforeWorkflowUpdateHook struct {
@@ -4781,8 +4173,8 @@ func TestReportWorkflowResource_NamespaceMismatch_Rejected(t *testing.T) {
 		DisplayName: "run1",
 		Namespace:   "ns1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: exp.UUID,
 	}
@@ -4792,7 +4184,7 @@ func TestReportWorkflowResource_NamespaceMismatch_Rejected(t *testing.T) {
 	run, err = manager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, run.Namespace)
-	runBeforeReport := run.ToV1()
+	runBeforeReport := run.ToV2()
 
 	// A workflow reported from a different namespace must not be allowed to
 	// overwrite this run, even though it carries the run's ID label.
@@ -4815,7 +4207,7 @@ func TestReportWorkflowResource_NamespaceMismatch_Rejected(t *testing.T) {
 	assert.NotContains(t, err.Error(), run.Namespace)
 	runAfterReport, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, runBeforeReport, runAfterReport.ToV1())
+	assert.Equal(t, runBeforeReport, runAfterReport.ToV2())
 
 	// A workflow reported from the run's own namespace still succeeds.
 	legit := util.NewWorkflow(&v1alpha1.Workflow{
@@ -5343,7 +4735,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 		Namespace:      job.Namespace,
 		RecurringRunId: job.UUID,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(workflow.GetExecutionSpec().ToStringForStore()),
 			PipelineSpecManifest: job.PipelineSpecManifest,
 			PipelineId:           job.PipelineId,
 			PipelineName:         job.PipelineName,
@@ -5354,7 +4745,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			CreatedAtInSec:          11,
 			ScheduledAtInSec:        11,
 			FinishedAtInSec:         0,
-			Conditions:              "Error",
+			Conditions:              "Unknown",
 			State:                   model.RuntimeStateUnspecified,
 			StateHistory: []*model.RuntimeStatus{
 				{
@@ -5364,7 +4755,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			},
 		},
 	}
-	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1())
+	assert.Equal(t, expectedRunDetail.ToV2(), runDetail.ToV2())
 }
 
 func TestReportWorkflowResource_ScheduledWorkflowNamespaceMismatch_Rejected(t *testing.T) {
@@ -6009,7 +5400,7 @@ func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
 	})
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Workflow[workflow-name] missing the Run ID label")
+	assert.Contains(t, err.Error(), "Workflow[hello-world-0] missing the Run ID label")
 }
 
 func TestReportWorkflowResource_RunNotFound(t *testing.T) {
@@ -6290,7 +5681,7 @@ func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *test
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:            "workflow-name",
+			Name:            "hello-world-0",
 			Namespace:       "ns1",
 			ResourceVersion: "retry-version",
 			Labels:          map[string]string{util.LabelKeyWorkflowRunId: "run-id"},
@@ -6303,7 +5694,7 @@ func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *test
 	labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
 		ctx,
 		wfClient,
-		"workflow-name",
+		"hello-world-0",
 		"terminal-version",
 		util.LabelKeyWorkflowPersistedFinalState,
 		"true",
@@ -6311,7 +5702,7 @@ func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *test
 	require.NoError(t, err)
 	assert.False(t, labelAdded)
 
-	updatedWorkflow, err := wfClient.Get(ctx, "workflow-name", v1.GetOptions{})
+	updatedWorkflow, err := wfClient.Get(ctx, "hello-world-0", v1.GetOptions{})
 	require.NoError(t, err)
 	_, hasFinalStateLabel := updatedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
 	assert.False(t, hasFinalStateLabel)
@@ -6329,7 +5720,7 @@ func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsSta
 	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.State = model.RuntimeStateRunning
-	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV1())
+	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV2())
 	runWithPluginOutput.FinishedAtInSec = 0
 	runWithPluginOutput.PluginsOutputString = pluginsOutput
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
@@ -6530,18 +5921,12 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 	}
 	manager.pluginDispatcher = dispatcher
 
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: namespace,
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Phase:      v1alpha1.WorkflowFailed,
-			FinishedAt: v1.NewTime(time.Unix(123, 0)),
-		},
-	})
+	execution, err := store.ExecClient().Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	workflow := execution.(*util.Workflow)
+	workflow.Status.Phase = v1alpha1.WorkflowFailed
+	workflow.Status.FinishedAt = v1.NewTime(time.Unix(123, 0))
+
 	syncWorkflowReportWithFakeCluster(t, store, workflow)
 
 	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow)
@@ -6587,8 +5972,8 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "mlflow-run",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: exp.UUID,
 		RunDetails: model.RunDetails{
@@ -6916,7 +6301,6 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 			},
 		},
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
 			PipelineSpecManifest: actualJob.PipelineSpec.PipelineSpecManifest,
 			PipelineName:         actualJob.PipelineSpec.PipelineName,
 		},
@@ -6924,7 +6308,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 		UpdatedAtInSec: 3,
 	}
 	expectedJob.Conditions = "STATUS_UNSPECIFIED"
-	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
+	assert.Equal(t, expectedJob.ToV2(), actualJob.ToV2())
 }
 
 func TestReportScheduledWorkflowResource_Success_withParamsV1(t *testing.T) {
@@ -6977,7 +6361,6 @@ func TestReportScheduledWorkflowResource_Success_withParamsV1(t *testing.T) {
 		},
 		PipelineSpec: model.PipelineSpec{
 			Parameters:           `[{"name":"param_v1","value":"value_v1"}]`,
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
 			PipelineSpecManifest: actualJob.PipelineSpec.PipelineSpecManifest,
 			PipelineName:         actualJob.PipelineSpec.PipelineName,
 		},
@@ -6985,7 +6368,7 @@ func TestReportScheduledWorkflowResource_Success_withParamsV1(t *testing.T) {
 		UpdatedAtInSec: 3,
 	}
 	expectedJob.Conditions = "STATUS_UNSPECIFIED"
-	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
+	assert.Equal(t, expectedJob.ToV2(), actualJob.ToV2())
 }
 
 func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.T) {
@@ -7048,7 +6431,7 @@ func TestReportScheduledWorkflowResource_Success_withRuntimeParamsV2(t *testing.
 		UpdatedAtInSec: 3,
 	}
 	expectedJob.Conditions = "STATUS_UNSPECIFIED"
-	assert.Equal(t, expectedJob.ToV1(), actualJob.ToV1())
+	assert.Equal(t, expectedJob.ToV2(), actualJob.ToV2())
 }
 
 func TestReconcileSwfCrs(t *testing.T) {
@@ -7087,10 +6470,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 	manager.CreateDefaultExperiment("")
 	// Create pipeline
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-	})
+
 	p := createPipelineV1("1")
 	pipeline, err := manager.CreatePipeline(p)
 	assert.Nil(t, err)
@@ -7100,7 +6480,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 		"1",
 		"",
 		"",
-		workflow.ToStringForStore(),
+		v2SpecHelloWorld,
 		"",
 		pipeline.Namespace,
 	)
@@ -7133,255 +6513,6 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 }
 
 const (
-	v2compatPipeline = `
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: two-step-pipeline-
-  annotations:
-    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-    pipelines.kubeflow.org/pipeline_compilation_time: '2021-07-14T06:59:20.208189'
-    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "", "name": "pipeline-root"},
-      {"default": "pipeline/two_step_pipeline", "name": "pipeline-name"}], "name":
-      "two_step_pipeline"}'
-    pipelines.kubeflow.org/v2_pipeline: "true"
-  labels:
-    pipelines.kubeflow.org/v2_pipeline: "true"
-    pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-spec:
-  entrypoint: two-step-pipeline
-  templates:
-  - name: preprocess
-    container:
-      args:
-      - sh
-      - -ec
-      - |
-        program_path=$(mktemp)
-        printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
-      - |
-        def _make_parent_dirs_and_return_path(file_path: str):
-            import os
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            return file_path
-
-        def preprocess(
-            uri, some_int, output_parameter_one,
-            output_dataset_one
-        ):
-            '''Dummy Preprocess Step.'''
-            with open(output_dataset_one, 'w') as f:
-                f.write('Output dataset')
-            with open(output_parameter_one, 'w') as f:
-                f.write("{}".format(1234))
-
-        import argparse
-        _parser = argparse.ArgumentParser(prog='Preprocess', description='Dummy Preprocess Step.')
-        _parser.add_argument("--uri", dest="uri", type=str, required=True, default=argparse.SUPPRESS)
-        _parser.add_argument("--some-int", dest="some_int", type=int, required=True, default=argparse.SUPPRESS)
-        _parser.add_argument("--output-parameter-one", dest="output_parameter_one", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
-        _parser.add_argument("--output-dataset-one", dest="output_dataset_one", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
-        _parsed_args = vars(_parser.parse_args())
-
-        _outputs = preprocess(**_parsed_args)
-      - --uri
-      - '{{$.inputs.parameters[''uri'']}}'
-      - --some-int
-      - '{{$.inputs.parameters[''some_int'']}}'
-      - --output-parameter-one
-      - '{{$.outputs.parameters[''output_parameter_one''].output_file}}'
-      - --output-dataset-one
-      - '{{$.outputs.artifacts[''output_dataset_one''].path}}'
-      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
-        --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
-        --container_image, $(KFP_V2_IMAGE), --task_name, preprocess, --pipeline_name,
-        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-root}}',
-        --, some_int=12, uri=uri-to-import, --]
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef: {fieldPath: metadata.name}
-      - name: KFP_NAMESPACE
-        valueFrom:
-          fieldRef: {fieldPath: metadata.namespace}
-      - name: WORKFLOW_ID
-        valueFrom:
-          fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
-      - name: ENABLE_CACHING
-        valueFrom:
-          fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
-      - {name: KFP_V2_IMAGE, value: 'python:3.11'}
-      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"some_int": {"type":
-          "INT"}, "uri": {"type": "STRING"}}, "inputArtifacts": {}, "outputParameters":
-          {"output_parameter_one": {"type": "INT", "path": "/tmp/outputs/output_parameter_one/data"}},
-          "outputArtifacts": {"output_dataset_one": {"schemaTitle": "system.Dataset",
-          "instanceSchema": "", "metadataPath": "/tmp/outputs/output_dataset_one/data"}}}'}
-      envFrom:
-      - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:3.11
-      volumeMounts:
-      - {mountPath: /kfp-launcher, name: kfp-launcher}
-    inputs:
-      parameters:
-      - {name: pipeline-name}
-      - {name: pipeline-root}
-    outputs:
-      parameters:
-      - name: preprocess-output_parameter_one
-        valueFrom: {path: /tmp/outputs/output_parameter_one/data}
-      artifacts:
-      - {name: preprocess-output_dataset_one, path: /tmp/outputs/output_dataset_one/data}
-      - {name: preprocess-output_parameter_one, path: /tmp/outputs/output_parameter_one/data}
-    metadata:
-      annotations:
-        pipelines.kubeflow.org/v2_component: "true"
-        pipelines.kubeflow.org/component_ref: '{}'
-        pipelines.kubeflow.org/arguments.parameters: '{"some_int": "12", "uri": "uri-to-import"}'
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/v2_component: "true"
-        pipelines.kubeflow.org/enable_caching: "true"
-    initContainers:
-    - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
-      name: kfp-launcher
-      mirrorVolumeMounts: true
-    volumes:
-    - {name: kfp-launcher}
-  - name: train-op
-    container:
-      args:
-      - sh
-      - -ec
-      - |
-        program_path=$(mktemp)
-        printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
-      - |
-        def _make_parent_dirs_and_return_path(file_path: str):
-            import os
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            return file_path
-
-        def train_op(
-            dataset,
-            model,
-            num_steps = 100
-        ):
-            '''Dummy Training Step.'''
-
-            with open(dataset, 'r') as input_file:
-                input_string = input_file.read()
-                with open(model, 'w') as output_file:
-                    for i in range(num_steps):
-                        output_file.write(
-                            "Step {}\n{}\n=====\n".format(i, input_string)
-                        )
-
-        import argparse
-        _parser = argparse.ArgumentParser(prog='Train op', description='Dummy Training Step.')
-        _parser.add_argument("--dataset", dest="dataset", type=str, required=True, default=argparse.SUPPRESS)
-        _parser.add_argument("--num-steps", dest="num_steps", type=int, required=False, default=argparse.SUPPRESS)
-        _parser.add_argument("--model", dest="model", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
-        _parsed_args = vars(_parser.parse_args())
-
-        _outputs = train_op(**_parsed_args)
-      - --dataset
-      - '{{$.inputs.artifacts[''dataset''].path}}'
-      - --num-steps
-      - '{{$.inputs.parameters[''num_steps'']}}'
-      - --model
-      - '{{$.outputs.artifacts[''model''].path}}'
-      command: [/kfp-launcher/launch, --mlmd_server_address, $(METADATA_GRPC_SERVICE_HOST),
-        --mlmd_server_port, $(METADATA_GRPC_SERVICE_PORT), --runtime_info_json, $(KFP_V2_RUNTIME_INFO),
-        --container_image, $(KFP_V2_IMAGE), --task_name, train-op, --pipeline_name,
-        '{{inputs.parameters.pipeline-name}}', --pipeline_run_id, $(WORKFLOW_ID),
-        --pipeline_task_id, $(KFP_POD_NAME), --pipeline_root, '{{inputs.parameters.pipeline-root}}',
-        --, 'num_steps={{inputs.parameters.preprocess-output_parameter_one}}', --]
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef: {fieldPath: metadata.name}
-      - name: KFP_NAMESPACE
-        valueFrom:
-          fieldRef: {fieldPath: metadata.namespace}
-      - name: WORKFLOW_ID
-        valueFrom:
-          fieldRef: {fieldPath: 'metadata.labels[''workflows.argoproj.io/workflow'']'}
-      - name: ENABLE_CACHING
-        valueFrom:
-          fieldRef: {fieldPath: 'metadata.labels[''pipelines.kubeflow.org/enable_caching'']'}
-      - {name: KFP_V2_IMAGE, value: 'python:3.11'}
-      - {name: KFP_V2_RUNTIME_INFO, value: '{"inputParameters": {"num_steps": {"type":
-          "INT"}}, "inputArtifacts": {"dataset": {"metadataPath": "/tmp/inputs/dataset/data",
-          "schemaTitle": "system.Dataset", "instanceSchema": ""}}, "outputParameters":
-          {}, "outputArtifacts": {"model": {"schemaTitle": "system.Model", "instanceSchema":
-          "", "metadataPath": "/tmp/outputs/model/data"}}}'}
-      envFrom:
-      - configMapRef: {name: metadata-grpc-configmap, optional: true}
-      image: python:3.11
-      volumeMounts:
-      - {mountPath: /kfp-launcher, name: kfp-launcher}
-    inputs:
-      parameters:
-      - {name: pipeline-name}
-      - {name: pipeline-root}
-      - {name: preprocess-output_parameter_one}
-      artifacts:
-      - {name: preprocess-output_dataset_one, path: /tmp/inputs/dataset/data}
-    outputs:
-      artifacts:
-      - {name: train-op-model, path: /tmp/outputs/model/data}
-    metadata:
-      annotations:
-        pipelines.kubeflow.org/v2_component: "true"
-        pipelines.kubeflow.org/component_ref: '{}'
-        pipelines.kubeflow.org/arguments.parameters: '{"num_steps": "{{inputs.parameters.preprocess-output_parameter_one}}"}'
-      labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.6.4
-        pipelines.kubeflow.org/pipeline-sdk-type: kfp
-        pipelines.kubeflow.org/v2_component: "true"
-        pipelines.kubeflow.org/enable_caching: "true"
-    initContainers:
-    - command: [/bin/mount_launcher.sh]
-      image: gcr.io/ml-pipeline/kfp-launcher:1.6.4
-      name: kfp-launcher
-      mirrorVolumeMounts: true
-    volumes:
-    - {name: kfp-launcher}
-  - name: two-step-pipeline
-    inputs:
-      parameters:
-      - {name: pipeline-name}
-      - {name: pipeline-root}
-    dag:
-      tasks:
-      - name: preprocess
-        template: preprocess
-        arguments:
-          parameters:
-          - {name: pipeline-name, value: '{{inputs.parameters.pipeline-name}}'}
-          - {name: pipeline-root, value: '{{inputs.parameters.pipeline-root}}'}
-      - name: train-op
-        template: train-op
-        dependencies: [preprocess]
-        arguments:
-          parameters:
-          - {name: pipeline-name, value: '{{inputs.parameters.pipeline-name}}'}
-          - {name: pipeline-root, value: '{{inputs.parameters.pipeline-root}}'}
-          - {name: preprocess-output_parameter_one, value: '{{tasks.preprocess.outputs.parameters.preprocess-output_parameter_one}}'}
-          artifacts:
-          - {name: preprocess-output_dataset_one, from: '{{tasks.preprocess.outputs.artifacts.preprocess-output_dataset_one}}'}
-  arguments:
-    parameters:
-    - {name: pipeline-root, value: ''}
-    - {name: pipeline-name, value: two-step-pipeline}
-  serviceAccountName: pipeline-runner
-`
-
 	complexPipeline = `
 # Copyright 2018 The Kubeflow Authors
 #
@@ -7836,6 +6967,7 @@ root:
     parameters:
       text:
         parameterType: STRING
+        defaultValue: world
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
@@ -8256,7 +7388,7 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			State:                   model.RuntimeStatePending,
-			WorkflowRuntimeManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			WorkflowRuntimeManifest: model.LargeText(v2SpecHelloWorld),
 		},
 	}
 	_, err := manager.runStore.CreateRun(preExistingRun)
@@ -8731,8 +7863,8 @@ func TestCreateRun_ServiceAccountSAR_MultiUserUnauthorized(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "custom-sa",
@@ -8753,8 +7885,8 @@ func TestCreateRun_ServiceAccountSAR_MultiUserAuthorized(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "custom-sa",
@@ -8773,8 +7905,8 @@ func TestCreateRun_ServiceAccountSAR_SingleUserSkipped(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "custom-sa",
@@ -8793,8 +7925,8 @@ func TestCreateRun_ServiceAccountSAR_DefaultSASkipped(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: experiment.UUID,
 	}
@@ -8815,7 +7947,7 @@ func TestCreateJob_ServiceAccountSAR_MultiUserUnauthorized(t *testing.T) {
 		DisplayName: "j1",
 		Enabled:     true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "custom-sa",
@@ -8837,7 +7969,7 @@ func TestCreateJob_ServiceAccountSAR_MultiUserAuthorized(t *testing.T) {
 		DisplayName: "j1",
 		Enabled:     true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "custom-sa",
@@ -8857,7 +7989,7 @@ func TestCreateJob_ServiceAccountSAR_SingleUserSkipped(t *testing.T) {
 		DisplayName: "j1",
 		Enabled:     true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "custom-sa",
@@ -8877,7 +8009,7 @@ func TestCreateJob_ServiceAccountSAR_DefaultSASkipped(t *testing.T) {
 		DisplayName: "j1",
 		Enabled:     true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 		ExperimentId: experiment.UUID,
 	}
@@ -8949,8 +8081,8 @@ func TestCreateRun_ServiceAccountSAR_ConfusedDeputy_PrivilegedSA(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "ds-pipeline-dspa",
@@ -8970,7 +8102,7 @@ func TestCreateJob_ServiceAccountSAR_ConfusedDeputy_PrivilegedSA(t *testing.T) {
 		DisplayName: "j1",
 		Enabled:     true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "ds-pipeline-dspa",
@@ -9014,8 +8146,8 @@ func TestCreateRun_ServiceAccountSAR_CorrectResourceAttributes(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "my-special-sa",
@@ -9147,7 +8279,7 @@ func TestCreateJob_ServiceAccountSAR_CorrectResourceAttributes(t *testing.T) {
 		DisplayName: "j1",
 		Enabled:     true,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "my-special-sa",
@@ -9172,8 +8304,8 @@ func TestCreateRun_ServiceAccountSAR_DefaultSA_NotCalled(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: experiment.UUID,
 	}
@@ -9235,8 +8367,8 @@ func TestCreateRun_ServiceAccountSAR_Unauthorized_NoWorkflowCreated(t *testing.T
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId:   experiment.UUID,
 		ServiceAccount: "custom-sa",
@@ -9246,9 +8378,146 @@ func TestCreateRun_ServiceAccountSAR_Unauthorized_NoWorkflowCreated(t *testing.T
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created when SA authorization fails")
 }
 
+func pipelineSpecWithTemplateServiceAccount(t *testing.T, serviceAccount string) model.PipelineSpec {
+	t.Helper()
+	viper.Set(common.CompiledPipelineSpecPatch, fmt.Sprintf(`{"templateDefaults":{"serviceAccountName":%q}}`, serviceAccount))
+	t.Cleanup(func() { viper.Set(common.CompiledPipelineSpecPatch, "") })
+	return model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}}
+}
+
+func TestCreateRun_ServiceAccountSAR_TemplateSA_Unauthorized_NoWorkflowCreated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+	defer store.Close()
+
+	_, err := manager.CreateRun(multiUserContext(), &model.Run{
+		DisplayName:  "run1",
+		PipelineSpec: pipelineSpecWithTemplateServiceAccount(t, "nested-sa"),
+		ExperimentId: experiment.UUID,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created when a template SA is unauthorized")
+}
+
+func TestCreateRun_ServiceAccountSAR_PluginMutationUnauthorized_CleansUpPlugins(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "plugin-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+	defer store.Close()
+	dispatcher := &serviceAccountMutatingDispatcher{
+		output: apiservermlflow.SuccessfulPluginOutput("exp-1", "experiment", "parent-run-1", "https://mlflow.example/runs/parent-run-1"),
+	}
+	manager.pluginDispatcher = dispatcher
+
+	run := &model.Run{
+		DisplayName:  "run1",
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
+		ExperimentId: experiment.UUID,
+	}
+	_, err := manager.CreateRun(multiUserContext(), run)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created after an unauthorized plugin mutation")
+	require.NotEmpty(t, run.UUID)
+	_, err = manager.GetRun(run.UUID)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "a rejected run should not be persisted")
+	require.Len(t, dispatcher.endedRuns, 1, "plugin resources must be cleaned up after post-hook authorization fails")
+	assert.Equal(t, run.UUID, dispatcher.endedRuns[0].RunID)
+	assert.True(t, proto.Equal(dispatcher.output, dispatcher.endedRuns[0].PluginsOutput[apiservermlflow.PluginName]), "cleanup must receive the output identifying the plugin resources")
+}
+
+func TestCreateJob_ServiceAccountSAR_TemplateSA_Unauthorized_NoScheduledWorkflowCreated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "nested-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	tests := []struct {
+		name, mode string
+	}{
+		{name: "pinned workflow", mode: "pinned"},
+		{name: "pinned workflow with plugins", mode: "plugins"},
+		{name: "latest pipeline version", mode: "latest"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+			defer store.Close()
+			if tt.mode == "plugins" {
+				manager.pluginDispatcher = &countingTerminalReportDispatcher{}
+			}
+			pipelineSpec := pipelineSpecWithTemplateServiceAccount(t, "nested-sa")
+			if tt.mode == "latest" {
+				pipeline, err := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
+				require.NoError(t, err)
+				_, err = manager.CreatePipelineVersion(createPipelineVersion(
+					pipeline.UUID, "p1/v1", "v1", "", string(pipelineSpec.PipelineSpecManifest), "", "ns1",
+				))
+				require.NoError(t, err)
+				pipelineSpec = model.PipelineSpec{PipelineId: pipeline.UUID}
+			}
+
+			_, err := manager.CreateJob(multiUserContext(), &model.Job{
+				DisplayName:  "j1",
+				Enabled:      true,
+				PipelineSpec: pipelineSpec,
+				ExperimentId: experiment.UUID,
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "Unauthorized")
+			_, getErr := store.SwfClient().ScheduledWorkflow("ns1").Get(context.Background(), "job-", v1.GetOptions{})
+			assert.True(t, apierrors.IsNotFound(getErr), "no ScheduledWorkflow CRD should be created when a template SA is unauthorized")
+		})
+	}
+}
+
+func TestCreateRun_ParameterizedPodSpecPatch_NoWorkflowCreated(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	viper.Set(common.CompiledPipelineSpecPatch, `{"podSpecPatch":"{\"serviceAccountName\":\"{{workflow.parameters.param1}}\"}"}`)
+	t.Cleanup(func() { viper.Set(common.CompiledPipelineSpecPatch, "") })
+	_, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName:  "run1",
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
+		ExperimentId: experiment.UUID,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "podSpecPatch contains a template expression")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created when a podSpecPatch cannot be authorized")
+}
+
+func TestCreateRun_V2ExternalTemplateReference_NoWorkflowCreated(t *testing.T) {
+	viper.Set(common.CompiledPipelineSpecPatch, `{"workflowTemplateRef":{"name":"external"}}`)
+	defer viper.Set(common.CompiledPipelineSpecPatch, "")
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	_, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "external workflow template references")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
+}
+
 // --- SA embedded in workflow spec ---
 
-func TestCreateRun_ServiceAccountSAR_EmbeddedSA_Unauthorized(t *testing.T) {
+func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -9256,7 +8525,7 @@ func TestCreateRun_ServiceAccountSAR_EmbeddedSA_Unauthorized(t *testing.T) {
 
 	workflowWithEmbeddedSA := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
+		ObjectMeta: v1.ObjectMeta{Name: "hello-world-0", UID: "workflow1", Namespace: "ns1"},
 		Spec: v1alpha1.WorkflowSpec{
 			Entrypoint:         "testy",
 			ServiceAccountName: "evil-sa",
@@ -9276,12 +8545,13 @@ func TestCreateRun_ServiceAccountSAR_EmbeddedSA_Unauthorized(t *testing.T) {
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(workflowWithEmbeddedSA.ToStringForStore()),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineSpecManifest: model.LargeText(workflowWithEmbeddedSA.ToStringForStore()),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 		},
 		ExperimentId: experiment.UUID,
 	}
 	_, err := manager.CreateRun(multiUserContext(), apiRun)
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "not allowed")
+	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }

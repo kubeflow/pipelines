@@ -27,7 +27,7 @@ describe('PipelineDetailsV2', () => {
   let testV2Pipeline: V2beta1Pipeline = {};
   let testV2PipelineVersion: V2beta1PipelineVersion = {};
   let newTestV2PipelineVersion: V2beta1PipelineVersion = {};
-  let testV1PipelineVersion: V2beta1PipelineVersion = {};
+  let thirdPipelineVersion: V2beta1PipelineVersion = {};
 
   testV2Pipeline = {
     created_at: new Date(2018, 8, 5, 4, 3, 2),
@@ -48,10 +48,9 @@ describe('PipelineDetailsV2', () => {
     pipeline_version_id: 'new-test-pipeline-version-v2-id',
   };
 
-  // This is v1 pipeline, but in v2 form (response from v2 listPipelineVersions())
-  testV1PipelineVersion = {
-    display_name: 'test-pipeline-version-v1',
-    pipeline_version_id: 'test-pipeline-version-v1-id',
+  thirdPipelineVersion = {
+    display_name: 'test-pipeline-version-third',
+    pipeline_version_id: 'test-pipeline-version-third-id',
     pipeline_spec: {
       apiVersion: 'argoproj.io/v1alpha1',
       kind: 'Workflow',
@@ -113,7 +112,7 @@ describe('PipelineDetailsV2', () => {
           }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
-          versions={[testV2PipelineVersion, newTestV2PipelineVersion, testV1PipelineVersion]}
+          versions={[testV2PipelineVersion, newTestV2PipelineVersion, thirdPipelineVersion]}
           handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
@@ -134,7 +133,7 @@ describe('PipelineDetailsV2', () => {
           }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
-          versions={[testV2PipelineVersion, newTestV2PipelineVersion, testV1PipelineVersion]}
+          versions={[testV2PipelineVersion, newTestV2PipelineVersion, thirdPipelineVersion]}
           handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
@@ -150,7 +149,7 @@ describe('PipelineDetailsV2', () => {
     screen.getByText('new-test-pipeline-version-v2'); // Selected version change to another version
   });
 
-  it('shows updated selected version in summary card after switching to v1 version', async () => {
+  it('shows updated selected version in summary card after switching to third version', async () => {
     render(
       <CommonTestWrapper>
         <PipelineDetailsV2
@@ -160,7 +159,7 @@ describe('PipelineDetailsV2', () => {
           }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
-          versions={[testV2PipelineVersion, newTestV2PipelineVersion, testV1PipelineVersion]}
+          versions={[testV2PipelineVersion, newTestV2PipelineVersion, thirdPipelineVersion]}
           handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
@@ -171,9 +170,9 @@ describe('PipelineDetailsV2', () => {
     await userEvent.click(screen.getByText('Show Summary'));
     const selectedVersion = screen.getByText('test-pipeline-version-v2');
     await userEvent.click(selectedVersion); // Open dropdown list
-    const v1Version = screen.getByText('test-pipeline-version-v1');
-    await userEvent.click(v1Version); // Selected v1 version
-    screen.getByText('test-pipeline-version-v1'); // Selected version change to v1 version
+    const thirdVersion = screen.getByText('test-pipeline-version-third');
+    await userEvent.click(thirdVersion); // Selected third version
+    screen.getByText('test-pipeline-version-third'); // Selected version change to third version
   });
 
   it('Render Execution node', async () => {

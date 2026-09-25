@@ -27,8 +27,6 @@ fi
 
 echo "This release script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
 kustomization_yamls_with_images=(
-  "base/cache-deployer/kustomization.yaml"
-  "base/cache/kustomization.yaml"
   "base/pipeline/kustomization.yaml"
   "env/gcp/inverse-proxy/kustomization.yaml"
 )

@@ -17,6 +17,7 @@ const URL = require('url').URL;
 const {
   buildTableRowSelector,
   clearDefaultInput,
+  isSelectorDisplayed,
   saveDebugScreenshot,
   selectPipelineForRun,
   waitForCondition,
@@ -186,7 +187,22 @@ describe('literal input parameter integration', () => {
     await $('#runsBtn').click();
     await waitForHashPrefix('#/runs', { timeout: uiTimeout });
 
-    await $('#createNewRunBtn').waitForDisplayed({ timeout: uiTimeout });
+    // The URL changes before React replaces the previous page's same-ID button.
+    await waitForCondition(
+      async () => {
+        const pageTitle = await $('[data-testid="page-title"]');
+        return (
+          new URL(await browser.getUrl()).hash === '#/runs' &&
+          (await pageTitle.isExisting()) &&
+          (await pageTitle.getText()) === 'Runs' &&
+          (await isSelectorDisplayed('#createNewRunBtn'))
+        );
+      },
+      {
+        timeout: uiTimeout,
+        timeoutMsg: 'expected the Runs page and Create run button to be ready',
+      },
+    );
     await $('#createNewRunBtn').click();
     await waitForHashPrefix('#/runs/new', { timeout: uiTimeout });
 
@@ -194,13 +210,7 @@ describe('literal input parameter integration', () => {
   });
 
   it('renders the literal parameter as a dropdown and requires a selection before start', async () => {
-    const runFormVariant = await waitForRunPageReady({ timeout: runStartTimeout });
-    assert.equal(
-      runFormVariant.name,
-      'v2',
-      'compiled literal-input pipeline should open the v2 run form',
-    );
-    const selectors = runFormVariant.selectors;
+    const selectors = await waitForRunPageReady({ timeout: runStartTimeout });
 
     await $(selectors.runName).click();
     await clearDefaultInput();

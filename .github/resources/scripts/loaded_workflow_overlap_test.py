@@ -30,8 +30,6 @@ WORKFLOW_JOBS = {
         'end-to-end-critical-scenario-multi-user-tests',
         'end-to-end-critical-mlflow-tests',
     ),
-    '.github/workflows/integration-tests-v1.yml':
-        ('initialization-integration-tests-v1',),
     '.github/workflows/kfp-kubernetes-native-migration-tests.yaml':
         ('kfp-kubernetes-native-migration-tests',),
     '.github/workflows/kfp-sdk-client-tests.yml': ('sdk-client-tests',),

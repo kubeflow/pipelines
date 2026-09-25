@@ -17,8 +17,6 @@ import { getArtifactStoreOrigin, parseArtifactStoreEndpoint } from './minio-help
 import { loadJSON } from './utils.js';
 import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts.js';
 export const BASEPATH = '/pipeline';
-export const apiVersion1 = 'v1beta1';
-export const apiVersion1Prefix = `apis/${apiVersion1}`;
 export const apiVersion2 = 'v2beta1';
 export const apiVersion2Prefix = `apis/${apiVersion2}`;
 
@@ -342,7 +340,6 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       schema: ML_PIPELINE_SERVICE_SCHEME,
     },
     server: {
-      apiVersion1Prefix,
       apiVersion2Prefix,
       basePath: BASEPATH,
       deployment:
@@ -450,7 +447,6 @@ export interface ServerConfigs {
   basePath: string;
   port: string | number;
   staticDir: string;
-  apiVersion1Prefix: string;
   apiVersion2Prefix: string;
   deployment: Deployments;
   hideSideNav: boolean;

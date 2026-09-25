@@ -79,6 +79,23 @@ Single-step commands do not update the checkpoint unless `--done` is passed.
 `update-version-tags` cuts `<version>-update-version-tags` from the release branch
 before committing version changes. When SDK release steps are enabled, this same PR also updates
 SDK package versions, requirements, docs versions, and `sdk/RELEASE.md`.
+Branches with `uv.lock` require uv: release updates synchronize the four package
+manifests, regenerate the lockfile and requirements exports, and build with
+`uv build`. All four Python distributions follow the SDK release version,
+independently of the backend `VERSION`. The server API generator reads the SDK
+version and runs before locking or building the workspace, including for
+SDK-only releases. Older release branches retain the pip-compile build path.
+
+Requirements exports retain editable workspace packages and pinned dependencies,
+but omit hashes because pip cannot hash editable sources. Consume these files
+with `pip install -r <export>` from the repository root. The uv lockfile retains
+dependency hashes; CI checks both export freshness and actual pip resolution.
+
+Maintenance releases continue to dispatch the publishing workflow from their
+release branch. The current `publish-packages.yml` also accepts pre-uv tags:
+tool setup is independent of the selected checkout, and package builds use that
+tag's Makefiles or a setuptools-compatible source-path build. Use `dry_run=true`
+to build and validate distributions without uploading them to PyPI.
 
 If you complete a step outside `kfpr` (for example, manually creating an already-existing
 release branch), mark that step done before resuming:

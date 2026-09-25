@@ -70,6 +70,12 @@ def set_temporary_task_root(task_root: str):
 
 class TestGetUri(unittest.TestCase):
 
+    def setUp(self):
+        artifact_types.CONTAINER_TASK_ROOT = None
+
+    def tearDown(self):
+        artifact_types.CONTAINER_TASK_ROOT = None
+
     def test_raise_if_no_env_var(self):
 
         with self.assertRaisesRegex(

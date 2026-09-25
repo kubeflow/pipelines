@@ -103,7 +103,7 @@ class PipelineTask:
 
     **Note:** ``PipelineTask`` should not be constructed by pipeline authors directly, but instead obtained via an instantiated component (see example).
 
-    Replaces ``ContainerOp`` from ``kfp`` v1. Holds operations available on a task object, such as
+    Holds operations available on a task object, such as
     ``.after()``, ``.set_memory_limit()``, ``.enable_caching()``, etc.
 
     Args:
@@ -531,30 +531,27 @@ class PipelineTask:
         return self.set_accelerator_limit(gpu)
 
     def _validate_memory_request_limit(self, memory: str) -> str:
-        """Validates memory request/limit string and converts to its numeric
-        string value.
+        """Validates a memory request/limit string.
 
         Args:
-            memory: Memory requests or limits. This string should be a number or
-               a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
-               "Gi", "M", "Mi", "K", or "Ki".
+            memory: Memory requests or limits, as a Kubernetes quantity.
 
         Raises:
             ValueError if the memory request/limit string value is invalid.
 
         Returns:
-            The numeric string value of the memory request/limit.
+            The memory request/limit in the form Kubernetes accepts.
         """
         if isinstance(memory, pipeline_channel.PipelineChannel):
-            memory = str(memory)
-        else:
-            if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                        memory) is None:
-                raise ValueError(
-                    'Invalid memory string. Should be a number or a number '
-                    'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
-                    '"Gi", "M", "Mi", "K", "Ki".')
-        return memory
+            return str(memory)
+
+        normalized = utils.normalize_resource_quantity(memory)
+        if normalized is None:
+            raise ValueError(
+                f'Invalid memory string {memory!r}. Should be a non-negative '
+                'Kubernetes quantity, such as "512Mi", "1.5Gi", "2G" or the '
+                'plain byte count "1000".')
+        return normalized
 
     @warn_if_final()
     def set_memory_request(
@@ -564,9 +561,10 @@ class PipelineTask:
         """Sets memory request (minimum) for the task.
 
         Args:
-            memory: The minimum memory requests required. This string should be
-                a number or a number followed by one of "E", "Ei", "P", "Pi",
-                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            memory: The minimum memory requests required, as a Kubernetes
+                quantity such as ``'512Mi'``, ``'1.5Gi'`` or ``'2G'``. For more
+                information, see `Resource units in Kubernetes
+                <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes>`_.
 
         Returns:
             Self return to allow chained setting calls.
@@ -591,9 +589,10 @@ class PipelineTask:
         """Sets memory limit (maximum) for the task.
 
         Args:
-            memory: The maximum memory requests allowed. This string should be
-                a number or a number followed by one of "E", "Ei", "P", "Pi",
-                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            memory: The maximum memory allowed, as a Kubernetes quantity such
+                as ``'512Mi'``, ``'1.5Gi'`` or ``'2G'``. For more information,
+                see `Resource units in Kubernetes
+                <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes>`_.
 
         Returns:
             Self return to allow chained setting calls.
@@ -610,12 +609,15 @@ class PipelineTask:
 
         return self
 
+    _VALID_RETRY_POLICIES = frozenset(structures._RETRY_POLICY_MAP)
+
     @block_if_final()
     def set_retry(self,
                   num_retries: int,
                   backoff_duration: Optional[str] = None,
                   backoff_factor: Optional[float] = None,
-                  backoff_max_duration: Optional[str] = None) -> 'PipelineTask':
+                  backoff_max_duration: Optional[str] = None,
+                  policy: Optional[str] = None) -> 'PipelineTask':
         """Sets task retry parameters.
 
         Args:
@@ -623,15 +625,32 @@ class PipelineTask:
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
             backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
             backoff_max_duration: Maximum duration during which the task will be retried. Defaults to ``'3600s'``.
+            policy: Controls which failure types trigger a retry. Only supported
+                when using Argo Workflows as the pipeline execution engine. One of
+                ``'Always'``, ``'OnFailure'``, ``'OnError'``, or
+                ``'OnTransientError'``. ``'OnFailure'`` retries container exits,
+                including SIGTERM (exit code 143); ``'OnError'`` retries pods that
+                report no exit code, such as deletion or node loss;
+                ``'OnTransientError'`` retries either when the failure message
+                matches the controller's transient-error pattern; ``'Always'``
+                retries both.
+                Defaults to ``None``, which omits the policy so the
+                deployment's Argo configuration applies; KFP's bundled
+                manifests set ``'OnError'``.
 
         Returns:
             Self return to allow chained setting calls.
         """
+        if policy is not None and policy not in self._VALID_RETRY_POLICIES:
+            raise ValueError(
+                f'Invalid retry policy {policy!r}. '
+                f'Must be one of: {sorted(self._VALID_RETRY_POLICIES)}')
         self._task_spec.retry_policy = structures.RetryPolicy(
             max_retry_count=num_retries,
             backoff_duration=backoff_duration,
             backoff_factor=backoff_factor,
             backoff_max_duration=backoff_max_duration,
+            policy=policy,
         )
         return self
 
@@ -895,17 +914,14 @@ class PipelineTask:
         return self
 
 
-# TODO: this function should ideally be in the function kfp.dsl.structures.check_placeholder_references_valid_io_name, which does something similar, but this causes the exception to be raised at component definition time, rather than compile time. This would break tests that load v1 component YAML, even though that YAML is invalid.
 def check_primitive_placeholder_is_used_for_correct_io_type(
     inputs_dict: Dict[str, structures.InputSpec],
     outputs_dict: Dict[str, structures.OutputSpec],
     arg: Union[placeholders.CommandLineElement, Any],
 ):
     """Validates input/output placeholders refer to an input/output with an
-    appropriate type for the placeholder. This should only apply to components
-    loaded from v1 component YAML, where the YAML is authored directly. For v2
-    YAML, this is encapsulated in the DSL logic which does not permit writing
-    incorrect placeholders.
+    appropriate type for the placeholder. Validates structured placeholders in
+    container components before their conversion to IR strings.
 
     Args:
         inputs_dict: The existing input names.

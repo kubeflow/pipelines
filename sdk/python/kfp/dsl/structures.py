@@ -18,7 +18,7 @@ import collections
 import dataclasses
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 import uuid
 
 from google.protobuf import json_format
@@ -26,9 +26,7 @@ import kfp
 from kfp.dsl import container_component_artifact_channel as artifact_channel
 from kfp.dsl import placeholders
 from kfp.dsl import utils
-from kfp.dsl import v1_structures
 from kfp.dsl.component_task_config import TaskConfigPassthrough
-from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -46,7 +44,7 @@ class InputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Input description.
     """
-    type: Union[str, dict]
+    type: str
     default: Optional[Any] = None
     optional: bool = False
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
@@ -126,7 +124,6 @@ class InputSpec:
 
         This allows us to perform fewer checks downstream.
         """
-        # TODO: add transformation logic so that we don't have to transform inputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
 
@@ -149,7 +146,7 @@ class OutputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Output description.
     """
-    type: Union[str, dict]
+    type: str
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
     description: Optional[str] = None
@@ -214,7 +211,6 @@ class OutputSpec:
 
         This allows us to perform fewer checks downstream.
         """
-        # TODO: add transformation logic so that we don't have to transform outputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
 
@@ -356,6 +352,14 @@ class ContainerSpecImplementation:
             resources=None)  # can only be set on tasks
 
 
+_RETRY_POLICY_MAP = {
+    'Always': 'POLICY_ALWAYS',
+    'OnFailure': 'POLICY_ON_FAILURE',
+    'OnError': 'POLICY_ON_ERROR',
+    'OnTransientError': 'POLICY_ON_TRANSIENT_ERROR',
+}
+
+
 @dataclasses.dataclass
 class RetryPolicy:
     """The retry policy of a container execution.
@@ -365,11 +369,23 @@ class RetryPolicy:
         backoff_duration (int): The the number of seconds to wait before triggering a retry.
         backoff_factor (float): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on.
         backoff_max_duration (int): The maximum duration during which the task will be retried.
+        policy (str): Controls which failure types trigger a retry. Only
+            supported when using Argo Workflows as the pipeline execution
+            engine. One of ``'Always'``, ``'OnFailure'``, ``'OnError'``, or
+            ``'OnTransientError'``. ``'OnFailure'`` retries container exits,
+            including SIGTERM (exit code 143); ``'OnError'`` retries pods that
+            report no exit code, such as deletion or node loss;
+            ``'OnTransientError'`` retries either when the failure message
+            matches the controller's transient-error pattern; ``'Always'``
+            retries both. Defaults to ``None``, which omits the policy so the
+            deployment's Argo configuration applies; KFP's bundled manifests
+            set ``'OnError'``.
     """
     max_retry_count: Optional[int] = None
     backoff_duration: Optional[str] = None
     backoff_factor: Optional[float] = None
     backoff_max_duration: Optional[str] = None
+    policy: Optional[str] = None
 
     def to_proto(self) -> pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy:
         # include defaults so that IR is more reflective of runtime behavior
@@ -381,13 +397,19 @@ class RetryPolicy:
         backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
         backoff_max_duration_seconds = f'{convert_duration_to_seconds(backoff_max_duration)}s'
 
+        retry_policy_dict = {
+            'max_retry_count': max_retry_count,
+            'backoff_duration': backoff_duration_seconds,
+            'backoff_factor': backoff_factor,
+            'backoff_max_duration': backoff_max_duration_seconds,
+        }
+        if self.policy:
+            if self.policy not in _RETRY_POLICY_MAP:
+                raise ValueError(f'Invalid retry policy {self.policy!r}. '
+                                 f'Must be one of: {sorted(_RETRY_POLICY_MAP)}')
+            retry_policy_dict['policy'] = _RETRY_POLICY_MAP[self.policy]
         return json_format.ParseDict(
-            {
-                'max_retry_count': max_retry_count,
-                'backoff_duration': backoff_duration_seconds,
-                'backoff_factor': backoff_factor,
-                'backoff_max_duration': backoff_max_duration_seconds,
-            }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
+            retry_policy_dict, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
 
 
 @dataclasses.dataclass
@@ -610,167 +632,6 @@ class ComponentSpec:
                                                        valid_outputs, arg)
 
     @classmethod
-    def from_v1_component_spec(
-            cls,
-            v1_component_spec: v1_structures.ComponentSpec) -> 'ComponentSpec':
-        """Converts V1 ComponentSpec to V2 ComponentSpec.
-
-        Args:
-            v1_component_spec: The V1 ComponentSpec.
-
-        Returns:
-            Component spec in the form of V2 ComponentSpec.
-
-        Raises:
-            ValueError: If implementation is not found.
-            TypeError: If any argument is neither a str nor Dict.
-        """
-        component_dict = v1_component_spec.to_dict()
-        if component_dict.get('implementation') is None:
-            raise ValueError('Implementation field not found')
-
-        if 'implementation' not in component_dict or 'container' not in component_dict[
-                'implementation']:
-            raise NotImplementedError('Container implementation not found.')
-
-        container = component_dict['implementation']['container']
-        command = [
-            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                command, component_dict=component_dict)
-            for command in container.get('command', [])
-        ]
-        args = [
-            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                command, component_dict=component_dict)
-            for command in container.get('args', [])
-        ]
-        env = {
-            key:
-                placeholders
-                .maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                    command, component_dict=component_dict)
-            for key, command in container.get('env', {}).items()
-        }
-        container_spec = ContainerSpecImplementation.from_container_dict({
-            'image': container['image'],
-            'command': command,
-            'args': args,
-            'env': env
-        })
-
-        inputs = {}
-        for spec in component_dict.get('inputs', []):
-            type_ = spec.get('type')
-            optional = spec.get('optional', False) or 'default' in spec
-            default = spec.get('default')
-            default = type_utils.deserialize_v1_component_yaml_default(
-                type_=type_, default=default)
-
-            if isinstance(type_, str):
-                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
-
-            if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
-                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=type_, optional=True)
-                continue
-
-            elif isinstance(type_, str) and type_.lower(
-            ) in type_utils.PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
-                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
-                    type_enum)
-                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
-                    ir_parameter_type_name]
-                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=in_memory_parameter_type_name,
-                    default=default,
-                    optional=optional,
-                )
-                continue
-
-            elif isinstance(type_, str) and re.match(
-                    type_utils._GOOGLE_TYPES_PATTERN, type_):
-                schema_title = type_
-                schema_version = type_utils._GOOGLE_TYPES_VERSION
-
-            elif isinstance(type_, str) and type_.lower(
-            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
-                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
-                    type_.lower()]
-                schema_title = artifact_class.schema_title
-                schema_version = artifact_class.schema_version
-
-            elif type_ is None or isinstance(type_, dict) or type_.lower(
-            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
-                schema_title = artifact_types.Artifact.schema_title
-                schema_version = artifact_types.Artifact.schema_version
-
-            else:
-                raise ValueError(f'Unknown input: {type_}')
-
-            if optional:
-                # handles optional artifacts with no default value
-                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=type_utils.create_bundled_artifact_type(
-                        schema_title, schema_version),
-                    default=default,
-                    optional=optional,
-                )
-            else:
-                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=type_utils.create_bundled_artifact_type(
-                        schema_title, schema_version))
-
-        outputs = {}
-        for spec in component_dict.get('outputs', []):
-            type_ = spec.get('type')
-            if isinstance(type_, str):
-                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
-
-            if isinstance(type_, str) and type_.lower(
-            ) in type_utils.PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
-                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
-                    type_enum)
-                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
-                    ir_parameter_type_name]
-                outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
-                    type=in_memory_parameter_type_name)
-                continue
-
-            elif isinstance(type_, str) and re.match(
-                    type_utils._GOOGLE_TYPES_PATTERN, type_):
-                schema_title = type_
-                schema_version = type_utils._GOOGLE_TYPES_VERSION
-
-            elif isinstance(type_, str) and type_.lower(
-            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
-                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
-                    type_.lower()]
-                schema_title = artifact_class.schema_title
-                schema_version = artifact_class.schema_version
-
-            elif type_ is None or isinstance(type_, dict) or type_.lower(
-            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
-                schema_title = artifact_types.Artifact.schema_title
-                schema_version = artifact_types.Artifact.schema_version
-
-            else:
-                raise ValueError(f'Unknown output: {type_}')
-
-            outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
-                type=type_utils.create_bundled_artifact_type(
-                    schema_title, schema_version))
-
-        return ComponentSpec(
-            name=component_dict.get('name', 'name'),
-            description=component_dict.get('description'),
-            implementation=Implementation(container=container_spec),
-            inputs=inputs,
-            outputs=outputs,
-        )
-
-    @classmethod
     def from_ir_dicts(
         cls,
         pipeline_spec_dict: dict,
@@ -845,7 +706,7 @@ class ComponentSpec:
 
     @classmethod
     def from_yaml_documents(cls, component_yaml: str) -> 'ComponentSpec':
-        """Loads V1 or V2 component YAML into a ComponentSpec.
+        """Loads PipelineSpec IR YAML into a ComponentSpec.
 
         Args:
             component_yaml: PipelineSpec and optionally PlatformSpec YAML documents as a single string.
@@ -883,18 +744,20 @@ class ComponentSpec:
         pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
             component_yaml)
 
-        is_v1 = 'implementation' in set(pipeline_spec_dict.keys())
-        if is_v1:
-            v1_component = _load_component_spec_from_component_text(
-                component_yaml)
-            return cls.from_v1_component_spec(v1_component)
-        else:
-            component_spec = ComponentSpec.from_ir_dicts(
-                pipeline_spec_dict, platform_spec_dict)
-            if not component_spec.description:
-                component_spec.description = extract_description(
-                    component_yaml=component_yaml)
-            return component_spec
+        if ('implementation' in pipeline_spec_dict or
+                pipeline_spec_dict.get('kind') == 'Workflow'):
+            raise ValueError(
+                'Component YAML must use the PipelineSpec IR format. '
+                'Legacy component definitions and Argo Workflows are not supported. '
+                'Rewrite the component with the v2 SDK, or convert legacy '
+                'container YAML to IR with an older KFP v2 SDK before upgrading.'
+            )
+        component_spec = cls.from_ir_dicts(pipeline_spec_dict,
+                                           platform_spec_dict)
+        if not component_spec.description:
+            component_spec.description = extract_description(
+                component_yaml=component_yaml)
+        return component_spec
 
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into IR YAML file.
@@ -1087,15 +950,3 @@ def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
             f'Expected one or two YAML documents in the IR YAML file. Got: {num_docs}.'
         )
     return pipeline_spec_dict, platform_spec_dict
-
-
-def _load_component_spec_from_component_text(
-        text) -> v1_structures.ComponentSpec:
-    component_dict = yaml.safe_load(text)
-    component_spec = v1_structures.ComponentSpec.from_dict(component_dict)
-
-    # Calculating hash digest for the component
-    data = text if isinstance(text, bytes) else text.encode('utf-8')
-    data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
-
-    return component_spec

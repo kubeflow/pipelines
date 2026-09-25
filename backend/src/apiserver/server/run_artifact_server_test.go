@@ -27,7 +27,6 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/gorilla/mux"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -48,7 +47,7 @@ func createWorkflowWithArtifact(runUUID, nodeID, artifactName, artifactPath stri
 			Kind:       "Workflow",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:              "workflow-name",
+			Name:              "test-pipeline-0",
 			Namespace:         "ns1",
 			UID:               "workflow1",
 			Labels:            map[string]string{util.LabelKeyWorkflowRunId: runUUID},
@@ -56,7 +55,7 @@ func createWorkflowWithArtifact(runUUID, nodeID, artifactName, artifactPath stri
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "Workflow",
-				Name:       "workflow-name",
+				Name:       "test-pipeline-0",
 				UID:        types.UID(runUUID),
 			}},
 		},
@@ -97,7 +96,7 @@ func syncArtifactWorkflowWithFakeCluster(
 	require.NoError(t, err)
 }
 
-func TestReadArtifactV1_Succeed(t *testing.T) {
+func TestReadArtifact_Succeed(t *testing.T) {
 	expectedContent := "test artifact content"
 	filePath := "test/artifact.txt"
 
@@ -121,7 +120,7 @@ func TestReadArtifactV1_Succeed(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
+	url := fmt.Sprintf("/apis/v2beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -132,7 +131,7 @@ func TestReadArtifactV1_Succeed(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	runArtifactServer.ReadArtifactV1(rr, req)
+	runArtifactServer.ReadArtifact(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -157,14 +156,14 @@ func validateHeaders(t *testing.T, rr *httptest.ResponseRecorder) {
 	assert.Empty(t, rr.Header().Get("Content-Encoding"), "Content-Encoding should not be set for JSON response")
 }
 
-func TestReadArtifactV1_RunNotFound(t *testing.T) {
+func TestReadArtifact_RunNotFound(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer clientManager.Close()
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
 	runArtifactServer := NewRunArtifactServer(resourceManager)
 
-	url := "/apis/v1beta1/runs/non-existent-run-id/nodes/node-1/artifacts/artifact-1:read"
+	url := "/apis/v2beta1/runs/non-existent-run-id/nodes/node-1/artifacts/artifact-1:read"
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -175,15 +174,15 @@ func TestReadArtifactV1_RunNotFound(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	runArtifactServer.ReadArtifactV1(rr, req)
+	runArtifactServer.ReadArtifact(rr, req)
 
 	require.NotEqual(t, http.StatusOK, rr.Code)
 }
 
-// TestReadArtifactV1_ChunkedResponse validates that the HTTP endpoint
+// TestReadArtifact_ChunkedResponse validates that the HTTP endpoint
 // actually streams the response in chunks, not loading it all into memory.
 // This is the critical test that proves the endpoint prevents OOM errors.
-func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
+func TestReadArtifact_ChunkedResponse(t *testing.T) {
 	largeFileSize := 10 * 1024 * 1024 // 10MB
 	t.Log("Creating test file for HTTP endpoint streaming test...")
 	largeContent := make([]byte, largeFileSize)
@@ -215,7 +214,7 @@ func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/large-artifact:read", run.UUID)
+	url := fmt.Sprintf("/apis/v2beta1/runs/%s/nodes/node-1/artifacts/large-artifact:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -231,7 +230,7 @@ func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 		ChunkSizes:       []int{},
 	}
 
-	runArtifactServer.ReadArtifactV1(rr, req)
+	runArtifactServer.ReadArtifact(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -280,7 +279,7 @@ func (r *ChunkedResponseRecorder) Write(p []byte) (int, error) {
 	return r.ResponseRecorder.Write(p)
 }
 
-func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
+func TestReadArtifact_ArtifactNotFound(t *testing.T) {
 	resourceManager, manager, run := initWithOneTimeRun(t)
 	defer resourceManager.Close()
 
@@ -297,7 +296,7 @@ func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
+	url := fmt.Sprintf("/apis/v2beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -308,12 +307,12 @@ func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	runArtifactServer.ReadArtifactV1(rr, req)
+	runArtifactServer.ReadArtifact(rr, req)
 
 	require.NotEqual(t, http.StatusOK, rr.Code)
 }
 
-func TestReadArtifactV1_MissingParameters(t *testing.T) {
+func TestReadArtifact_MissingParameters(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer clientManager.Close()
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
@@ -359,11 +358,11 @@ func TestReadArtifactV1_MissingParameters(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			runArtifactServer.ReadArtifactV1(rr, req)
+			runArtifactServer.ReadArtifact(rr, req)
 
 			require.Equal(t, http.StatusBadRequest, rr.Code)
 
-			var errorResponse api.Error
+			var errorResponse apiError
 			err := json.Unmarshal(rr.Body.Bytes(), &errorResponse)
 			require.NoError(t, err)
 
@@ -379,7 +378,7 @@ func TestReadArtifactV1_MissingParameters(t *testing.T) {
 	}
 }
 
-func TestReadArtifactV1_Unauthorized(t *testing.T) {
+func TestReadArtifact_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -408,7 +407,7 @@ func TestReadArtifactV1_Unauthorized(t *testing.T) {
 
 	runArtifactServer := NewRunArtifactServer(resourceManager)
 
-	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
+	url := fmt.Sprintf("/apis/v2beta1/runs/%s/nodes/node-1/artifacts/artifact-1:read", run.UUID)
 	req := httptest.NewRequest("GET", url, nil).WithContext(ctx)
 
 	req = mux.SetURLVars(req, map[string]string{
@@ -419,11 +418,11 @@ func TestReadArtifactV1_Unauthorized(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	runArtifactServer.ReadArtifactV1(rr, req)
+	runArtifactServer.ReadArtifact(rr, req)
 
 	require.Equal(t, http.StatusForbidden, rr.Code)
 
-	var errorResponse api.Error
+	var errorResponse apiError
 	err = json.Unmarshal(rr.Body.Bytes(), &errorResponse)
 	require.NoError(t, err)
 

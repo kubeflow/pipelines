@@ -12,38 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl, components
+from kfp import dsl
 
-component_op = components.load_component_from_text('''
-name: Component with optional inputs
-inputs:
-- {name: required_input, type: String, optional: false}
-- {name: optional_input_1, type: String, optional: true}
-- {name: optional_input_2, type: String, optional: true}
-implementation:
-  container:
-    image: ghcr.io/containerd/busybox
-    command:
-    - echo
-    args:
-    - --arg0
-    - {inputValue: required_input}
-    - if:
-        cond:
-          isPresent: optional_input_1
-        then:
-          - --arg1
-          - {inputValue: optional_input_1}
-    - if:
-        cond:
-          isPresent: optional_input_2
-        then:
-          - --arg2
-          - {inputValue: optional_input_2}
-        else:
-          - --arg2
-          - 'default value'
-''')
+
+@dsl.container_component
+def component_with_optional_inputs(required_input: str,
+                                   optional_input_1: str = None,
+                                   optional_input_2: str = None):
+    return dsl.ContainerSpec(
+        image='ghcr.io/containerd/busybox',
+        command=['echo'],
+        args=[
+            '--arg0', required_input,
+            dsl.IfPresentPlaceholder(
+                input_name='optional_input_1',
+                then=['--arg1', optional_input_1]),
+            dsl.IfPresentPlaceholder(
+                input_name='optional_input_2',
+                then=['--arg2', optional_input_2],
+                else_=['--arg2', 'default value'])
+        ],
+    )
+
+
+component_op = component_with_optional_inputs
 
 
 @dsl.pipeline(name='one-step-pipeline-with-if-placeholder-supply-both')
@@ -68,4 +60,5 @@ def pipeline_none(input0: str = 'input0'):
 if __name__ == '__main__':
     from kfp import compiler
     compiler.Compiler().compile(
-        pipeline_func=pipeline_none, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline_none,
+        package_path=__file__.replace('.py', '.yaml'))

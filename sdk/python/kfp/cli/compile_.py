@@ -203,46 +203,52 @@ def compile_(
     namespace: Optional[str] = None,
     include_pipeline_manifest: bool = False,
 ) -> None:
-    """Compiles a pipeline or component written in a .py file."""
+    """Compiles a pipeline or component written in a .py file.
 
-    Pipeline._execution_caching_default = not disable_execution_caching_by_default
-    pipeline_func = collect_pipeline_or_component_func(
-        python_file=py, function_name=function_name)
-    parsed_parameters = parse_parameters(parameters=pipeline_parameters)
-    package_path = os.path.join(os.getcwd(), output)
+    The caching default override applies only to this invocation.
+    """
+    original_caching_default = Pipeline.get_execution_caching_default()
+    try:
+        Pipeline._execution_caching_default = not disable_execution_caching_by_default
+        pipeline_func = collect_pipeline_or_component_func(
+            python_file=py, function_name=function_name)
+        parsed_parameters = parse_parameters(parameters=pipeline_parameters)
+        package_path = os.path.join(os.getcwd(), output)
 
-    manifest_options_provided = any([
-        pipeline_name, pipeline_display_name, pipeline_version_name,
-        pipeline_version_display_name, namespace, include_pipeline_manifest
-    ])
-    kubernetes_manifest_options = None
-    if kubernetes_manifest_format:
-        kubernetes_manifest_options = KubernetesManifestOptions(
-            pipeline_name=pipeline_name,
-            pipeline_display_name=pipeline_display_name,
-            pipeline_version_name=pipeline_version_name,
-            pipeline_version_display_name=pipeline_version_display_name,
-            namespace=namespace,
-            include_pipeline_manifest=include_pipeline_manifest,
+        manifest_options_provided = any([
+            pipeline_name, pipeline_display_name, pipeline_version_name,
+            pipeline_version_display_name, namespace, include_pipeline_manifest
+        ])
+        kubernetes_manifest_options = None
+        if kubernetes_manifest_format:
+            kubernetes_manifest_options = KubernetesManifestOptions(
+                pipeline_name=pipeline_name,
+                pipeline_display_name=pipeline_display_name,
+                pipeline_version_name=pipeline_version_name,
+                pipeline_version_display_name=pipeline_version_display_name,
+                namespace=namespace,
+                include_pipeline_manifest=include_pipeline_manifest,
+            )
+        elif manifest_options_provided:
+            click.echo(
+                'Warning: Kubernetes manifest options were provided but --kubernetes-manifest-format was not set. '
+                'These options will be ignored.',
+                err=True)
+
+        compiler.Compiler().compile(
+            pipeline_func=pipeline_func,
+            pipeline_parameters=parsed_parameters,
+            package_path=package_path,
+            type_check=not disable_type_check,
+            kubernetes_manifest_options=kubernetes_manifest_options,
+            kubernetes_manifest_format=kubernetes_manifest_format,
         )
-    elif manifest_options_provided:
+
         click.echo(
-            'Warning: Kubernetes manifest options were provided but --kubernetes-manifest-format was not set. '
-            'These options will be ignored.',
-            err=True)
-
-    compiler.Compiler().compile(
-        pipeline_func=pipeline_func,
-        pipeline_parameters=parsed_parameters,
-        package_path=package_path,
-        type_check=not disable_type_check,
-        kubernetes_manifest_options=kubernetes_manifest_options,
-        kubernetes_manifest_format=kubernetes_manifest_format,
-    )
-
-    click.echo(
-        f'Pipeline code was successfully compiled with the output saved to {package_path}'
-    )
+            f'Pipeline code was successfully compiled with the output saved to {package_path}'
+        )
+    finally:
+        Pipeline._execution_caching_default = original_caching_default
 
 
 def main():

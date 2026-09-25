@@ -18,9 +18,7 @@ import (
 	"context"
 	"strings"
 
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -39,10 +37,10 @@ var rbacResourceTypeToGroup = map[string]string{
 
 type AuthServer struct {
 	resourceManager *resource.ResourceManager
-	apiv1beta1.UnimplementedAuthServiceServer
+	api.UnimplementedAuthServiceServer
 }
 
-func (s *AuthServer) AuthorizeV1(ctx context.Context, request *api.AuthorizeRequest) (
+func (s *AuthServer) Authorize(ctx context.Context, request *api.AuthorizeRequest) (
 	*emptypb.Empty, error,
 ) {
 	err := ValidateAuthorizeRequest(request)
