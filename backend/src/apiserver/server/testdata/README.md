@@ -4,8 +4,9 @@
 filter and list packages at tag `2.17.2`, commit
 `2511cdbd74cd531c6633f2e094d235082a32917d`. They use experiment listing with the
 default timestamp sort and both historical V1 and V2 filter messages. Current
-regressions exercise these serialized token/filter shapes through the retained
-v2beta1 parser; they do not register or restore a v1 API.
+regressions select the historical V2 fixtures and exercise their serialized
+token/filter shapes through the retained v2beta1 parser. V1 entries remain only
+as historical fixture-generator output, not as a supported API contract.
 
 To regenerate, run `generate_legacy_tokens.go` with `go run` from a checkout of
 that tag. The generator also accepts a fixture JSON filename to check tokens
