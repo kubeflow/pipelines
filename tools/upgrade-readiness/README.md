@@ -8,10 +8,20 @@ KFP API collection supplies recurring-run, experiment and pinned-template eviden
 **This first version is a partial migration-plan assessment, not an upgrade
 certification.** Every report is marked `incomplete`. It can identify configuration
 to review, but cannot establish that users or workloads will succeed on 2.18.
-Ruleset `2.18-preview.4` includes proposed TensorBoard adoption behavior from
+Ruleset `2.18-preview.5` includes proposed TensorBoard adoption behavior from
 [#14362](https://github.com/kubeflow/pipelines/pull/14362), not a claim that this
 change has shipped. Final release-candidate rules must be pinned and validated
 before this tool can offer a readiness conclusion.
+
+The historical source inventory and pinned 2.18 policy preview are distinct from
+current master. After #14478, master accepts V2 IR submissions and rejects legacy
+V1/raw-Argo templates. Historical records remain useful migration evidence; their
+presence does not imply they can be resubmitted. Recompile legacy pipelines to V2
+IR and recreate affected schedules before targeting v2-only master. Embedded
+workflows compiled from V2 IR remain supported, so embedded schedule inventory
+alone does not establish incompatibility. This tool leaves that classification
+and actual execution unassessed. Its pinned policy conformance and release-2.18
+live lane do not certify the current master target.
 
 ## Run alongside an existing installation
 
@@ -71,8 +81,8 @@ namespace and final 2.18 policy before adding narrowly scoped grants. An omitted
 account remains unresolved because server defaults are not collected.
 
 Schedules with embedded `spec.workflow.spec` use a different controller path;
-the tool leaves their workflow identity unresolved instead of treating the
-top-level account as authoritative. It does not resolve referenced pipeline
+the tool leaves their workflow identity and V2-IR compatibility unresolved instead
+of treating the top-level account as authoritative. It does not resolve referenced pipeline
 versions or reconcile CRs against database recurring runs. Disabled schedules
 are included because they may be re-enabled later. A zero count, missing CRD or
 permission failure never certifies that scheduling is unaffected.
@@ -226,7 +236,7 @@ shares the 16 MiB file limit and permits at most 10000 records across its lists.
 | `tensorboard.key` | Explicit signing-key environment entry or unresolved environment imports in the selected UI deployment. Values are not reported; key existence, validity and equality across replicas remain unknown. | Verify persistent shared key configuration without exposing its value. |
 | `tensorboard.rollout` | Declared UI rollout strategy. Proposed shared-key first adoption requires coordination even if the old deployment uses rolling updates. | Plan interruption and URL refresh; validate final target manifests and subsequent restarts. |
 | `schedule.serviceAccount` / `schedule.coverage` | Optional ScheduledWorkflow inventory, explicit API-path account and declared enablement; embedded workflow identities and effective permissions remain unknown. | Review each account with the actual controller caller and reconcile with stored recurring runs. |
-| `cache.legacy` | Presence/absence of the selected legacy cache deployment. Does not establish usage, cache ownership or cost. | Assess V1/raw-Argo cache data and representative task executions separately. |
+| `cache.legacy` | Presence/absence of the selected legacy cache deployment. Does not establish usage, cache ownership or cost. | Migrate legacy templates to V2 IR before execution on a v2-only target; assess historical cache usage and migrated task cache misses separately. |
 | `rbac.readLog` | A namespace RoleBinding references a role declaring run read access; check whether that role also declares the `readLog` verb. | Verify effective caller permissions. Missing permission in one role is **not** proof of denial. |
 | `rbac.tensorboard` | A bound role declares viewer reads; inspect create/delete declarations separately. | Keep readers read-only; verify scoped grants for intended managers. |
 | `rbac.coverage` / `inventory.collection` | Missing referenced role, unresolved aggregate rules, failed/oversized/timed-out Kubernetes reads. | Repair scope/access or supply the missing evidence. Never count missing data as a pass. |

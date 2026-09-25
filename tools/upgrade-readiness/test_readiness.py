@@ -177,12 +177,30 @@ class ReadinessTest(unittest.TestCase):
         self.assertIn('default was not resolved',
                       results['default']['evidence'])
         self.assertIn('Embedded workflow path', results['embedded']['evidence'])
+        self.assertIn('recompile legacy pipelines to V2 IR',
+                      results['embedded']['action'])
+        self.assertIn('embedded V2-IR workflows still need',
+                      results['embedded']['action'])
         for output in (json.dumps(report), readiness.markdown(report)):
             for private in [
                     'WRONG_PATH', 'EMBEDDED_ACCOUNT', 'PRIVATE_SPEC',
                     'OUTSIDE_ACCOUNT'
             ]:
                 self.assertNotIn(private, output)
+
+    def test_legacy_cache_inventory_requires_v2_migration_before_execution(
+            self):
+        for items in ([], [obj('Deployment', 'cache-server', 'kubeflow')]):
+            with self.subTest(cache_collected=bool(items)):
+                report = assess(items)
+                cache = next(f for f in report['findings']
+                             if f['rule'] == 'cache.legacy')
+                self.assertEqual(cache['status'], 'unknown')
+                self.assertIn('recompile legacy pipelines to V2 IR',
+                              cache['action'])
+                self.assertIn('Legacy templates cannot simply rerun',
+                              cache['action'])
+                self.assertEqual(report['assessment'], 'incomplete')
 
     def test_schedule_failures_and_zero_counts_are_unknown(self):
 

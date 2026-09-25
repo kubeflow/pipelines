@@ -34,7 +34,7 @@ import schedule_policy
 
 MAX_BYTES = 16 * 1024 * 1024
 MAX_ITEMS = 10000
-RULESET = '2.18-preview.4'
+RULESET = '2.18-preview.5'
 SUPPORTED_KINDS = {
     'Deployment', 'Role', 'RoleBinding', 'ClusterRole', 'ScheduledWorkflow'
 }
@@ -44,6 +44,7 @@ GAPS = [
     'Artifact origins, profile proxies, archive credentials and HTTP base validation',
     'Upload/compressed/extracted/metrics sizes and historical request bodies',
     'Legacy and V2 cache entries, hit rates, recomputation time and cost',
+    'V1 API consumers and legacy pipeline compatibility with a v2-only target',
     'SDK compilation, pip mirrors, embedded artifacts and external API consumers',
     'Observed traffic, infrequent schedules, pagination and live upgrade acceptance',
 ]
@@ -280,7 +281,7 @@ def analyze_schedules(items):
             re.fullmatch(r'[a-z0-9]([-a-z0-9.]*[a-z0-9])?', account))
         if embedded:
             evidence = 'Embedded workflow path; effective workflow service account was not resolved.'
-            action = 'Inspect the embedded workflow identity and target controller admission checks; do not assume spec.serviceAccount controls this path.'
+            action = 'Verify whether the embedded workflow was compiled from V2 IR. For a v2-only target, recompile legacy pipelines to V2 IR and recreate their schedules; embedded V2-IR workflows still need identity and admission checks. Do not assume spec.serviceAccount controls this path.'
         elif valid_account:
             evidence = 'API submission path declares account name ' + account + ' in schedule namespace ' + schedule[
                 'metadata'][
@@ -427,7 +428,7 @@ def analyze(inventory,
             'A legacy cache deployment was collected; usage and historical ownership are unknown.'
             if cache else
             'No selected legacy cache deployment was collected; absence is not proof it is unused.',
-            'Confirm V1/raw-Argo cache usage and budget recomputation when affected tasks next run, not at startup.',
+            'Inventory legacy pipelines and cache usage. For a v2-only target, recompile legacy pipelines to V2 IR before running them and recreate affected schedules; budget cache misses for migrated workloads. Legacy templates cannot simply rerun.',
             'Assess cache data and representative runs separately; deployment inventory cannot estimate cost.'
         ))
     roles = {
