@@ -19,11 +19,9 @@ FROM gcr.io/inverting-proxy/agent@sha256:432f609b1e98793723807f62a0a5b900deec491
 RUN apt update --allow-releaseinfo-change && apt-get install -y curl jq python3-venv
 ENV VIRTUAL_ENV=/opt/proxy-venv
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
-COPY requirements.txt .
 RUN python3 -m venv "${VIRTUAL_ENV}" \
-    && "${VIRTUAL_ENV}/bin/python3" -m pip install -r \
-    requirements.txt --quiet --no-cache-dir \
-    && rm -f requirements.txt \
+    && "${VIRTUAL_ENV}/bin/python3" -m pip install uv \
+    && uv pip install requests --quiet --no-cache-dir \
     && "${VIRTUAL_ENV}/bin/python3" -c "import requests"
 
 # Install gcloud SDK (pinned)

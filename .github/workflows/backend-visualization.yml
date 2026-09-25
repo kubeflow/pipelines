@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/backend-visualization.yml'
       - '.github/actions/setup-python-pip-cache/**'
       - 'backend/src/apiserver/visualization/**'
