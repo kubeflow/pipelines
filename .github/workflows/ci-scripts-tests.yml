@@ -78,6 +78,7 @@ on:
       - 'api/v2alpha1/python/generate_proto.py'
       - 'kubernetes_platform/python/generate_proto.py'
       - 'sdk/python/hatch_build.py'
+      - 'test/presubmit-tests-sdk.sh'
       - 'hack/update-requirements.sh'
       - '.readthedocs.yml'
       - 'kubernetes_platform/python/docs/.readthedocs.yml'
