@@ -23,8 +23,7 @@ import pathlib
 import re
 import tarfile
 import textwrap
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
-                    Union)
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
@@ -735,8 +734,6 @@ def create_notebook_component_from_func(
             'nbclient>=0.10,<1',
             'ipykernel>=6,<7',
             'jupyter_client>=7,<9',
-            # 2.22.0 uses Python 3.10 union syntax but permits Python 3.9.
-            'fastjsonschema<2.22; python_version < "3.10"',
         ]
 
     # Validate notebook path and determine relpath
@@ -767,8 +764,7 @@ def create_notebook_component_from_func(
         notebook_relpath = nb_path.name
 
     # Build the helper source template with a placeholder for the embedded archive
-    from kfp.dsl.templates.notebook_executor import \
-        get_notebook_executor_source
+    from kfp.dsl.templates.notebook_executor import get_notebook_executor_source
     helper_template = get_notebook_executor_source('{embedded_archive}',
                                                    notebook_relpath)
 

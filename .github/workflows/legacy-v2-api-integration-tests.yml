@@ -69,7 +69,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: 3.9
+          python-version: 3.11
 
       - name: Create KFP cluster
         id: create-kfp-cluster

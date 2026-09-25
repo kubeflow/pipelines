@@ -10,7 +10,7 @@ For more information, please visit [https://www.google.com](https://www.google.c
 
 ## Requirements.
 
-Python 2.7 and 3.4+
+Python 3.11 or later
 
 ## Installation & Usage
 ### pip install
