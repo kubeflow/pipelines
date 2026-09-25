@@ -222,7 +222,7 @@ function TaskNodeDetail({
 
   return (
     <div className={commonCss.page}>
-      {runID && <DebugPauseResumeBanner runId={runId} task={task} />}
+      {runId && <DebugPauseResumeBanner runId={runId} task={task} />}
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
@@ -323,7 +323,7 @@ interface DebugPauseResumeBannerProps {
 
 // Shown at the top of a task's detail panel while it is parked at a
 // debug-pause barrier. Clicking Resume calls the existing UpdateTask RPC
-// directly (see DebugPauseUtils.ts) nothing reaches into the running pod.
+// directly (see DebugPauseUtils.ts) - nothing reaches into the running pod.
 // The launcher's own polling loop discovers the resume request on its own
 // next poll and continues by itself; this component does not (and cannot)
 // confirm that has happened, only that the request was recorded.
@@ -365,17 +365,15 @@ function DebugPauseResumeBanner({ runId, task }: DebugPauseResumeBannerProps) {
             ? 'Resume requested. The task will continue shortly.'
             : undefined
         }
-        action={
-          <Button
-            variant='contained'
-            color='primary'
-            disabled={resumeMutation.isPending || resumeMutation.isSuccess}
-            onClick={() => resumeMutation.mutate()}
-          >
-            {resumeMutation.isPending ? 'Resuming...' : 'Resume'}
-          </Button>
-        }
       />
+      <Button
+        variant='contained'
+        color='primary'
+        disabled={resumeMutation.isPending || resumeMutation.isSuccess}
+        onClick={() => resumeMutation.mutate()}
+      >
+        {resumeMutation.isPending ? 'Resuming...' : 'Resume'}
+      </Button>
     </div>
   );
 }

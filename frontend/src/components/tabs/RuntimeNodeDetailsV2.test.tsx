@@ -832,6 +832,7 @@ describe('RuntimeNodeDetailsV2', () => {
       );
 
       fireEvent.click(screen.getByText('Resume'));
+
       await screen.findByText(/Failed to request resume: server unreachable/);
     });
   });
