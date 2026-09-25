@@ -97,7 +97,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "5a66de1bcfe90256b3a62bc3d2cc2147761c610f5d3d1c614ec75ce6cd1d7882",
+      "header_sha256": "124e10e0abdef165f7e04d2f1ddbd528e2b0ca85cbf0d6b08f1bb0f7ae079308",
       "pull_request": null
     },
     {
@@ -251,7 +251,7 @@
     {
       "path": ".github/workflows/e2e-test-frontend.yml",
       "name": "KFP e2e frontend tests",
-      "header_sha256": "c3cf0c398e4f008b7ac361cccf4c02a529b2263e881d132cbf3ca35d4a678bad",
+      "header_sha256": "d84740773e91938242ffff4ae32906c31cd72a63aeb463fa9af5bf28d0243817",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -261,6 +261,7 @@
           ".github/actions/deploy/**",
           ".github/resources/**",
           "frontend/**",
+          "third_party/metadata_envoy/**",
           "manifests/kustomize/**",
           "test/server-integration-test/**",
           "test/frontend-integration-test/**",
