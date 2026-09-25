@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -471,7 +472,8 @@ class PythonPackagingTest(unittest.TestCase):
                     (models / '__init__.py').touch()
                     (models.parent / '__init__.py').write_text(
                         '__version__ = ' + repr(config['packageVersion']) + '\\n')
-                    for name in ('README.md', 'setup.py', 'tox.ini', 'test-requirements.txt'):
+                    (output / 'README.md').write_text('Python 2.7 and 3.4+\\n')
+                    for name in ('setup.py', 'tox.ini', 'test-requirements.txt'):
                         (output / name).touch()
                 '''))
                 java.chmod(0o755)
@@ -503,6 +505,12 @@ class PythonPackagingTest(unittest.TestCase):
                     '2.17.0')
                 self.assertEqual(
                     package_version(output / 'pyproject.toml'), '2.17.0')
+                metadata = tomllib.loads(
+                    (output / 'pyproject.toml').read_text())
+                self.assertEqual(metadata['project']['requires-python'],
+                                 '>=3.11')
+                self.assertEqual((output / 'README.md').read_text(),
+                                 'Python 3.11 or later\n')
 
 
 if __name__ == '__main__':

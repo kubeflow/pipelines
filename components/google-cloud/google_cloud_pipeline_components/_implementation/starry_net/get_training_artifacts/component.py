@@ -19,46 +19,46 @@ from kfp import dsl
 
 
 @dsl.component(
-    base_image='python:3.9', packages_to_install=['tensorflow==2.16.1']
-)
+    base_image='python:3.11', packages_to_install=['tensorflow==2.16.1'])
 def get_training_artifacts(
     docker_region: str,
     trainer_dir: dsl.InputPath(),
 ) -> NamedTuple(
-    'TrainingArtifacts',
-    image_uri=str,
-    artifact_uri=str,
-    prediction_schema_uri=str,
-    instance_schema_uri=str,
+        'TrainingArtifacts',
+        image_uri=str,
+        artifact_uri=str,
+        prediction_schema_uri=str,
+        instance_schema_uri=str,
 ):
-  # fmt: off
-  """Gets the artifact URIs from the training job.
+    # fmt: off
+    """Gets the artifact URIs from the training job.
 
-  Args:
-    docker_region: The region from which the training docker image is pulled.
-    trainer_dir: The directory where training artifacts where stored.
+    Args:
+      docker_region: The region from which the training docker image is pulled.
+      trainer_dir: The directory where training artifacts where stored.
 
-  Returns:
-    A NamedTuple containing the image_uri for the prediction server,
-    the artifact_uri with model artifacts, the prediction_schema_uri,
-    and the instance_schema_uri.
-  """
-  import os  # pylint: disable=g-import-not-at-top
-  import tensorflow as tf  # pylint: disable=g-import-not-at-top
+    Returns:
+      A NamedTuple containing the image_uri for the prediction server,
+      the artifact_uri with model artifacts, the prediction_schema_uri,
+      and the instance_schema_uri.
+    """
+    import os  # pylint: disable=g-import-not-at-top
 
-  with tf.io.gfile.GFile(os.path.join(trainer_dir, 'trainer.txt')) as f:
-    private_dir = f.read().strip()
+    import tensorflow as tf  # pylint: disable=g-import-not-at-top
 
-  outputs = NamedTuple(
-      'TrainingArtifacts',
-      image_uri=str,
-      artifact_uri=str,
-      prediction_schema_uri=bool,
-      instance_schema_uri=str,
-  )
-  return outputs(
-      f'{docker_region}-docker.pkg.dev/vertex-ai/starryn/predictor:20250411_0542_RC00',  # pylint: disable=too-many-function-args
-      private_dir,  # pylint: disable=too-many-function-args
-      os.path.join(private_dir, 'predict_schema.yaml'),  # pylint: disable=too-many-function-args
-      os.path.join(private_dir, 'instance_schema.yaml'),  # pylint: disable=too-many-function-args
-  )
+    with tf.io.gfile.GFile(os.path.join(trainer_dir, 'trainer.txt')) as f:
+        private_dir = f.read().strip()
+
+    outputs = NamedTuple(
+        'TrainingArtifacts',
+        image_uri=str,
+        artifact_uri=str,
+        prediction_schema_uri=bool,
+        instance_schema_uri=str,
+    )
+    return outputs(
+        f'{docker_region}-docker.pkg.dev/vertex-ai/starryn/predictor:20250411_0542_RC00',  # pylint: disable=too-many-function-args
+        private_dir,  # pylint: disable=too-many-function-args
+        os.path.join(private_dir, 'predict_schema.yaml'),  # pylint: disable=too-many-function-args
+        os.path.join(private_dir, 'instance_schema.yaml'),  # pylint: disable=too-many-function-args
+    )

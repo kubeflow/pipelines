@@ -2,7 +2,9 @@
 
 ## Python setup
 
-Use the uv workspace, which creates `.venv`:
+Use Python 3.11 or newer. Python 3.9 and 3.10 are no longer supported for current
+KFP packages or development. See the [migration guidance](../python-sdk.md#python-version-support).
+The uv workspace creates `.venv`:
 
 ```bash
 uv sync --frozen --extra dev
