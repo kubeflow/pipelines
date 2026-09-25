@@ -117,9 +117,9 @@ class DependabotConfigTest(unittest.TestCase):
             ecosystem for ecosystem, _ in self.update_blocks()
         ]
 
-        self.assertCountEqual(
-            configured_ecosystems,
-            ('gomod', 'docker', 'npm', 'pip', 'github-actions', 'pre-commit'))
+        self.assertCountEqual(configured_ecosystems,
+                              ('gomod', 'docker', 'npm', 'pip', 'uv',
+                               'github-actions', 'pre-commit'))
         self.assertEqual(
             len(configured_ecosystems), len(set(configured_ecosystems)))
 
@@ -130,6 +130,7 @@ class DependabotConfigTest(unittest.TestCase):
             'docker': 'docker',
             'npm': 'javascript',
             'pip': 'python',
+            'uv': 'python:uv',
             'github-actions': 'github_actions',
             'pre-commit': 'pre_commit',
         }
@@ -202,6 +203,20 @@ class DependabotConfigTest(unittest.TestCase):
 
         self.assertEqual(self.configured_directories('pip'), python_directories)
 
+    def test_all_uv_lockfiles_are_covered(self):
+        tracked_locks = subprocess.check_output(
+            ['git', 'ls-files', '-z', '--', 'uv.lock', '**/uv.lock'],
+            cwd=REPOSITORY_ROOT,
+            text=True,
+        )
+        lock_directories = {
+            repository_directory(REPOSITORY_ROOT / path)
+            for path in tracked_locks.split('\0')
+            if path
+        }
+        self.assertTrue(lock_directories)
+        self.assertEqual(self.configured_directories('uv'), lock_directories)
+
     def test_workflows_and_reusable_actions_are_covered(self):
         configured_directories = self.configured_directories('github-actions')
         self.assertIn('/', configured_directories)
@@ -226,7 +241,7 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(self.configured_directories('pre-commit'), {'/'})
 
     def test_new_ecosystems_use_bounded_weekly_updates(self):
-        for ecosystem in ('npm', 'pip', 'github-actions', 'pre-commit'):
+        for ecosystem in ('npm', 'pip', 'uv', 'github-actions', 'pre-commit'):
             with self.subTest(ecosystem=ecosystem):
                 block = self.update_block(ecosystem)
                 self.assertIn('      interval: weekly', block)
@@ -242,6 +257,7 @@ class DependabotConfigTest(unittest.TestCase):
                 '**/requirements*.txt',
                 '**/setup.py',
                 '**/pyproject.toml',
+                '**/uv.lock',
                 '**/action.yml',
                 '**/action.yaml',
                 '.pre-commit-config.yaml',
