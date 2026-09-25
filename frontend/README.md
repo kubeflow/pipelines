@@ -195,9 +195,11 @@ For example, namespace `team-a` can serve `s3://bucket/private-artifacts/team-a/
 the operator; the next path segment must still be the authorized namespace. Do not disable
 authorization to restore custom-root access in a multi-user deployment.
 
-With `ENABLE_AUTHZ=true`, HTTP(S) artifacts use the shared UI's configured `HTTP_BASE_URL` even
-when the namespace artifact proxy is enabled. The shared UI checks redirect targets itself rather
-than forwarding HTTP(S) requests to tenant services that may run older redirect handling code.
+With `ENABLE_AUTHZ=true`, HTTP(S) artifacts use the shared UI's configured `HTTP_BASE_URL` and,
+when needed, its `HTTP_AUTHORIZATION_KEY` and `HTTP_AUTHORIZATION_DEFAULT_VALUE`, even when the
+namespace artifact proxy is enabled. Without a shared UI `HTTP_BASE_URL`, these requests return
+HTTP 400. The shared UI checks redirect targets itself rather than forwarding HTTP(S) requests to
+tenant services that may run older redirect handling code.
 Redirects must stay on the configured origin and under the same namespace prefix. Cross-origin
 signed URLs and same-origin signed URLs outside that prefix return HTTP 403. Standalone mode keeps
 its existing redirect behavior.
