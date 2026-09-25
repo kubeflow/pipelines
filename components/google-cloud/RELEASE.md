@@ -3,6 +3,7 @@
 * Remove deprecated Wide and Deep Tabular Workflow pipeline.
 * Remove deprecated TabNet Tabular Workflow pipeline.
 * Dynamically set default boot disk type in CustomJob component for Vertex Pipelines based on machine type.
+* Bump supported `google-cloud-aiplatform` versions to `>=1.14.0,<3`.
 
 ## Release 2.22.0
 
