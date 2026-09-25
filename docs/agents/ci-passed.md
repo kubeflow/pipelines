@@ -2,8 +2,10 @@
 
 CI Check is the sole publisher of the `ci-passed` commit status. The label with
 the same name is informational. Tide remains the merge authority; human PRs
-still require review. Default Dependabot creation holds are removed with this publisher. Deployment
-requires the coordinated cutover below; existing PR-specific holds are preserved.
+still require review. This change does not touch Dependabot creation holds: every
+ecosystem keeps `do-not-merge/hold`, and existing PR-specific holds are preserved.
+Removing the automatic creation holds is a separate follow-up, merged only after the
+publisher and protection below are verified in production.
 
 ## Contract and enforcement
 
@@ -23,7 +25,8 @@ Publishing a commit status is not atomic with PR or CI updates. Tide must still
 reject pending/failing constituent contexts and honor strict branch protection.
 In particular, GitHub does not emit `workflow_run: requested` for reruns: do not
 claim immediate queued-rerun protection from this publisher alone. Verify that
-the deployed Tide configuration blocks that window before lifting holds.
+the deployed Tide configuration blocks that window before making the status
+required, and before any follow-up removes the automatic creation holds.
 
 ## Expected workflow inventory
 
@@ -78,50 +81,37 @@ head SHA is associated with GitHub Actions. See the
 
 ## Validation and coordinated rollout
 
-The publisher and removal of default creation holds ship together. Neither
-implementation PR #14111 nor oss-test-infra#2674 may be deployed independently
-without containment. The following is a proposed maintainer-run procedure;
-record the accepting owner and evidence before starting.
+This change ships the publisher only. Automatic Dependabot creation holds stay in
+place, so no containment edit to deployed Tide configuration is required and none is
+proposed. Merge order:
 
-1. Jeff (or the designated infra maintainer) temporarily removes the
-   `author: dependabot[bot]` Tide query for `kubeflow/pipelines` from deployed
-   config. Retain the human `lgtm`/`approved` queries and their hold exclusions.
-   Verify no other matching query allows review-free Dependabot merges.
-   This restores review requirements even for newly created, unheld PRs.
-   Keep the three existing PR-specific holds. Record the deployed config SHA.
-2. Anthony supplies local and hosted regression evidence for the exact final
-   implementation SHA. Exercise real publisher success, invalidation, late
-   external-check recovery, and stale-head rejection in a controlled repo.
-   A green base-defined `pull_request_target` check on #14111 does not validate
-   its proposed publisher. If lifecycle validation fails, retain containment
-   and fix the PR; do not proceed with deployment.
-3. Jeff reviews and lands #14111 using the existing human review/CI path.
-   Required `ci-passed` protection is not enabled yet, so this avoids a
-   bootstrap deadlock. Default creation holds stop, but review-free matching
-   remains disabled by step 1. Verify the deployed trusted revision and real
-   publisher lifecycle on upstream before proceeding.
-4. The infra maintainer applies #2674's protection and query exclusions while
-   retaining the temporary removal of the Dependabot query. Inspect live
-   master protection: `ci-passed` required, `strict: true`; verify pending and
-   failing constituent contexts block Tide, including queued same-SHA reruns.
-   Human PRs retain reviews; release branches do not inherit this new context.
-5. Only after recording that evidence, the infra maintainer restores the
-   master-only Dependabot query from #2674. Verify an eligible unheld Dependabot
-   PR can merge without review while failing/incomplete CI, needs-ok-to-test,
-   and an explicit PR hold block it. Preserve existing holds for individual
-   maintainer decisions. Record the actual merge and negative-case evidence.
+1. **Land the publisher.** Fix the stale workflow inventory, pass CI, and merge
+   `kubeflow/pipelines#14111` / its replacement through the existing human review and
+   CI path. Required `ci-passed` protection is not enabled yet, so this avoids a
+   bootstrap deadlock, and every new Dependabot PR is still held.
+2. **Verify the publisher on upstream.** On real PRs, exercise publisher success,
+   failure and invalidation, late external-check recovery, stale-head rejection, and
+   base-retarget invalidation. Confirm that ordinary eligible PRs actually receive the
+   `ci-passed` status before the status is required anywhere.
+3. **Merge `oss-test-infra#2674` and verify its deployed effect**, not its content:
+   inspect live `master` protection (`ci-passed` required, `strict: true`, release
+   branches unaffected) and Tide behavior, including pending or failing constituent
+   contexts and queued reruns. A committed configuration change is not evidence that
+   branch protection or Tide changed; verify the applied state directly.
+4. **Merge a small follow-up that removes the automatic creation holds.** Existing
+   PR-specific holds remain separate maintainer decisions and are never removed
+   automatically. Demonstrate an eligible unheld Dependabot merge without review (or
+   record the blocker) and the negative cases: incomplete or failing CI,
+   `needs-ok-to-test`, and an explicit PR hold.
 
-The temporary config edit and its restoration need an infra-maintainer owner
-and deployment mechanism agreed with Jeff; they are not included in #2674's
-final desired configuration. If they require another PR, discuss that before
-creating it. Do not substitute an informal promise to label new PRs for the
-verified Tide query change.
+Containment note: holds are only effective for PRs created after the label
+configuration that adds them. Dependabot PRs opened before such a change do not
+retroactively receive the label, so audit open Dependabot PRs for missing
+`do-not-merge/hold` before relying on holds as containment (36 of 36 open Dependabot
+PRs carried the hold as of 2026-09-25).
 
-Abort if the live configuration cannot be inspected, any lifecycle/negative
-case fails, or another query bypasses containment. Keep review-free matching
-disabled. If #14111 must be reverted, first restore the default creation holds
-and retain the temporary Tide containment, then coordinate removal of the
-required status before removing its publisher. Never leave a required status
-without a working publisher. The revert trigger for temporary containment is
-successful completion and recorded evidence of steps 2–4, not elapsed time or
-merely green implementation-PR checks.
+Abort and keep the status non-required if the applied protection cannot be inspected,
+if any lifecycle or negative case fails, or if another Tide query permits review-free
+Dependabot merges. Never leave a required status without a working publisher: restore
+the creation holds and re-enable review requirements before reverting the publisher,
+and coordinate removal of the required status before removing its publisher.

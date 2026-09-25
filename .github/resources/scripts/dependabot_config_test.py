@@ -141,13 +141,10 @@ class DependabotConfigTest(unittest.TestCase):
                     self.update_block(ecosystem),
                     r'(?m)^    (?:target-branch|[\'\"]target-branch[\'\"])\s*:',
                 )
-                expected = ['dependencies', ecosystem_label]
-                if ecosystem == 'uv':
-                    # The uv ecosystem keeps its creation hold while the uv
-                    # migration is synchronized; every other ecosystem relies
-                    # on the SHA-bound ci-passed status and Tide policy.
-                    expected.append('do-not-merge/hold')
-                self.assertEqual(self.configured_labels(ecosystem), expected)
+                self.assertEqual(
+                    self.configured_labels(ecosystem),
+                    ['dependencies', ecosystem_label, 'do-not-merge/hold'],
+                )
 
     def test_all_go_modules_are_covered(self):
         module_directories = {
