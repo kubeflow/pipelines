@@ -125,7 +125,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "2ee9fa9e945e962c8bfb72fbce1ee05d86e5ed427e0823370174b97f97dce187",
+      "header_sha256": "976b6300a1b67e5cdcd7d5d2dc516687e432b2d1748532ad500697c089540f43",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -194,6 +194,7 @@
           "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/python/generate_proto.py",
           "sdk/python/hatch_build.py",
+          "test/presubmit-tests-sdk.sh",
           "hack/update-requirements.sh",
           ".readthedocs.yml",
           "kubernetes_platform/python/docs/.readthedocs.yml",

@@ -57,6 +57,18 @@ To run tests in parallel for faster execution, you can run the tests using the `
 uv run pytest -n auto
 ```
 
+#### Runtime command regressions
+
+`test/presubmit-tests-sdk.sh` builds a fresh SDK wheel and runs the runtime
+regressions against it in isolated uv environments. Other regression cases keep
+their Git source override so Docker containers can install the SDK.
+
+For a direct runtime-only run, build with `uv build --package kfp --wheel`,
+set `KFP_PACKAGE_PATH` to the absolute path of the resulting `kfp-*.whl`, and run
+`uv run pytest sdk/python/test/runtime -m regression`. These tests require the
+wheel; they never fall back to the published SDK. The generated `--no-deps`
+installation and `_KFP_RUNTIME=true` executor invocation remain unchanged.
+
 ### Code Style
 Dependencies for code style checks/changes are managed in [pyproject.toml](https://github.com/kubeflow/pipelines/blob/master/pyproject.toml) via the `dev`, `lint`, and `test` extras.
 
