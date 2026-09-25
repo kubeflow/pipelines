@@ -2987,3 +2987,220 @@ func TestReadNodeMetricsOrNil_MaxResponseBytesPropagation(t *testing.T) {
 	assert.Contains(t, err.Error(), "sentinel stop here")
 	assert.Equal(t, 1, callCount, "mock must be invoked exactly once")
 }
+
+func TestWorkflow_ServiceAccountsCollectsPodIdentities(t *testing.T) {
+	dagInline := &workflowapi.Template{ServiceAccountName: "dag-inline-sa"}
+	stepInline := &workflowapi.Template{
+		ServiceAccountName: "step-inline-sa",
+		DAG: &workflowapi.DAGTemplate{Tasks: []workflowapi.DAGTask{{
+			Name:   "nested-task",
+			Inline: dagInline,
+		}}},
+	}
+	rootTemplate := workflowapi.Template{
+		Name:               "root",
+		ServiceAccountName: "{{workflow.serviceAccountName}}", // Resolves to, and de-duplicates, the workflow account.
+		Executor:           &workflowapi.ExecutorConfig{ServiceAccountName: "template-executor-sa"},
+		PodSpecPatch:       `serviceAccountName: template-patch-sa`,
+		Steps: []workflowapi.ParallelSteps{{Steps: []workflowapi.WorkflowStep{{
+			Name:   "nested-step",
+			Inline: stepInline,
+		}}}},
+	}
+	w := NewWorkflow(&workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{
+		ServiceAccountName: "workflow-sa",
+		Executor:           &workflowapi.ExecutorConfig{ServiceAccountName: "workflow-executor-sa"},
+		PodSpecPatch:       `serviceAccountName: workflow-patch-sa`,
+		ExecutorPlugins: []workflowapi.ExecutorPlugin{
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "token"},
+				Spec:       workflowapi.ExecutorPluginSpec{Sidecar: workflowapi.ExecutorPluginSidecar{AutomountServiceAccountToken: true}},
+			},
+			{ObjectMeta: metav1.ObjectMeta{Name: "no-token"}},
+		},
+		TemplateDefaults: &workflowapi.Template{
+			ServiceAccountName: "defaults-sa",
+			Executor:           &workflowapi.ExecutorConfig{ServiceAccountName: "defaults-executor-sa"},
+			PodSpecPatch:       `serviceAccountName: defaults-patch-sa`,
+		},
+		Templates: []workflowapi.Template{rootTemplate},
+	}})
+
+	accounts, err := w.ServiceAccounts(false)
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"workflow-sa",
+		"workflow-executor-sa",
+		"token-executor-plugin",
+		"workflow-patch-sa",
+		"defaults-sa",
+		"defaults-executor-sa",
+		"defaults-patch-sa",
+		"template-executor-sa",
+		"template-patch-sa",
+		"step-inline-sa",
+		"dag-inline-sa",
+	}, accounts)
+
+	accounts, err = NewWorkflow(&workflowapi.Workflow{}).ServiceAccounts(false)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"default"}, accounts)
+
+	accounts, err = NewWorkflow(&workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{
+		ServiceAccountName: "workflow-sa",
+		Templates: []workflowapi.Template{{
+			ServiceAccountName: "static-v2-sa",
+			PodSpecPatch:       compilerGeneratedPodSpecPatchTemplate,
+		}},
+	}}).ServiceAccounts(true)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"workflow-sa", "static-v2-sa"}, accounts)
+}
+
+func TestWorkflow_ServiceAccountsCollectsArtifactGCIdentities(t *testing.T) {
+	artifact := func(strategy workflowapi.ArtifactGCStrategy, account string) workflowapi.Artifact {
+		return workflowapi.Artifact{
+			Name: account,
+			ArtifactGC: &workflowapi.ArtifactGC{
+				Strategy:           strategy,
+				ServiceAccountName: account,
+			},
+		}
+	}
+
+	tests := []struct {
+		name, account, patch string
+		outputs              workflowapi.Artifacts
+		want                 []string
+	}{
+		{
+			name:    "workflow and artifact accounts; inactive output ignored",
+			account: "workflow-gc-sa",
+			outputs: workflowapi.Artifacts{
+				artifact(workflowapi.ArtifactGCOnWorkflowCompletion, ""),
+				artifact(workflowapi.ArtifactGCOnWorkflowCompletion, "artifact-gc-sa"),
+				artifact(workflowapi.ArtifactGCNever, "never-gc-sa"),
+			},
+			want: []string{"workflow-sa", "workflow-gc-sa", "artifact-gc-sa"},
+		},
+		{
+			name: "workflow-level pod patch", patch: `serviceAccountName: patched-gc-sa`,
+			outputs: workflowapi.Artifacts{artifact(workflowapi.ArtifactGCOnWorkflowCompletion, "")},
+			want:    []string{"workflow-sa", "patched-gc-sa"},
+		},
+		{
+			name:    "Kubernetes default account",
+			outputs: workflowapi.Artifacts{artifact(workflowapi.ArtifactGCOnWorkflowCompletion, "")},
+			want:    []string{"workflow-sa", "default"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := NewWorkflow(&workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{
+				ServiceAccountName: "workflow-sa",
+				ArtifactGC: &workflowapi.WorkflowLevelArtifactGC{
+					ArtifactGC:   workflowapi.ArtifactGC{Strategy: workflowapi.ArtifactGCOnWorkflowCompletion, ServiceAccountName: tt.account},
+					PodSpecPatch: tt.patch,
+				},
+				Templates: []workflowapi.Template{{
+					Inputs:  workflowapi.Inputs{Artifacts: workflowapi.Artifacts{artifact(workflowapi.ArtifactGCOnWorkflowCompletion, "input-gc-sa")}},
+					Outputs: workflowapi.Outputs{Artifacts: tt.outputs},
+				}},
+			}})
+
+			accounts, err := w.ServiceAccounts(false)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, accounts)
+		})
+	}
+
+	t.Run("parameterized workflow-level patch is rejected", func(t *testing.T) {
+		w := NewWorkflow(&workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{
+			ArtifactGC: &workflowapi.WorkflowLevelArtifactGC{
+				ArtifactGC:   workflowapi.ArtifactGC{Strategy: workflowapi.ArtifactGCOnWorkflowCompletion},
+				PodSpecPatch: `{{workflow.parameters.gc-patch}}`,
+			},
+			Templates: []workflowapi.Template{{
+				Outputs: workflowapi.Outputs{Artifacts: workflowapi.Artifacts{artifact(workflowapi.ArtifactGCOnWorkflowCompletion, "")}},
+			}},
+		}})
+		_, err := w.ServiceAccounts(false)
+		require.ErrorContains(t, err, "template expression")
+	})
+}
+
+func TestServiceAccountsInPodSpecPatch(t *testing.T) {
+	tests := []struct {
+		name, patch, wantErr string
+		allowCompiler        bool
+		want                 []string
+	}{
+		{name: "empty"},
+		{name: "canonical JSON field", patch: `{"serviceAccountName":"canonical-sa"}`, want: []string{"canonical-sa"}},
+		{name: "deprecated YAML alias", patch: `serviceAccount: alias-sa`, want: []string{"alias-sa"}},
+		{name: "null clears inherited account", patch: `serviceAccountName: null`, want: []string{"default"}},
+		{name: "root null is a no-op", patch: `null`},
+		{name: "root replacement clears inherited account", patch: "$patch: replace\ncontainers: []", want: []string{"default"}},
+		{name: "unrelated patch", patch: `containers: []`},
+		{name: "compiler patch", patch: compilerGeneratedPodSpecPatchTemplate, allowCompiler: true},
+		{name: "templated account", patch: `serviceAccountName: "{{workflow.parameters.account}}"`, wantErr: "template expression"},
+		{name: "templated unrelated field", patch: `nodeName: "{{inputs.parameters.node}}"`, allowCompiler: true, wantErr: "template expression"},
+		{name: "compiler patch in V1", patch: compilerGeneratedPodSpecPatchTemplate, wantErr: "template expression"},
+		{name: "malformed YAML", patch: `serviceAccountName: [`, wantErr: "valid Kubernetes PodSpec patch"},
+		{name: "wrong field type", patch: "serviceAccountName:\n- invalid", wantErr: "valid Kubernetes PodSpec patch"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			accounts, err := serviceAccountsInPodSpecPatch(tt.patch, tt.allowCompiler)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, accounts)
+		})
+	}
+}
+
+func TestWorkflow_ServiceAccountsRejectsExternalTemplateReferences(t *testing.T) {
+	templateRef := func() *workflowapi.TemplateRef {
+		return &workflowapi.TemplateRef{Name: "external", Template: "entrypoint"}
+	}
+	hookWithRef := func() workflowapi.LifecycleHooks {
+		return workflowapi.LifecycleHooks{workflowapi.ExitLifecycleEvent: {TemplateRef: templateRef()}}
+	}
+	stepSpec := func(step workflowapi.WorkflowStep) workflowapi.WorkflowSpec {
+		return workflowapi.WorkflowSpec{Templates: []workflowapi.Template{{
+			Steps: []workflowapi.ParallelSteps{{Steps: []workflowapi.WorkflowStep{step}}},
+		}}}
+	}
+	dagSpec := func(task workflowapi.DAGTask) workflowapi.WorkflowSpec {
+		return workflowapi.WorkflowSpec{Templates: []workflowapi.Template{{
+			DAG: &workflowapi.DAGTemplate{Tasks: []workflowapi.DAGTask{task}},
+		}}}
+	}
+	tests := []struct {
+		name string
+		spec workflowapi.WorkflowSpec
+	}{
+		{name: "workflow template reference", spec: workflowapi.WorkflowSpec{WorkflowTemplateRef: &workflowapi.WorkflowTemplateRef{Name: "external"}}},
+		{name: "workflow hook reference", spec: workflowapi.WorkflowSpec{Hooks: hookWithRef()}},
+		{name: "step reference", spec: stepSpec(workflowapi.WorkflowStep{TemplateRef: templateRef()})},
+		{name: "step hook reference", spec: stepSpec(workflowapi.WorkflowStep{Hooks: hookWithRef()})},
+		{name: "DAG task reference", spec: dagSpec(workflowapi.DAGTask{TemplateRef: templateRef()})},
+		{name: "DAG task hook reference", spec: dagSpec(workflowapi.DAGTask{Hooks: hookWithRef()})},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.spec.ServiceAccountName = "workflow-sa"
+
+			accounts, err := NewWorkflow(&workflowapi.Workflow{Spec: tt.spec}).ServiceAccounts(false)
+			require.Error(t, err)
+			assert.Nil(t, accounts)
+			assert.Contains(t, err.Error(), "external workflow template references")
+		})
+	}
+}

@@ -68,6 +68,31 @@ func TestValidateWorkflow_ParametersTooLong(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, err.(*commonutil.UserError).ExternalStatusCode())
 }
 
+func TestValidateWorkflow_RejectsExternalTemplateReference(t *testing.T) {
+	wf := v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{APIVersion: argoVersion, Kind: argoK8sResource},
+		Spec: v1alpha1.WorkflowSpec{
+			WorkflowTemplateRef: &v1alpha1.WorkflowTemplateRef{Name: "external-template"},
+		},
+	}
+	templateBytes, err := yaml.Marshal(wf)
+	require.NoError(t, err)
+
+	_, err = ValidateWorkflow(templateBytes)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "external workflow template references cannot be authorized")
+}
+
+func TestValidateWorkflow_AllowsParameterizedPodSpecPatch(t *testing.T) {
+	wf := unmarshalWf(awfTemplate)
+	wf.Spec.Templates[0].PodSpecPatch = `serviceAccountName: "{{inputs.parameters.dup}}"`
+	templateBytes, err := yaml.Marshal(wf)
+	require.NoError(t, err)
+
+	_, err = ValidateWorkflow(templateBytes)
+	require.NoError(t, err)
+}
+
 func TestParseSpecFormat(t *testing.T) {
 	tt := []struct {
 		template     string

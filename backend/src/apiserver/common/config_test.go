@@ -26,6 +26,30 @@ import (
 // NOTE: These tests use viper.Reset() which mutates the global viper singleton.
 // Do not add t.Parallel() to these subtests — the shared viper state would race.
 
+func TestWorkflowIdentityMode(t *testing.T) {
+	for _, value := range []string{"", "enforce", "audit", "true", "false", "legacy", "AUDIT", " audit"} {
+		t.Run("value="+value, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			t.Setenv(WorkflowIdentityMode, value)
+			viper.AutomaticEnv()
+			mode, err := GetWorkflowIdentityMode()
+			if value == "" || value == "enforce" || value == "audit" {
+				require.NoError(t, err)
+				expected := value
+				if expected == "" {
+					expected = "enforce"
+				}
+				assert.Equal(t, expected, mode)
+				require.NoError(t, InitializeWorkflowIdentityMode())
+			} else {
+				require.Error(t, err)
+				require.Error(t, InitializeWorkflowIdentityMode())
+			}
+		})
+	}
+}
+
 func TestGetStringConfigWithDefault(t *testing.T) {
 	tests := []struct {
 		name     string
