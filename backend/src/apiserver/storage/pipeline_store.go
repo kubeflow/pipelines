@@ -103,6 +103,7 @@ type PipelineStoreInterface interface {
 	UpdatePipelineStatus(pipelineId string, status model.PipelineStatus) error
 	UpdatePipelineFields(pipelineID string, displayName string, tags map[string]string) error
 	DeletePipeline(pipelineId string) error
+	DeletePipelineAndVersions(pipelineId string) error
 	UpdatePipelineDefaultVersion(pipelineId string, versionId string) error
 
 	// `pipeline_versions`
@@ -640,6 +641,59 @@ func (s *PipelineStore) DeletePipeline(id string) error {
 		return util.NewInternalServerError(err, "Failed to create query to delete a pipeline with id %v", id)
 	}
 	return s.ExecuteSQL(sql, args, "delete", "pipeline")
+}
+
+// Deletes a pipeline and all its versions in a single transaction.
+// This ensures atomicity: either all versions and the pipeline are deleted,
+// or none are (on failure, the transaction is rolled back).
+// Tag tables (pipeline_tags, pipeline_version_tags) are cleaned up automatically
+// via ON DELETE CASCADE foreign key constraints.
+func (s *PipelineStore) DeletePipelineAndVersions(pipelineId string) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	// Build DELETE for pipeline versions
+	versionSQL, versionArgs, err := qb.
+		Delete(q("pipeline_versions")).
+		Where(sq.Eq{q("PipelineId"): pipelineId}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete pipeline versions for pipeline %v", pipelineId)
+	}
+
+	// Build DELETE for pipeline
+	pipelineSQL, pipelineArgs, err := qb.
+		Delete(q("pipelines")).
+		Where(sq.Eq{q("UUID"): pipelineId}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete pipeline %v", pipelineId)
+	}
+
+	// Execute both deletes in a single transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start a transaction to delete pipeline %v and its versions", pipelineId)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(versionSQL, versionArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete pipeline versions for pipeline %v", pipelineId)
+	}
+
+	_, err = tx.Exec(pipelineSQL, pipelineArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete pipeline %v", pipelineId)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit transaction to delete pipeline %v and its versions", pipelineId)
+	}
+	glog.Infof("Successfully deleted pipeline %v and all its versions in a single transaction", pipelineId)
+	return nil
 }
 
 // Creates a pipeline and a pipeline version in a single transaction.
