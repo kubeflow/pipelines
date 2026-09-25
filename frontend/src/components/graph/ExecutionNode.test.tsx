@@ -167,6 +167,6 @@ describe('getDebugPauseIcon', () => {
     render(getDebugPauseIcon());
     const pauseIcon = screen.getByTestId('execution-icon-debug-paused');
     expect(pauseIcon).toBeInTheDocument();
-    expect(pauseIcon.parentElement).toHaevClass('bg-mui-grey-200');
+    expect(pauseIcon.parentElement).toHaveClass('bg-mui-grey-200');
   });
 });
