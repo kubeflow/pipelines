@@ -24,7 +24,7 @@ import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { PlotType } from '../components/viewers/Viewer';
 import { Apis } from '../lib/Apis';
 import { OutputArtifactLoader, TEST_ONLY } from './OutputArtifactLoader';
-import { StoragePath, StorageService } from './WorkflowParser';
+import { StoragePath, StorageService } from './StoragePath';
 
 beforeEach(async () => {
   vi.resetAllMocks();
@@ -397,6 +397,12 @@ describe('OutputArtifactLoader', () => {
       await expect(
         OutputArtifactLoader.buildTensorboardConfig(metadata as any, 'test-ns'),
       ).rejects.toThrowError('Malformed metadata, property "source" is required.');
+    });
+
+    it('allows the server to resolve a missing standalone namespace', async () => {
+      expect(
+        await OutputArtifactLoader.buildTensorboardConfig({ source: 'gs://path' }),
+      ).toMatchObject({ namespace: '', type: PlotType.TENSORBOARD, url: 'gs://path' });
     });
 
     it('returns a tensorboard config with basic metadata', async () => {

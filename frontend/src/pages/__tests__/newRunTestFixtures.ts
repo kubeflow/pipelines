@@ -54,13 +54,6 @@ export const ORIGINAL_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
   pipeline_spec: JsYaml.load(v2XGYamlTemplateString) as object,
 };
 
-export const V1_PIPELINE_VERSION = {
-  id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-  name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-  parameters: [],
-  resource_references: [{ key: { id: ORIGINAL_TEST_PIPELINE_ID, type: 'PIPELINE' } }],
-} as any;
-
 export const NEW_EXPERIMENT: V2beta1Experiment = {
   created_at: new Date('2022-07-26T17:44:28Z'),
   experiment_id: 'new-experiment-id',

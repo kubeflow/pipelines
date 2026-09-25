@@ -47,7 +47,7 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import { KeyValue } from 'src/lib/StaticGraphParser';
+import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import { URLParser } from 'src/lib/URLParser';
@@ -70,7 +70,7 @@ import {
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { classes } from 'typestyle';
 
-import { RunDetailsProps } from './RunDetails';
+import { PageProps } from './Page';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
@@ -153,9 +153,7 @@ export type RunDetailsV2Params = {
   [RouteParams.runId]: string;
 };
 
-export type RunDetailsV2Props = RunDetailsV2Info &
-  RunDetailsProps &
-  NavigationProps<RunDetailsV2Params>;
+export type RunDetailsV2Props = RunDetailsV2Info & PageProps & NavigationProps<RunDetailsV2Params>;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
   const { onRetryStarted, updateToolbar } = props;

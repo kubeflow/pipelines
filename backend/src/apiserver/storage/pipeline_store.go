@@ -26,32 +26,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-func (s *PipelineStore) selectJoinedColumns() []string {
-	q := s.dbDialect.QuoteIdentifier
-	p := dialect.QualifiedColumn(q, "pipelines")
-	v := dialect.QualifiedColumn(q, "pipeline_versions")
-	return []string{
-		p("UUID"),
-		p("CreatedAtInSec"),
-		p("Name"),
-		p("DisplayName"),
-		p("Description"),
-		p("Status"),
-		p("Namespace"),
-		v("UUID"),
-		v("CreatedAtInSec"),
-		v("Name"),
-		v("DisplayName"),
-		v("Parameters"),
-		v("PipelineId"),
-		v("Status"),
-		v("CodeSourceUrl"),
-		v("Description"),
-		v("PipelineSpec"),
-		v("PipelineSpecURI"),
-	}
-}
-
 func (s *PipelineStore) selectPipelineColumns() []string {
 	q := s.dbDialect.QuoteIdentifier
 	p := dialect.QualifiedColumn(q, "pipelines")
@@ -85,13 +59,7 @@ func (s *PipelineStore) selectPipelineVersionColumns() []string {
 }
 
 type PipelineStoreInterface interface {
-	// TODO(gkcalat): As these calls use joins on two (potentially) large sets with one-many relationship,
-	// let's keep them to avoid performance issues. consider removing after KFP v2 GA if users are not affected.
-	//
-	// `pipelines` left joined with `pipeline_versions`
-	// This supports v1beta1 behavior.
-	GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error)
-	ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error)
+	// Creates a pipeline and its first version atomically.
 	CreatePipelineAndPipelineVersion(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error)
 
 	// `pipelines`
@@ -103,7 +71,6 @@ type PipelineStoreInterface interface {
 	UpdatePipelineStatus(pipelineId string, status model.PipelineStatus) error
 	UpdatePipelineFields(pipelineID string, displayName string, tags map[string]string) error
 	DeletePipeline(pipelineId string) error
-	UpdatePipelineDefaultVersion(pipelineId string, versionId string) error
 
 	// `pipeline_versions`
 	CreatePipelineVersion(pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error)
@@ -136,56 +103,6 @@ type PipelineStore struct {
 	dbDialect dialect.DBDialect
 }
 
-// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Returns the latest pipeline and the latest pipeline version specified by name and namespace.
-// Performance depends on the index (name, namespace) in `pipelines` table.
-// This supports v1beta1 behavior.
-func (s *PipelineStore) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-	sqlTemp := qb.
-		Select(s.selectJoinedColumns()...).
-		From(q("pipelines")).
-		LeftJoin(fmt.Sprintf("%s on %s.%s = %s.%s",
-			q("pipeline_versions"),
-			q("pipelines"), q("UUID"),
-			q("pipeline_versions"), q("PipelineId"))).
-		// Name is matched case-insensitively to align with case-insensitive
-		// name filtering (see filter.AddToSelect) and the scoped
-		// case-insensitive uniqueness enforced on PostgreSQL (see
-		// expressionIndexes in client_manager.go).
-		Where(sq.And{
-			sq.Expr(fmt.Sprintf("LOWER(%s.%s) = LOWER(?)", q("pipelines"), q("Name")), name),
-			sq.Eq{fmt.Sprintf("%s.%s", q("pipelines"), q("Status")): model.PipelineReady},
-		})
-	if len(namespace) > 0 {
-		sqlTemp = sqlTemp.Where(sq.Eq{fmt.Sprintf("%s.%s", q("pipelines"), q("Namespace")): namespace})
-	}
-	sql, args, err := sqlTemp.
-		OrderBy(
-			fmt.Sprintf("%s.%s DESC", q("pipeline_versions"), q("CreatedAtInSec")),
-			fmt.Sprintf("%s.%s DESC", q("pipelines"), q("CreatedAtInSec")),
-		). // In case of duplicate (name, namespace combination), this will return the latest PipelineVersion
-		Limit(1).
-		ToSql()
-	if err != nil {
-		return nil, nil, util.NewInternalServerError(err, "Failed to create a query to get pipeline and pipeline version with name %v and namespace %v", name, namespace)
-	}
-	r, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, nil, util.NewInternalServerError(err, "Failed to get pipeline and pipeline version with name %v and namespace %v", name, namespace)
-	}
-	defer r.Close()
-	pipelines, pipelineVersions, err := s.scanJoinedRows(r)
-	if err != nil || len(pipelines) > 1 {
-		return nil, nil, util.NewInternalServerError(err, "Failed to parse results of fetching pipeline with name %v and namespace %v", name, namespace)
-	}
-	if len(pipelines) == 0 {
-		return nil, nil, util.NewResourceNotFoundError("Namespace/Pipeline and PipelineVersion", fmt.Sprintf("%v/%v", namespace, name))
-	}
-	return pipelines[0], pipelineVersions[0], nil
-}
-
 // GetPipelineByNameAndNamespace returns the latest pipeline specified by name and namespace, including its tags.
 // Performance depends on the index (name, namespace) in `pipelines` table.
 func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
@@ -195,7 +112,7 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 		Select(s.selectPipelineColumns()...).
 		From(q("pipelines")).
 		// Name is matched case-insensitively; see the comment in
-		// GetPipelineByNameAndNamespaceV1 above.
+		// historical pipeline-name lookup.
 		Where(sq.And{
 			sq.Expr(fmt.Sprintf("LOWER(%s.%s) = LOWER(?)", q("pipelines"), q("Name")), name),
 			sq.Eq{fmt.Sprintf("%s.%s", q("pipelines"), q("Status")): model.PipelineReady},
@@ -232,108 +149,6 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 	}
 	pipeline.Tags = tags
 	return pipeline, nil
-}
-
-// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
-// total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
-// This supports v1beta1 behavior.
-func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-	subQuery := qb.Select("t1.pvid, t1.pid").FromSelect(
-		qb.Select(fmt.Sprintf("%s AS pvid, %s AS pid, ROW_NUMBER () OVER (PARTITION BY %s ORDER BY %s DESC) rn",
-			q("UUID"), q("PipelineId"), q("PipelineId"), q("CreatedAtInSec"))).
-			From(q("pipeline_versions")), "t1").
-		Where("rn = 1 OR rn IS NULL")
-
-	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		query := opts.AddFilterToSelect(sqlBuilder, q).From(q("pipelines")).
-			JoinClause(subQuery.Prefix("LEFT JOIN (").Suffix(fmt.Sprintf(") t2 ON %s.%s = t2.pid", q("pipelines"), q("UUID")))).
-			LeftJoin(fmt.Sprintf("%s ON t2.pvid = %s.%s", q("pipeline_versions"), q("pipeline_versions"), q("UUID")))
-		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
-			query = query.Where(
-				sq.Eq{
-					fmt.Sprintf("%s.%s", q("pipelines"), q("Namespace")): filterContext.ReferenceKey.ID, //nolint:staticcheck
-				},
-			)
-		}
-		query = query.Where(
-			sq.Eq{fmt.Sprintf("%s.%s", q("pipelines"), q("Status")): model.PipelineReady},
-		)
-		return query
-	}
-	sqlBuilder := buildQuery(qb.Select(s.selectJoinedColumns()...))
-
-	// SQL for row list
-	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder, q, s.dbDialect.StringCollation()).ToSql()
-	if err != nil {
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query to list pipelines")
-	}
-
-	// SQL for getting total size. This matches the query to get all the rows above, in order
-	// to do the same filter, but counts instead of scanning the rows.
-	sizeSQL, sizeArgs, err := buildQuery(qb.Select("count(*)")).ToSql()
-	if err != nil {
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query to count pipelines")
-	}
-
-	// Use a transaction to make sure we're returning the total_size of the same rows queried
-	tx, err := s.db.Begin()
-	if err != nil {
-		glog.Errorf("Failed to start transaction to list pipelines")
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to start transaction to list pipelines")
-	}
-	defer tx.Rollback()
-
-	// Get pipelines
-	rows, err := tx.Query(rowsSQL, rowsArgs...)
-	if err != nil {
-		tx.Rollback()
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
-	}
-	defer rows.Close()
-	if err := rows.Err(); err != nil {
-		tx.Rollback()
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
-	}
-	pipelines, pipelineVersions, err := s.scanJoinedRows(rows)
-	if err != nil {
-		tx.Rollback()
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of listing pipelines")
-	}
-
-	// Count pipelines
-	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
-	if err != nil {
-		tx.Rollback()
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
-	}
-	defer sizeRow.Close()
-	if err := sizeRow.Err(); err != nil {
-		tx.Rollback()
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
-	}
-	totalSize, err := list.ScanRowToTotalSize(sizeRow)
-	if err != nil {
-		tx.Rollback()
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of counting pipelines")
-	}
-
-	// Commit transaction
-	err = tx.Commit()
-	if err != nil {
-		glog.Errorf("Failed to commit transaction to list pipelines")
-		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to commit listing pipelines")
-	}
-
-	// Split results on multiple pages, if needed
-	if len(pipelines) <= opts.PageSize {
-		return pipelines, pipelineVersions, totalSize, "", nil
-	}
-	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
-	// npt2, err2 := opts.NextPageToken(pipelineVersions[opts.PageSize])
-	return pipelines[:opts.PageSize], pipelineVersions[:opts.PageSize], totalSize, npt, err
 }
 
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
@@ -474,72 +289,6 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 	return pipelines[:opts.PageSize], totalSize, npt, err
 }
 
-// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Parses SQL results of joining `pipelines` and `pipeline_versions` tables into []Pipelines.
-// This supports v1beta1 behavior.
-func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*model.PipelineVersion, error) {
-	var pipelines []*model.Pipeline
-	var pipelineVersions []*model.PipelineVersion
-	for rows.Next() {
-		var uuid, name, displayName, description string
-		var namespace sql.NullString
-		var status model.PipelineStatus
-		var versionUUID, versionName, versionDisplayName, versionParameters, versionPipelineId, versionCodeSourceUrl, versionStatus, versionDescription, pipelineSpec, pipelineSpecURI sql.NullString
-		var createdAtInSec, versionCreatedAtInSec sql.NullInt64
-		if err := rows.Scan(
-			&uuid,
-			&createdAtInSec,
-			&name,
-			&displayName,
-			&description,
-			&status,
-			&namespace,
-			&versionUUID,
-			&versionCreatedAtInSec,
-			&versionName,
-			&versionDisplayName,
-			&versionParameters,
-			&versionPipelineId,
-			&versionStatus,
-			&versionCodeSourceUrl,
-			&versionDescription,
-			&pipelineSpec,
-			&pipelineSpecURI,
-		); err != nil {
-			return nil, nil, err
-		}
-		pipelines = append(
-			pipelines,
-			&model.Pipeline{
-				UUID:           uuid,
-				CreatedAtInSec: createdAtInSec.Int64,
-				Name:           name,
-				DisplayName:    displayName,
-				Description:    model.LargeText(description),
-				Status:         status,
-				Namespace:      namespace.String,
-			},
-		)
-		pipelineVersions = append(
-			pipelineVersions,
-			&model.PipelineVersion{
-				UUID:            versionUUID.String,
-				CreatedAtInSec:  versionCreatedAtInSec.Int64,
-				Name:            versionName.String,
-				DisplayName:     versionDisplayName.String,
-				Parameters:      model.LargeText(versionParameters.String),
-				PipelineId:      versionPipelineId.String,
-				Status:          model.PipelineVersionStatus(versionStatus.String),
-				CodeSourceUrl:   versionCodeSourceUrl.String,
-				Description:     model.LargeText(versionDescription.String),
-				PipelineSpec:    model.LargeText(pipelineSpec.String),
-				PipelineSpecURI: model.LargeText(pipelineSpecURI.String),
-			},
-		)
-	}
-	return pipelines, pipelineVersions, nil
-}
-
 // Converts SQL response into []Pipeline (default version is set to nil).
 func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 	var pipelines []*model.Pipeline
@@ -590,7 +339,7 @@ func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {
 }
 
 // Returns a pipeline with a specified status.
-// Changes behavior compare to v1beta1: does not join with a default pipeline version.
+// Lists pipelines without joining versions.
 func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error) {
 	// Prepare the query
 	q := s.dbDialect.QuoteIdentifier
@@ -1082,28 +831,6 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 	return &newPipelineVersion, nil
 }
 
-// TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
-// Updates default pipeline version for a given pipeline.
-// Supports v1beta1 behavior.
-func (s *PipelineStore) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-	sql, args, err := qb.
-		Update(q("pipelines")).
-		Set(q("DefaultVersionId"), versionId).
-		Where(sq.Eq{q("UUID"): pipelineId}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create query to update the default version to %v for pipeline %v", versionId, pipelineId)
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to update the default version to %v for pipeline %v", versionId, pipelineId)
-	}
-
-	return nil
-}
-
 // Returns the latest pipeline version with status PipelineVersionReady for a given pipeline id.
 func (s *PipelineStore) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
 	q := s.dbDialect.QuoteIdentifier
@@ -1163,7 +890,7 @@ func (s *PipelineStore) GetPipelineVersionByName(pipelineID, versionName string)
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	// Name is matched case-insensitively; see the comment in
-	// GetPipelineByNameAndNamespaceV1 above.
+	// historical pipeline-name lookup.
 	query, args, err := qb.
 		Select(s.selectPipelineVersionColumns()...).
 		From(q("pipeline_versions")).

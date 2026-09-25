@@ -72,8 +72,9 @@ func TestCreateRunAndJob_DiscardCallerWorkflowStatus(t *testing.T) {
 					workflow := testWorkflow.DeepCopy()
 					workflow.Status = statusWithCachedServiceAccount(storedSpec)
 					pipelineSpec := model.PipelineSpec{
+						PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+						RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 						WorkflowSpecManifest: model.LargeText(util.NewWorkflow(workflow).ToStringForStore()),
-						Parameters:           `[{"name":"param1","value":"world"}]`,
 					}
 					var executionSpec util.ExecutionSpec
 					if recurring {
@@ -94,7 +95,7 @@ func TestCreateRunAndJob_DiscardCallerWorkflowStatus(t *testing.T) {
 						require.NoError(t, err)
 					}
 					assert.Equal(t, v1alpha1.WorkflowStatus{}, executionSpec.(*util.Workflow).Status)
-					assert.Equal(t, "testy", executionSpec.(*util.Workflow).Spec.Entrypoint)
+					assert.Equal(t, "entrypoint", executionSpec.(*util.Workflow).Spec.Entrypoint)
 				})
 			}
 		})
@@ -116,12 +117,11 @@ func TestCreateRun_RejectsStatusOnlyEntrypoint(t *testing.T) {
 			run := &model.Run{
 				DisplayName: "run1", ExperimentId: experiment.UUID,
 				PipelineSpec: model.PipelineSpec{
-					WorkflowSpecManifest: model.LargeText(util.NewWorkflow(workflow).ToStringForStore()),
-					Parameters:           `[{"name":"param1","value":"world"}]`,
+					PipelineSpecManifest: model.LargeText(util.NewWorkflow(workflow).ToStringForStore()),
 				},
 			}
 			_, err := manager.CreateRun(context.Background(), run)
-			require.ErrorContains(t, err, "cached-step")
+			require.ErrorContains(t, err, "legacy Argo Workflow pipelines are no longer supported")
 			assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
 			_, err = manager.GetRun(run.UUID)
 			assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
@@ -229,8 +229,8 @@ func TestCreateRun_PluginCachedTemplateUnauthorizedCleansUp(t *testing.T) {
 			run := &model.Run{
 				DisplayName: "run1", ExperimentId: experiment.UUID,
 				PipelineSpec: model.PipelineSpec{
-					WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-					Parameters:           `[{"name":"param1","value":"world"}]`,
+					PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+					RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
 				},
 			}
 			_, err := manager.CreateRun(multiUserContext(), run)

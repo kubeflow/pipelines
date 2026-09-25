@@ -10,12 +10,12 @@ Refer to [profiles and namespaces](https://www.kubeflow.org/docs/components/cent
 ## How are resources separated?
 
 Kubeflow Pipelines separates resources using Kubernetes namespaces that are managed by [Kubeflow Profiles](https://www.kubeflow.org/docs/components/central-dash/profiles/).
-Other users cannot see resources in your Profile/Namespace without permission, because the Kubeflow Pipelines API server 
+Other users cannot see resources in your Profile/Namespace without permission, because the Kubeflow Pipelines API server
 rejects requests for namespaces that the current user is not authorized to access.
 
 "Experiments" belong to namespaces directly, runs and recurring runs belong to their parent experiment's namespace.
 
-"Pipeline Runs" are executed in user namespaces, so that users can leverage Kubernetes namespace isolation. 
+"Pipeline Runs" are executed in user namespaces, so that users can leverage Kubernetes namespace isolation.
 For example, they can configure different secrets for other services in different namespaces.
 
 :::{warning}
@@ -26,7 +26,7 @@ User profiles have no additional isolation beyond what is provided by Kubernetes
 
 ## When using the UI
 
-When you visit the Kubeflow Pipelines UI from the Kubeflow Dashboard, it only shows "experiments", "runs", and "recurring runs" in your chosen namespace. 
+When you visit the Kubeflow Pipelines UI from the Kubeflow Dashboard, it only shows "experiments", "runs", and "recurring runs" in your chosen namespace.
 Similarly, when you create resources from the UI, they also belong to the namespace you have chosen.
 
 :::{warning}
@@ -75,7 +75,7 @@ print(client.list_runs(namespace=user_namespace))
 ```
 
 :::{tip}
-* To set a default namespace for Pipelines SDK commands, use the {py:meth}`kfp.Client().set_user_namespace() <kfp.client.Client.set_user_namespace>` method, 
+* To set a default namespace for Pipelines SDK commands, use the {py:meth}`kfp.Client().set_user_namespace() <kfp.client.Client.set_user_namespace>` method,
   this method stores your user namespace in a configuration file at `$HOME/.config/kfp/context.json`.
 * Detailed documentation for `kfp.Client()` can be found in the [Kubeflow Pipelines SDK Reference](../sdk/source/client.rst).
 :::
@@ -84,92 +84,34 @@ print(client.list_runs(namespace=user_namespace))
 
 When calling the [Kubeflow Pipelines REST API](../reference/api/kubeflow-pipeline-api-spec.md), a namespace argument is required for experiment APIs.
 <br>
-The namespace is specified by a "resource reference" with `type` of `NAMESPACE` and `key.id` equal to the namespace name.
-
-The following code uses the [generated python API client](https://kubeflow-pipelines.readthedocs.io/en/stable/source/kfp.server_api.html) to create an experiment and pipeline run.
+Set `namespace` on experiments and runs. Runs also refer to their experiment by
+`experiment_id` and their uploaded pipeline version by `pipeline_version_reference`.
 
 ```python
 import kfp
-from kfp_server_api import (
-    ApiExperiment,
-    ApiListRunsResponse,
-    ApiPipelineSpec,
-    ApiRelationship,
-    ApiResourceKey,
-    ApiResourceReference,
-    ApiResourceType,
-    ApiRun,
-    ApiRunDetail,
-)
+from kfp_server_api import V2beta1Experiment, V2beta1PipelineVersionReference, V2beta1Run
 
-# the namespace in which you deployed Kubeflow Pipelines
-kubeflow_namespace = "kubeflow"
-
-# the namespace of your pipelines user (where the pipeline will be executed)
 user_namespace = "jane-doe"
-
-# the KF_PIPELINES_SA_TOKEN_PATH environment variable is used when no `path` is set
-# the default KF_PIPELINES_SA_TOKEN_PATH is /var/run/secrets/kubeflow/pipelines/token
 credentials = kfp.auth.ServiceAccountTokenVolumeCredentials(path=None)
+client = kfp.Client(host="http://ml-pipeline-ui.kubeflow", credentials=credentials)
 
-# create a client
-client = kfp.Client(host=f"http://ml-pipeline-ui.{kubeflow_namespace}", credentials=credentials)
-
-# create an experiment
-experiment: ApiExperiment = client._experiment_api.create_experiment(
-    body=ApiExperiment(
-        name="<YOUR_EXPERIMENT_ID>",
-        resource_references=[
-            ApiResourceReference(
-                key=ApiResourceKey(
-                    id=user_namespace,
-                    type=ApiResourceType.NAMESPACE,
-                ),
-                relationship=ApiRelationship.OWNER,
-            )
-        ],
-    )
+experiment = client._experiment_api.experiment_service_create_experiment(
+    body=V2beta1Experiment(display_name="My experiment", namespace=user_namespace)
 )
-print("-------- BEGIN: EXPERIMENT --------")
-print(experiment)
-print("-------- END: EXPERIMENT ----------")
-
-# get the experiment by name (only necessary if you comment out the `create_experiment()` call)
-# experiment: ApiExperiment = client.get_experiment(
-#     experiment_name="<YOUR_EXPERIMENT_ID>",
-#     namespace=user_namespace
-# )
-
-# create a pipeline run
-run: ApiRunDetail = client._run_api.create_run(
-    body=ApiRun(
-        name="<YOUR_RUN_NAME>",
-        pipeline_spec=ApiPipelineSpec(
-            # replace <YOUR_PIPELINE_ID> with the UID of a pipeline definition you have previously uploaded
+run = client._run_api.run_service_create_run(
+    body=V2beta1Run(
+        display_name="My run",
+        namespace=user_namespace,
+        experiment_id=experiment.experiment_id,
+        pipeline_version_reference=V2beta1PipelineVersionReference(
             pipeline_id="<YOUR_PIPELINE_ID>",
+            pipeline_version_id="<YOUR_PIPELINE_VERSION_ID>",
         ),
-        resource_references=[ApiResourceReference(
-            key=ApiResourceKey(
-                id=experiment.id,
-                type=ApiResourceType.EXPERIMENT,
-            ),
-            relationship=ApiRelationship.OWNER,
-        )
-        ],
     )
 )
-print("-------- BEGIN: RUN --------")
-print(run)
-print("-------- END: RUN ----------")
-
-# view the pipeline run
-runs: ApiListRunsResponse = client._run_api.list_runs(
-    resource_reference_key_type=ApiResourceType.EXPERIMENT,
-    resource_reference_key_id=experiment.id,
+runs = client._run_api.run_service_list_runs(
+    namespace=user_namespace, experiment_id=experiment.experiment_id
 )
-print("-------- BEGIN: RUNS --------")
-print(runs)
-print("-------- END: RUNS ----------")
 ```
 
 ## Current limitations

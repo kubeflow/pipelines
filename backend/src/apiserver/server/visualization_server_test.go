@@ -21,7 +21,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -38,12 +38,12 @@ func TestValidateCreateVisualizationRequest(t *testing.T) {
 	server := &VisualizationServer{
 		resourceManager: manager,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	err := server.validateCreateVisualizationRequest(request)
@@ -56,12 +56,12 @@ func TestValidateCreateVisualizationRequest_ArgumentsAreEmpty(t *testing.T) {
 	server := &VisualizationServer{
 		resourceManager: manager,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	err := server.validateCreateVisualizationRequest(request)
@@ -74,12 +74,12 @@ func TestValidateCreateVisualizationRequest_SourceIsEmpty(t *testing.T) {
 	server := &VisualizationServer{
 		resourceManager: manager,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "",
 		Arguments: "{}",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	err := server.validateCreateVisualizationRequest(request)
@@ -92,11 +92,11 @@ func TestValidateCreateVisualizationRequest_SourceIsEmptyAndTypeIsCustom(t *test
 	server := &VisualizationServer{
 		resourceManager: manager,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_CUSTOM,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_CUSTOM,
 		Arguments: "{}",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	err := server.validateCreateVisualizationRequest(request)
@@ -109,12 +109,12 @@ func TestValidateCreateVisualizationRequest_ArgumentsNotValidJSON(t *testing.T) 
 	server := &VisualizationServer{
 		resourceManager: manager,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	err := server.validateCreateVisualizationRequest(request)
@@ -133,12 +133,12 @@ func TestGenerateVisualization(t *testing.T) {
 		resourceManager: manager,
 		serviceURL:      httpServer.URL,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	body, err := server.generateVisualizationFromRequest(request)
@@ -161,12 +161,12 @@ func TestGenerateVisualization_ServiceNotAvailableError(t *testing.T) {
 		resourceManager: manager,
 		serviceURL:      httpServer.URL,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	body, err := server.generateVisualizationFromRequest(request)
@@ -182,12 +182,12 @@ func TestGenerateVisualization_ServiceHostNotExistError(t *testing.T) {
 		resourceManager: manager,
 		serviceURL:      nonExistingServerURL,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	body, err := server.generateVisualizationFromRequest(request)
@@ -215,12 +215,12 @@ func TestGenerateVisualization_ServerError(t *testing.T) {
 		resourceManager: manager,
 		serviceURL:      httpServer.URL,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
 	body, err := server.generateVisualizationFromRequest(request)
@@ -233,7 +233,7 @@ func TestGetVisualizationServiceURL(t *testing.T) {
 		resourceManager: nil,
 		serviceURL:      "http://host:port",
 	}
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: nil,
 	}
 	url := server.getVisualizationServiceURL(request)
@@ -251,7 +251,7 @@ func TestGetVisualizationServiceURL_Multiuser(t *testing.T) {
 		serviceURL:      "http://host:port",
 	}
 
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: nil,
 		Namespace:     "ns1",
 	}
@@ -259,7 +259,7 @@ func TestGetVisualizationServiceURL_Multiuser(t *testing.T) {
 	assert.Equal(t, "http://ml-pipeline-visualizationserver.ns1:8888", url)
 
 	// when namespace is not provided, we fall back to the default visuliaztion service
-	request = &apiv1beta1.CreateVisualizationRequest{
+	request = &apiv2beta1.CreateVisualizationRequest{
 		Visualization: nil,
 	}
 	url = server.getVisualizationServiceURL(request)
@@ -282,13 +282,13 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 	server := &VisualizationServer{
 		resourceManager: resourceManager,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
 
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 		Namespace:     "ns1",
 	}
@@ -322,13 +322,13 @@ func TestCreateVisualization_Unauthenticated(t *testing.T) {
 	server := &VisualizationServer{
 		resourceManager: resourceManager,
 	}
-	visualization := &apiv1beta1.Visualization{
-		Type:      apiv1beta1.Visualization_ROC_CURVE,
+	visualization := &apiv2beta1.Visualization{
+		Type:      apiv2beta1.Visualization_ROC_CURVE,
 		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
 
-	request := &apiv1beta1.CreateVisualizationRequest{
+	request := &apiv2beta1.CreateVisualizationRequest{
 		Visualization: visualization,
 		Namespace:     "ns1",
 	}
@@ -339,4 +339,10 @@ func TestCreateVisualization_Unauthenticated(t *testing.T) {
 		err.Error(),
 		"there is no user identity header",
 	)
+}
+
+func TestVisualizationServer_RejectsMissingVisualization(t *testing.T) {
+	server := &VisualizationServer{}
+	assert.Error(t, server.validateCreateVisualizationRequest(nil))
+	assert.Error(t, server.validateCreateVisualizationRequest(&apiv2beta1.CreateVisualizationRequest{}))
 }

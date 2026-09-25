@@ -11,10 +11,10 @@ data to rich interactive visualizations.
 ## Next steps
 
 * Read an [overview of Kubeflow Pipelines](../overview.md).
-* Follow the [pipelines quickstart guide](../getting-started.md) 
-  to deploy Kubeflow and run a sample pipeline directly from the Kubeflow 
+* Follow the [pipelines quickstart guide](../getting-started.md)
+  to deploy Kubeflow and run a sample pipeline directly from the Kubeflow
   Pipelines UI.
-* Read more about the available 
-  [output viewers](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk/output-viewer/) 
+* Read more about the available
+  [output viewers](../user-guides/data-handling/artifacts.md)
   and how to provide the metadata to make use of the visualizations
   that the output viewers provide.

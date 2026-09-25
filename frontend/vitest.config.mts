@@ -37,9 +37,8 @@ export default defineConfig({
       exclude: [
         'src/**/__snapshots__/**',
         'src/**/__mocks__/**',
-        'src/apis/**',
-        'src/apisv2beta1/**',
         'src/third_party/**',
+        'src/apisv2beta1/**',
         'src/build/**',
       ],
     },

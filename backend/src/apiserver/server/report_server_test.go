@@ -20,8 +20,7 @@ import (
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -34,10 +33,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestReportWorkflowV1(t *testing.T) {
+func TestReportWorkflowMigrated(t *testing.T) {
 	clientManager, resourceManager, run := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	reportServer := &ReportServerV1{
+	reportServer := &ReportServer{
 		BaseReportServer: &BaseReportServer{
 			resourceManager: resourceManager,
 		},
@@ -75,7 +74,7 @@ func TestReportWorkflowV1(t *testing.T) {
 		context.Background(), run.K8SName, metav1.GetOptions{})
 	require.NoError(t, err)
 	workflow.UID = liveWorkflow.ExecutionObjectMeta().UID
-	_, err = reportServer.ReportWorkflowV1(context.Background(), &api.ReportWorkflowRequest{
+	_, err = reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)
@@ -84,7 +83,7 @@ func TestReportWorkflowV1(t *testing.T) {
 	assert.NotNil(t, run)
 }
 
-func TestReportWorkflowV1_ValidationFailed(t *testing.T) {
+func TestReportWorkflow_ValidationFailedMigrated(t *testing.T) {
 	clientManager, resourceManager, run := initWithOneTimeRun(t)
 	defer clientManager.Close()
 	reportServer := NewReportServer(resourceManager)
@@ -100,7 +99,7 @@ func TestReportWorkflowV1_ValidationFailed(t *testing.T) {
 		},
 	})
 
-	_, err := reportServer.ReportWorkflow(nil, &apiv2.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)
@@ -144,7 +143,7 @@ func TestReportWorkflow(t *testing.T) {
 		context.Background(), run.K8SName, metav1.GetOptions{})
 	require.NoError(t, err)
 	workflow.UID = liveWorkflow.ExecutionObjectMeta().UID
-	_, err = reportServer.ReportWorkflow(context.Background(), &apiv2.ReportWorkflowRequest{
+	_, err = reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)
@@ -177,7 +176,7 @@ func TestReportWorkflow_DoesNotPersistTasksFromStalePreTerminationSnapshot(t *te
 	// Model the recovery window where cancellation committed to SQL but the
 	// API server has not yet patched the Workflow.
 	require.NoError(t, clientManager.RunStore().TerminateRun(run.UUID))
-	_, err = reportServer.ReportWorkflow(ctx, &apiv2.ReportWorkflowRequest{
+	_, err = reportServer.ReportWorkflow(ctx, &api.ReportWorkflowRequest{
 		Workflow: liveWorkflow.ToStringForStore(),
 	})
 	require.Error(t, err)
@@ -199,7 +198,7 @@ func TestReportWorkflow_DoesNotPersistTasksFromStalePreTerminationSnapshot(t *te
 func TestReportWorkflow_ValidationFailed(t *testing.T) {
 	clientManager, resourceManager, run := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	reportServer := NewReportServerV1(resourceManager)
+	reportServer := NewReportServer(resourceManager)
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: metav1.TypeMeta{
@@ -212,7 +211,7 @@ func TestReportWorkflow_ValidationFailed(t *testing.T) {
 		},
 	})
 
-	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)
@@ -370,22 +369,22 @@ func TestValidateReportScheduledWorkflowRequest_MissingField(t *testing.T) {
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 }
 
-func TestReportScheduledWorkflowV1_InvalidManifest(t *testing.T) {
+func TestReportScheduledWorkflow_InvalidManifestMigrated(t *testing.T) {
 	clientManager, resourceManager, _ := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	reportServer := NewReportServerV1(resourceManager)
+	reportServer := NewReportServer(resourceManager)
 
-	_, err := reportServer.ReportScheduledWorkflowV1(context.Background(), &api.ReportScheduledWorkflowRequest{
+	_, err := reportServer.ReportScheduledWorkflow(context.Background(), &api.ReportScheduledWorkflowRequest{
 		ScheduledWorkflow: "INVALID_JSON",
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Could not unmarshal")
 }
 
-func TestReportScheduledWorkflowV1_MissingFields(t *testing.T) {
+func TestReportScheduledWorkflow_MissingFields(t *testing.T) {
 	clientManager, resourceManager, _ := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	reportServer := NewReportServerV1(resourceManager)
+	reportServer := NewReportServer(resourceManager)
 
 	// Missing name
 	scheduledWorkflow := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -394,7 +393,7 @@ func TestReportScheduledWorkflowV1_MissingFields(t *testing.T) {
 			UID:       "1",
 		},
 	})
-	_, err := reportServer.ReportScheduledWorkflowV1(context.Background(), &api.ReportScheduledWorkflowRequest{
+	_, err := reportServer.ReportScheduledWorkflow(context.Background(), &api.ReportScheduledWorkflowRequest{
 		ScheduledWorkflow: scheduledWorkflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)
@@ -406,7 +405,7 @@ func TestReportScheduledWorkflow_InvalidManifest(t *testing.T) {
 	defer clientManager.Close()
 	reportServer := NewReportServer(resourceManager)
 
-	_, err := reportServer.ReportScheduledWorkflow(context.Background(), &apiv2.ReportScheduledWorkflowRequest{
+	_, err := reportServer.ReportScheduledWorkflow(context.Background(), &api.ReportScheduledWorkflowRequest{
 		ScheduledWorkflow: "INVALID_JSON",
 	})
 	assert.NotNil(t, err)

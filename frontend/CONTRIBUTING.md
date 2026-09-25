@@ -81,8 +81,8 @@ You can learn more about npm in https://docs.npmjs.com/about-npm/.
 You can then do `npm start` to run a Vite dev server at port 3000 that
 watches the source files. It also redirects api requests to localhost:3001. For
 example, requesting the pipelines page sends a fetch request to
-http://localhost:3000/apis/v1beta1/pipelines, which is proxied by the
-webserver to http://localhost:3001/apis/v1beta1/pipelines,
+http://localhost:3000/apis/v2beta1/pipelines, which is proxied by the
+webserver to http://localhost:3001/apis/v2beta1/pipelines,
 which should return the list of pipelines. To override the port, run
 `npm run start -- --port 3002` or update `frontend/vite.config.mts`.
 
@@ -102,7 +102,7 @@ not support every backend API used by KFP.
 Run `npm run mock:api` to start a mock backend api server handler so it can
 serve basic api calls with mock data. The mock backend includes enough v2beta1
 fixtures for the primary Pipelines, Experiments, Runs, and Recurring Runs list
-pages, along with v1beta1 fixtures used by older flows.
+pages, using native v2 fixtures.
 
 Use the real-cluster proxy path below when you need behavior that depends on
 Kubernetes, native tasks and artifacts, pod logs, authentication, or full backend
@@ -266,17 +266,15 @@ guide [here](https://prettier.io/docs/en/ignore.html). (Most likely you don't ne
 If you made any changes to protos (see backend/README), you'll need to
 regenerate the Typescript client library from swagger. The frontend uses
 OpenAPI Generator via Docker (`openapitools/openapi-generator-cli:v7.19.0`).
-Make sure Docker is running, then run `npm run apis` for v1 api,
-`npm run apis:v2beta1` for v2 api, or `npm run apis:all` to regenerate every
+Make sure Docker is running, then run `npm run apis` or `npm run apis:all` to regenerate every
 frontend and server surface in one pass.
 
 You can also generate individual surfaces, for example:
 
 ```bash
-npm run apis:run
 npm run apis:v2beta1:run
 # or invoke the generator directly from the repo root:
-node frontend/scripts/generate_openapi_typescript_fetch.js v1:run
+node frontend/scripts/generate_openapi_typescript_fetch.js v2beta1:run
 ```
 Code generation formats the generated files automatically.
 

@@ -39,7 +39,6 @@ type PipelineInterface interface {
 	List(params *params.PipelineServiceListPipelinesParams) ([]*model.V2beta1Pipeline, int, string, error)
 	ListAll(params *params.PipelineServiceListPipelinesParams, maxResultSize int) (
 		[]*model.V2beta1Pipeline, error)
-	// UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionParams) error
 }
 
 type PipelineClient struct {

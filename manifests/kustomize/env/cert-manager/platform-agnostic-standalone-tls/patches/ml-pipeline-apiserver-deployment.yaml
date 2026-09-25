@@ -24,7 +24,7 @@ spec:
               value: "ml-pipeline.kubeflow.svc.cluster.local"
           readinessProbe:
             httpGet:
-              path: /apis/v1beta1/healthz
+              path: /apis/v2beta1/healthz
               port: 8888
               scheme: HTTPS
             initialDelaySeconds: 3
@@ -32,7 +32,7 @@ spec:
             timeoutSeconds: 2
           livenessProbe:
             httpGet:
-              path: /apis/v1beta1/healthz
+              path: /apis/v2beta1/healthz
               port: 8888
               scheme: HTTPS
             initialDelaySeconds: 3
@@ -40,7 +40,7 @@ spec:
             timeoutSeconds: 2
           startupProbe:
             httpGet:
-              path: /apis/v1beta1/healthz
+              path: /apis/v2beta1/healthz
               port: 8888
               scheme: HTTPS
             failureThreshold: 12

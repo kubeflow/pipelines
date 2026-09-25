@@ -14,25 +14,18 @@ resources:
 
 patches:
   - path: apiserver-patch.yaml
-  - path: cache-server-patch.yaml
-
 configMapGenerator:
   - name: pipeline-install-config
     behavior: merge
     literals:
       - DBDriverName=pgx
       - pipelineDb=mlpipeline
-      - cacheDb=cachedb
       - postgresHost=postgres-service
       - postgresPort=5432
       # Operators must explicitly set this in their overlay. Leaving it empty
       # makes the API and cache servers fail closed rather than using plaintext.
       - postgresExtraParams=
-      - BLOCK_V1_PIPELINES=false
-      - V1_ALLOWED_NAMESPACES=
 
-# !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
 
 # Identifier for application manager to apply ownerReference.

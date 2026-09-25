@@ -37,7 +37,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -96,13 +95,10 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 // allows tests to supply lightweight stubs without constructing real
 // server instances.
 type HTTPRouterDeps struct {
-	UploadPipelineV1        http.HandlerFunc
-	UploadPipelineVersionV1 http.HandlerFunc
-	UploadPipeline          http.HandlerFunc
-	UploadPipelineVersion   http.HandlerFunc
-	ReadRunLogV1            http.HandlerFunc
-	ReadArtifactV1          http.HandlerFunc
-	ReadArtifact            http.HandlerFunc
+	UploadPipeline        http.HandlerFunc
+	UploadPipelineVersion http.HandlerFunc
+	ReadRunLog            http.HandlerFunc
+	ReadArtifact          http.HandlerFunc
 }
 
 func parseTLSVersion(version string) (uint16, error) {
@@ -416,8 +412,7 @@ func clearTagsMiddleware(next http.Handler) http.Handler {
 }
 
 // isPipelineUpdatePath returns true if the URL path matches a pipeline or
-// pipeline version update endpoint (v2beta1 only, since v1beta1 does not
-// support tags).
+// pipeline version update endpoint.
 func isPipelineUpdatePath(path string) bool {
 	// v2beta1 UpdatePipeline:        PATCH /apis/v2beta1/pipelines/{pipeline_id}
 	// v2beta1 UpdatePipelineVersion: PATCH /apis/v2beta1/pipelines/{pipeline_id}/versions/{version_id}
@@ -457,42 +452,7 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
 
-	ExperimentServerV1 := server.NewExperimentServerV1(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
-	ExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
-
-	PipelineServerV1 := server.NewPipelineServerV1(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
-	PipelineServer := server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
-
-	RunServerV1 := server.NewRunServerV1(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
-	RunServer := server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
-
-	JobServerV1 := server.NewJobServerV1(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
-	JobServer := server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
-
-	ReportServerV1 := server.NewReportServerV1(resourceManager)
-	ReportServer := server.NewReportServer(resourceManager)
-
-	ArtifactServer := server.NewArtifactServer(resourceManager)
-
-	apiv1beta1.RegisterExperimentServiceServer(s, ExperimentServerV1)
-	apiv1beta1.RegisterPipelineServiceServer(s, PipelineServerV1)
-	apiv1beta1.RegisterJobServiceServer(s, JobServerV1)
-	apiv1beta1.RegisterRunServiceServer(s, RunServerV1)
-	apiv1beta1.RegisterReportServiceServer(s, ReportServerV1)
-	apiv1beta1.RegisterVisualizationServiceServer(
-		s,
-		server.NewVisualizationServer(
-			resourceManager,
-			common.GetStringConfig(cm.VisualizationServiceHost),
-			common.GetStringConfig(cm.VisualizationServicePort),
-		))
-	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
-	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
-	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
-	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
-	apiv2beta1.RegisterRunServiceServer(s, RunServer)
-	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
-	apiv2beta1.RegisterArtifactServiceServer(s, ArtifactServer)
+	registerRPCServices(s, resourceManager)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -525,35 +485,17 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 			glog.Fatalf("%v", err)
 		}
 	}
-	register(apiv1beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")
-	register(apiv1beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
-	register(apiv1beta1.RegisterJobServiceHandlerFromEndpoint, "JobService")
-	register(apiv1beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
-	register(apiv1beta1.RegisterTaskServiceHandlerFromEndpoint, "TaskService")
-	register(apiv1beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
-	register(apiv1beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization")
-	register(apiv1beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService")
-
-	// Create gRPC HTTP MUX and register services for v2beta1 api.
-	register(apiv2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
-	register(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")
-	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
-	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
-	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
-	register(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
+	registerGatewayServices(register)
 
 	sharedPipelineUploadServer := server.NewPipelineUploadServer(resourceManager, &server.PipelineUploadServerOptions{CollectMetrics: *collectMetricsFlag})
 	runLogServer := server.NewRunLogServer(resourceManager)
 	runArtifactServer := server.NewRunArtifactServer(resourceManager)
 
 	handlerDeps := HTTPRouterDeps{
-		UploadPipelineV1:        sharedPipelineUploadServer.UploadPipelineV1,
-		UploadPipelineVersionV1: sharedPipelineUploadServer.UploadPipelineVersionV1,
-		UploadPipeline:          sharedPipelineUploadServer.UploadPipeline,
-		UploadPipelineVersion:   sharedPipelineUploadServer.UploadPipelineVersion,
-		ReadRunLogV1:            runLogServer.ReadRunLogV1,
-		ReadArtifactV1:          runArtifactServer.ReadArtifactV1,
-		ReadArtifact:            runArtifactServer.ReadArtifact,
+		UploadPipeline:        sharedPipelineUploadServer.UploadPipeline,
+		UploadPipelineVersion: sharedPipelineUploadServer.UploadPipelineVersion,
+		ReadRunLog:            runLogServer.ReadRunLog,
+		ReadArtifact:          runArtifactServer.ReadArtifact,
 	}
 
 	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore)
@@ -614,12 +556,6 @@ func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
 	// accept pipeline url for importing.
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
-	// API v1beta1
-	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", handlerDeps.UploadPipelineV1)
-	topMux.HandleFunc("/apis/v1beta1/pipelines/upload_version", handlerDeps.UploadPipelineVersionV1)
-	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		writeJSONResponse(w, newHealthzResponse(""))
-	})
 	// API v2beta1
 	topMux.HandleFunc("/apis/v2beta1/pipelines/upload", handlerDeps.UploadPipeline)
 	topMux.HandleFunc("/apis/v2beta1/pipelines/upload_version", handlerDeps.UploadPipelineVersion)
@@ -628,10 +564,9 @@ func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler
 	})
 
 	// log streaming is provided via HTTP.
-	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", handlerDeps.ReadRunLogV1)
+	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/log", handlerDeps.ReadRunLog).Methods(http.MethodGet)
 
 	// Artifact reading endpoints (implemented with streaming for memory efficiency)
-	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifactV1).Methods(http.MethodGet)
 	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", handlerDeps.ReadArtifact).Methods(http.MethodGet)
 
 	topMux.PathPrefix("/apis/").Handler(clearTagsMiddleware(grpcGatewayHandler))
@@ -843,4 +778,46 @@ func getPVCSpec() (*corev1.PersistentVolumeClaimSpec, error) {
 	}
 
 	return &pvcSpec, nil
+}
+
+// registerRPCServices wires the API server's v2 gRPC service implementations
+// onto the shared gRPC server.
+func registerRPCServices(s *grpc.Server, resourceManager *resource.ResourceManager) {
+	ExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
+
+	PipelineServer := server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
+
+	RunServer := server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
+
+	JobServer := server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
+
+	ReportServer := server.NewReportServer(resourceManager)
+
+	ArtifactServer := server.NewArtifactServer(resourceManager)
+
+	apiv2beta1.RegisterVisualizationServiceServer(
+		s,
+		server.NewVisualizationServer(
+			resourceManager,
+			common.GetStringConfig(cm.VisualizationServiceHost),
+			common.GetStringConfig(cm.VisualizationServicePort),
+		))
+	apiv2beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
+	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
+	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
+	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
+	apiv2beta1.RegisterRunServiceServer(s, RunServer)
+	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
+	apiv2beta1.RegisterArtifactServiceServer(s, ArtifactServer)
+}
+
+func registerGatewayServices(register func(RegisterHttpHandlerFromEndpoint, string)) {
+	register(apiv2beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization")
+	register(apiv2beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService")
+	register(apiv2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
+	register(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")
+	register(apiv2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService")
+	register(apiv2beta1.RegisterRunServiceHandlerFromEndpoint, "RunService")
+	register(apiv2beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService")
+	register(apiv2beta1.RegisterArtifactServiceHandlerFromEndpoint, "ArtifactService")
 }

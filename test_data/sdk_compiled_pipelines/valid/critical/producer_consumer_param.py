@@ -13,43 +13,45 @@
 # limitations under the License.
 
 # Simple two-step pipeline with 'producer' and 'consumer' steps
-from kfp import components, compiler, dsl
+from kfp import compiler
+from kfp import dsl
 
-producer_op = components.load_component_from_text("""
-name: Producer
-inputs:
-- {name: input_text, type: String, description: 'Represents an input parameter.'}
-outputs:
-- {name: output_value, type: String, description: 'Represents an output paramter.'}
-implementation:
-  container:
-    image: registry.access.redhat.com/ubi9/python-311:latest
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      mkdir -p "$(dirname "$1")"
-      echo "$0, this is an output parameter" > "$1"
-    - {inputValue: input_text}
-    - {outputPath: output_value}
-""")
 
-consumer_op = components.load_component_from_text("""
-name: Consumer
-inputs:
-- {name: input_value, type: String, description: 'Represents an input parameter. It connects to an upstream output parameter.'}
-implementation:
-  container:
-    image: registry.access.redhat.com/ubi9/python-311:latest
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "Read from an input parameter: " && echo "$0"
-    - {inputValue: input_value}
-""")
+@dsl.container_component
+def producer(input_text: str, output_value: dsl.OutputPath(str)):
+    """
+    Args:
+        input_text: Represents an input parameter.
+        output_value: Represents an output paramter."""
+    return dsl.ContainerSpec(
+        image='registry.access.redhat.com/ubi9/python-311:latest',
+        command=[
+            'sh', '-c',
+            'set -e -x\nmkdir -p "$(dirname "$1")"\necho "$0, this is an output parameter" > "$1"\n',
+            input_text, output_value
+        ],
+    )
+
+
+producer_op = producer
+
+
+@dsl.container_component
+def consumer(input_value: str):
+    """
+    Args:
+        input_value: Represents an input parameter. It connects to an upstream output parameter."""
+    return dsl.ContainerSpec(
+        image='registry.access.redhat.com/ubi9/python-311:latest',
+        command=[
+            'sh', '-c',
+            'set -e -x\necho "Read from an input parameter: " && echo "$0"\n',
+            input_value
+        ],
+    )
+
+
+consumer_op = consumer
 
 
 @dsl.pipeline(name='producer-consumer-param-pipeline')

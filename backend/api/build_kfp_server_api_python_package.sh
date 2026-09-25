@@ -14,6 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+API_VERSION=${API_VERSION:-v2beta1}
+if [[ "$API_VERSION" != "v2beta1" ]]; then
+    echo "Only the v2beta1 API is supported." >&2
+    exit 1
+fi
 
 # The scripts creates a the KF Pipelines API python package.
 # Requirements: jq and Java
@@ -62,25 +67,15 @@ swagger_file="$CURRENT_DIR/$API_VERSION/swagger/kfp_api_single_file.swagger.json
 echo "Removing old content in DIR first."
 rm -rf "$DIR"
 
-generator_options=()
-if [[ "$API_VERSION" == "v1beta1" ]]; then
-    generator_options+=(
-        --global-property
-        apiTests=false,modelTests=false
-    )
-fi
 
 echo "Generating python code from swagger json in $DIR."
 java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/python_http_client_template" -i "$swagger_file" -o "$DIR" \
-    "${generator_options[@]}" -c <(echo '{
+    -c <(echo '{
     "packageName": "'"kfp_server_api"'",
     "packageVersion": "'"$VERSION"'",
     "packageUrl": "https://github.com/kubeflow/pipelines"
 }')
 
-if [[ "$API_VERSION" == "v1beta1" ]]; then
-    rm "$DIR/tox.ini" "$DIR/test-requirements.txt"
-fi
 
 echo "Removing unnecessary GitLab and TravisCI generated files"
 rm -f $CURRENT_DIR/$API_VERSION/python_http_client/.gitlab-ci.yml

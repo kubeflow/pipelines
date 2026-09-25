@@ -23,8 +23,8 @@ import pathlib
 import re
 import tarfile
 import textwrap
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
-                    Union)
+import typing
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
@@ -347,18 +347,6 @@ def get_name_to_specs(
             name_to_output_specs[maybe_make_unique(
                 name,
                 list(name_to_output_specs))] = make_output_spec(annotation)
-    # is deprecated dict returns style
-    elif isinstance(return_ann, dict):
-        warnings.warn(
-            'The ability to specify multiple outputs using the dict syntax'
-            ' has been deprecated. It will be removed soon after release'
-            ' 0.1.32. Please use typing.NamedTuple to declare multiple'
-            ' outputs.', DeprecationWarning)
-        for output_name, output_type_annotation in return_ann.items():
-            output_type = type_utils._annotation_to_type_struct(
-                output_type_annotation)
-            name_to_output_specs[maybe_make_unique(
-                output_name, list(name_to_output_specs))] = output_type
     # is the simple single return case (can be `-> <param>` or `-> Artifact`)
     # treated the same way, since processing is done in inner functions
     else:
@@ -436,8 +424,8 @@ def extract_component_interface(
 ) -> structures.ComponentSpec:
 
     def assign_descriptions(
-        inputs_or_outputs: Mapping[str, Union[structures.InputSpec,
-                                              structures.OutputSpec]],
+        inputs_or_outputs: typing.Mapping[str, Union[structures.InputSpec,
+                                                     structures.OutputSpec]],
         docstring_params: List[docstring_parser.DocstringParam],
     ) -> None:
         """Assigns descriptions to InputSpec or OutputSpec for each component
@@ -765,10 +753,9 @@ def create_notebook_component_from_func(
         notebook_relpath = nb_path.name
 
     # Build the helper source template with a placeholder for the embedded archive
-    from kfp.dsl.templates.notebook_executor import \
-        get_notebook_executor_source
-    helper_template = get_notebook_executor_source('{embedded_archive}',
-                                                   notebook_relpath)
+    from kfp.dsl.templates import notebook_executor
+    helper_template = notebook_executor.get_notebook_executor_source(
+        '{embedded_archive}', notebook_relpath)
 
     # Delegate to the common component creation using the embedded artifact path
     return create_component_from_func(

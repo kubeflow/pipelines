@@ -15,9 +15,9 @@
 import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper.js';
 import {
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
-} from '../src/generated/apis/auth/index.js';
+  AuthorizeResourcesEnum,
+  AuthorizeVerbEnum,
+} from '../src/generated/apisv2beta1/auth/index.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 
 /**
@@ -40,8 +40,8 @@ export function getPodInfoHandlers(authorizeFn: AuthorizeFn) {
     try {
       const authError = await authorizeFn(
         {
-          verb: AuthorizeRequestVerb.GET,
-          resources: AuthorizeRequestResources.VIEWERS,
+          verb: AuthorizeVerbEnum.GET,
+          resources: AuthorizeResourcesEnum.VIEWERS,
           namespace: podnamespace as string,
         },
         req,
@@ -84,8 +84,8 @@ export function getPodInfoHandlers(authorizeFn: AuthorizeFn) {
     try {
       const authError = await authorizeFn(
         {
-          verb: AuthorizeRequestVerb.GET,
-          resources: AuthorizeRequestResources.VIEWERS,
+          verb: AuthorizeVerbEnum.GET,
+          resources: AuthorizeResourcesEnum.VIEWERS,
           namespace: podnamespace as string,
         },
         req,

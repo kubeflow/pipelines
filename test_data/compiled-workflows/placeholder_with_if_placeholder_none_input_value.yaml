@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     workflows.argoproj.io/pod-name-format: v1
-  generateName: one-step-pipeline-with-if-placeholder-supply-none-
+  generateName: pipeline-with-if-placeholder-supply-none-
 spec:
   arguments: {}
   entrypoint: entrypoint
@@ -23,7 +23,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - one-step-pipeline-with-if-placeholder-supply-none
+      - pipeline-with-if-placeholder-supply-none
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -316,7 +316,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - one-step-pipeline-with-if-placeholder-supply-none
+      - pipeline-with-if-placeholder-supply-none
       - --run_id
       - '{{workflow.uid}}'
       - --run_name

@@ -38,7 +38,7 @@ import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetr
 import { commonCss, padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis, ListRequest } from 'src/lib/Apis';
-import { KeyValue } from 'src/lib/StaticGraphParser';
+import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { errorToMessage, formatDateString, logger } from 'src/lib/Utils';
 import {
   isInputArtifactTaskType,

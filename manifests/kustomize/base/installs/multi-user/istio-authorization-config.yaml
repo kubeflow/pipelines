@@ -42,7 +42,6 @@ spec:
         - cluster.local/ns/kubeflow/sa/ml-pipeline-persistenceagent
         - cluster.local/ns/kubeflow/sa/ml-pipeline-scheduledworkflow
         - cluster.local/ns/kubeflow/sa/ml-pipeline-viewer-crd-service-account
-        - cluster.local/ns/kubeflow/sa/kubeflow-pipelines-cache
   # Allow all requests that dont have a `kubeflow-userid` header.
   - when:
     - key: request.headers[kubeflow-userid]
@@ -66,20 +65,6 @@ spec:
         - cluster.local/ns/kubeflow/sa/ml-pipeline-persistenceagent
         - cluster.local/ns/kubeflow/sa/ml-pipeline-scheduledworkflow
         - cluster.local/ns/kubeflow/sa/ml-pipeline-viewer-crd-service-account
-        - cluster.local/ns/kubeflow/sa/kubeflow-pipelines-cache
-
----
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: service-cache-server
-  namespace: kubeflow
-spec:
-  selector:
-    matchLabels:
-      app: cache-server
-  rules:
-  - {}
 
 ---
 apiVersion: "networking.istio.io/v1alpha3"

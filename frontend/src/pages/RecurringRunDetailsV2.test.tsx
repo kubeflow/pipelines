@@ -89,9 +89,6 @@ describe('RecurringRunDetailsV2', () => {
     };
 
     vi.clearAllMocks();
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-    );
 
     getRecurringRunSpy.mockImplementation(() => fullTestV2RecurringRun);
     getPipelineVersionSpy.mockImplementation(() => testPipelineVersion);
@@ -110,10 +107,9 @@ describe('RecurringRunDetailsV2', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
-      expect(getPipelineVersionSpy).toHaveBeenCalled();
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
     });
-
-    screen.getByText('Enabled');
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
     screen.getByText('Yes');
     screen.getByText('Trigger');
     screen.getByText('Every 1 hours');
@@ -146,10 +142,9 @@ describe('RecurringRunDetailsV2', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
-      expect(getPipelineVersionSpy).toHaveBeenCalled();
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
     });
-
-    await screen.findByText('Enabled');
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
     screen.getByText('Yes');
     screen.getByText('Trigger');
     screen.getByText('* * * 0 0 !');

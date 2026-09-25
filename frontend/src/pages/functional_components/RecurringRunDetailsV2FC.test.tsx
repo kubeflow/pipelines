@@ -139,10 +139,9 @@ describe('RecurringRunDetailsV2FC', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
-      expect(getPipelineVersionSpy).toHaveBeenCalled();
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
     });
-
-    expect(await screen.findByText('Enabled')).toBeInTheDocument();
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
     screen.getByText('Yes');
     screen.getByText('Trigger');
     screen.getByText('Every 1 hours');
@@ -175,10 +174,9 @@ describe('RecurringRunDetailsV2FC', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
-      expect(getPipelineVersionSpy).toHaveBeenCalled();
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
     });
-
-    expect(await screen.findByText('Enabled')).toBeInTheDocument();
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
     screen.getByText('Yes');
     screen.getByText('Trigger');
     screen.getByText('* * * 0 0 !');
