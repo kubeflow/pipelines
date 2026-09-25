@@ -25,6 +25,7 @@ secretGenerator:
   - params-db-secret.env
   name: mysql-secret
 
+# !!! If you want to customize the namespace,
 # please also update sample/cluster-scoped-resources/kustomization.yaml's namespace field to the same value
 namespace: kubeflow
 

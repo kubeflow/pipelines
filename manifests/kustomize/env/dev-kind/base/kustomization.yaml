@@ -5,6 +5,7 @@ resources:
 - ../../cert-manager/platform-agnostic-k8s-native
 - ./default-allow-same-namespace-networkpolicy.yaml
 
+# !!! If you want to customize the namespace,
 # please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
 namespace: kubeflow
 
