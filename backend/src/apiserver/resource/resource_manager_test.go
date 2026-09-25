@@ -1418,7 +1418,8 @@ func TestCreatePipelineAndPipelineVersion_RejectsArgo(t *testing.T) {
 		},
 	)
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format")
+	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
 
 func TestCreatePipelineAndPipelineVersion_RejectsArgo_PodNamespaceFallback(t *testing.T) {
@@ -1439,7 +1440,8 @@ func TestCreatePipelineAndPipelineVersion_RejectsArgo_PodNamespaceFallback(t *te
 		},
 	)
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format")
+	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
 
 func TestCreatePipelineVersion_RejectsArgo(t *testing.T) {
@@ -1461,7 +1463,8 @@ func TestCreatePipelineVersion_RejectsArgo(t *testing.T) {
 		PipelineSpec: complexPipeline,
 	})
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format")
+	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
 
 // Tests GetPipelineByNameAndNamespace
@@ -8564,5 +8567,6 @@ func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 	}
 	_, err := manager.CreateRun(multiUserContext(), apiRun)
 	require.NotNil(t, err)
-	assert.Contains(t, err.Error(), "unknown template format")
+	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
