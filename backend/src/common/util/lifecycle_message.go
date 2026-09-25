@@ -34,12 +34,18 @@ func lifecycleMessageReason(message string) string {
 	return strings.TrimSpace(reason)
 }
 
-// NormalizeLifecycleMessage drops transient startup reasons and messages from successful nodes.
+// NormalizeLifecycleMessage drops transient startup reasons, messages from successful nodes,
+// and user-code exit messages (non-goal per KEP-12843).
 func NormalizeLifecycleMessage(message string, state string) string {
 	if transientNodeMessages[message] || transientNodeMessages[lifecycleMessageReason(message)] {
 		return ""
 	}
 	if terminalSuccessStates[state] {
+		return ""
+	}
+	// Argo records "Error (exit code N)" for normal non-zero exits; these are user-script
+	// failures, not infrastructure lifecycle events.
+	if strings.HasPrefix(message, "Error (exit code ") {
 		return ""
 	}
 	return message

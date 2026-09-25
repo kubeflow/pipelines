@@ -59,8 +59,8 @@ it should have the following content:
 * Install sample test python dependencies:
 
   ```bash
-  cd test
-  pip install -r requirements.txt
+  # from the repository root
+  uv sync --extra test
   ```
 
 * [Connecting to Kubeflow Pipelines using the SDK client](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/#configure-sdk-client-by-environment-variables).

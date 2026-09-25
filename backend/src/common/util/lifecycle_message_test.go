@@ -38,6 +38,8 @@ func TestNormalizeLifecycleMessage(t *testing.T) {
 		{"omitted node suppressed", "some leftover message", "Omitted", ""},
 		{"failed node kept", "OOMKilled", "Failed", "OOMKilled"},
 		{"running node kept", "ImagePullBackOff", "Running", "ImagePullBackOff"},
+		{"user exit code 1 filtered", "Error (exit code 1)", "Failed", ""},
+		{"user exit code 137 filtered", "Error (exit code 137)", "Failed", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
