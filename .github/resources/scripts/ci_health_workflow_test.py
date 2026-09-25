@@ -15,9 +15,9 @@
 """Privilege guards for the CI health report workflow.
 
 The workflow accepts workflow_dispatch and runs the collector from the
-checked-out tree while holding write scopes. Without a ref gate, a dispatch
-against an arbitrary branch would execute that branch's code with permission to
-push commits, write issues, and mint an OIDC token.
+checked-out tree while holding write scopes. Without a ref gate, a
+dispatch against an arbitrary branch would execute that branch's code
+with permission to push commits, write issues, and mint an OIDC token.
 """
 
 from pathlib import Path

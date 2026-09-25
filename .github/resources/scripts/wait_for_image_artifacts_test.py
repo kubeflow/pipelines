@@ -85,18 +85,29 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             environment = os.environ.copy()
             environment.pop('WAIT_ATTEMPTS', None)
             environment.update({
-                'ARTIFACT_NAMES': ' '.join(ARTIFACTS),
-                'CI_SETUP_FAILURE_LOG': str(root / 'setup-failure.log'),
-                'GH_COUNTER': str(counter),
-                'GITHUB_REPOSITORY': 'kubeflow/pipelines',
-                'GITHUB_RUN_ID': '123',
-                'JOBS_API_FAILS': str(jobs_api_fails).lower(),
-                'MISSING_ARTIFACT': missing_artifact,
-                'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
-                'PRODUCER_JOBS': '\n'.join(
-                    '\t'.join(producer_job) for producer_job in producer_jobs),
-                'READY_AFTER': str(ready_after),
-                'WAIT_INTERVAL_SECONDS': '0',
+                'ARTIFACT_NAMES':
+                    ' '.join(ARTIFACTS),
+                'CI_SETUP_FAILURE_LOG':
+                    str(root / 'setup-failure.log'),
+                'GH_COUNTER':
+                    str(counter),
+                'GITHUB_REPOSITORY':
+                    'kubeflow/pipelines',
+                'GITHUB_RUN_ID':
+                    '123',
+                'JOBS_API_FAILS':
+                    str(jobs_api_fails).lower(),
+                'MISSING_ARTIFACT':
+                    missing_artifact,
+                'PATH':
+                    f'{fake_bin}{os.pathsep}{environment["PATH"]}',
+                'PRODUCER_JOBS':
+                    '\n'.join('\t'.join(producer_job)
+                              for producer_job in producer_jobs),
+                'READY_AFTER':
+                    str(ready_after),
+                'WAIT_INTERVAL_SECONDS':
+                    '0',
             })
             if attempts is not None:
                 environment['WAIT_ATTEMPTS'] = str(attempts)
@@ -168,7 +179,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             result.stderr)
         self.assertIn('frontend', result.stderr)
         self.assertEqual(attempts, 5)
-        self.assertIn('Missing branch image artifacts after producer completion grace', failure_log)
+        self.assertIn(
+            'Missing branch image artifacts after producer completion grace',
+            failure_log)
 
     def test_extends_wait_while_missing_producer_is_active(self):
         result, attempts, failure_log = self._run(
@@ -202,7 +215,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertNotIn('Extending image artifact wait', result.stdout)
         self.assertEqual(attempts, 5)
-        self.assertIn('Missing branch image artifacts after producer completion grace', failure_log)
+        self.assertIn(
+            'Missing branch image artifacts after producer completion grace',
+            failure_log)
 
     def test_fails_immediately_when_producer_completed_unsuccessfully(self):
         result, attempts, failure_log = self._run(

@@ -91,8 +91,7 @@ IMAGE_BUILD_ARTIFACT = re.compile(r"image-build \((?P<artifact>[^,]+),")
 # The image barrier reports the still-missing artifacts after either a
 # publication grace period or an unavailable producer-state window.
 MISSING_IMAGE_ARTIFACTS = re.compile(
-    r"Missing branch image artifacts[^:\r\n]*:\s*(?P<artifacts>[^\r\n]+)"
-)
+    r"Missing branch image artifacts[^:\r\n]*:\s*(?P<artifacts>[^\r\n]+)")
 
 # Heavy master-branch test workflows worth tracking for flake health.
 # Missing entries are surfaced in the report notes rather than silently
@@ -130,7 +129,9 @@ HISTORY_SCHEMA_VERSION = 1
 # in-progress runs, so counting cancellations as either success or failure
 # biases rates. Everything not listed here and not "success" is a failure
 # (failure, timed_out, stale, ...).
-NON_RESULT_CONCLUSIONS = {None, "", "skipped", "cancelled", "neutral", "action_required"}
+NON_RESULT_CONCLUSIONS = {
+    None, "", "skipped", "cancelled", "neutral", "action_required"
+}
 INFRASTRUCTURE_FAILURE_CLASSES = {
     "infrastructure_failure",
     "runner_lost",
@@ -193,10 +194,14 @@ def api_request(token, url, method="GET", body=None, raw=False):
 
 
 def status_request(url=GITHUB_STATUS_INCIDENTS_URL):
-    """Fetches public Statuspage data without forwarding repository credentials."""
+    """Fetches public Statuspage data without forwarding repository
+    credentials."""
     request = urllib.request.Request(
         url,
-        headers={"Accept": "application/json", "User-Agent": "kfp-ci-health-report"},
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "kfp-ci-health-report"
+        },
     )
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.loads(response.read() or b"{}")
@@ -250,15 +255,15 @@ def parse_timestamp(value):
 def github_status_incidents(payload, since, now=None):
     """Normalizes relevant GitHub Status incidents that could affect CI.
 
-    Statuspage can publish incidents after impact begins. The caller handles
-    that lag as a separately labeled proximity match; this function preserves
-    the official timestamps and never infers causation.
+    Statuspage can publish incidents after impact begins. The caller
+    handles that lag as a separately labeled proximity match; this
+    function preserves the official timestamps and never infers
+    causation.
     """
     now = now or datetime.now(timezone.utc)
     since_time = parse_timestamp(f"{since}T00:00:00Z")
     earliest = (
-        since_time - GITHUB_STATUS_REPORTING_GRACE if since_time else None
-    )
+        since_time - GITHUB_STATUS_REPORTING_GRACE if since_time else None)
     incidents = []
     for incident in payload.get("incidents", []):
         components = {
@@ -271,11 +276,9 @@ def github_status_incidents(payload, since, now=None):
             components.update(
                 component.get("name")
                 for component in update.get("affected_components") or []
-                if component.get("name")
-            )
+                if component.get("name"))
             update_time = parse_timestamp(
-                update.get("display_at") or update.get("created_at")
-            )
+                update.get("display_at") or update.get("created_at"))
             if update_time:
                 update_times.append(update_time)
         if not components.intersection(GITHUB_STATUS_COMPONENTS):
@@ -294,19 +297,23 @@ def github_status_incidents(payload, since, now=None):
         effective_end = resolved or now
         if earliest and effective_end < earliest:
             continue
-        incidents.append(
-            {
-                "id": incident.get("id") or incident.get("shortlink") or started.isoformat(),
-                "name": incident.get("name") or "GitHub service incident",
-                "url": incident.get("shortlink") or "https://www.githubstatus.com/",
-                "impact": incident.get("impact") or "unknown",
-                "started_at": started.isoformat().replace("+00:00", "Z"),
-                "resolved_at": (
-                    resolved.isoformat().replace("+00:00", "Z") if resolved else None
-                ),
-                "components": sorted(components.intersection(GITHUB_STATUS_COMPONENTS)),
-            }
-        )
+        incidents.append({
+            "id":
+                incident.get("id") or incident.get("shortlink")
+                or started.isoformat(),
+            "name":
+                incident.get("name") or "GitHub service incident",
+            "url":
+                incident.get("shortlink") or "https://www.githubstatus.com/",
+            "impact":
+                incident.get("impact") or "unknown",
+            "started_at":
+                started.isoformat().replace("+00:00", "Z"),
+            "resolved_at": (resolved.isoformat().replace("+00:00", "Z")
+                            if resolved else None),
+            "components":
+                sorted(components.intersection(GITHUB_STATUS_COMPONENTS)),
+        })
     return sorted(incidents, key=lambda incident: incident["started_at"])
 
 
@@ -319,31 +326,24 @@ def correlate_github_incidents(observations, incidents, now=None):
         matches = []
         if observation.get("failed"):
             started = parse_timestamp(
-                observation.get("started") or observation.get("run_created")
-            )
+                observation.get("started") or observation.get("run_created"))
             completed = parse_timestamp(observation.get("completed")) or started
             if started and completed:
                 for incident in incidents:
                     incident_start = parse_timestamp(incident.get("started_at"))
                     incident_end = (
-                        parse_timestamp(incident.get("resolved_at")) or now
-                    )
+                        parse_timestamp(incident.get("resolved_at")) or now)
                     if not incident_start or not incident_end:
                         continue
                     strict = started <= incident_end and completed >= incident_start
-                    nearby = (
-                        not strict
-                        and started <= incident_end
-                        and completed
-                        >= incident_start - GITHUB_STATUS_REPORTING_GRACE
-                    )
+                    nearby = (not strict and started <= incident_end and
+                              completed
+                              >= incident_start - GITHUB_STATUS_REPORTING_GRACE)
                     if strict or nearby:
-                        matches.append(
-                            {
-                                "id": incident["id"],
-                                "match": "overlap" if strict else "nearby",
-                            }
-                        )
+                        matches.append({
+                            "id": incident["id"],
+                            "match": "overlap" if strict else "nearby",
+                        })
         copy["github_incidents"] = matches
         correlated.append(copy)
     return correlated
@@ -354,10 +354,8 @@ def github_failure_signature(log_text):
     lines = log_text.splitlines()
     for index, line in enumerate(lines):
         context = " ".join(lines[max(0, index - 1):index + 2])
-        if (
-            GITHUB_SERVICE_TARGET.search(context)
-            and GITHUB_TRANSIENT_ERROR.search(context)
-        ):
+        if (GITHUB_SERVICE_TARGET.search(context) and
+                GITHUB_TRANSIENT_ERROR.search(context)):
             return " ".join(line.split())[:240]
     return ""
 
@@ -368,7 +366,9 @@ def add_github_log_evidence(token, repo, observations):
     errors = 0
     for observation in observations:
         copy = dict(observation)
-        matches = [dict(match) for match in observation.get("github_incidents", [])]
+        matches = [
+            dict(match) for match in observation.get("github_incidents", [])
+        ]
         job_id = observation.get("job_id")
         if matches and job_id:
             try:
@@ -378,8 +378,7 @@ def add_github_log_evidence(token, repo, observations):
                     raw=True,
                 )
                 signature = github_failure_signature(
-                    raw.decode("utf-8", errors="replace")
-                )
+                    raw.decode("utf-8", errors="replace"))
                 if signature:
                     for match in matches:
                         match["signature"] = signature
@@ -416,16 +415,16 @@ def missing_image_artifacts(log_text):
 def group_image_producer_failures(token, repo, observations):
     """Groups one failed image producer with the lanes blocked by its artifact.
 
-    Only failed image-build logs and failed siblings from the same run are
-    fetched. This keeps API use proportional to rare producer failures while
-    preserving every affected job in the headline lane failure rate.
+    Only failed image-build logs and failed siblings from the same run
+    are fetched. This keeps API use proportional to rare producer
+    failures while preserving every affected job in the headline lane
+    failure rate.
     """
     enriched = [dict(observation) for observation in observations]
     by_run_attempt = collections.defaultdict(list)
     for observation in enriched:
-        by_run_attempt[(observation.get("run_id"), observation.get("attempt"))].append(
-            observation
-        )
+        by_run_attempt[(observation.get("run_id"),
+                        observation.get("attempt"))].append(observation)
 
     log_cache = {}
     errors = 0
@@ -463,38 +462,45 @@ def group_image_producer_failures(token, repo, observations):
         producer["api_result_class"] = "infrastructure_failure"
         producer["api_signatures"] = {registry_failure["signature"]: 1}
         affected_lanes = []
-        siblings = by_run_attempt[(producer.get("run_id"), producer.get("attempt"))]
+        siblings = by_run_attempt[(producer.get("run_id"),
+                                   producer.get("attempt"))]
         for sibling in siblings:
             if sibling is producer or not sibling.get("failed"):
                 continue
             if artifact in missing_image_artifacts(read_job_log(sibling)):
                 affected_lanes.append(sibling.get("lane") or "<unnamed>")
 
-        events.append(
-            {
-                "id": (
-                    f"{producer.get('run_id')}:{producer.get('attempt')}:"
-                    f"image-artifact:{artifact}"
-                ),
-                "date": producer.get("date") or "",
-                "run_id": producer.get("run_id"),
-                "attempt": producer.get("attempt"),
-                "type": "image_artifact_producer_failure",
-                "signature": registry_failure["signature"],
-                "registry": registry_failure["registry"],
-                "artifact": artifact,
-                "producer_lane": producer.get("lane") or "<unnamed>",
-                "affected_lanes": sorted(set(affected_lanes)),
-                "impacted_failures": 1 + len(set(affected_lanes)),
-                "status_correlation": (
-                    "github_reported"
-                    if producer.get("github_incidents")
-                    else "none_reported"
-                ),
-                "github_incidents": producer.get("github_incidents") or [],
-                "run_url": f"https://github.com/{repo}/actions/runs/{producer.get('run_id')}",
-            }
-        )
+        events.append({
+            "id": (f"{producer.get('run_id')}:{producer.get('attempt')}:"
+                   f"image-artifact:{artifact}"),
+            "date":
+                producer.get("date") or "",
+            "run_id":
+                producer.get("run_id"),
+            "attempt":
+                producer.get("attempt"),
+            "type":
+                "image_artifact_producer_failure",
+            "signature":
+                registry_failure["signature"],
+            "registry":
+                registry_failure["registry"],
+            "artifact":
+                artifact,
+            "producer_lane":
+                producer.get("lane") or "<unnamed>",
+            "affected_lanes":
+                sorted(set(affected_lanes)),
+            "impacted_failures":
+                1 + len(set(affected_lanes)),
+            "status_correlation":
+                ("github_reported"
+                 if producer.get("github_incidents") else "none_reported"),
+            "github_incidents":
+                producer.get("github_incidents") or [],
+            "run_url":
+                f"https://github.com/{repo}/actions/runs/{producer.get('run_id')}",
+        })
     return enriched, events, errors
 
 
@@ -516,11 +522,13 @@ def percentile(values, percentage):
     lower, upper = math.floor(position), math.ceil(position)
     if lower == upper:
         return ordered[lower]
-    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * (
+        position - lower)
 
 
 def job_phase_minutes(run, job):
-    """Derives queue/setup/test/report phases from Actions job step timestamps."""
+    """Derives queue/setup/test/report phases from Actions job step
+    timestamps."""
     phases = {
         "queue": elapsed_minutes(run.get("created_at"), job.get("started_at")),
         "setup": None,
@@ -531,25 +539,21 @@ def job_phase_minutes(run, job):
         "report": None,
     }
     test_step = next(
-        (
-            step for step in job.get("steps", [])
-            if (step.get("name") or "").split(" / ")[-1] == "Run Tests"
-        ),
+        (step for step in job.get("steps", [])
+         if (step.get("name") or "").split(" / ")[-1] == "Run Tests"),
         None,
     )
     if test_step:
         phases["setup"] = elapsed_minutes(
-            job.get("started_at"), test_step.get("started_at")
-        )
+            job.get("started_at"), test_step.get("started_at"))
         phases["test"] = elapsed_minutes(
-            test_step.get("started_at"), test_step.get("completed_at")
-        )
+            test_step.get("started_at"), test_step.get("completed_at"))
         phases["report"] = elapsed_minutes(
-            test_step.get("completed_at"), job.get("completed_at")
-        )
+            test_step.get("completed_at"), job.get("completed_at"))
     for step in job.get("steps", []):
         name = (step.get("name") or "").lower()
-        duration = elapsed_minutes(step.get("started_at"), step.get("completed_at"))
+        duration = elapsed_minutes(
+            step.get("started_at"), step.get("completed_at"))
         if duration is None:
             continue
         if "deploy" in name:
@@ -557,17 +561,15 @@ def job_phase_minutes(run, job):
         elif "build" in name:
             phases["build"] = (phases["build"] or 0) + duration
         elif any(
-            marker in name
-            for marker in (
-                "create cluster",
-                "create kfp cluster",
-                "set up",
-                "setup",
-                "restore",
-                "download",
-                "load image",
-            )
-        ):
+                marker in name for marker in (
+                    "create cluster",
+                    "create kfp cluster",
+                    "set up",
+                    "setup",
+                    "restore",
+                    "download",
+                    "load image",
+                )):
             phases["bootstrap"] = (phases["bootstrap"] or 0) + duration
     return phases
 
@@ -578,7 +580,8 @@ def is_failure_conclusion(conclusion):
 
 def expects_ci_result(workflow, job):
     name = job.get("name") or ""
-    return any(name.startswith(prefix) for prefix in RESULT_JOB_PREFIXES[workflow])
+    return any(
+        name.startswith(prefix) for prefix in RESULT_JOB_PREFIXES[workflow])
 
 
 def classify_missing_result_job(token, job):
@@ -587,16 +590,14 @@ def classify_missing_result_job(token, job):
     if not check_run_url:
         return "missing_result"
     try:
-        annotations = api_request(
-            token, f"{check_run_url}/annotations?per_page=100"
-        )
+        annotations = api_request(token,
+                                  f"{check_run_url}/annotations?per_page=100")
     except (urllib.error.HTTPError, RateLimited, OSError):
         return "missing_result"
     corpus = " ".join(
         str(annotation.get(field) or "")
         for annotation in annotations
-        for field in ("title", "message", "raw_details")
-    ).lower()
+        for field in ("title", "message", "raw_details")).lower()
     if "hosted runner lost communication" in corpus:
         return "runner_lost"
     if "exceeded the maximum execution time" in corpus:
@@ -606,38 +607,52 @@ def classify_missing_result_job(token, job):
 
 def build_observation(run, workflow, attempt, job):
     created = (
-        job.get("started_at")
-        or run.get("created_at")
-        or datetime.now(timezone.utc).isoformat()
-    )
+        job.get("started_at") or run.get("created_at") or
+        datetime.now(timezone.utc).isoformat())
     conclusion = job.get("conclusion")
     commit_message = (run.get("head_commit") or {}).get("message") or ""
     return {
-        "id": f"{run['id']}:{attempt}:{job.get('id', job.get('name'))}",
-        "job_id": job.get("id"),
-        "date": created[:10],
-        "workflow": run.get("name") or workflow,
-        "lane": job.get("name") or "<unnamed>",
-        "run_id": run["id"],
-        "attempt": attempt,
-        "sha": run.get("head_sha") or "",
-        "commit_message": commit_message.splitlines()[0] if commit_message else "",
-        "run_created": run.get("created_at") or "",
-        "started": job.get("started_at") or "",
-        "completed": job.get("completed_at") or "",
-        "conclusion": conclusion,
-        "failed": is_failure_conclusion(conclusion),
-        "duration": duration_minutes(job),
-        "phases": job_phase_minutes(run, job),
+        "id":
+            f"{run['id']}:{attempt}:{job.get('id', job.get('name'))}",
+        "job_id":
+            job.get("id"),
+        "date":
+            created[:10],
+        "workflow":
+            run.get("name") or workflow,
+        "lane":
+            job.get("name") or "<unnamed>",
+        "run_id":
+            run["id"],
+        "attempt":
+            attempt,
+        "sha":
+            run.get("head_sha") or "",
+        "commit_message":
+            commit_message.splitlines()[0] if commit_message else "",
+        "run_created":
+            run.get("created_at") or "",
+        "started":
+            job.get("started_at") or "",
+        "completed":
+            job.get("completed_at") or "",
+        "conclusion":
+            conclusion,
+        "failed":
+            is_failure_conclusion(conclusion),
+        "duration":
+            duration_minutes(job),
+        "phases":
+            job_phase_minutes(run, job),
     }
 
 
 def missing_result_fallbacks(token, workflow, run, jobs_by_attempt, results):
     """Returns API-derived failure results when an expected artifact is absent.
 
-    At least one normalized artifact must exist in the run. That rollout guard
-    prevents historical runs from before normalized publishing was introduced
-    from being mislabeled as missing-result failures.
+    At least one normalized artifact must exist in the run. That rollout
+    guard prevents historical runs from before normalized publishing was
+    introduced from being mislabeled as missing-result failures.
     """
     if not results:
         return [], 0, []
@@ -652,10 +667,8 @@ def missing_result_fallbacks(token, workflow, run, jobs_by_attempt, results):
     for attempt, jobs in jobs_by_attempt.items():
         result_jobs = [
             job for job in jobs
-            if expects_ci_result(workflow, job)
-            and job.get("conclusion") not in {
-                None, "", "skipped", "neutral", "action_required"
-            }
+            if expects_ci_result(workflow, job) and job.get("conclusion") not in
+            {None, "", "skipped", "neutral", "action_required"}
         ]
         cancelled_classes = {}
         expected_jobs = []
@@ -675,17 +688,16 @@ def missing_result_fallbacks(token, workflow, run, jobs_by_attempt, results):
 
         failed_jobs = [
             job for job in expected_jobs
-            if is_failure_conclusion(job.get("conclusion"))
-            or cancelled_classes.get(job.get("id", job.get("name")))
-            in {"runner_lost", "job_timeout"}
+            if is_failure_conclusion(job.get("conclusion")) or
+            cancelled_classes.get(job.get("id", job.get(
+                "name"))) in {"runner_lost", "job_timeout"}
         ]
         published_failures = sum(
             (result.get("result") or "unknown") != "success"
-            for result in published
-        )
-        missing_failures = min(
-            missing, max(0, len(failed_jobs) - published_failures)
-        )
+            for result in published)
+        missing_failures = min(missing,
+                               max(0,
+                                   len(failed_jobs) - published_failures))
         missing_count += missing
         if not missing_failures:
             continue
@@ -697,36 +709,27 @@ def missing_result_fallbacks(token, workflow, run, jobs_by_attempt, results):
             if result_class is None:
                 result_class = classify_missing_result_job(token, job)
             classified_jobs.append((result_class, job))
-        classified_jobs.sort(
-            key=lambda item: item[0] == "missing_result"
-        )
+        classified_jobs.sort(key=lambda item: item[0] == "missing_result")
 
         for result_class, job in classified_jobs[:missing_failures]:
             generated_at = (
-                job.get("completed_at")
-                or job.get("started_at")
-                or run.get("created_at")
-                or datetime.now(timezone.utc).isoformat()
-            )
-            fallbacks.append(
-                {
-                    "schema_version": 1,
-                    "generated_at": generated_at,
-                    "workflow": run.get("name") or workflow,
-                    "report_name": job.get("name") or "<unnamed>",
-                    "run_id": run["id"],
-                    "run_attempt": attempt,
-                    "sha": run.get("head_sha") or "",
-                    "result": result_class,
-                    "dimensions": {},
-                    "signatures": {},
-                    "tests": [],
-                }
-            )
-            if (
-                job.get("conclusion") == "cancelled"
-                and result_class in {"runner_lost", "job_timeout"}
-            ):
+                job.get("completed_at") or job.get("started_at") or
+                run.get("created_at") or datetime.now(timezone.utc).isoformat())
+            fallbacks.append({
+                "schema_version": 1,
+                "generated_at": generated_at,
+                "workflow": run.get("name") or workflow,
+                "report_name": job.get("name") or "<unnamed>",
+                "run_id": run["id"],
+                "run_attempt": attempt,
+                "sha": run.get("head_sha") or "",
+                "result": result_class,
+                "dimensions": {},
+                "signatures": {},
+                "tests": [],
+            })
+            if (job.get("conclusion") == "cancelled" and
+                    result_class in {"runner_lost", "job_timeout"}):
                 observation = build_observation(run, workflow, attempt, job)
                 observation["failed"] = True
                 timeout_observations.append(observation)
@@ -936,7 +939,8 @@ def select_ci_result_artifacts(artifacts):
     selected = {}
     for artifact in artifacts:
         name = artifact.get("name", "")
-        if not name.startswith(CI_RESULT_ARTIFACT_PREFIX) or artifact.get("expired"):
+        if not name.startswith(CI_RESULT_ARTIFACT_PREFIX) or artifact.get(
+                "expired"):
             continue
         retry_match = RETRY_ARTIFACT_SUFFIX.match(name)
         base_name = retry_match.group("base") if retry_match else name
@@ -962,7 +966,8 @@ def read_ci_result_artifacts(token, repo, run_id):
     results = []
     for artifact in select_ci_result_artifacts(artifacts):
         try:
-            content = api_request(token, artifact["archive_download_url"], raw=True)
+            content = api_request(
+                token, artifact["archive_download_url"], raw=True)
             with zipfile.ZipFile(io.BytesIO(content)) as archive:
                 members = [
                     member for member in archive.namelist()
@@ -976,7 +981,8 @@ def read_ci_result_artifacts(token, repo, run_id):
                     errors += 1
                     continue
                 results.append(result)
-        except (OSError, ValueError, KeyError, zipfile.BadZipFile, json.JSONDecodeError):
+        except (OSError, ValueError, KeyError, zipfile.BadZipFile,
+                json.JSONDecodeError):
             errors += 1
     return results, errors
 
@@ -984,10 +990,11 @@ def read_ci_result_artifacts(token, repo, run_id):
 def collect_trend_data(token, repo, since):
     """Collects dated lane observations and normalized test results.
 
-    Unlike the legacy rolling summary, this has no 40-run cap. Pagination is
-    bounded only by GitHub's documented 1,000-result filtered-search limit,
-    which is surfaced if reached. Daily runs normally scan only a two-day
-    overlap; the first run bootstraps the requested history window.
+    Unlike the legacy rolling summary, this has no 40-run cap.
+    Pagination is bounded only by GitHub's documented 1,000-result
+    filtered-search limit, which is surfaced if reached. Daily runs
+    normally scan only a two-day overlap; the first run bootstraps the
+    requested history window.
     """
     observations = []
     normalized_results = []
@@ -1002,12 +1009,11 @@ def collect_trend_data(token, repo, since):
     completeness = {"window_incomplete": False, "incomplete_dates": set()}
 
     for workflow in TARGET_WORKFLOWS:
-        url = (
-            f"{API_ROOT}/repos/{repo}/actions/workflows/{workflow}/runs"
-            f"?branch=master&created=>={since}&per_page=100"
-        )
+        url = (f"{API_ROOT}/repos/{repo}/actions/workflows/{workflow}/runs"
+               f"?branch=master&created=>={since}&per_page=100")
         try:
-            runs, truncated = paginate(token, url, "workflow_runs", max_pages=10)
+            runs, truncated = paginate(
+                token, url, "workflow_runs", max_pages=10)
         except urllib.error.HTTPError as error:
             if error.code == 404:
                 notes.append(f"tracked workflow `{workflow}` was not found")
@@ -1032,11 +1038,11 @@ def collect_trend_data(token, repo, since):
             run_date = (run.get("created_at") or "")[:10]
             run_had_failure = False
             jobs_by_attempt = collections.defaultdict(list)
-            for attempt, jobs_url in enumerate(run_attempt_job_urls(repo, run), start=1):
+            for attempt, jobs_url in enumerate(
+                    run_attempt_job_urls(repo, run), start=1):
                 try:
                     jobs, truncated_jobs = paginate(
-                        token, jobs_url, "jobs", max_pages=3
-                    )
+                        token, jobs_url, "jobs", max_pages=3)
                 except (urllib.error.HTTPError, RateLimited):
                     notes.append(f"job listing unavailable for run {run['id']}")
                     completeness["incomplete_dates"].add(run_date)
@@ -1051,15 +1057,15 @@ def collect_trend_data(token, repo, since):
                         continue
                     failed = is_failure_conclusion(conclusion)
                     run_had_failure = run_had_failure or failed
-                    observations.append(build_observation(run, workflow, attempt, job))
+                    observations.append(
+                        build_observation(run, workflow, attempt, job))
             if run_had_failure:
                 failed_runs.append((run.get("created_at") or "", run["id"]))
 
             results, errors = read_ci_result_artifacts(token, repo, run["id"])
             if not errors:
                 fallbacks, missing, added_observations = missing_result_fallbacks(
-                    token, workflow, run, jobs_by_attempt, results
-                )
+                    token, workflow, run, jobs_by_attempt, results)
                 results.extend(fallbacks)
                 observations.extend(added_observations)
                 missing_results += missing
@@ -1070,8 +1076,7 @@ def collect_trend_data(token, repo, since):
 
     if artifact_errors:
         notes.append(
-            f"{artifact_errors} normalized-result artifact ingestion gap(s)"
-        )
+            f"{artifact_errors} normalized-result artifact ingestion gap(s)")
     if missing_results:
         notes.append(
             f"{missing_results} expected normalized result(s) were not published"
@@ -1098,17 +1103,18 @@ def summarized_distribution(values):
 
 
 def aggregate_daily(
-    observations,
-    normalized_results,
-    rerun_runs,
-    github_incidents=(),
-    infrastructure_events=(),
-    completeness=None,
+        observations,
+        normalized_results,
+        rerun_runs,
+        github_incidents=(),
+        infrastructure_events=(),
+        completeness=None,
 ):
     """Aggregates daily snapshots from raw API/artifact records.
 
     Each snapshot records whether its day was collected without loss, so
-    merge_history can refuse to replace a complete day with a degraded one.
+    merge_history can refuse to replace a complete day with a degraded
+    one.
     """
     completeness = completeness or {}
     window_incomplete = bool(completeness.get("window_incomplete"))
@@ -1148,24 +1154,21 @@ def aggregate_daily(
         if not latest_observations:
             continue
         earlier_failed = any(
-            failed for attempt, failed in attempt_failures.items() if attempt < attempts
-        )
+            failed for attempt, failed in attempt_failures.items()
+            if attempt < attempts)
         latest_failed = attempt_failures.get(attempts, False)
-        latest_day = max(observation["date"] for observation in latest_observations)
+        latest_day = max(
+            observation["date"] for observation in latest_observations)
         completed = max(
-            (
-                observation.get("completed", "")
-                for observation in latest_observations
-            ),
+            (observation.get("completed", "")
+             for observation in latest_observations),
             default="",
         )
         created = run_observations[0].get("run_created")
-        rerun_events_by_day[latest_day].append(
-            {
-                "rescued": earlier_failed and not latest_failed,
-                "time_to_green": elapsed_minutes(created, completed),
-            }
-        )
+        rerun_events_by_day[latest_day].append({
+            "rescued": earlier_failed and not latest_failed,
+            "time_to_green": elapsed_minutes(created, completed),
+        })
 
     snapshots = []
     for day in sorted(set(observations_by_day) | set(results_by_day)):
@@ -1178,8 +1181,7 @@ def aggregate_daily(
                 "github_correlated_failures": 0,
                 "durations": [],
                 "phases": collections.defaultdict(list),
-            }
-        )
+            })
         all_durations = []
         all_phases = collections.defaultdict(list)
         failed_jobs = 0
@@ -1195,7 +1197,8 @@ def aggregate_daily(
             lane["runs"] += 1
             lane["failures"] += int(observation["failed"])
             failed_jobs += int(observation["failed"])
-            if observation.get("failed") and observation.get("api_result_class"):
+            if observation.get("failed") and observation.get(
+                    "api_result_class"):
                 api_failure_classes[observation["api_result_class"]] += 1
                 api_signatures.update(observation.get("api_signatures") or {})
             matches = observation.get("github_incidents") or []
@@ -1209,8 +1212,7 @@ def aggregate_daily(
                 github_nearby_matches += int(match_type == "nearby")
                 github_incident_counts[match["id"]][match_type] += 1
                 github_incident_counts[match["id"]]["signature"] += int(
-                    bool(match.get("signature"))
-                )
+                    bool(match.get("signature")))
             if observation["duration"] is not None:
                 lane["durations"].append(observation["duration"])
                 all_durations.append(observation["duration"])
@@ -1223,16 +1225,24 @@ def aggregate_daily(
         failure_classes.update(api_failure_classes)
         signatures = collections.Counter()
         signatures.update(api_signatures)
-        tests = collections.defaultdict(lambda: {"executions": 0, "failures": 0, "skipped": 0})
-        result_lanes = collections.defaultdict(
-            lambda: {"runs": 0, "classes": collections.Counter(), "dimensions": {}}
-        )
+        tests = collections.defaultdict(lambda: {
+            "executions": 0,
+            "failures": 0,
+            "skipped": 0
+        })
+        result_lanes = collections.defaultdict(lambda: {
+            "runs": 0,
+            "classes": collections.Counter(),
+            "dimensions": {}
+        })
         for result in day_results:
             result_class = result.get("result") or "unknown"
             failure_classes[result_class] += 1
             signatures.update(result.get("signatures") or {})
-            lane_name = result.get("report_name") or result.get("job") or "<unnamed>"
-            result_lane = result_lanes[(result.get("workflow") or "<unknown>", lane_name)]
+            lane_name = result.get("report_name") or result.get(
+                "job") or "<unnamed>"
+            result_lane = result_lanes[(result.get("workflow") or
+                                        "<unknown>", lane_name)]
             result_lane["runs"] += 1
             result_lane["classes"][result_class] += 1
             result_lane["dimensions"] = result.get("dimensions") or {}
@@ -1242,100 +1252,104 @@ def aggregate_daily(
                     stats[field] += int(test.get(field) or 0)
 
         classified_failures = sum(
-            count for name, count in failure_classes.items() if name != "success"
-        )
+            count for name, count in failure_classes.items()
+            if name != "success")
         if failed_jobs > classified_failures:
-            failure_classes["unclassified_failure"] += failed_jobs - classified_failures
+            failure_classes[
+                "unclassified_failure"] += failed_jobs - classified_failures
 
         rerun_events = rerun_events_by_day.get(day, [])
         reruns = len(rerun_events)
         rescued = sum(int(event["rescued"]) for event in rerun_events)
         time_to_green = [
-            event["time_to_green"] for event in rerun_events
+            event["time_to_green"]
+            for event in rerun_events
             if event["rescued"] and event["time_to_green"] is not None
         ]
 
         lane_rows = []
         for (workflow, lane_name), stats in sorted(lanes.items()):
-            lane_rows.append(
-                {
-                    "workflow": workflow,
-                    "lane": lane_name,
-                    "runs": stats["runs"],
-                    "failures": stats["failures"],
-                    "github_correlated_failures": stats[
-                        "github_correlated_failures"
-                    ],
-                    "duration": summarized_distribution(stats["durations"]),
-                    "phases": {
-                        phase: summarized_distribution(values)
-                        for phase, values in stats["phases"].items()
-                    },
-                }
-            )
-        result_lane_rows = [
-            {
-                "workflow": workflow,
-                "lane": lane_name,
-                "runs": stats["runs"],
-                "classes": dict(stats["classes"]),
-                "dimensions": stats["dimensions"],
-            }
-            for (workflow, lane_name), stats in sorted(result_lanes.items())
-        ]
-        snapshots.append(
-            {
-                "date": day,
-                "complete": not (window_incomplete or day in incomplete_dates),
-                "commits": [
-                    {"sha": sha, "message": message}
-                    for sha, message in sorted(
-                        {
-                            observation["sha"]: observation.get("commit_message", "")
-                            for observation in day_observations
-                            if observation.get("sha")
-                        }.items()
-                    )
-                ],
-                "totals": {
-                    "lane_runs": len(day_observations),
-                    "failures": failed_jobs,
-                    "github_correlated_failures": github_correlated_failures,
-                    "github_signature_matches": github_signature_matches,
-                    "github_strict_overlaps": github_strict_overlaps,
-                    "github_nearby_matches": github_nearby_matches,
-                    "reruns": reruns,
-                    "rerun_rescues": rescued,
-                    "time_to_green": summarized_distribution(time_to_green),
-                    "duration": summarized_distribution(all_durations),
-                    "phases": {
-                        phase: summarized_distribution(values)
-                        for phase, values in all_phases.items()
-                    },
+            lane_rows.append({
+                "workflow":
+                    workflow,
+                "lane":
+                    lane_name,
+                "runs":
+                    stats["runs"],
+                "failures":
+                    stats["failures"],
+                "github_correlated_failures":
+                    stats["github_correlated_failures"],
+                "duration":
+                    summarized_distribution(stats["durations"]),
+                "phases": {
+                    phase: summarized_distribution(values)
+                    for phase, values in stats["phases"].items()
                 },
-                "failure_classes": dict(failure_classes),
-                "signatures": dict(signatures),
-                "github_incidents": [
-                    {
-                        **incidents_by_id[incident_id],
-                        "signature_matches": counts["signature"],
-                        "strict_overlaps": counts["overlap"],
-                        "nearby_matches": counts["nearby"],
-                    }
-                    for incident_id, counts in sorted(
-                        github_incident_counts.items()
-                    )
-                    if incident_id in incidents_by_id
-                ],
-                "infrastructure_events": infrastructure_events_by_day.get(day, []),
-                "lanes": lane_rows,
-                "result_lanes": result_lane_rows,
-                "tests": [
-                    {"id": name, **stats}
-                    for name, stats in sorted(tests.items())
-                ],
+            })
+        result_lane_rows = [{
+            "workflow": workflow,
+            "lane": lane_name,
+            "runs": stats["runs"],
+            "classes": dict(stats["classes"]),
+            "dimensions": stats["dimensions"],
+        } for (workflow, lane_name), stats in sorted(result_lanes.items())]
+        snapshots.append({
+            "date":
+                day,
+            "complete":
+                not (window_incomplete or day in incomplete_dates),
+            "commits": [{
+                "sha": sha,
+                "message": message
+            } for sha, message in sorted({
+                observation["sha"]: observation.get("commit_message", "")
+                for observation in day_observations
+                if observation.get("sha")
+            }.items())],
+            "totals": {
+                "lane_runs": len(day_observations),
+                "failures": failed_jobs,
+                "github_correlated_failures": github_correlated_failures,
+                "github_signature_matches": github_signature_matches,
+                "github_strict_overlaps": github_strict_overlaps,
+                "github_nearby_matches": github_nearby_matches,
+                "reruns": reruns,
+                "rerun_rescues": rescued,
+                "time_to_green": summarized_distribution(time_to_green),
+                "duration": summarized_distribution(all_durations),
+                "phases": {
+                    phase: summarized_distribution(values)
+                    for phase, values in all_phases.items()
+                },
+            },
+            "failure_classes":
+                dict(failure_classes),
+            "signatures":
+                dict(signatures),
+            "github_incidents": [{
+                **incidents_by_id[incident_id],
+                "signature_matches":
+                    counts["signature"],
+                "strict_overlaps":
+                    counts["overlap"],
+                "nearby_matches":
+                    counts["nearby"],
             }
-        )
+                                 for incident_id, counts in sorted(
+                                     github_incident_counts.items())
+                                 if incident_id in incidents_by_id],
+            "infrastructure_events":
+                infrastructure_events_by_day.get(day, []),
+            "lanes":
+                lane_rows,
+            "result_lanes":
+                result_lane_rows,
+            "tests": [{
+                "id": name,
+                **stats
+            } for name, stats in sorted(tests.items())],
+        })
     return snapshots
 
 
@@ -1350,12 +1364,11 @@ def load_history(path):
         try:
             filenames = sorted(
                 filename for filename in os.listdir(path)
-                if filename.endswith(".json")
-            )
+                if filename.endswith(".json"))
             for filename in filenames:
                 with open(
-                    os.path.join(path, filename), encoding="utf-8"
-                ) as source:
+                        os.path.join(path, filename),
+                        encoding="utf-8") as source:
                     snapshot = json.load(source)
                 if isinstance(snapshot, dict) and snapshot.get("date"):
                     days.append(snapshot)
@@ -1388,19 +1401,17 @@ COMPARISON_WINDOW_DAYS = 7
 def publisher_health(completeness, normalized_results=()):
     """Summarizes how much of the observed CI actually reached history.
 
-    A published result whose test report could not be parsed contributes no
-    per-test data, so it counts toward the completeness gap even though the
-    artifact itself arrived.
+    A published result whose test report could not be parsed contributes
+    no per-test data, so it counts toward the completeness gap even
+    though the artifact itself arrived.
     """
     observed = completeness.get("observed_lane_runs", 0)
     missing = completeness.get("missing_results", 0)
     parse_errors = sum(
-        result.get("test_parse_errors", 0) or 0 for result in normalized_results
-    )
-    unusable = missing + sum(
-        1 for result in normalized_results
-        if (result.get("test_parse_errors", 0) or 0) and not result.get("tests")
-    )
+        result.get("test_parse_errors", 0) or 0
+        for result in normalized_results)
+    unusable = missing + sum(1 for result in normalized_results if (
+        result.get("test_parse_errors", 0) or 0) and not result.get("tests"))
     gap_ratio = (unusable / observed) if observed else 0.0
     return {
         "observed_lane_runs": observed,
@@ -1437,8 +1448,10 @@ def merge_history(history, snapshots):
                 >= existing.get("totals", {}).get("lane_runs", 0)):
             by_day[snapshot["date"]] = snapshot
     return {
-        "schema_version": HISTORY_SCHEMA_VERSION,
-        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "schema_version":
+            HISTORY_SCHEMA_VERSION,
+        "generated_at":
+            datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "days": [by_day[day] for day in sorted(by_day)],
     }
 
@@ -1449,25 +1462,30 @@ def window_totals(history, start, end):
         if start <= day.get("date", "") < end
     ]
     return {
-        "days": len(days),
-        "lane_runs": sum(day["totals"]["lane_runs"] for day in days),
-        "failures": sum(day["totals"]["failures"] for day in days),
-        "test_failures": sum(
-            day.get("failure_classes", {}).get("test_failure", 0) for day in days
-        ),
-        "infrastructure_failures": sum(
+        "days":
+            len(days),
+        "lane_runs":
+            sum(day["totals"]["lane_runs"] for day in days),
+        "failures":
+            sum(day["totals"]["failures"] for day in days),
+        "test_failures":
             sum(
-                day.get("failure_classes", {}).get(result_class, 0)
-                for result_class in INFRASTRUCTURE_FAILURE_CLASSES
-            )
-            for day in days
-        ),
-        "github_correlated_failures": sum(
-            day.get("totals", {}).get("github_correlated_failures", 0)
-            for day in days
-        ),
-        "reruns": sum(day["totals"].get("reruns", 0) for day in days),
-        "rerun_rescues": sum(day["totals"].get("rerun_rescues", 0) for day in days),
+                day.get("failure_classes", {}).get("test_failure", 0)
+                for day in days),
+        "infrastructure_failures":
+            sum(
+                sum(
+                    day.get("failure_classes", {}).get(result_class, 0)
+                    for result_class in INFRASTRUCTURE_FAILURE_CLASSES)
+                for day in days),
+        "github_correlated_failures":
+            sum(
+                day.get("totals", {}).get("github_correlated_failures", 0)
+                for day in days),
+        "reruns":
+            sum(day["totals"].get("reruns", 0) for day in days),
+        "rerun_rescues":
+            sum(day["totals"].get("rerun_rescues", 0) for day in days),
     }
 
 
@@ -1483,12 +1501,8 @@ def wilson_interval(successes, total, z=1.96):
     denominator = 1 + z * z / total
     center = (proportion + z * z / (2 * total)) / denominator
     margin = (
-        z
-        * math.sqrt(
-            proportion * (1 - proportion) / total + z * z / (4 * total * total)
-        )
-        / denominator
-    )
+        z * math.sqrt(proportion * (1 - proportion) / total + z * z /
+                      (4 * total * total)) / denominator)
     return 100 * (center - margin), 100 * (center + margin)
 
 
@@ -1497,78 +1511,69 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
     # window_totals is half-open. Both windows must span the same number of
     # dates or the comparison is measuring different period lengths.
     end = (today + timedelta(days=1)).isoformat()
-    current_start = (today - timedelta(days=COMPARISON_WINDOW_DAYS - 1)).isoformat()
+    current_start = (today -
+                     timedelta(days=COMPARISON_WINDOW_DAYS - 1)).isoformat()
     previous_start = (
-        today - timedelta(days=2 * COMPARISON_WINDOW_DAYS - 1)
-    ).isoformat()
+        today - timedelta(days=2 * COMPARISON_WINDOW_DAYS - 1)).isoformat()
     current = window_totals(history, current_start, end)
     previous = window_totals(history, previous_start, current_start)
     current_rate = rate(current["failures"], current["lane_runs"])
     previous_rate = rate(previous["failures"], previous["lane_runs"])
-    confidence_low, confidence_high = wilson_interval(
-        current["failures"], current["lane_runs"]
-    )
+    confidence_low, confidence_high = wilson_interval(current["failures"],
+                                                      current["lane_runs"])
     delta = current_rate - previous_rate
     lines = [
         "# CI Health Report",
         "",
-        (
-            "_Master-branch trends. Generated "
-            f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}._"
-        ),
+        ("_Master-branch trends. Generated "
+         f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}._"),
         "",
-        (
-            f"[Open the interactive 7/14/28/90-day dashboard]({dashboard_url})"
-            if pages_enabled
-            else (
-                "_Dashboard publishing is ready; enable GitHub Pages with "
-                "GitHub Actions as its source to make it public._"
-            )
-        ),
+        (f"[Open the interactive 7/14/28/90-day dashboard]({dashboard_url})"
+         if pages_enabled else
+         ("_Dashboard publishing is ready; enable GitHub Pages with "
+          "GitHub Actions as its source to make it public._")),
         "",
     ]
     if notes:
         lines.extend(["> **Data completeness:** " + "; ".join(notes), ""])
-    lines.extend(
-        [
-            "## Seven-day comparison",
-            "",
-            (
-                "| Window | Lane runs | Failures | Failure rate | Test | "
-                "Infrastructure/unknown | GitHub incident correlation | Rerun rescues |"
-            ),
-            "|---|---:|---:|---:|---:|---:|---:|---:|",
-            (
-                f"| Latest 7 days | {current['lane_runs']} | {current['failures']} | "
-                f"{current_rate:.1f}% | {current['test_failures']} | "
-                f"{current['infrastructure_failures']} | "
-                f"{current['github_correlated_failures']} "
-                f"({rate(current['github_correlated_failures'], current['lane_runs']):.1f}%) | "
-                f"{current['rerun_rescues']}/{current['reruns']} |"
-            ),
-            (
-                f"| Previous 7 days | {previous['lane_runs']} | {previous['failures']} | "
-                f"{previous_rate:.1f}% | {previous['test_failures']} | "
-                f"{previous['infrastructure_failures']} | "
-                f"{previous['github_correlated_failures']} "
-                f"({rate(previous['github_correlated_failures'], previous['lane_runs']):.1f}%) | "
-                f"{previous['rerun_rescues']}/{previous['reruns']} |"
-            ),
-            "",
-            f"**Failure-rate change:** {delta:+.1f} percentage points.",
-            (
-                f" Latest-window 95% Wilson interval: "
-                f"{confidence_low:.1f}–{confidence_high:.1f}%."
-            ),
-            "",
-        ]
-    )
+    lines.extend([
+        "## Seven-day comparison",
+        "",
+        ("| Window | Lane runs | Failures | Failure rate | Test | "
+         "Infrastructure/unknown | GitHub incident correlation | Rerun rescues |"
+        ),
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        (f"| Latest 7 days | {current['lane_runs']} | {current['failures']} | "
+         f"{current_rate:.1f}% | {current['test_failures']} | "
+         f"{current['infrastructure_failures']} | "
+         f"{current['github_correlated_failures']} "
+         f"({rate(current['github_correlated_failures'], current['lane_runs']):.1f}%) | "
+         f"{current['rerun_rescues']}/{current['reruns']} |"),
+        (f"| Previous 7 days | {previous['lane_runs']} | {previous['failures']} | "
+         f"{previous_rate:.1f}% | {previous['test_failures']} | "
+         f"{previous['infrastructure_failures']} | "
+         f"{previous['github_correlated_failures']} "
+         f"({rate(previous['github_correlated_failures'], previous['lane_runs']):.1f}%) | "
+         f"{previous['rerun_rescues']}/{previous['reruns']} |"),
+        "",
+        f"**Failure-rate change:** {delta:+.1f} percentage points.",
+        (f" Latest-window 95% Wilson interval: "
+         f"{confidence_low:.1f}–{confidence_high:.1f}%."),
+        "",
+    ])
 
     cutoff = (today - timedelta(days=14)).isoformat()
     github_incident_totals = {}
     infrastructure_events = {}
-    lane_totals = collections.defaultdict(lambda: {"runs": 0, "failures": 0, "durations": []})
-    test_totals = collections.defaultdict(lambda: {"executions": 0, "failures": 0})
+    lane_totals = collections.defaultdict(lambda: {
+        "runs": 0,
+        "failures": 0,
+        "durations": []
+    })
+    test_totals = collections.defaultdict(lambda: {
+        "executions": 0,
+        "failures": 0
+    })
     for day in history.get("days", []):
         if day.get("date", "") < cutoff:
             continue
@@ -1598,29 +1603,23 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
             stats["executions"] += test["executions"]
             stats["failures"] += test["failures"]
 
-    lines.extend(
-        [
-            "## GitHub service incident correlation (14 days)",
-            "",
-            (
-                "_Time correlation is diagnostic context, not proof of causation. "
-                "Observed failures remain in the headline rate._"
-            ),
-            "",
-        ]
-    )
+    lines.extend([
+        "## GitHub service incident correlation (14 days)",
+        "",
+        ("_Time correlation is diagnostic context, not proof of causation. "
+         "Observed failures remain in the headline rate._"),
+        "",
+    ])
     if github_incident_totals:
-        lines.extend(
-            [
-                "| Incident | Components | Signature-backed | Strict overlaps | "
-                "Within 15m before status report |",
-                "|---|---|---:|---:|---:|",
-            ]
-        )
+        lines.extend([
+            "| Incident | Components | Signature-backed | Strict overlaps | "
+            "Within 15m before status report |",
+            "|---|---|---:|---:|---:|",
+        ])
         for incident in sorted(
-            github_incident_totals.values(),
-            key=lambda item: item["started_at"],
-            reverse=True,
+                github_incident_totals.values(),
+                key=lambda item: item["started_at"],
+                reverse=True,
         ):
             lines.append(
                 f"| [{incident['name']}]({incident['url']}) | "
@@ -1630,31 +1629,26 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
             )
         lines.append("")
     else:
-        lines.append("_No failed lanes correlated with a reported GitHub incident._\n")
+        lines.append(
+            "_No failed lanes correlated with a reported GitHub incident._\n")
 
-    lines.extend(
-        [
-            "## Infrastructure root-cause events (14 days)",
-            "",
-            (
-                "_Affected jobs remain in the headline failure rate. This table "
-                "groups shared producer failures so one cause is not mistaken for "
-                "independent lane flakes._"
-            ),
-            "",
-        ]
-    )
+    lines.extend([
+        "## Infrastructure root-cause events (14 days)",
+        "",
+        ("_Affected jobs remain in the headline failure rate. This table "
+         "groups shared producer failures so one cause is not mistaken for "
+         "independent lane flakes._"),
+        "",
+    ])
     if infrastructure_events:
-        lines.extend(
-            [
-                "| Event | Producer | Registry | Downstream lanes | Impacted failures | Status correlation |",
-                "|---|---|---|---:|---:|---|",
-            ]
-        )
+        lines.extend([
+            "| Event | Producer | Registry | Downstream lanes | Impacted failures | Status correlation |",
+            "|---|---|---|---:|---:|---|",
+        ])
         for event in sorted(
-            infrastructure_events.values(),
-            key=lambda item: (item.get("date", ""), item.get("run_id", 0)),
-            reverse=True,
+                infrastructure_events.values(),
+                key=lambda item: (item.get("date", ""), item.get("run_id", 0)),
+                reverse=True,
         ):
             lines.append(
                 f"| [{event['artifact']} image artifact]({event['run_url']}) | "
@@ -1672,14 +1666,12 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
         key=lambda item: (item[1]["failures"], item[1]["runs"]),
         reverse=True,
     )[:25]
-    lines.extend(
-        [
-            "## Failing lanes (14 days)",
-            "",
-            "| Workflow | Lane | Runs | Failures | Fail % | Daily p95 min (median) |",
-            "|---|---|---:|---:|---:|---:|",
-        ]
-    )
+    lines.extend([
+        "## Failing lanes (14 days)",
+        "",
+        "| Workflow | Lane | Runs | Failures | Fail % | Daily p95 min (median) |",
+        "|---|---|---:|---:|---:|---:|",
+    ])
     for (workflow, lane_name), stats in failing_lanes:
         if not stats["failures"]:
             continue
@@ -1690,10 +1682,9 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
         )
     lines.extend(["", "## Flakiest tests (true execution denominator)", ""])
     flaky_tests = sorted(
-        (
-            (name, stats) for name, stats in test_totals.items()
-            if stats["failures"]
-        ),
+        ((name, stats)
+         for name, stats in test_totals.items()
+         if stats["failures"]),
         key=lambda item: (
             rate(item[1]["failures"], item[1]["executions"]),
             item[1]["failures"],
@@ -1701,17 +1692,17 @@ def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
         reverse=True,
     )[:15]
     if flaky_tests:
-        lines.extend(["| Test | Executions | Failures | Fail % |", "|---|---:|---:|---:|"])
+        lines.extend([
+            "| Test | Executions | Failures | Fail % |", "|---|---:|---:|---:|"
+        ])
         for name, stats in flaky_tests:
             lines.append(
                 f"| {name} | {stats['executions']} | {stats['failures']} | "
-                f"{rate(stats['failures'], stats['executions']):.1f}% |"
-            )
+                f"{rate(stats['failures'], stats['executions']):.1f}% |")
     else:
         lines.append(
             "_True per-test rates will populate as successful and failed lanes upload "
-            "`ci-result` artifacts._"
-        )
+            "`ci-result` artifacts._")
     lines.append("")
     return "\n".join(lines)
 
@@ -1721,31 +1712,39 @@ def write_site(output_dir, history, report, dashboard_source):
     daily_dir = os.path.join(data_dir, "daily")
     os.makedirs(daily_dir, exist_ok=True)
     manifest = {
-        "schema_version": HISTORY_SCHEMA_VERSION,
-        "generated_at": history.get("generated_at", ""),
+        "schema_version":
+            HISTORY_SCHEMA_VERSION,
+        "generated_at":
+            history.get("generated_at", ""),
         "days": [
             snapshot["date"]
             for snapshot in history.get("days", [])
             if snapshot.get("date")
         ],
     }
-    with open(os.path.join(data_dir, "index.json"), "w", encoding="utf-8") as output:
+    with open(
+            os.path.join(data_dir, "index.json"), "w",
+            encoding="utf-8") as output:
         json.dump(manifest, output, separators=(",", ":"), sort_keys=True)
         output.write("\n")
     latest = history["days"][-1] if history.get("days") else {}
-    with open(os.path.join(data_dir, "latest.json"), "w", encoding="utf-8") as output:
+    with open(
+            os.path.join(data_dir, "latest.json"), "w",
+            encoding="utf-8") as output:
         json.dump(latest, output, indent=2, sort_keys=True)
         output.write("\n")
     for snapshot in history.get("days", []):
         with open(
-            os.path.join(daily_dir, f"{snapshot['date']}.json"),
-            "w",
-            encoding="utf-8",
+                os.path.join(daily_dir, f"{snapshot['date']}.json"),
+                "w",
+                encoding="utf-8",
         ) as output:
             json.dump(snapshot, output, separators=(",", ":"), sort_keys=True)
             output.write("\n")
     shutil.copyfile(dashboard_source, os.path.join(output_dir, "index.html"))
-    with open(os.path.join(output_dir, "report.md"), "w", encoding="utf-8") as output:
+    with open(
+            os.path.join(output_dir, "report.md"), "w",
+            encoding="utf-8") as output:
         output.write(report)
 
 
@@ -1891,9 +1890,8 @@ def main():
         since = (newest - timedelta(days=refresh_days)).strftime("%Y-%m-%d")
     else:
         bootstrap_days = int(os.environ.get("BOOTSTRAP_DAYS", "90"))
-        since = (
-            datetime.now(timezone.utc) - timedelta(days=bootstrap_days)
-        ).strftime("%Y-%m-%d")
+        since = (datetime.now(timezone.utc) -
+                 timedelta(days=bootstrap_days)).strftime("%Y-%m-%d")
 
     (
         observations,
@@ -1906,29 +1904,25 @@ def main():
     try:
         status_payload = status_request()
         github_incidents = github_status_incidents(status_payload, since)
-        observations = correlate_github_incidents(observations, github_incidents)
+        observations = correlate_github_incidents(observations,
+                                                  github_incidents)
         observations, github_log_errors = add_github_log_evidence(
-            token, repo, observations
-        )
+            token, repo, observations)
         if github_log_errors:
             notes.append(
                 f"{github_log_errors} incident-correlated job log(s) were "
-                "unavailable; time correlation was preserved"
-            )
+                "unavailable; time correlation was preserved")
     except (OSError, ValueError, json.JSONDecodeError):
         github_incidents = []
         notes.append(
             "GitHub Status incident correlation was unavailable; failure counts "
-            "and classifications are unaffected"
-        )
+            "and classifications are unaffected")
     observations, infrastructure_events, infrastructure_log_errors = (
-        group_image_producer_failures(token, repo, observations)
-    )
+        group_image_producer_failures(token, repo, observations))
     if infrastructure_log_errors:
         notes.append(
             f"{infrastructure_log_errors} failed infrastructure job log(s) "
-            "were unavailable; lane failures remain counted"
-        )
+            "were unavailable; lane failures remain counted")
     snapshots = aggregate_daily(
         observations,
         normalized_results,
@@ -1938,14 +1932,14 @@ def main():
         completeness,
     )
     retained = [
-        snapshot["date"] for snapshot in snapshots
+        snapshot["date"]
+        for snapshot in snapshots
         if not is_complete_day(snapshot)
     ]
     if retained:
         notes.append(
             f"{len(retained)} day(s) were collected with gaps; stored complete "
-            "days for those dates were preserved rather than replaced"
-        )
+            "days for those dates were preserved rather than replaced")
     history = merge_history(history, snapshots)
 
     # A publisher regression produces no artifacts and would otherwise leave no
@@ -1963,10 +1957,8 @@ def main():
             f"{publisher['test_parse_errors']} report parse error(s).",
             file=sys.stderr,
         )
-        notes.append(
-            f"publisher gap {publisher['gap_ratio']:.0%} exceeds the "
-            f"{PUBLISHER_GAP_ERROR_RATIO:.0%} threshold"
-        )
+        notes.append(f"publisher gap {publisher['gap_ratio']:.0%} exceeds the "
+                     f"{PUBLISHER_GAP_ERROR_RATIO:.0%} threshold")
     elif publisher["unusable_results"] or publisher["test_parse_errors"]:
         print(
             "::warning title=CI result publishing gaps::"
@@ -1976,19 +1968,17 @@ def main():
             file=sys.stderr,
         )
 
-    dashboard_url = os.environ.get(
-        "DASHBOARD_URL", "https://kubeflow.github.io/pipelines/"
-    )
+    dashboard_url = os.environ.get("DASHBOARD_URL",
+                                   "https://kubeflow.github.io/pipelines/")
     pages_enabled = os.environ.get("PAGES_ENABLED", "true").lower() == "true"
     report = render_trend_summary(
-        history, notes, dashboard_url, pages_enabled=pages_enabled
-    )
+        history, notes, dashboard_url, pages_enabled=pages_enabled)
     output_dir = os.environ.get("OUTPUT_DIR", "ci-health-site")
     dashboard_source = os.environ.get(
         "DASHBOARD_SOURCE",
         os.path.join(
-            os.path.dirname(__file__), "..", "ci-health-dashboard", "index.html"
-        ),
+            os.path.dirname(__file__), "..", "ci-health-dashboard",
+            "index.html"),
     )
     write_site(output_dir, history, report, dashboard_source)
 

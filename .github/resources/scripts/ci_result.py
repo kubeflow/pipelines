@@ -16,11 +16,12 @@
 
 import argparse
 import collections
+from datetime import datetime
+from datetime import timezone
 import glob
 import json
 import os
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
 
 
 def testcase_id(case):
@@ -30,11 +31,11 @@ def testcase_id(case):
 
 
 def read_test_results(reports_dir):
-    """Returns per-test execution counts, preferring the aggregate junit.xml."""
+    """Returns per-test execution counts, preferring the aggregate
+    junit.xml."""
     aggregate = os.path.join(reports_dir, "junit.xml")
     paths = [aggregate] if os.path.isfile(aggregate) else sorted(
-        glob.glob(os.path.join(reports_dir, "*.xml"))
-    )
+        glob.glob(os.path.join(reports_dir, "*.xml")))
     tests = collections.defaultdict(lambda: {
         "executions": 0,
         "failures": 0,
@@ -51,17 +52,19 @@ def read_test_results(reports_dir):
             stats = tests[testcase_id(case)]
             was_skipped = case.find("skipped") is not None
             stats["executions"] += int(not was_skipped)
-            if case.find("failure") is not None or case.find("error") is not None:
+            if case.find("failure") is not None or case.find(
+                    "error") is not None:
                 stats["failures"] += 1
             stats["skipped"] += int(was_skipped)
-    return [
-        {"id": name, **stats}
-        for name, stats in sorted(tests.items())
-    ], parse_errors
+    return [{
+        "id": name,
+        **stats
+    } for name, stats in sorted(tests.items())], parse_errors
 
 
 def read_go_test_results(pattern):
-    """Parses terminal per-test events from one or more `go test -json` logs."""
+    """Parses terminal per-test events from one or more `go test -json`
+    logs."""
     tests = collections.defaultdict(lambda: {
         "executions": 0,
         "failures": 0,
@@ -89,10 +92,10 @@ def read_go_test_results(pattern):
                 stats["executions"] += int(action != "skip")
                 stats["failures"] += int(action == "fail")
                 stats["skipped"] += int(action == "skip")
-    return [
-        {"id": name, **stats}
-        for name, stats in sorted(tests.items())
-    ], parse_errors
+    return [{
+        "id": name,
+        **stats
+    } for name, stats in sorted(tests.items())], parse_errors
 
 
 def merge_test_results(*collections_to_merge):
@@ -134,7 +137,11 @@ def elapsed_seconds(start_path, end_path):
     return round(end - start, 3)
 
 
-def classify(test_outcome, reporting_outcomes, tests, signatures, setup_outcome=""):
+def classify(test_outcome,
+             reporting_outcomes,
+             tests,
+             signatures,
+             setup_outcome=""):
     if setup_outcome not in ("", "success"):
         return "infrastructure_failure"
     if test_outcome != "success":
@@ -143,7 +150,9 @@ def classify(test_outcome, reporting_outcomes, tests, signatures, setup_outcome=
         if any(test["failures"] for test in tests):
             return "test_failure"
         return "unclassified_failure"
-    if any(outcome not in ("", "success", "skipped") for outcome in reporting_outcomes):
+    if any(
+            outcome not in ("", "success", "skipped")
+            for outcome in reporting_outcomes):
         return "reporting_failure"
     return "success"
 
@@ -215,11 +224,27 @@ def parse_args():
     parser.add_argument("--test-end", required=True)
     parser.add_argument("--report-end", required=True)
     for name in (
-        "repository", "workflow", "job", "report-name", "run-id", "run-attempt",
-        "sha", "test-outcome", "setup-outcome", "install-outcome", "html-outcome",
-        "upload-outcome", "publish-outcome", "pipeline-store", "proxy",
-        "cache-enabled", "multi-user", "deployment-mode", "mlflow-enabled",
-        "test-label", "parallel-nodes",
+            "repository",
+            "workflow",
+            "job",
+            "report-name",
+            "run-id",
+            "run-attempt",
+            "sha",
+            "test-outcome",
+            "setup-outcome",
+            "install-outcome",
+            "html-outcome",
+            "upload-outcome",
+            "publish-outcome",
+            "pipeline-store",
+            "proxy",
+            "cache-enabled",
+            "multi-user",
+            "deployment-mode",
+            "mlflow-enabled",
+            "test-label",
+            "parallel-nodes",
     ):
         parser.add_argument(f"--{name}", default="")
     return parser.parse_args()
