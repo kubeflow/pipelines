@@ -30,6 +30,7 @@ const (
 	PodNamespace                            string = "POD_NAMESPACE"
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
 	AllowedServiceAccountsFlag              string = "ALLOWEDSERVICEACCOUNTS"
+	ServiceAccountAuthorizationMode         string = "KFP_SECURITY_SERVICE_ACCOUNT_MODE"
 	WorkflowIdentityMode                    string = "KFP_SECURITY_WORKFLOW_IDENTITY_MODE"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
@@ -405,4 +406,18 @@ func ValidateServiceAccountAllowList(serviceAccount string) error {
 		}
 	}
 	return fmt.Errorf("service account %q is not allowed; contact your administrator to configure the allowed service accounts", serviceAccount)
+}
+
+// GetServiceAccountAuthorizationMode validates the temporary migration mode.
+// Empty configuration preserves enforcement, including on upgrades.
+func GetServiceAccountAuthorizationMode() (string, error) {
+	mode := GetStringConfigWithDefault(ServiceAccountAuthorizationMode, "enforce")
+	switch mode {
+	case "", "enforce":
+		return "enforce", nil
+	case "audit":
+		return mode, nil
+	default:
+		return "", fmt.Errorf("%s must be enforce or audit", ServiceAccountAuthorizationMode)
+	}
 }
