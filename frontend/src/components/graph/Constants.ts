@@ -31,11 +31,11 @@ export type SubDagFlowElementData = FlowElementDataBase & {
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: PipelineTaskTaskState;
-  // Set when the task is currently parked at a debug-pause barrier, as 
-  // reported live by the launcher (see DebugPauseUtils.ts). This is a 
-  // separate overlay on top of 'state', not a replacement for it - the task
+  // Set when the task is currently parked at a debug-pause barrier, as
+  // reported live by the launcher (see DebugPauseUtils.ts). This is a
+  // separate overlay on top of `state`, not a replacement for it - the task
   // continues to report RUNNING while this is set.
-  debugPauseBarrier?: DebugPauseBarrier
+  debugPauseBarrier?: DebugPauseBarrier;
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {
