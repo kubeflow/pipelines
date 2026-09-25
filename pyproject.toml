@@ -1,7 +1,8 @@
 [project]
 name = "kfp-workspace"
 version = "0.0.0"
-requires-python = ">=3.9"
+# cryptography excludes Python 3.9.0 and 3.9.1. Keep resolution above that floor.
+requires-python = ">=3.9.2"
 dependencies = [
   "kfp",
   "kfp-pipeline-spec",
