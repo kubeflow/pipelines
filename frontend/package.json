@@ -126,7 +126,6 @@
     "fs": "0.0.1-security",
     "globals": "^16.5.0",
     "jsdom": "^24.1.0",
-    "patch-package": "^8.0.1",
     "playwright": "^1.58.0",
     "postcss": "^8.5.23",
     "prettier": "^3.8.1",

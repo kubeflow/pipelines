@@ -137,6 +137,7 @@ function orchestrationHarness(t, changeOverrides = {}, serviceOverrides = {}) {
     cleanup: 0,
     cleanupRegistrations: [],
     clusterSources: [],
+    compatibilityConfigurations: [],
     detect: [],
     deployments: [],
     fetch: [],
@@ -155,6 +156,10 @@ function orchestrationHarness(t, changeOverrides = {}, serviceOverrides = {}) {
   };
   const cluster = {
     FRONTEND_SERVER_PORT: 3000,
+    createKindStack(configuration) {
+      calls.compatibilityConfigurations.push(configuration);
+      return cluster;
+    },
     async buildAndDeployComponents(components, repoRoot, options) {
       calls.deployments.push({ components, options, repoRoot });
     },
@@ -1324,6 +1329,7 @@ test('fetched browser-only comparison uses the trusted base runtime for both bun
   assert.deepEqual(calls.hostServers, [{ options: { skipBuild: false }, repoRoot: baseWorktree }]);
   assert.deepEqual(calls.manifests, []);
   assert.deepEqual(calls.deployments, []);
+  assert.equal(calls.compatibilityConfigurations[0].ports.metadata, 9090);
   assert.deepEqual(calls.seed, [
     {
       apiBase: 'http://127.0.0.1:3000',
@@ -1344,6 +1350,26 @@ test('fetched browser-only comparison uses the trusted base runtime for both bun
     calls.capture[0].labels.head,
     /browser-only; ignored frontend\/server, backend, manifests/,
   );
+});
+
+test('browser-only native base omits the removed metadata service and port', async (t) => {
+  const { calls, run, services } = orchestrationHarness(
+    t,
+    {},
+    {
+      renderRevisionManifestSources() {
+        return 'apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: ml-pipeline\n';
+      },
+    },
+  );
+  assert.equal(await runComparison(comparisonOptions({ browserOnly: true }), run, services), true);
+  assert.deepEqual(calls.compatibilityConfigurations, [
+    {
+      role: 'compatibility',
+      ports: { frontendServer: 3000, metadata: null },
+    },
+  ]);
+  assert.equal(calls.portChecks[0].includes(9090), false);
 });
 
 test('fetched dependency-source changes are rejected before installing packages', async (t) => {

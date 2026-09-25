@@ -35,6 +35,8 @@ const PROXY_PATHS = [
   '/artifacts/',
   '/k8s/',
   '/apps/',
+  // Historical comparison bases still expose read-only MLMD RPCs.
+  '/ml_metadata.',
 ];
 
 const HOP_BY_HOP_HEADERS = new Set([

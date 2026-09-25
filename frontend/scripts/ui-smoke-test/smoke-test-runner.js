@@ -2645,7 +2645,6 @@ async function runComparison(options, run, overrides = {}) {
       'A non-release --full-stack base requires --trust-base-code because that ref is built and executed.',
     );
   }
-  const managedCluster = services.clusterManager;
   const screenshotsDir = path.join(run.runDir, 'screenshots');
   const baseWorktree = path.join(run.runDir, 'worktrees', 'base');
   const headWorktree = path.join(run.runDir, 'worktrees', 'head');
@@ -2809,13 +2808,21 @@ async function runComparison(options, run, overrides = {}) {
     await services.buildTrustedFrontend(headRoot);
   }
 
-  const conflicts = await managedCluster.checkPortAvailability([
+  const baseManifestSources = services.renderRevisionManifestSources(baseWorktree);
+  const metadataPort = services.revisionUsesMetadataService(baseWorktree, baseManifestSources)
+    ? 9090
+    : null;
+  const managedCluster = services.clusterManager.createKindStack({
+    role: 'compatibility',
+    ports: { frontendServer: services.clusterManager.FRONTEND_SERVER_PORT, metadata: metadataPort },
+  });
+  const conflicts = await services.clusterManager.checkPortAvailability([
     BASE_PROXY_PORT,
     HEAD_PROXY_PORT,
     managedCluster.FRONTEND_SERVER_PORT,
     3002,
     9000,
-    9090,
+    ...(metadataPort === null ? [] : [metadataPort]),
   ]);
   if (conflicts.length > 0) throw portConflictError(conflicts);
 

@@ -599,3 +599,9 @@ npm test
 The nested tests use Node's built-in test runner and cover capture manifests, comparison failure
 modes, change detection, cluster command construction, seeding, proxy boundaries, runner argument
 validation, and GitHub reporting. They also run in the frontend CI workflow.
+
+Native v2 revisions select build components from their own rendered manifests and available
+Dockerfiles. Browser-only and full-stack comparisons omit metadata port forwarding when the
+selected runtime no longer deploys MLMD. The historical component descriptors and read-only
+MLMD capture proxy remain available for older base releases; current fixtures use PipelineSpec
+IR uploads and native Task/Artifact API bindings.
