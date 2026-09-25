@@ -25,6 +25,7 @@ import tempfile
 import time
 from types import ModuleType
 from typing import Any, Dict, List, Optional, TextIO
+from urllib.parse import urlsplit
 import warnings
 import zipfile
 
@@ -332,7 +333,21 @@ class Client:
         return config
 
     def _is_inverse_proxy_host(self, host: str) -> bool:
-        return bool(re.match(r'\S+.googleusercontent.com/{0,1}$', host))
+        # This check authorizes automatic disclosure of Google credentials.
+        # Match the parsed authority, never a Google-looking URL path or query.
+        if not host or '\\' in host or any(character.isspace() or ord(
+                character) < 32 or ord(character) == 127 for character in host):
+            return False
+        try:
+            parsed = urlsplit(host)
+            return (parsed.scheme == 'https' and parsed.username is None and
+                    parsed.password is None and parsed.port in (None, 443) and
+                    not parsed.query and not parsed.fragment and re.fullmatch(
+                        r'(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+'
+                        r'googleusercontent\.com', parsed.hostname or
+                        '') is not None)
+        except ValueError:
+            return False
 
     def _get_url_prefix(self) -> str:
         if self._uihost:

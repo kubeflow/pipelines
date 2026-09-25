@@ -599,6 +599,107 @@ class TestClient(parameterized.TestCase):
             self.assertEqual(result, expected_result)
 
 
+class TestInverseProxyCredentials(parameterized.TestCase):
+
+    def _load_config(self, host, **overrides):
+        kwargs = dict(
+            host=host,
+            client_id=None,
+            namespace='kubeflow',
+            other_client_id=None,
+            other_client_secret=None,
+            existing_token=None,
+            proxy=None,
+            ssl_ca_cert=None,
+            kube_context=None,
+            credentials=None,
+            verify_ssl=True)
+        kwargs.update(overrides)
+        return client.Client.__new__(client.Client)._load_config(**kwargs)
+
+    @parameterized.parameters('https://abc.googleusercontent.com',
+                              'https://attacker.example')
+    def test_explicit_token_takes_precedence(self, host):
+        with patch.object(auth, 'get_gcp_access_token') as get_token:
+            config = self._load_config(host, existing_token='explicit-token')
+        get_token.assert_not_called()
+        self.assertEqual(
+            config.get_api_key_with_prefix('authorization'),
+            'Bearer explicit-token')
+
+    def test_missing_adc_does_not_add_token(self):
+        with patch.object(auth, 'get_gcp_access_token', return_value=None):
+            config = self._load_config('https://abc.googleusercontent.com')
+        self.assertNotIn('Bearer', config.auth_settings())
+
+    def test_explicit_credentials_for_custom_endpoint(self):
+        credentials = Mock()
+        with patch.object(auth, 'get_gcp_access_token') as get_token:
+            config = self._load_config(
+                'https://custom.example', credentials=credentials)
+        get_token.assert_not_called()
+        self.assertEqual(config.refresh_api_key_hook,
+                         credentials.refresh_api_key_hook)
+
+    def test_explicit_client_id_takes_precedence(self):
+        with patch.object(auth, 'get_gcp_access_token') as get_token:
+            with patch.object(
+                    auth, 'get_auth_token',
+                    return_value=('explicit-token', False)):
+                config = self._load_config(
+                    'https://abc.googleusercontent.com', client_id='client-id')
+        get_token.assert_not_called()
+        self.assertEqual(
+            config.get_api_key_with_prefix('authorization'),
+            'Bearer explicit-token')
+
+    @parameterized.parameters(
+        ('https://abc.notebooks.googleusercontent.com', True),
+        ('https://abc.googleusercontent.com/', True),
+        ('abc.googleusercontent.com', True),
+        ('https://ABC.GoogleUserContent.COM:443/pipeline', True),
+        ('https://my-googleusercontent.com', False),
+        ('https://evilXgoogleusercontent.com', False),
+        ('https://abc.googleusercontentXcom', False),
+        ('https://attacker.example/service.googleusercontent.com', False),
+        ('https://attacker.example/?x=.googleusercontent.com', False),
+        ('https://attacker.example/#.googleusercontent.com', False),
+        ('https://abc.googleusercontent.com.attacker.example', False),
+        ('https://abc.googleusercontent.com@attacker.example', False),
+        ('https://attacker.example@abc.googleusercontent.com', False),
+        ('https://attacker.example\\abc.googleusercontent.com', False),
+        ('https://abc.googleusercontent.com\n', False),
+        ('https://abc.googleusercontent.com\x00', False),
+        ('https://abc.googleusercontent.com:invalid', False),
+        ('https://abc.googleusercontent.com:65536', False),
+        ('https://abc.googleusercontent.com:8443', False),
+        ('https://[abc.googleusercontent.com', False),
+        ('https://googleusercontent.com', False),
+        ('https://.googleusercontent.com', False),
+        ('https://-abc.googleusercontent.com', False),
+        ('https://%61bc.googleusercontent.com', False),
+        ('http://abc.googleusercontent.com', False),
+        ('https://abc.googleusercontent.com?query=value', False),
+        ('https://abc.googleusercontent.com#fragment', False),
+        ('https://attacker.example', False),
+    )
+    def test_automatic_credentials_only_for_trusted_authority(
+            self, host, trusted):
+        with patch.object(
+                auth, 'get_gcp_access_token',
+                return_value='synthetic-token') as get_token:
+            config = self._load_config(host)
+        headers = {}
+        with kfp_server_api.ApiClient(config) as api_client:
+            api_client.update_params_for_auth(headers, [], ['Bearer'])
+        if trusted:
+            get_token.assert_called_once_with()
+            self.assertEqual(headers['authorization'], 'Bearer synthetic-token')
+        else:
+            get_token.assert_not_called()
+            self.assertNotIn('authorization', headers)
+
+
 class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
     """Tests the kube config fallback path of ``Client._load_config``.
 
