@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+// ReactAce initializes the Ace global before its extensions execute.
 import AceEditor from 'react-ace';
+import 'ace-builds/src-noconflict/ext-language_tools';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/mode-yaml';
+import 'ace-builds/src-noconflict/theme-github';
 
 // Modified AceEditor that supports HTML within provided placeholder. This is
 // important because it allows for the usage of multi-line placeholders.
