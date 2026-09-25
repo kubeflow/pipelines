@@ -22,6 +22,7 @@ import unittest
 
 from kfp import compiler
 from kfp import components
+from kfp import dsl
 
 
 class ComponentMigrationTest(unittest.TestCase):
@@ -96,13 +97,38 @@ class ComponentMigrationTest(unittest.TestCase):
                 self.assertEqual(result.stdout, message + ' from node: A\n')
 
     def test_env_overrides_survive_container_conversion(self):
-        from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_env import my_pipeline
-        executors = my_pipeline.pipeline_spec.deployment_spec['executors']
-        env = executors['exec-print-env']['container']['env']
-        self.assertEqual({entry['name']: entry['value'] for entry in env}, {
-                              'ENV2': 'val2',
-                              'ENV3': 'val3'
-                          })
+        from test_data.sdk_compiled_pipelines.valid.critical import pipeline_with_env
+
+        @dsl.pipeline
+        def defaults_pipeline():
+            pipeline_with_env.print_env_2_op()
+
+        for pipeline, expected_env, expected_output in [
+            (defaults_pipeline, {
+                'ENV1': 'val0',
+                'ENV2': 'val0'
+            }, 'val0\nval0\n\n'),
+            (pipeline_with_env.my_pipeline, {
+                'ENV1': 'val0',
+                'ENV2': 'val2',
+                'ENV3': 'val3'
+            }, 'val0\nval2\nval3\n'),
+        ]:
+            with self.subTest(pipeline=pipeline.name):
+                container = pipeline.pipeline_spec.deployment_spec['executors'][
+                    'exec-print-env']['container']
+                env = {
+                    entry['name']: entry['value'] for entry in (
+                        container['env'] if 'env' in container else [])
+                }
+                self.assertEqual(env, expected_env)
+                result = subprocess.run(
+                    list(container['command']),
+                    env=env,
+                    check=True,
+                    capture_output=True,
+                    text=True)
+                self.assertEqual(result.stdout, expected_output)
 
 
 if __name__ == '__main__':

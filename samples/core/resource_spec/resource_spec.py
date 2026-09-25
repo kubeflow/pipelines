@@ -34,12 +34,8 @@ def my_pipeline(n: int = 11234567):
     # by installing KFP SDK in the component, so we had to increase memory limit to 650M.
     training_task = training_op(n=n).set_cpu_limit('1').set_memory_limit('650M')
 
-    # TODO(gkcalat): enable requests once SDK implements the feature
-    # training_task = training_task.set_cpu_request('1').set_memory_request('650M')
+    # Requests can also be configured:
+    # training_task.set_cpu_request('1').set_memory_request('650M')
 
-    # TODO(Bobgy): other resource specs like cpu requests, memory requests and
-    # GPU limits are not available yet: https://github.com/kubeflow/pipelines/issues/6354.
-    # There are other resource spec you can set.
-    # For example, to use TPU, add the following:
-    # .add_node_selector_constraint('cloud.google.com/gke-accelerator', 'tpu-v3')
-    # .set_accelerator_limit(1)
+    # On a cluster exposing TPU v3 resources, use the fluent accelerator API:
+    # training_task.set_accelerator_type('cloud-tpus.google.com/v3').set_accelerator_limit(1)

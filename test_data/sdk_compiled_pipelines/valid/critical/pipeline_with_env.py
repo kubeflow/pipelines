@@ -34,7 +34,10 @@ def print_env():
     )
 
 
-print_env_2_op = print_env
+def print_env_2_op():
+    return print_env().set_env_variable(
+        name='ENV1', value='val0').set_env_variable(
+            name='ENV2', value='val0')
 
 
 @dsl.pipeline(name='pipeline-with-env')
