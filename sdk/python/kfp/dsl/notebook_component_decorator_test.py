@@ -78,10 +78,10 @@ class TestNotebookComponentDecorator(unittest.TestCase):
 class TestNotebookExecutorTemplate(unittest.TestCase):
 
     def test_template_binds_run_notebook(self):
-        from kfp.dsl.templates.notebook_executor import \
-            get_notebook_executor_source
+        from kfp.dsl.templates import notebook_executor
 
-        source = get_notebook_executor_source('ARCHIVE_B64', 'nb.ipynb')
+        source = notebook_executor.get_notebook_executor_source(
+            'ARCHIVE_B64', 'nb.ipynb')
         self.assertIn('dsl.run_notebook = kfp_run_notebook', source)
         self.assertIn('class KFPStreamingNotebookClient(NotebookClient):',
                       source)
