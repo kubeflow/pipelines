@@ -835,47 +835,56 @@ describe('RunDetailsRouter', () => {
     expect(getRunSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('recovers a deleted version from stored IR and retains it across polls and retries', async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const run: V2beta1Run = {
-      run_id: TEST_RUN_ID,
-      state: V2beta1RuntimeState.FAILED,
-      pipeline_version_reference: {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      },
-    };
-    getRunSpy.mockImplementation(async (_id, _experimentId, view) =>
-      view === 'FULL' ? { ...run, pipeline_spec: v2PipelineSpec } : { ...run },
-    );
-    getPipelineVersionSpy.mockRejectedValue(new Error('Pipeline version not found'));
-    const props = generateProps();
-    const view = render(
-      <QueryClientProvider client={client}>
-        <RunDetailsRouter {...props} />
-      </QueryClientProvider>,
-    );
+  it.each(['deleted', 'empty'])(
+    'recovers a %s version from stored IR and retains it across polls and retries',
+    async (versionState) => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const run: V2beta1Run = {
+        run_id: TEST_RUN_ID,
+        state: V2beta1RuntimeState.FAILED,
+        pipeline_version_reference: {
+          pipeline_id: TEST_PIPELINE_ID,
+          pipeline_version_id: TEST_PIPELINE_VERSION_ID,
+        },
+      };
+      getRunSpy.mockImplementation(async (_id, _experimentId, view) =>
+        view === 'FULL' ? { ...run, pipeline_spec: v2PipelineSpec } : { ...run },
+      );
+      if (versionState === 'deleted') {
+        getPipelineVersionSpy.mockRejectedValue(new Error('Pipeline version not found'));
+      } else {
+        getPipelineVersionSpy.mockResolvedValue({});
+      }
+      const props = generateProps();
+      const view = render(
+        <QueryClientProvider client={client}>
+          <RunDetailsRouter {...props} />
+        </QueryClientProvider>,
+      );
 
-    await screen.findByTestId('run-details-v2');
-    const details = screen.getByTestId('run-details-v2');
-    fireEvent.change(screen.getByTestId('run-details-mount'), { target: { value: 'selection' } });
-    expect(getRunSpy).toHaveBeenCalledWith(TEST_RUN_ID, undefined, 'FULL');
-    expect(props.updateBanner).not.toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
-    expect(client.getQueryData(queryKeys.v2RunDetail(TEST_RUN_ID))).toEqual(run);
+      await screen.findByTestId('run-details-v2');
+      const details = screen.getByTestId('run-details-v2');
+      fireEvent.change(screen.getByTestId('run-details-mount'), { target: { value: 'selection' } });
+      expect(getRunSpy).toHaveBeenCalledWith(TEST_RUN_ID, undefined, 'FULL');
+      expect(props.updateBanner).not.toHaveBeenCalledWith(
+        expect.objectContaining({ mode: 'error' }),
+      );
+      expect(client.getQueryData(queryKeys.v2RunDetail(TEST_RUN_ID))).toEqual(run);
 
-    run.state = V2beta1RuntimeState.RUNNING;
-    fireEvent.click(screen.getByText('Retry started'));
-    await waitFor(() => expect(details).toHaveAttribute('data-run-state', 'RUNNING'));
-    await act(async () => {
-      await client.invalidateQueries({ queryKey: queryKeys.v2RunDetail(TEST_RUN_ID) });
-    });
-    expect(screen.getByTestId('run-details-v2')).toBe(details);
-    expect(screen.getByTestId('run-details-mount')).toHaveValue('selection');
-    expect(getRunSpy.mock.calls.filter(([, , mode]) => mode === 'FULL')).toHaveLength(1);
+      run.state = V2beta1RuntimeState.RUNNING;
+      fireEvent.click(screen.getByText('Retry started'));
+      await waitFor(() => expect(details).toHaveAttribute('data-run-state', 'RUNNING'));
+      await act(async () => {
+        await client.invalidateQueries({ queryKey: queryKeys.v2RunDetail(TEST_RUN_ID) });
+      });
+      expect(screen.getByTestId('run-details-v2')).toBe(details);
+      expect(screen.getByTestId('run-details-mount')).toHaveValue('selection');
+      expect(getRunSpy.mock.calls.filter(([, , mode]) => mode === 'FULL')).toHaveLength(1);
 
-    view.unmount();
-    client.clear();
-  });
+      view.unmount();
+      client.clear();
+    },
+  );
 
   it('reports an error when neither the version nor the stored IR can be fetched', async () => {
     getRunSpy.mockImplementation(async (_id, _experimentId, view) => {
@@ -929,6 +938,7 @@ describe('RunDetailsRouter', () => {
     });
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(getRunSpy).not.toHaveBeenCalledWith(TEST_RUN_ID, undefined, 'FULL');
   });
 
   describe('template refetch regression', () => {

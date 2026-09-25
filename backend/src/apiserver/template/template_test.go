@@ -53,15 +53,18 @@ func TestParseSpecFormat(t *testing.T) {
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow`,
 		templateType: Unknown,
+		wantErr:      true,
 	}, { // template contains content too
 		template:     awfTemplate,
 		templateType: Unknown,
+		wantErr:      true,
 	}, {
 		// version does not matter
 		template: `
 apiVersion: argoproj.io/v1alpha2
 kind: Workflow`,
 		templateType: Unknown,
+		wantErr:      true,
 	}, {
 		template:     "",
 		templateType: Unknown,
@@ -122,6 +125,24 @@ kind: CronWorkflow`,
 		} else {
 			require.NoError(t, err)
 		}
+	}
+}
+
+func TestNewTemplateRejectsArgoWithMigrationGuidance(t *testing.T) {
+	for _, input := range []string{
+		awfTemplate,
+		`{"apiVersion":"argoproj.io/v1alpha2","kind":"Workflow","spec":{}}`,
+		"---\n# historical workflow\napiVersion: argoproj.io/v1alpha1\nkind: Workflow\n",
+	} {
+		t.Run(input, func(t *testing.T) {
+			tmpl, err := New([]byte(input), TemplateOptions{})
+			require.Error(t, err)
+			assert.Nil(t, tmpl)
+			assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
+			assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK")
+			assert.Contains(t, err.Error(), "upload compiled PipelineSpec IR YAML")
+			assert.NotContains(t, err.Error(), "failed to parse pipeline spec YAML")
+		})
 	}
 }
 

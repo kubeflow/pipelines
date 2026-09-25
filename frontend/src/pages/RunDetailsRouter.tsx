@@ -120,8 +120,8 @@ export default function RunDetailsRouter(props: PageProps & NavigationProps<RunD
     pipelineManifest ? undefined : pipelineVersionId,
   );
 
-  // A run retains its IR after its pipeline version is deleted. Keep this
-  // immutable snapshot separate from the lightweight, polled run response.
+  // Recover stored IR when a version is unavailable or its reference is incomplete.
+  // FULL also loads tasks; cache this snapshot separately from lightweight run polling.
   const {
     data: storedPipelineManifest,
     error: storedSpecError,
@@ -133,10 +133,7 @@ export default function RunDetailsRouter(props: PageProps & NavigationProps<RunD
       return fullRun.pipeline_spec ? JsYaml.dump(fullRun.pipeline_spec) : '';
     },
     enabled:
-      !!v2Run &&
-      !pipelineManifest &&
-      !templateStrFromPipelineVersion &&
-      (!!templateStrError || templateStrFromPipelineVersion === ''),
+      !!v2Run && !pipelineManifest && !templateStrIsLoading && !templateStrFromPipelineVersion,
     staleTime: Infinity,
   });
 

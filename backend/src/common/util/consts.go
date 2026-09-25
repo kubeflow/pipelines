@@ -47,6 +47,9 @@ const (
 	// It captures whether the name of the owning ScheduledWorkflow.
 	LabelKeyWorkflowScheduledWorkflowName = constants.FullName + "/scheduledWorkflowName"
 
+	// V2ComponentKey marks IR-compiled workflow pod metadata in labels and annotations.
+	V2ComponentKey = "pipelines.kubeflow.org/v2_component"
+
 	LabelKeyWorkflowRunId               = "pipeline/runid"
 	LabelKeyWorkflowPersistedFinalState = "pipeline/persistedFinalState"
 

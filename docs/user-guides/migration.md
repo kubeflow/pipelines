@@ -88,6 +88,14 @@ execution namespace, and submit runs. Direct REST integrations use
 `/apis/v2beta1` and its typed fields (`display_name`, `experiment_id`, `namespace`,
 and `pipeline_version_reference`) rather than resource-reference lists.
 
+Direct API callers can now follow live pod logs with
+`GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/log?follow=true`.
+Previously, `follow` was not read from the query string and effectively stayed
+false. Omitting it still returns a log snapshot. Live following has no dedicated
+server-side timeout; clients should set a deadline or cancel the request when
+finished. The UI's API-log proxy does not forward this query parameter, so this
+change enables following for direct API callers, not the UI proxy.
+
 See [connecting to the API](core-functions/connect-api.md),
 [compiling pipelines](core-functions/compile-a-pipeline.md), and the
 [REST API reference](../reference/api/kubeflow-pipeline-api-spec.md).

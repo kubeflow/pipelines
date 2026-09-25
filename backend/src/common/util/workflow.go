@@ -1019,9 +1019,8 @@ func (w *Workflow) CanRetry() error {
 		return NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
 	}
 	// The IR compiler emits this format marker. It is not an authorization boundary.
-	const componentMarker = "pipelines.kubeflow.org/v2_component"
 	metadata := w.Spec.PodMetadata
-	if metadata == nil || (metadata.Labels[componentMarker] != "true" && metadata.Annotations[componentMarker] != "true") {
+	if metadata == nil || (metadata.Labels[V2ComponentKey] != "true" && metadata.Annotations[V2ComponentKey] != "true") {
 		return NewInvalidInputError("Cannot retry workflow missing the IR compiler's v2_component pod metadata marker; create a new run from pipeline IR and ensure controllers and webhooks preserve spec.podMetadata")
 	}
 	return nil

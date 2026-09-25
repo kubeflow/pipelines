@@ -17,7 +17,6 @@ package server
 import (
 	"strings"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -106,48 +105,5 @@ func YamlStringToPipelineSpecStruct(s string) (*structpb.Struct, error) {
 			},
 		}
 		return pipeline, nil
-	}
-}
-
-// Fetches a PipelineRoot from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetPipelineRootFromRunInterface(r interface{}) (string, error) {
-	switch r := r.(type) {
-
-	case *apiv2beta1.Run:
-		return r.GetRuntimeConfig().GetPipelineRoot(), nil
-	default:
-		return "", util.NewUnknownApiVersionError("GetPipelineRootFromRunInterface()", r)
-	}
-}
-
-// Fetches a RuntimeConfig from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetRuntimeConfigFromRunInterface(r interface{}) (map[string]interface{}, error) {
-	switch r := r.(type) {
-
-	case *apiv2beta1.Run:
-		newRuntimeConfig := map[string]interface{}{
-			"Parameters":   r.GetRuntimeConfig().GetParameters(),
-			"PipelineRoot": r.GetRuntimeConfig().GetPipelineRoot(),
-		}
-		return newRuntimeConfig, nil
-	default:
-		return nil, util.NewUnknownApiVersionError("GetRuntimeConfigFromRunInterface()", r)
-	}
-}
-
-// Fetches a RunDetails from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetRunDetailsFromRunInterface(r interface{}) (string, error) {
-	switch r := r.(type) {
-
-	case *apiv2beta1.Run:
-		return r.GetRunDetails().String(), nil
-	default:
-		return "", util.NewUnknownApiVersionError("GetRunDetailsFromRunInterface()", r)
 	}
 }

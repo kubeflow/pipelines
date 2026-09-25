@@ -2,6 +2,12 @@
 
 ## Features
 
+* The accompanying backend enables live pod-log following for direct API callers
+  through `GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/log?follow=true`.
+  Omitting `follow` still returns a snapshot. Clients should set a deadline or
+  cancel the stream; there is no dedicated server-side timeout. The UI's API-log
+  proxy does not forward `follow`.
+
 * Add Kubernetes Dynamic Resource Allocation support. This feature requires
   Kubernetes 1.31 or later with the `DynamicResourceAllocation` feature gate
   enabled (GA and enabled by default in Kubernetes 1.34), an installed DRA

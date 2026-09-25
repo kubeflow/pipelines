@@ -815,7 +815,7 @@ func hasV2ComponentMarker(podMetadata *workflowapi.Metadata) bool {
 		return false
 	}
 
-	return podMetadata.Labels[util.V2Key] == "true" || podMetadata.Annotations[util.V2Key] == "true"
+	return podMetadata.Labels[commonutil.V2ComponentKey] == "true" || podMetadata.Annotations[commonutil.V2ComponentKey] == "true"
 }
 
 // crdPluginsInputToProto converts the CRD's map[string]apiextensionsv1.JSON

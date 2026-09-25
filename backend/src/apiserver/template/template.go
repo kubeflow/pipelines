@@ -46,29 +46,15 @@ const (
 )
 
 var (
-	ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
-	ErrorInvalidPlatformSpec = fmt.Errorf("platform spec is invalid")
+	ErrorInvalidPipelineSpec   = fmt.Errorf("pipeline spec is invalid")
+	ErrorInvalidPlatformSpec   = fmt.Errorf("platform spec is invalid")
+	errUnsupportedArgoWorkflow = errors.New("legacy Argo Workflow pipelines are no longer supported; rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 )
 
 // inferTemplateFormat infers format from pipeline template.
 // There is no guarantee that the template is valid in inferred format, so validation
 // is still needed.
 func inferTemplateFormat(template []byte) (TemplateType, error) {
-	switch {
-	case len(template) == 0:
-		return Unknown, nil
-	}
-	isV2, err := isV2Spec(template)
-	if isV2 {
-		return V2, nil
-	} else if errors.Is(err, io.EOF) {
-		return Unknown, nil
-	}
-	return Unknown, err
-}
-
-// isV2Spec returns whether template contains api/v2alpha1/PipelineSpec format.
-func isV2Spec(template []byte) (bool, error) {
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
@@ -79,13 +65,20 @@ func isV2Spec(template []byte) (bool, error) {
 			if errors.As(err, &typeErr) {
 				continue
 			}
-			return false, err
+			if errors.Is(err, io.EOF) {
+				return Unknown, nil
+			}
+			return Unknown, err
 		}
 		if value == nil {
 			continue
 		}
+		apiVersion, _ := value["apiVersion"].(string)
+		if value["kind"] == "Workflow" && strings.HasPrefix(apiVersion, "argoproj.io/") {
+			return Unknown, errUnsupportedArgoWorkflow
+		}
 		if isPipelineSpec(value) {
-			return true, nil
+			return V2, nil
 		}
 	}
 }
@@ -144,6 +137,9 @@ func New(bytes []byte, opts TemplateOptions) (Template, error) {
 	case V2:
 		return NewV2SpecTemplate(bytes, opts)
 	default:
+		if errors.Is(parseErr, errUnsupportedArgoWorkflow) {
+			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, parseErr.Error())
+		}
 		if parseErr != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("failed to parse pipeline spec YAML: %v", parseErr))
 		}

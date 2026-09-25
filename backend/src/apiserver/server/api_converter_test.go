@@ -827,216 +827,49 @@ func TestToApiRecurringRun(t *testing.T) {
 }
 
 func Test_toModelRuntimeState(t *testing.T) {
-	tests := []struct {
-		name     string
-		apiState interface{}
-		wantV1   model.RuntimeState
-		wantV2   model.RuntimeState
-		wantErr  bool
-		errMsg   string
-	}{
-		{
-			"V1 pending",
-			"Pending",
-			model.RuntimeStatePendingV1,
-			model.RuntimeStatePending,
-			false,
-			"",
-		},
-		{
-			"V1 Running",
-			"Running",
-			model.RuntimeStateRunningV1,
-			model.RuntimeStateRunning,
-			false,
-			"",
-		},
-		{
-			"V1 Succeeded",
-			"Succeeded",
-			model.RuntimeStateSucceededV1,
-			model.RuntimeStateSucceeded,
-			false,
-			"",
-		},
-		{
-			"V1 Skipped",
-			"Skipped",
-			model.RuntimeStateSkippedV1,
-			model.RuntimeStateSkipped,
-			false,
-			"",
-		},
-		{
-			"V1 Failed",
-			"Failed",
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateFailed,
-			false,
-			"",
-		},
-		{
-			"V1 Error",
-			"Error",
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateFailed,
-			false,
-			"",
-		},
-		{
-			"V1 Empty",
-			"",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V1 Unknown",
-			"Unknown",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V1 NO_STATUS",
-			"NO_STATUS",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V1 Terminating",
-			"Terminating",
-			model.RuntimeStateTerminatingV1,
-			model.RuntimeStateCancelling,
-			false,
-			"",
-		},
-		{
-			"V1 Ready",
-			"Ready",
-			model.RuntimeStateRunningV1,
-			model.RuntimeStateRunning,
-			false,
-			"",
-		},
-		{
-			"V1 Done",
-			"Done",
-			model.RuntimeStateSucceededV1,
-			model.RuntimeStateSucceeded,
-			false,
-			"",
-		},
-		{
-			"V1 wrong value",
-			"wrong value",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-
-		{
-			"V2 RUNTIME_STATE_UNSPECIFIED",
-			"RUNTIME_STATE_UNSPECIFIED",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V2 RUNNING",
-			"RUNNING",
-			model.RuntimeStateRunningV1,
-			model.RuntimeStateRunning,
-			false,
-			"",
-		},
-		{
-			"V2 SUCCEEDED",
-			"SUCCEEDED",
-			model.RuntimeStateSucceededV1,
-			model.RuntimeStateSucceeded,
-			false,
-			"",
-		},
-		{
-			"V2 SKIPPED",
-			"SKIPPED",
-			model.RuntimeStateSkippedV1,
-			model.RuntimeStateSkipped,
-			false,
-			"",
-		},
-		{
-			"V2 CANCELED",
-			"CANCELED",
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateCanceled,
-			false,
-			"",
-		},
-		{
-			"V2 PAUSED",
-			"PAUSED",
-			model.RuntimeStatePendingV1,
-			model.RuntimeStatePaused,
-			false,
-			"",
-		},
-		{
-			"V2 Empty",
-			"",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V2 PENDING",
-			"PENDING",
-			model.RuntimeStatePendingV1,
-			model.RuntimeStatePending,
-			false,
-			"",
-		},
-		{
-			"V2 RuntimeState_CANCELED",
-			apiv2beta1.RuntimeState_CANCELED,
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateCanceled,
-			false,
-			"",
-		},
-		{
-			"nil",
-			nil,
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := toModelRuntimeState(tt.apiState)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				assert.Equal(t, "", string(got))
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.Nil(t, err)
-				assert.True(t, got.ToV2().IsValid())
-				assert.Equal(t, tt.wantV1, got.ToExecutionPhase())
-				assert.Equal(t, tt.wantV2, got.ToV2())
-				assert.Equal(t, string(tt.wantV2), got.ToString())
-			}
+	for value, name := range apiv2beta1.RuntimeState_name {
+		t.Run(name, func(t *testing.T) {
+			got := toModelRuntimeState(apiv2beta1.RuntimeState(value))
+			assert.True(t, got.IsValid())
+			assert.Equal(t, model.RuntimeState(name), got)
 		})
 	}
+	assert.Equal(t, model.RuntimeStateUnspecified, toModelRuntimeState(apiv2beta1.RuntimeState(999)))
+}
+
+func TestToModelStorageState(t *testing.T) {
+	for _, tc := range []struct {
+		state apiv2beta1.Run_StorageState
+		want  model.StorageState
+	}{
+		{apiv2beta1.Run_STORAGE_STATE_UNSPECIFIED, model.StorageStateUnspecified},
+		{apiv2beta1.Run_AVAILABLE, model.StorageStateAvailable},
+		{apiv2beta1.Run_ARCHIVED, model.StorageStateArchived},
+	} {
+		t.Run(tc.state.String(), func(t *testing.T) {
+			got, err := toModelStorageState(tc.state)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+	_, err := toModelStorageState(apiv2beta1.Run_StorageState(999))
+	require.ErrorContains(t, err, "Storage state cannot be equal to")
+}
+
+func TestToModelJobEnabled(t *testing.T) {
+	for _, mode := range []apiv2beta1.RecurringRun_Mode{
+		apiv2beta1.RecurringRun_MODE_UNSPECIFIED,
+		apiv2beta1.RecurringRun_ENABLE,
+		apiv2beta1.RecurringRun_DISABLE,
+	} {
+		t.Run(mode.String(), func(t *testing.T) {
+			enabled, err := toModelJobEnabled(mode)
+			require.NoError(t, err)
+			assert.Equal(t, mode == apiv2beta1.RecurringRun_ENABLE, enabled)
+		})
+	}
+	_, err := toModelJobEnabled(apiv2beta1.RecurringRun_Mode(999))
+	require.ErrorContains(t, err, "Recurring run's mode is invalid")
 }
 
 func Test_toApiRuntimeState(t *testing.T) {

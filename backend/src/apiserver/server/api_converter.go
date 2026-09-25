@@ -596,15 +596,10 @@ func toModelRun(apiRunV2 *apiv2beta1.Run) (*model.Run, error) {
 	var pipelineRoot, storageState, serviceAcc string
 	var createTime, scheduleTime, finishTime int64
 	var modelTasks []*model.Task
-	var state model.RuntimeState
 	var stateHistory []*model.RuntimeStatus
 	var pluginsInputStr, pluginsOutputStr *string
 	var err error
-	if temp, err := toModelRuntimeState(apiRunV2.GetState()); err == nil {
-		state = temp
-	} else {
-		return nil, util.NewInternalServerError(err, "Failed to convert a API run detail to its internal representation due to error converting runtime state")
-	}
+	state := toModelRuntimeState(apiRunV2.GetState())
 	if temp, err := toModelRuntimeStatuses(apiRunV2.GetStateHistory()); err == nil {
 		stateHistory = temp
 	} else {
@@ -1060,23 +1055,14 @@ func toModelJob(apiJob *apiv2beta1.RecurringRun) (*model.Job, error) {
 }
 
 // Converts API recurring run's mode to its internal representation.
-func toModelJobEnabled(m interface{}) (bool, error) {
-	if m == nil {
+func toModelJobEnabled(mode apiv2beta1.RecurringRun_Mode) (bool, error) {
+	switch mode {
+	case apiv2beta1.RecurringRun_ENABLE:
+		return true, nil
+	case apiv2beta1.RecurringRun_MODE_UNSPECIFIED, apiv2beta1.RecurringRun_DISABLE:
 		return false, nil
-	}
-	switch mode := m.(type) {
-	case apiv2beta1.RecurringRun_Mode:
-		switch mode {
-		case apiv2beta1.RecurringRun_ENABLE:
-			return true, nil
-		case apiv2beta1.RecurringRun_MODE_UNSPECIFIED, apiv2beta1.RecurringRun_DISABLE:
-			return false, nil
-		default:
-			return false, util.NewInternalServerError(util.NewInvalidInputError("Recurring run's mode is invalid: %v", mode), "Failed to convert API recurring run's mode to its internal representation")
-		}
-
 	default:
-		return false, util.NewUnknownApiVersionError("RecurringRun.Mode", m)
+		return false, util.NewInternalServerError(util.NewInvalidInputError("Recurring run's mode is invalid: %v", mode), "Failed to convert API recurring run's mode to its internal representation")
 	}
 }
 
@@ -1187,30 +1173,16 @@ func toApiRecurringRuns(jobs []*model.Job) []*apiv2beta1.RecurringRun {
 }
 
 // Converts API storage state to its internal representation.
-func toModelStorageState(s interface{}) (model.StorageState, error) {
-	if s == nil {
+func toModelStorageState(state apiv2beta1.Run_StorageState) (model.StorageState, error) {
+	switch state {
+	case apiv2beta1.Run_ARCHIVED:
+		return model.StorageStateArchived, nil
+	case apiv2beta1.Run_AVAILABLE:
+		return model.StorageStateAvailable, nil
+	case apiv2beta1.Run_STORAGE_STATE_UNSPECIFIED:
 		return model.StorageStateUnspecified, nil
-	}
-	switch s.(type) {
-	case string, *string:
-		state := s.(string)
-		switch state {
-		case string(model.StorageStateArchived), string(model.StorageStateArchivedV1):
-			return model.StorageStateArchived, nil
-		case string(model.StorageStateAvailable), string(model.StorageStateAvailableV1):
-			return model.StorageStateAvailable, nil
-		case string(model.StorageStateUnspecified), string(model.StorageStateUnspecifiedV1):
-			return model.StorageStateUnspecified, nil
-		default:
-			return "", util.NewInternalServerError(util.NewInvalidInputError("Storage state cannot be equal to %v", s), "Failed to convert API storage state to its internal representation")
-		}
-
-	case apiv2beta1.Run_StorageState, *apiv2beta1.Run_StorageState:
-		return toModelStorageState(apiv2beta1.Run_StorageState_name[int32(s.(apiv2beta1.Run_StorageState))])
-	case apiv2beta1.Experiment_StorageState, *apiv2beta1.Experiment_StorageState:
-		return toModelStorageState(apiv2beta1.Experiment_StorageState_name[int32(s.(apiv2beta1.Experiment_StorageState))])
 	default:
-		return "", util.NewUnknownApiVersionError("StorageState", s)
+		return "", util.NewInternalServerError(util.NewInvalidInputError("Storage state cannot be equal to %v", state), "Failed to convert API storage state to its internal representation")
 	}
 }
 
@@ -1251,18 +1223,8 @@ func toApiExperimentStorageState(s *model.StorageState) apiv2beta1.Experiment_St
 }
 
 // Converts API runtime state to its internal representation.
-func toModelRuntimeState(s interface{}) (model.RuntimeState, error) {
-	if s == nil {
-		return model.RuntimeStateUnspecified, nil
-	}
-	switch s := s.(type) {
-	case string, *string:
-		return model.RuntimeState(s.(string)), nil
-	case apiv2beta1.RuntimeState, *apiv2beta1.RuntimeState:
-		return toModelRuntimeState(apiv2beta1.RuntimeState_name[int32(s.(apiv2beta1.RuntimeState))])
-	default:
-		return "", util.NewUnknownApiVersionError("RuntimeState", s)
-	}
+func toModelRuntimeState(state apiv2beta1.RuntimeState) model.RuntimeState {
+	return model.RuntimeState(apiv2beta1.RuntimeState_name[int32(state)]).ToV2()
 }
 
 // Converts internal runtime state representation to its API counterpart.
@@ -1277,13 +1239,9 @@ func toModelRuntimeStatus(s *apiv2beta1.RuntimeStatus) (*model.RuntimeStatus, er
 	if s == nil {
 		return &model.RuntimeStatus{}, nil
 	}
-	state, err := toModelRuntimeState(s.GetState())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert runtime status to its internal representation")
-	}
 	modelStatus := &model.RuntimeStatus{
 		UpdateTimeInSec: s.GetUpdateTime().GetSeconds(),
-		State:           state.ToV2(),
+		State:           toModelRuntimeState(s.GetState()),
 	}
 	if s.GetError() != nil {
 		modelStatus.Error = util.ToError(s.GetError())
