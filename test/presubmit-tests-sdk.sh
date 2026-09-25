@@ -19,15 +19,13 @@ PYTEST_PARALLEL_WORKERS="${PYTEST_PARALLEL_WORKERS:-2}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Generate proto files (requires Docker)
-  cd api/
-  make clean python
-  cd ..
+  make -C sdk generate-python
 
   # Sync all dependencies using uv (includes google_cloud_pipeline_components, docker)
   uv sync --extra ci
 
   # Install workspace packages in editable mode
-  uv pip install -e sdk/python -e api/v2alpha1/python -e kubernetes_platform/python -e backend/api/v2beta1/python_http_client
+  uv pip install -e sdk/python
 fi
 
 if [[ -z "${PULL_NUMBER}" ]]; then

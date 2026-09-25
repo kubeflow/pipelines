@@ -34,7 +34,7 @@ from kfp.kubeflow_client.backends.kubernetes import utils
 from kfp.kubeflow_client.backends.kubernetes.backend import KubernetesBackend
 from kfp.kubeflow_client.backends.kubernetes.types import \
     KubernetesBackendConfig
-import kfp_server_api
+import kfp.server_api
 import pytest
 
 _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'
@@ -305,7 +305,7 @@ def test_resolve_namespace(test_case):
 ])
 def test_apply_in_cluster_credentials(test_case):
     """Test auth.apply_in_cluster_credentials behavior."""
-    api_config = kfp_server_api.Configuration()
+    api_config = kfp.server_api.Configuration()
     with patch('os.path.exists', return_value=False):
         with patch('os.environ.get', return_value=None):
             auth.apply_in_cluster_credentials(api_config)
@@ -1145,7 +1145,7 @@ def test_run(backend, test_case, caplog):
 
     elif input_type == 'pipeline_version_obj':
         pv = Mock(
-            spec=kfp_server_api.V2beta1PipelineVersion,
+            spec=kfp.server_api.V2beta1PipelineVersion,
             pipeline_id='pid-1',
             pipeline_version_id='vid-1',
         )
@@ -1164,7 +1164,7 @@ def test_run(backend, test_case, caplog):
 
     elif input_type == 'pipeline_obj':
         pipeline_obj = Mock(
-            spec=kfp_server_api.V2beta1Pipeline, pipeline_id='pid-1')
+            spec=kfp.server_api.V2beta1Pipeline, pipeline_id='pid-1')
         mock_run = Mock(run_id='r-5')
         with patch.object(
                 backend, 'run_pipeline',
@@ -1216,7 +1216,7 @@ def test_run(backend, test_case, caplog):
     elif input_type == 'pv_obj_with_version':
         mock_run = Mock(run_id='r-warn-3')
         pv_obj = Mock(
-            spec=kfp_server_api.V2beta1PipelineVersion,
+            spec=kfp.server_api.V2beta1PipelineVersion,
             pipeline_id='pid-1',
             pipeline_version_id='vid-1',
         )
@@ -1229,7 +1229,7 @@ def test_run(backend, test_case, caplog):
 
     elif input_type == 'pipeline_obj_with_version':
         pipeline_obj = Mock(
-            spec=kfp_server_api.V2beta1Pipeline,
+            spec=kfp.server_api.V2beta1Pipeline,
             pipeline_id='pid-1',
             display_name='my-pipe',
         )
@@ -1470,7 +1470,7 @@ def test_list_runs(backend, test_case):
                 },
             },
             expected_status=FAILED,
-            expected_error=kfp_server_api.ApiException,
+            expected_error=kfp.server_api.ApiException,
             expected_output={'status_code': 401},
         ),
         TestCase(
@@ -1483,7 +1483,7 @@ def test_list_runs(backend, test_case):
                 },
             },
             expected_status=FAILED,
-            expected_error=kfp_server_api.ApiException,
+            expected_error=kfp.server_api.ApiException,
             expected_output={
                 'status_code': 401,
                 'refresh_not_called': True
@@ -1499,7 +1499,7 @@ def test_list_runs(backend, test_case):
                 },
             },
             expected_status=FAILED,
-            expected_error=kfp_server_api.ApiException,
+            expected_error=kfp.server_api.ApiException,
             expected_output={'status_code': 500},
         ),
         TestCase(
@@ -1552,7 +1552,7 @@ def test_wait_for_run_status(backend, test_case):
         mock_run_ok = Mock(run_id='r-1', state='SUCCEEDED')
         mock_side_effects = [
             Mock(run_id='r-1', state='RUNNING'),
-            kfp_server_api.ApiException(status=401),
+            kfp.server_api.ApiException(status=401),
             mock_run_ok,
         ]
         with patch.object(
@@ -1567,9 +1567,9 @@ def test_wait_for_run_status(backend, test_case):
     elif side_effects == 'auth_exhaustion':
         mock_side_effects = [
             Mock(run_id='r-1', state='RUNNING'),
-            kfp_server_api.ApiException(status=401),
-            kfp_server_api.ApiException(status=401),
-            kfp_server_api.ApiException(status=401),
+            kfp.server_api.ApiException(status=401),
+            kfp.server_api.ApiException(status=401),
+            kfp.server_api.ApiException(status=401),
         ]
         with patch.object(
                 backend.run_api,
@@ -1585,7 +1585,7 @@ def test_wait_for_run_status(backend, test_case):
         with patch.object(
                 backend.run_api,
                 'run_service_get_run',
-                side_effect=kfp_server_api.ApiException(status=401)):
+                side_effect=kfp.server_api.ApiException(status=401)):
             with patch.object(backend, 'refresh_credentials') as mock_ref:
                 with pytest.raises(test_case.expected_error) as exc_info:
                     backend.wait_for_run_status(run_input, **kwargs)
@@ -1596,7 +1596,7 @@ def test_wait_for_run_status(backend, test_case):
     elif side_effects == 'non_401':
         mock_side_effects = [
             Mock(run_id='r-1', state='RUNNING'),
-            kfp_server_api.ApiException(status=500),
+            kfp.server_api.ApiException(status=500),
         ]
         with patch.object(
                 backend.run_api,
@@ -2022,7 +2022,7 @@ def test__generate_run_name(test_case):
     elif source == 'yaml_path':
         result = KubernetesBackend._generate_run_name('/tmp/train.yaml')
     elif source == 'pipeline_object':
-        pipe = kfp_server_api.V2beta1Pipeline(display_name='uploaded-pipe')
+        pipe = kfp.server_api.V2beta1Pipeline(display_name='uploaded-pipe')
         result = KubernetesBackend._generate_run_name(pipe)
 
     assert result.startswith(test_case.expected_output)
@@ -2236,7 +2236,7 @@ def test__upload_new_pipeline(backend, test_case):
                         backend.pipelines_api,
                         'pipeline_service_update_pipeline_version',
                         create=True,
-                        side_effect=kfp_server_api.ApiException(
+                        side_effect=kfp.server_api.ApiException(
                             status=404, reason='Not Found')):
                     with warnings.catch_warnings(record=True) as caught:
                         warnings.simplefilter('always')
@@ -2269,7 +2269,7 @@ def test__upload_new_pipeline(backend, test_case):
                         backend.pipelines_api,
                         'pipeline_service_update_pipeline_version',
                         create=True,
-                        side_effect=kfp_server_api.ApiException(
+                        side_effect=kfp.server_api.ApiException(
                             status=403, reason='Forbidden')):
                     with warnings.catch_warnings(record=True) as caught:
                         warnings.simplefilter('always')

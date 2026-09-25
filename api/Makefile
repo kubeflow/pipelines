@@ -26,7 +26,6 @@ endif
 endif
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 IMAGE_TAG=kfp-api-generator
-UV_VERSION=0.10.3
 
 .PHONY: all
 all: golang python
@@ -63,22 +62,16 @@ clean-go:
 	rm -rf v2alpha1/go
 	rm -f v2alpha1/google/rpc/status.proto
 
-# Build Python package using either pre-built image (fast) or source build (accurate).
+# Generate SDK-owned Python bindings using the existing generator image.
 # Use USE_PREBUILT_IMAGE=false to build from source for guaranteed accuracy.
 .PHONY: python
 python: fetch-protos
 ifeq ($(USE_PREBUILT_IMAGE),true)
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
-		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
-		    pip install --user --break-system-packages uv==$(UV_VERSION) && \
-		    cd api/v2alpha1/python && \
-		    python3 generate_proto.py && \
-		    cd /go/src/github.com/kubeflow/pipelines && \
-		    ~/.local/bin/uv build --package kfp-pipeline-spec --out-dir api/v2alpha1/python/dist'
+		python3 /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python/generate_proto.py
 else
 	$(MAKE) python-from-source
 endif
@@ -88,20 +81,14 @@ endif
 python-from-source: ensure-api-generator-image fetch-protos
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
-		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(IMAGE_TAG) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
-		    pip install --user --break-system-packages uv==$(UV_VERSION) && \
-		    cd api/v2alpha1/python && \
-		    python3 generate_proto.py && \
-		    cd /go/src/github.com/kubeflow/pipelines && \
-		    ~/.local/bin/uv build --package kfp-pipeline-spec --out-dir api/v2alpha1/python/dist'
+		python3 /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python/generate_proto.py
 
 # Build and locally install Python package using editable mode for development.
 .PHONY: python-dev
 python-dev: v2alpha1/pipeline_spec.proto fetch-protos
-	python3 v2alpha1/python/generate_proto.py && cd v2alpha1/python && uv pip install -e .
+	python3 v2alpha1/python/generate_proto.py
 
 # Delete all generated Python packages
 .PHONY: clean-python
@@ -110,7 +97,7 @@ clean-python:
 	rm -rf v2alpha1/python/dist
 	rm -rf v2alpha1/python/kfp_pipeline_spec.egg-info
 	rm -rf v2alpha1/google
-	rm -f v2alpha1/python/kfp/pipeline_spec/pipeline_spec_pb2.py
+	rm -f ../sdk/python/kfp/pipeline_spec/pipeline_spec_pb2.py
 	rm -f v2alpha1/google/rpc/status.proto
 
 ###########################################

@@ -33,11 +33,11 @@ dependencies = [
   "google-auth>=1.6.1,<3",
   # https://github.com/googleapis/python-storage/blob/main/CHANGELOG.md#221-2022-03-15
   "google-cloud-storage>=2.2.1,<4",
-  "kfp-pipeline-spec>=2.17.0,<3",
-  "kfp-server-api>=2.17.0,<3",
   "kubernetes>=8.0.0,<31",
-  # protobuf version should be identical to the one in kfp-pipeline-spec
-  "protobuf>=6.31.1,<7.0",
+  "protobuf>=6.33.5,<7.0",
+  "certifi",
+  "python-dateutil",
+  "six>=1.10",
   "PyYAML>=5.3,<7",
   "requests==2.33.0",
   "requests-toolbelt>=0.8.0,<2",
@@ -47,9 +47,8 @@ dependencies = [
 
 [project.optional-dependencies]
 all = ["kfp[kubernetes,notebooks]", "docker"]
-# Pin kfp-kubernetes to the exact kfp version to prevent mismatches.
-# Update this version in lockstep with kfp/version.py on each release.
-kubernetes = ["kfp-kubernetes==2.17.0"]
+# Compatibility extra: Kubernetes support is included in the unified SDK.
+kubernetes = []
 notebooks = [
   "nbclient>=0.10,<1",
   "ipykernel>=6,<7",
@@ -66,13 +65,14 @@ Documentation = "https://kubeflow-pipelines.readthedocs.io/en/stable/"
 Source = "https://github.com/kubeflow/pipelines/tree/master/sdk"
 Changelog = "https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md"
 
-[tool.uv.sources]
-kfp-pipeline-spec = { workspace = true }
-kfp-server-api = { workspace = true }
-kfp-kubernetes = { workspace = true }
-
 [tool.hatch.version]
 path = "kfp/version.py"
+
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["kfp", "hatch_build.py", "pyproject.toml", "README.md", "LICENSE"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["kfp"]

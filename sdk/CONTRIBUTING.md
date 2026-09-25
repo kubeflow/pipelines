@@ -22,23 +22,28 @@ For supported python versions, see the [pyproject.toml](https://github.com/kubef
 
 ### Development Setup
 
-Install all workspace packages in editable mode with development dependencies:
+Install the unified SDK in editable mode with development dependencies:
 
 ```bash
 uv sync --extra dev
 ```
 
 This command will:
-- Install all 4 KFP packages (`kfp`, `kfp-kubernetes`, `kfp-pipeline-spec`, `kfp-server-api`) in editable mode
+- Install `kfp`, including pipeline-spec, Kubernetes configuration, and the server API client
 - Install development dependencies (pytest, linters, type checkers, etc.)
 - Create or update the `uv.lock` lockfile for reproducible builds
 
 Before running tests, generate the proto files:
 
 ```bash
-make -C api python
-make -C kubernetes_platform python
+make -C sdk generate-python
 ```
+
+CI retains explicit generation before building and testing. Generated bindings
+are committed so installing directly from Git also works; regenerate rather than
+editing them. `make -C sdk python` runs all Python generators and builds the single
+wheel and sdist. Both artifacts contain their generated modules; installing a
+release or rebuilding its sdist does not require Docker, Java, or protoc.
 
 ### Testing
 We suggest running unit tests using [`pytest`](https://docs.pytest.org/en/7.1.x/). From the project root, the following runs all KFP SDK unit tests:
