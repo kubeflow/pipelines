@@ -49,7 +49,6 @@ func configureServiceAccountAuditTest(t *testing.T, mode, allowed string) {
 		common.ServiceAccountAuthorizationMode: mode,
 		common.MultiUserMode:                   "true",
 		common.AllowedServiceAccountsFlag:      allowed,
-		v1AllowedNamespaces:                    "ns1",
 	} {
 		previous := viper.Get(key)
 		viper.Set(key, value)
@@ -70,7 +69,7 @@ func TestServiceAccountAuthorizationModeSubmissionPaths(t *testing.T) {
 							review := &auditModeReview{} // SAR denies the requested account.
 							store.SubjectAccessReviewClientFake = review
 							manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-							spec := model.PipelineSpec{WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore())}
+							spec := model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"}}
 							var err error
 							switch path {
 							case "run":
@@ -165,7 +164,7 @@ func TestServiceAccountAuditScheduledTickMigrationAndRevocation(t *testing.T) {
 		Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
 			PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
 		}},
-		PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore())},
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"}},
 	})
 	require.NoError(t, err)
 	submit := func(key string) (*model.Run, error) {

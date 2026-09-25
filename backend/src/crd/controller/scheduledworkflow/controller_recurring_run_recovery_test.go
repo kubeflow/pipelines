@@ -125,14 +125,11 @@ func (f *inProcessRunServiceClient) CreateRun(ctx context.Context, req *api.Crea
 func TestSyncHandlerAcknowledgesDeletedRunAfterStatusFailure(t *testing.T) {
 	originalMultiUser := viper.Get(apicommon.MultiUserMode)
 	originalNamespace := viper.Get(apicommon.PodNamespace)
-	originalV1Block := viper.Get(commonutil.BlockV1Pipelines)
 	viper.Set(apicommon.MultiUserMode, "true")
 	viper.Set(apicommon.PodNamespace, "ns1")
-	viper.Set(commonutil.BlockV1Pipelines, "false")
 	t.Cleanup(func() {
 		viper.Set(apicommon.MultiUserMode, originalMultiUser)
 		viper.Set(apicommon.PodNamespace, originalNamespace)
-		viper.Set(commonutil.BlockV1Pipelines, originalV1Block)
 	})
 	proxy.InitializeConfigWithEmptyForTests()
 	clock := &recurringRunRecoveryClock{now: 200}
@@ -149,11 +146,12 @@ func TestSyncHandlerAcknowledgesDeletedRunAfterStatusFailure(t *testing.T) {
 		Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
 			PeriodicScheduleStartTimeInSec: commonutil.Int64Pointer(290), IntervalSecond: commonutil.Int64Pointer(10),
 		}},
-		PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(`{
-   "apiVersion":"argoproj.io/v1alpha1", "kind":"Workflow",
-   "metadata":{"generateName":"recovery-"},
-   "spec":{"entrypoint":"main", "templates":[{"name":"main", "container":{"image":"alpine"}}]}
-  }`)},
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(`{
+"pipelineInfo":{"name":"recovery"},"schemaVersion":"2.1.0",
+"root":{"dag":{"tasks":{"main":{"componentRef":{"name":"main"},"taskInfo":{"name":"main"}}}}},
+"components":{"main":{"executorLabel":"main"}},
+"deploymentSpec":{"executors":{"main":{"container":{"image":"alpine","command":["echo","hello"]}}}}
+}`)},
 	})
 	require.NoError(t, err)
 	swf, err := clients.SwfClient().ScheduledWorkflow(job.Namespace).Get(ctx, job.K8SName, metav1.GetOptions{})

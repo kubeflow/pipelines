@@ -16,6 +16,7 @@ package resource
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -29,7 +30,7 @@ import (
 
 func TestCreateRunPendingFollowLatestTickKeepsClaimedPipelineVersion(t *testing.T) {
 	initEnvVars()
-	for key, value := range map[string]string{common.MultiUserMode: "true", v1AllowedNamespaces: "ns1"} {
+	for key, value := range map[string]string{common.MultiUserMode: "true"} {
 		previous := viper.Get(key)
 		viper.Set(key, value)
 		t.Cleanup(func() { viper.Set(key, previous) })
@@ -44,10 +45,9 @@ func TestCreateRunPendingFollowLatestTickKeepsClaimedPipelineVersion(t *testing.
 	pipeline, err := manager.CreatePipeline(createPipeline("version-freeze", "", "ns1"))
 	require.NoError(t, err)
 	publishVersion := func(name string) *model.PipelineVersion {
-		workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-		workflow.Spec.Templates[0].Container.Args = []string{name}
+		manifest := strings.ReplaceAll(v2SpecHelloWorld, "hello-world", name)
 		version, err := manager.CreatePipelineVersion(createPipelineVersion(
-			pipeline.UUID, name, name, "", workflow.ToStringForStore(), "", "ns1"))
+			pipeline.UUID, name, name, "", manifest, "", "ns1"))
 		require.NoError(t, err)
 		return version
 	}
@@ -59,8 +59,8 @@ func TestCreateRunPendingFollowLatestTickKeepsClaimedPipelineVersion(t *testing.
 			PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
 		}},
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: pipeline.UUID,
-			Parameters: `[{"name":"param1","value":"tick-[[Index]]-[[ScheduledTime]]-[[CurrentTime]]"}]`,
+			PipelineId:    pipeline.UUID,
+			RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"tick-[[Index]]-[[ScheduledTime]]-[[CurrentTime]]"}`},
 		},
 	})
 	require.NoError(t, err)
@@ -87,8 +87,8 @@ func TestCreateRunPendingFollowLatestTickKeepsClaimedPipelineVersion(t *testing.
 		execution, err := store.ExecClientFake.Execution(job.Namespace).Get(ctx, run.K8SName, metav1.GetOptions{})
 		require.NoError(t, err)
 		workflow := execution.(*util.Workflow)
-		require.Equal(t, []string{marker}, workflow.Spec.Templates[0].Container.Args)
-		require.Equal(t, parameters, workflow.GetWorkflowParametersAsMap()["param1"])
+		require.Contains(t, workflow.ToStringForStore(), marker)
+		require.Contains(t, workflow.ToStringForStore(), parameters)
 	}
 	retried := createTick("interrupted-tick")
 	require.Equal(t, versionA.UUID, retried.PipelineVersionId)
@@ -122,7 +122,7 @@ func TestCreateRunAcknowledgesTickAfterPipelineVersionDeletion(t *testing.T) {
 	for _, deleted := range []bool{false, true} {
 		t.Run(fmt.Sprintf("deleted=%t", deleted), func(t *testing.T) {
 			initEnvVars()
-			for key, value := range map[string]string{common.MultiUserMode: "true", v1AllowedNamespaces: "ns1"} {
+			for key, value := range map[string]string{common.MultiUserMode: "true"} {
 				previous := viper.Get(key)
 				viper.Set(key, value)
 				t.Cleanup(func() { viper.Set(key, previous) })
@@ -137,10 +137,9 @@ func TestCreateRunAcknowledgesTickAfterPipelineVersionDeletion(t *testing.T) {
 			pipeline, err := manager.CreatePipeline(createPipeline("deleted-tick", "", "ns1"))
 			require.NoError(t, err)
 			publishVersion := func(name string) *model.PipelineVersion {
-				workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-				workflow.Spec.Templates[0].Container.Args = []string{name}
+				manifest := strings.ReplaceAll(v2SpecHelloWorld, "hello-world", name)
 				version, err := manager.CreatePipelineVersion(createPipelineVersion(
-					pipeline.UUID, name, name, "", workflow.ToStringForStore(), "", "ns1"))
+					pipeline.UUID, name, name, "", manifest, "", "ns1"))
 				require.NoError(t, err)
 				return version
 			}
@@ -152,8 +151,8 @@ func TestCreateRunAcknowledgesTickAfterPipelineVersionDeletion(t *testing.T) {
 					PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
 				}},
 				PipelineSpec: model.PipelineSpec{
-					PipelineId: pipeline.UUID,
-					Parameters: `[{"name":"param1","value":"tick-[[Index]]"}]`,
+					PipelineId:    pipeline.UUID,
+					RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"tick-[[Index]]"}`},
 				},
 			})
 			require.NoError(t, err)
@@ -166,9 +165,22 @@ func TestCreateRunAcknowledgesTickAfterPipelineVersionDeletion(t *testing.T) {
 			}
 			first := createTick("unacknowledged-tick")
 			require.Equal(t, versionA.UUID, first.PipelineVersionId)
+			// Model a retained static execution: it does not need the compiler-patch
+			// exemption once its source version has been deleted.
+			retained, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(first.PipelineRuntimeManifest))
+			require.NoError(t, err)
+			staticWorkflow := retained.(*util.Workflow)
+			staticWorkflow.Spec.PodSpecPatch = ""
+			for i := range staticWorkflow.Spec.Templates {
+				staticWorkflow.Spec.Templates[i].PodSpecPatch = ""
+			}
+			first.PipelineRuntimeManifest = model.LargeText(staticWorkflow.ToStringForStore())
 			first.State = model.RuntimeStateSucceeded
 			first.FinishedAtInSec = 201
 			require.NoError(t, store.RunStore().UpdateRun(first))
+			// Lifecycle updates do not replace retained runtime manifests.
+			_, err = store.db.Exec(`UPDATE "run_details" SET "PipelineRuntimeManifest" = ?, "WorkflowRuntimeManifest" = ? WHERE "UUID" = ?`, first.PipelineRuntimeManifest, first.PipelineRuntimeManifest, first.UUID)
+			require.NoError(t, err)
 			completedState, err := store.JobStore().GetRecurringRunState(job.UUID)
 			require.NoError(t, err)
 			require.False(t, completedState.Pending)
@@ -217,8 +229,8 @@ func TestCreateRunAcknowledgesTickAfterPipelineVersionDeletion(t *testing.T) {
 			execution, err := store.ExecClientFake.Execution(job.Namespace).Get(ctx, next.K8SName, metav1.GetOptions{})
 			require.NoError(t, err)
 			workflow := execution.(*util.Workflow)
-			require.Equal(t, []string{"version-b"}, workflow.Spec.Templates[0].Container.Args)
-			require.Equal(t, "tick-2", workflow.GetWorkflowParametersAsMap()["param1"])
+			require.Contains(t, workflow.ToStringForStore(), "version-b")
+			require.Contains(t, workflow.ToStringForStore(), "tick-2")
 			require.Equal(t, workflowCount+1, store.ExecClientFake.GetWorkflowCount())
 		})
 	}

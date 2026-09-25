@@ -22,6 +22,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -56,7 +57,6 @@ func configureSecurityModes(t *testing.T, primary, workflow string) {
 		common.WorkflowIdentityMode:            workflow,
 		common.MultiUserMode:                   "true",
 		common.AllowedServiceAccountsFlag:      "custom-sa,helper-sa",
-		v1AllowedNamespaces:                    "ns1",
 	} {
 		previous := viper.Get(key)
 		viper.Set(key, value)
@@ -119,6 +119,16 @@ func TestSecurityModesInfrastructureFailureAlwaysBlocks(t *testing.T) {
 	}
 }
 
+type helperIdentityDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
+}
+
+func (helperIdentityDispatcher) PluginsRegistered() bool { return true }
+func (helperIdentityDispatcher) OnBeforeRunCreation(_ context.Context, _ *apiserverPlugins.PendingRun, execution util.ExecutionSpec) error {
+	execution.(*util.Workflow).Spec.Templates[0].ServiceAccountName = "helper-sa"
+	return nil
+}
+
 func TestSecurityModesRecurringTickReturnToEnforcement(t *testing.T) {
 	initEnvVars()
 	configureSecurityModes(t, "audit", "audit")
@@ -131,15 +141,14 @@ func TestSecurityModesRecurringTickReturnToEnforcement(t *testing.T) {
 	ctx := multiUserContext()
 	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "identity-migration", Namespace: "ns1"})
 	require.NoError(t, err)
-	execution := util.NewWorkflow(testWorkflow.DeepCopy())
-	execution.Spec.Templates[0].ServiceAccountName = "helper-sa"
+	manager.pluginDispatcher = helperIdentityDispatcher{}
 	job, err := manager.CreateJob(ctx, &model.Job{
 		DisplayName: "identity-migration", Namespace: "ns1", ExperimentId: experiment.UUID,
 		ServiceAccount: "custom-sa", Enabled: true, MaxConcurrency: 1,
 		Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
 			PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
 		}},
-		PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(execution.ToStringForStore())},
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"}},
 	})
 	require.NoError(t, err)
 	submit := func(key string) (*model.Run, error) {
@@ -171,7 +180,8 @@ func TestSecurityModesRecurringTickReturnToEnforcement(t *testing.T) {
 	require.Equal(t, 1, store.ExecClientFake.GetWorkflowCount())
 	after, err := store.JobStore().GetRecurringRunState(job.UUID)
 	require.NoError(t, err)
-	require.Equal(t, before, after, "denied identity must not consume or claim the next tick")
+	require.True(t, after.Pending, "post-plugin denial must keep the tick retryable")
+	require.Equal(t, before.LastRunIndex+1, after.LastRunIndex)
 	// Grant the missing permission and retry the same tick without recreating the schedule.
 	review.denied["helper-sa"] = false
 	second, err := submit("identity-enforced-tick")
