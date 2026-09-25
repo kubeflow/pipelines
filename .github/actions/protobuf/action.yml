@@ -1,8 +1,8 @@
-name: "Install Proto dependencies & Pipeline Spec"
+name: "Install Proto dependencies & generate SDK bindings"
 description: |
   This action pins various Proto generation packages to default versions and
-  installs these dependencies in the workflow environment. It will also
-  install the kfp-pipeline-spec. Whenever KFP project updates generation
+  installs these dependencies in the workflow environment. It generates
+  pipeline-spec and Kubernetes bindings in the SDK. Whenever KFP updates generation
   packages, the defaults here must be updated.
 inputs:
   protoc_version:
@@ -33,11 +33,11 @@ runs:
         # Authenticates the googleapis proto fetch in the Makefile to avoid
         # anonymous per-IP 429 rate limits on raw.githubusercontent.com.
         GITHUB_TOKEN: ${{ github.token }}
-      run: make clean python
+      run: make clean-python python
 
-    - name: Install kfp-pipeline-spec from source
+    - name: Generate Kubernetes Python bindings
       shell: bash
-      run: uv pip install api/v2alpha1/python/dist/*.whl
+      run: make -C kubernetes_platform clean-python python
 
     - name: Generate kfp-pipeline-spec golang files
       if: ${{ inputs.generate_golang_proto == 'true' }}

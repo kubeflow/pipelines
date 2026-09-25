@@ -7,8 +7,8 @@
 uv sync --frozen --extra dev
 uv run pytest -v sdk/python/kfp
 
-# kfp-kubernetes
-uv run pytest -v kubernetes_platform/python/test
+# Bundled Kubernetes helpers
+uv run pytest -v sdk/python/test/kubernetes
 
 # Backend unit tests
 go test -v $(go list ./backend/... | \
@@ -32,14 +32,10 @@ Pipeline inputs live in `test_data/pipeline_files/valid/`; compiler goldens live
 
 ```bash
 golangci-lint run
-uv run pycln --check sdk/python
-uv run isort --check --profile google sdk/python
-uv run yapf --recursive --diff sdk/python/
-uv run docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
+bash test/presubmit-isort-sdk.sh
+bash test/presubmit-yapf-sdk.sh
+bash test/presubmit-docformatter-sdk.sh
 ```
 
-Run the Python string fixer before YAPF when needed:
-
-```bash
-uv run python -m pre_commit_hooks.string_fixer $(find sdk/python/kfp -name '*.py' -type f)
-```
+These SDK scripts exclude generated protobuf and OpenAPI modules. The YAPF
+script also normalizes Python string quotes before checking formatting.

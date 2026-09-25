@@ -19,11 +19,9 @@ whereas these tests focus on how the task dispatcher should behave,
 irrespective of the runner. While there will inevitably some overlap, we
 should seek to minimize it.
 """
-import functools
 import io
 import os
 import re
-import shutil
 import unittest
 from unittest import mock
 
@@ -35,7 +33,6 @@ from kfp.dsl import Model
 from kfp.dsl import Output
 from kfp.local import task_dispatcher
 from kfp.local import testing_utilities
-import pytest
 
 # NOTE: uses SubprocessRunner throughout to test the taks dispatcher behavior
 # NOTE: When testing SubprocessRunner, use_venv=True throughout to avoid
@@ -44,32 +41,6 @@ import pytest
 # the code may install kfp from PyPI rather from source. To mitigate the
 # impact of such an error we should not install into the main test process'
 # environment.
-
-
-@pytest.fixture(autouse=True)
-def set_packages_for_test_classes(monkeypatch, request, tmp_path):
-    if request.cls.__name__ in {
-            'TestLocalExecutionValidation', 'TestSupportOfComponentTypes',
-            'TestSupportOfComponentTypes', 'TestExceptionHandlingAndLogging',
-            'TestPipelineRootPaths'
-    }:
-        root_dir = os.path.dirname(
-            os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
-        kfp_pipeline_spec_path = os.path.join(root_dir, 'api', 'v2alpha1',
-                                              'python')
-        isolated_pipeline_spec_path = tmp_path / 'kfp_pipeline_spec'
-        shutil.copytree(
-            kfp_pipeline_spec_path,
-            isolated_pipeline_spec_path,
-            ignore=shutil.ignore_patterns('*.pyc', '__pycache__', '.git',
-                                          'build', 'dist', '*.egg-info'))
-        original_dsl_component = dsl.component
-        monkeypatch.setattr(
-            dsl, 'component',
-            functools.partial(
-                original_dsl_component,
-                packages_to_install=[str(isolated_pipeline_spec_path)]))
 
 
 class TestLocalExecutionValidation(

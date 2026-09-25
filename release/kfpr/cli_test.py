@@ -69,15 +69,14 @@ class PackageImportTest(unittest.TestCase):
         text = workflow.read_text()
         self.assertLess(
             text.index('name: Install Test dependencies'),
-            text.index('name: Build & install kfp-server-api dist'),
+            text.index('name: Build and install the unified SDK'),
         )
 
     def test_readthedocs_ci_uses_nested_run_step_command(self):
         workflow = Path(
             __file__).parents[2] / '.github/workflows/readthedocs-builds.yml'
         workflow_text = workflow.read_text()
-        self.assertIn('kfpr run create-kfp-kubernetes-docs-branch',
-                      workflow_text)
+        self.assertIn('kfpr run create-sdk-tag', workflow_text)
         self.assertIn('uv run --with-editable ./release kfpr run',
                       workflow_text)
         self.assertIn('uv run --with-editable ./release python -m unittest',
@@ -87,9 +86,9 @@ class PackageImportTest(unittest.TestCase):
         guide = Path(
             __file__).parents[2] / 'kubernetes_platform/python/RELEASE.md'
         guide_text = guide.read_text()
-        self.assertIn('kfpr run create-kfp-kubernetes-docs-branch', guide_text)
-        self.assertIn('--done', guide_text)
-        self.assertNotIn('--mark-done', guide_text)
+        self.assertIn('single `kfp` distribution', guide_text)
+        self.assertIn('release/README.md', guide_text)
+        self.assertNotIn('source release.sh', guide_text)
 
 
 class CliTest(unittest.TestCase):
@@ -129,7 +128,7 @@ class CliTest(unittest.TestCase):
             app,
             [
                 'run',
-                'create-kfp-kubernetes-docs-branch',
+                'create-sdk-tag',
                 '--release-type',
                 'patch',
                 '--version',
@@ -152,7 +151,7 @@ class CliTest(unittest.TestCase):
                 app,
                 [
                     'run',
-                    'create-kfp-kubernetes-docs-branch',
+                    'create-sdk-tag',
                     '--state-file',
                     str(state_file),
                     '--release-type',
@@ -234,9 +233,7 @@ class CliTest(unittest.TestCase):
         self.assertIn('+-- include-backend --> publish-images', result.stdout)
         self.assertIn('+-- include-sdk --> create-sdk-tag -> publish-sdks',
                       result.stdout)
-        self.assertIn(
-            'create-kfp-kubernetes-docs-branch -> confirm-rtd -> create-sdk-release',
-            result.stdout)
+        self.assertIn('confirm-rtd -> create-sdk-release', result.stdout)
         self.assertNotIn('preflight: Verify tools', result.stdout)
 
     def test_next_runs_and_marks_next_incomplete_step(self):
@@ -638,7 +635,7 @@ class CliTest(unittest.TestCase):
                 app,
                 [
                     'run',
-                    'create-kfp-kubernetes-docs-branch',
+                    'create-sdk-tag',
                     '--release-type',
                     'minor',
                     '--version',

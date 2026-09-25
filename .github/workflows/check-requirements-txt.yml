@@ -23,15 +23,11 @@ jobs:
         run: |
           uv export --frozen --no-dev --no-hashes --format requirements-txt -o requirements.txt
           uv export --frozen --no-dev --no-hashes --package kfp --format requirements-txt -o sdk/python/requirements.txt
-          uv export --frozen --no-dev --no-hashes --package kfp-kubernetes --format requirements-txt -o kubernetes_platform/python/requirements.txt
-          uv export --frozen --no-dev --no-hashes --package kfp-pipeline-spec --format requirements-txt -o api/v2alpha1/python/requirements.txt
-          git diff --exit-code -- requirements.txt sdk/python/requirements.txt \
-            kubernetes_platform/python/requirements.txt api/v2alpha1/python/requirements.txt
+          git diff --exit-code -- requirements.txt sdk/python/requirements.txt
       - name: Check pip can consume requirements exports
         run: |
           uv venv --python 3.11 --seed "$RUNNER_TEMP/pip-compat"
-          for requirements in requirements.txt sdk/python/requirements.txt \
-            kubernetes_platform/python/requirements.txt api/v2alpha1/python/requirements.txt; do
+          for requirements in requirements.txt sdk/python/requirements.txt; do
             "$RUNNER_TEMP/pip-compat/bin/python" -m pip install \
               --dry-run --ignore-installed -r "$requirements"
           done
