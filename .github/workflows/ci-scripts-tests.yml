@@ -12,6 +12,7 @@ on:
       - '**/requirements*.txt'
       - '**/setup.py'
       - '**/pyproject.toml'
+      - '**/uv.lock'
       - '**/action.yml'
       - '**/action.yaml'
       - '.pre-commit-config.yaml'
