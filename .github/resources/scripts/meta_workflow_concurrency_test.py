@@ -318,7 +318,6 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
 
     @unittest.skipUnless(
         shutil.which('jq'), 'jq is required by the gate script')
-
     def test_gatekeeper_closure_message_and_guidelines_link(self):
         workflow = self._read_workflow('pr-gate.yml')
         message = textwrap.dedent(
