@@ -700,27 +700,11 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	pv.Parameters = model.LargeText(paramsJSON)
 	pv.PipelineSpec = model.LargeText(string(tmpl.Bytes()))
 
-	// Create records in KFP DB (both pipelines and pipeline_versions tables)
+	// Create records in KFP DB (both pipelines and pipeline_versions tables).
+	// The store inserts with Ready status directly, making creation atomic.
 	newPipeline, newVersion, err := r.pipelineStore.CreatePipelineAndPipelineVersion(p, pv)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version")
-	}
-
-	newPipeline.Status = model.PipelineReady
-	err = r.pipelineStore.UpdatePipelineStatus(
-		newPipeline.UUID,
-		newPipeline.Status,
-	)
-	if err != nil {
-		return nil, nil, util.Wrap(err, "Failed to update status of a new pipeline after creation")
-	}
-	newVersion.Status = model.PipelineVersionReady
-	err = r.pipelineStore.UpdatePipelineVersionStatus(
-		newVersion.UUID,
-		newVersion.Status,
-	)
-	if err != nil {
-		return nil, nil, util.Wrap(err, "Failed to update status of a new pipeline version after creation")
 	}
 
 	return newPipeline, newVersion, nil

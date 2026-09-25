@@ -664,9 +664,12 @@ func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *
 	newPipelineVersion.UUID = pvID.String()
 	newPipelineVersion.PipelineId = newPipeline.UUID
 
-	// Set temporal status. This needs to be updated in a follow-up call.
-	newPipeline.Status = model.PipelineCreating
-	newPipelineVersion.Status = model.PipelineVersionCreating
+	// Set status to Ready directly. This ensures atomic pipeline creation —
+    // either the pipeline is fully created and visible, or the transaction
+    // rolls back and nothing is persisted.
+    newPipeline.Status = model.PipelineReady
+    newPipelineVersion.Status = model.PipelineVersionReady
+
 
 	// Create queries for the KFP DB
 	q := s.dbDialect.QuoteIdentifier
