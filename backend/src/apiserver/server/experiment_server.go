@@ -184,7 +184,7 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 		listExperimentsRequests.Inc()
 	}
 
-	opts, err := validatedListOptions(&model.Experiment{}, request.GetPageToken(), int(request.GetPageSize()), request.GetSortBy(), request.GetFilter(), "v2beta1")
+	opts, err := validatedListOptions(&model.Experiment{}, request.GetPageToken(), int(request.GetPageSize()), request.GetSortBy(), request.GetFilter())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}

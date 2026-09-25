@@ -19,7 +19,6 @@ import {
   PipelineSpec,
   PlatformSpec,
 } from 'src/generated/pipeline_spec';
-import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 
 // This key is used to retrieve the platform-agnostic pipeline definition
 export const PIPELINE_SPEC_TEMPLATE_KEY = 'pipeline_spec';
@@ -35,10 +34,6 @@ function getPipelineDefFromYaml(template: string) {
 
 function getPlatformDefFromYaml(template: string) {
   return (loadYaml(template) as Record<string, unknown>)[PLATFORM_SPEC_TEMPLATE_KEY];
-}
-
-export function isTemplateV2(templateString: string): boolean {
-  return tryConvertYamlToV2PipelineSpec(templateString) !== undefined;
 }
 
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
@@ -72,10 +67,6 @@ export function convertYamlToPlatformSpec(template: string) {
   const platformSpecDef = getPlatformDefFromYaml(template);
   const platformSpec = PlatformSpec.fromJSON(platformSpecDef || '');
   return Object.keys(platformSpec.platforms).length !== 0 ? platformSpec : undefined;
-}
-
-export function isPipelineSpec(templateString: string) {
-  return WorkflowUtils.tryConvertYamlToV2PipelineSpec(templateString) !== undefined;
 }
 
 // Given the PipelineSpec payload and targeted componentSpec, returns

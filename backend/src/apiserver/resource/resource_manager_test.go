@@ -2764,7 +2764,7 @@ func TestRetryRun_V2CompilerPodSpecPatch(t *testing.T) {
 	workflow.Status.Phase = v1alpha1.WorkflowFailed
 	run.WorkflowRuntimeManifest = model.LargeText(workflow.ToStringForStore())
 	run.State = model.RuntimeStateFailed
-	run.Conditions = string(model.RuntimeStateFailed.ToV1())
+	run.Conditions = string(model.RuntimeStateFailed.ToExecutionPhase())
 	require.NoError(t, manager.runStore.UpdateRun(run))
 
 	require.NoError(t, manager.RetryRun(context.Background(), run.UUID))
@@ -2776,20 +2776,15 @@ func TestRetryRun_ServiceAccountSAR_Unauthorized_NoWorkflowMutation(t *testing.T
 
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
-	workflow := testWorkflow.DeepCopy()
-	workflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
-	workflow.Spec.Templates[0].ServiceAccountName = "nested-sa"
 	run, err := manager.CreateRun(context.Background(), &model.Run{
-		DisplayName: "run1",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(util.NewWorkflow(workflow).ToStringForStore()),
-			Parameters:           `[{"name":"param1","value":"world"}]`,
-		},
+		DisplayName:  "run1",
+		PipelineSpec: pipelineSpecWithTemplateServiceAccount(t, "nested-sa"),
 		ExperimentId: experiment.UUID,
 	})
 	require.NoError(t, err)
 
-	failedWorkflow := util.NewWorkflow(workflow.DeepCopy())
+	failedWorkflow, err := util.NewWorkflowFromBytesJSON([]byte(run.PipelineRuntimeManifest))
+	require.NoError(t, err)
 	failedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, run.UUID)
 	failedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	failedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
@@ -3788,9 +3783,7 @@ func TestEnableJob_ReauthorizesEmbeddedWorkflowServiceAccounts(t *testing.T) {
 		DisplayName:  "j1",
 		Enabled:      false,
 		ExperimentId: experiment.UUID,
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa"),
-		},
+		PipelineSpec: pipelineSpecWithTemplateServiceAccount(t, "nested-sa"),
 	})
 	require.NoError(t, err)
 
@@ -8385,10 +8378,11 @@ func TestCreateRun_ServiceAccountSAR_Unauthorized_NoWorkflowCreated(t *testing.T
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created when SA authorization fails")
 }
 
-func workflowManifestWithTemplateServiceAccount(serviceAccount string) model.LargeText {
-	workflow := testWorkflow.DeepCopy()
-	workflow.Spec.Templates[0].ServiceAccountName = serviceAccount
-	return model.LargeText(util.NewWorkflow(workflow).ToStringForStore())
+func pipelineSpecWithTemplateServiceAccount(t *testing.T, serviceAccount string) model.PipelineSpec {
+	t.Helper()
+	viper.Set(common.CompiledPipelineSpecPatch, fmt.Sprintf(`{"templateDefaults":{"serviceAccountName":%q}}`, serviceAccount))
+	t.Cleanup(func() { viper.Set(common.CompiledPipelineSpecPatch, "") })
+	return model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}}
 }
 
 func TestCreateRun_ServiceAccountSAR_TemplateSA_Unauthorized_NoWorkflowCreated(t *testing.T) {
@@ -8401,11 +8395,8 @@ func TestCreateRun_ServiceAccountSAR_TemplateSA_Unauthorized_NoWorkflowCreated(t
 	defer store.Close()
 
 	_, err := manager.CreateRun(multiUserContext(), &model.Run{
-		DisplayName: "run1",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa"),
-			Parameters:           `[{"name":"param1","value":"world"}]`,
-		},
+		DisplayName:  "run1",
+		PipelineSpec: pipelineSpecWithTemplateServiceAccount(t, "nested-sa"),
 		ExperimentId: experiment.UUID,
 	})
 	require.Error(t, err)
@@ -8427,11 +8418,8 @@ func TestCreateRun_ServiceAccountSAR_PluginMutationUnauthorized_CleansUpPlugins(
 	manager.pluginDispatcher = dispatcher
 
 	run := &model.Run{
-		DisplayName: "run1",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
-			Parameters:           `[{"name":"param1","value":"world"}]`,
-		},
+		DisplayName:  "run1",
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
 		ExperimentId: experiment.UUID,
 	}
 	_, err := manager.CreateRun(multiUserContext(), run)
@@ -8467,12 +8455,12 @@ func TestCreateJob_ServiceAccountSAR_TemplateSA_Unauthorized_NoScheduledWorkflow
 			if tt.mode == "plugins" {
 				manager.pluginDispatcher = &countingTerminalReportDispatcher{}
 			}
-			pipelineSpec := model.PipelineSpec{WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa")}
+			pipelineSpec := pipelineSpecWithTemplateServiceAccount(t, "nested-sa")
 			if tt.mode == "latest" {
 				pipeline, err := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
 				require.NoError(t, err)
 				_, err = manager.CreatePipelineVersion(createPipelineVersion(
-					pipeline.UUID, "p1/v1", "v1", "", string(pipelineSpec.WorkflowSpecManifest), "", "ns1",
+					pipeline.UUID, "p1/v1", "v1", "", string(pipelineSpec.PipelineSpecManifest), "", "ns1",
 				))
 				require.NoError(t, err)
 				pipelineSpec = model.PipelineSpec{PipelineId: pipeline.UUID}
@@ -8496,14 +8484,11 @@ func TestCreateRun_ParameterizedPodSpecPatch_NoWorkflowCreated(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
 
-	workflow := testWorkflow.DeepCopy()
-	workflow.Spec.PodSpecPatch = `{"serviceAccountName":"{{workflow.parameters.param1}}"}`
+	viper.Set(common.CompiledPipelineSpecPatch, `{"podSpecPatch":"{\"serviceAccountName\":\"{{workflow.parameters.param1}}\"}"}`)
+	t.Cleanup(func() { viper.Set(common.CompiledPipelineSpecPatch, "") })
 	_, err := manager.CreateRun(context.Background(), &model.Run{
-		DisplayName: "run1",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(util.NewWorkflow(workflow).ToStringForStore()),
-			Parameters:           `[{"name":"param1","value":"pipeline-runner"}]`,
-		},
+		DisplayName:  "run1",
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
 		ExperimentId: experiment.UUID,
 	})
 	require.Error(t, err)

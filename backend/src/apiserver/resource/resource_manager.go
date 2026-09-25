@@ -868,7 +868,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// TODO(gkcalat): consider to avoid updating runtime manifest at create time and let
 	// persistence agent update the runtime data.
 	run.PipelineRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
-	run.PipelineSpecManifest = model.LargeText(manifest)
 	// Assign the scheduled at time
 	if run.RunDetails.ScheduledAtInSec == 0 {
 		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
@@ -1565,7 +1564,7 @@ func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
 
 // Fetches execution logs and writes to the destination.
 // 1. Attempts to read logs directly from pod.
-// 2. Attempts to read logs from archive if reading from pod fails.
+// 2. Attempts the archive only if the pod failed before writing any logs.
 func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId string, follow bool, dst io.Writer) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
@@ -1575,8 +1574,12 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	if err != nil {
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to namespace fetching error", runId)
 	}
-	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, dst)
-	if err != nil && r.logArchive != nil {
+	writer := &logWriteTracker{Writer: dst}
+	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, writer)
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if err != nil && !writer.written && r.logArchive != nil {
 		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
@@ -1588,6 +1591,19 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	return nil
 }
 
+// Track actual writes, including partial writes returned with an error, so an
+// interrupted stream cannot restart from the archive and duplicate its prefix.
+type logWriteTracker struct {
+	io.Writer
+	written bool
+}
+
+func (w *logWriteTracker) Write(data []byte) (int, error) {
+	n, err := w.Writer.Write(data)
+	w.written = w.written || n > 0
+	return n, err
+}
+
 // Fetches execution logs from a pod.
 func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, namespace string, nodeID string, follow bool, dst io.Writer) error {
 	// The caller controls nodeID, so confirm the pod was created by this run
@@ -1595,7 +1611,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 	// in it could be read with the API server's credentials.
 	pod, err := r.k8sCoreClient.PodClient(namespace).Get(ctx, nodeID, v1.GetOptions{})
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if ctx.Err() == nil && !apierrors.IsNotFound(err) {
 			glog.Errorf("Failed to get pod %v: %v", nodeID, err)
 		}
 		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error fetching the pod", nodeID)
@@ -1613,7 +1629,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 	req := r.k8sCoreClient.PodClient(namespace).GetLogs(nodeID, &logOptions)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if ctx.Err() == nil && !apierrors.IsNotFound(err) {
 			glog.Errorf("Failed to read logs from pod %v: %v", nodeID, err)
 		}
 		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error opening log stream", nodeID)
@@ -1833,7 +1849,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	}
 
 	job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
-	job.PipelineSpecManifest = model.LargeText(manifest)
 	return r.jobStore.CreateJob(job)
 }
 
@@ -3164,13 +3179,8 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 	if err != nil {
 		return nil, "", util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 	}
-	if tmpl.GetTemplateType() == template.V1 {
-		pipelineSpec.WorkflowSpecManifest = model.LargeText(manifest)
-		pipelineSpec.PipelineSpecManifest = ""
-	} else {
-		pipelineSpec.PipelineSpecManifest = model.LargeText(manifest)
-		pipelineSpec.WorkflowSpecManifest = ""
-	}
+	pipelineSpec.PipelineSpecManifest = model.LargeText(manifest)
+	pipelineSpec.WorkflowSpecManifest = ""
 	return tmpl, manifest, nil
 }
 

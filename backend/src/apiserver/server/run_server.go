@@ -333,7 +333,7 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 		listRunRequests.Inc()
 	}
 	pageSize := listRunsPageSizeForView(int(r.GetPageSize()), r.View)
-	opts, err := validatedListOptions(&model.Run{}, r.GetPageToken(), pageSize, r.GetSortBy(), r.GetFilter(), "v2beta1")
+	opts, err := validatedListOptions(&model.Run{}, r.GetPageToken(), pageSize, r.GetSortBy(), r.GetFilter())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
@@ -688,7 +688,7 @@ func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasks
 		}
 	}
 
-	opts, err := validatedListOptions(&model.Task{}, request.GetPageToken(), int(request.GetPageSize()), request.GetOrderBy(), request.GetFilter(), "v2beta1")
+	opts, err := validatedListOptions(&model.Task{}, request.GetPageToken(), int(request.GetPageSize()), request.GetOrderBy(), request.GetFilter())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}

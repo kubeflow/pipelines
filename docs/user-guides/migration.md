@@ -77,6 +77,14 @@ marker. Controllers and admission webhooks must preserve `spec.podMetadata`;
 removing it makes even an originally IR-compiled run non-retriable. Create a new
 run from pipeline IR if the stored manifest no longer carries the marker.
 
+The marker alone does not grant the compiler-only exception for dynamic
+`podSpecPatch` expressions. Service-account authorization must also establish
+compiler provenance from the selected pipeline source. If a pinned version has
+been deleted or its source is unavailable, retry or schedule enablement can fail
+closed for these expressions. Workflows whose service accounts can be inspected
+without that exception remain eligible. Recreate affected runs or schedules from
+available, recompiled IR rather than bypassing identity checks.
+
 The `kubeflow.org/v1beta1` ScheduledWorkflow Kubernetes CRD is still used by native
 v2 recurring runs. Its version is independent of the removed KFP v1beta1 REST and
 gRPC APIs; do not delete this CRD when upgrading.
@@ -94,7 +102,10 @@ Previously, `follow` was not read from the query string and effectively stayed
 false. Omitting it still returns a log snapshot. Live following has no dedicated
 server-side timeout; clients should set a deadline or cancel the request when
 finished. The UI's API-log proxy does not forward this query parameter, so this
-change enables following for direct API callers, not the UI proxy.
+change enables following for direct API callers, not the UI proxy. Log writes
+are flushed as they arrive. Cancelling stops the stream without appending a JSON
+error. If a live stream fails after sending data, it ends without replaying the
+archive; archive fallback is only attempted before any log data has been sent.
 
 See [connecting to the API](core-functions/connect-api.md),
 [compiling pipelines](core-functions/compile-a-pipeline.md), and the

@@ -32,7 +32,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => vi.restoreAllMocks());
-function renderSpec(pipeline_spec: object, ref?: RefObject<PipelineDetails | null>) {
+function renderSpec(pipeline_spec: object | undefined, ref?: RefObject<PipelineDetails | null>) {
   vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockResolvedValue({
     pipeline_id: 'pipeline',
     pipeline_version_id: 'version',
@@ -76,6 +76,31 @@ it.each([{}, { kind: 'Workflow', apiVersion: 'argoproj.io/v1alpha1', spec: {} }]
     expect(screen.queryByTestId('pipeline-detail-v1')).toBeNull();
   },
 );
+
+it('warns for a missing spec on load and selection, and clears it for valid IR', async () => {
+  const spec = load(template) as object;
+  vi.mocked(Apis.pipelineServiceApiV2.listPipelineVersions).mockResolvedValue({
+    pipeline_versions: [
+      { pipeline_id: 'pipeline', pipeline_version_id: 'version' },
+      { pipeline_id: 'pipeline', pipeline_version_id: 'valid', pipeline_spec: spec },
+    ],
+  });
+  const ref = createRef<PipelineDetails>();
+  const props = renderSpec(undefined, ref);
+  const warning = expect.objectContaining({
+    mode: 'warning',
+    message: expect.stringContaining('no pipeline spec'),
+  });
+  await waitFor(() => expect(props.updateBanner).toHaveBeenCalledWith(warning));
+  await act(async () => {
+    await ref.current!.handleVersionSelected('valid');
+  });
+  expect(props.updateBanner).toHaveBeenLastCalledWith({});
+  await act(async () => {
+    await ref.current!.handleVersionSelected('version');
+  });
+  expect(props.updateBanner).toHaveBeenLastCalledWith(warning);
+});
 
 it('preserves the selected tab on refresh and resets graph state only on version change', async () => {
   const spec = load(template) as object;

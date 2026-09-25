@@ -254,6 +254,7 @@ func TestReadRunLog_ForwardsFollowQueryToPodLogs(t *testing.T) {
 			router.ServeHTTP(response, req)
 			require.Equal(t, http.StatusOK, response.Code, response.Body.String())
 			require.Equal(t, "IR run log\n", response.Body.String())
+			require.Equal(t, tc.wantFollow, response.Flushed)
 			require.Equal(t, "text/plain", response.Header().Get("Content-Type"))
 			require.Equal(t, "no-cache, private", response.Header().Get("Cache-Control"))
 			select {

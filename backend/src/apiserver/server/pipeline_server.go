@@ -353,7 +353,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.
 	}
 
 	// Validate list options with the cleaned filter (tag predicates removed)
-	opts, err := validatedListOptions(&model.Pipeline{}, pageToken, int(pageSize), sortBy, cleanedFilterSpec, "v2beta1")
+	opts, err := validatedListOptions(&model.Pipeline{}, pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipelines due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	}
@@ -721,7 +721,7 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 	}
 
 	// Validate query parameters with the cleaned filter (tag predicates removed)
-	opts, err := validatedListOptions(&model.PipelineVersion{}, pageToken, int(pageSize), sortBy, cleanedFilterSpec, "v2beta1")
+	opts, err := validatedListOptions(&model.PipelineVersion{}, pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipeline versions due invalid list options: pageToken: %v, pageSize: %v, sortBy: %v, filter: %v", pageToken, int(pageSize), sortBy, cleanedFilterSpec)
 	}

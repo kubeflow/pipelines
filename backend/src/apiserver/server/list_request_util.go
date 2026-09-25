@@ -123,7 +123,7 @@ func deserializePageToken(pageToken string) (*common.Token, error) {
 // parseAPIFilter attempts to decode a url-encoded JSON-stringified api
 // filter object. An empty string is considered valid input, and equivalent to
 // the nil filter, which trivially does nothing.
-func parseAPIFilter(encoded string, apiVersion string) (*apiv2beta1.Filter, error) {
+func parseAPIFilter(encoded string) (*apiv2beta1.Filter, error) {
 	if encoded == "" {
 		return nil, nil
 	}
@@ -138,27 +138,21 @@ func parseAPIFilter(encoded string, apiVersion string) (*apiv2beta1.Filter, erro
 		return nil, err
 	}
 
-	switch apiVersion {
-	case "v2beta1":
-		f := &apiv2beta1.Filter{}
-		if err := protojson.Unmarshal([]byte(transformedJSON), f); err != nil {
-			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
-		}
-		return f, nil
-
-	default:
-		return nil, util.NewUnknownApiVersionError("filter "+apiVersion, encoded)
+	f := &apiv2beta1.Filter{}
+	if err := protojson.Unmarshal([]byte(transformedJSON), f); err != nil {
+		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 	}
+	return f, nil
 }
 
 // Validates list options for a given resource and listing parameters.
 // Filters are decoded using the v2beta1 schema.
-func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string, apiVersion string) (*list.Options, error) {
+func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string) (*list.Options, error) {
 	defaultOpts := func() (*list.Options, error) {
 		if listable == nil {
 			return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs")
 		}
-		f, err := parseAPIFilter(filterSpec, apiVersion)
+		f, err := parseAPIFilter(filterSpec)
 		if err != nil {
 			return nil, err
 		}

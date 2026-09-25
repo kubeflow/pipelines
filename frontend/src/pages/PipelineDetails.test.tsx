@@ -477,47 +477,51 @@ describe('PipelineDetails', () => {
     );
   });
 
-  it(
-    'uses an empty string and does not show error ' +
-      'when pipeline_spec in the response of getPipelineVersion() is undefined',
-    async () => {
-      getV2PipelineVersionSpy.mockResolvedValue({
-        display_name: 'test-pipeline-version',
-        pipeline_id: 'test-pipeline-id',
-        pipeline_version_id: 'test-pipeline-version-id',
-        pipeline_spec: undefined, // empty pipeline_spec
-      });
-      renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
+  it('warns when the selected pipeline version has no pipeline_spec', async () => {
+    getV2PipelineVersionSpy.mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: 'test-pipeline-version-id',
+      pipeline_spec: undefined, // empty pipeline_spec
+    });
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-      await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
-      // empty template string from empty pipeline_spec and it won't call createGraph()
-      expect(createGraphSpy).toHaveBeenCalledTimes(0);
+    await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
+    // empty template string from empty pipeline_spec and it won't call createGraph()
+    expect(createGraphSpy).toHaveBeenCalledTimes(0);
 
-      // No errors
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
-    },
-  );
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          mode: 'warning',
+          message: expect.stringContaining('no pipeline spec'),
+        }),
+      ),
+    );
+  });
 
-  it(
-    'uses an empty string and does not show error ' +
-      'when pipeline_spec in the response of getPipelineVersion() is undefined',
-    async () => {
-      getV2PipelineVersionSpy.mockResolvedValue({
-        display_name: 'test-pipeline-version',
-        pipeline_id: 'test-pipeline-id',
-        pipeline_version_id: undefined,
-        pipeline_spec: undefined, // empty pipeline_spec
-      });
-      renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
+  it('warns when the returned version has neither an ID nor a pipeline spec', async () => {
+    getV2PipelineVersionSpy.mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: undefined,
+      pipeline_spec: undefined, // empty pipeline_spec
+    });
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-      await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
-      // empty template string from empty pipeline_spec and it won't call createGraph()
-      expect(createGraphSpy).toHaveBeenCalledTimes(0);
+    await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
+    // empty template string from empty pipeline_spec and it won't call createGraph()
+    expect(createGraphSpy).toHaveBeenCalledTimes(0);
 
-      // No errors
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
-    },
-  );
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          mode: 'warning',
+          message: expect.stringContaining('no pipeline spec'),
+        }),
+      ),
+    );
+  });
 
   it(
     'shows no graph error banner ' +

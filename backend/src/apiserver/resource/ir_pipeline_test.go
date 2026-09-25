@@ -95,8 +95,24 @@ func TestRetryRun_CompiledIRSurvivesPipelineVersionDeletion(t *testing.T) {
 	require.NoError(t, manager.DeletePipelineVersion(version.UUID))
 	_, err = manager.GetPipelineVersion(version.UUID)
 	require.Error(t, err)
-	require.NoError(t, manager.RetryRun(context.Background(), run.UUID))
+	// A deleted source cannot establish provenance for compiler-only dynamic
+	// patches. Fail closed, without changing the failed run or claiming a retry.
+	err = manager.RetryRun(context.Background(), run.UUID)
+	require.ErrorContains(t, err, "podSpecPatch")
 	stored, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.Equal(t, model.RuntimeStateFailed, stored.State)
+	require.Zero(t, stored.RetryGeneration)
+
+	// A workflow with only literal patches remains retryable after deletion.
+	for i := range workflow.Spec.Templates {
+		workflow.Spec.Templates[i].PodSpecPatch = ""
+	}
+	syncWorkflowReportWithFakeCluster(t, clients, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+	require.NoError(t, manager.RetryRun(context.Background(), run.UUID))
+	stored, err = manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	require.Equal(t, model.RuntimeStateRunning, stored.State)
 	require.Equal(t, int64(1), stored.RetryGeneration)

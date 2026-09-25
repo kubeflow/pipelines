@@ -24,7 +24,6 @@ import (
 	"net/http"
 
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/golang/glog"
 
@@ -70,17 +69,12 @@ var (
 
 type PipelineUploadServerOptions struct {
 	CollectMetrics bool `json:"collect_metrics,omitempty"`
-	// ApiVersion       string `default:"v2beta1" json:"apiVersion,omitempty"`
 	// DefaultNamespace string `default:"" json:"default_namespace,omitempty"`
 }
 
 type PipelineUploadServer struct {
 	resourceManager *resource.ResourceManager
 	options         *PipelineUploadServerOptions
-}
-
-func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Request) {
-	s.uploadPipeline("v2beta1", w, r)
 }
 
 // Creates a pipeline and a pipeline version.
@@ -90,7 +84,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 // endpoint to the HTTP endpoint.
 // See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
 // Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
-func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.ResponseWriter, r *http.Request) {
+func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Request) {
 	if s.options.CollectMetrics {
 		uploadPipelineRequests.Inc()
 		uploadPipelineVersionRequests.Inc()
@@ -197,16 +191,7 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		pipelineVersionCount.Inc()
 	}
 
-	var messageToMarshal proto.Message
-	switch apiVersion {
-
-	case "v2beta1":
-		messageToMarshal = toApiPipeline(newPipeline)
-	default:
-		glog.Errorf("Failed to create a pipeline. Invalid API version: %v", apiVersion)
-		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
-		return
-	}
+	messageToMarshal := toApiPipeline(newPipeline)
 
 	// Marshal the message to bytes
 	marshaler := &protojson.MarshalOptions{
@@ -227,10 +212,6 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 	}
 }
 
-func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *http.Request) {
-	s.uploadPipelineVersion("v2beta1", w, r)
-}
-
 // Creates a pipeline version under an existing pipeline.
 // HTTP multipart endpoint for uploading pipeline version file.
 // https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
@@ -238,7 +219,7 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 // endpoint to the HTTP endpoint.
 // See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
 // Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
-func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.ResponseWriter, r *http.Request) {
+func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *http.Request) {
 	if s.options.CollectMetrics {
 		uploadPipelineVersionRequests.Inc()
 	}
@@ -344,16 +325,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 		return
 	}
 
-	var messageToMarshal proto.Message
-	switch apiVersion {
-
-	case "v2beta1":
-		messageToMarshal = toApiPipelineVersion(newPipelineVersion)
-	default:
-		glog.Errorf("Failed to create a pipeline version. Invalid API version: %v", apiVersion)
-		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline version"))
-		return
-	}
+	messageToMarshal := toApiPipelineVersion(newPipelineVersion)
 	// Marshal the message to bytes
 	marshaler := &protojson.MarshalOptions{
 		UseProtoNames: true,

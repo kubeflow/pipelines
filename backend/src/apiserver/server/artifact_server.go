@@ -363,7 +363,7 @@ func (s *ArtifactServer) ListArtifacts(ctx context.Context, request *apiv2beta1.
 		}, nil
 	}
 
-	opts, err := validatedListOptions(&model.Artifact{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter, "v2beta1")
+	opts, err := validatedListOptions(&model.Artifact{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
@@ -480,7 +480,7 @@ func (s *ArtifactServer) CreateArtifactTask(ctx context.Context, request *apiv2b
 
 // ListArtifactTasks lists artifact-task relationships.
 func (s *ArtifactServer) ListArtifactTasks(ctx context.Context, request *apiv2beta1.ListArtifactTasksRequest) (*apiv2beta1.ListArtifactTasksResponse, error) {
-	opts, err := validatedListOptions(&model.ArtifactTask{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter, "v2beta1")
+	opts, err := validatedListOptions(&model.ArtifactTask{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}

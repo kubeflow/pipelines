@@ -258,21 +258,21 @@ func TestParseSortByQueryString_StringTooLong(t *testing.T) {
 }
 
 func TestParseAPIFilter_EmptyStringYieldsNilFilter(t *testing.T) {
-	f, err := parseAPIFilter("", "v2beta1")
+	f, err := parseAPIFilter("")
 	assert.Nil(t, err)
 	assert.Nil(t, f)
 
-	f, err = parseAPIFilter("", "v2beta1")
+	f, err = parseAPIFilter("")
 	assert.Nil(t, err)
 	assert.Nil(t, f)
 }
 
 func TestParseAPIFilter_InvalidStringYieldsError(t *testing.T) {
-	f, err := parseAPIFilter("lkjlkjlkj", "v2beta1")
+	f, err := parseAPIFilter("lkjlkjlkj")
 	assert.NotNil(t, err)
 	assert.Nil(t, f)
 
-	f, err = parseAPIFilter("lkjlkjlkj", "v2beta1")
+	f, err = parseAPIFilter("lkjlkjlkj")
 	assert.NotNil(t, err)
 	assert.Nil(t, f)
 }
@@ -294,7 +294,7 @@ func TestParseAPIFilter_DecodesEncodedStringMigrated(t *testing.T) {
 		},
 	}
 
-	got, err := parseAPIFilter(in, "v2beta1")
+	got, err := parseAPIFilter(in)
 	if !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform()) || err != nil {
 		t.Errorf("parseAPIString(%q) =\nGot %+v, %v\n Want %+v, <nil>\nDiff: %s",
 			in, got, err, want, cmp.Diff(want, got))
@@ -318,7 +318,7 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 		},
 	}
 
-	got, err := parseAPIFilter(in, "v2beta1")
+	got, err := parseAPIFilter(in)
 	if !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform()) || err != nil {
 		t.Errorf("parseAPIString(%q) =\nGot %+v, %v\n Want %+v, <nil>\nDiff: %s",
 			in, got, err, want, cmp.Diff(want, got))
@@ -396,22 +396,22 @@ func TestValidatedListOptions_Errors(t *testing.T) {
 		t.Fatalf("opt.NextPageToken() = _, %+v; Want nil error", err)
 	}
 
-	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name asc", "", "v2beta1")
+	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name asc", "")
 	if err != nil {
 		t.Fatalf("validatedListOptions(fakeListable, 10, \"name asc\") = _, %+v; Want nil error", err)
 	}
 
-	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name asc", "", "v2beta1")
+	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name asc", "")
 	if err != nil {
 		t.Fatalf("validatedListOptions(fakeListable, 10, \"name asc\") = _, %+v; Want nil error", err)
 	}
 
-	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name desc", "", "v2beta1")
+	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name desc", "")
 	if err == nil {
 		t.Fatalf("validatedListOptions(fakeListable, 10, \"name desc\") = _, %+v; Want error", err)
 	}
 
-	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name desc", "", "v2beta1")
+	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name desc", "")
 	if err == nil {
 		t.Fatalf("validatedListOptions(fakeListable, 10, \"name desc\") = _, %+v; Want error", err)
 	}

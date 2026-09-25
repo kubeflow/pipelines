@@ -16,7 +16,6 @@ import { testBestPractices } from 'src/TestUtils';
 import {
   convertYamlToPlatformSpec,
   getContainer,
-  isTemplateV2,
   tryConvertYamlToV2PipelineSpec,
 } from './WorkflowUtils';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
@@ -37,7 +36,7 @@ const V2_PVC_TEMPLATE_STRING = dump(V2_PVC_TEMPLATE_STRING_OBJ);
 testBestPractices();
 describe('WorkflowUtils', () => {
   it('detects v2 template (yaml file without k8s platform spec)', () => {
-    expect(isTemplateV2(V2_LW_YAML_TEMPLATE_STRING)).toBeTruthy();
+    expect(tryConvertYamlToV2PipelineSpec(V2_LW_YAML_TEMPLATE_STRING)).toBeDefined();
   });
 
   it('validates a V2 template without performing graph layout', () => {
@@ -50,7 +49,7 @@ describe('WorkflowUtils', () => {
   });
 
   it('detects v2 template (yaml file with k8s platform spec)', () => {
-    expect(isTemplateV2(V2_PVC_TEMPLATE_STRING)).toBeTruthy();
+    expect(tryConvertYamlToV2PipelineSpec(V2_PVC_TEMPLATE_STRING)).toBeDefined();
   });
 
   it('converts yaml to PlatformSpec (yaml with k8s platform spec)', () => {
@@ -162,6 +161,5 @@ it.each([
   'kind: Workflow\napiVersion: argoproj.io/v1alpha1\nspec: {}',
   'name: component\nimplementation:\n  container:\n    image: alpine',
 ])('rejects non-IR YAML: %s', (source) => {
-  expect(isTemplateV2(source)).toBe(false);
   expect(tryConvertYamlToV2PipelineSpec(source)).toBeUndefined();
 });

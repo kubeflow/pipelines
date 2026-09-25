@@ -415,6 +415,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         ')',
       );
 
+      this.clearBanner();
       const selectedVersionPipelineTemplate = await this._getTemplateString(v2SelectedVersion);
       this.props.navigate(
         {
@@ -436,6 +437,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   private async _getTemplateString(pipelineVersion?: V2beta1PipelineVersion): Promise<string> {
+    if (pipelineVersion && !pipelineVersion.pipeline_spec) {
+      await this.showPageError(
+        'This pipeline version has no pipeline spec. Legacy formats are no longer supported; upload a version compiled with the KFP v2 SDK.',
+        undefined,
+        'warning',
+      );
+    }
     return pipelineVersion?.pipeline_spec ? JsYaml.dump(pipelineVersion.pipeline_spec) : '';
   }
 
