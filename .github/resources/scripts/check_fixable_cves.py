@@ -29,11 +29,8 @@ def find_blocking_cves(report):
             vulnerability_id = vulnerability.get("VulnerabilityID", "")
             fixed_version = vulnerability.get("FixedVersion", "")
             severity = vulnerability.get("Severity", "").upper()
-            if (
-                not vulnerability_id.startswith("CVE-")
-                or not fixed_version
-                or severity not in BLOCKING_SEVERITIES
-            ):
+            if (not vulnerability_id.startswith("CVE-") or not fixed_version or
+                    severity not in BLOCKING_SEVERITIES):
                 continue
 
             finding = (

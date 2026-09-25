@@ -21,12 +21,10 @@ import check_fixable_cves
 
 def report(*vulnerabilities):
     return {
-        "Results": [
-            {
-                "Target": "test-image",
-                "Vulnerabilities": list(vulnerabilities),
-            }
-        ]
+        "Results": [{
+            "Target": "test-image",
+            "Vulnerabilities": list(vulnerabilities),
+        }]
     }
 
 
@@ -45,6 +43,7 @@ def vulnerability(
 
 
 class FindBlockingCvesTest(unittest.TestCase):
+
     def test_fixable_cves_of_every_severity_block(self):
         findings = check_fixable_cves.find_blocking_cves(
             report(
@@ -62,30 +61,26 @@ class FindBlockingCvesTest(unittest.TestCase):
                     vulnerability_id="CVE-2026-67890",
                     severity="CRITICAL",
                 ),
-            )
-        )
+            ))
 
         self.assertEqual(len(findings), 5)
 
     def test_unfixed_cve_does_not_block(self):
         findings = check_fixable_cves.find_blocking_cves(
-            report(vulnerability(fixed_version=""))
-        )
+            report(vulnerability(fixed_version="")))
 
         self.assertEqual(findings, [])
 
     def test_non_cve_advisory_does_not_block(self):
         findings = check_fixable_cves.find_blocking_cves(
-            report(vulnerability(vulnerability_id="GHSA-abcd-1234-5678"))
-        )
+            report(vulnerability(vulnerability_id="GHSA-abcd-1234-5678")))
 
         self.assertEqual(findings, [])
 
     def test_duplicate_findings_are_reported_once(self):
         duplicate = vulnerability()
         findings = check_fixable_cves.find_blocking_cves(
-            report(duplicate, duplicate.copy())
-        )
+            report(duplicate, duplicate.copy()))
 
         self.assertEqual(len(findings), 1)
 
