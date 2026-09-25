@@ -1,16 +1,16 @@
-// Copyright 2026 The Kubeflow Authors 
-// 
+// Copyright 2026 The Kubeflow Authors
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use thi file except in compliance with the License.
-// You may obtain a copy of the License at 
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
-// https://www.apache.org/licenses/LICENSE-2.0
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law or agreed to in writting, software
+// Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and 
-// limitations under the license
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package component
 
@@ -24,9 +24,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockPauseSignaler is a hand-rolled Pausesignaler for testing Pause()'s
+// mockPauseSignaler is a hand-rolled PauseSignaler for testing Pause()'s
 // control flow without any real network call. Each behavior is independently
-// configurable so tests can exercise the specific failure modes Pause() is 
+// configurable so tests can exercise the specific failure modes Pause() is
 // required to handle.
 type mockPauseSignaler struct {
 	mu sync.Mutex
@@ -34,8 +34,8 @@ type mockPauseSignaler struct {
 	publishErr error
 	publishes  []DebugPauseBarrier
 
-	// resumeSequence is conumed one value per IsResumeRequested call; the 
-	// last value is reused once exhausted. This lets a tst express "not
+	// resumeSequence is consumed one value per IsResumeRequested call; the
+	// last value is reused once exhausted. This lets a test express "not
 	// resumed for the first N polls, then resumed" concisely.
 	resumeSequence []bool
 	resumeErrs     []error
@@ -113,36 +113,36 @@ func TestPause_NoOpWhenBarrierIsNone(t *testing.T) {
 	require.False(t, signaler.clearCalled)
 }
 
-// TestPause_PublishailureStillParks verifies that a failure to report "I am
-// paused" does not prevent the actual pause from ahppening - the debugging 
+// TestPause_PublishFailuresStillParks verifies that a failure to report "I am
+// paused" does not prevent the actual pause from happening - the debugging
 // session must not be lost to a transient reporting error. Confirmed by the
 // loop still requiring a real resume signal before returning
 func TestPause_PublishFailuresStillParks(t *testing.T) {
 	signaler := &mockPauseSignaler{
 		publishErr:     errors.New("api server unreachable"),
-		resumeSequence: []bool{false, true}, 
+		resumeSequence: []bool{false, true},
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.NoError(t, err, "a publish failure must not prevent parking or resuming")
 	require.True(t, signaler.clearCalled)
 }
 
-// TestPause_PollErrorsDoNotAbortWait verifies that transient poll errors are 
+// TestPause_PollErrorsDoNotAbortWait verifies that transient poll errors are
 // tolerated - the launcher keeps waiting and retrying rather than giving up
 // (which would either silently release or wedge the pause).
 func TestPause_PollErrorsDoNotAbortWait(t *testing.T) {
 	flaky := errors.New("transient network error")
 	signaler := &mockPauseSignaler{
 		resumeErrs:     []error{flaky, flaky, flaky, nil, nil},
-		resumeSequence: []bool{false, false, false, false, true}, 
+		resumeSequence: []bool{false, false, false, false, true},
 	}
-	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
+	err := Pause(context.Background(), signaler, DebugPauseBarrierAfter, fastTestConfig())
 	require.NoError(t, err, "poll errors must not cause Pause to give up early")
 	require.True(t, signaler.clearCalled)
 }
 
-// TestPAuse_SafetyValveTimesOut verifies the one case where Pause is allowed
-// to return an error on its own: nobody ever resumes it, and the max 
+// TestPause_SafetyValveTimesOut verifies the one case where Pause is allowed
+// to return an error on its own: nobody ever resumes it, and the max
 // duration elapses. This must surface as a real, identifiable failure -
 // not a silent hang.
 func TestPause_SafetyValveTimesOut(t *testing.T) {
@@ -158,8 +158,8 @@ func TestPause_SafetyValveTimesOut(t *testing.T) {
 	require.True(t, signaler.clearCalled, "barrier must still be cleared, best effort, after a timeout")
 }
 
-// TestPause_ContextCacellationClearsBestEffort verifies that cancelling the
-// context (e.g. the launcher process shutting down) causes Pause to return 
+// TestPause_ContextCancellationClearsBestEffort verifies that cancelling the
+// context (e.g. the launcher process shutting down) causes Pause to return
 // promptly with the context's error, while still attempting a best-effort
 // clear using a fresh, uncancelled context for cleanup.
 func TestPause_ContextCancellationClearsBestEffort(t *testing.T) {
@@ -173,7 +173,7 @@ func TestPause_ContextCancellationClearsBestEffort(t *testing.T) {
 
 	err := Pause(ctx, signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.ErrorIs(t, err, context.Canceled)
-	require.True(t, signaler.clearCalled, "clear must still be attempty after cancellation, via a fresh context")
+	require.True(t, signaler.clearCalled, "clear must still be attempted after cancellation, via a fresh context")
 }
 
 func TestBarrierForError(t *testing.T) {
@@ -190,8 +190,8 @@ func TestBarrierForError(t *testing.T) {
 		{"neither configured", DebugPauseConfig{}, true, debugPauseBarrierNone},
 		{"before only, ignored post-execution", DebugPauseConfig{Before: true}, true, debugPauseBarrierNone},
 	}
-	for _, tt := range tests{ 
-		t.Run(tt.name, func(t *testing.T){
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.want, BarrierForError(tt.cfg, tt.commandFailed))
 		})
 	}
@@ -220,7 +220,7 @@ func TestNewDebugPauseConfigFromEnv_Disabled(t *testing.T) {
 	require.False(t, cfg.Enabled(), "a task that never called set_debug_pause() must be a no-op")
 }
 
-func TestNewDebugPauseConfigFromEnv_InvalidMaxDurationFallsBAckToDefault(t *testing.T) {
+func TestNewDebugPauseConfigFromEnv_InvalidMaxDurationFallsBackToDefault(t *testing.T) {
 	t.Setenv(envKFPDebugPauseBefore, "true")
 	t.Setenv(envKFPDebugPauseMaxDuration, "not-a-duration")
 

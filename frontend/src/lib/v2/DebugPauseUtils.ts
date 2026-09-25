@@ -18,7 +18,7 @@ import { Apis } from 'src/lib/Apis';
 // These keys and values must exactly match the launcher's
 // backend/src/v2/component/debug_pause.go (customPropDebugPauseBarrier /
 // customPropDebugPauseResumeRequested). Debug pause is a separate overlay
-// signal on a task's status_metadata.custom_properties; it never competes
+// signal on a task's status_metadata.custom_properties - it never competes
 // with the task's real RUNNING/SUCCEEDED/FAILED state.
 const CUSTOM_PROP_DEBUG_PAUSE_BARRIER = 'debug_pause_barrier';
 const CUSTOM_PROP_DEBUG_PAUSE_RESUME_REQUESTED = 'debug_pause_resume_requested';
@@ -30,7 +30,7 @@ const VALID_BARRIERS: ReadonlySet<string> = new Set(['before', 'after', 'on_erro
 // PipelineTaskStatusMetadata types custom_properties as
 // { [key: string]: object } because it's generated from a
 // map<string, google.protobuf.Value> field. In practice, a string-valued
-// protobuf.Value serializes over JSON as a bare JSON string, not an object—
+// protobuf.Value serializes over JSON as a bare JSON string, not an object —
 // the generated type is simply imprecise for this case. This helper narrows
 // safely at runtime (typeof check) rather than trusting the declared type.
 type CustomProperties = Record<string, unknown> | undefined;
@@ -41,8 +41,8 @@ type CustomProperties = Record<string, unknown> | undefined;
  * currently parked (the common case for a task that never called
  * set_debug_pause(), or one that hasn't reached a configured barrier yet).
  *
- * This is a live signal reported directly by the launcher, not an
- * inference from how long a task has been running, so it accurately
+ * This is a live signal reported directly by the launcher - not an
+ * inference from how long a task has been running - so it accurately
  * distinguishes "genuinely parked" from "just taking a while."
  */
 export function getDebugPauseBarrier(
@@ -62,7 +62,7 @@ export function isDebugPaused(task: V2beta1PipelineTask | undefined): boolean {
 
 /**
  * Requests that a paused task resume. This calls the existing UpdateTask RPC
- * directly—no purpose-built "/:resume" endpoint exists or is needed, since
+ * directly — no purpose-built "/:resume" endpoint exists or is needed, since
  * UpdateTask already performs the same run-scoped authorization such an
  * endpoint would require. The launcher's own polling loop (in the running
  * pod) discovers this flag on its own next poll and continues by itself;
