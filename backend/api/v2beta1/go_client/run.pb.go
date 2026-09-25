@@ -1207,7 +1207,7 @@ type PipelineTask struct {
 	// "root.primary-pipeline.secondary-pipeline.task"
 	ScopePath string `protobuf:"bytes,18,opt,name=scope_path,json=scopePath,proto3" json:"scope_path,omitempty"`
 	// Latest pod lifecycle diagnostic from the execution engine.
-	// Optional so UpdateTask can distinguish "leave unchanged" from "clear".
+	// Read-only via REST; the persistence agent clears this field automatically on recovery.
 	LifecycleMessage *string `protobuf:"bytes,19,opt,name=lifecycle_message,json=lifecycleMessage,proto3,oneof" json:"lifecycle_message,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
