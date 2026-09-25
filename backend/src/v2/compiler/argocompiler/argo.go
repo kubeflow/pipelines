@@ -34,6 +34,7 @@ import (
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type Options struct {
@@ -259,6 +260,17 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	err = compiler.Accept(job, kubernetesSpec, c)
 	if err != nil {
 		return nil, err
+	}
+
+	// A task's retry settings only mean what they say if nothing above the pod
+	// also retries. Argo's templateDefaults gives every strategy-less template
+	// the deployment-wide retryStrategy, so the generated DAG templates would
+	// re-run whole subgraphs on top of the task's own retries, multiplying the
+	// attempt count and overriding the selected policy. Zero them so the pod
+	// owns retry. Scoped to pipelines that actually configure retry, so
+	// everything else compiles exactly as before.
+	if pipelineConfiguresRetry(spec) {
+		neutralizeDAGRetries(c.wf)
 	}
 
 	// Apply any workflow spec patches from environment variable
@@ -747,4 +759,40 @@ func GetWorkspacePVC(
 		},
 		Spec: pvcSpec,
 	}, nil
+}
+
+// pipelineConfiguresRetry reports whether any task in the pipeline sets a retry
+// policy, including tasks inside nested pipelines.
+func pipelineConfiguresRetry(spec *pipelinespec.PipelineSpec) bool {
+	if spec.GetRoot().GetDag() != nil {
+		for _, task := range spec.GetRoot().GetDag().GetTasks() {
+			if task.GetRetryPolicy() != nil {
+				return true
+			}
+		}
+	}
+	for _, component := range spec.GetComponents() {
+		for _, task := range component.GetDag().GetTasks() {
+			if task.GetRetryPolicy() != nil {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// neutralizeDAGRetries gives every DAG template an explicit zero-retry strategy
+// so templateDefaults cannot supply one. Pod templates are left alone: retrying
+// a pod re-runs one container, which is what the deployment default is for,
+// while retrying a DAG re-runs its entire subgraph.
+func neutralizeDAGRetries(wf *wfapi.Workflow) {
+	for i := range wf.Spec.Templates {
+		tmpl := &wf.Spec.Templates[i]
+		if tmpl.DAG == nil || tmpl.RetryStrategy != nil {
+			continue
+		}
+		tmpl.RetryStrategy = &wfapi.RetryStrategy{
+			Limit: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
+		}
+	}
 }

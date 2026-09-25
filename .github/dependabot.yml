@@ -97,21 +97,16 @@ updates:
     # Generated API clients are excluded: their requirements express generated
     # compatibility minimums and must be changed through API regeneration.
     directories:
-      - "/.github/resources/scripts/kfp-readiness"
+      - "/"
+      - "/.github/scripts"
       - "/api/v2alpha1/python"
-      - "/backend"
       - "/backend/src/apiserver/visualization"
-      - "/backend/src/v2/test"
+      - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"
-      - "/docs/sdk"
       - "/kubernetes_platform/python"
-      - "/kubernetes_platform/python/docs"
-      - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
-      - "/proxy"
       - "/release"
       - "/sdk/python"
-      - "/test/kfp-kubernetes-native-migration-tests"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

@@ -19,9 +19,13 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/setup-python/**'
+      - '.github/actions/protobuf/**'
       - '.github/actions/deploy/**'
       - '.github/actions/install-fgo-fake/**'
       - '.github/actions/install-dra-driver/**'
@@ -140,6 +144,12 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
 
+      - name: Set up DRA SDK workspace
+        uses: ./.github/actions/setup-python
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+        with:
+          python-version: "3.11"
+
       - name: Generate DRA SDK packages
         uses: ./.github/actions/protobuf
         if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
@@ -150,11 +160,8 @@ jobs:
         shell: bash
         if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
         run: |
-          python3 -m venv "${RUNNER_TEMP}/dra-component-build"
-          source "${RUNNER_TEMP}/dra-component-build/bin/activate"
-          python -m pip install --upgrade pip
-          python -m pip install api/v2alpha1/python/dist/*.whl
-          python -m pip install sdk/python kubernetes_platform/python docker==7.1.0
+          make -C kubernetes_platform python-dev
+          uv pip install docker==7.1.0
 
           BUILD_CONTEXT=$(mktemp -d)
           cp test_data/sdk_compiled_pipelines/valid/dra/dra_passthrough_check.py "${BUILD_CONTEXT}/"
@@ -165,6 +172,7 @@ jobs:
             --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
             --additional-package-path "${GITHUB_WORKSPACE}/api/v2alpha1/python" \
             --additional-package-path "${GITHUB_WORKSPACE}/kubernetes_platform/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/backend/api/v2beta1/python_http_client" \
             --no-push-image
           kind --name "${{ env.CLUSTER_NAME }}" load docker-image kfp-dra-sdk:test
 
