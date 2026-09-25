@@ -35,6 +35,9 @@ func IsV1PipelinesBlocked(namespace string) bool {
 		return false
 	}
 	blockV1Value := viper.GetString(BlockV1Pipelines)
+	if blockV1Value == "" {
+		return false
+	}
 	blockV1, err := strconv.ParseBool(blockV1Value)
 	if err != nil {
 		log.Fatalf("Failed converting %s value %q to bool: %v", BlockV1Pipelines, blockV1Value, err)

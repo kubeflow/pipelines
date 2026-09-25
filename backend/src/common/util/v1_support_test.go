@@ -161,3 +161,13 @@ func TestIsV1PipelinesBlocked(t *testing.T) {
 		})
 	}
 }
+
+func TestIsV1PipelinesBlocked_EmptyValueTreatedAsFalse(t *testing.T) {
+	// viper.AllowEmptyEnv(true) makes viper.IsSet return true for empty env vars.
+	// strconv.ParseBool("") fails, so empty must be treated as false.
+	viper.Set(BlockV1Pipelines, "")
+	defer viper.Set(BlockV1Pipelines, nil)
+
+	result := IsV1PipelinesBlocked("ns1")
+	assert.Equal(t, false, result)
+}
