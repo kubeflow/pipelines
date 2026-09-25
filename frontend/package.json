@@ -85,7 +85,7 @@
     "pretest:ui:coverage": "npm run build:tailwind",
     "test": "LC_ALL=\"en_US.UTF-8\" vitest run",
     "test:ui": "vitest run",
-    "test:bundle": "npm run build && node --test scripts/production-bundle.test.mjs",
+    "test:bundle": "npm run build && node --test scripts/production-bundle.smoke.mjs",
     "test:ui:watch": "vitest",
     "test:ui:coverage": "vitest run --coverage",
     "test:ui:coverage:loop": "vitest run --coverage --maxWorkers 4",
