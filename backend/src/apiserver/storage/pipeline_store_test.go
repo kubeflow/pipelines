@@ -299,6 +299,59 @@ func TestGetPipelineByNameAndNamespace_NotFound(t *testing.T) {
 		"Failed to get pipeline by name and namespace")
 }
 
+func TestGetPipelineByNameAndNamespace_Isolation(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	store := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewUUIDGenerator(), testDialect)
+
+	seed := func(name, namespace string) *model.Pipeline {
+		t.Helper()
+		pipeline, err := store.CreatePipeline(createPipeline(name, "", namespace))
+		require.NoError(t, err)
+		_, err = store.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "", "", "", ""))
+		require.NoError(t, err)
+		return pipeline
+	}
+	// The fake clock advances on each creation, so the private pipeline and
+	// its version would win an unscoped lookup over the shared pipeline.
+	shared := seed("Same-Name", "")
+	tenantA := seed("Same-Name", "tenant-a")
+	tenantB := seed("Same-Name", "tenant-b")
+	dash := seed("dash-name", model.NoNamespace)
+	seed("private-only", "tenant-a")
+
+	for _, tc := range []struct {
+		name         string
+		pipelineName string
+		namespace    string
+		wantPipeline *model.Pipeline
+	}{
+		{name: "omitted namespace excludes private-only pipeline", pipelineName: "private-only"},
+		{name: "shared wins over newer private namesakes", pipelineName: "same-name", wantPipeline: shared},
+		{name: "explicit tenant a", pipelineName: "same-name", namespace: "tenant-a", wantPipeline: tenantA},
+		{name: "explicit tenant b", pipelineName: "same-name", namespace: "tenant-b", wantPipeline: tenantB},
+		{name: "unknown namespace has no fallback", pipelineName: "same-name", namespace: "missing"},
+		{name: "explicit dash namespace", pipelineName: "dash-name", namespace: model.NoNamespace, wantPipeline: dash},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var pipeline *model.Pipeline
+			var err error
+			pipeline, err = store.GetPipelineByNameAndNamespace(tc.pipelineName, tc.namespace)
+			if tc.wantPipeline == nil {
+				require.Error(t, err)
+				assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "%v", err)
+				assert.Nil(t, pipeline)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, pipeline)
+			assert.Equal(t, tc.wantPipeline.UUID, pipeline.UUID)
+			assert.Equal(t, tc.wantPipeline.Namespace, pipeline.Namespace)
+
+		})
+	}
+}
+
 func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 	tests := []struct {
 		name                string
