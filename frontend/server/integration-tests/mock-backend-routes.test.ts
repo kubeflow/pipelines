@@ -39,8 +39,8 @@ describe('mock backend routes', () => {
       await request.get('/system/project-id').expect(200, 'mock-project-id');
     });
 
-    it('reports visualizations as allowed', async () => {
-      await request.get('/visualizations/allowed').expect(200, 'true');
+    it('does not expose the removed visualization configuration route', async () => {
+      await request.get('/visualizations/allowed').expect(404);
     });
 
     it('serves v2 healthz status', async () => {

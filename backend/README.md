@@ -223,8 +223,6 @@ server locally.
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8889",
         "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
         "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
       },
@@ -265,8 +263,6 @@ server locally.
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8889",
         "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
         "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
       },
@@ -397,8 +393,6 @@ VSCode configuration:
         "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
-        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8889",
         "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
         "V2_DRIVER_IMAGE": "kfp-driver:debug",
         "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
@@ -422,8 +416,6 @@ GoLand configuration:
    | OBJECTSTORECONFIG_PORT                       | 9000                                                                                        |
    | METADATA_GRPC_SERVICE_SERVICE_HOST           | localhost                                                                                   |
    | METADATA_GRPC_SERVICE_SERVICE_PORT           | 8080                                                                                        |
-   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST | localhost                                                                                   |
-   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT | 8889                                                                                        |
    | V2_LAUNCHER_IMAGE                            | ghcr.io/kubeflow/kfp-launcher:master                                                        |
    | V2_DRIVER_IMAGE                              | kfp-driver:debug                                                                            |
    | V2_DRIVER_COMMAND                            | dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec /bin/driver -- |

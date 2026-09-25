@@ -56,7 +56,6 @@ on:
       - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
       - 'backend/Dockerfile'
       - 'backend/api/build_kfp_server_api_python_package.sh'
-      - 'backend/src/apiserver/visualization/update_requirements.sh'
       - 'hack/update-requirements.sh'
       - '.readthedocs.yml'
       - 'kubernetes_platform/python/docs/.readthedocs.yml'

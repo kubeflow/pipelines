@@ -26,8 +26,7 @@ function has_batch_images_been_built {
   echo "$images" | grep persistenceagent && \
   echo "$images" | grep viewer-crd-controller && \
   echo "$images" | grep inverse-proxy-agent && \
-  echo "$images" | grep metadata-writer && \
-  echo "$images" | grep visualization-server && result=0
+  echo "$images" | grep metadata-writer && result=0
   return $result
 }
 

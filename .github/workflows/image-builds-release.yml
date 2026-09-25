@@ -53,9 +53,6 @@ jobs:
           - name: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
-          - name: kfp-visualization-server
-            dockerfile: backend/Dockerfile.visualization
-            context: .
           - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
@@ -106,7 +103,6 @@ jobs:
           - image: kfp-persistence-agent
           - image: kfp-scheduled-workflow-controller
           - image: kfp-viewer-crd-controller
-          - image: kfp-visualization-server
           - image: kfp-launcher
           - image: kfp-driver
           - image: kfp-inverse-proxy-agent

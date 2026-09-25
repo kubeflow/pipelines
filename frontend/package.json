@@ -54,7 +54,6 @@
     "apis:v2beta1:pipeline": "node scripts/generate_openapi_typescript_fetch.js v2beta1:pipeline",
     "apis:v2beta1:run": "node scripts/generate_openapi_typescript_fetch.js v2beta1:run",
     "apis:v2beta1:filter": "node scripts/generate_openapi_typescript_fetch.js v2beta1:filter",
-    "apis:v2beta1:visualization": "node scripts/generate_openapi_typescript_fetch.js v2beta1:visualization",
     "apis:v2beta1:auth": "node scripts/generate_openapi_typescript_fetch.js v2beta1:auth",
     "build:tailwind": "npx tailwindcss build -i src/tailwind.css -o src/build/tailwind.output.css",
     "prestart": "npm run build:tailwind",
