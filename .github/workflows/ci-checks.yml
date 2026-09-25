@@ -20,7 +20,6 @@ on:
       - 'KFP E2E Pipeline tests'
       - 'Frontend Tests'
       - 'Go Builder Image Digests'
-      - 'KFP API Integration v1 tests'
       - 'kfp-kubernetes library tests'
       - 'KFP Python Client Tests'
       - 'KFP SDK Tests'
