@@ -30,7 +30,7 @@ const VALID_BARRIERS: ReadonlySet<string> = new Set(['before', 'after', 'on_erro
 // PipelineTaskStatusMetadata types custom_properties as
 // { [key: string]: object } because it's generated from a
 // map<string, google.protobuf.Value> field. In practice, a string-valued
-// protobuf.Value serializes over JSON as a bare JSON string, not an object —
+// protobuf.Value serializes over JSON as a bare JSON string, not an object -
 // the generated type is simply imprecise for this case. This helper narrows
 // safely at runtime (typeof check) rather than trusting the declared type.
 type CustomProperties = Record<string, unknown> | undefined;
