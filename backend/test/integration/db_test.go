@@ -19,6 +19,8 @@ import (
 	"time"
 
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/dbcreds"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/spf13/viper"
@@ -71,6 +73,67 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	// sslmode must be set explicitly (secure-by-default); the local PostgreSQL
 	// used by integration tests does not use TLS, so opt into "disable".
 	viper.Set("DBConfig.PostgreSQLConfig.ExtraParams", map[string]string{"sslmode": "disable"})
+	duration, _ := time.ParseDuration("1m")
+	db, dialect, _ := cm.InitDBClient(duration)
+	assert.NotNil(t, db)
+	assert.Equal(t, "pgx", dialect.Name())
+}
+
+// Test the credential provider path initializes correctly against a real
+// database. The static provider carries the configured password, so this
+// exercises everything the opt-in path does -- registry lookup, provider
+// construction, connector building, and the schema migration that follows --
+// without needing a cloud identity.
+func (s *DBTestSuite) TestInitDBClient_MySQL_CredentialProvider() {
+	if *runPostgreSQLTests {
+		s.T().SkipNow()
+		return
+	}
+	t := s.T()
+	viper.Set("DBDriverName", "mysql")
+	viper.Set("DBConfig.MySQLConfig.DBName", "mlpipeline")
+	viper.Set("DBConfig.MySQLConfig.Host", "localhost")
+	// Set explicitly rather than inheriting whatever a sibling test left in
+	// viper: the suite only happens to run them in an order that works.
+	viper.Set("DBConfig.MySQLConfig.User", "root")
+	viper.Set("DBConfig.MySQLConfig.Password", "")
+	viper.Set(common.DBCredentialProviderEnabled, true)
+	viper.Set(common.DBCredentialProvider, dbcreds.StaticProviderName)
+	defer func() {
+		viper.Set(common.DBCredentialProviderEnabled, false)
+		viper.Set(common.DBCredentialProvider, "")
+	}()
+
+	duration, _ := time.ParseDuration("1m")
+	db, dialect, _ := cm.InitDBClient(duration)
+	assert.NotNil(t, db)
+	assert.Equal(t, "mysql", dialect.Name())
+}
+
+// Test the credential provider path for PostgreSQL.
+func (s *DBTestSuite) TestInitDBClient_PostgreSQL_CredentialProvider() {
+	if !*runPostgreSQLTests {
+		s.T().SkipNow()
+		return
+	}
+	t := s.T()
+	viper.Set("DBDriverName", "pgx")
+	viper.Set("DBConfig.PostgreSQLConfig.DBName", "mlpipeline")
+	// localhost, matching the pre-provider case above: the integration
+	// workflow port-forwards without --address, which binds loopback only.
+	viper.Set("DBConfig.PostgreSQLConfig.Host", "localhost")
+	viper.Set("DBConfig.PostgreSQLConfig.User", "user")
+	viper.Set("DBConfig.PostgreSQLConfig.Password", "password")
+	// sslmode must be set explicitly (secure-by-default); the local PostgreSQL
+	// used by integration tests does not use TLS, so opt into "disable".
+	viper.Set("DBConfig.PostgreSQLConfig.ExtraParams", map[string]string{"sslmode": "disable"})
+	viper.Set(common.DBCredentialProviderEnabled, true)
+	viper.Set(common.DBCredentialProvider, dbcreds.StaticProviderName)
+	defer func() {
+		viper.Set(common.DBCredentialProviderEnabled, false)
+		viper.Set(common.DBCredentialProvider, "")
+	}()
+
 	duration, _ := time.ParseDuration("1m")
 	db, dialect, _ := cm.InitDBClient(duration)
 	assert.NotNil(t, db)

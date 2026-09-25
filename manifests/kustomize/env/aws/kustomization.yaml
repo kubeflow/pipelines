@@ -1,0 +1,68 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Kubeflow Pipelines against Amazon RDS or Aurora using IAM database
+# authentication. See README.md for the RDS and IAM prerequisites, which are not
+# created by this overlay.
+#
+# Note that the in-cluster MySQL deployment is deliberately absent: this overlay
+# expects an external database.
+resources:
+- ../../base/installs/generic
+- ../../third-party/argo/installs/namespace
+- ../../third-party/seaweedfs/base
+- db-users-secret.yaml
+
+# !!! If you want to customize the namespace,
+# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
+namespace: kubeflow
+
+patches:
+- path: patches/ml-pipeline-apiserver-deployment.yaml
+- path: patches/cache-deployment.yaml
+- path: patches/ml-pipeline-apiserver-sa.yaml
+- path: patches/cache-sa.yaml
+
+configMapGenerator:
+- behavior: merge
+  envs:
+  - params.env
+  name: pipeline-install-config
+
+# The deployments mount a ConfigMap named db-ca-bundle holding the Amazon RDS
+# certificate bundle. It is created by the operator rather than generated here,
+# so that this overlay builds without fetching anything. See README.md.
+
+labels:
+- includeSelectors: true
+  pairs:
+    application-crd-id: kubeflow-pipelines
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    fieldPaths:
+    - data.artifactRepository
+    options:
+      delimiter: .
+      index: 1
+
+- source:
+    kind: ConfigMap
+    name: pipeline-install-config
+    fieldPath: data.bucketName
+  targets:
+  - select:
+      kind: ConfigMap
+      name: workflow-controller-configmap
+    fieldPaths:
+    - data.artifactRepository
+    options:
+      delimiter: '"'
+      index: 3
