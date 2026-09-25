@@ -44,15 +44,6 @@ func TestRetryRun_ReportedRecurringRunPodSpecPatch(t *testing.T) {
 			switch {
 			case test.v2:
 				store, manager, job = initWithJobV2(t)
-			case test.v1PipelineSpec:
-				var experiment *model.Experiment
-				store, manager, experiment = initWithExperiment(t)
-				var err error
-				job, err = manager.CreateJob(context.Background(), &model.Job{
-					DisplayName: "j1", Enabled: true, ExperimentId: experiment.UUID,
-					PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(testWorkflow.ToStringForStore())},
-				})
-				require.NoError(t, err)
 			default:
 				store, manager, job = initWithJob(t)
 			}
@@ -65,7 +56,8 @@ func TestRetryRun_ReportedRecurringRunPodSpecPatch(t *testing.T) {
 			workflow := executionSpec.(*util.Workflow)
 			workflow.Namespace = job.Namespace
 			if !test.v2 {
-				// Existing V1 workflows must not gain the compiler-only exemption on retry.
+				// Seed a historical workflow; new Argo creation is no longer supported.
+				workflow.Spec.PodMetadata = nil
 				workflow.Spec.Templates[0].PodSpecPatch = "{{inputs.parameters.pod-spec-patch}}"
 			}
 			require.Contains(t, workflow.ToStringForStore(), "{{inputs.parameters.pod-spec-patch}}")
@@ -76,15 +68,13 @@ func TestRetryRun_ReportedRecurringRunPodSpecPatch(t *testing.T) {
 
 			runID := workflow.Labels[util.LabelKeyWorkflowRunId]
 			if test.v1PipelineSpec {
-				// New jobs normalize raw Argo into WorkflowSpecManifest. Retain
-				// coverage for older records that stored it in the pipeline field.
+				// Older records could store raw Argo in the pipeline field.
 				_, err = store.db.Exec(`UPDATE "run_details" SET "PipelineSpecManifest" = ? WHERE "UUID" = ?`, testWorkflow.ToStringForStore(), runID)
 				require.NoError(t, err)
 			}
 			run, err := manager.GetRun(runID)
 			require.NoError(t, err)
 			require.Equal(t, job.UUID, run.RecurringRunId)
-			require.NotEmpty(t, run.WorkflowSpecManifest)
 			require.Equal(t, model.RuntimeStateFailed, run.State)
 			if test.v2 || test.v1PipelineSpec {
 				require.NotEmpty(t, run.PipelineSpecManifest)
@@ -94,7 +84,7 @@ func TestRetryRun_ReportedRecurringRunPodSpecPatch(t *testing.T) {
 			if test.v2 {
 				require.NoError(t, err)
 			} else {
-				require.ErrorContains(t, err, "podSpecPatch")
+				require.ErrorContains(t, err, "missing the IR compiler's v2_component")
 			}
 			run, err = manager.GetRun(runID)
 			require.NoError(t, err)

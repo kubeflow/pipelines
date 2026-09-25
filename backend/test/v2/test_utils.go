@@ -18,7 +18,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -32,6 +31,7 @@ import (
 	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/test/config"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -50,24 +50,26 @@ const (
 )
 
 func WaitForReady(initializeTimeout time.Duration) error {
-	operation := func() error {
-		response, err := http.Get("http://localhost:8888/apis/v2beta1/healthz")
+	var tlsConfig *tls.Config
+	var err error
+	if *config.TLSEnabled {
+		tlsConfig, err = GetTLSConfig(*config.CaCertPath)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Failed to configure API readiness TLS")
 		}
-
-		// If we get a 503 service unavailable, it's a non-retriable error.
-		if response.StatusCode == 503 {
-			return backoff.Permanent(errors.Wrapf(
-				err, "Waiting for ml pipeline API server failed with non retriable error."))
-		}
-
-		return nil
+	}
+	client, err := api_server.NewHealthzClient(GetClientConfig(*config.Namespace), *config.DebugMode, tlsConfig)
+	if err != nil {
+		return errors.Wrap(err, "Failed to create API readiness client")
+	}
+	operation := func() error {
+		_, err := client.GetHealthz()
+		return err
 	}
 
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initializeTimeout
-	err := backoff.Retry(operation, b)
+	err = backoff.Retry(operation, b)
 	return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
 }
 

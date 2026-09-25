@@ -9,7 +9,7 @@ Tools needed:
 * [java](https://www.java.com/en/download/)
 * [python3](https://www.python.org/downloads/)
 
-Set the environment variable `API_VERSION` to the version that you want to generate. We use `v1beta1` as example here.
+The backend supports only `v2beta1`:
 
 ```bash
 export API_VERSION="v2beta1"
@@ -76,7 +76,7 @@ Python client will be placed into `./${API_VERSION}/python_http_client`.
 > **Note**
 > Whenever the API definition changes (i.e., the file `kfp_api_single_file.swagger.json` changes), the API reference documentation needs to be updated.
 
-API definitions in this folder are used to generate [`v1beta1`](https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec/) and [`v2beta1`](https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/) API reference documentation on kubeflow.org. Follow the steps below to update the documentation:
+API definitions in this folder are used to generate [`v2beta1`](https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/) API reference documentation on kubeflow.org. Follow the steps below to update the documentation:
 
 1. Install [bootprint-openapi](https://github.com/bootprint/bootprint-monorepo/tree/master/packages/bootprint-openapi) and [html-inline](https://www.npmjs.com/package/html-inline) packages using `npm`:
    ```bash
@@ -87,13 +87,6 @@ API definitions in this folder are used to generate [`v1beta1`](https://www.kube
 
 2. Generate *self-contained html file(s)* with API reference documentation from `./${API_VERSION}/swagger/kfp_api_single_file.swagger.json`:
 
-    Fov `v1beta1`:
-
-   ```bash
-   bootprint openapi ./v1beta1/swagger/kfp_api_single_file.swagger.json ./temp/v1
-   html-inline ./temp/v1/index.html > ./temp/v1/kubeflow-pipeline-api-spec.html
-   ```
-
    For `v2beta1`:
 
    ```bash
@@ -102,7 +95,6 @@ API definitions in this folder are used to generate [`v1beta1`](https://www.kube
    ```
 
 3. Use the above generated html file(s) to replace the relevant section(s) on kubeflow.org. When copying th content, make sure to **preserve the original headers**.
-   - `v1beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec.html).
    - `v2beta1`: file [kubeflow-pipeline-api-spec.html](https://github.com/kubeflow/website/blob/master/content/en/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec.html).
 
 4. Create a PR with the changes in [kubeflow.org website repository](https://github.com/kubeflow/website). See an example [here](https://github.com/kubeflow/website/pull/3444).

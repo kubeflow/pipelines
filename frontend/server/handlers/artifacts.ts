@@ -71,9 +71,9 @@ import {
   requiresArtifactOwnershipValidation,
 } from '../helpers/artifact-sources.js';
 import {
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
-} from '../src/generated/apis/auth/index.js';
+  AuthorizeResourcesEnum,
+  AuthorizeVerbEnum,
+} from '../src/generated/apisv2beta1/auth/index.js';
 import {
   getLauncherProviderInfo,
   LauncherConfigError,
@@ -402,8 +402,8 @@ export function getArtifactsAuthMiddleware(
 
     const authError = await authorizeFn(
       {
-        verb: AuthorizeRequestVerb.GET,
-        resources: AuthorizeRequestResources.VIEWERS,
+        verb: AuthorizeVerbEnum.GET,
+        resources: AuthorizeResourcesEnum.VIEWERS,
         namespace: namespace,
       },
       request,

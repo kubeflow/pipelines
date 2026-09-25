@@ -10,6 +10,7 @@ on:
       - 'api/**'
       - 'sdk/**'
       - 'test_data/sdk_compiled_pipelines/**'
+      - 'test_data/component_migration_test.py'
       - 'test/presubmit-tests-sdk.sh'
       - '.github/workflows/kfp-sdk-tests.yml'
       - '.github/actions/setup-python/**'
@@ -50,3 +51,8 @@ jobs:
         PYTEST_PARALLEL_WORKERS: 2
       run: |
         ./test/presubmit-tests-sdk.sh
+
+    - name: Compile shared container fixtures without legacy YAML
+      run: |
+        # Source-tree Google Cloud components are outside this migration's scope.
+        python -m pytest -q test_data/component_migration_test.py

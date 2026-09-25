@@ -410,9 +410,6 @@ echo "All tools installed"
 cd "$REPO_ROOT"
 git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"
-export API_VERSION=v1beta1
-"$REPO_ROOT/backend/api/hack/generator.sh"
-"$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
 export API_VERSION=v2beta1
 "$REPO_ROOT/backend/api/hack/generator.sh"
 "$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"

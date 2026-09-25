@@ -27,8 +27,6 @@ function has_batch_images_been_built {
   echo "$images" | grep viewer-crd-controller && \
   echo "$images" | grep inverse-proxy-agent && \
   echo "$images" | grep metadata-writer && \
-  echo "$images" | grep cache-server && \
-  echo "$images" | grep cache-deployer && \
   echo "$images" | grep visualization-server && result=0
   return $result
 }
@@ -78,9 +76,7 @@ function build_image {
 if
   test -z "$DISABLE_IMAGE_CACHING" && has_batch_images_been_built
 then
-  echo "docker images for frontend, scheduledworkflow, \
-    persistenceagent, viewer-crd-controller, inverse-proxy-agent, metadata-writer, cache-server, \
-    cache-deployer and visualization-server are already built in ${GCR_IMAGE_BASE_DIR}."
+  echo "Batch docker images are already built in ${GCR_IMAGE_BASE_DIR}."
 else
   IMAGES_BUILDING=true
   build_image "batch_build"

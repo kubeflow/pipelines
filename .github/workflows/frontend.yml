@@ -12,7 +12,6 @@ on:
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
       - 'api/v2alpha1/*.proto'
       - 'kubernetes_platform/proto/*.proto'
-      - 'backend/api/v1beta1/swagger/**'
       - 'backend/api/v2beta1/swagger/**'
       - '.github/workflows/frontend.yml'
       - '!**/*.md'

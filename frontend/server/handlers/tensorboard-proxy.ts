@@ -20,9 +20,9 @@ import { ViewerTensorboardConfig } from '../configs.js';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 import {
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
-} from '../src/generated/apis/auth/index.js';
+  AuthorizeResourcesEnum,
+  AuthorizeVerbEnum,
+} from '../src/generated/apisv2beta1/auth/index.js';
 import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
@@ -315,8 +315,8 @@ export default function registerTensorboardProxy(
 
       const authError = await authorizeFn(
         {
-          verb: AuthorizeRequestVerb.GET,
-          resources: AuthorizeRequestResources.VIEWERS,
+          verb: AuthorizeVerbEnum.GET,
+          resources: AuthorizeResourcesEnum.VIEWERS,
           namespace: payload.namespace,
         },
         req,

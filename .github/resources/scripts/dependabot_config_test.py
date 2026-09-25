@@ -24,7 +24,6 @@ DEPENDABOT_PATH = REPOSITORY_ROOT / '.github/dependabot.yml'
 CI_SCRIPTS_WORKFLOW_PATH = (
     REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml')
 GENERATED_PYTHON_CLIENTS = {
-    '/backend/api/v1beta1/python_http_client',
     '/backend/api/v2beta1/python_http_client',
 }
 

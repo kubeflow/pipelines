@@ -35,6 +35,31 @@ import kubernetes as k8s
 import yaml
 
 
+class TestRecurringRunAliases(parameterized.TestCase):
+
+    @parameterized.parameters('delete', 'disable', 'enable')
+    def test_job_alias_uses_recurring_run_service(self, operation):
+        sdk_client = client.Client.__new__(client.Client)
+        sdk_client._recurring_run_api = Mock(
+            spec=kfp_server_api.RecurringRunServiceApi)
+        service_method = getattr(
+            sdk_client._recurring_run_api,
+            f'recurring_run_service_{operation}_recurring_run')
+        with self.assertWarns(DeprecationWarning):
+            result = getattr(sdk_client, f'{operation}_job')('run-id')
+        service_method.assert_called_once_with(recurring_run_id='run-id')
+        self.assertIs(result, service_method.return_value)
+
+    def test_job_id_alias_uses_recurring_run_service(self):
+        sdk_client = client.Client.__new__(client.Client)
+        sdk_client._recurring_run_api = Mock(
+            spec=kfp_server_api.RecurringRunServiceApi)
+        with self.assertWarns(DeprecationWarning):
+            sdk_client.get_recurring_run(recurring_run_id=None, job_id='run-id')
+        sdk_client._recurring_run_api.recurring_run_service_get_recurring_run.assert_called_once_with(
+            recurring_run_id='run-id')
+
+
 class TestValidatePipelineName(parameterized.TestCase):
 
     @parameterized.parameters([

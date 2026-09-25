@@ -19,6 +19,9 @@ IMAGE_TAG=kfp-api-generator
 REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator
 # Assume the latest API version by default.
 API_VERSION ?= v2beta1
+ifneq ($(API_VERSION),v2beta1)
+$(error Only the v2beta1 API is supported)
+endif
 
 # Pre-built images for faster development (default: enabled for speed)
 # Set USE_PREBUILT_IMAGE=false when:

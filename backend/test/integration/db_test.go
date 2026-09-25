@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"flag"
 	"testing"
 	"time"
 
@@ -25,6 +26,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
+
+var runIntegrationTests = flag.Bool("runIntegrationTests", false, "Run database integration tests")
+var runPostgreSQLTests = flag.Bool("runPostgreSQLTests", false, "Use PostgreSQL instead of MySQL")
 
 type DBTestSuite struct {
 	suite.Suite

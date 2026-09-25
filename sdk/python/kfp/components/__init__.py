@@ -27,7 +27,7 @@ __all__ = [
 from kfp.components.load_yaml_utilities import load_component_from_file
 from kfp.components.load_yaml_utilities import load_component_from_text
 from kfp.components.load_yaml_utilities import load_component_from_url
-# keep this for backward compatibility with user code "from kfp.components import placholders" and similar
+# Public aliases for the DSL component and placeholder modules.
 from kfp.dsl import base_component  # noqa: keep unused import
 from kfp.dsl import placeholders  # noqa: keep unused import
 from kfp.dsl.base_component import BaseComponent

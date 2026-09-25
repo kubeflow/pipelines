@@ -20,7 +20,7 @@ import BusyButton from '../../atoms/BusyButton';
 import Input from '../../atoms/Input';
 import Editor from '../Editor';
 import Viewer, { ViewerConfig } from './Viewer';
-import { ApiVisualizationType } from '../../apis/visualization';
+import { V2beta1VisualizationType } from '../../apisv2beta1/visualization';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/mode-python';
@@ -33,7 +33,11 @@ export interface VisualizationCreatorConfig extends ViewerConfig {
   // Whether there is currently a visualization being generated or not.
   isBusy?: boolean;
   // Function called to generate a visualization.
-  onGenerate?: (visualizationArguments: string, source: string, type: ApiVisualizationType) => void;
+  onGenerate?: (
+    visualizationArguments: string,
+    source: string,
+    type: V2beta1VisualizationType,
+  ) => void;
   // Facilitate testing by not collapsing by default.
   collapsedInitially?: boolean;
 }
@@ -49,7 +53,7 @@ interface VisualizationCreatorState {
   arguments: string;
   code: string;
   source: string;
-  selectedType?: ApiVisualizationType;
+  selectedType?: V2beta1VisualizationType;
 }
 
 class VisualizationCreator extends Viewer<VisualizationCreatorProps, VisualizationCreatorState> {
@@ -80,7 +84,8 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
     // provided, and a visualization type is selected, and a onGenerate function
     // is provided.
     const hasSourceAndSelectedType = source.length > 0 && !!selectedType;
-    const isCustomTypeAndHasCode = selectedType === ApiVisualizationType.CUSTOM && code.length > 0;
+    const isCustomTypeAndHasCode =
+      selectedType === V2beta1VisualizationType.CUSTOM && code.length > 0;
     const canGenerate =
       !isBusy && !!onGenerate && (hasSourceAndSelectedType || isCustomTypeAndHasCode);
 
@@ -113,14 +118,14 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
               minHeight: 60,
               width: '100%',
             }}
-            onChange={(e: SelectChangeEvent<ApiVisualizationType>) => {
-              this.setState({ selectedType: e.target.value as ApiVisualizationType });
+            onChange={(e: SelectChangeEvent<V2beta1VisualizationType>) => {
+              this.setState({ selectedType: e.target.value as V2beta1VisualizationType });
             }}
             disabled={isBusy}
           >
             {this.getAvailableTypes(allowCustomVisualizations).map((key) => (
-              <MenuItem key={key} value={ApiVisualizationType[key]}>
-                {ApiVisualizationType[key]}
+              <MenuItem key={key} value={V2beta1VisualizationType[key]}>
+                {V2beta1VisualizationType[key]}
               </MenuItem>
             ))}
           </Select>
@@ -135,7 +140,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
             this.setState({ source: e.target.value })
           }
         />
-        {selectedType === ApiVisualizationType.CUSTOM && (
+        {selectedType === V2beta1VisualizationType.CUSTOM && (
           <div>
             <InputLabel>Custom Visualization Code</InputLabel>
             <Editor
@@ -178,7 +183,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
           onClick={() => {
             if (onGenerate && selectedType) {
               const specifiedArguments: any = JSON.parse(_arguments || '{}');
-              if (selectedType === ApiVisualizationType.CUSTOM) {
+              if (selectedType === V2beta1VisualizationType.CUSTOM) {
                 specifiedArguments.code = code.split('\n');
               }
               onGenerate(JSON.stringify(specifiedArguments), source, selectedType);
@@ -191,20 +196,20 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
 
   private getAvailableTypes(
     allowCustomVisualizations: boolean,
-  ): Array<keyof typeof ApiVisualizationType> {
-    return (Object.keys(ApiVisualizationType) as Array<keyof typeof ApiVisualizationType>).filter(
-      (key) => {
-        const isCustom = key === 'CUSTOM';
-        const isTFMA = key === 'TFMA';
-        return (allowCustomVisualizations || !isCustom) && !isTFMA;
-      },
-    );
+  ): Array<keyof typeof V2beta1VisualizationType> {
+    return (
+      Object.keys(V2beta1VisualizationType) as Array<keyof typeof V2beta1VisualizationType>
+    ).filter((key) => {
+      const isCustom = key === 'CUSTOM';
+      const isTFMA = key === 'TFMA';
+      return (allowCustomVisualizations || !isCustom) && !isTFMA;
+    });
   }
 
-  private getArgumentPlaceholderForType(type: ApiVisualizationType | undefined): string {
+  private getArgumentPlaceholderForType(type: V2beta1VisualizationType | undefined): string {
     let placeholder = 'Arguments, provided as JSON, to be used during visualization generation.';
     switch (type) {
-      case ApiVisualizationType.ROC_CURVE:
+      case V2beta1VisualizationType.ROC_CURVE:
         // These arguments are not yet used as the ROC curve visualization is
         // still based on the Kubeflow Pipelines component.
         // placeholder = `{
@@ -222,18 +227,18 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
         \t"true_score_column": string | null
         }`;
         break;
-      case ApiVisualizationType.TFDV:
+      case V2beta1VisualizationType.TFDV:
         placeholder = '{}';
         break;
-      case ApiVisualizationType.TFMA:
+      case V2beta1VisualizationType.TFMA:
         placeholder = `{
         \t"slicing_column: string | null
         }`;
         break;
-      case ApiVisualizationType.TABLE:
+      case V2beta1VisualizationType.TABLE:
         placeholder = '{\n\t"headers": array\n}';
         break;
-      case ApiVisualizationType.CUSTOM:
+      case V2beta1VisualizationType.CUSTOM:
         placeholder = '{\n\t"key": any\n}';
         break;
     }

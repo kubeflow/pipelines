@@ -732,7 +732,7 @@ func TestCreateTask_RejectsParentFromDifferentRun(t *testing.T) {
 	run2, err := manager.CreateRun(context.Background(), &model.Run{
 		DisplayName: "run-2",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	})
 	assert.NoError(t, err)
@@ -766,7 +766,7 @@ func TestUpdateTask_RejectsParentFromDifferentRun(t *testing.T) {
 	run2, err := manager.CreateRun(context.Background(), &model.Run{
 		DisplayName: "run-2",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	})
 	assert.NoError(t, err)
@@ -810,7 +810,7 @@ func TestParentScopedReadsIgnoreChildrenFromOtherRuns(t *testing.T) {
 	run2, err := manager.CreateRun(context.Background(), &model.Run{
 		DisplayName: "run-2",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	})
 	assert.NoError(t, err)
@@ -1107,7 +1107,7 @@ func TestUpdateTasksBulk_ValidationErrors(t *testing.T) {
 	secondRun, err := manager2.CreateRun(context.Background(), &model.Run{
 		DisplayName: "second-run",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	})
 	assert.NoError(t, err)
@@ -1160,7 +1160,7 @@ func TestUpdateTasksBulk_RejectsCrossRunScopeBeforeForeignAuth(t *testing.T) {
 		DisplayName:  "second-run",
 		ExperimentId: firstRun.ExperimentId,
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	})
 	assert.NoError(t, err)

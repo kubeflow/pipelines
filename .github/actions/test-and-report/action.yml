@@ -375,8 +375,8 @@ runs:
             start_port_forward_supervisor "api-server" "${INPUT_DEFAULT_NAMESPACE}" "service/${API_SERVICE}" "8888" "8888"
 
             for i in $(seq 1 12); do
-              if curl -sf http://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1 || \
-                 curl -skf https://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1; then
+              if curl -sf http://localhost:8888/apis/v2beta1/healthz > /dev/null 2>&1 || \
+                 curl -skf https://localhost:8888/apis/v2beta1/healthz > /dev/null 2>&1; then
                 echo "API server is reachable on localhost:8888"
                 break
               fi

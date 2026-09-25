@@ -28,13 +28,11 @@ const (
 	MultiUserMode                           string = "MULTIUSER"
 	MultiUserModeSharedReadAccess           string = "MULTIUSER_SHARED_READ"
 	PodNamespace                            string = "POD_NAMESPACE"
-	CacheEnabled                            string = "CacheEnabled"
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
 	AllowedServiceAccountsFlag              string = "ALLOWEDSERVICEACCOUNTS"
 	WorkflowIdentityMode                    string = "KFP_SECURITY_WORKFLOW_IDENTITY_MODE"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
-	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
 	MLPipelineGRPCBackoffBaseDelay          string = "ML_PIPELINE_GRPC_BACKOFF_BASE_DELAY"
 	MLPipelineGRPCBackoffMultiplier         string = "ML_PIPELINE_GRPC_BACKOFF_MULTIPLIER"
@@ -89,10 +87,6 @@ type PluginLimitsConfig struct {
 // while the run record is being written.
 func GetWorkflowGCGracePeriodSeconds() int {
 	return GetIntConfigWithDefault(WorkflowGCGracePeriodSeconds, 120)
-}
-
-func IsPipelineVersionUpdatedByDefault() bool {
-	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
 }
 
 func IsNamespaceRequiredForPipelines() bool {
@@ -245,10 +239,6 @@ func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return boolVal
-}
-
-func IsCacheEnabled() string {
-	return GetStringConfigWithDefault(CacheEnabled, "true")
 }
 
 func GetKubeflowUserIDHeader() string {

@@ -139,14 +139,14 @@ spec:
                 optional: true
         readinessProbe:
           httpGet:
-            path: /apis/v1beta1/healthz
+            path: /apis/v2beta1/healthz
             port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
         livenessProbe:
           httpGet:
-            path: /apis/v1beta1/healthz
+            path: /apis/v2beta1/healthz
             port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5

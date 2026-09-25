@@ -471,13 +471,9 @@ class PythonPackagingTest(unittest.TestCase):
             self.assertEqual((destination / 'requirements.txt').read_text(),
                              'test-package==1.0\n')
 
-    def test_server_generator_selects_sdk_version_only_for_v2(self) -> None:
-        """Regenerate v2 metadata from the SDK while retaining legacy v1
-        behavior."""
-        for api_version, expected_version in (
-            ('v2beta1', '2.17.0'),
-            ('v1beta1', '2.99.0'),
-        ):
+    def test_server_generator_uses_sdk_version_and_rejects_v1(self) -> None:
+        """Regenerate v2 metadata from the SDK and reject removed v1 APIs."""
+        for api_version in ('v2beta1', 'v1beta1'):
             with self.subTest(api_version=api_version
                              ), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
@@ -526,16 +522,20 @@ class PythonPackagingTest(unittest.TestCase):
                     text=True,
                     check=False,
                 )
-                self.assertEqual(result.returncode, 0, result.stderr)
                 output = api / api_version / 'python_http_client'
+                self.assertEqual((root / 'VERSION').read_text(), '2.99.0\n')
+                if api_version == 'v1beta1':
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('Only the v2beta1 API is supported.',
+                                  result.stderr)
+                    self.assertFalse(output.exists())
+                    continue
+                self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(
                     package_version(output / 'kfp_server_api/__init__.py'),
-                    expected_version)
-                if api_version == 'v2beta1':
-                    self.assertEqual(
-                        package_version(output / 'pyproject.toml'),
-                        expected_version)
-                self.assertEqual((root / 'VERSION').read_text(), '2.99.0\n')
+                    '2.17.0')
+                self.assertEqual(
+                    package_version(output / 'pyproject.toml'), '2.17.0')
 
 
 if __name__ == '__main__':

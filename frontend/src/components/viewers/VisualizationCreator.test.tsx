@@ -19,7 +19,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import { PlotType } from './Viewer';
 import VisualizationCreator, { VisualizationCreatorConfig } from './VisualizationCreator';
-import { ApiVisualizationType } from '../../apis/visualization';
+import { V2beta1VisualizationType } from '../../apisv2beta1/visualization';
 
 vi.mock('../Editor', () => ({
   default: ({
@@ -137,7 +137,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const wrapper = renderVisualizationCreator([config]);
-    wrapper.setState({ selectedType: ApiVisualizationType.ROC_CURVE });
+    wrapper.setState({ selectedType: V2beta1VisualizationType.ROC_CURVE });
     expect(screen.getAllByTestId('editor').length).toBe(1);
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
@@ -149,7 +149,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const wrapper = renderVisualizationCreator([config]);
-    wrapper.setState({ selectedType: ApiVisualizationType.CUSTOM });
+    wrapper.setState({ selectedType: V2beta1VisualizationType.CUSTOM });
     expect(screen.getAllByTestId('editor').length).toBe(2);
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
@@ -172,7 +172,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const wrapper = renderVisualizationCreator([config]);
-    wrapper.setState({ selectedType: ApiVisualizationType.ROC_CURVE });
+    wrapper.setState({ selectedType: V2beta1VisualizationType.ROC_CURVE });
     expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
   });
 
@@ -183,7 +183,7 @@ describe('VisualizationCreator', () => {
     };
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
-      selectedType: ApiVisualizationType.ROC_CURVE,
+      selectedType: V2beta1VisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
@@ -197,7 +197,7 @@ describe('VisualizationCreator', () => {
     };
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
-      selectedType: ApiVisualizationType.ROC_CURVE,
+      selectedType: V2beta1VisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(screen.getByRole('button', { name: 'Generate Visualization' })).toBeDisabled();
@@ -211,7 +211,7 @@ describe('VisualizationCreator', () => {
     };
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
-      selectedType: ApiVisualizationType.ROC_CURVE,
+      selectedType: V2beta1VisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(screen.getByRole('button', { name: 'Generate Visualization' })).not.toBeDisabled();
@@ -227,7 +227,7 @@ describe('VisualizationCreator', () => {
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
       arguments: '{}',
-      selectedType: ApiVisualizationType.ROC_CURVE,
+      selectedType: V2beta1VisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     fireEvent.click(screen.getByRole('button', { name: 'Generate Visualization' }));
@@ -244,14 +244,14 @@ describe('VisualizationCreator', () => {
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
       arguments: '{}',
-      selectedType: ApiVisualizationType.ROC_CURVE,
+      selectedType: V2beta1VisualizationType.ROC_CURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     fireEvent.click(screen.getByRole('button', { name: 'Generate Visualization' }));
     expect(onGenerate).toHaveBeenCalledWith(
       '{}',
       'gs://ml-pipeline/data.csv',
-      ApiVisualizationType.ROC_CURVE,
+      V2beta1VisualizationType.ROC_CURVE,
     );
   });
 
@@ -262,7 +262,7 @@ describe('VisualizationCreator', () => {
     const wrapper = renderVisualizationCreator([config]);
     wrapper.setState({
       arguments: JSON.stringify({ is_generated: 'True' }),
-      selectedType: ApiVisualizationType.ROC_CURVE,
+      selectedType: V2beta1VisualizationType.ROC_CURVE,
     });
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
@@ -284,7 +284,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const wrapper = renderVisualizationCreator([config]);
-    wrapper.setState({ selectedType: ApiVisualizationType.ROC_CURVE });
+    wrapper.setState({ selectedType: V2beta1VisualizationType.ROC_CURVE });
     expect(wrapper.renderResult().asFragment()).toMatchSnapshot();
   });
 
@@ -306,7 +306,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const wrapper = renderVisualizationCreator([config]);
-    wrapper.setState({ selectedType: ApiVisualizationType.CUSTOM });
+    wrapper.setState({ selectedType: V2beta1VisualizationType.CUSTOM });
 
     fireEvent.change(screen.getByPlaceholderText('File path or path pattern of data within GCS.'), {
       target: { value: 'gs://ml-pipeline/data.csv' },
@@ -323,7 +323,7 @@ describe('VisualizationCreator', () => {
       key: 'mock-arg',
     });
     expect(source).toBe('gs://ml-pipeline/data.csv');
-    expect(type).toBe(ApiVisualizationType.CUSTOM);
+    expect(type).toBe(V2beta1VisualizationType.CUSTOM);
   });
 
   it('disables all select and input fields when busy', () => {
@@ -340,7 +340,7 @@ describe('VisualizationCreator', () => {
   });
 
   it('has an argument placeholder for every visualization type', () => {
-    const types = Object.keys(ApiVisualizationType)
+    const types = Object.keys(V2beta1VisualizationType)
       .map((key: string) => key.replace('_', ''))
       .filter((key: string, i: number, arr: string[]) => arr.indexOf(key) === i);
     const config: VisualizationCreatorConfig = {

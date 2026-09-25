@@ -14,7 +14,6 @@
 """Pipeline using dsl.importer and GCPC types."""
 
 from kfp import compiler
-from kfp import components
 from kfp import dsl
 from kfp.dsl import importer
 
@@ -24,18 +23,13 @@ class VertexDataset(dsl.Artifact):
     schema_title = 'google.VertexDataset'
 
 
-consumer_op = components.load_component_from_text("""
-name: consumer_op
-inputs:
-  - {name: dataset, type: google.VertexDataset}
-implementation:
-  container:
-    image: dummy
-    command:
-    - cmd
-    args:
-    - {inputPath: dataset}
-""")
+@dsl.container_component
+def consumer_op(dataset: dsl.Input[VertexDataset]):
+    return dsl.ContainerSpec(
+        image='dummy',
+        command=['cmd'],
+        args=[dataset.path],
+    )
 
 
 @dsl.pipeline(name='pipeline-with-importer-and-gcpc-type')

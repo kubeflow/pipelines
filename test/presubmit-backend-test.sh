@@ -20,9 +20,6 @@ set -ex
 # Add installed go binaries to PATH.
 export PATH="${PATH}:$(go env GOPATH)/bin"
 
-# Check cache deployer shell helpers that are not covered by Go tests.
-./test/cache-deployer/deploy-cache-service_test.sh
-
 # 1. Check go modules are tidy
 # Reference: https://github.com/golang/go/issues/27005#issuecomment-564892876
 go mod download
@@ -31,4 +28,4 @@ git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go
 
 # 2. Run tests in the backend directory
 # shellcheck disable=SC2046
-GIT_REPO="$GIT_REPO" GIT_BRANCH="$GIT_BRANCH" go test -v -cover $(go list ./backend/... | grep -v backend/test/v2/api | grep -v backend/test/compiler | grep -v backend/test/end2end | grep -v backend/test/integration | grep -v backend/test/v2/integration | grep -v backend/test/initialization)
+GIT_REPO="$GIT_REPO" GIT_BRANCH="$GIT_BRANCH" go test -v -cover $(go list ./backend/... | grep -v backend/test/v2/api | grep -v backend/test/compiler | grep -v backend/test/end2end | grep -v backend/test/v2/integration)

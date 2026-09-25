@@ -54,13 +54,13 @@ func TestRetryRun_UsesSelectedPipelineProvenance(t *testing.T) {
 		name                                                                    string
 		legacy, deletedVersion, missingSource, missingPin, newerV2, literal, v2 bool
 	}{
-		{name: "new V1 run clears unused V2 manifest"},
+		{name: "stored V1 run is rejected"},
 		{name: "legacy V1 run retains unrelated V2 manifest", legacy: true},
 		{name: "latest V2 version cannot replace V1 pin", legacy: true, newerV2: true},
 		{name: "deleted V1 pin cannot use unrelated V2 manifest", legacy: true, deletedVersion: true},
 		{name: "missing pinned source cannot use newer V2 object", legacy: true, missingSource: true, newerV2: true},
 		{name: "missing version pin cannot use latest V2", legacy: true, missingPin: true, newerV2: true},
-		{name: "literal V1 patch can retry after pin deletion", legacy: true, deletedVersion: true, literal: true},
+		{name: "literal V1 patch remains unsupported after pin deletion", legacy: true, deletedVersion: true, literal: true},
 		{name: "genuine pinned V2 workflow can retry", v2: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestRetryRun_UsesSelectedPipelineProvenance(t *testing.T) {
 			pipeline, err := manager.CreatePipeline(createPipeline("raw-v1", "", experiment.Namespace))
 			require.NoError(t, err)
 			version, err := manager.CreatePipelineVersion(createPipelineVersion(
-				pipeline.UUID, "selected-version", "", "", selectedManifest, "", experiment.Namespace))
+				pipeline.UUID, "selected-version", "", "", v2SpecHelloWorld, "", experiment.Namespace))
 			require.NoError(t, err)
 
 			run, err := manager.CreateRun(ctx, &model.Run{
@@ -102,17 +102,21 @@ func TestRetryRun_UsesSelectedPipelineProvenance(t *testing.T) {
 			if test.v2 {
 				assert.Empty(t, run.WorkflowSpecManifest)
 				require.NotEmpty(t, run.PipelineSpecManifest)
-			} else {
-				assert.Empty(t, run.PipelineSpecManifest, "the unrelated supplied V2 spec must not become retry provenance")
-				selectedWorkflow, err := util.NewWorkflowFromBytes([]byte(run.WorkflowSpecManifest))
+			}
+			if !test.v2 {
+				// Seed an old selected source directly: new Argo uploads are rejected.
+				_, err = store.db.Exec(`UPDATE "pipeline_versions" SET "PipelineSpec" = ? WHERE "UUID" = ?`, selectedManifest, version.UUID)
 				require.NoError(t, err)
-				require.Equal(t, workflow.Spec.Templates[0].PodSpecPatch, selectedWorkflow.Spec.Templates[0].PodSpecPatch)
 			}
 			require.Equal(t, version.UUID, run.PipelineVersionId)
 
 			live, err := store.ExecClient().Execution(run.Namespace).Get(ctx, run.K8SName, metav1.GetOptions{})
 			require.NoError(t, err)
 			failed := util.NewWorkflow(live.(*util.Workflow).DeepCopy())
+			if !test.v2 {
+				failed.Spec.PodMetadata = nil
+				failed.Spec.Templates[0].PodSpecPatch = workflow.Spec.Templates[0].PodSpecPatch
+			}
 			failed.Status.Phase = workflowapi.WorkflowFailed
 			failed.Status.Nodes = workflowapi.Nodes{"failed-pod": {
 				ID: "failed-pod", Name: "failed-pod", Type: workflowapi.NodeTypePod, Phase: workflowapi.NodeFailed,
@@ -131,7 +135,7 @@ func TestRetryRun_UsesSelectedPipelineProvenance(t *testing.T) {
 				newer, err := manager.CreatePipelineVersion(createPipelineVersion(
 					pipeline.UUID, "newer-v2-version", "", "", v2SpecHelloWorld, "", experiment.Namespace))
 				require.NoError(t, err)
-				require.NoError(t, manager.UpdatePipelineDefaultVersion(pipeline.UUID, newer.UUID))
+
 				latest, err := manager.pipelineStore.GetLatestPipelineVersion(pipeline.UUID)
 				require.NoError(t, err)
 				require.Equal(t, newer.UUID, latest.UUID)
@@ -159,17 +163,17 @@ func TestRetryRun_UsesSelectedPipelineProvenance(t *testing.T) {
 
 			viper.Set(common.WorkflowIdentityMode, "enforce")
 			err = manager.RetryRun(ctx, run.UUID)
-			if test.v2 || test.literal {
+			if test.v2 {
 				require.NoError(t, err)
 			} else {
-				require.ErrorContains(t, err, "podSpecPatch")
+				require.ErrorContains(t, err, "missing the IR compiler's v2_component")
 				assert.Zero(t, podCounter.deletes, "authorization must precede pod deletion")
 			}
 			after, err := manager.GetRun(run.UUID)
 			require.NoError(t, err)
 			afterWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(ctx, run.K8SName, metav1.GetOptions{})
 			require.NoError(t, err)
-			if test.v2 || test.literal {
+			if test.v2 {
 				assert.Equal(t, model.RuntimeStateRunning, after.State)
 				assert.Equal(t, int64(1), after.RetryGeneration)
 				assert.Equal(t, string(workflowapi.WorkflowRunning), string(afterWorkflow.ExecutionStatus().Condition()))
@@ -203,6 +207,10 @@ func TestCreateRunAndJob_PersistOnlySelectedPipelineSource(t *testing.T) {
 				require.NoError(t, err)
 				version, err := manager.CreatePipelineVersion(createPipelineVersion(
 					pipeline.UUID, "selected-version", "", "", manifest, "", experiment.Namespace))
+				if !v2 {
+					require.ErrorContains(t, err, "legacy Argo Workflow pipelines are no longer supported")
+					return
+				}
 				require.NoError(t, err)
 				pipelineSpec := model.PipelineSpec{
 					PipelineVersionId:    version.UUID,

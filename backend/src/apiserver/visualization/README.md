@@ -35,29 +35,30 @@ Consider the following:
         * The complexity of a visualization can reduce its usability. Predefined
         visualizations are intended to be powerful and simple. Visualizations
         that require extensive or complex variables are not good candidates for
-        predefined visualizations. 
+        predefined visualizations.
 2. Fork the Kubeflow Pipelines repository.
-3. Add a new type for the visualization within the [visualization.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/visualization.proto#L78)
-file in the `backend/api` directory.
-    * The name of the visualization should be in screaming snake case (that is
-    `VISUALIZATION_NAME`).
-4. Run [`./generate_api.sh`](https://github.com/kubeflow/pipelines/blob/master/backend/api/generate_api.sh)
-within the `backend/api` directory to generate the Swagger API definition for
-the backend.
-5. Download the [Swagger Codegen](https://swagger.io/tools/swagger-codegen/)
-jar file.
-    * Currently, version 2.3.1 of the Swagger Codegen jar file is used to
-    generate the frontend API. Should this become out of date, the version can
-    be checked within the [VERSION](https://github.com/kubeflow/pipelines/blob/master/frontend/src/apis/visualization/.swagger-codegen/VERSION)
-    file for the visualization [Swagger Codegen directory](https://github.com/kubeflow/pipelines/tree/master/frontend/src/apis/visualization/.swagger-codegen).
-    * This step is only required if the Swagger Codegen jar file is not present
-    in the `frontend` directory. If you already have the jar file, you can skip
-    steps 6 and 7.
-6. Place the Swagger Codegen jar file in the `frontend` directory.
-7. Rename the Swagger Codegen jar file to **swagger-codegen-cli.jar**.
-8. Run `npm run apis:visualization` within the `frontend` directory to generate
-the Swagger API definition for the frontend.
-9. Create a new Python file that will be executed to generate a visualization.
+3. Add a new type to [visualization.proto](../../../api/v2beta1/visualization.proto)
+in the `backend/api/v2beta1` directory.
+    * Use screaming snake case for the type name (`VISUALIZATION_NAME`).
+    * The existing v2beta1 RPC is named `CreateVisualizationV1`; preserve that
+    wire name. It serves `/apis/v2beta1/visualizations/{namespace}`, not a legacy
+    API endpoint.
+4. Regenerate backend clients and Swagger from the repository root:
+
+    ```sh
+    USE_PREBUILT_IMAGE=false make -C backend/api API_VERSION=v2beta1 generate
+    ```
+
+    See the [backend API generation guide](../../../api/README.md) for tooling
+    requirements and generation options.
+5. Regenerate the v2 visualization frontend client:
+
+    ```sh
+    cd frontend
+    npm run apis:v2beta1:visualization
+    ```
+
+6. Create a new Python file that will be executed to generate a visualization.
     * Python 3 **MUST** be used.
     * The new Python file should be created within the
     `backend/src/apiserver/visualization` directory and it should have the same
@@ -106,9 +107,9 @@ the Swagger API definition for the frontend.
             * Additional details about how this is implemented can be found in
             the [exporter.py](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/exporter.py#L93)
             file and the [Python documentation](https://docs.python.org/3/library/stdtypes.html?highlight=dict#dict.get).
-10. Add any new dependencies to the [requirements.txt](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/requirements.txt)
+7. Add any new dependencies to the [requirements.txt](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/requirements.txt)
 file in the `backend/src/apiserver/visualization` directory.
-11. Add any new dependencies to the [third_party_licenses.csv](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/third_party_licenses.csv)
+8. Add any new dependencies to the [third_party_licenses.csv](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/third_party_licenses.csv)
 file.
     * The following format is used:
         ```csv
@@ -121,7 +122,7 @@ file.
         * `license_name` is the name of package license.
     * Examples for all the columns can be found in the [third_party_licenses.csv](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/third_party_licenses.csv)
     file.
-12. Submit these changes as a Pull Request or build docker image for usage
+9. Submit these changes as a Pull Request or build docker image for usage
 within your cluster.
 
 ## Known limitations
@@ -159,7 +160,7 @@ within your cluster.
     than 4MB in size to be generated, you must manually set
     **MaxCallRecvMsgSize** for gRPC. This can be done by editing the provided
     options given to the gRPC server within [main.go](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/main.go#L128)
-    to 
+    to
     ```golang
     var maxCallRecvMsgSize = 4 * 1024 * 1024
 	if serviceName == "Visualization" {

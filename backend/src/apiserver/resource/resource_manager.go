@@ -440,17 +440,6 @@ func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts
 	return pipelines, totalSize, nextPageToken, err
 }
 
-// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Returns a list of pipelines using LEFT JOIN on SQL query.
-// This could be more performant for a large number of pipeline versions.
-func (r *ResourceManager) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	pipelines, pipelineVersions, total_size, nextPageToken, err := r.pipelineStore.ListPipelinesV1(filterContext, opts)
-	if err != nil {
-		err = util.Wrapf(err, "ResourceManager (v1beta1): Failed to list pipelines with context %v, options %v", filterContext, opts)
-	}
-	return pipelines, pipelineVersions, total_size, nextPageToken, err
-}
-
 // Returns a pipeline.
 func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error) {
 	if pipeline, err := r.pipelineStore.GetPipeline(pipelineId); err != nil {
@@ -466,17 +455,6 @@ func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace s
 		return nil, util.Wrapf(err, "Failed to get a pipeline named %v in namespace %v", name, namespace)
 	} else {
 		return pipeline, nil
-	}
-}
-
-// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Returns a pipeline specified by name and namespace using LEFT JOIN on SQL query.
-// This could be more performant for a large number of pipeline versions.
-func (r *ResourceManager) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
-	if pipeline, pipelineVersion, err := r.pipelineStore.GetPipelineByNameAndNamespaceV1(name, namespace); err != nil {
-		return nil, nil, util.Wrapf(err, "ResourceManager (v1beta1): Failed to get a pipeline named %v in namespace %v", name, namespace)
-	} else {
-		return pipeline, pipelineVersion, nil
 	}
 }
 
@@ -535,13 +513,6 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 		return util.Wrapf(err, "Failed to delete pipeline DB entry for pipeline id %v", pipelineId)
 	}
 	return nil
-}
-
-// TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
-// Updates default pipeline version for a given pipeline.
-// Supports v1beta1 behavior.
-func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-	return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
 }
 
 // MaxTagKeyLength is the maximum allowed length (in characters) for a tag key.
@@ -653,17 +624,9 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
 	}
-	if tmpl.GetTemplateType() == template.V1 {
-		ns := p.Namespace
-		if ns == "" {
-			ns = common.GetPodNamespace()
-		}
-		if util.IsV1PipelinesBlocked(ns) {
-			return nil, nil, util.NewInvalidInputError("V1 pipeline specs are not allowed. Please migrate to using KFP V2 pipelines.")
-		}
-	}
+
 	// Validate pipeline's name in:
-	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline
+	// 1. IR pipeline spec
 	// 2. display name must be non-empty
 	pipelineSpecName := ""
 	if tmpl.IsV2() {
@@ -831,10 +794,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
 
-	if util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
-		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
-	}
-
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
 	// assign OwnerReference and canonical labels to scheduledworkflow
@@ -906,21 +865,16 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	run.Namespace = k8sNamespace
 	run.K8SName = newExecSpec.ExecutionName()
 	run.ServiceAccount = newExecSpec.ServiceAccount()
-	run.RunDetails.State = model.RuntimeState(string(newExecSpec.ExecutionStatus().Condition())).ToV2()
-	run.RunDetails.Conditions = string(run.RunDetails.State.ToV1())
 	// TODO(gkcalat): consider to avoid updating runtime manifest at create time and let
 	// persistence agent update the runtime data.
-	if tmpl.GetTemplateType() == template.V1 && run.RunDetails.WorkflowRuntimeManifest == "" {
-		run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
-	} else if tmpl.GetTemplateType() == template.V2 {
-		run.PipelineRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
-	}
+	run.PipelineRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
 	// Assign the scheduled at time
 	if run.RunDetails.ScheduledAtInSec == 0 {
 		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
 		run.RunDetails.ScheduledAtInSec = run.RunDetails.CreatedAtInSec
 	}
 	run.State = model.RuntimeStatePending
+	run.Conditions = string(run.State.ToExecutionPhase())
 
 	newRun, err := r.runStore.CreateRun(run)
 	if err != nil {
@@ -1298,6 +1252,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 
 	if err := execSpec.CanRetry(); err != nil {
+		if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
+			return util.Wrapf(err, "Failed to retry run %s", runId)
+		}
 		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow retries", runId)
 	}
 
@@ -1383,7 +1340,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	// Update the in-memory run to reflect the claimed state.
 	run.FinishedAtInSec = 0
 	run.State = model.RuntimeStatePending
-	run.Conditions = string(model.RuntimeStatePending.ToV1())
+	run.Conditions = string(model.RuntimeStatePending.ToExecutionPhase())
 	run.RetryGeneration = claimGeneration
 	run.RetryClaimedAtInSec = r.time.Now().Unix()
 	// Stamp the claim token on the workflow so ReportWorkflowResource can
@@ -1607,7 +1564,7 @@ func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
 
 // Fetches execution logs and writes to the destination.
 // 1. Attempts to read logs directly from pod.
-// 2. Attempts to read logs from archive if reading from pod fails.
+// 2. Attempts the archive only if the pod failed before writing any logs.
 func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId string, follow bool, dst io.Writer) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
@@ -1617,8 +1574,12 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	if err != nil {
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to namespace fetching error", runId)
 	}
-	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, dst)
-	if err != nil && r.logArchive != nil {
+	writer := &logWriteTracker{Writer: dst}
+	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, writer)
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if err != nil && !writer.written && r.logArchive != nil {
 		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
@@ -1630,6 +1591,19 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	return nil
 }
 
+// Track actual writes, including partial writes returned with an error, so an
+// interrupted stream cannot restart from the archive and duplicate its prefix.
+type logWriteTracker struct {
+	io.Writer
+	written bool
+}
+
+func (w *logWriteTracker) Write(data []byte) (int, error) {
+	n, err := w.Writer.Write(data)
+	w.written = w.written || n > 0
+	return n, err
+}
+
 // Fetches execution logs from a pod.
 func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, namespace string, nodeID string, follow bool, dst io.Writer) error {
 	// The caller controls nodeID, so confirm the pod was created by this run
@@ -1637,7 +1611,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 	// in it could be read with the API server's credentials.
 	pod, err := r.k8sCoreClient.PodClient(namespace).Get(ctx, nodeID, v1.GetOptions{})
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if ctx.Err() == nil && !apierrors.IsNotFound(err) {
 			glog.Errorf("Failed to get pod %v: %v", nodeID, err)
 		}
 		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error fetching the pod", nodeID)
@@ -1655,7 +1629,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 	req := r.k8sCoreClient.PodClient(namespace).GetLogs(nodeID, &logOptions)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if ctx.Err() == nil && !apierrors.IsNotFound(err) {
 			glog.Errorf("Failed to read logs from pod %v: %v", nodeID, err)
 		}
 		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error opening log stream", nodeID)
@@ -1715,8 +1689,8 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline version %v", pipelineSpec.PipelineVersionId)
 		}
-		// Requests in v1beta1 may have empty pipeline ID. Therefore, we only catch
-		// v2beta1 calls to create a run or recurring run with inconsistent pipeline ID.
+		// Historical version-only jobs may omit the pipeline ID. Reject an
+		// explicitly conflicting pipeline ID.
 		if pipelineVersion.PipelineId != "" && pipelineSpec.PipelineId != "" && pipelineVersion.PipelineId != pipelineSpec.PipelineId {
 			return nil, util.NewInvalidInputError("Pipeline version %v belongs to pipeline %v (not %v)", pipelineSpec.PipelineVersionId, pipelineVersion.PipelineId, pipelineSpec.PipelineId)
 		}
@@ -1849,10 +1823,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		scheduledWorkflow.Spec.ServiceAccount = renderedScheduledWorkflow.Spec.ServiceAccount
 	}
 
-	if util.IsV1PipelinesBlocked(k8sNamespace) && templateType == template.V1 {
-		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
-	}
-
 	jobExecutionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, renderedScheduledWorkflow.Spec.Workflow)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to inspect the recurring run's service accounts")
@@ -1873,27 +1843,12 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	job.UUID = string(swf.UID)
 	job.K8SName = swf.Name
 	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
-	for _, modelRef := range job.ResourceReferences {
-		modelRef.ResourceUUID = string(swf.UID)
-	}
 
 	if tmpl == nil {
 		return r.jobStore.CreateJob(job)
 	}
 
-	if tmpl.GetTemplateType() == template.V1 {
-		// Get the service account
-		serviceAccount := ""
-		if swf.Spec.Workflow != nil {
-			execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
-			if err == nil {
-				serviceAccount = execSpec.ServiceAccount()
-			}
-		}
-		job.ServiceAccount = serviceAccount
-	} else {
-		job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
-	}
+	job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
 	return r.jobStore.CreateJob(job)
 }
 
@@ -2284,7 +2239,6 @@ func (r *ResourceManager) reportWorkflowResource(
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
 		pipelineSpec := recurringJob.PipelineSpec
-		pipelineSpec.WorkflowSpecManifest = model.LargeText(execSpec.GetExecutionSpec().ToStringForStore())
 		scheduledTimeInSec := execSpec.ScheduledAtInSecOr0()
 		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
@@ -2303,7 +2257,7 @@ func (r *ResourceManager) reportWorkflowResource(
 				CreatedAtInSec:          objMeta.CreationTimestamp.Unix(),
 				ScheduledAtInSec:        scheduledTimeInSec,
 				FinishedAtInSec:         execStatus.FinishedAt(),
-				Conditions:              string(state.ToV1()),
+				Conditions:              string(state.ToExecutionPhase()),
 				State:                   state,
 			},
 		}
@@ -2404,7 +2358,7 @@ func (r *ResourceManager) reportWorkflowResource(
 	if updateError == nil && !createdFromRecurringReport {
 		run.K8SName = execSpec.ExecutionName()
 		run.State = state
-		run.Conditions = string(state.ToV1())
+		run.Conditions = string(state.ToExecutionPhase())
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		var updated bool
@@ -3186,7 +3140,7 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 
 // Returns a workflow template based on the manifest in the following priority:
 // 1. Pipeline spec manifest from an existing pipeline version,
-// 2. Pipeline spec manifest or workflow spec manifest provided by a user.
+// 2. IR pipeline spec manifest provided by a user.
 // If an existing pipeline version is found, the referenced pipeline and pipeline version are updated.
 // Persist only the selected source manifest, not unused client-supplied alternatives.
 func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.PipelineSpec) (template.Template, string, error) {
@@ -3209,9 +3163,6 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		// Read the provided manifest and fail if it is empty
 		manifest = string(pipelineSpec.PipelineSpecManifest)
 		if manifest == "" {
-			manifest = string(pipelineSpec.WorkflowSpecManifest)
-		}
-		if manifest == "" {
 			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
@@ -3228,13 +3179,8 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 	if err != nil {
 		return nil, "", util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 	}
-	if tmpl.GetTemplateType() == template.V1 {
-		pipelineSpec.WorkflowSpecManifest = model.LargeText(manifest)
-		pipelineSpec.PipelineSpecManifest = ""
-	} else {
-		pipelineSpec.PipelineSpecManifest = model.LargeText(manifest)
-		pipelineSpec.WorkflowSpecManifest = ""
-	}
+	pipelineSpec.PipelineSpecManifest = model.LargeText(manifest)
+	pipelineSpec.WorkflowSpecManifest = ""
 	return tmpl, manifest, nil
 }
 
@@ -3376,16 +3322,6 @@ func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, err
 	return defaultExperiment.UUID, nil
 }
 
-// ReportMetric Read metrics as ordinary artifacts instead.
-// Creates a run metric entry. Deprecated.
-func (r *ResourceManager) ReportMetric(metric *model.RunMetricV1) error {
-	err := r.runStore.CreateV1Metric(metric)
-	if err != nil {
-		return util.Wrap(err, "Failed to report a run metric")
-	}
-	return nil
-}
-
 // UpdateTask updates a task entry.
 func (r *ResourceManager) UpdateTask(new *model.Task) (*model.Task, error) {
 	// Update task
@@ -3494,17 +3430,9 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
 	}
-	if tmpl.GetTemplateType() == template.V1 {
-		pipelineNamespace, _ := r.FetchNamespaceFromPipelineId(pipelineId)
-		if pipelineNamespace == "" {
-			pipelineNamespace = common.GetPodNamespace()
-		}
-		if util.IsV1PipelinesBlocked(pipelineNamespace) {
-			return nil, util.NewInvalidInputError("V1 pipeline specs are not allowed. Please migrate to using KFP V2 pipelines.")
-		}
-	}
+
 	// Validate pipeline's name in:
-	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline
+	// 1. IR pipeline spec
 	// 2. display name must be non-empty
 	pipelineSpecName := ""
 	if tmpl.IsV2() {

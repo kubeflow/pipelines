@@ -24,34 +24,16 @@ images:
   - name: ghcr.io/kubeflow/kfp-visualization-server
     newName: kind-registry:5000/visualization-server
     newTag: latest
-  - name: ghcr.io/kubeflow/kfp-cache-deployer
-    newName: kind-registry:5000/cache-deployer
-    newTag: latest
-  - name: ghcr.io/kubeflow/kfp-cache-server
-    newName: kind-registry:5000/cache-server
-    newTag: latest
 patches:
   - path: ../../base/apiserver-env.yaml
     target:
       kind: Deployment
       name: ml-pipeline
   - path: ../../base/ci-stability-tuning.yaml
-  - path: ../../base/cache-specs.yaml
-    target:
-      kind: Deployment
-      name: cache-server
   - path: ../../base/viewer-crd-pull-policy.yaml
     target:
       kind: Deployment
       name: ml-pipeline-viewer-crd
-  - path: ../../base/cache-deployer-pull-policy.yaml
-    target:
-      kind: Deployment
-      name: cache-deployer-deployment
-  - path: ../../base/cache-server-pull-policy.yaml
-    target:
-      kind: Deployment
-      name: cache-server
 replacements:
   - source:
       kind: ConfigMap
@@ -61,10 +43,5 @@ replacements:
       - select:
           kind: Deployment
           name: ml-pipeline
-        fieldPaths:
-          - spec.template.spec.dnsConfig.searches.[=NAMESPACE.svc.cluster.local]
-      - select:
-          kind: Deployment
-          name: cache-server
         fieldPaths:
           - spec.template.spec.dnsConfig.searches.[=NAMESPACE.svc.cluster.local]

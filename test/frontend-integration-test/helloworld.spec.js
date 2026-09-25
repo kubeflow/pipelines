@@ -25,6 +25,7 @@ const {
   waitForHashPrefix,
   waitForLogViewerText,
   waitForRunPageReady,
+  waitForSelectorDisplayed,
 } = require('./test-helpers');
 
 const experimentName = 'helloworld-experiment-' + Date.now();
@@ -43,7 +44,7 @@ const outputParameterValue = 'Hello world in test';
 
 function getGraphNodeByLabel(label) {
   return $(
-    `//div[contains(concat(" ", normalize-space(@class), " "), " graphNode ")][.//div[normalize-space()="${label}"]]`,
+    `//div[contains(concat(" ", normalize-space(@class), " "), " react-flow__node-EXECUTION ")][.//span[normalize-space()="${label}"]]`,
   );
 }
 
@@ -57,11 +58,10 @@ async function waitForRunParameterField(selector) {
 }
 
 async function fillRunForm({ runName, description, message }) {
-  const runFormVariant = await waitForRunPageReady({
+  const selectors = await waitForRunPageReady({
     timeout: runStartTimeout,
     timeoutMsg: 'expected a run creation form to load',
   });
-  const selectors = runFormVariant.selectors;
 
   await $(selectors.runName).click();
   await clearDefaultInput();
@@ -144,18 +144,23 @@ describe('deploy helloworld sample run', () => {
     await $('#startNewRunBtn').click();
   });
 
-  it('redirects back to experiment page', async () => {
-    await waitForHashPrefix('#/experiments/details/', { timeout: uiTimeout });
+  it('opens the newly created run details', async () => {
+    await waitForHashPrefix('#/runs/details/', { timeout: uiTimeout });
   });
 
-  it('finds the new run in the list of runs, navigates to it', async () => {
+  it('finds the new run in its experiment and navigates back to it', async () => {
+    const experimentLink = await $(`a=${experimentName}`);
+    await experimentLink.waitForDisplayed({ timeout: uiTimeout });
+    await experimentLink.click();
+    await waitForHashPrefix('#/experiments/details/', { timeout: uiTimeout });
     const runLinkSelector = await waitForRunLink(runName, { timeout: runStartTimeout });
     await $(runLinkSelector).click();
+    await waitForHashPrefix('#/runs/details/', { timeout: uiTimeout });
   });
 
-  it('switches to config tab', async () => {
-    await $('button=Config').waitForDisplayed({ timeout: uiTimeout });
-    await $('button=Config').click();
+  it('switches to the details tab', async () => {
+    await $('button=Detail').waitForDisplayed({ timeout: uiTimeout });
+    await $('button=Detail').click();
   });
 
   it('waits for run to finish', async () => {
@@ -202,7 +207,7 @@ describe('deploy helloworld sample run', () => {
 
   it('has at least 4 graph nodes', async () => {
     await waitForCondition(
-      async () => (await $$('.graphNode')).length >= 4,
+      async () => (await $$('.react-flow__node-EXECUTION')).length >= 4,
       {
         timeout: uiTimeout,
         timeoutMsg: 'expected at least 4 graph node(s) to be visible',
@@ -211,12 +216,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('opens the side panel when graph node is clicked', async () => {
-    // Global Argo retries add an A wrapper and an A(0) pod. Select the pod when present so the
-    // Logs tab targets an execution rather than the retry wrapper.
-    const retryAttemptNode = await getGraphNodeByLabel('A(0)');
-    const loggableNode = (await retryAttemptNode.isExisting())
-      ? retryAttemptNode
-      : await getGraphNodeByLabel('A');
+    const loggableNode = await getGraphNodeByLabel('A');
     await loggableNode.click();
     await $('button=Logs').waitForDisplayed({ timeout: uiTimeout });
   });
@@ -269,7 +269,7 @@ describe('deploy helloworld sample run', () => {
       await waitForHashPrefix('#/runs', { timeout: uiTimeout });
     }
 
-    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
+    await waitForSelectorDisplayed('#tableFilterBox', { timeout: uiTimeout });
 
     const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
     await $('#tableFilterBox').click();
@@ -343,7 +343,7 @@ describe('deploy helloworld sample run', () => {
     await $('#pipelinesBtn').click();
     await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
 
-    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
+    await waitForSelectorDisplayed('#tableFilterBox', { timeout: uiTimeout });
     await $('#tableFilterBox').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);

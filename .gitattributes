@@ -1,10 +1,5 @@
 # Ignore committed generator outputs.
 api/v2alpha1/go/** linguist-generated
-backend/api/v1beta1/go_client/** linguist-generated
-backend/api/v1beta1/go_http_client/** linguist-generated
-backend/api/v1beta1/python_http_client/** linguist-generated
-backend/api/v1beta1/swagger/** linguist-generated
-backend/api/v1beta1/swagger/pipeline.upload.swagger.json -linguist-generated
 backend/api/v2beta1/go_client/** linguist-generated
 backend/api/v2beta1/go_http_client/** linguist-generated
 backend/api/v2beta1/python_http_client/** linguist-generated
@@ -22,6 +17,7 @@ frontend/server/package-lock.json linguist-generated
 frontend/test/package-lock.json linguist-generated
 
 # Ignore generated TS client library
-frontend/src/apis/* linguist-generated
+frontend/src/apisv2beta1/** linguist-generated
+frontend/server/src/generated/apisv2beta1/** linguist-generated
 
 .github/workflows/*.lock.yml linguist-generated=true

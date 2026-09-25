@@ -18,7 +18,7 @@
   "scripts": {
     "docker": "docker build -t gcr.io/ml-pipeline/e2e-tests .",
     "test": "wdio wdio.conf.js",
-    "test:dependencies": "node --test dependency-smoke.test.mjs"
+    "test:dependencies": "node --test dependency-smoke.test.mjs test-helpers.test.mjs"
   },
   "engines": {
     "node": ">=22.12.0"

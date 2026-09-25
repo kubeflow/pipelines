@@ -37,7 +37,6 @@ import {
   ORIGINAL_TEST_PIPELINE_VERSION_ID,
   ORIGINAL_TEST_PIPELINE_VERSION_NAME,
   NEW_EXPERIMENT,
-  V1_PIPELINE_VERSION,
   generatePropsNoPipelineDef,
   generatePropsNewRun,
 } from './__tests__/newRunTestFixtures';
@@ -45,9 +44,6 @@ import {
 describe('NewRunSwitcher', () => {
   const TEST_RUN_ID = 'test-run-id';
   const TEST_RECURRING_RUN_ID = 'test-recurring-run-id';
-
-  let getPipelineV1Spy: ReturnType<typeof vi.spyOn>;
-  let getPipelineVersionTemplateSpy: ReturnType<typeof vi.spyOn>;
 
   function generatePropsCloneRun(runId = TEST_RUN_ID): PageProps {
     return {
@@ -83,18 +79,13 @@ describe('NewRunSwitcher', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    getPipelineV1Spy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-    getPipelineV1Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-    vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion').mockResolvedValue(V1_PIPELINE_VERSION);
-    getPipelineVersionTemplateSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersionTemplate');
-    getPipelineVersionTemplateSpy.mockResolvedValue({ template: v2XGYamlTemplateString });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('routing to V1 or V2 new run page', () => {
+  describe('v2 run creation', () => {
     it('reloads the latest pipeline version after inline experiment creation', async () => {
       const olderVersion = {
         ...ORIGINAL_TEST_PIPELINE_VERSION,
@@ -106,7 +97,9 @@ describe('NewRunSwitcher', () => {
         display_name: 'latest pipeline version',
         pipeline_version_id: 'latest-version-id',
       };
-      vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+        (key) => key === features.FeatureKey.FUNCTIONAL_COMPONENT,
+      );
       vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       const getPipelineVersionSpy = vi
         .spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion')
@@ -207,9 +200,6 @@ describe('NewRunSwitcher', () => {
     );
 
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
       const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
@@ -228,128 +218,10 @@ describe('NewRunSwitcher', () => {
 
       expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
     });
-
-    it('directs to new run v1 if it is not v2 template (create run from pipeline)', async () => {
-      const TEST_PIPELINE_VERSION_NOT_V2SPEC: V2beta1PipelineVersion = {
-        description: '',
-        display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-        pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-        pipeline_version_id: 'test-not-v2-spec-version-id',
-        pipeline_spec: { spec: { arguments: { parameters: [{ name: 'output' }] } } },
-      };
-
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
-      const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-      getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-      const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_NOT_V2SPEC);
-
-      render(
-        <CommonTestWrapper>
-          <NewRunSwitcher
-            {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-not-v2-spec-version-id')}
-          />
-        </CommonTestWrapper>,
-      );
-
-      await waitFor(() => {
-        expect(getPipelineV2Spy).toHaveBeenCalled();
-        expect(getPipelineVersionSpy).toHaveBeenCalled();
-      });
-
-      await waitFor(() => {
-        expect(getPipelineV1Spy).toHaveBeenCalled();
-      });
-    });
-
-    it(
-      'directs to new run v1 if pipeline_spec is not existing in pipeline_version ' +
-        'and it is not v2 template in getPipelineVersionTemplate() response',
-      async () => {
-        const TEST_PIPELINE_VERSION_WITHOUT_SPEC: V2beta1PipelineVersion = {
-          description: '',
-          display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-          pipeline_version_id: 'test-no-spec-version-id',
-          pipeline_spec: undefined,
-        };
-
-        vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-        );
-        const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-        const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
-        getPipelineVersionTemplateSpy.mockResolvedValueOnce({ template: 'test template' });
-
-        render(
-          <CommonTestWrapper>
-            <NewRunSwitcher
-              {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-no-spec-version-id')}
-            />
-          </CommonTestWrapper>,
-        );
-
-        await waitFor(() => {
-          expect(getPipelineV2Spy).toHaveBeenCalled();
-          expect(getPipelineVersionSpy).toHaveBeenCalled();
-        });
-
-        await waitFor(() => {
-          expect(getPipelineV1Spy).toHaveBeenCalled();
-        });
-      },
-    );
-
-    it(
-      'directs to new run v2 if pipeline_spec is not existing in pipeline_version ' +
-        'and it is v2 template in getPipelineVersionTemplate() response',
-      async () => {
-        const TEST_PIPELINE_VERSION_WITHOUT_SPEC: V2beta1PipelineVersion = {
-          description: '',
-          display_name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-          pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
-          pipeline_version_id: 'test-no-spec-version-id',
-          pipeline_spec: undefined,
-        };
-
-        vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-          (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-        );
-        const getPipelineV2Spy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
-        getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-        const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
-        getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION_WITHOUT_SPEC);
-        getPipelineVersionTemplateSpy.mockResolvedValueOnce({
-          template: v2XGYamlTemplateString,
-        });
-
-        render(
-          <CommonTestWrapper>
-            <NewRunSwitcher
-              {...generatePropsNewRun(ORIGINAL_TEST_PIPELINE_ID, 'test-no-spec-version-id')}
-            />
-          </CommonTestWrapper>,
-        );
-
-        await waitFor(() => {
-          expect(getPipelineV2Spy).toHaveBeenCalled();
-          expect(getPipelineVersionSpy).toHaveBeenCalled();
-        });
-
-        expect(await screen.findByText('Pipeline Root')).toBeInTheDocument();
-      },
-    );
   });
 
   describe('loading and clone scenarios', () => {
     it('shows loading message while queries are in-flight', () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
       vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockReturnValue(new Promise(() => {}));
       vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockReturnValue(
         new Promise(() => {}),
@@ -366,9 +238,6 @@ describe('NewRunSwitcher', () => {
     });
 
     it('resolves template from cloned run.pipeline_spec', async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue({
         description: '',
@@ -377,7 +246,6 @@ describe('NewRunSwitcher', () => {
         pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
         pipeline_spec: undefined,
       });
-      getPipelineVersionTemplateSpy.mockResolvedValue({ template: 'test template' });
       const sdkRun: V2beta1Run = {
         run_id: TEST_RUN_ID,
         display_name: 'SDK run',
@@ -408,9 +276,6 @@ describe('NewRunSwitcher', () => {
     });
 
     it('resolves template from cloned recurring_run.pipeline_spec', async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue({
         description: '',
@@ -419,7 +284,6 @@ describe('NewRunSwitcher', () => {
         pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
         pipeline_spec: undefined,
       });
-      getPipelineVersionTemplateSpy.mockResolvedValue({ template: 'test template' });
       const sdkRecurringRun: V2beta1RecurringRun = {
         recurring_run_id: TEST_RECURRING_RUN_ID,
         display_name: 'SDK recurring run',
@@ -451,9 +315,6 @@ describe('NewRunSwitcher', () => {
     });
 
     it('prefers inline pipeline_spec over version-derived template when cloning a run', async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue({
         pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
@@ -465,7 +326,6 @@ describe('NewRunSwitcher', () => {
           spec: { arguments: { parameters: [{ name: 'output' }] } },
         },
       } as V2beta1PipelineVersion);
-      getPipelineVersionTemplateSpy.mockResolvedValue({ template: 'test template' });
       const sdkRun: V2beta1Run = {
         run_id: TEST_RUN_ID,
         display_name: 'SDK run',
@@ -495,9 +355,6 @@ describe('NewRunSwitcher', () => {
     });
 
     it('prefers inline recurring_run.pipeline_spec over version-derived template when cloning', async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
       const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
       getPipelineVersionSpy.mockResolvedValue({
         pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
@@ -509,7 +366,6 @@ describe('NewRunSwitcher', () => {
           spec: { arguments: { parameters: [{ name: 'output' }] } },
         },
       } as V2beta1PipelineVersion);
-      getPipelineVersionTemplateSpy.mockResolvedValue({ template: 'test template' });
       const sdkRecurringRun: V2beta1RecurringRun = {
         recurring_run_id: TEST_RECURRING_RUN_ID,
         display_name: 'SDK recurring run',
@@ -540,9 +396,6 @@ describe('NewRunSwitcher', () => {
     });
 
     it('shows error banner when pipeline version fetch fails', async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
       vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockRejectedValue(
         new Error('Version not found'),
@@ -568,9 +421,6 @@ describe('NewRunSwitcher', () => {
     });
 
     it('clears error banner when queries succeed (fail-to-recover transition)', async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
       vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion').mockResolvedValue(
         ORIGINAL_TEST_PIPELINE_VERSION,

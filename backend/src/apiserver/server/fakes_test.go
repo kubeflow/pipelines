@@ -16,12 +16,14 @@ package server
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -30,8 +32,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -105,39 +109,6 @@ var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
-var validReference = []*apiv1beta1.ResourceReference{
-	{
-		Key: &apiv1beta1.ResourceKey{
-			Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeUUID,
-		},
-		Relationship: apiv1beta1.Relationship_OWNER,
-	},
-}
-
-var validReferencesOfExperimentAndPipelineVersion = []*apiv1beta1.ResourceReference{
-	{
-		Key: &apiv1beta1.ResourceKey{
-			Type: apiv1beta1.ResourceType_EXPERIMENT,
-			Id:   DefaultFakeUUID,
-		},
-		Relationship: apiv1beta1.Relationship_OWNER,
-	},
-	{
-		Key: &apiv1beta1.ResourceKey{
-			Type: apiv1beta1.ResourceType_PIPELINE_VERSION,
-			Id:   DefaultFakeUUID,
-		},
-		Relationship: apiv1beta1.Relationship_CREATOR,
-	},
-}
-
-var referencesOfInvalidPipelineVersion = []*apiv1beta1.ResourceReference{
-	{
-		Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
-		Relationship: apiv1beta1.Relationship_CREATOR,
-	},
-}
-
 // This automatically runs before all the tests.
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
@@ -148,27 +119,12 @@ func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.Re
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	var apiExperiment *apiv1beta1.Experiment
+
+	var apiExperiment *apiv2beta1.Experiment
 	if common.IsMultiUserMode() {
-		apiExperiment = &apiv1beta1.Experiment{
-			Name: "exp1",
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		}
+		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: "ns1"}
 	} else {
-		apiExperiment = &apiv1beta1.Experiment{
-			Name: "exp1",
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		}
+		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -182,17 +138,9 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
+	apiExperiment := &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
 	if common.IsMultiUserMode() {
-		apiExperiment = &apiv1beta1.Experiment{
-			Name: "exp1",
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		}
+		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: "ns1"}
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	modelExperiment.Namespace = resourceManager.ReplaceNamespace(modelExperiment.Namespace)
@@ -208,7 +156,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
 	// Create an experiment.
-	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
+	apiExperiment := &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
 	experiment, err := resourceManager.CreateExperiment(modelExperiment)
@@ -227,7 +175,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 		&model.PipelineVersion{
 			Name:         "p1",
 			PipelineId:   p.UUID,
-			PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpec: model.LargeText(testIRPipeline),
 		},
 	)
 	assert.Nil(t, err)
@@ -247,7 +195,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
 	// Create an experiment.
-	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
+	apiExperiment := &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
 	_, err = resourceManager.CreateExperiment(modelExperiment)
@@ -266,7 +214,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 		&model.PipelineVersion{
 			Name:         "pipeline",
 			PipelineId:   p.UUID,
-			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+			PipelineSpec: testIRPipeline,
 		},
 	)
 	assert.Nil(t, err)
@@ -276,7 +224,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 		&model.PipelineVersion{
 			Name:         "pipeline_version",
 			PipelineId:   DefaultFakeUUID,
-			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+			PipelineSpec: testIRPipeline,
 		},
 	)
 	assert.Nil(t, err)
@@ -297,7 +245,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 			Name:         "anpther-pipeline",
 			PipelineId:   p1.UUID,
 			Description:  "",
-			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+			PipelineSpec: testIRPipeline,
 		},
 	)
 	assert.Nil(t, err)
@@ -308,7 +256,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 		&model.PipelineVersion{
 			Name:         "another_pipeline_version",
 			PipelineId:   NonDefaultFakeUUID,
-			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+			PipelineSpec: testIRPipeline,
 		},
 	)
 	assert.Nil(t, err)
@@ -323,25 +271,7 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 		md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 		ctx = metadata.NewIncomingContext(context.Background(), md)
 	}
-	apiRun := &apiv1beta1.Run{
-		Name: "run1",
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters: []*apiv1beta1.Parameter{
-				{Name: "param1", Value: "world"},
-			},
-		},
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: exp.UUID},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: exp.Namespace},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-		},
-	}
+	apiRun := &apiv2beta1.Run{DisplayName: "run1", ExperimentId: exp.UUID, PipelineSource: &apiv2beta1.Run_PipelineSpec{PipelineSpec: mustTestPipelineSpec(t)}}
 	modelRun, err := toModelRun(apiRun)
 	assert.Nil(t, err)
 	runDetail, err := manager.CreateRun(ctx, modelRun)
@@ -358,27 +288,11 @@ func initWithOneTimeRunV2(t *testing.T) (*resource.FakeClientManager, *resource.
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
 	// Create an experiment depending on multi-user mode
-	var apiExperiment *apiv1beta1.Experiment
+	var apiExperiment *apiv2beta1.Experiment
 	if common.IsMultiUserMode() {
-		apiExperiment = &apiv1beta1.Experiment{
-			Name: "exp1",
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		}
+		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: "ns1"}
 	} else {
-		apiExperiment = &apiv1beta1.Experiment{
-			Name: "exp1",
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		}
+		apiExperiment = &apiv2beta1.Experiment{DisplayName: "exp1", Namespace: ""}
 	}
 	modelExperiment, err := toModelExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -390,25 +304,7 @@ func initWithOneTimeRunV2(t *testing.T) (*resource.FakeClientManager, *resource.
 		md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 		ctx = metadata.NewIncomingContext(context.Background(), md)
 	}
-	apiRun := &apiv1beta1.Run{
-		Name: "run1",
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters: []*apiv1beta1.Parameter{
-				{Name: "param1", Value: "world"},
-			},
-		},
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: exp.UUID},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: exp.Namespace},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-		},
-	}
+	apiRun := &apiv2beta1.Run{DisplayName: "run1", ExperimentId: exp.UUID, PipelineSource: &apiv2beta1.Run_PipelineSpec{PipelineSpec: mustTestPipelineSpec(t)}}
 	modelRun, err := toModelRun(apiRun)
 	assert.Nil(t, err)
 	runDetail, err := resourceManager.CreateRun(ctx, modelRun)
@@ -438,4 +334,30 @@ func wrapFailedAuthzApiResourcesError(err error) error {
 
 func wrapFailedAuthzRequestError(err error) error {
 	return util.Wrap(err, "Failed to authorize the request")
+}
+
+// Minimal IR pipeline used by shared run fixtures; workflows are compiled by the v2 compiler.
+const testIRPipeline = `{"pipelineInfo":{"name":"test-pipeline"},"schemaVersion":"2.1.0","root":{"dag":{"tasks":{"echo":{"taskInfo":{"name":"echo"},"componentRef":{"name":"comp-echo"}}}}},"components":{"comp-echo":{"executorLabel":"exec-echo"}},"deploymentSpec":{"executors":{"exec-echo":{"container":{"image":"busybox","command":["echo","hello"]}}}}}`
+
+func mustTestPipelineSpec(t *testing.T) *structpb.Struct {
+	t.Helper()
+	spec, err := YamlStringToPipelineSpecStruct(testIRPipeline)
+	require.NoError(t, err)
+	return spec
+}
+
+func canonicalTestIR(t *testing.T) model.LargeText {
+	t.Helper()
+	tmpl, err := template.New([]byte(testIRPipeline), template.TemplateOptions{})
+	require.NoError(t, err)
+	return model.LargeText(tmpl.Bytes())
+}
+
+func canonicalUploadedIR(t *testing.T) model.LargeText {
+	t.Helper()
+	data, err := os.ReadFile("test/arguments-parameters.yaml")
+	require.NoError(t, err)
+	tmpl, err := template.New(data, template.TemplateOptions{})
+	require.NoError(t, err)
+	return model.LargeText(tmpl.Bytes())
 }

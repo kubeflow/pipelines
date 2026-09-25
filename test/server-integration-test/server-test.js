@@ -222,8 +222,8 @@ async function testHealthEndpoints() {
     }
   });
 
-  await test('GET /apis/v1beta1/healthz returns healthy', async () => {
-    const res = await request('GET', '/apis/v1beta1/healthz');
+  await test('GET /apis/v2beta1/healthz returns healthy', async () => {
+    const res = await request('GET', '/apis/v2beta1/healthz');
     assertTrue(res.status === 200 || res.status === 502, `Status should be 200 or 502, got ${res.status}`);
   });
 }
@@ -257,22 +257,6 @@ async function testAPIProxyV2() {
     assertEqual(res.status, 200, 'Status code');
     const data = JSON.parse(res.body);
     assertTrue(Array.isArray(data.recurringRuns) || data.recurring_runs === undefined, 'Should return recurring runs array or empty');
-  });
-}
-
-async function testAPIProxyV1() {
-  log('\n🔌 API Proxy (v1beta1)', 'cyan');
-
-  await test('GET /apis/v1beta1/pipelines returns pipeline list', async () => {
-    const res = await request('GET', '/apis/v1beta1/pipelines?page_size=5');
-    assertEqual(res.status, 200, 'Status code');
-    const data = JSON.parse(res.body);
-    assertTrue(Array.isArray(data.pipelines) || data.pipelines === undefined, 'Should return pipelines array or empty');
-  });
-
-  await test('GET /apis/v1beta1/experiments returns experiment list', async () => {
-    const res = await request('GET', '/apis/v1beta1/experiments?page_size=5');
-    assertEqual(res.status, 200, 'Status code');
   });
 }
 
@@ -377,7 +361,6 @@ async function main() {
   await testStaticServing();
   await testHealthEndpoints();
   await testAPIProxyV2();
-  await testAPIProxyV1();
   await testSystemEndpoints();
   await testK8sIntegration();
   await testArtifactEndpoints();

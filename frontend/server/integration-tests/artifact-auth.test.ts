@@ -322,7 +322,7 @@ describe('/artifacts authorization', () => {
         ok: false,
         status: 403,
         statusText: 'Forbidden',
-        url: '/apis/v1beta1/auth',
+        url: '/apis/v2beta1/auth',
         json: () =>
           Promise.resolve({
             error: 'User is not authorized to GET VIEWERS in namespace other-namespace',
@@ -1086,7 +1086,7 @@ describe('/artifacts authorization', () => {
         ok: false,
         status: 403,
         statusText: 'Forbidden',
-        url: '/apis/v1beta1/auth',
+        url: '/apis/v2beta1/auth',
         json: () =>
           Promise.resolve({
             error: 'User is not authorized to GET VIEWERS in namespace unauthorized-ns',

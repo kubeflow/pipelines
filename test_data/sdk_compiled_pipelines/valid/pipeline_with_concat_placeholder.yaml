@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: one-step-pipeline-with-concat-placeholder
+# Name: pipeline-with-concat-placeholder
 components:
   comp-component-with-concat-placeholder:
     executorLabel: exec-component-with-concat-placeholder
@@ -22,7 +22,7 @@ deploymentSpec:
         - -ec
         image: ghcr.io/containerd/busybox
 pipelineInfo:
-  name: one-step-pipeline-with-concat-placeholder
+  name: pipeline-with-concat-placeholder
 root:
   dag:
     tasks:
@@ -42,4 +42,4 @@ root:
         taskInfo:
           name: component-with-concat-placeholder
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.3
+sdkVersion: kfp-2.15.2

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from kfp import compiler
-from kfp import components
 from kfp import dsl
 
 
@@ -31,17 +30,15 @@ def print_op2(msg: str):
     )
 
 
-print_op3 = components.load_component_from_text("""
-name: Print Op
-inputs:
-- {name: msg, type: String}
-implementation:
-  container:
-    image: alpine
-    command:
-    - echo
-    - {inputValue: msg}
-""")
+@dsl.container_component
+def print_op(msg: str):
+    return dsl.ContainerSpec(
+        image='alpine',
+        command=['echo', msg],
+    )
+
+
+print_op3 = print_op
 
 
 @dsl.pipeline(name='inner-pipeline')

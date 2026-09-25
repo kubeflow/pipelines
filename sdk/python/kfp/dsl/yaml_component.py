@@ -42,12 +42,8 @@ class YamlComponent(base_component.BaseComponent):
         """Returns the pipeline spec of the component."""
         component_dict = structures.load_documents_from_yaml(
             self.component_yaml)[0]
-        is_v1 = 'implementation' in set(component_dict.keys())
-        if is_v1:
-            return self.component_spec.to_pipeline_spec()
-        else:
-            return json_format.ParseDict(component_dict,
-                                         pipeline_spec_pb2.PipelineSpec())
+        return json_format.ParseDict(component_dict,
+                                     pipeline_spec_pb2.PipelineSpec())
 
     def execute(self, *args, **kwargs):
         """Not implemented."""
