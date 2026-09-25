@@ -84,6 +84,105 @@ export const getTensorboardHandlers = (
   };
 
   /**
+   * Sanitize a client-supplied podTemplateSpec by extracting only safe
+   * volume/volumeMount entries and merging them into the administrator-
+   * configured base template.  Dangerous fields (hostPath, hostNetwork,
+   * securityContext, privileged containers, etc.) are silently dropped.
+   */
+
+  function deepEqual(a: any, b: any): boolean {
+    if (a === b) return true;
+    if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    for (const key of keysA) {
+      if (!keysB.includes(key) || !deepEqual(a[key], b[key])) return false;
+    }
+    return true;
+  }
+
+  function sanitizePodTemplateSpec(unsafe: any, base: any, isCustomImage: boolean): any {
+    const safe = JSON.parse(JSON.stringify(base || { spec: { containers: [{}] } }));
+    safe.spec = safe.spec || {};
+    safe.spec.containers = safe.spec.containers || [{}];
+
+    if (isCustomImage && Array.isArray(safe.spec.containers[0].env)) {
+      safe.spec.containers[0].env = safe.spec.containers[0].env.filter((e: any) => !e.valueFrom);
+    }
+
+    if (!unsafe || typeof unsafe !== 'object' || !unsafe.spec) {
+      return safe;
+    }
+
+    if (Array.isArray(unsafe.spec.volumes)) {
+      safe.spec.volumes = safe.spec.volumes || [];
+      for (const v of unsafe.spec.volumes) {
+        if (v.name && (v.persistentVolumeClaim || v.emptyDir)) {
+          const existing = safe.spec.volumes.find((ev: any) => ev.name === v.name);
+          if (existing) {
+            if (!deepEqual(existing, v)) {
+              throw new Error('Conflicting volume: ' + v.name);
+            }
+          } else {
+            safe.spec.volumes.push(v);
+          }
+        }
+      }
+    }
+
+    if (Array.isArray(unsafe.spec.containers) && unsafe.spec.containers.length > 0) {
+      const container = unsafe.spec.containers[0];
+
+      if (Array.isArray(container.volumeMounts)) {
+        safe.spec.containers[0].volumeMounts = safe.spec.containers[0].volumeMounts || [];
+        for (const m of container.volumeMounts) {
+          if (m.name && m.mountPath) {
+            const existingByName = safe.spec.containers[0].volumeMounts.find(
+              (em: any) => em.name === m.name,
+            );
+            const existingByPath = safe.spec.containers[0].volumeMounts.find(
+              (em: any) => em.mountPath === m.mountPath,
+            );
+            if (existingByName && !deepEqual(existingByName, m)) {
+              throw new Error('Conflicting volumeMount name: ' + m.name);
+            }
+            if (existingByPath && !deepEqual(existingByPath, m)) {
+              throw new Error('Conflicting volumeMount path: ' + m.mountPath);
+            }
+            if (!existingByName && !existingByPath) {
+              safe.spec.containers[0].volumeMounts.push(m);
+            }
+          }
+        }
+      }
+
+      if (Array.isArray(container.env)) {
+        safe.spec.containers[0].env = safe.spec.containers[0].env || [];
+        for (const e of container.env) {
+          if (e.name) {
+            if (e.valueFrom && isCustomImage) {
+              continue;
+            }
+            if (!e.valueFrom || !isCustomImage) {
+              const existing = safe.spec.containers[0].env.find((ee: any) => ee.name === e.name);
+              if (existing) {
+                if (!deepEqual(existing, e)) {
+                  throw new Error('Conflicting env name: ' + e.name);
+                }
+              } else {
+                safe.spec.containers[0].env.push(e);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return safe;
+  }
+
+  /**
    * Creates a TensorBoard viewer CRD, waits for the viewer to become ready,
    * and returns the scoped proxy path for that instance.
    * The handler expects the following query strings in the request:
@@ -91,13 +190,19 @@ export const getTensorboardHandlers = (
    * - `namespace`
    * - `tfversion`, optional. TODO: consider deprecating
    * - `image`, optional
-   * - `podtemplatespec`, optional
+   *
+   * Volume mounts and environment variables may be supplied via a JSON
+   * `podTemplateSpec` field in the POST body. Only safe volume types
+   * (PVC, emptyDir) and standard metadata secrets are kept to prevent
+   * privilege escalation.
    *
    * Either `image` or `tfversion` should be specified.
    */
   const create: Handler = async (req, res) => {
-    const { logdir, tfversion, image, podtemplatespec: podTemplateSpecRaw } = req.query;
+    const { logdir, tfversion, image } = req.query;
     const namespace = req.query.namespace || defaultNamespace;
+    const unsafePodTemplateSpec = req.body?.podTemplateSpec;
+
     if (!logdir) {
       res.status(400).send('logdir argument is required');
       return;
@@ -118,15 +223,6 @@ export const getTensorboardHandlers = (
       res.status(400).send('tfversion and image cannot be specified at the same time');
       return;
     }
-    let podTemplateSpec: any | undefined;
-    if (podTemplateSpecRaw) {
-      try {
-        podTemplateSpec = JSON.parse(podTemplateSpecRaw as string);
-      } catch (err) {
-        res.status(400).send(`podtemplatespec is not valid JSON: ${err}`);
-        return;
-      }
-    }
 
     try {
       const authError = await authorizeFn(
@@ -141,12 +237,20 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
+
+      const isCustomImage = !!image && image !== tensorboardConfig.tfImageName;
+      const mergedPodTemplateSpec = sanitizePodTemplateSpec(
+        unsafePodTemplateSpec,
+        tensorboardConfig.podTemplateSpec,
+        isCustomImage,
+      );
+
       await k8sHelper.newTensorboardInstance(
         logdir as string,
         namespace as string,
         (image || tensorboardConfig.tfImageName) as string,
         (tfversion as string) || '',
-        podTemplateSpec || tensorboardConfig.podTemplateSpec,
+        mergedPodTemplateSpec,
       );
       const viewerName = await k8sHelper.waitForTensorboardInstance(
         logdir as string,
