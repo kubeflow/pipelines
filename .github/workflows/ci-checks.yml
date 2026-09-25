@@ -129,6 +129,9 @@ jobs:
           # Completion events and scheduled sweeps drive recovery. Never hold
           # the shared writer while waiting for external checks.
           poll: 'false'
+          # The pinned action waits one minute before its first API call even
+          # with polling disabled, holding the shared writer lock (#14552 P3).
+          delay: '0'
           ignore_superseded_runs: 'true'
           # Expected workflow completion is verified independently; these
           # exclusions cannot hide a failing constituent workflow.

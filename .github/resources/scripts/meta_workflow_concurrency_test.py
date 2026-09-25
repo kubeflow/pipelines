@@ -186,6 +186,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                       writer)
         self.assertIn('CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}', writer)
         self.assertIn("poll: 'false'", writer)
+        # poll: 'false' alone is not enough: the pinned action still waits a
+        # minute before its first API call, holding the shared writer lock.
+        self.assertIn("delay: '0'", writer)
         self.assertNotIn('sleep', writer)
 
     def test_publisher_exclusion_matches_hosted_matrix_job_name(self):
@@ -397,6 +400,7 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertNotIn('ref: ${{ github.event.pull_request.head', workflow)
         self.assertNotIn('${{ github.event.label.name }}', workflow)
         self.assertIn("poll: 'false'", workflow)
+        self.assertIn("delay: '0'", workflow)
         self.assertIn('types: [requested, in_progress, completed]', workflow)
         self.assertIn('reopened, edited, labeled', workflow)
         selector = workflow.split('    workflows:',
