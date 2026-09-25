@@ -39,7 +39,14 @@ func legacyFilterTokens(t *testing.T) []legacyFilterToken {
 	require.NoError(t, err)
 	var fixtures []legacyFilterToken
 	require.NoError(t, json.Unmarshal(data, &fixtures))
-	return fixtures
+	v2Fixtures := make([]legacyFilterToken, 0, len(fixtures))
+	for _, fixture := range fixtures {
+		if fixture.Version == "v2" {
+			v2Fixtures = append(v2Fixtures, fixture)
+		}
+	}
+	require.NotEmpty(t, v2Fixtures)
+	return v2Fixtures
 }
 
 func TestValidatedListOptions_LegacyFilteredTokens(t *testing.T) {
@@ -82,9 +89,9 @@ func TestValidatedListOptions_LegacyFilteredTokens(t *testing.T) {
 func TestValidatedListOptions_LegacyFilterRejectsChangedCriteria(t *testing.T) {
 	fixture := legacyFilterTokens(t)[0]
 	for _, spec := range []string{
-		`{"predicates":[{"key":"name","op":"EQUALS","string_value":"other"}]}`,
-		`{"predicates":[{"key":"name","op":"NOT_EQUALS","string_value":"alpha"}]}`,
-		`{"predicates":[{"key":"description","op":"EQUALS","string_value":"alpha"}]}`,
+		`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"other"}]}`,
+		`{"predicates":[{"key":"name","operation":"NOT_EQUALS","string_value":"alpha"}]}`,
+		`{"predicates":[{"key":"description","operation":"EQUALS","string_value":"alpha"}]}`,
 	} {
 		_, err := validatedListOptions(&model.Experiment{}, fixture.Token, 10, "", spec)
 		require.ErrorContains(t, err, "does not match")
