@@ -47,6 +47,20 @@ deployments. Remove service-specific image overrides, environment variables,
 NodePorts, and RBAC grants from custom overlays. Do not remove the TensorBoard
 viewer controller or artifact-proxy deployments.
 
+Replace `kubeflow` with your KFP installation namespace:
+
+```bash
+kubectl -n kubeflow delete deployment,service,serviceaccount ml-pipeline-visualizationserver --ignore-not-found
+# Istio installations only:
+kubectl -n kubeflow delete authorizationpolicy,destinationrule ml-pipeline-visualizationserver --ignore-not-found
+# Find copies left by older profile controllers:
+kubectl get deployment,service -A -l app=ml-pipeline-visualizationserver
+```
+
+For each user namespace returned by the last command, verify that its consumers
+have migrated, then repeat the applicable delete commands with that namespace.
+Custom deployments may use different labels; inspect those separately.
+
 ## Next steps
 
 * Read an [overview of Kubeflow Pipelines](../overview.md).

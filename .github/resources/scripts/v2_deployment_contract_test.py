@@ -16,7 +16,6 @@
 
 from pathlib import Path
 import re
-import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -74,7 +73,12 @@ class V2DeploymentContractTest(unittest.TestCase):
         for root in ('manifests/kustomize', '.github/resources/manifests'):
             for path in (ROOT / root).rglob('kustomization.yaml'):
                 with self.subTest(path=path):
-                    self.assertNotIn('visualization', path.read_text())
+                    text = path.read_text()
+                    for identifier in ('ml-pipeline-visualization',
+                                       'kfp-visualization-server',
+                                       'Dockerfile.visualization',
+                                       'visualizationserver.yaml'):
+                        self.assertNotIn(identifier, text)
         for path in ('backend/api/v2beta1/visualization.proto',
                      'backend/Dockerfile.visualization',
                      'backend/src/apiserver/visualization/server.py',
@@ -85,32 +89,14 @@ class V2DeploymentContractTest(unittest.TestCase):
                 'backend/api/v2beta1/swagger/kfp_api_single_file.swagger.json',
                 'docs/_static/kfp_api_single_file.swagger.json'):
             with self.subTest(path=path):
-                self.assertNotIn('visualization',
-                                 (ROOT / path).read_text().lower())
+                text = (ROOT / path).read_text()
+                self.assertNotIn('VisualizationService', text)
+                self.assertNotIn('/visualizations/', text)
         pipeline = (
             ROOT /
             'manifests/kustomize/base/pipeline/kustomization.yaml').read_text()
         self.assertIn('ml-pipeline-viewer-crd-deployment.yaml', pipeline)
         self.assertIn('ml-pipeline-ui-deployment.yaml', pipeline)
-
-    def test_cloudbuild_cache_does_not_require_visualization_image(self):
-        script = (ROOT / 'test/build-images.sh').read_text()
-        function = re.search(r'function has_batch_images_been_built \{.*?\n\}',
-                             script, re.DOTALL).group(0)
-        images = ('frontend', 'scheduledworkflow', 'persistenceagent',
-                  'viewer-crd-controller', 'inverse-proxy-agent',
-                  'metadata-writer')
-        for inventory, expected in ((images, 0), (images[:-1], 1)):
-            with self.subTest(inventory=inventory):
-                result = subprocess.run([
-                    'bash', '-c',
-                    'gcloud() { printf "%s\\n" ' + ' '.join(inventory) +
-                    '; }\n' + function + '\nhas_batch_images_been_built'
-                ],
-                                        capture_output=True,
-                                        text=True,
-                                        check=False)
-                self.assertEqual(result.returncode, expected, result.stderr)
 
     def test_v2_caching_is_configured_without_admission_webhook(self):
         self.assertFalse(

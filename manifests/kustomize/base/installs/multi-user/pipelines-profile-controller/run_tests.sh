@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 # Build venv with required packages
 VENV=".venv"
 PYTHON_VENV="${VENV}/bin/python"

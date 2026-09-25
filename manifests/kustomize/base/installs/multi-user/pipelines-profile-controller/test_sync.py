@@ -55,17 +55,27 @@ def observed_attachments(proxy_enabled=False, ready=False):
 
 
 @pytest.fixture
-def sync_server(request):
-    with mock.patch.dict(os.environ, request.param, clear=True):
-        server = server_factory(url="127.0.0.1", **get_settings_from_env())
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        yield server
-    finally:
+def start_sync_server():
+    servers = []
+
+    def start(**settings):
+        server = server_factory(url="127.0.0.1", **settings)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        servers.append((server, thread))
+        return server
+
+    yield start
+    for server, thread in servers:
         server.shutdown()
         thread.join()
         server.server_close()
+
+
+@pytest.fixture
+def sync_server(request, start_sync_server):
+    with mock.patch.dict(os.environ, request.param, clear=True):
+        return start_sync_server(**get_settings_from_env())
 
 
 def post_sync(server, parent, attachments):
@@ -132,23 +142,18 @@ def test_sync_desires_only_artifact_resources(sync_server, expected_image,
     assert_artifact_resources(result, expected_image)
 
 
-def test_sync_server_with_direct_settings():
-    server = server_factory(
+def test_sync_server_with_direct_settings(start_sync_server):
+    server = start_sync_server(
         frontend_image="direct-image",
         frontend_tag="direct-tag",
         disable_istio_sidecar=False,
         artifacts_proxy_enabled="true",
         artifact_retention_days=-1,
         controller_port=0,
-        url="127.0.0.1",
     )
-    try:
-        handler = server.RequestHandlerClass.__new__(server.RequestHandlerClass)
-        result = handler.sync(PARENT, observed_attachments(True, True))
-        assert result["status"] == {"kubeflow-pipelines-ready": "True"}
-        assert_artifact_resources(result, "direct-image:direct-tag")
-    finally:
-        server.server_close()
+    result = post_sync(server, PARENT, observed_attachments(True, True))
+    assert result["status"] == {"kubeflow-pipelines-ready": "True"}
+    assert_artifact_resources(result, "direct-image:direct-tag")
 
 
 @pytest.mark.parametrize("sync_server", [ENV_BASE], indirect=True)
