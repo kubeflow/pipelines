@@ -189,7 +189,7 @@ export interface V2beta1PipelineTask {
   scope_path?: string;
   /**
    * Latest pod lifecycle diagnostic from the execution engine.
-   * Optional so UpdateTask can distinguish "leave unchanged" from "clear".
+   * Read-only via REST; the persistence agent clears this field automatically on recovery.
    * @type {string}
    * @memberof V2beta1PipelineTask
    */

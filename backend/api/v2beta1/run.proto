@@ -572,7 +572,7 @@ message PipelineTask {
   string scope_path = 18;
 
   // Latest pod lifecycle diagnostic from the execution engine.
-  // Optional so UpdateTask can distinguish "leave unchanged" from "clear".
+  // Read-only via REST; the persistence agent clears this field automatically on recovery.
   optional string lifecycle_message = 19;
 }
 

@@ -540,7 +540,7 @@ class V2beta1PipelineTask(object):
     def lifecycle_message(self):
         """Gets the lifecycle_message of this V2beta1PipelineTask.  # noqa: E501
 
-        Latest pod lifecycle diagnostic from the execution engine. Optional so UpdateTask can distinguish \"leave unchanged\" from \"clear\".  # noqa: E501
+        Latest pod lifecycle diagnostic from the execution engine. Read-only via REST; the persistence agent clears this field automatically on recovery.  # noqa: E501
 
         :return: The lifecycle_message of this V2beta1PipelineTask.  # noqa: E501
         :rtype: str
@@ -551,7 +551,7 @@ class V2beta1PipelineTask(object):
     def lifecycle_message(self, lifecycle_message):
         """Sets the lifecycle_message of this V2beta1PipelineTask.
 
-        Latest pod lifecycle diagnostic from the execution engine. Optional so UpdateTask can distinguish \"leave unchanged\" from \"clear\".  # noqa: E501
+        Latest pod lifecycle diagnostic from the execution engine. Read-only via REST; the persistence agent clears this field automatically on recovery.  # noqa: E501
 
         :param lifecycle_message: The lifecycle_message of this V2beta1PipelineTask.  # noqa: E501
         :type lifecycle_message: str

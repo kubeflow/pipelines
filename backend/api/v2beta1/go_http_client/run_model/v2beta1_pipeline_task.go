@@ -41,8 +41,8 @@ type V2beta1PipelineTask struct {
 	Inputs *PipelineTaskInputOutputs `json:"inputs,omitempty"`
 
 	// Latest pod lifecycle diagnostic from the execution engine.
-	// Use a pointer so that nil means "leave unchanged" and "" means "clear".
-	LifecycleMessage *string `json:"lifecycle_message,omitempty"`
+	// Read-only via REST; the persistence agent clears this field automatically on recovery.
+	LifecycleMessage string `json:"lifecycle_message,omitempty"`
 
 	// name
 	Name string `json:"name,omitempty"`
