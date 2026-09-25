@@ -251,7 +251,7 @@
     {
       "path": ".github/workflows/e2e-test-frontend.yml",
       "name": "KFP e2e frontend tests",
-      "header_sha256": "d84740773e91938242ffff4ae32906c31cd72a63aeb463fa9af5bf28d0243817",
+      "header_sha256": "c3cf0c398e4f008b7ac361cccf4c02a529b2263e881d132cbf3ca35d4a678bad",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -261,7 +261,6 @@
           ".github/actions/deploy/**",
           ".github/resources/**",
           "frontend/**",
-          "third_party/metadata_envoy/**",
           "manifests/kustomize/**",
           "test/server-integration-test/**",
           "test/frontend-integration-test/**",
