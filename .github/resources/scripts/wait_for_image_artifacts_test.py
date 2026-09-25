@@ -29,7 +29,6 @@ ARTIFACTS = (
     'persistenceagent',
     'frontend',
     'viewer-crd-controller',
-    'visualization-server',
     'driver',
     'launcher',
     'runtime-base-images',
@@ -129,7 +128,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(ready_after=1)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('All 9 branch image artifacts are available',
+        self.assertIn('All 8 branch image artifacts are available',
                       result.stdout)
         self.assertEqual(attempts, 1)
 

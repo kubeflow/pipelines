@@ -85,3 +85,9 @@ jobs:
 
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
+
+    - name: Verify production bundle startup
+      working-directory: frontend
+      run: |
+        npx playwright install --with-deps chromium
+        npm run test:bundle

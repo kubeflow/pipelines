@@ -16,7 +16,7 @@
   },
   "tags": [
     {
-      "name": "VisualizationService"
+      "name": "RunService"
     }
   ],
   "schemes": [
@@ -2352,44 +2352,6 @@
           "RunService"
         ]
       }
-    },
-    "/apis/v2beta1/visualizations/{namespace}": {
-      "post": {
-        "operationId": "VisualizationService_CreateVisualizationV1",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v2beta1Visualization"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/googleRpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "namespace",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "visualization",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v2beta1Visualization"
-            }
-          }
-        ],
-        "tags": [
-          "VisualizationService"
-        ]
-      }
     }
   },
   "definitions": {
@@ -3872,42 +3834,6 @@
           "title": "Map of task ID to updated task detail.\nKey: task_id, Value: Updated PipelineTask"
         }
       }
-    },
-    "v2beta1Visualization": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "$ref": "#/definitions/v2beta1VisualizationType"
-        },
-        "source": {
-          "type": "string",
-          "description": "Path pattern of input data to be used during generation of visualizations.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
-        },
-        "arguments": {
-          "type": "string",
-          "description": "Variables to be used during generation of a visualization.\nThis should be provided as a JSON string.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
-        },
-        "html": {
-          "type": "string",
-          "description": "Output. Generated visualization html."
-        },
-        "error": {
-          "type": "string",
-          "description": "In case any error happens when generating visualizations, only\nvisualization ID and the error message are returned. Client has the\nflexibility of choosing how to handle the error."
-        }
-      }
-    },
-    "v2beta1VisualizationType": {
-      "type": "string",
-      "enum": [
-        "ROC_CURVE",
-        "TFDV",
-        "TFMA",
-        "TABLE",
-        "CUSTOM"
-      ],
-      "default": "ROC_CURVE",
-      "description": "Type of visualization to be generated.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
     }
   },
   "securityDefinitions": {

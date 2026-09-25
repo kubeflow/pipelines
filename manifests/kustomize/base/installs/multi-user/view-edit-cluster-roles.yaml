@@ -159,9 +159,3 @@ rules:
   - viewers
   verbs:
   - get
-- apiGroups:
-  - pipelines.kubeflow.org
-  resources:
-  - visualizations
-  verbs:
-  - create

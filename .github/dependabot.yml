@@ -100,7 +100,6 @@ updates:
       - "/"
       - "/.github/scripts"
       - "/api/v2alpha1/python"
-      - "/backend/src/apiserver/visualization"
       - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"
