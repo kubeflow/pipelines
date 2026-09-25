@@ -160,10 +160,12 @@ describe('DynamicFlow', () => {
       const graph = convertFlowElements(PipelineSpec.fromJSON(yamlObject));
       const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, preprocessTask]);
 
-      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
-        state: PipelineTaskTaskState.RUNNING,
-        debugPauseBarrier: 'before',
-      });
+      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject(
+        {
+          state: PipelineTaskTaskState.RUNNING,
+          debugPauseBarrier: 'before',
+        },
+      );
     });
 
     it('leaves debugPauseBarrier undefined for a normally-running task', () => {

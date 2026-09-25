@@ -106,7 +106,7 @@ describe('ExecutionNode', () => {
         }}
       />,
     );
-    expect(screen.getByTestID('execution-icon-debug-pause')).toBeInTheDocument();
+    expect(screen.getByTestId('execution-icon-debug-paused')).toBeInTheDocument();
     // The normal RUNNING icon must not also render - the badge takes precedence.
     expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
   });
@@ -159,5 +159,14 @@ describe('getExecutionIcon', () => {
   it('returns an active ListAlt icon for defined state', () => {
     render(getExecutionIcon(PipelineTaskTaskState.RUNNING));
     expect(screen.getByTestId('execution-icon-active')).toBeInTheDocument();
+  });
+});
+
+describe('getDebugPauseIcon', () => {
+  it('renders a pause icon with the grey badge background', () => {
+    render(getDebugPauseIcon());
+    const pauseIcon = screen.getByTestId('execution-icon-debug-paused');
+    expect(pauseIcon).toBeInTheDocument();
+    expect(pauseIcon.parentElement).toHaevClass('bg-mui-grey-200');
   });
 });

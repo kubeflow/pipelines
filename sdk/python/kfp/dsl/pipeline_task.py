@@ -743,7 +743,7 @@ class PipelineTask:
 
         When enabled, the KFP launcher (not Argo's executor) detects the
         corresponding ``KFP_DEBUG_PAUSE_*`` environment variable and parks
-        the task at the requested barrier, reporting tis paused status to
+        the task at the requested barrier, reporting its paused status to
         the KFP API server so it can be resumed from the UI.
 
         Args:

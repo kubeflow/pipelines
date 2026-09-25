@@ -435,7 +435,7 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 			if pauseErr := Pause(ctx, signaler, barrier, debugPauseCfg); pauseErr != nil {
 				// A pause-after/on_error timeout or cancellation is reported
 				// as the task's failure reason, but must never mask a real
-				// execution error that already happened execErr, if any,
+				// execution error that already happened - execErr, if any,
 				// takes precedence.
 				if execErr == nil {
 					execErr = fmt.Errorf("debug pause after execution: %w", pauseErr)
@@ -445,7 +445,7 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 			}
 		}
 	}
-	
+
 	if execErr != nil {
 		if uploadErr := l.uploadExecutorLogsArtifact(ctx); uploadErr != nil {
 			return nil, fmt.Errorf("failed to execute component: %w (executor log upload failed: %v)", execErr, uploadErr)
