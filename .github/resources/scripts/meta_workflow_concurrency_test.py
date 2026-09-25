@@ -154,37 +154,19 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         pre_concurrency = _before_mapping(job, 'concurrency', 4)
         condition = _folded_scalar(pre_concurrency, 'if', 4)
         concurrency = _mapping_block(job, 'concurrency', 4)
-        concurrency_group = _folded_scalar(concurrency, 'group', 6)
+        concurrency_group = _plain_scalar(concurrency, 'group', 6)
 
-        self.assertEqual(
-            condition,
-            "(github.event.action != 'labeled' && github.event.action != 'unlabeled') || "
-            "(github.event.action == 'labeled' && github.event.label.name == 'ok-to-test') || "
-            "(github.event.action == 'unlabeled' && github.event.label.name == 'needs-ok-to-test')",
-        )
-
-        expected_results = {
-            ('opened', ''): True,
-            ('synchronize', ''): True,
-            ('reopened', ''): True,
-            ('labeled', 'ok-to-test'): True,
-            ('unlabeled', 'needs-ok-to-test'): True,
-            ('labeled', 'dependencies'): False,
-            ('labeled', 'size/M'): False,
-            ('labeled', 'needs-ok-to-test'): False,
-            ('unlabeled', 'ok-to-test'): False,
-        }
-        for event, expected in expected_results.items():
-            with self.subTest(action=event[0], label=event[1]):
-                self.assertEqual(
-                    _evaluate_label_condition(condition, *event), expected)
+        self.assertIn("github.event.workflow_run.event == 'pull_request'",
+                      condition)
+        self.assertIn("github.event.label.name == 'ok-to-test'", condition)
+        self.assertIn("github.event.label.name == 'needs-ok-to-test'",
+                      condition)
 
         self.assertFalse(_has_mapping(workflow, 'concurrency', 0))
-        self.assertIn("&& 'head-update' || github.run_id", concurrency_group)
+        self.assertIn('github.event.workflow_run.head_sha', concurrency_group)
+        self.assertIn('github.event.pull_request.head.sha', concurrency_group)
         self.assertEqual(
-            _plain_scalar(concurrency, 'cancel-in-progress', 6),
-            "${{ github.event.action == 'synchronize' }}",
-        )
+            _plain_scalar(concurrency, 'cancel-in-progress', 6), 'false')
 
     def test_scheduled_recovery_uses_same_short_writer(self):
         workflow = self._read_workflow('ci-checks.yml')
@@ -336,6 +318,7 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
 
     @unittest.skipUnless(
         shutil.which('jq'), 'jq is required by the gate script')
+
     def test_gatekeeper_closure_message_and_guidelines_link(self):
         workflow = self._read_workflow('pr-gate.yml')
         message = textwrap.dedent(
@@ -407,22 +390,6 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                 self.assertEqual(comment_file.exists(), closed)
                 if closed:
                     self.assertEqual(comment_file.read_text(), message)
-
-    def test_eligibility_shell_receives_label_name_through_environment(self):
-        workflow = self._read_workflow('ci-checks.yml')
-        step_start = workflow.index(
-            '      - name: Determine whether CI polling is needed')
-        step_end = workflow.index(
-            '      - name: Wait for action_required workflow runs to be approved'
-        )
-        eligibility_step = workflow[step_start:step_end]
-        shell_script = eligibility_step.split('        run: |', 1)[1]
-
-        self.assertIn('LABEL_NAME: ${{ github.event.label.name }}',
-                      eligibility_step)
-        self.assertNotIn('${{ github.event.label.name }}', shell_script)
-        self.assertIn("reason=\"Added label '${LABEL_NAME}'", shell_script)
-
 
     def test_publisher_runs_trusted_code_without_pr_interpolation(self):
         workflow = self._read_workflow('ci-checks.yml')

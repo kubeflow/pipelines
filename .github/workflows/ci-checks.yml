@@ -13,6 +13,8 @@ on:
       - 'KFP backend visualization tests'
       - 'Build tools images'
       - 'CI Scripts Tests'
+      - 'Check uv.lock and requirements.txt sync'
+      - 'Check uv.lock sync'
       - 'Workflow Compiler Tests'
       - 'KFP Docs Freshness'
       - 'Documentation'
