@@ -438,39 +438,6 @@ class PythonPackagingTest(unittest.TestCase):
                 self.assertEqual(build[-2:],
                                  [docs_path, '$READTHEDOCS_OUTPUT/html'])
 
-    def test_visualization_updater_retains_its_shared_helper(self) -> None:
-        """Exercise the retained requirements workflow without running
-        Docker."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            path = Path('backend/src/apiserver/visualization')
-            destination = root / path
-            destination.mkdir(parents=True)
-            shutil.copy(ROOT / path / 'update_requirements.sh', destination)
-            (root / 'hack').mkdir()
-            shutil.copy(ROOT / 'hack/update-requirements.sh', root / 'hack')
-            (destination / 'requirements.in').write_text('test-package==1.0\n')
-            (destination / 'requirements.txt').write_text('old\n')
-            fake_bin = root / 'bin'
-            fake_bin.mkdir()
-            docker = fake_bin / 'docker'
-            docker.write_text('#!/bin/sh\ncat\n')
-            docker.chmod(0o755)
-            result = subprocess.run(
-                ['bash', 'update_requirements.sh'],
-                cwd=destination,
-                env={
-                    **os.environ, 'PATH':
-                        f'{fake_bin}{os.pathsep}{os.environ["PATH"]}'
-                },
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual((destination / 'requirements.txt').read_text(),
-                             'test-package==1.0\n')
-
     def test_server_generator_uses_sdk_version_and_rejects_v1(self) -> None:
         """Regenerate v2 metadata from the SDK and reject removed v1 APIs."""
         for api_version in ('v2beta1', 'v1beta1'):

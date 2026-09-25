@@ -50,21 +50,6 @@ patches:
             targetPort: 8333
             nodePort: 30900
         type: NodePort
-  # Visualization Server NodePort
-  - patch: |-
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: ml-pipeline-visualizationserver
-        namespace: kubeflow
-      spec:
-        ports:
-          - $patch: replace
-          - port: 8888
-            protocol: TCP
-            targetPort: 8888
-            nodePort: 30889
-        type: NodePort
   # ml-pipeline deployment - set replicas to 0 (run locally)
   - patch: |-
       apiVersion: apps/v1

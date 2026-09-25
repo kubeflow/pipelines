@@ -26,11 +26,6 @@ steps:
     args:
       ["build", "-t", "$_GCR_BASE/viewer-crd-controller", "-f", "backend/Dockerfile.viewercontroller", "."]
     waitFor: ["-"]
-  - id: "visualization-server"
-    name: "gcr.io/cloud-builders/docker"
-    args:
-      ["build", "-t", "$_GCR_BASE/visualization-server", "-f", "backend/Dockerfile.visualization", "."]
-    waitFor: ["-"]
   - id: "inverse-proxy-agent"
     name: "gcr.io/cloud-builders/docker"
     args:
@@ -51,7 +46,6 @@ images:
   - "$_GCR_BASE/scheduledworkflow"
   - "$_GCR_BASE/frontend"
   - "$_GCR_BASE/viewer-crd-controller"
-  - "$_GCR_BASE/visualization-server"
   - "$_GCR_BASE/inverse-proxy-agent"
   - "$_GCR_BASE/metadata-writer"
   - "$_GCR_BASE/metadata-envoy"

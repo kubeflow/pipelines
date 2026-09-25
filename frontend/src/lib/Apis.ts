@@ -35,13 +35,6 @@ import {
   Configuration as RunConfigurationV2,
   RunServiceApi as RunServiceApiV2,
 } from 'src/apisv2beta1/run';
-import {
-  V2beta1Visualization,
-  Configuration as VisualizationConfiguration,
-  VisualizationServiceApi,
-} from 'src/apisv2beta1/visualization';
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
-import { PlotType } from 'src/components/viewers/Viewer';
 import * as Utils from './Utils';
 import { buildQuery } from './Utils';
 import { StoragePath, StorageService } from './StoragePath';
@@ -73,52 +66,12 @@ export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 export type JSONObject = { [member: string]: JSONValue };
 export type JSONArray = JSONValue[];
 
-let customVisualizationsAllowed: boolean;
-
 // For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.
 // Refrence: https://github.com/github/fetch#sending-cookies
 const crossBrowserFetch: FetchAPI = (url, init) =>
   fetch(url, { credentials: 'same-origin', ...init });
 
 export class Apis {
-  public static async areCustomVisualizationsAllowed(): Promise<boolean> {
-    // Result is cached to prevent excessive network calls for simple request.
-    // The value of customVisualizationsAllowed will only change if the
-    // deployment is updated and then the entire pod is restarted.
-    if (customVisualizationsAllowed === undefined) {
-      const result = await this._fetch('visualizations/allowed');
-      customVisualizationsAllowed = result === 'true';
-    }
-    return customVisualizationsAllowed;
-  }
-
-  public static async buildPythonVisualizationConfig(
-    visualizationData: V2beta1Visualization,
-    namespace?: string,
-  ): Promise<HTMLViewerConfig> {
-    const visualization = await Apis.visualizationServiceApi.createVisualizationV1(
-      namespace || '',
-      visualizationData,
-    );
-    if (visualization.html) {
-      const htmlContent = visualization.html
-        // Fixes issue with TFX components (and other iframe based
-        // visualizations), where the method in which javascript interacts
-        // with embedded iframes is not allowed when embedded in an additional
-        // iframe. This is resolved by setting the srcdoc value rather that
-        // manipulating the document directly.
-        .replace('contentWindow.document.write', 'srcdoc=');
-      return {
-        htmlContent,
-        type: PlotType.WEB_APP,
-      } as HTMLViewerConfig;
-    } else {
-      // This should never be thrown as the html property of a generated
-      // visualization is always set for successful visualization generations.
-      throw new Error('Visualization was generated successfully but generated HTML was not found.');
-    }
-  }
-
   /**
    * Get pod logs
    */
@@ -226,18 +179,6 @@ export class Apis {
       );
     }
     return this._runServiceApiV2;
-  }
-
-  public static get visualizationServiceApi(): VisualizationServiceApi {
-    if (!this._visualizationServiceApi) {
-      this._visualizationServiceApi = new VisualizationServiceApi(
-        new VisualizationConfiguration({
-          basePath: this.basePath,
-          fetchApi: crossBrowserFetch,
-        }),
-      );
-    }
-    return this._visualizationServiceApi;
   }
 
   /**
@@ -488,7 +429,6 @@ export class Apis {
   private static _recurringRunServiceApi?: RecurringRunServiceApi;
   private static _pipelineServiceApiV2?: PipelineServiceApiV2;
   private static _runServiceApiV2?: RunServiceApiV2;
-  private static _visualizationServiceApi?: VisualizationServiceApi;
 
   /**
    * This function will call this._fetch() and parse the resulting JSON into an object of type T.
