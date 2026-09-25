@@ -29,8 +29,9 @@ env:
     value: "audit"
 ```
 
-Audit mode still enforces the workflow's main service account, including Kubernetes'
-`default` account if the main field is empty. Failures involving
+This mode does not relax the workflow's main service account, including Kubernetes'
+`default` account if the main field is empty. Main-account policy is controlled
+independently by `KFP_SECURITY_SERVICE_ACCOUNT_MODE`, which defaults to `enforce`. Failures involving
 other accounts, including accounts introduced by plugins or retained retry state,
 produce structured `security_audit control=workflow_identity mode=audit` warning logs and execution continues for policy denials and incomplete local identity inspection. Authentication failures, authorization transport errors, and SubjectAccessReview evaluation errors remain blocking, even if another policy violation was audited.
 These accounts can therefore run without passing the expanded policy while audit
@@ -64,9 +65,11 @@ payloads. Logs may repeat across lifecycle operations and the post-plugin check.
 Audit mode does not bypass ordinary workflow validation: fresh submissions still
 reject external template references and discard caller-supplied workflow status.
 On retained workflows checked during retry or re-enable, an external reference
-instead produces an `inspection_incomplete` warning in audit mode. Existing enabled
-embedded schedules are not automatically inspected; re-enabling them triggers the
-check. Running workloads are not retroactively reauthorized.
+instead produces an `inspection_incomplete` warning in audit mode. In multi-user mode, scheduled ticks pass through the API and inspect the restored
+execution inputs. Re-enabling an embedded schedule also triggers inspection.
+Single-user embedded execution paths that do not call the API are not retroactively
+inspected. Running workloads are not retroactively reauthorized. See the
+[combined mode matrix](scheduled-service-accounts.md#combining-main-account-and-workflow-identity-modes).
 
 ### V1 and V2 compatibility
 
@@ -414,3 +417,17 @@ To return to defaults, remove the overrides and roll out the deployment. Before
 lowering `MAX_PIPELINE_SPEC_BYTES`, check stored pipelines accepted under the higher
 limit: object-store specifications may no longer be readable for subsequent execution. This
 setting does not add a new size check to the existing direct database-spec read path.
+## Recurring runs and custom service accounts
+
+See [Service accounts for recurring runs](scheduled-service-accounts.md) for
+`ALLOWEDSERVICEACCOUNTS`, scoped controller grants, multi-user upgrade requirements,
+and revoking scheduled execution.
+
+### Service-account authorization migration mode
+
+`KFP_SECURITY_SERVICE_ACCOUNT_MODE` accepts `enforce` (default, including upgrades)
+or `audit`. Audit temporarily allows service-account policy denials and logs
+warnings, restoring the associated security exposure. It does not disable
+existing authentication or namespace authorization. See the
+[scope, rollout, and migration instructions](scheduled-service-accounts.md#temporary-audit-mode-for-migration).
+Audit mode is planned for removal in 3.0.0 ([#14367](https://github.com/kubeflow/pipelines/issues/14367)).
