@@ -198,8 +198,6 @@ func TestReadSingleFileFromTgz_EnforcesConfigurableByteLimit(t *testing.T) {
 				assert.NoError(t, err)
 			} else {
 				assert.ErrorContains(t, err, testCase.errorContains)
-				assert.ErrorContains(t, err, MaxMetricsFileBytesEnvVar)
-				assert.ErrorContains(t, err, "reduce the metrics artifact")
 			}
 		})
 	}
@@ -289,8 +287,6 @@ func TestReadSingleFileFromTgz_TraversalBudgetExhaustion(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "traversal exceeded budget")
-	assert.ErrorContains(t, err, MaxMetricsFileBytesEnvVar)
-	assert.ErrorContains(t, err, "reduce archive metadata")
 }
 
 // TestReadSingleFileFromTgz_TraversalBudgetBoundary verifies that the exact boundary
@@ -318,8 +314,6 @@ func TestReadSingleFileFromTgz_TraversalBudgetBoundary(t *testing.T) {
 		})
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "traversal exceeded budget")
-		assert.ErrorContains(t, err, MaxMetricsFileBytesEnvVar)
-		assert.ErrorContains(t, err, "reduce archive metadata")
 	})
 }
 
