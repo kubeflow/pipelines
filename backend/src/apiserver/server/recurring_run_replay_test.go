@@ -193,6 +193,17 @@ func TestSingleUserRecurringRunReplayAfterPinnedVersionDeletion(t *testing.T) {
 	fixture := newSingleUserRecurringReplay(t, true, "")
 	require.NoError(t, fixture.manager.DeletePipelineVersion(fixture.first.PipelineVersionId))
 
+	previousMode := viper.Get(common.WorkflowIdentityMode)
+	t.Cleanup(func() { viper.Set(common.WorkflowIdentityMode, previousMode) })
+	viper.Set(common.WorkflowIdentityMode, "enforce")
+	// Deleting the exact source removes the compiler-patch exception, even
+	// for acknowledgement of an execution that is already retained.
+	_, err := fixture.server.CreateRun(context.Background(), fixture.request)
+	require.ErrorContains(t, err, "podSpecPatch contains a template expression")
+	fixture.requireOriginalRunUnchanged(t)
+
+	viper.Set(common.WorkflowIdentityMode, "audit")
+
 	replayed, err := fixture.server.CreateRun(context.Background(), fixture.request)
 	require.NoError(t, err)
 	require.Equal(t, fixture.first.UUID, replayed.RunId)
