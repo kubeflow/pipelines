@@ -4,11 +4,11 @@
 
 ```bash
 # SDK
-pip install -r sdk/python/requirements-dev.txt
-pytest -v sdk/python/kfp
+uv sync --frozen --extra dev
+uv run pytest -v sdk/python/kfp
 
 # kfp-kubernetes
-pytest -v kubernetes_platform/python/test
+uv run pytest -v kubernetes_platform/python/test
 
 # Backend unit tests
 go test -v $(go list ./backend/... | \
@@ -34,14 +34,14 @@ Pipeline inputs live in `test_data/pipeline_files/valid/`; compiler goldens live
 
 ```bash
 golangci-lint run
-pycln --check sdk/python
-isort --check --profile google sdk/python
-yapf --recursive --diff sdk/python/
-docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
+uv run pycln --check sdk/python
+uv run isort --check --profile google sdk/python
+uv run yapf --recursive --diff sdk/python/
+uv run docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 ```
 
 Run the Python string fixer before YAPF when needed:
 
 ```bash
-python3 -m pre_commit_hooks.string_fixer $(find sdk/python/kfp -name '*.py' -type f)
+uv run python -m pre_commit_hooks.string_fixer $(find sdk/python/kfp -name '*.py' -type f)
 ```

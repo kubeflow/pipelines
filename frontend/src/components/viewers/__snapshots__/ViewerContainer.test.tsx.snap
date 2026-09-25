@@ -2099,7 +2099,7 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
           >
             cell
           </td>

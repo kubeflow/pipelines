@@ -29,6 +29,7 @@ from kfp.cli import cli
 from kfp.cli import compile_
 from kfp.cli import output
 from kfp.cli import pipeline
+from kfp.dsl import pipeline_context
 import yaml
 
 
@@ -246,6 +247,10 @@ class TestSmokeTestAllCommandsWithHelp(parameterized.TestCase):
 
 class TestKfpDslCompile(unittest.TestCase):
 
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+
     def invoke(self, args):
         starting_args = ['dsl', 'compile']
         args = starting_args + args
@@ -265,7 +270,8 @@ def my_component():
 def my_pipeline():
     my_component_task = my_component()
 """
-        temp_pipeline = tempfile.NamedTemporaryFile(suffix='.py', delete=False)
+        temp_pipeline = tempfile.NamedTemporaryFile(
+            suffix='.py', dir=self.temp_dir.name, delete=False)
         temp_pipeline.write(pipeline_code)
         temp_pipeline.flush()
         return temp_pipeline
@@ -276,7 +282,7 @@ def my_pipeline():
 
     def test_compile_with_caching_flag_enabled(self):
         temp_pipeline = self.create_pipeline_file()
-        output_file = 'test_output.yaml'
+        output_file = os.path.join(self.temp_dir.name, 'test_output.yaml')
 
         result = self.invoke(
             ['--py', temp_pipeline.name, '--output', output_file])
@@ -292,7 +298,7 @@ def my_pipeline():
 
     def test_compile_with_caching_flag_disabled(self):
         temp_pipeline = self.create_pipeline_file()
-        output_file = 'test_output.yaml'
+        output_file = os.path.join(self.temp_dir.name, 'test_output.yaml')
 
         result = self.invoke([
             '--py', temp_pipeline.name, '--output', output_file,
@@ -310,13 +316,14 @@ def my_pipeline():
 
     def test_compile_with_caching_disabled_env_var(self):
         temp_pipeline = self.create_pipeline_file()
-        output_file = 'test_output.yaml'
+        output_file = os.path.join(self.temp_dir.name, 'test_output.yaml')
 
-        os.environ['KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT'] = 'true'
-        result = self.invoke(
-            ['--py', temp_pipeline.name, '--output', output_file])
-        self.assertEqual(result.exit_code, 0)
-        del os.environ['KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT']
+        with mock.patch.dict(
+                os.environ,
+            {'KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT': 'true'}):
+            result = self.invoke(
+                ['--py', temp_pipeline.name, '--output', output_file])
+            self.assertEqual(result.exit_code, 0)
 
         output_data = self.load_output_yaml(output_file)
         self.assertIn('root', output_data)
@@ -325,6 +332,62 @@ def my_pipeline():
             self.assertIn('cachingOptions', task)
             caching_options = task['cachingOptions']
             self.assertEqual(caching_options, {})
+
+    def test_compile_restores_caching_default(self) -> None:
+        """Apply the CLI option without changing later SDK compilations."""
+        output_file = os.path.join(self.temp_dir.name, 'pipeline.yaml')
+        for original_default in (True, False):
+            for disable_caching in (True, False):
+                with self.subTest(
+                        original_default=original_default,
+                        disable_caching=disable_caching), mock.patch.object(
+                            pipeline_context.Pipeline,
+                            '_execution_caching_default', original_default
+                        ), self.create_pipeline_file() as temp_pipeline:
+                    args = ['--py', temp_pipeline.name, '--output', output_file]
+                    if disable_caching:
+                        args.append('--disable-execution-caching-by-default')
+                    result = self.invoke(args)
+                    self.assertEqual(result.exit_code, 0)
+                    self.assertEqual(
+                        pipeline_context.Pipeline.get_execution_caching_default(
+                        ), original_default)
+                    output_data = self.load_output_yaml(output_file)
+                    for task in output_data['root']['dag']['tasks'].values():
+                        self.assertEqual(
+                            task['cachingOptions'].get('enableCache', False),
+                            not disable_caching)
+
+    def test_compile_restores_caching_default_after_error(self) -> None:
+        """Restore the default when loading or compiling a pipeline fails."""
+        with self.create_pipeline_file() as temp_pipeline:
+            output_file = os.path.join(self.temp_dir.name, 'pipeline.yaml')
+            for original_default in (True, False):
+                for target in (
+                        'collect_pipeline_or_component_func',
+                        'compiler.Compiler.compile',
+                ):
+                    with self.subTest(
+                            original_default=original_default,
+                            target=target), mock.patch.object(
+                                pipeline_context.Pipeline,
+                                '_execution_caching_default',
+                                original_default), mock.patch(
+                                    f'kfp.cli.compile_.{target}',
+                                    side_effect=ValueError(
+                                        'compilation failed')):
+                        args = [
+                            '--py', temp_pipeline.name, '--output', output_file
+                        ]
+                        if original_default:
+                            args.append(
+                                '--disable-execution-caching-by-default')
+                        with self.assertRaisesRegex(ValueError,
+                                                    'compilation failed'):
+                            self.invoke(args)
+                        self.assertEqual(
+                            pipeline_context.Pipeline
+                            .get_execution_caching_default(), original_default)
 
     def test_compile_with_kubernetes_manifest_format(self):
         with tempfile.NamedTemporaryFile(suffix='.py', delete=True) as temp_pipeline, \

@@ -6,6 +6,9 @@ name: Documentation
 on:
   pull_request:
     paths:
+      - "**/pyproject.toml"
+      - "uv.lock"
+      - ".github/actions/setup-python/**"
       - "docs/**"
       - "sdk/python/kfp/**"
       - ".readthedocs.yml"
@@ -13,6 +16,9 @@ on:
   push:
     branches: [master]
     paths:
+      - "**/pyproject.toml"
+      - "uv.lock"
+      - ".github/actions/setup-python/**"
       - "docs/**"
       - "sdk/python/kfp/**"
       - ".readthedocs.yml"
@@ -31,21 +37,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: ./.github/actions/setup-python-pip-cache
+      - uses: ./.github/actions/setup-python
         with:
           python-version: "3.12"
-          cache-scope: docs
-          cache-dependency-hash: ${{ hashFiles('docs/requirements.txt') }}
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
 
-      - name: Install documentation dependencies
-        run: pip install -r docs/requirements.txt
-
       - name: Build documentation (warnings treated as errors)
-        run: python -m sphinx -W --keep-going -b html docs docs/_build/html
+        run: uv run python -m sphinx -W --keep-going -b html docs docs/_build/html
 
       - name: Upload documentation artifact
         uses: actions/upload-artifact@v7
@@ -61,18 +62,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: ./.github/actions/setup-python-pip-cache
+      - uses: ./.github/actions/setup-python
         with:
           python-version: "3.12"
-          cache-scope: docs
-          cache-dependency-hash: ${{ hashFiles('docs/requirements.txt') }}
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
         uses: ./.github/actions/protobuf
 
-      - name: Install documentation dependencies
-        run: pip install -r docs/requirements.txt
-
       - name: Check links
-        run: python -m sphinx -b linkcheck docs docs/_build/linkcheck || true
+        run: uv run python -m sphinx -b linkcheck docs docs/_build/linkcheck || true

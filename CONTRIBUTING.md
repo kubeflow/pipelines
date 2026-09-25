@@ -64,6 +64,32 @@ implement your design and send a pull request. Make sure existing tests are all
 passing and new tests are added when applicable. Remember to link to the feature
 request issue to help reviewers catch up on the context.
 
+### Pull Request Admission for External Contributors
+
+Kubeflow Pipelines uses GitHub Actions workflows to gate CI for pull requests.
+
+- Pull requests opened by users listed under Kubeflow's `admins` or `members`
+  in [`kubeflow/internal-acls/github-orgs/kubeflow/org.yaml`](https://github.com/kubeflow/internal-acls/blob/master/github-orgs/kubeflow/org.yaml)
+  can proceed without this extra gate. This lookup is case-insensitive and does
+  not depend on public membership visibility or GitHub's `author_association`.
+- Pull requests authored by `dependabot[bot]` or `copybara-service[bot]` are exempt
+  from this linked-issue gate. Required CI checks and merge requirements still
+  apply.
+- Pull requests opened by other contributors must link to a GitHub issue using
+  a closing keyword such as `Fixes #1234` in the PR description.
+- The linked issue must be labeled `ready` by a Kubeflow Pipelines maintainer
+  before CI is allowed to proceed.
+
+If you plan to contribute regularly, becoming a Kubeflow GitHub organization
+member is straightforward. Follow the instructions in the
+[`kubeflow/internal-acls` guide](https://github.com/kubeflow/internal-acls/#joining-the-kubeflow-github-organization).
+
+If a non-member pull request subject to this gate does not link to an issue, or
+the linked issue is not labeled `ready`, the gatekeeper workflow may comment on
+the PR and close it until the issue triage step is completed. If the membership
+lookup fails, the workflow fails without closing the PR; a maintainer can rerun
+it after the lookup problem is resolved.
+
 ## Project Structure
 
 Kubeflow Pipelines consists of multiple components. Before you begin, learn how to [build the Kubeflow Pipelines component container images](./developer_guide.md##build-image). To get started, see the development guides:
@@ -81,7 +107,7 @@ See the [SDK-specific Contribution Guidelines](sdk/CONTRIBUTING.md) for contribu
 The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/README.md#code-style) for more details.
 
 ### Backend
-Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. Read [backend/README.md#code-style](backend/README.md#code-style) for more details. 
+Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. Read [backend/README.md#code-style](backend/README.md#code-style) for more details.
 
 ## Unit Testing Best Practices
 

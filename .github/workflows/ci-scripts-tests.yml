@@ -1,5 +1,5 @@
 # Presubmit gate for the Python tooling and CI action wiring under .github:
-# the unit tests are stdlib-only and use the `*_test.py` suffix, so select
+# the unit tests use the `*_test.py` suffix, so select
 # that pattern explicitly because it is not unittest discover's default.
 name: CI Scripts Tests
 
@@ -41,7 +41,11 @@ on:
       - '.github/workflows/build-tools-images.yml'
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
+      - '.github/workflows/check-requirements-txt.yml'
+      - '.github/workflows/check-uv-lock.yml'
+      - '.github/workflows/publish-packages.yml'
       - '.github/workflows/pre-commit.yml'
+      - '.github/workflows/pr-gate.yml'
       - '.github/workflows/gh-workflow-approve.yml'
       - '.github/workflows/contributor-report.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
@@ -50,6 +54,14 @@ on:
       - 'manifests/kustomize/third-party/argo/installs/**'
       - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
       - 'backend/Dockerfile'
+      - 'backend/api/build_kfp_server_api_python_package.sh'
+      - 'backend/src/apiserver/visualization/update_requirements.sh'
+      - 'hack/update-requirements.sh'
+      - '.readthedocs.yml'
+      - 'kubernetes_platform/python/docs/.readthedocs.yml'
+      - 'sdk/python/kfp/version.py'
+      - 'kubernetes_platform/python/kfp/kubernetes/__init__.py'
+      - 'kubernetes_platform/python/release.sh'
       - 'backend/src/common/types.go'
       - 'go.mod'
       - 'go.sum'
@@ -71,6 +83,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-go
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
       - name: Run Python resource script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

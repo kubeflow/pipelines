@@ -1,0 +1,94 @@
+name: PR Gate
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: write
+  issues: write
+
+on:
+  pull_request_target:
+    types: [opened, labeled, synchronize, reopened]
+
+
+jobs:
+  check-pr-author:
+    # Use the PR author, including when a maintainer triggers the event.
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'copybara-service[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted membership helper
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/kubeflow_membership.py
+            .github/scripts/requirements.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
+
+      - name: Look up PR author in Kubeflow internal-acls
+        id: membership-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: python3 .github/scripts/kubeflow_membership.py
+
+      - name: Check linked issue admission for external contributors
+        if: steps.membership-check.outputs.is_member == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CLOSURE_MESSAGE: |
+            PRs from external contributors must link to an issue that a maintainer has labeled `ready`.
+
+            This PR does not currently meet that requirement. This is not a judgment on the quality of your contribution.
+
+            To continue, please work with maintainers to get the associated issue triaged and labeled `ready`, then link to it in the PR description.
+
+            See [Pull Request Admission for External Contributors](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md#pull-request-admission-for-external-contributors) for the updated contribution guidelines.
+        run: |
+          # Get the issue linked to the PR via GitHub CLI using closingIssuesReferences
+          PR_JSON=$(gh pr view "$PR_NUMBER" --json closingIssuesReferences)
+          # Extract the linked issue number
+          ISSUE_NUMBER=$(echo "$PR_JSON" | jq -r '.closingIssuesReferences[0].number // empty')
+
+          if [[ -z "$ISSUE_NUMBER" ]]; then
+            printf '::error::No linked issue found for PR #%s. Please link an issue using closing keywords (e.g., '\''Fixes #123'\'') in the PR description.\n' "$PR_NUMBER"
+
+            gh pr comment "$PR_NUMBER" --body "$CLOSURE_MESSAGE"
+            gh pr close "$PR_NUMBER"
+            exit 1
+          fi
+
+          echo "Linked issue number found: #$ISSUE_NUMBER"
+
+          # Check if the found linked issue has a 'ready' label on it.
+          ISSUE_LABELS=$(gh issue view "$ISSUE_NUMBER" --json labels | jq -r '.labels[].name')
+
+          # Verify if the list of labels contains the 'ready' label
+          if echo "$ISSUE_LABELS" | grep -q "ready"; then
+            echo "::notice::Success! Linked issue #$ISSUE_NUMBER contains the 'ready' label. Proceeding with CI. Adding 'ok-to-test' to the PR #$PR_NUMBER..."
+            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "ok-to-test"
+            echo "::notice::'ok-to-test' label added. CI can now proceed."
+
+          else
+           echo "::error::Linked issue #$ISSUE_NUMBER does not contain the 'ready' label on it."
+
+           # Comment on the PR to inform the author about the missing label and close the PR
+            gh pr comment "$PR_NUMBER" --body "$CLOSURE_MESSAGE"
+            gh pr close "$PR_NUMBER"
+            exit 1
+          fi
