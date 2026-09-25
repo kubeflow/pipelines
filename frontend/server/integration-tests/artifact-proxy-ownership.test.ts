@@ -14,7 +14,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
-import type { Server } from 'http';
+import { request as rawHttpRequest, type Server } from 'http';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
@@ -59,6 +59,9 @@ describe('artifact proxy ownership with the production validator', () => {
     // API responses are fixtures; ownership validation and proxy transport are real.
     fetchSpy = vi.fn(async (input: string | URL | Request) => {
       const url = new URL(String(input));
+      if (url.hostname === 'allowed.host') {
+        return new Response('own-data');
+      }
       return new Response(
         JSON.stringify(
           url.pathname.endsWith('/artifacts')
@@ -75,6 +78,7 @@ describe('artifact proxy ownership with the production validator', () => {
         KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
         KUBEFLOW_USERID_PREFIX: '',
         ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+        HTTP_BASE_URL: 'allowed.host/',
       }),
     );
   });
@@ -84,6 +88,34 @@ describe('artifact proxy ownership with the production validator', () => {
     if (downstream) await new Promise<void>((resolve) => downstream.close(() => resolve()));
     if (app) await app.close();
   });
+
+  async function requestRawArtifact(
+    path: string,
+  ): Promise<{ status: number | undefined; body: string }> {
+    const server = app.start(0);
+    const address = server.address();
+    if (!address || typeof address === 'string') throw new Error('Expected TCP listener');
+    // URL-aware test clients normalize parent and current-directory segments before transmission.
+    return new Promise((resolve, reject) => {
+      const request = rawHttpRequest(
+        {
+          hostname: '127.0.0.1',
+          port: address.port,
+          path,
+          headers: { 'kubeflow-userid': 'a@example.com' },
+        },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on('data', (chunk: Buffer) => chunks.push(chunk));
+          response.on('end', () =>
+            resolve({ status: response.statusCode, body: Buffer.concat(chunks).toString() }),
+          );
+        },
+      );
+      request.on('error', reject);
+      request.end();
+    });
+  }
 
   it.each([
     '/artifacts/get?source=minio&bucket=shared&key=custom/victim&namespace=team-a',
@@ -109,5 +141,82 @@ describe('artifact proxy ownership with the production validator', () => {
       .expect(200);
     expect(response.body.toString()).toBe('own-data');
     expect(forwarded).toHaveLength(1);
+  });
+
+  it.each([
+    '/artifacts/get?source=http&bucket=storage-bucket&key=private-artifacts/team-a/own&namespace=team-a',
+    '/artifacts/https/storage-bucket/private-artifacts/team-a/own?namespace=team-a',
+  ])('serves authorized HTTP artifacts directly instead of proxying: %s', async (path) => {
+    await requests(app.app)
+      .get(path)
+      .set('kubeflow-userid', 'a@example.com')
+      .expect(200, 'own-data');
+
+    expect(forwarded).toEqual([]);
+    expect(
+      fetchSpy.mock.calls.some(([url]) => String(url).includes('allowed.host/storage-bucket')),
+    ).toBe(true);
+  });
+
+  it('rejects a cross-namespace HTTP redirect without reaching the tenant service', async () => {
+    fetchSpy.mockImplementation(async (input: string | URL | Request) => {
+      const url = new URL(String(input));
+      if (url.hostname === 'allowed.host') {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location:
+              'http://allowed.host/storage-bucket/private-artifacts/victim-namespace/secret',
+          },
+        });
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    await requests(app.app)
+      .get(
+        '/artifacts/get?source=http&bucket=storage-bucket&key=private-artifacts/team-a/own&namespace=team-a',
+      )
+      .set('kubeflow-userid', 'a@example.com')
+      .expect(403, 'Redirected artifact is outside the requested namespace');
+
+    expect(forwarded).toEqual([]);
+    expect(
+      fetchSpy.mock.calls.filter(([url]) => String(url).includes('allowed.host')),
+    ).toHaveLength(1);
+  });
+
+  it.each([
+    '/artifacts/volume/pvc/../../minio/shared/custom/victim?namespace=team-a',
+    '/artifacts/volume/%2e%2e/minio/shared/custom/victim?namespace=team-a',
+  ])('rejects a volume path that the proxy reparses as a different source: %s', async (path) => {
+    const { status } = await requestRawArtifact(path);
+    expect(status).toBe(400);
+    expect(forwarded).toEqual([]);
+  });
+
+  it('rejects parent segments in a volume query key before proxying', async () => {
+    await requests(app.app)
+      .get('/artifacts/get?source=volume&bucket=pvc&key=../custom/victim&namespace=team-a')
+      .set('kubeflow-userid', 'a@example.com')
+      .expect(400);
+    expect(forwarded).toEqual([]);
+  });
+
+  it('keeps a volume current-directory alias within the same artifact', async () => {
+    const response = await requestRawArtifact(
+      '/artifacts/volume/pvc/outputs/./own?namespace=team-a',
+    );
+    expect(response).toEqual({ status: 200, body: 'own-data' });
+    expect(forwarded).toEqual(['/artifacts/volume/pvc/outputs/own']);
+  });
+
+  it('still forwards a volume artifact to its namespace service', async () => {
+    const response = await requests(app.app)
+      .get('/artifacts/volume/pvc/own?namespace=team-a')
+      .set('kubeflow-userid', 'a@example.com')
+      .expect(200);
+    expect(response.body.toString()).toBe('own-data');
+    expect(forwarded).toEqual(['/artifacts/volume/pvc/own']);
   });
 });

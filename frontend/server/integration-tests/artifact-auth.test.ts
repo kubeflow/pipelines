@@ -14,7 +14,7 @@
 
 import { vi, describe, it, expect, afterAll, afterEach, beforeEach, MockInstance } from 'vitest';
 import * as minio from 'minio';
-import { PassThrough } from 'stream';
+import { PassThrough, Readable } from 'stream';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
@@ -51,18 +51,19 @@ vi.mock('../gcs-helper.js', () => ({
 }));
 
 const mockedValidateArtifactNamespace = vi.fn();
-vi.mock('../helpers/artifact-validator.js', () => ({
+vi.mock('../helpers/artifact-validator.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../helpers/artifact-validator.js')>()),
   validateArtifactNamespace: (...args: unknown[]) => mockedValidateArtifactNamespace(...args),
-  requiresArtifactOwnershipValidation: (source: string) =>
-    ['minio', 's3', 'gcs', 'http', 'https'].includes(source),
-  buildArtifactUri: (source: string, bucket: string, key: string) => {
-    const scheme = source === 'gcs' ? 'gs' : source;
-    return `${scheme}://${bucket}/${key}`;
-  },
 }));
 
 const mockedFetch = vi.fn();
 vi.stubGlobal('fetch', mockedFetch);
+
+function toWebStream(content: string): ReadableStream<Uint8Array> {
+  const stream = new PassThrough();
+  stream.end(content);
+  return Readable.toWeb(stream) as ReadableStream<Uint8Array>;
+}
 
 describe('/artifacts authorization', () => {
   let app: UIServer;
@@ -555,6 +556,55 @@ describe('/artifacts authorization', () => {
       });
     };
 
+    const authEnabledHttpConfigs = () => {
+      const configurations = authEnabledConfigs();
+      configurations.artifacts.http.baseUrl = 'allowed.host/root/';
+      configurations.artifacts.http.auth = {
+        key: 'Authorization',
+        defaultValue: 'shared-http-token',
+      };
+      configurations.artifacts.allowedDomain = '^(allowed|cdn)\\.host$';
+      return configurations;
+    };
+
+    const mockHttpRedirect = (firstUrl: string, location: string) => {
+      mockedFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve(''),
+        })
+        .mockImplementationOnce((url: string) => {
+          expect(url).toBe(firstUrl);
+          return Promise.resolve({
+            status: 302,
+            headers: new Map([['location', location]]),
+            body: toWebStream(''),
+          });
+        });
+    };
+
+    const httpArtifactRequest =
+      '/artifacts/get?source=http&bucket=storage-bucket' +
+      '&key=private-artifacts%2Fmy-namespace%2Frun%2Foutput.txt&namespace=my-namespace';
+    const firstHttpArtifactUrl =
+      'http://allowed.host/root/storage-bucket/private-artifacts/my-namespace/run/output.txt';
+
+    it('returns a controlled error when proxied HTTP serving lacks a shared base URL', async () => {
+      mockAuthPass();
+      const configurations = authEnabledConfigs();
+      configurations.artifacts.proxy.enabled = true;
+      app = new UIServer(configurations);
+
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(400, 'HTTP artifact base URL is not configured');
+
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('rejects artifact access when ArtifactService shows namespace mismatch', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({
@@ -739,6 +789,104 @@ describe('/artifacts authorization', () => {
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
       );
+    });
+
+    it('rejects a same-origin redirect to another namespace before fetching it', async () => {
+      const victimUrl =
+        'http://allowed.host/root/storage-bucket/private-artifacts/victim-namespace/run/secret.txt';
+      mockHttpRedirect(firstHttpArtifactUrl, victimUrl);
+      app = new UIServer(authEnabledHttpConfigs());
+
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(403, 'Redirected artifact is outside the requested namespace');
+
+      expect(mockedFetch).toHaveBeenCalledTimes(2);
+      expect(mockedFetch).not.toHaveBeenCalledWith(victimUrl, expect.anything());
+    });
+
+    it('follows a canonical same-origin redirect within the namespace', async () => {
+      const targetUrl =
+        'http://allowed.host/root/storage-bucket/private-artifacts/my-namespace/run/other.txt?signature=abc';
+      mockHttpRedirect(firstHttpArtifactUrl, targetUrl);
+      mockedFetch.mockResolvedValueOnce({
+        status: 200,
+        headers: new Map(),
+        body: toWebStream('same namespace artifact'),
+      });
+      app = new UIServer(authEnabledHttpConfigs());
+
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, 'same namespace artifact');
+
+      expect(mockedFetch).toHaveBeenNthCalledWith(3, targetUrl, {
+        headers: { Authorization: 'shared-http-token' },
+        redirect: 'manual',
+      });
+    });
+
+    it.each([
+      [
+        'normalized parent segment',
+        'http://allowed.host/root/storage-bucket/private-artifacts/my-namespace/../victim-namespace/secret.txt',
+      ],
+      [
+        'encoded separator alias',
+        'http://allowed.host/root/storage-bucket/private-artifacts/my-namespace/..%2Fvictim-namespace/secret.txt',
+      ],
+      [
+        'encoded backslash separator',
+        'http://allowed.host/root/storage-bucket/private-artifacts/my-namespace/run%5C..%5Cvictim-namespace/secret.txt',
+      ],
+    ])('rejects a same-origin redirect with a %s', async (_description, targetUrl) => {
+      mockHttpRedirect(firstHttpArtifactUrl, targetUrl);
+      app = new UIServer(authEnabledHttpConfigs());
+
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(403, 'Redirected artifact is outside the requested namespace');
+
+      expect(mockedFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('rechecks the namespace after each same-origin redirect hop', async () => {
+      const intermediateUrl =
+        'http://allowed.host/root/storage-bucket/private-artifacts/my-namespace/run/intermediate.txt';
+      const victimUrl =
+        'http://allowed.host/root/storage-bucket/private-artifacts/victim-namespace/run/secret.txt';
+      mockHttpRedirect(firstHttpArtifactUrl, intermediateUrl);
+      mockedFetch.mockResolvedValueOnce({
+        status: 302,
+        headers: new Map([['location', victimUrl]]),
+        body: toWebStream(''),
+      });
+      app = new UIServer(authEnabledHttpConfigs());
+
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(403, 'Redirected artifact is outside the requested namespace');
+
+      expect(mockedFetch).toHaveBeenCalledTimes(3);
+      expect(mockedFetch).not.toHaveBeenCalledWith(victimUrl, expect.anything());
+    });
+
+    it('rejects cross-origin signed redirects in authenticated mode', async () => {
+      const signedUrl = 'https://cdn.host/signed/opaque-object?signature=abc';
+      mockHttpRedirect(firstHttpArtifactUrl, signedUrl);
+      app = new UIServer(authEnabledHttpConfigs());
+
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(403, 'Cross-origin HTTP artifact redirects are not allowed');
+
+      expect(mockedFetch).toHaveBeenCalledTimes(2);
+      expect(mockedFetch).not.toHaveBeenCalledWith(signedUrl, expect.anything());
     });
 
     it('passes the correct URI to ArtifactService validation for an s3 source', async () => {
