@@ -601,6 +601,10 @@ class TestClient(parameterized.TestCase):
 
 class TestInverseProxyCredentials(parameterized.TestCase):
 
+    def setUp(self):
+        super().setUp()
+        self.sdk_client = client.Client.__new__(client.Client)
+
     def _load_config(self, host, **overrides):
         kwargs = dict(
             host=host,
@@ -615,7 +619,66 @@ class TestInverseProxyCredentials(parameterized.TestCase):
             credentials=None,
             verify_ssl=True)
         kwargs.update(overrides)
-        return client.Client.__new__(client.Client)._load_config(**kwargs)
+        return self.sdk_client._load_config(**kwargs)
+
+    @parameterized.parameters(
+        ('https://abc.googleusercontent.com', None, True),
+        ('https://attacker.example/service.googleusercontent.com', None, False),
+        ('https://attacker.example', None, False),
+        ('https://abc.googleusercontent.com', 'explicit-token', False),
+        ('https://attacker.example', 'explicit-token', False),
+    )
+    def test_polling_cannot_switch_to_google_credentials(
+            self, host, existing_token, should_refresh):
+        with patch.object(
+                auth, 'get_gcp_access_token', return_value='initial-token'):
+            config = self._load_config(host, existing_token=existing_token)
+        self.sdk_client._existing_config = config
+        self.sdk_client._run_api = Mock()
+        headers_seen = []
+        with kfp_server_api.ApiClient(config) as api_client:
+
+            def get_run(**kwargs):
+                headers = {}
+                api_client.update_params_for_auth(headers, [], ['Bearer'])
+                headers_seen.append(headers)
+                if len(headers_seen) == 2:
+                    raise kfp_server_api.ApiException(status=401)
+                return Mock(
+                    state='succeeded' if len(headers_seen) == 3 else 'running')
+
+            self.sdk_client._run_api.run_service_get_run.side_effect = get_run
+            with patch.object(
+                    auth, 'get_gcp_access_token',
+                    return_value='refreshed-token') as get_token:
+                self.sdk_client.wait_for_run_completion(
+                    run_id='test-run', timeout=10, sleep_duration=0)
+        if should_refresh:
+            get_token.assert_called_once_with()
+            self.assertEqual(headers_seen[-1]['authorization'],
+                             'Bearer refreshed-token')
+        else:
+            get_token.assert_not_called()
+            self.assertEqual(headers_seen[-1], headers_seen[0])
+
+    def test_refresh_rechecks_endpoint(self):
+        with patch.object(
+                auth, 'get_gcp_access_token', return_value='initial-token'):
+            config = self._load_config('https://abc.googleusercontent.com')
+        self.sdk_client._existing_config = config
+        config.host = 'https://attacker.example'
+        with patch.object(auth, 'get_gcp_access_token') as get_token:
+            self.sdk_client._refresh_api_client_token()
+        get_token.assert_not_called()
+
+    def test_failed_refresh_preserves_existing_token(self):
+        with patch.object(
+                auth, 'get_gcp_access_token', return_value='initial-token'):
+            config = self._load_config('https://abc.googleusercontent.com')
+        self.sdk_client._existing_config = config
+        with patch.object(auth, 'get_gcp_access_token', return_value=None):
+            self.sdk_client._refresh_api_client_token()
+        self.assertEqual(config.api_key['authorization'], 'initial-token')
 
     @parameterized.parameters('https://abc.googleusercontent.com',
                               'https://attacker.example')

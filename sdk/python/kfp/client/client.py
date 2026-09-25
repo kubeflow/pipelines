@@ -227,6 +227,7 @@ class Client:
         verify_ssl: Optional[bool],
     ) -> kfp_server_api.Configuration:
         config = kfp_server_api.Configuration()
+        self._uses_gcp_credentials = False
 
         if proxy:
             # https://github.com/kubeflow/pipelines/blob/c6ac5e0b1fd991e19e96419f0f508ec0a4217c29/backend/api/python_http_client/kfp_server_api/rest.py#L100
@@ -284,6 +285,7 @@ class Client:
         elif self._is_inverse_proxy_host(host):
             token = auth.get_gcp_access_token()
             self._is_refresh_token = False
+            self._uses_gcp_credentials = True
         elif credentials:
             config.api_key['authorization'] = 'placeholder'
             config.api_key_prefix['authorization'] = 'Bearer'
@@ -372,11 +374,13 @@ class Client:
 
     def _refresh_api_client_token(self) -> None:
         """Refreshes the existing token associated with the kfp_api_client."""
-        if getattr(self, '_is_refresh_token', None):
+        if (not getattr(self, '_uses_gcp_credentials', False) or
+                not self._is_inverse_proxy_host(self._existing_config.host)):
             return
 
         new_token = auth.get_gcp_access_token()
-        self._existing_config.api_key['authorization'] = new_token
+        if new_token:
+            self._existing_config.api_key['authorization'] = new_token
 
     def _get_config_with_default_credentials(
             self, config: kfp_server_api.Configuration
