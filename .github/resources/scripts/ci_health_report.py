@@ -113,7 +113,6 @@ TARGET_WORKFLOWS = [
 RESULT_JOB_PREFIXES = {
     "e2e-test.yml": ("End to End ",),
     "api-server-tests.yml": ("KFP API Server ",),
-    "integration-tests-v1.yml": ("Initialization & Integration tests v1 - ",),
     "legacy-v2-api-integration-tests.yml": ("API integration tests v2 - ",),
     "kfp-sdk-client-tests.yml": ("KFP SDK Client Tests - ",),
     "upgrade-test.yml": ("KFP upgrade tests - ",),

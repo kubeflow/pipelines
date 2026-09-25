@@ -62,6 +62,17 @@ def junit_zip(*xml_bodies):
     return buffer.getvalue()
 
 
+class TrackedWorkflowsTest(unittest.TestCase):
+
+    def test_current_workflows_exist_and_have_result_prefixes(self):
+        workflow_dir = Path(__file__).resolve().parents[2] / "workflows"
+        self.assertEqual(set(chr_mod.TARGET_WORKFLOWS),
+                         set(chr_mod.RESULT_JOB_PREFIXES))
+        for name in chr_mod.TARGET_WORKFLOWS:
+            with self.subTest(workflow=name):
+                self.assertTrue((workflow_dir / name).is_file())
+
+
 class ConclusionHandlingTest(unittest.TestCase):
     """Cancelled/skipped are non-results; other non-success are failures."""
 
