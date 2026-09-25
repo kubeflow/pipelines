@@ -41,9 +41,9 @@ function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
   // task itself is FAILED, so the failed icon takes precedence over the warning.
   const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
   // A debug-pause barrier is a separate overlay on top of the task's real
-  // state (which continues to report RUNNING while parked) - takes
+  // state (which continues to report RUNNING while parked) - it takes
   // visual precedence here rather than being merged into getIcon's switch,
-  // so a paused task is unmistakably distinct form a normally-running one.
+  // so a paused task is unmistakably distinct from a normally-running one.
   let icon = data.debugPauseBarrier
     ? getDebugPauseIcon()
     : showWarning
@@ -153,11 +153,11 @@ function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {
 }
 
 // Deliberately grey, distinct from any color used by getIcon's real state
-// icons - a paused task is neither succeeding, ailing, nor merely running;
+// icons - a paused task is neither succeeding, failing, nor merely running;
 // it is waiting for a person to resume it.
 export function getDebugPauseIcon() {
   return getStateIconWrapper(
-    <PauseCircleIcon data-testid='execution-icon-debug-paused' className='textmui-grey-600' />,
+    <PauseCircleIcon data-testid='execution-icon-debug-paused' className='text-mui-grey-600' />,
     'bg-mui-grey-200',
   );
 }

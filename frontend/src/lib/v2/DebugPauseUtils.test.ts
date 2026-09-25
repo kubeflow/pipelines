@@ -76,12 +76,14 @@ describe('requestDebugPauseResume', () => {
 
   it('throws when the task has no task_id', async () => {
     await expect(requestDebugPauseResume('run-1', { task_id: undefined })).rejects.toThrow(
-      'task_id',
+      /task_id/,
     );
   });
 
   it('calls UpdateTask (task_2) with the resume flag merged into existing custom_properties', async () => {
-    const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValueOnce({} as any);
+    const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValueOnce({
+      task_id: 'task-1',
+    });
 
     const task = taskWithCustomProperties({
       debug_pause_barrier: 'after',
@@ -104,7 +106,9 @@ describe('requestDebugPauseResume', () => {
   });
 
   it('works when the task has no existing custom_properties at all', async () => {
-    const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValueOnce({} as any);
+    const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValueOnce({
+      task_id: 'task-1',
+    });
 
     await requestDebugPauseResume('run-1', { task_id: 'task-1' });
 
