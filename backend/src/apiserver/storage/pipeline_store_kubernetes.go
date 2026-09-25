@@ -46,6 +46,13 @@ func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespaceV1(name string, n
 
 func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	if namespace == "" {
+		// The pod namespace is where KFP itself runs; falling back to it would cross tenants.
+		if common.IsMultiUserMode() {
+			return nil, util.NewInvalidInputError(
+				"A namespace is required to look up pipeline %v in multi-user mode", name,
+			)
+		}
+
 		namespace = common.GetPodNamespace()
 	}
 
