@@ -34,6 +34,7 @@ Starting in Kubeflow Pipelines 2.5, you can import model artifacts that are pack
 
    - Use an OCI URI in the `artifact_uri` argument
    - Example: For a container image `quay.io/my-org/my-model:v1`, use `artifact_uri='oci://quay.io/my-org/my-model:v1'`
+   - Note: `oci://<bucket>@<namespace>/<path>` URIs are [OCI Object Storage](../../operator-guides/configure-object-store.md#oracle-cloud-infrastructure-oci-object-storage-provider) paths, not container images. They are downloaded like any other object store artifact.
 
 2. **Runtime Behavior**:
 

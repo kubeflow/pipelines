@@ -2,6 +2,11 @@
 
 ## Features
 
+* Add OCI Object Storage artifact URIs of the form `oci://<bucket>@<namespace>/<path>`.
+  `Artifact.path` maps them to `/oci/<bucket>@<namespace>/<path>`; the bare
+  `oci://<registry>/<image>` form keeps its Modelcar semantics. Requires the KFP
+  backend from the same release with an `oci` provider in the `kfp-launcher`
+  ConfigMap.
 * Add Kubernetes Dynamic Resource Allocation support. This feature requires
   Kubernetes 1.31 or later with the `DynamicResourceAllocation` feature gate
   enabled (GA and enabled by default in Kubernetes 1.34), an installed DRA

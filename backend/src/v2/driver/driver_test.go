@@ -545,6 +545,58 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	assert.Empty(t, taskConfig.Resources.Requests)
 }
 
+func Test_initPodSpecPatch_oci_object_storage_input_artifact_is_not_a_modelcar(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.11",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"my-model": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							// OCI Object Storage path (oci://<bucket>@<namespace>/...), not a container image.
+							Uri: "oci://kfp-artifacts@mynamespace/v2/artifacts/run-1/model",
+						},
+					},
+				},
+			},
+		},
+	}
+	taskConfig := &TaskConfig{}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		"27",
+		"",
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		taskConfig,
+		"",
+		nil,
+		"",
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		nil,
+	)
+	require.NoError(t, err)
+
+	assert.Empty(t, podSpec.InitContainers)
+	assert.Len(t, podSpec.Containers, 1)
+	assert.Nil(t, podSpec.ShareProcessNamespace)
+}
+
 func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
 		Image:   "python:3.11",

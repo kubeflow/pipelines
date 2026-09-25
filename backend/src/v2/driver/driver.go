@@ -27,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
@@ -583,7 +584,7 @@ func addModelcarsToPodSpec(
 
 			// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
 			// be set on inputArtifact.
-			if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			if !objectstore.IsModelcarURI(inputArtifact.Uri) {
 				continue
 			}
 

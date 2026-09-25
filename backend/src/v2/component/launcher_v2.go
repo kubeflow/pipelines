@@ -38,6 +38,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"gocloud.dev/blob"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -182,7 +183,7 @@ func stopWaitingArtifacts(artifacts map[string]*pipelinespec.ArtifactList) {
 
 			// This should ideally verify that this is also a model input artifact, but this metadata doesn't seem to
 			// be set on inputArtifact.
-			if !strings.HasPrefix(inputArtifact.Uri, "oci://") {
+			if !objectstore.IsModelcarURI(inputArtifact.Uri) {
 				continue
 			}
 
@@ -976,7 +977,7 @@ func (l *LauncherV2) uploadOutputArtifacts(
 					apiV2beta1.Artifact_SlicedClassificationMetric != artifactType
 
 				// If the artifact is not a metric, upload it to the object store and store the URI in the artifact
-				if isNotAMetric && !strings.HasPrefix(outputArtifact.Uri, "oci://") {
+				if isNotAMetric && !objectstore.IsModelcarURI(outputArtifact.Uri) {
 					localPath, err := retrieveArtifactPath(outputArtifact)
 					if err != nil {
 						glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.",
@@ -996,7 +997,7 @@ func (l *LauncherV2) uploadOutputArtifacts(
 						return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", artifactKey, outputArtifact.Uri, err)
 					}
 					artifact.Uri = util.StringPointer(outputArtifact.Uri)
-				} else if strings.HasPrefix(outputArtifact.Uri, "oci://") {
+				} else if objectstore.IsModelcarURI(outputArtifact.Uri) {
 					artifact.Uri = util.StringPointer(outputArtifact.Uri)
 				}
 
@@ -1746,8 +1747,9 @@ func (l *LauncherV2) downloadArtifacts(ctx context.Context) error {
 				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", artifactKey, artifact.Uri)
 				continue
 			}
-			// OCI artifacts are accessed via shared storage of a Modelcar
-			if strings.HasPrefix(artifact.Uri, "oci://") {
+			// Modelcar (oci://<registry>/<image>) artifacts are accessed via the shared storage of a sidecar.
+			// OCI Object Storage (oci://<bucket>@<namespace>/...) artifacts are downloaded like any other bucket.
+			if objectstore.IsModelcarURI(artifact.Uri) {
 				err := waitForModelcar(artifact.Uri, localPath)
 				if err != nil {
 					return err
@@ -1982,7 +1984,12 @@ func LocalPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "s3://") {
 		return fmt.Sprintf("%s/s3/", rootPath) + strings.TrimPrefix(uri, "s3://"), nil
 	}
-	if strings.HasPrefix(uri, "oci://") {
+	if objectstore.IsOCIObjectStorageURI(uri) {
+		// OCI Object Storage: oci://<bucket>@<namespace>/<key> -> /oci/<bucket>@<namespace>/<key>.
+		// Must stay in sync with kfp.dsl.types.artifact_types.Artifact.path in the SDK.
+		return fmt.Sprintf("%s/oci/", rootPath) + strings.TrimPrefix(uri, objectstore.OCIScheme), nil
+	}
+	if objectstore.IsModelcarURI(uri) {
 		return fmt.Sprintf("%s/oci/", rootPath) + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
@@ -2002,7 +2009,7 @@ func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error
 // It preserves the same path shape as LocalPathForURI, but rebases it under the
 // workspace artifacts directory: /kfp-workspace/.artifacts/...
 func LocalWorkspacePathForURI(uri string) (string, error) {
-	if strings.HasPrefix(uri, "oci://") {
+	if objectstore.IsModelcarURI(uri) {
 		return "", fmt.Errorf("failed to generate workspace path for URI %s: OCI not supported for workspace artifacts", uri)
 	}
 	localPath, err := LocalPathForURI(uri)

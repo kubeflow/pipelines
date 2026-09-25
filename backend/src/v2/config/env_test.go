@@ -104,6 +104,97 @@ func TestGetBucketSessionInfo(t *testing.T) {
 			errorMsg:            "unrecognized pipeline root format",
 		},
 		{
+			msg:          "valid - only oci pipelineroot no provider config",
+			pipelineroot: "oci://my-bucket@my-namespace/v2/artifacts",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "oci",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+		},
+		{
+			msg:                 "invalid - oci pipelineroot without namespace",
+			pipelineroot:        "oci://my-bucket/v2/artifacts",
+			expectedSessionInfo: objectstore.SessionInfo{},
+			shouldError:         true,
+			errorMsg:            "oci://<bucket>@<namespace>/<prefix>",
+		},
+		{
+			msg:          "valid - oci default config when no override matches",
+			pipelineroot: "oci://oci-bucket-a@oci-namespace-a/no/override/path",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "oci",
+				Params: map[string]string{
+					"region":         "us-ashburn-1",
+					"forcePathStyle": "true",
+					"maxRetries":     "5",
+					"fromEnv":        "false",
+					"secretName":     "oci-test-secret-13",
+					"accessKeyKey":   "oci-test-accessKeyKey-13",
+					"secretKeyKey":   "oci-test-secretKeyKey-13",
+				},
+			},
+			testDataCase: "case13",
+		},
+		{
+			msg:          "valid - oci override pinned to namespace",
+			pipelineroot: "oci://oci-bucket-a@oci-namespace-a/some/oci/path/a/model",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "oci",
+				Params: map[string]string{
+					"region":         "us-phoenix-1",
+					"forcePathStyle": "true",
+					"maxRetries":     "5",
+					"fromEnv":        "false",
+					"secretName":     "oci-test-secret-13-a",
+					"accessKeyKey":   "oci-test-accessKeyKey-13-a",
+					"secretKeyKey":   "oci-test-secretKeyKey-13-a",
+				},
+			},
+			testDataCase: "case13",
+		},
+		{
+			msg:          "valid - oci override pinned to namespace is skipped for another namespace",
+			pipelineroot: "oci://oci-bucket-a@other-namespace/some/oci/path/a/model",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "oci",
+				Params: map[string]string{
+					"region":         "us-ashburn-1",
+					"forcePathStyle": "true",
+					"maxRetries":     "5",
+					"fromEnv":        "false",
+					"secretName":     "oci-test-secret-13",
+					"accessKeyKey":   "oci-test-accessKeyKey-13",
+					"secretKeyKey":   "oci-test-secretKeyKey-13",
+				},
+			},
+			testDataCase: "case13",
+		},
+		{
+			msg:          "valid - oci override with endpoint and env credentials",
+			pipelineroot: "oci://oci-bucket-a@oci-namespace-a/some/oci/path/b",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "oci",
+				Params: map[string]string{
+					"region":         "us-ashburn-1",
+					"endpoint":       "https://objectstorage.internal.example:8443",
+					"forcePathStyle": "true",
+					"maxRetries":     "5",
+					"fromEnv":        "true",
+				},
+			},
+			testDataCase: "case13",
+		},
+		{
+			msg:                 "invalid - oci should require default creds",
+			pipelineroot:        "oci://my-bucket@my-namespace/v2/artifacts",
+			expectedSessionInfo: objectstore.SessionInfo{},
+			shouldError:         true,
+			errorMsg:            "missing default credentials",
+			testDataCase:        "case14",
+		},
+		{
 			msg:          "valid - no providers, should use minio default",
 			pipelineroot: "minio://my-bucket/v2/artifacts",
 			expectedSessionInfo: objectstore.SessionInfo{
@@ -512,6 +603,18 @@ func Test_QueryParameters(t *testing.T) {
 			shouldError: false,
 		},
 		{
+			msg:          "valid - for oci fetch fromEnv when query parameters are present, even when a matching provider config is provided",
+			pipelineroot: "oci://oci-bucket-a@oci-namespace-a/some/oci/path/a?region=us-phoenix-1",
+			expectedSessionInfo: objectstore.SessionInfo{
+				Provider: "oci",
+				Params: map[string]string{
+					"fromEnv": "true",
+				},
+			},
+			shouldError:  false,
+			testDataCase: "case13",
+		},
+		{
 			msg:          "valid - for minio fetch fromEnv when when query parameters are present, and when matching provider config is provided",
 			pipelineroot: "minio://bucket_name/v2/artifacts/profile_name?region=bucket_region&endpoint=endpoint&disableSSL=not_use_ssl&s3ForcePathStyle=true",
 			expectedSessionInfo: objectstore.SessionInfo{
@@ -589,6 +692,60 @@ func TestIsPathUnderDefaultPipelineRoot(t *testing.T) {
 	assert.True(t, underRoot)
 
 	underRoot, err = config.IsPathUnderDefaultPipelineRoot("minio://other-bucket/v2/artifacts/root/run-1/output")
+	require.NoError(t, err)
+	assert.False(t, underRoot)
+}
+
+func TestHasExplicitBucketOverride_OCI(t *testing.T) {
+	config := Config{data: map[string]string{
+		"providers": `
+oci:
+  default:
+    region: us-ashburn-1
+    credentials:
+      secretRef:
+        secretName: default-secret
+        accessKeyKey: accessKey
+        secretKeyKey: secretKey
+  Overrides:
+    - bucketName: allowlisted-bucket
+      namespace: my-namespace
+      keyPrefix: allowed/
+      credentials:
+        secretRef:
+          secretName: override-secret
+          accessKeyKey: accessKey
+          secretKeyKey: secretKey
+`,
+	}}
+
+	hasOverride, err := config.HasExplicitBucketOverride("oci://allowlisted-bucket@my-namespace/allowed/path")
+	require.NoError(t, err)
+	assert.True(t, hasOverride)
+
+	hasOverride, err = config.HasExplicitBucketOverride("oci://allowlisted-bucket@other-namespace/allowed/path")
+	require.NoError(t, err)
+	assert.False(t, hasOverride)
+
+	hasOverride, err = config.HasExplicitBucketOverride("oci://allowlisted-bucket@my-namespace/other/path")
+	require.NoError(t, err)
+	assert.False(t, hasOverride)
+}
+
+func TestIsPathUnderDefaultPipelineRoot_OCI(t *testing.T) {
+	config := Config{data: map[string]string{
+		configKeyDefaultPipelineRoot: "oci://mlpipeline@my-namespace/v2/artifacts/root",
+	}}
+
+	underRoot, err := config.IsPathUnderDefaultPipelineRoot("oci://mlpipeline@my-namespace/v2/artifacts/root/run-1/output")
+	require.NoError(t, err)
+	assert.True(t, underRoot)
+
+	underRoot, err = config.IsPathUnderDefaultPipelineRoot("oci://mlpipeline@other-namespace/v2/artifacts/root/run-1/output")
+	require.NoError(t, err)
+	assert.False(t, underRoot)
+
+	underRoot, err = config.IsPathUnderDefaultPipelineRoot("oci://other-bucket@my-namespace/v2/artifacts/root/run-1/output")
 	require.NoError(t, err)
 	assert.False(t, underRoot)
 }

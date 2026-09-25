@@ -1005,6 +1005,39 @@ describe('resolveArtifactCoordinates', () => {
   });
 });
 
+describe('getArtifactsHandler OCI Object Storage source', () => {
+  it('answers 501 for oci://<bucket>@<namespace> artifacts instead of an unknown-source 500', async () => {
+    const send = vi.fn();
+    const status = vi.fn().mockReturnValue({ type: vi.fn().mockReturnValue({ send }) });
+    const handler = getArtifactsHandler({
+      artifactsConfigs: {},
+      options: {
+        auth: { enabled: false },
+        server: { serverNamespace: 'kubeflow' },
+      },
+      tryExtract: true,
+      useParameter: false,
+    } as unknown as Parameters<typeof getArtifactsHandler>[0]);
+
+    await handler(
+      {
+        path: '/artifacts/get',
+        params: {},
+        query: { bucket: 'kfp-artifacts@mynamespace', key: 'run-1/model', source: 'oci' },
+      } as never,
+      {
+        locals: {},
+        setHeader: vi.fn(),
+        status,
+      } as never,
+      vi.fn(),
+    );
+
+    expect(status).toHaveBeenCalledWith(501);
+    expect(send).toHaveBeenCalledWith(expect.stringContaining('OCI Object Storage'));
+  });
+});
+
 describe('getArtifactsHandler authorization handoff', () => {
   it('rejects coordinates that differ from the URI authorized by middleware', async () => {
     const send = vi.fn();
