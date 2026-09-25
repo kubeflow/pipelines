@@ -10,7 +10,6 @@ on:
     # Explicit constituents prevent CI Check from recursively triggering itself.
     workflows:
       - 'API Server Tests'
-      - 'KFP backend visualization tests'
       - 'Build tools images'
       - 'CI Scripts Tests'
       - 'Check uv.lock and requirements.txt sync'

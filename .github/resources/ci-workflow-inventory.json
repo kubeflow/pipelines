@@ -33,23 +33,6 @@
       }
     },
     {
-      "path": ".github/workflows/backend-visualization.yml",
-      "name": "KFP backend visualization tests",
-      "header_sha256": "fa4888ed459bec95f08517397b96d0b0e3ee886ec9555cbaf2e70632404c4915",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/backend-visualization.yml",
-          ".github/actions/setup-python-pip-cache/**",
-          "backend/src/apiserver/visualization/**",
-          "test/presubmit-backend-visualization.sh",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      }
-    },
-    {
       "path": ".github/workflows/build-and-push.yml",
       "name": "Build and Push images",
       "header_sha256": "69c2fd667ef7aed48863a2273eb0ff65c101642a38f734aace901bf79aea32fb",
@@ -97,7 +80,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "124e10e0abdef165f7e04d2f1ddbd528e2b0ca85cbf0d6b08f1bb0f7ae079308",
+      "header_sha256": "c5704a333b7a9b1e4963ec5bfe4e6d902b8a3ded2c0054837ad742c208d2e1f8",
       "pull_request": null
     },
     {
@@ -109,7 +92,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "3b81348aaadc6267a836f00ba31588df021726a5d1bfe5b08ab9f9d3212d4e2a",
+      "header_sha256": "bc31e48ec9321281766d03b29eca5637b85a3e5534ef078e632856d8b3e8ab72",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -157,14 +140,20 @@
           ".github/workflows/pr-gate.yml",
           ".github/workflows/gh-workflow-approve.yml",
           ".github/workflows/contributor-report.yml",
-          "manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml",
-          "manifests/kustomize/third-party/argo/base/workflow-controller-deployment-patch.yaml",
-          "manifests/kustomize/third-party/argo/base/kustomization.yaml",
-          "manifests/kustomize/third-party/argo/installs/**",
-          "manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml",
+          "manifests/kustomize/**",
+          ".github/resources/manifests/**",
+          "backend/api/v2beta1/**",
+          "backend/Dockerfile.visualization",
+          "backend/src/apiserver/visualization/**",
+          "frontend/src/apisv2beta1/visualization/**",
+          "docs/_static/kfp_api_single_file.swagger.json",
+          "Makefile",
+          "backend/src/v2/Makefile",
+          "release/kfpr/core.py",
+          "test_data/sdk_compiled_pipelines/valid/**",
+          ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
-          "backend/src/apiserver/visualization/update_requirements.sh",
           "hack/update-requirements.sh",
           ".readthedocs.yml",
           "kubernetes_platform/python/docs/.readthedocs.yml",
