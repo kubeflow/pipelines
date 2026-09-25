@@ -19,32 +19,33 @@ from kfp import dsl
 
 
 @dsl.component(
-    base_image='python:3.9', packages_to_install=['tensorflow==2.16.1']
-)
+    base_image='python:3.11', packages_to_install=['tensorflow==2.16.1'])
 def set_test_set(
     dataprep_dir: dsl.InputPath(),
-) -> NamedTuple('TestSetArtifact', uri=str, artifact=dsl.Artifact):
-  # fmt: off
-  """Creates test set artifact.
+) -> NamedTuple(
+        'TestSetArtifact', uri=str, artifact=dsl.Artifact):
+    # fmt: off
+    """Creates test set artifact.
 
-  Args:
-    dataprep_dir: The bucket where dataprep artifacts are stored.
+    Args:
+      dataprep_dir: The bucket where dataprep artifacts are stored.
 
-  Returns:
-    The test set dsl.Artifact.
-  """
-  import os  # pylint: disable=g-import-not-at-top
-  import json  # pylint: disable=g-import-not-at-top
-  import tensorflow as tf  # pylint: disable=g-import-not-at-top
+    Returns:
+      The test set dsl.Artifact.
+    """
+    import json  # pylint: disable=g-import-not-at-top
+    import os  # pylint: disable=g-import-not-at-top
 
-  with tf.io.gfile.GFile(
-      os.path.join(dataprep_dir, 'big_query_test_set.json')
-  ) as f:
-    metadata = json.load(f)
-  project = metadata['projectId']
-  dataset = metadata['datasetId']
-  table = metadata['tableId']
-  output = NamedTuple('TestSetArtifact', uri=str, artifact=dsl.Artifact)
-  uri = f'bq://{project}.{dataset}.{table}'
-  artifact = dsl.Artifact(uri=uri, metadata=metadata)
-  return output(uri, artifact)  # pylint: disable=too-many-function-args
+    import tensorflow as tf  # pylint: disable=g-import-not-at-top
+
+    with tf.io.gfile.GFile(
+        os.path.join(dataprep_dir, 'big_query_test_set.json')
+    ) as f:
+        metadata = json.load(f)
+    project = metadata['projectId']
+    dataset = metadata['datasetId']
+    table = metadata['tableId']
+    output = NamedTuple('TestSetArtifact', uri=str, artifact=dsl.Artifact)
+    uri = f'bq://{project}.{dataset}.{table}'
+    artifact = dsl.Artifact(uri=uri, metadata=metadata)
+    return output(uri, artifact)  # pylint: disable=too-many-function-args

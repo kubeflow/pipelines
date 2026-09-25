@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "Kubeflow Pipelines SDK"
 readme = "README.md"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [
   { name = "The Kubeflow Authors" }
 ]
@@ -14,8 +14,6 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -41,12 +39,10 @@ dependencies = [
   # protobuf version should be identical to the one in kfp-pipeline-spec
   "protobuf>=6.31.1,<7.0",
   "PyYAML>=5.3,<7",
-  "requests==2.32.5; python_version < '3.10'",
-  "requests==2.33.0; python_version >= '3.10'",
+  "requests==2.33.0",
   "requests-toolbelt>=0.8.0,<2",
   "tabulate>=0.8.6,<1",
-  "urllib3==2.6.3; python_version < '3.10'",
-  "urllib3==2.7.0; python_version >= '3.10'",
+  "urllib3==2.7.0",
 ]
 
 [project.optional-dependencies]
@@ -58,7 +54,6 @@ notebooks = [
   "nbclient>=0.10,<1",
   "ipykernel>=6,<7",
   "jupyter_client>=7,<9",
-  "fastjsonschema<2.22; python_version < '3.10'",
 ]
 
 [project.scripts]
