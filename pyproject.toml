@@ -39,7 +39,7 @@ constraint-dependencies = [
 # Linting tools (pinned to avoid new lint failures)
 lint = [
   "docformatter==1.4",
-  "isort==5.10.1",  "pre-commit-hooks",  "pycln==2.1.1",
+  "isort==5.10.1",  "pre-commit-hooks",  "pycln==2.6.0",
   "pylint==2.17.7",
   "yapf==0.43.0",
 ]
