@@ -854,7 +854,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	// Persist the native record and its scheduling state atomically.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a transaction to store run")
+		return nil, util.NewInternalServerError(err, "Failed to store run: could not create a transaction")
 	}
 	defer tx.Rollback()
 	_, err = tx.Exec(runSQL, runArgs...)

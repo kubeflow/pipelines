@@ -83,7 +83,7 @@ func newAuthorizedScheduleWithTrigger(t *testing.T, noCatchup bool, trigger mode
 		DisplayName: "authorized-schedule", Namespace: "ns1", ExperimentId: experiment.UUID, Enabled: true,
 		MaxConcurrency: 1, NoCatchup: noCatchup,
 		Trigger:        trigger,
-		ServiceAccount: "custom-sa", PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()), Parameters: `[{"name":"param1","value":"authorized-[[Index]]-[[ScheduledTime]]"}]`},
+		ServiceAccount: "custom-sa", PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"param1":"authorized-[[Index]]-[[ScheduledTime]]"}`, PipelineRoot: "schedule-root"}},
 	})
 	require.NoError(t, err)
 	require.Equal(t, "custom-sa", job.ServiceAccount)
@@ -130,9 +130,9 @@ func TestRecurringRunUsesStoredInputsAndStillRequiresCallerServiceAccountPermiss
 	require.Equal(t, 1, clients.ExecClientFake.GetWorkflowCount())
 	storedRun, err := manager.GetRun(run.RunId)
 	require.NoError(t, err)
-	workflow, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(storedRun.WorkflowRuntimeManifest))
+	workflow, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(storedRun.PipelineRuntimeManifest))
 	require.NoError(t, err)
-	require.Equal(t, "authorized-1-19700101000140", workflow.(*util.Workflow).GetWorkflowParametersAsMap()["param1"])
+	require.Contains(t, workflow.(*util.Workflow).ToStringForStore(), "authorized-1-19700101000140")
 	// Supplying a recurring-run ID does not let a different user borrow the controller grant.
 	// Even an idempotent replay must retain the service-account check.
 	_, err = server.CreateRun(scheduleContext("unprivileged@google.com"), request)

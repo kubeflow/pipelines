@@ -43,12 +43,11 @@ func requireScheduledRunParameters(t *testing.T, manager *resource.ResourceManag
 	t.Helper()
 	stored, err := manager.GetRun(run.RunId)
 	require.NoError(t, err)
-	execution, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(stored.WorkflowRuntimeManifest))
+	execution, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(stored.PipelineRuntimeManifest))
 	require.NoError(t, err)
 	workflow, ok := execution.(*util.Workflow)
 	require.True(t, ok)
-	require.Equal(t, fmt.Sprintf("authorized-%d-%s", index, time.Unix(scheduledAt, 0).UTC().Format("20060102150405")),
-		workflow.GetWorkflowParametersAsMap()["param1"])
+	require.Contains(t, workflow.ToStringForStore(), fmt.Sprintf("authorized-%d-%s", index, time.Unix(scheduledAt, 0).UTC().Format("20060102150405")))
 	require.Equal(t, "custom-sa", execution.ServiceAccount())
 	require.Equal(t, scheduledAt, run.ScheduledAt.Seconds)
 }

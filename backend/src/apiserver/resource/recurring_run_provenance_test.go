@@ -62,7 +62,7 @@ func TestRecurringRunReplayUsesSelectedPipelineProvenance(t *testing.T) {
 				pipeline, err := manager.CreatePipeline(createPipeline("replay-source", "", experiment.Namespace))
 				require.NoError(t, err)
 				version, err := manager.CreatePipelineVersion(createPipelineVersion(
-					pipeline.UUID, "selected-source", "", "", manifest, "", experiment.Namespace))
+					pipeline.UUID, "selected-source", "", "", v2SpecHelloWorld, "", experiment.Namespace))
 				require.NoError(t, err)
 				job, err := manager.CreateJob(ctx, &model.Job{
 					DisplayName: "replay-provenance", Namespace: experiment.Namespace, ExperimentId: experiment.UUID,
@@ -91,18 +91,24 @@ func TestRecurringRunReplayUsesSelectedPipelineProvenance(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, 1, store.ExecClientFake.GetWorkflowCount())
 				if !test.v2 {
-					// Simulate records created before unused caller-supplied V2
-					// manifests were cleared when the selected source was V1.
+					// Seed retained pre-upgrade records without re-enabling raw Argo submission.
+					_, err = store.db.Exec(`UPDATE "pipeline_versions" SET "PipelineSpec" = ? WHERE "UUID" = ?`, manifest, version.UUID)
+					require.NoError(t, err)
+					workflow.SetExecutionName(first.K8SName)
+					workflow.SetExecutionNamespace(first.Namespace)
+					workflow.Spec.ServiceAccountName = first.ServiceAccount
+					_, err = store.db.Exec(`UPDATE "run_details" SET "WorkflowRuntimeManifest" = ?, "PipelineRuntimeManifest" = ? WHERE "UUID" = ?`, workflow.ToStringForStore(), workflow.ToStringForStore(), first.UUID)
+					require.NoError(t, err)
+					// Preserve unused caller-supplied IR alongside the selected legacy source.
 					_, err = store.db.Exec(`UPDATE "run_details" SET "PipelineSpecManifest" = ? WHERE "UUID" = ?`, v2SpecHelloWorld, first.UUID)
 					require.NoError(t, err)
 				}
 				if test.newerV2 {
 					store.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440001", nil))
 					manager.pipelineStore = store.PipelineStore()
-					newer, err := manager.CreatePipelineVersion(createPipelineVersion(
+					_, err = manager.CreatePipelineVersion(createPipelineVersion(
 						pipeline.UUID, "newer-v2", "", "", v2SpecHelloWorld, "", experiment.Namespace))
 					require.NoError(t, err)
-					require.NoError(t, manager.UpdatePipelineDefaultVersion(pipeline.UUID, newer.UUID))
 				}
 				if test.deletedVersion {
 					require.NoError(t, manager.DeletePipelineVersion(version.UUID))
@@ -114,9 +120,12 @@ func TestRecurringRunReplayUsesSelectedPipelineProvenance(t *testing.T) {
 				for _, mode := range []string{"enforce", "audit"} {
 					viper.Set(common.WorkflowIdentityMode, mode)
 					replayed, err := submit()
-					if mode == "enforce" && !test.v2 {
+					switch {
+					case !test.v2 && !test.deletedVersion:
+						require.ErrorContains(t, err, "legacy Argo Workflow pipelines are no longer supported")
+					case mode == "enforce" && !test.v2:
 						require.ErrorContains(t, err, "podSpecPatch")
-					} else {
+					default:
 						require.NoError(t, err)
 						require.Equal(t, first.UUID, replayed.UUID)
 					}

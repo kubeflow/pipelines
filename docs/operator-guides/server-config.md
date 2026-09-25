@@ -36,7 +36,7 @@ other accounts, including accounts introduced by plugins or retained retry state
 produce structured `security_audit control=workflow_identity mode=audit` warning logs and execution continues for policy denials and incomplete local identity inspection. Authentication failures, authorization transport errors, and SubjectAccessReview evaluation errors remain blocking, even if another policy violation was audited.
 These accounts can therefore run without passing the expanded policy while audit
 mode is enabled. Use this option temporarily to assess compatibility, then unset
-it or set it to `"enforce"` to enforce the checks. It applies to both V1 and V2.
+it or set it to `"enforce"` to enforce the checks. It applies to native v2 executions and retained historical workflow identities.
 
 Fail-closed evaluation handling applies to the API server's shared multi-user
 authorization checks, not only to workflow service accounts. A non-empty
@@ -71,23 +71,22 @@ Single-user embedded execution paths that do not call the API are not retroactiv
 inspected. Running workloads are not retroactively reauthorized. See the
 [combined mode matrix](scheduled-service-accounts.md#combining-main-account-and-workflow-identity-modes).
 
-### V1 and V2 compatibility
+### Native execution and historical compatibility
 
-**V1 / raw Argo workflows:** this is the main compatibility change. Enforcement
-requires literal service-account names and canonical `serviceAccountName` or
-`serviceAccount` fields in pod patches. Dynamic `podSpecPatch` expressions are
-rejected even when they only affect resources. Every declared template is checked,
-including unused templates and overridden settings. External templates must be
-inlined. Submitted workflow status is ignored, so entrypoints must be defined in
-the submitted spec. Audit mode can help identify additional-account and patch
-inspection failures, but the validation and status rules still apply.
+Fresh runs and recurring runs require native PipelineSpec IR; raw Argo workflow
+submissions are rejected regardless of audit mode. Historical execution records
+remain readable, and acknowledgement or retry checks inspect their retained
+identities. For historical static workflows, enforcement requires literal
+service-account names and canonical `serviceAccountName` or `serviceAccount`
+fields in pod patches. Dynamic patches without validated compiler provenance
+remain subject to workflow-identity enforcement or audit policy.
 
 **V2 / compiler-generated workflows:** the compiler's exact
 `{{inputs.parameters.pod-spec-patch}}` placeholder remains supported because the
 KFP driver constructs the runtime patch without selecting a service account.
 Literal accounts elsewhere in the workflow are still checked. V2 creation,
 plugin processing, retries and recurring runs use the same enforcement or audit
-mode as V1. V2 recurring runs remain retryable when their persisted records contain
+policy. V2 recurring runs remain retryable when their persisted records contain
 both the source pipeline spec and the compiled workflow manifest. Audit mode is
 not normally needed solely for the compiler-generated patch.
 

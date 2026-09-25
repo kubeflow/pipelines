@@ -52,7 +52,6 @@ func configureRecurringRunAccountTest(t *testing.T) {
 	for key, value := range map[string]string{
 		common.MultiUserMode:              "true",
 		common.AllowedServiceAccountsFlag: "embedded-runner,override-runner",
-		v1AllowedNamespaces:               "ns1",
 	} {
 		previous := viper.Get(key)
 		viper.Set(key, value)
@@ -60,7 +59,7 @@ func configureRecurringRunAccountTest(t *testing.T) {
 	}
 }
 
-func TestCreateJobFollowLatestV1AuthorizesEmbeddedServiceAccount(t *testing.T) {
+func TestCreateJobFollowLatestV2AuthorizesServiceAccount(t *testing.T) {
 	for _, permitted := range []bool{false, true} {
 		name := "denied"
 		if permitted {
@@ -76,20 +75,19 @@ func TestCreateJobFollowLatestV1AuthorizesEmbeddedServiceAccount(t *testing.T) {
 			}
 			store.SubjectAccessReviewClientFake = review
 			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-			workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-			workflow.Spec.ServiceAccountName = "embedded-runner"
 			pipeline, err := manager.CreatePipeline(createPipeline("schedule-pipeline", "", "ns1"))
 			require.NoError(t, err)
 			_, err = manager.CreatePipelineVersion(createPipelineVersion(
-				pipeline.UUID, "schedule-pipeline/v1", "v1", "", workflow.ToStringForStore(), "", "ns1"))
+				pipeline.UUID, "schedule-pipeline/v1", "v2", "", v2SpecHelloWorld, "", "ns1"))
 			require.NoError(t, err)
 
 			job, err := manager.CreateJob(multiUserContext(), &model.Job{
-				DisplayName:  "follow-latest",
-				Namespace:    "ns1",
-				ExperimentId: experiment.UUID,
-				Enabled:      true,
-				PipelineSpec: model.PipelineSpec{PipelineId: pipeline.UUID},
+				DisplayName:    "follow-latest",
+				Namespace:      "ns1",
+				ExperimentId:   experiment.UUID,
+				Enabled:        true,
+				ServiceAccount: "embedded-runner",
+				PipelineSpec:   model.PipelineSpec{PipelineId: pipeline.UUID, RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
 			})
 			if !permitted {
 				require.ErrorContains(t, err, "Unauthorized")
@@ -110,7 +108,7 @@ func TestCreateJobFollowLatestV1AuthorizesEmbeddedServiceAccount(t *testing.T) {
 	}
 }
 
-func TestCreateJobPluginV1PreservesAuthorizedServiceAccountOverride(t *testing.T) {
+func TestCreateJobPluginV2PreservesAuthorizedServiceAccountOverride(t *testing.T) {
 	configureRecurringRunAccountTest(t)
 	store, _, experiment := initWithExperiment(t)
 	defer store.Close()
@@ -118,15 +116,13 @@ func TestCreateJobPluginV1PreservesAuthorizedServiceAccountOverride(t *testing.T
 	store.SubjectAccessReviewClientFake = review
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 	manager.pluginDispatcher = recurringRunPluginDispatcher{}
-	workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-	workflow.Spec.ServiceAccountName = "embedded-runner"
 	job, err := manager.CreateJob(multiUserContext(), &model.Job{
 		DisplayName:    "plugin-schedule",
 		Namespace:      "ns1",
 		ExperimentId:   experiment.UUID,
 		Enabled:        true,
 		ServiceAccount: "override-runner",
-		PipelineSpec:   model.PipelineSpec{WorkflowSpecManifest: model.LargeText(workflow.ToStringForStore())},
+		PipelineSpec:   model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"}},
 	})
 	require.NoError(t, err)
 	stored, err := manager.GetJob(job.UUID)

@@ -138,7 +138,7 @@ func (r *ResourceManager) authorizeStoredRunServiceAccount(ctx context.Context, 
 	return r.authorizeExecutionServiceAccounts(ctx, execution, allowCompilerPodSpecPatch, namespace, "acknowledge_recurring_run")
 }
 
-// V1 workflows may carry the effective account inside their embedded Argo spec.
+// Compiled schedules may carry the effective account inside their embedded Argo spec.
 func scheduledServiceAccount(swf *scheduledworkflow.ScheduledWorkflow, fallback string) (string, error) {
 	if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
 		execution, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)

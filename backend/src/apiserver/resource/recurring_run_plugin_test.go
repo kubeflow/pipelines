@@ -85,19 +85,17 @@ func TestCreateRunConcurrentPluginParents(t *testing.T) {
 			t.Run(fmt.Sprintf("creatorPersisted=%t/sharedParent=%t", creatorPersisted, sharedParent), func(t *testing.T) {
 				store, manager, experiment := initWithExperiment(t)
 				defer store.Close()
-				for key, value := range map[string]string{common.MultiUserMode: "true", v1AllowedNamespaces: "ns1"} {
+				for key, value := range map[string]string{common.MultiUserMode: "true"} {
 					previous := viper.Get(key)
 					viper.Set(key, value)
 					t.Cleanup(func() { viper.Set(key, previous) })
 				}
 				manager.time = fixedRecurringTime{epoch: 200}
 				ctx := multiUserContext()
-				workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-				workflow.SetExecutionName("fixed-plugin-workflow")
 				job, err := manager.CreateJob(ctx, &model.Job{
 					DisplayName: "plugin-schedule", Namespace: "ns1", ExperimentId: experiment.UUID,
 					Enabled: true, MaxConcurrency: 1,
-					PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(workflow.ToStringForStore())},
+					PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"}},
 					Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
 						PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
 					}},

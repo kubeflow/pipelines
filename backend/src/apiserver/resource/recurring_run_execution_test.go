@@ -193,14 +193,13 @@ func TestCreateRunConcurrentAuthorizedTickCreatesOneWorkflow(t *testing.T) {
 		version string
 		plugins bool
 	}{
-		{name: "v1", version: "v1"},
 		{name: "v2", version: "v2"},
 		{name: "v2 with plugin output", version: "v2", plugins: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			store, manager, experiment := initWithExperiment(t)
 			defer store.Close()
-			for key, value := range map[string]string{common.MultiUserMode: "true", v1AllowedNamespaces: "ns1"} {
+			for key, value := range map[string]string{common.MultiUserMode: "true"} {
 				previous := viper.Get(key)
 				viper.Set(key, value)
 				t.Cleanup(func() { viper.Set(key, previous) })
@@ -213,7 +212,7 @@ func TestCreateRunConcurrentAuthorizedTickCreatesOneWorkflow(t *testing.T) {
 				Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
 				}},
-				PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore())},
+				PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"}},
 			}
 			if test.version == "v2" {
 				job.PipelineSpec = model.PipelineSpec{
@@ -303,14 +302,14 @@ func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
 		plugins      bool
 		loseResponse bool
 	}{
-		{name: "fixed-name V1 with differing plugin configurations", plugins: true},
+		{name: "V2 with differing plugin configurations", plugins: true},
 		{name: "V2 without plugins"},
 		{name: "V2 recovered by the persistence agent", loseResponse: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			store, manager, experiment := initWithExperiment(t)
 			defer store.Close()
-			for key, value := range map[string]string{common.MultiUserMode: "true", v1AllowedNamespaces: "ns1"} {
+			for key, value := range map[string]string{common.MultiUserMode: "true"} {
 				previous := viper.Get(key)
 				viper.Set(key, value)
 				t.Cleanup(func() { viper.Set(key, previous) })
@@ -324,9 +323,7 @@ func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
 				RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"},
 			}
 			if test.plugins {
-				workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-				workflow.SetExecutionName("fixed-plugin-workflow")
-				pipeline = model.PipelineSpec{WorkflowSpecManifest: model.LargeText(workflow.ToStringForStore())}
+				pipeline = model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"}}
 			}
 			job, err := manager.CreateJob(ctx, &model.Job{
 				DisplayName: "pending-creator", Namespace: "ns1", ExperimentId: experiment.UUID,
