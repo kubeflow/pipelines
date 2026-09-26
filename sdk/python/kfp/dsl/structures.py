@@ -16,6 +16,7 @@
 import ast
 import collections
 import dataclasses
+from decimal import Decimal
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple
@@ -891,21 +892,22 @@ def normalize_time_string(duration: str) -> str:
             - '2hours' -> '2h'
             - '2 w' -> '2w'
             - '2w' -> '2w'
+            - '0.5 hours' -> '0.5h'
     Args:
         duration (str): The unnormalized duration string.
     Returns:
         str: The normalized duration string.
     """
     no_ws_duration = duration.replace(' ', '')
-    duration_split = [el for el in re.split(r'(\D+)', no_ws_duration) if el]
+    match = re.fullmatch(r'(\d+(?:\.\d+)?)([a-zA-Z]+)', no_ws_duration)
 
-    if len(duration_split) != 2:
+    if match is None:
         raise ValueError(
-            f"Invalid duration string: '{duration}'. Expected one value (as integer in string) and one unit, such as '1 hour'."
+            f"Invalid duration string: '{duration}'. Expected one value (as a "
+            f"number in a string) and one unit, such as '1 hour' or '0.5 hours'."
         )
 
-    value = duration_split[0]
-    unit = duration_split[1]
+    value, unit = match.groups()
 
     first_letter_of_unit = unit[0]
     return value + first_letter_of_unit
@@ -928,7 +930,12 @@ def convert_duration_to_seconds(duration: str) -> int:
     if duration[-1] not in seconds_per_unit.keys():
         raise ValueError(
             f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
-    return int(duration[:-1]) * seconds_per_unit[duration[-1]]
+    seconds = Decimal(duration[:-1]) * seconds_per_unit[duration[-1]]
+    if seconds != seconds.to_integral_value():
+        raise ValueError(
+            f"Invalid duration string: '{duration}'. Duration must resolve to a "
+            f'whole number of seconds, but got {seconds}.')
+    return int(seconds)
 
 
 def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
