@@ -33,6 +33,9 @@ message ContainerSpec {
   string image = 1;
   repeated string cmdArgs = 2;
   repeated string pvcNames = 3;
+  // Kept in its original order, since a $(VAR) reference in a value expands
+  // from the entries defined before it.
+  repeated PipelineDeploymentConfig.PipelineContainerSpec.EnvVar env = 4;
 }
 
 message ArtifactNameList {

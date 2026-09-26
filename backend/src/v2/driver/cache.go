@@ -82,7 +82,7 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 // getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
 // PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
 // different, the execution shouldn't be reused for the cache.
-// If a custom cache key is set, all automatic inputs, image, command, arguments, and PVC names are ignored.
+// If a custom cache key is set, all automatic inputs, image, command, arguments, env, and PVC names are ignored.
 // Instead, the custom key is combined with the component name (to avoid cross-component cache collisions) and hashed.
 func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client, pvcNames []string) (string, error) {
 	if opts.Task.GetCachingOptions() != nil && opts.Task.GetCachingOptions().GetCacheKey() != "" {
@@ -114,6 +114,7 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 	}
 	sort.Strings(sortedPVCNames)
 
+	// Preserve env order and duplicates: $(VAR) expands from preceding entries.
 	cacheKey, err := cacheClient.GenerateCacheKey(
 		executorInput.GetInputs(),
 		executorInput.GetOutputs(),
@@ -121,6 +122,7 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 		userCmdArgs,
 		opts.Container.Image,
 		sortedPVCNames,
+		opts.Container.GetEnv(),
 	)
 	if err != nil {
 		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
