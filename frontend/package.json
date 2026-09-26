@@ -30,7 +30,7 @@
     "proto3-json-serializer": "^4.0.2",
     "protobufjs": "~8.8.0",
     "re-resizable": "^6.11.2",
-    "react": "^19.2.7",
+    "react": "^19.3.0",
     "react-ace": "^15.0.0",
     "react-dom": "^19.2.7",
     "react-dropzone": "^20.1.1",
