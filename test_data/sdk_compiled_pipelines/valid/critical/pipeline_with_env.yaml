@@ -28,7 +28,7 @@ deploymentSpec:
           value: val2
         - name: ENV3
           value: val3
-        image: alpine
+        image: docker.io/alpine:3.23
     exec-print-env-op:
       container:
         args:
@@ -60,7 +60,7 @@ deploymentSpec:
         env:
         - name: ENV1
           value: val1
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
 pipelineInfo:
   name: pipeline-with-env
 root:

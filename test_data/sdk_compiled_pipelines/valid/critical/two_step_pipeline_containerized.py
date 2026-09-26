@@ -19,7 +19,7 @@ from kfp import dsl
 @dsl.container_component
 def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=[
             'sh',
             '-c',
@@ -31,7 +31,7 @@ def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
 @dsl.container_component
 def component2(input_gcs: dsl.Input[dsl.Dataset]):
     return dsl.ContainerSpec(
-        image='alpine', command=['cat'], args=[input_gcs.path])
+        image='docker.io/alpine:3.23', command=['cat'], args=[input_gcs.path])
 
 
 @dsl.pipeline(name='containerized-two-step-pipeline')

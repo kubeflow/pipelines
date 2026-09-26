@@ -53,21 +53,47 @@ pull_image_with_backoff() {
   local image=$1
   local max_attempts=5
   local attempt=1
+  local pull_output
 
   while [[ "$attempt" -le "$max_attempts" ]]; do
-    if docker pull "$image"; then
+    if pull_output=$(docker pull "$image" 2>&1); then
+      printf '%s\n' "$pull_output"
       return 0
     fi
+    printf '%s\n' "$pull_output" >&2
 
-    if [[ "$attempt" -eq "$max_attempts" ]]; then
+    # ECR's data quota is not a short-lived request throttle. Repeating the
+    # same download cannot repair it; preserve the registry error above.
+    if [[ "$pull_output" == *"Data limit exceeded"* ]]; then
+      echo "Image pull quota exhausted for $image; use the shared cache or an authenticated registry source." >&2
       return 1
     fi
 
-    local sleep_seconds=$((attempt * 20))
-    echo "Retrying $image in ${sleep_seconds}s..."
+    if [[ "$attempt" -eq "$max_attempts" ]]; then
+      echo "Failed to pull $image after $max_attempts attempts; check the registry error above." >&2
+      return 1
+    fi
+
+    # Docker CLI does not expose Retry-After headers. Bound the exponential
+    # delay and jitter so concurrent producers do not all retry together.
+    local sleep_seconds=$((20 * (1 << (attempt - 1)) + RANDOM % 11))
+    if [[ "$sleep_seconds" -gt 120 ]]; then
+      sleep_seconds=120
+    fi
+    echo "Retrying $image in ${sleep_seconds}s (attempt $((attempt + 1))/$max_attempts)..." >&2
     sleep "$sleep_seconds"
     attempt=$((attempt+1))
   done
+}
+
+pull_runtime_image_for_archive() {
+  local image=$1
+  pull_image_with_backoff "$image" || return 1
+  # The inventory may pin acquisition with tag@digest. Docker archives must
+  # retain the tag used by the fixture: RepoDigests need not survive save/load.
+  if [[ "$image" == *@* ]]; then
+    docker tag "$image" "${image%@*}" || return 1
+  fi
 }
 
 pull_and_save_runtime_base_images() {
@@ -78,8 +104,8 @@ pull_and_save_runtime_base_images() {
   pull_runtime_base_image() {
     local image=$1
 
-    pull_image_with_backoff "$image" || return 1
-    runtime_base_images+=("$image")
+    pull_runtime_image_for_archive "$image" || return 1
+    runtime_base_images+=("${image%@*}")
   }
 
   for_each_runtime_base_image "$images_file" pull_runtime_base_image || return 1
@@ -94,12 +120,41 @@ load_runtime_base_images_into_kind() {
   load_runtime_base_image() {
     local image=$1
 
-    pull_image_with_backoff "$image" || return 1
-    kind --name "$cluster_name" load docker-image "$image" || return 1
-    docker image rm "$image" || true
+    pull_runtime_image_for_archive "$image" || return 1
+    kind --name "$cluster_name" load docker-image "${image%@*}" || return 1
+    docker image rm "${image%@*}" || true
   }
 
   for_each_runtime_base_image "$images_file" load_runtime_base_image
+}
+
+verify_runtime_base_images_in_kind() {
+  local images_file=$1
+  local cluster_name=$2
+  local nodes
+  nodes=$(kind get nodes --name "$cluster_name") || return 1
+  if [[ -z "$nodes" ]]; then
+    echo "No Kind nodes found for $cluster_name." >&2
+    return 1
+  fi
+
+  verify_runtime_base_image() {
+    local image=${1%@*}
+    local node
+    local inspection
+    while IFS= read -r node; do
+      # ctr import returns before containerd's asynchronous CRI image index
+      # necessarily observes it. Poll local metadata only; never pull here.
+      if ! inspection=$(retry 10 2 docker exec "$node" crictl inspecti "$image" 2>&1); then
+        printf '%s\n' "$inspection" >&2
+        echo "Runtime image $image is missing from $node after 10 checks; inspect the local image stores below and rebuild the shared runtime image archive if incomplete." >&2
+        docker exec "$node" crictl images >&2 || true
+        docker exec "$node" ctr --namespace=k8s.io images ls >&2 || true
+        return 1
+      fi
+    done <<< "$nodes"
+  }
+  for_each_runtime_base_image "$images_file" verify_runtime_base_image
 }
 
 wait_for_namespace () {
