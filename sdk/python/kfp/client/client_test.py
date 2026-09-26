@@ -473,6 +473,23 @@ class TestClient(parameterized.TestCase):
                         description='description',
                         namespace='ns1')
 
+    @parameterized.parameters(None, 'tenant-ns')
+    def test_upload_namespace_is_explicit(self, upload_namespace):
+        # setUp configures the client default namespace as ns1. An omitted
+        # upload namespace must still mean shared, not silently change scope.
+        with patch.object(self.client._upload_api,
+                          'upload_pipeline') as mock_upload:
+            with patch.object(auth, 'is_ipython', return_value=False):
+                self.client.upload_pipeline(
+                    'fake.yaml',
+                    pipeline_name='migration-test',
+                    namespace=upload_namespace)
+        mock_upload.assert_called_once_with(
+            'fake.yaml',
+            name='migration-test',
+            description=None,
+            namespace=upload_namespace)
+
     def test_upload_pipeline_from_pipeline_func(self):
 
         @component
