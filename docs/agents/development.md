@@ -161,8 +161,19 @@ MLMD records, or object-store artifacts; those lifecycles are managed
 separately (see `ARTIFACT_RETENTION_DAYS` for object-store artifacts).
 
 `TENSORBOARD_PROXY_SIGNING_SECRET` controls the HMAC key for scoped TensorBoard
-proxy paths. When it is unset, the UI generates a cryptographically random,
-process-local secret at startup. Configure a dedicated random secret of at least
-32 bytes when proxy paths must remain valid across UI restarts or multiple UI
-replicas. The standard UI deployment uses `Recreate` so process-local keys never
-overlap during a rollout. The value must not reuse `MINIO_SECRET_KEY`.
+proxy paths. The default Kustomize installation uses an initialization Job to
+populate the persistent `ml-pipeline-ui-tensorboard-proxy` Secret only when its
+key is absent, then injects the shared key into every UI replica. The UI uses
+`Recreate` by default to prevent old and shared-key UI pods from overlapping
+during the first migration. Preserve the Secret across upgrades so proxy URLs
+remain valid. After the initial rollout completes, operators can
+[enable rolling UI updates](../operator-guides/server-config.md#enabling-rolling-ui-updates)
+in a separate apply or GitOps sync. See the
+[operator guide](../operator-guides/server-config.md#tensorboard-proxy-signing-secret)
+for initialization, recovery, GitOps, and rotation guidance.
+
+Outside the default manifests, leaving this variable unset generates a
+cryptographically random, process-local key at startup for local development.
+Custom deployments need a shared key before enabling multiple replicas or
+rolling updates. Use a dedicated random secret of at least 32 UTF-8 bytes;
+the frontend rejects shorter values and values matching `MINIO_SECRET_KEY`.

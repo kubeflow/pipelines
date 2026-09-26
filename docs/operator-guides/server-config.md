@@ -128,34 +128,118 @@ deployment.
 ### TensorBoard proxy signing secret
 
 The frontend signs scoped TensorBoard proxy paths with
-`TENSORBOARD_PROXY_SIGNING_SECRET`. If this variable is unset, each frontend
-server process generates a random signing secret at startup. This default is
-suitable for the standard single-replica deployment, whose `Recreate` strategy
-prevents pods with different process-local secrets from serving concurrently.
-The UI is briefly unavailable during an update, and existing proxy paths become
-invalid whenever the frontend restarts.
+`TENSORBOARD_PROXY_SIGNING_SECRET`. The default Kustomize installation initializes
+a dedicated random key in the `ml-pipeline-ui-tensorboard-proxy` Secret and
+injects its `signing-secret` field into every UI replica. The UI uses
+`Recreate` by default so the first upgrade cannot serve requests through old and
+new UI pods with incompatible signing keys. During Deployment upgrades,
+[Kubernetes waits for old pods to terminate before creating replacements](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#recreate-deployment).
+After adopting the shared key, operators can
+[enable rolling UI updates](#enabling-rolling-ui-updates).
 
-Deployments with multiple frontend replicas, or deployments that need proxy
-paths to survive restarts, must provide the same dedicated random secret of at
-least 32 bytes to every `ml-pipeline-ui` replica. Store it in a Kubernetes
-Secret and reference it from the deployment, for example:
+A separate initialization Job generates the key only if the field is absent.
+It preserves existing keys, including operator-provided keys, and concurrent
+initializers use Kubernetes resource versions to avoid overwriting each other.
+The Job can only get and update this named Secret; the UI receives no additional
+Secret permissions. UI pods wait for the required Secret field before starting.
+If initialization fails, check the Job status, its get/update permissions, and
+whether an existing key is valid UTF-8 of at least 32 bytes with no NUL characters.
+An invalid existing key is never replaced automatically. After correcting a failed
+initialization, delete the failed Job and reapply the manifests to retry. If the Secret was deleted, restore it from
+backup before starting replacement UI pods. If restoration is impossible,
+reapply the manifests to recreate the empty Secret, delete the existing
+initializer Job, and reapply again to generate a new key. Restart all UI replicas
+together after regeneration. Reapplying alone does not rerun a completed Job.
+
+The Secret manifest intentionally omits `data` and `stringData`. Keep those
+fields absent when using automatic initialization, and preserve the Secret
+across upgrades and in backups. Reapplying the manifests does not rotate the key.
+For GitOps, use apply-based reconciliation and keep generated key data out of
+Git. Do not replace, force-recreate, or prune this Secret during upgrades. If
+Argo CD reports the generated field as drift, scope `ignoreDifferences` to this
+Secret's name and namespace and `/data/signing-secret`, and enable
+`RespectIgnoreDifferences=true` to preserve the live value during sync. See
+[Argo CD sync options](https://argo-cd.readthedocs.io/en/latest/user-guide/sync-options/#respect-ignore-differences-configs).
+
+The Job name includes a hash of its source template, configured image, and
+settings so image upgrades create a new Job without mutating a completed Job's
+immutable pod template. Completed Jobs and their generated ConfigMaps can be
+pruned after upgrades; do not delete the signing Secret. If an overlay changes
+the Job pod template, also add or change a literal in its ConfigMap generator to
+force a new Job name.
+
+To use an externally managed key, provide a dedicated random secret of at least
+32 UTF-8 bytes with no NUL characters and override the deployment's reference if
+necessary:
 
 ```yaml
 env:
   - name: TENSORBOARD_PROXY_SIGNING_SECRET
     valueFrom:
       secretKeyRef:
-        name: ml-pipeline-ui-tensorboard-proxy
+        name: my-tensorboard-signing-secret
         key: signing-secret
 ```
 
-The base deployment uses `Recreate` to protect the process-local default. After
-configuring a shared signing secret, deployments that require uninterrupted
-updates can override `spec.strategy.type` to `RollingUpdate`.
+Do not reuse `MINIO_SECRET_KEY` or another application credential. The frontend
+refuses to start if the configured signing secret is shorter than 32 UTF-8 bytes
+or matches `MINIO_SECRET_KEY`.
 
-Do not reuse `MINIO_SECRET_KEY` or another application credential for this
-value. The frontend refuses to start when the configured signing secret is
-shorter than 32 bytes or matches `MINIO_SECRET_KEY`.
+**Upgrade and rotation:** the first upgrade from a storage-derived or
+process-local key briefly interrupts the UI and invalidates existing TensorBoard
+proxy URLs. Wait for the upgrade to complete, then reopen TensorBoard from the
+UI to obtain a new URL. Subsequent UI restarts and rolling updates keep URLs
+valid while the shared key remains unchanged. Deliberately replacing or losing
+the Secret invalidates existing URLs again. After manual rotation, restart every
+UI replica to load the new value; use a coordinated restart to avoid serving
+with different keys during the transition.
+
+Outside the default manifests, leaving `TENSORBOARD_PROXY_SIGNING_SECRET` unset
+still generates a process-local key. This supports local development, but URLs
+expire on process restart and replicas cannot share URLs. Configure a shared key
+before enabling multiple replicas or rolling updates in custom deployments.
+
+#### Enabling rolling UI updates
+
+Adopt the shared key and enable rolling updates in two separate apply or GitOps
+sync phases. Keep the same shared-key revision throughout both phases.
+
+First, remove any existing rolling-update overrides and apply the shared-key
+revision with `Recreate`. If `spec.strategy.rollingUpdate` was explicitly
+configured, remove that field as well or replace the entire strategy with
+`{type: Recreate}`. Wait for the rollout to complete for your installation's UI
+Deployment and namespace; for the default `kubeflow` installation:
+
+```bash
+kubectl -n kubeflow rollout status deployment/ml-pipeline-ui
+```
+
+Only after that command succeeds and every UI pod uses the shared key, add this
+override to your installation's `kustomization.yaml` and apply the same revision
+again:
+
+```yaml
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: ml-pipeline-ui
+    patch: |-
+      - op: replace
+        path: /spec/strategy
+        value:
+          type: RollingUpdate
+          rollingUpdate:
+            maxUnavailable: 0
+            maxSurge: 1
+```
+
+For GitOps, complete the first sync and wait for the UI rollout before starting
+the second sync with this override. Do not combine the phases or enable rolling
+updates while adoption is in progress: old and shared-key UI pods must not
+overlap during the first migration. Keep the override for future upgrades and
+allow capacity for one additional UI pod.
 
 ## Proxy
 
