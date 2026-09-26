@@ -51,14 +51,14 @@ jobs:
           echo "PR Author: $PR_AUTHOR"
           echo "Author Association: $AUTHOR_ASSOCIATION"
           echo "::endgroup::"
-          
+
           # MEMBER = org member, OWNER = org owner, COLLABORATOR = invited collaborator
           if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" || "$AUTHOR_ASSOCIATION" == "COLLABORATOR" ]]; then
             echo "::notice::Author '$PR_AUTHOR' is a trusted contributor (association: $AUTHOR_ASSOCIATION). Auto-approving workflow runs."
-            echo "is_member=true" >> $GITHUB_OUTPUT
+            echo "is_member=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::Author '$PR_AUTHOR' is not a trusted contributor (association: $AUTHOR_ASSOCIATION). Checking for 'ok-to-test' label."
-            echo "is_member=false" >> $GITHUB_OUTPUT
+            echo "is_member=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Approve Pending Workflow Runs
