@@ -178,12 +178,7 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
                 "'.github/workflows/api-server-tests.yml'",
                 "'.github/workflows/create-manifest.yml'",
                 "'.github/workflows/image-builds.yml'",
-                "'manifests/kustomize/third-party/argo/base/"
-                "workflow-controller-configmap-patch.yaml'",
-                "'manifests/kustomize/third-party/argo/base/"
-                "workflow-controller-deployment-patch.yaml'",
-                "'manifests/kustomize/third-party/mysql/base/"
-                "mysql-deployment.yaml'",
+                "'manifests/kustomize/**'",
                 "'third_party/argo/VERSION'",
         ):
             with self.subTest(path_filter=path_filter):

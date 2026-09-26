@@ -32,7 +32,7 @@ jobs:
     - name: Setup Python with uv
       uses: ./.github/actions/setup-python
       with:
-        python-version: '3.9'
+        python-version: '3.11'
 
     - name: Run YAPF SDK Tests
       run: ./test/presubmit-yapf-sdk.sh

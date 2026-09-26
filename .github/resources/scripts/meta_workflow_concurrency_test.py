@@ -154,37 +154,53 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         pre_concurrency = _before_mapping(job, 'concurrency', 4)
         condition = _folded_scalar(pre_concurrency, 'if', 4)
         concurrency = _mapping_block(job, 'concurrency', 4)
-        concurrency_group = _folded_scalar(concurrency, 'group', 6)
+        concurrency_group = _plain_scalar(concurrency, 'group', 6)
 
-        self.assertEqual(
-            condition,
-            "(github.event.action != 'labeled' && github.event.action != 'unlabeled') || "
-            "(github.event.action == 'labeled' && github.event.label.name == 'ok-to-test') || "
-            "(github.event.action == 'unlabeled' && github.event.label.name == 'needs-ok-to-test')",
-        )
-
-        expected_results = {
-            ('opened', ''): True,
-            ('synchronize', ''): True,
-            ('reopened', ''): True,
-            ('labeled', 'ok-to-test'): True,
-            ('unlabeled', 'needs-ok-to-test'): True,
-            ('labeled', 'dependencies'): False,
-            ('labeled', 'size/M'): False,
-            ('labeled', 'needs-ok-to-test'): False,
-            ('unlabeled', 'ok-to-test'): False,
-        }
-        for event, expected in expected_results.items():
-            with self.subTest(action=event[0], label=event[1]):
-                self.assertEqual(
-                    _evaluate_label_condition(condition, *event), expected)
+        self.assertIn("github.event.workflow_run.event == 'pull_request'",
+                      condition)
+        self.assertIn("github.event.label.name == 'ok-to-test'", condition)
+        self.assertIn("github.event.label.name == 'needs-ok-to-test'",
+                      condition)
 
         self.assertFalse(_has_mapping(workflow, 'concurrency', 0))
-        self.assertIn("&& 'head-update' || github.run_id", concurrency_group)
+        self.assertIn('github.event.workflow_run.head_sha', concurrency_group)
+        self.assertIn('github.event.pull_request.head.sha', concurrency_group)
         self.assertEqual(
-            _plain_scalar(concurrency, 'cancel-in-progress', 6),
-            "${{ github.event.action == 'synchronize' }}",
-        )
+            _plain_scalar(concurrency, 'cancel-in-progress', 6), 'false')
+
+    def test_scheduled_recovery_uses_same_short_writer(self):
+        workflow = self._read_workflow('ci-checks.yml')
+        jobs = _mapping_block(workflow, 'jobs', 0)
+        writer = _mapping_block(jobs, 'check_ci_status', 2)
+        discovery = _mapping_block(jobs, 'recovery_candidates', 2)
+        self.assertIn("cron: '7,22,37,52 * * * *'", workflow)
+        self.assertIn("github.event_name == 'schedule'", discovery)
+        self.assertNotIn('concurrency:', discovery)
+        self.assertIn(
+            'matrix.candidate.head || github.event.workflow_run.head_sha',
+            writer)
+        self.assertIn('name: check_ci_status', writer)
+        self.assertIn('max-parallel: 4', writer)
+        self.assertIn('fail-fast: false', writer)
+        self.assertIn('CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}',
+                      writer)
+        self.assertIn('CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}', writer)
+        self.assertIn("poll: 'false'", writer)
+        # poll: 'false' alone is not enough: the pinned action still waits a
+        # minute before its first API call, holding the shared writer lock.
+        self.assertIn("delay: '0'", writer)
+        self.assertNotIn('sleep', writer)
+
+    def test_publisher_exclusion_matches_hosted_matrix_job_name(self):
+        workflow = self._read_workflow('ci-checks.yml')
+        exclusions = re.search(r"checks_exclude: '([^']+)'", workflow).group(1)
+        pattern = exclusions.split(',')[0]
+        for name in [
+                'check_ci_status', 'check_ci_status (0)',
+                'check_ci_status (14111, abc123)'
+        ]:
+            self.assertIsNotNone(re.fullmatch(pattern, name))
+        self.assertIsNone(re.fullmatch(pattern, 'check_ci_status_unrelated'))
 
     def test_approval_runs_on_open_but_skips_unrelated_labels(self):
         workflow = self._read_workflow('gh-workflow-approve.yml')
@@ -377,20 +393,20 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                 if closed:
                     self.assertEqual(comment_file.read_text(), message)
 
-    def test_eligibility_shell_receives_label_name_through_environment(self):
+    def test_publisher_runs_trusted_code_without_pr_interpolation(self):
         workflow = self._read_workflow('ci-checks.yml')
-        step_start = workflow.index(
-            '      - name: Determine whether CI polling is needed')
-        step_end = workflow.index(
-            '      - name: Wait for action_required workflow runs to be approved'
-        )
-        eligibility_step = workflow[step_start:step_end]
-        shell_script = eligibility_step.split('        run: |', 1)[1]
-
-        self.assertIn('LABEL_NAME: ${{ github.event.label.name }}',
-                      eligibility_step)
-        self.assertNotIn('${{ github.event.label.name }}', shell_script)
-        self.assertIn("reason=\"Added label '${LABEL_NAME}'", shell_script)
+        self.assertIn('ref: ${{ github.sha }}', workflow)
+        self.assertIn('persist-credentials: false', workflow)
+        self.assertNotIn('ref: ${{ github.event.pull_request.head', workflow)
+        self.assertNotIn('${{ github.event.label.name }}', workflow)
+        self.assertIn("poll: 'false'", workflow)
+        self.assertIn("delay: '0'", workflow)
+        self.assertIn('types: [requested, in_progress, completed]', workflow)
+        self.assertIn('reopened, edited, labeled', workflow)
+        selector = workflow.split('    workflows:',
+                                  1)[1].split('    types:', 1)[0]
+        self.assertNotIn("'CI Check'", selector)
+        self.assertIn("'Frontend Tests'", selector)
 
 
 if __name__ == '__main__':
