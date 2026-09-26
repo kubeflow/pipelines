@@ -55,7 +55,7 @@ test = [
   "pydantic>=2",
   # pytest 9.0.3 contains the tmpdir handling fix.
   "pytest==9.0.3",
-  "pytest-cov>=4.1",
+  "pytest-cov>=7.1.0",
   "pytest-mock",
   "pytest-randomly>=3.12",
   "pytest-xdist>=3.8.0",
