@@ -424,6 +424,7 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         gh() {
           case "$1 $2" in
             'pr view')
+              if [[ "$PR_VIEW_ERROR" == '1' ]]; then return 22; fi
               if [[ " $* " == *' --json labels '* ]]; then
                 printf '%s' "$PR_LABELS_JSON"
               else
@@ -477,17 +478,41 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                 'name': 'ready'
             }], 'closed'),
             ('release-2.18', 'Fixes #123', [], None, 'error'),
+            ('release-2.18', 'Fixes #123', [], [{
+                'name': 'ready'
+            }], 'malformed_json'),
+            ('release-2.18', 'Fixes #123', [], [{
+                'name': 'ready'
+            }], 'pr_view_error'),
         ]
+        exit_codes = {
+            'admitted': 0,
+            'closed': 1,
+            'error': 22,
+            'malformed_json': 1,
+            'pr_view_error': 22,
+        }
         for base, body, issues, labels, expected_state in cases:
             with self.subTest(
-                    base=base, body=body, issues=issues,
-                    labels=labels), tempfile.TemporaryDirectory() as directory:
+                    base=base,
+                    body=body,
+                    issues=issues,
+                    labels=labels,
+                    expected_state=expected_state), tempfile.TemporaryDirectory(
+                    ) as directory:
                 comment_file = Path(directory) / 'comment'
                 state_file = Path(directory) / 'state'
                 removed_file = Path(directory) / 'removed'
                 needs_label = (
                     base == 'release-2.18' and
                     body == 'Fixes #123 for release-2.18')
+                issue_json = json.dumps({
+                    'closingIssuesReferences': issues,
+                    'baseRefName': base,
+                    'body': body,
+                })
+                if expected_state == 'malformed_json':
+                    issue_json = '{malformed'
                 result = subprocess.run(
                     ['bash', '-eo', 'pipefail', '-c', fake_gh + script],
                     env={
@@ -503,11 +528,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                         'CLOSURE_MESSAGE':
                             message,
                         'ISSUE_JSON':
-                            json.dumps({
-                                'closingIssuesReferences': issues,
-                                'baseRefName': base,
-                                'body': body,
-                            }),
+                            issue_json,
+                        'PR_VIEW_ERROR':
+                            '1' if expected_state == 'pr_view_error' else '0',
                         'LABELS_JSON':
                             json.dumps({'labels': labels}),
                         'PR_LABELS_JSON':
@@ -531,11 +554,10 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                     cwd=ROOT,
                 )
                 closed = expected_state == 'closed'
-                self.assertEqual(
-                    result.returncode,
-                    22 if expected_state == 'error' else 1 if closed else 0,
-                    result.stderr)
-                if expected_state == 'error':
+                self.assertEqual(result.returncode, exit_codes[expected_state],
+                                 result.stderr)
+                if expected_state in ('error', 'malformed_json',
+                                      'pr_view_error'):
                     self.assertFalse(state_file.exists())
                 else:
                     self.assertEqual(state_file.read_text(), expected_state)

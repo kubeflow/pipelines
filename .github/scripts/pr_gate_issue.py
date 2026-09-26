@@ -18,6 +18,7 @@ import json
 import os
 import re
 import sys
+from typing import Any, Mapping
 
 CLOSING_REFERENCE = re.compile(
     r'^\s*(?:[-*]\s+)?(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+'
@@ -27,7 +28,8 @@ CLOSING_REFERENCE = re.compile(
 )
 
 
-def admission_issue(pr, repository, default_branch):
+def admission_issue(pr: Mapping[str, Any], repository: str,
+                    default_branch: str) -> int | None:
     """Return a linked issue, or an explicit release-branch closing
     reference."""
     for issue in pr['closingIssuesReferences']:
