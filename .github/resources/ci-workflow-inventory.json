@@ -349,7 +349,7 @@
     {
       "path": ".github/workflows/gh-workflow-approve.yml",
       "name": "Approve Workflow Runs",
-      "header_sha256": "faa44e7c1eb63cb382c7b666747887ae31f48dd68b8e91b79b41b63f89482eb6",
+      "header_sha256": "a33f86d80ac847b03bcbd24568aa42b65103d5dd193d8c5660dc524240f7704e",
       "pull_request": null
     },
     {
