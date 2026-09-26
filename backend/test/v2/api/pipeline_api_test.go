@@ -434,18 +434,22 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			name := "filter-test-" + strings.ToLower(randomName[:17])
 			pipeline := createPipelineWithDisplayName(name, name)
 
+			// The Kubernetes write can return before the list informer observes it.
+			// Keep the exact filter/ID assertion, allowing only bounded cache sync.
 			// EQUALS exact match
 			filter := fmt.Sprintf(`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"%s"}]}`, name)
 			params := newListPipelinesParams()
 			params.Filter = &filter
-			found := findPipelineInList(params, pipeline.PipelineID)
-			Expect(found).To(BeTrue(), "Pipeline should be found via name EQUALS filter")
+			Eventually(func() bool {
+				return findPipelineInList(params, pipeline.PipelineID)
+			}, informerSyncTimeout, informerSyncInterval).Should(BeTrue(), "Pipeline should be found via name EQUALS filter")
 
 			// IS_SUBSTRING
 			filterSub := `{"predicates":[{"key":"name","operation":"IS_SUBSTRING","string_value":"filter-test"}]}`
 			params.Filter = &filterSub
-			found = findPipelineInList(params, pipeline.PipelineID)
-			Expect(found).To(BeTrue(), "Pipeline should be found via IS_SUBSTRING name filter")
+			Eventually(func() bool {
+				return findPipelineInList(params, pipeline.PipelineID)
+			}, informerSyncTimeout, informerSyncInterval).Should(BeTrue(), "Pipeline should be found via IS_SUBSTRING name filter")
 		})
 
 		It("Filter by display_name (SQL DB backend)", func() {

@@ -48,6 +48,9 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 
 ## Common CI failures
 
+- Kubernetes-backed API lists can lag a successful create while the informer synchronizes. Native name-filter tests use the existing bounded informer wait and retain exact filter/pipeline-ID assertions; do not replace them with fixed sleeps or weaken the expected result.
+- Failed legacy cache integration cases capture run and executor diagnostics before test cleanup deletes their workflows. Look for the per-test `tmp-cache-diagnostics-*` directory in the existing integration-test artifact. Capture is best-effort and bounded; check its error report for unavailable or truncated evidence. Workflow-level log collection still runs afterward, but cannot recover deleted executor pods. Diagnose executor state and container logs before increasing the cache completion timeout.
+
 - `sdk-upgrade.yml` uses a fresh virtual environment to install the latest published SDK before upgrading to source-built wheels. Install the SDK, pipeline-spec, and server API wheels together in one pip transaction so unpublished dependency versions resolve locally; never run the upgrade against the already-installed uv workspace.
 
 - Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
