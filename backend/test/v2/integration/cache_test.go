@@ -29,12 +29,14 @@ import (
 
 type CacheTestSuite struct {
 	suite.Suite
-	namespace            string
-	resourceNamespace    string
-	pipelineClient       *apiServer.PipelineClient
-	pipelineUploadClient apiServer.PipelineUploadInterface
-	runClient            *apiServer.RunClient
-	recurringRunClient   *apiServer.RecurringRunClient
+	namespace                string
+	resourceNamespace        string
+	pipelineClient           *apiServer.PipelineClient
+	pipelineUploadClient     apiServer.PipelineUploadInterface
+	runClient                *apiServer.RunClient
+	recurringRunClient       *apiServer.RecurringRunClient
+	diagnosticRunIDs         []string
+	diagnosticRecurringRunID string
 }
 
 func TestCache(t *testing.T) {
@@ -121,6 +123,8 @@ func (s *CacheTestSuite) SetupTest() {
 	// Clean up before each test to ensure test isolation.
 	// See comments on s.cleanUp() in run_api_test.go
 	s.cleanUp()
+	s.diagnosticRunIDs = nil
+	s.diagnosticRecurringRunID = ""
 }
 
 func (s *CacheTestSuite) TestCacheRecurringRun() {
@@ -151,6 +155,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 	helloWorldRecurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	require.NoError(t, err)
 	require.NotNil(t, helloWorldRecurringRun)
+	s.diagnosticRecurringRunID = helloWorldRecurringRun.RecurringRunID
 
 	var allRuns []*run_model.V2beta1Run
 	require.Eventually(s.T(), func() bool {
@@ -329,6 +334,7 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 	}}
 	pipelineRunDetail, err := s.runClient.Create(createRunRequest)
 	require.NoError(s.T(), err)
+	s.diagnosticRunIDs = append(s.diagnosticRunIDs, pipelineRunDetail.RunID)
 
 	expectedState := run_model.V2beta1RuntimeStateSUCCEEDED
 	require.Eventually(s.T(), func() bool {
@@ -358,6 +364,7 @@ func (s *CacheTestSuite) createRunWithParams(pipelineVersion *pipeline_upload_mo
 	}}
 	pipelineRunDetail, err := s.runClient.Create(createRunRequest)
 	require.NoError(s.T(), err)
+	s.diagnosticRunIDs = append(s.diagnosticRunIDs, pipelineRunDetail.RunID)
 
 	expectedState := run_model.V2beta1RuntimeStateSUCCEEDED
 	require.Eventually(s.T(), func() bool {
