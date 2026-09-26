@@ -605,3 +605,8 @@ Dockerfiles. Browser-only and full-stack comparisons omit metadata port forwardi
 selected runtime no longer deploys MLMD. The historical component descriptors and read-only
 MLMD capture proxy remain available for older base releases; current fixtures use PipelineSpec
 IR uploads and native Task/Artifact API bindings.
+
+The retired Python visualization server remains a historical build descriptor only. A current
+native stack omits that image and deployment, including from cross-revision image reuse; native
+artifact viewers and TensorBoard remain available. The CI workflow retains its production-bundle
+browser startup check alongside the separate smoke-harness unit suite.

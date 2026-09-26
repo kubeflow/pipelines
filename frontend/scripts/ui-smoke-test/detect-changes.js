@@ -5,6 +5,8 @@
 
 const { execFileSync } = require('child_process');
 
+// Includes historical release components. componentsForRevision selects only Dockerfiles and
+// Deployments present in the chosen revision before builds or cross-revision image reuse.
 const COMPONENTS = [
   {
     name: 'frontend',

@@ -11,7 +11,7 @@ describe('UI smoke backend build inventory', () => {
     for (const component of components) {
       expect(fs.existsSync(path.join(root, component.dockerfile)), component.name).toBe(true);
     }
-    for (const removed of ['cache-server', 'metadata-writer', 'metadata-envoy']) {
+    for (const removed of ['cache-server', 'metadata-writer', 'metadata-envoy', 'visualization']) {
       expect(components.map(({ name }) => name)).not.toContain(removed);
     }
     expect(revisionUsesMetadataService(root)).toBe(false);
@@ -29,7 +29,12 @@ describe('UI smoke backend build inventory', () => {
       ]),
     );
     expect(COMPONENTS.map(({ name }) => name)).toEqual(
-      expect.arrayContaining(['cache-server', 'metadata-writer', 'metadata-envoy']),
+      expect.arrayContaining([
+        'cache-server',
+        'metadata-writer',
+        'metadata-envoy',
+        'visualization',
+      ]),
     );
   });
 });
