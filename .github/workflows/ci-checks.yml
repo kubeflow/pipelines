@@ -19,6 +19,7 @@ on:
       - 'Documentation'
       - 'KFP e2e frontend tests'
       - 'KFP E2E Pipeline tests'
+      - 'KFP ARM64 Presubmit'
       - 'Frontend Tests'
       - 'Go Builder Image Digests'
       - 'kfp-kubernetes library tests'

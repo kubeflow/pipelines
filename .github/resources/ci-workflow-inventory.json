@@ -33,6 +33,39 @@
       }
     },
     {
+      "path": ".github/workflows/arm64-presubmit.yml",
+      "name": "KFP ARM64 Presubmit",
+      "header_sha256": "256572f8706fa5a16f4ea802e0bc5823826a43103b50888ff2ab86bb76966dbc",
+      "pull_request": {
+        "paths": [
+          ".github/workflows/arm64-presubmit.yml",
+          ".github/workflows/image-builds.yml",
+          ".github/actions/arm64-smoke/**",
+          ".github/actions/create-cluster/**",
+          ".github/actions/github-disk-cleanup/**",
+          ".github/actions/download-artifact-with-retry/**",
+          ".github/resources/scripts/**",
+          ".github/resources/buildkitd.toml",
+          ".github/resources/curl-retry/**",
+          ".dockerignore",
+          "api/**",
+          "backend/**",
+          "frontend/**",
+          "go.mod",
+          "go.sum",
+          "kubernetes_platform/**",
+          "manifests/kustomize/**",
+          "pyproject.toml",
+          "samples/**",
+          "sdk/python/**",
+          "third_party/**",
+          "uv.lock",
+          "!**/*.md",
+          "!**/OWNERS"
+        ]
+      }
+    },
+    {
       "path": ".github/workflows/build-and-push.yml",
       "name": "Build and Push images",
       "header_sha256": "69c2fd667ef7aed48863a2273eb0ff65c101642a38f734aace901bf79aea32fb",
@@ -80,7 +113,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "c5704a333b7a9b1e4963ec5bfe4e6d902b8a3ded2c0054837ad742c208d2e1f8",
+      "header_sha256": "55518d8ecf1b26ffc5858b7442a5a7000f6b4f3ed0da9686a7cddd062d2d1f56",
       "pull_request": null
     },
     {
@@ -348,7 +381,7 @@
     {
       "path": ".github/workflows/image-builds.yml",
       "name": "Build Images",
-      "header_sha256": "0e5028512df5a52ad088460db650775f180c0c81a6174cd0eff7cd2b5b8ef759",
+      "header_sha256": "b17f9692bc07773917c49b6df66109a047d7222dcaeab8f08d1efcd75587c3f2",
       "pull_request": null
     },
     {

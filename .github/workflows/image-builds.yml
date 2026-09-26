@@ -1,6 +1,11 @@
 name: Build Images
 on:
   workflow_call:
+    inputs:
+      architecture:
+        description: 'Native build architecture (amd64 or arm64)'
+        type: string
+        default: amd64
     outputs:
       IMAGE_PATH:
         description: 'A description of my output'
@@ -20,6 +25,8 @@ env:
 
 jobs:
   runtime-base-images:
+    # The ARM smoke pulls its small set of runtime dependencies natively.
+    if: ${{ inputs.architecture == 'amd64' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -99,7 +106,7 @@ jobs:
           retention-days: 1
 
   image-build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 30
     outputs:
       image_path: ${{ steps.configure.outputs.artifact_path }}
@@ -136,7 +143,8 @@ jobs:
             context: .
 
     env:
-      ARTIFACT_NAME: "${{ matrix.image }}"
+      ARTIFACT_NAME: "${{ matrix.image }}${{ inputs.architecture == 'arm64' && '-arm64' || '' }}"
+      TARGET_ARCH: ${{ inputs.architecture }}
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
@@ -145,6 +153,14 @@ jobs:
       - name: Read frontend Node version
         id: frontend_node
         run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+
+      - name: Verify native build architecture
+        shell: bash
+        run: |
+          case "${TARGET_ARCH}:$(uname -m)" in
+            amd64:x86_64|arm64:aarch64) ;;
+            *) echo "::error::Unsupported architecture or non-native build runner"; exit 1 ;;
+          esac
 
       - name: Create Artifacts Path Directory
         id: configure
@@ -175,9 +191,12 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          platforms: linux/${{ inputs.architecture }}
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
-          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ matrix.image }}:ci
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
       - name: Wait before rebuilding
@@ -195,16 +214,31 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          platforms: linux/${{ inputs.architecture }}
           no-cache: true
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
-          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ matrix.image }}:ci
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+
+      - name: Record ARM image identity
+        if: ${{ inputs.architecture == 'arm64' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        env:
+          CI_IMAGE: ${{ matrix.image }}
+        run: >-
+          python3 .github/resources/scripts/arm64_presubmit_image.py
+          "$CI_IMAGE" "$GITHUB_SHA" "$REGISTRY"
+          "$ARTIFACTS_PATH/$ARTIFACT_NAME.json"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+          path: |
+            ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+            ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json
+          if-no-files-found: error
           retention-days: 1
