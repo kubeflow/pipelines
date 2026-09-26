@@ -1346,13 +1346,13 @@ wheels = [
 
 [[package]]
 name = "junit2html"
-version = "31.0.5"
+version = "31.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jinja2" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/8f/2b8799fbfbf38a7286ae2cffce16bcafb323a06f1b87fe8f68238d40e12d/junit2html-31.0.5-py3-none-any.whl", hash = "sha256:7e9872325b99348f51cd1c6446f5d2426e96263cdbcf1e394191429d6a9af9f6", size = 21722, upload-time = "2025-10-18T19:24:32.245Z" },
+    { url = "https://files.pythonhosted.org/packages/38/ef/fba274602d36b6c8c330cbd0c9caa1435c6c15ecdbebfa910495bcecdbc2/junit2html-31.1.4-py3-none-any.whl", hash = "sha256:dfd100dfdc0ee91e1ffbd1774669b209dec115b285e06af9e31d8743db8931e6", size = 22947, upload-time = "2026-06-11T16:50:31.985Z" },
 ]
 
 [[package]]
