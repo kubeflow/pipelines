@@ -109,6 +109,9 @@ func TestUploadPipelineAuthorization(t *testing.T) {
 							assert.Contains(t, responseError.ErrorMessage, "specify your user namespace")
 						} else {
 							assert.Contains(t, responseError.ErrorMessage, `namespace "tenant-ns"`)
+							assert.Contains(t, responseError.ErrorMessage, "For a new pipeline, check the upload namespace")
+							assert.Contains(t, responseError.ErrorMessage, "Ask your administrator for permission in the applicable namespace")
+							assert.NotContains(t, responseError.ErrorMessage, "Check the upload namespace or")
 						}
 						assert.Contains(t, responseError.ErrorMessage, "version uploads inherit their parent pipeline's namespace")
 						assert.NotContains(t, response.Body.String(), "tenant@example.com")

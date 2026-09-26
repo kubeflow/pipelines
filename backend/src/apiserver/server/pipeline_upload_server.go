@@ -399,7 +399,7 @@ func pipelineUploadAuthorizationError(err error, namespace string, shared bool) 
 	if shared {
 		return fmt.Errorf("shared pipeline upload denied: permission to create pipelines.pipelines.kubeflow.org in namespace %q is required. For a private pipeline, specify your user namespace when uploading a new pipeline; version uploads inherit their parent pipeline's namespace", namespace)
 	}
-	return fmt.Errorf("pipeline upload denied: permission to create pipelines.pipelines.kubeflow.org in namespace %q is required. Check the upload namespace or ask your administrator for this permission; version uploads inherit their parent pipeline's namespace", namespace)
+	return fmt.Errorf("pipeline upload denied: permission to create pipelines.pipelines.kubeflow.org in namespace %q is required. For a new pipeline, check the upload namespace; version uploads inherit their parent pipeline's namespace. Ask your administrator for permission in the applicable namespace", namespace)
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
