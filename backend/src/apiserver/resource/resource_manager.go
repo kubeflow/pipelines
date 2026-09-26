@@ -1069,9 +1069,10 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	}
 	err = r.getWorkflowClient(k8sNamespace).Delete(ctx, run.K8SName, v1.DeleteOptions{})
 	if err != nil {
-		// API won't need to delete the workflow CR
-		// once persistent agent sync the state to DB and set TTL for it.
-		glog.Warningf("Failed to delete run %v. Error: %v", run.K8SName, err.Error())
+		if !util.IsNotFound(err) {
+			return util.NewInternalServerError(err, "Failed to delete run %v. Check if the workflow exists", runId)
+		}
+		glog.Infof("Deleting run '%v', but skipped deleting Workflow '%v' in namespace '%v' because it was not found", runId, run.K8SName, k8sNamespace)
 	}
 	err = r.runStore.DeleteRun(runId)
 	if err != nil {

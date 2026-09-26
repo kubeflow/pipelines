@@ -2626,10 +2626,35 @@ func TestDeleteRun_CrdFailure(t *testing.T) {
 
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.DeleteRun(context.Background(), runDetail.UUID)
-	// assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	// assert.Contains(t, err.Error(), "some error")
-	// TODO(IronPan) This should return error if swf CRD doesn't cascade delete runs.
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Failed to delete run")
+
+	// The DB record must be preserved so the delete can be retried
+	// once the cluster-side failure is resolved.
+	_, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
+}
+
+// notFoundDeleteWorkflowClient simulates an already-deleted (or never-created)
+// Argo Workflow: Delete always reports NotFound.
+type notFoundDeleteWorkflowClient struct {
+	*client.FakeWorkflowClient
+}
+
+func (c *notFoundDeleteWorkflowClient) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, name)
+}
+
+func TestDeleteRun_WorkflowNotFound_DeletesDb(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	manager.execClient = &retryWorkflowExecClient{workflowClient: &notFoundDeleteWorkflowClient{FakeWorkflowClient: client.NewWorkflowClientFake()}}
+	err := manager.DeleteRun(context.Background(), runDetail.UUID)
+	assert.Nil(t, err)
+
+	_, err = manager.GetRun(runDetail.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestDeleteRun_DbFailure(t *testing.T) {
