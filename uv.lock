@@ -1687,7 +1687,7 @@ requires-dist = [
     { name = "m2r2", marker = "extra == 'docs'" },
     { name = "minio", marker = "extra == 'legacy-compatible-runtime'", specifier = "==5.0.10" },
     { name = "mypy", marker = "extra == 'dev'" },
-    { name = "mypy-extensions", marker = "extra == 'legacy-compatible-runtime'", specifier = "==0.4.3" },
+    { name = "mypy-extensions", marker = "extra == 'legacy-compatible-runtime'", specifier = "==1.1.0" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = ">=3.0.0,<4.0.0" },
     { name = "nbformat", marker = "extra == 'test'" },
     { name = "numpy", marker = "extra == 'legacy-compatible-runtime'", specifier = "==1.23.1" },
@@ -2080,11 +2080,11 @@ wheels = [
 
 [[package]]
 name = "mypy-extensions"
-version = "0.4.3"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/63/60/0582ce2eaced55f65a4406fc97beba256de4b7a95a0034c6576458c6519f/mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8", size = 4252, upload-time = "2019-10-17T22:38:58.685Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/6e/371856a3fb9d31ca8dac321cda606860fa4548858c0cc45d9d1d4ca2628b/mypy_extensions-1.1.0.tar.gz", hash = "sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558", size = 6343, upload-time = "2025-04-22T14:54:24.164Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/eb/975c7c080f3223a5cdaff09612f3a5221e4ba534f7039db34c35d95fa6a5/mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d", size = 4470, upload-time = "2019-10-17T22:38:56.922Z" },
+    { url = "https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl", hash = "sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505", size = 4963, upload-time = "2025-04-22T14:54:22.983Z" },
 ]
 
 [[package]]
