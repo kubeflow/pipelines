@@ -133,6 +133,6 @@ legacy-compatible-runtime = [
   "minio==5.0.10",
   "mypy-extensions==0.4.3",
   "numpy==1.23.1",
-  "pathlib2==2.3.5",
+  "pathlib2==2.3.7.post1",
   "PyYAML>=5.3,<7",
 ]

@@ -1165,7 +1165,7 @@ name = "importlib-metadata"
 version = "8.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "python_full_version < '3.13'" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/49/3b30cad09e7771a4982d9975a8cbf64f00d4a1ececb53297f1d9a7be1b10/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb", size = 57107, upload-time = "2025-12-21T10:00:19.278Z" }
 wheels = [
@@ -1691,7 +1691,7 @@ requires-dist = [
     { name = "myst-parser", marker = "extra == 'docs'", specifier = ">=3.0.0,<4.0.0" },
     { name = "nbformat", marker = "extra == 'test'" },
     { name = "numpy", marker = "extra == 'legacy-compatible-runtime'", specifier = "==1.23.1" },
-    { name = "pathlib2", marker = "extra == 'legacy-compatible-runtime'", specifier = "==2.3.5" },
+    { name = "pathlib2", marker = "extra == 'legacy-compatible-runtime'", specifier = "==2.3.7.post1" },
     { name = "pip", marker = "extra == 'test'" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.2" },
     { name = "pre-commit-hooks", marker = "extra == 'lint'" },
@@ -2220,14 +2220,14 @@ wheels = [
 
 [[package]]
 name = "pathlib2"
-version = "2.3.5"
+version = "2.3.7.post1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "six" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/94/d8/65c86584e7e97ef824a1845c72bbe95d79f5b306364fa778a3c3e401b309/pathlib2-2.3.5.tar.gz", hash = "sha256:6cd9a47b597b37cc57de1c05e56fb1a1c9cc9fab04fe78c29acd090418529868", size = 34393, upload-time = "2019-09-27T07:33:54.918Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/51/99caf463dc7c18eb18dad1fffe465a3cf3ee50ac3d1dccbd1781336fe9c7/pathlib2-2.3.7.post1.tar.gz", hash = "sha256:9fe0edad898b83c0c3e199c842b27ed216645d2e177757b2dd67384d4113c641", size = 211190, upload-time = "2022-02-10T18:01:09.996Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/45/9c82d3666af4ef9f221cbb954e1d77ddbb513faf552aea6df5f37f1a4859/pathlib2-2.3.5-py2.py3-none-any.whl", hash = "sha256:0ec8205a157c80d7acc301c0b18fbd5d44fe655968f5d947b6ecef5290fc35db", size = 18252, upload-time = "2019-09-27T07:33:53.079Z" },
+    { url = "https://files.pythonhosted.org/packages/09/eb/4af4bcd5b8731366b676192675221c5324394a580dfae469d498313b5c4a/pathlib2-2.3.7.post1-py2.py3-none-any.whl", hash = "sha256:5266a0fd000452f1b3467d782f079a4343c63aaa119221fbdc4e39577489ca5b", size = 18027, upload-time = "2022-02-10T18:01:07.751Z" },
 ]
 
 [[package]]
