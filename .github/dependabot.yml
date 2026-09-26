@@ -27,6 +27,8 @@ updates:
       - "dependencies"
       - "go"
       - "do-not-merge/hold"
+      - "project/maintainer-review"
+      - "project/dependabot-review"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -56,6 +58,8 @@ updates:
       - "dependencies"
       - "docker"
       - "do-not-merge/hold"
+      - "project/maintainer-review"
+      - "project/dependabot-review"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -79,6 +83,8 @@ updates:
       - "dependencies"
       - "javascript"
       - "do-not-merge/hold"
+      - "project/maintainer-review"
+      - "project/dependabot-review"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -113,6 +119,8 @@ updates:
       - "dependencies"
       - "python"
       - "do-not-merge/hold"
+      - "project/maintainer-review"
+      - "project/dependabot-review"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -129,6 +137,8 @@ updates:
       - "dependencies"
       - "python:uv"
       - "do-not-merge/hold"
+      - "project/maintainer-review"
+      - "project/dependabot-review"
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
@@ -143,6 +153,8 @@ updates:
       - "dependencies"
       - "github_actions"
       - "do-not-merge/hold"
+      - "project/maintainer-review"
+      - "project/dependabot-review"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -157,6 +169,8 @@ updates:
       - "dependencies"
       - "pre_commit"
       - "do-not-merge/hold"
+      - "project/maintainer-review"
+      - "project/dependabot-review"
     commit-message:
       prefix: "chore(deps)"
     groups:

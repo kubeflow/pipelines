@@ -92,9 +92,10 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bc31e48ec9321281766d03b29eca5637b85a3e5534ef078e632856d8b3e8ab72",
+      "header_sha256": "b4501a53400b2df5e1d8fbf684d5a9c617b4086d859972d819726605b4d928f1",
       "pull_request": {
         "paths": [
+          "OWNERS",
           ".github/dependabot.yml",
           "**/go.mod",
           "**/package.json",
@@ -671,6 +672,12 @@
       "path": ".github/workflows/stale.yml",
       "name": "Mark stale issues and pull requests",
       "header_sha256": "8ed5e6b29dad78ca14bebe3f08006c01c1732ce9554497332229d6a33b4b1a5f",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/sync-maintainer-project-label.yml",
+      "name": "Sync Maintainer Review Project Label",
+      "header_sha256": "862e8330307470a683ce4bec9ed9d25e64e46fd00d0f64a9e0cdb5df1b2cf36f",
       "pull_request": null
     },
     {
