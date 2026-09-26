@@ -351,6 +351,8 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertIn('persist-credentials: false', workflow)
         self.assertIn('            .github/scripts/kubeflow_membership.py\n',
                       workflow)
+        self.assertIn('            .github/scripts/pr_gate_issue.py\n',
+                      workflow)
         self.assertIn('            .github/scripts/requirements.txt\n',
                       workflow)
         self.assertIn('run: python3 .github/scripts/kubeflow_membership.py',
@@ -398,9 +400,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertIn('### ' + heading, (ROOT / 'CONTRIBUTING.md').read_text())
         self.assertEqual(
             message,
-            'PRs from external contributors must link to an issue that a maintainer has labeled `ready`.\n\n'
+            'PRs from external contributors must reference an issue in this repository that a maintainer has labeled `ready`.\n\n'
             'This PR does not currently meet that requirement. This is not a judgment on the quality of your contribution.\n\n'
-            'To continue, please work with maintainers to get the associated issue triaged and labeled `ready`, then link to it in the PR description.\n\n'
+            'To continue, please work with maintainers to get the associated issue triaged and labeled `ready`, then add `Fixes #1234` on its own line in the PR description and reopen this PR.\n\n'
             f'See [{heading}](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md#{anchor}) for the updated contribution guidelines.',
         )
         script = textwrap.dedent(workflow.rsplit('        run: |\n', 1)[1])
@@ -408,7 +410,9 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         gh() {
           case "$1 $2" in
             'pr view') printf '%s' "$ISSUE_JSON" ;;
-            'issue view') printf '%s' "$LABELS_JSON" ;;
+            'issue view')
+              if [[ "$ISSUE_VIEW_ERROR" == '1' ]]; then return 22; fi
+              printf '%s' "$LABELS_JSON" ;;
             'pr comment') printf '%s' "$5" > "$COMMENT_FILE" ;;
             'pr close') printf 'closed' > "$STATE_FILE" ;;
             'pr edit') printf 'admitted' > "$STATE_FILE" ;;
@@ -416,15 +420,30 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
           esac
         }
         '''
-        cases = [([], [], 'closed'), ([{
-            'number': 123
-        }], [], 'closed'), ([{
-            'number': 123
-        }], [{
-            'name': 'ready'
-        }], 'admitted')]
-        for issues, labels, expected_state in cases:
+        same_repo = {'owner': {'login': 'kubeflow'}, 'name': 'pipelines'}
+        other_repo = {'owner': {'login': 'other'}, 'name': 'project'}
+        cases = [
+            ('master', '', [], [], 'closed'),
+            ('master', 'Fixes #123', [], [{'name': 'ready'}], 'closed'),
+            ('master', '', [{'number': 123, 'repository': same_repo}], [],
+             'closed'),
+            ('master', '', [{'number': 123, 'repository': same_repo}],
+             [{'name': 'ready'}], 'admitted'),
+            ('release-2.18', 'Fixes #123 for release-2.18', [],
+             [{'name': 'ready'}], 'admitted'),
+            ('release-2.18', 'Fixes #123', [], [{'name': 'not-ready'}],
+             'closed'),
+            ('release-2.18', 'Fixes other/project#123', [],
+             [{'name': 'ready'}], 'closed'),
+            ('release-2.18', '',
+             [{'number': 123, 'repository': other_repo}],
+             [{'name': 'ready'}], 'closed'),
+            ('release-2.18', 'Fixes #123', [], None, 'error'),
+        ]
+        for base, body, issues, labels, expected_state in cases:
             with self.subTest(
+                    base=base,
+                    body=body,
                     issues=issues,
                     labels=labels), tempfile.TemporaryDirectory() as directory:
                 comment_file = Path(directory) / 'comment'
@@ -437,12 +456,22 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                             '456',
                         'GITHUB_REPOSITORY':
                             'kubeflow/pipelines',
+                        'GH_REPO':
+                            'kubeflow/pipelines',
+                        'DEFAULT_BRANCH':
+                            'master',
                         'CLOSURE_MESSAGE':
                             message,
                         'ISSUE_JSON':
-                            json.dumps({'closingIssuesReferences': issues}),
+                            json.dumps({
+                                'closingIssuesReferences': issues,
+                                'baseRefName': base,
+                                'body': body,
+                            }),
                         'LABELS_JSON':
                             json.dumps({'labels': labels}),
+                        'ISSUE_VIEW_ERROR':
+                            '1' if labels is None else '0',
                         'COMMENT_FILE':
                             str(comment_file),
                         'STATE_FILE':
@@ -451,11 +480,16 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                     capture_output=True,
                     text=True,
                     timeout=10,
+                    cwd=ROOT,
                 )
                 closed = expected_state == 'closed'
-                self.assertEqual(result.returncode, 1 if closed else 0,
-                                 result.stderr)
-                self.assertEqual(state_file.read_text(), expected_state)
+                self.assertEqual(result.returncode,
+                                 22 if expected_state == 'error' else 1
+                                 if closed else 0, result.stderr)
+                if expected_state == 'error':
+                    self.assertFalse(state_file.exists())
+                else:
+                    self.assertEqual(state_file.read_text(), expected_state)
                 self.assertEqual(comment_file.exists(), closed)
                 if closed:
                     self.assertEqual(comment_file.read_text(), message)

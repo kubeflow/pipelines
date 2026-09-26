@@ -27,6 +27,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             .github/scripts/kubeflow_membership.py
+            .github/scripts/pr_gate_issue.py
             .github/scripts/requirements.txt
           sparse-checkout-cone-mode: false
 
@@ -51,41 +52,40 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           CLOSURE_MESSAGE: |
-            PRs from external contributors must link to an issue that a maintainer has labeled `ready`.
+            PRs from external contributors must reference an issue in this repository that a maintainer has labeled `ready`.
 
             This PR does not currently meet that requirement. This is not a judgment on the quality of your contribution.
 
-            To continue, please work with maintainers to get the associated issue triaged and labeled `ready`, then link to it in the PR description.
+            To continue, please work with maintainers to get the associated issue triaged and labeled `ready`, then add `Fixes #1234` on its own line in the PR description and reopen this PR.
 
             See [Pull Request Admission for External Contributors](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md#pull-request-admission-for-external-contributors) for the updated contribution guidelines.
         run: |
-          # Get the issue linked to the PR via GitHub CLI using closingIssuesReferences
-          PR_JSON=$(gh pr view "$PR_NUMBER" --json closingIssuesReferences)
-          # Extract the linked issue number
-          ISSUE_NUMBER=$(echo "$PR_JSON" | jq -r '.closingIssuesReferences[0].number // empty')
+          # GitHub omits closing-keyword links for PRs targeting release branches.
+          PR_JSON=$(gh pr view "$PR_NUMBER" --json closingIssuesReferences,baseRefName,body)
+          ISSUE_NUMBER=$(printf '%s' "$PR_JSON" | python3 .github/scripts/pr_gate_issue.py)
 
           if [[ -z "$ISSUE_NUMBER" ]]; then
-            printf '::error::No linked issue found for PR #%s. Please link an issue using closing keywords (e.g., '\''Fixes #123'\'') in the PR description.\n' "$PR_NUMBER"
+            printf '::error::No issue reference found for PR #%s. Add a same-repository closing reference (e.g., '\''Fixes #123'\'') on its own line in the PR description.\n' "$PR_NUMBER"
 
             gh pr comment "$PR_NUMBER" --body "$CLOSURE_MESSAGE"
             gh pr close "$PR_NUMBER"
             exit 1
           fi
 
-          echo "Linked issue number found: #$ISSUE_NUMBER"
+          echo "Issue reference found: #$ISSUE_NUMBER"
 
-          # Check if the found linked issue has a 'ready' label on it.
-          ISSUE_LABELS=$(gh issue view "$ISSUE_NUMBER" --json labels | jq -r '.labels[].name')
-
-          # Verify if the list of labels contains the 'ready' label
-          if echo "$ISSUE_LABELS" | grep -q "ready"; then
-            echo "::notice::Success! Linked issue #$ISSUE_NUMBER contains the 'ready' label. Proceeding with CI. Adding 'ok-to-test' to the PR #$PR_NUMBER..."
+          # Require the exact 'ready' label on the issue in this repository.
+          ISSUE_READY=$(gh issue view "$ISSUE_NUMBER" --repo "$GH_REPO" --json labels |
+              jq -r 'any(.labels[]; .name == "ready")')
+          if [[ "$ISSUE_READY" == "true" ]]; then
+            echo "::notice::Success! Issue #$ISSUE_NUMBER contains the 'ready' label. Proceeding with CI. Adding 'ok-to-test' to the PR #$PR_NUMBER..."
             gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "ok-to-test"
             echo "::notice::'ok-to-test' label added. CI can now proceed."
 
           else
-           echo "::error::Linked issue #$ISSUE_NUMBER does not contain the 'ready' label on it."
+           echo "::error::Issue #$ISSUE_NUMBER does not contain the 'ready' label on it."
 
            # Comment on the PR to inform the author about the missing label and close the PR
             gh pr comment "$PR_NUMBER" --body "$CLOSURE_MESSAGE"
