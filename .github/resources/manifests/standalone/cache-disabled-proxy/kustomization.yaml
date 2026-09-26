@@ -13,3 +13,7 @@ patches:
     target:
       kind: Deployment
       name: workflow-controller
+  - path: ../../base/driver-plugin-cm-path.yaml
+    target:
+      kind: ConfigMap
+      name: ml-pipeline-driver-agent

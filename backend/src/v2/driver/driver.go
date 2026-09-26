@@ -212,6 +212,7 @@ func initPodSpecPatch(
 	mlPipelineServerAddress string,
 	mlPipelineServerPort string,
 	pluginEnvVars any,
+	proxyConfig proxy.Config,
 ) (*k8score.PodSpec, error) {
 	pluginEnvVarSlice := make([]k8score.EnvVar, 0)
 	switch typedEnvVars := pluginEnvVars.(type) {
@@ -243,7 +244,9 @@ func initPodSpecPatch(
 	// Append necessary env variables for task-level plugin(s).
 	userEnvVar = append(userEnvVar, pluginEnvVarSlice...)
 
-	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
+	if proxyConfig != nil {
+		userEnvVar = append(userEnvVar, proxyConfig.GetEnvVars()...)
+	}
 
 	setOnTaskConfig, setOnPod := getTaskConfigOptions(componentSpec)
 
@@ -713,7 +716,7 @@ func provisionOutputs(
 	pipelineRoot,
 	taskName string,
 	outputsSpec *pipelinespec.ComponentOutputsSpec,
-	outputURISalt string,
+	prefix string,
 	publishOutput string,
 ) *pipelinespec.ExecutorInput_Outputs {
 	outputs := &pipelinespec.ExecutorInput_Outputs{
@@ -743,7 +746,7 @@ func provisionOutputs(
 	// artifacts (dsl.get_uri) by allowing the SDK to infer the task root from
 	// the executor output file's directory (set below) and convert it back to
 	// a remote URI at runtime.
-	taskRootRemote := util.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt}, false)
+	taskRootRemote := util.GenerateOutputURI(pipelineRoot, []string{taskName, prefix}, false)
 
 	// Set per-artifact output URIs under the task root.
 	for name, artifact := range artifacts {
@@ -776,7 +779,6 @@ func provisionOutputs(
 		// Fallback to legacy path if the pipeline root scheme is not recognized.
 		outputs.OutputFile = component.OutputMetadataFilepath
 	}
-
 	return outputs
 }
 

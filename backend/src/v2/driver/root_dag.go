@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/golang/glog"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
@@ -16,6 +15,7 @@ import (
 // RootDAG handles initial root dag task creation
 // and runtime parameter resolution.
 func RootDAG(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, err error) {
+	log := driverLogger(ctx)
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.RootDAG(%s) failed: %w", opts.Info(), err)
@@ -26,7 +26,7 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 	if err != nil {
 		return nil, err
 	}
-	glog.V(4).Info("RootDAG opts: ", string(b))
+	log.Trace("RootDAG opts: ", string(b))
 	if err = validateRootDAG(opts); err != nil {
 		return nil, err
 	}

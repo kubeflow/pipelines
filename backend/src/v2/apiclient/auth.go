@@ -95,19 +95,34 @@ func getToken() (string, error) {
 
 type tokenPerRPCCredentials struct {
 	requireTransportSecurity bool
+	tokenSource              TokenSource
+}
+
+// TokenSource supplies credentials for one API client and supports concurrent calls.
+type TokenSource interface {
+	Token(context.Context) (string, error)
 }
 
 var _ credentials.PerRPCCredentials = (*tokenPerRPCCredentials)(nil)
 
-func newTokenPerRPCCredentials(requireTransportSecurity bool) credentials.PerRPCCredentials {
-	return &tokenPerRPCCredentials{requireTransportSecurity: requireTransportSecurity}
+func newTokenPerRPCCredentials(requireTransportSecurity bool, source TokenSource) credentials.PerRPCCredentials {
+	return &tokenPerRPCCredentials{requireTransportSecurity: requireTransportSecurity, tokenSource: source}
 }
 
 func (c *tokenPerRPCCredentials) GetRequestMetadata(
 	ctx context.Context,
 	uri ...string,
 ) (map[string]string, error) {
-	token, err := getToken()
+	var token string
+	var err error
+	if c.tokenSource != nil {
+		token, err = c.tokenSource.Token(ctx)
+		if err == nil && token == "" {
+			return nil, fmt.Errorf("configured token source returned an empty token")
+		}
+	} else {
+		token, err = getToken()
+	}
 	if err != nil {
 		return nil, err
 	}

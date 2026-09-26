@@ -149,10 +149,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
-			// Read the admin configured driver pod metadata here, at the API server layer,
-			// so the compiler itself stays free of any dependency on API server state.
-			DriverPodConfig:     common.GetDriverPodConfig(),
-			TokenReviewAudience: common.GetTokenReviewAudience(),
+			TokenReviewAudience:  common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -396,10 +393,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
-			// Read the admin configured driver pod metadata here, at the API server layer,
-			// so the compiler itself stays free of any dependency on API server state.
-			DriverPodConfig:     common.GetDriverPodConfig(),
-			TokenReviewAudience: common.GetTokenReviewAudience(),
+			TokenReviewAudience:  common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}

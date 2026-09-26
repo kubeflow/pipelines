@@ -1,15 +1,17 @@
 import logging
-import time
-import urllib3
-from kubernetes import client, config
 import subprocess
+import time
 
+from kubernetes import client
+from kubernetes import config
 from slow_pod_diagnostics import container_creating_pod_identities
 from slow_pod_diagnostics import SlowContainerCreatingDiagnostics
+import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 namespace = 'kubeflow'
 
@@ -19,17 +21,18 @@ v1 = client.CoreV1Api()
 slow_container_creating_diagnostics = SlowContainerCreatingDiagnostics(
     output=lambda message: logging.warning('%s', message))
 
+
 def log_pods():
     pods = v1.list_namespaced_pod(namespace=namespace)
 
     for pod in pods.items:
         try:
             logging.info(
-                f"---- Pod {namespace}/{pod.metadata.name} logs ----\n"
-                + v1.read_namespaced_pod_log(pod.metadata.name, namespace)
-            )
+                f"---- Pod {namespace}/{pod.metadata.name} logs ----\n" +
+                v1.read_namespaced_pod_log(pod.metadata.name, namespace))
         except client.exceptions.ApiException:
             continue
+
 
 def get_pod_statuses():
     pods = v1.list_namespaced_pod(namespace=namespace)
@@ -37,7 +40,8 @@ def get_pod_statuses():
     observed_pods = []
     for pod in pods.items:
         pod_name = pod.metadata.name
-        if "system" not in pod_name:
+        # This filter is safe: 'ml-pipeline-persistenceagent-<guid>' will not be excluded and will be processed.
+        if not ("system" in pod_name or pod_name.endswith("-agent")):
             observed_pods.append(pod)
             pod_status = pod.status.phase
             container_statuses = pod.status.container_statuses or []
@@ -52,14 +56,19 @@ def get_pod_statuses():
             for status in init_container_statuses + container_statuses:
                 if status.state.waiting is not None:
                     if status.state.waiting.message is not None:
-                        waiting_messages.append(f'Waiting on Container: {status.name} - {status.state.waiting.reason}: {status.state.waiting.message}')
+                        waiting_messages.append(
+                            f'Waiting on Container: {status.name} - {status.state.waiting.reason}: {status.state.waiting.message}'
+                        )
                     else:
-                        waiting_messages.append(f'Waiting on Container: {status.name} - {status.state.waiting.reason}')
+                        waiting_messages.append(
+                            f'Waiting on Container: {status.name} - {status.state.waiting.reason}'
+                        )
             statuses[pod_name] = (pod_status, ready, total, waiting_messages)
     return statuses, container_creating_pod_identities(observed_pods)
 
 
 def all_pods_ready(statuses):
+
     def is_pod_ready(pod_status, ready, total):
         # Jobs/CronJobs are ready when they succeed
         if pod_status == 'Succeeded':
@@ -68,21 +77,19 @@ def all_pods_ready(statuses):
         if pod_status == 'Running' and ready == total:
             return True
         return False
-    
-    return all(is_pod_ready(pod_status, ready, total)
-               for _, (pod_status, ready, total, _) in statuses.items())
+
+    return all(
+        is_pod_ready(pod_status, ready, total)
+        for _, (pod_status, ready, total, _) in statuses.items())
 
 
 def print_get_pods():
     try:
-        result = subprocess.run(
-            ['kubectl', 'get', 'pods', '-n', 'kubeflow'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-
-        )
+        result = subprocess.run(['kubectl', 'get', 'pods', '-n', 'kubeflow'],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True,
+                                check=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while running kubectl get pods: {e.stderr}")
@@ -95,13 +102,16 @@ def check_pods(calm_time=10, timeout=900, retries_after_ready=5):
 
     while time.time() - start_time < timeout:
         current_statuses, container_creating_pods = get_pod_statuses()
-        slow_container_creating_diagnostics.observe(
-            namespace, container_creating_pods)
+        slow_container_creating_diagnostics.observe(namespace,
+                                                    container_creating_pods)
 
         logging.info("Checking pod statuses...")
-        for pod_name, (pod_status, ready, total, waiting_messages) in current_statuses.items():
-            logging.info(f"Pod {pod_name} - Status: {pod_status}, Ready: {ready}/{total}")
-            for waiting_msg  in waiting_messages:
+        for pod_name, (pod_status, ready, total,
+                       waiting_messages) in current_statuses.items():
+            logging.info(
+                f"Pod {pod_name} - Status: {pod_status}, Ready: {ready}/{total}"
+            )
+            for waiting_msg in waiting_messages:
                 logging.info(waiting_msg)
 
         if current_statuses == previous_statuses:
@@ -112,7 +122,8 @@ def check_pods(calm_time=10, timeout=900, retries_after_ready=5):
                     break
                 else:
                     logging.info(
-                        f"Pods are calm but have only been stable for {stable_count}/{retries_after_ready} retries.")
+                        f"Pods are calm but have only been stable for {stable_count}/{retries_after_ready} retries."
+                    )
             else:
                 stable_count = 0
         else:
@@ -120,7 +131,9 @@ def check_pods(calm_time=10, timeout=900, retries_after_ready=5):
 
         previous_statuses = current_statuses
         pods = print_get_pods()
-        logging.info(f"Pods are still stabilizing. Retrying in {calm_time} seconds...\n{pods}")
+        logging.info(
+            f"Pods are still stabilizing. Retrying in {calm_time} seconds...\n{pods}"
+        )
         time.sleep(calm_time)
     else:
         log_pods()
@@ -134,7 +147,9 @@ def check_pods(calm_time=10, timeout=900, retries_after_ready=5):
         elif pod_status == 'Running' and ready == total:
             logging.info(f"Pod {pod_name} is fully ready ({ready}/{total})")
         else:
-            logging.info(f"Pod {pod_name} is not ready (Status: {pod_status}, Ready: {ready}/{total})")
+            logging.info(
+                f"Pod {pod_name} is not ready (Status: {pod_status}, Ready: {ready}/{total})"
+            )
 
 
 if __name__ == "__main__":

@@ -1,14 +1,18 @@
 package mlflow
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -27,8 +31,12 @@ func GetMLflowRunID() string {
 // ParseKfpMLflowRuntimeConfig parses the KFP_MLFLOW_CONFIG environment variable into an MLflowRuntimeConfig struct.
 // Returns an error if the variable is not set, malformed, or contains an unsupported auth type.
 func ParseKfpMLflowRuntimeConfig() (*commonmlflow.MLflowRuntimeConfig, error) {
-	var cfg commonmlflow.MLflowRuntimeConfig
 	runtimeCfg := GetStringConfig(kfpMLflowConfig)
+	return ParseKfpMLflowRuntimeConfigValue(runtimeCfg)
+}
+
+func ParseKfpMLflowRuntimeConfigValue(runtimeCfg string) (*commonmlflow.MLflowRuntimeConfig, error) {
+	var cfg commonmlflow.MLflowRuntimeConfig
 	if runtimeCfg == "" {
 		return nil, fmt.Errorf("KFP_MLFLOW_CONFIG env var not set")
 	}
@@ -76,8 +84,11 @@ func IsEnabled() bool {
 
 // BuildMLflowTaskRequestContext constructs a fully initialized RequestContext
 // by delegating to the common BuildMLflowRequestContext with task-specific parameters.
-func BuildMLflowTaskRequestContext(runtimeCfg commonmlflow.MLflowRuntimeConfig) (*commonmlflow.RequestContext, error) {
-	credentials, err := commonmlflow.ResolveRuntimeMLflowCredentials(runtimeCfg.AuthType)
+// For secret-based auth, the driver executor plugin resolves credentials from
+// Secret/kfp-mlflow-credentials in its own namespace using the key names carried
+// in KFP_MLFLOW_CONFIG; secret values are not sent through runtime args.
+func BuildMLflowTaskRequestContext(ctx context.Context, runtimeCfg commonmlflow.MLflowRuntimeConfig) (*commonmlflow.RequestContext, error) {
+	credentials, err := resolveRuntimeCredentials(ctx, runtimeCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +103,30 @@ func BuildMLflowTaskRequestContext(runtimeCfg commonmlflow.MLflowRuntimeConfig) 
 		runtimeCfg.Workspace,
 		runtimeCfg.WorkspacesEnabled,
 	)
+}
+
+func resolveRuntimeCredentials(ctx context.Context, runtimeCfg commonmlflow.MLflowRuntimeConfig) (commonmlflow.MLflowCredentials, error) {
+	switch runtimeCfg.AuthType {
+	case commonmlflow.AuthTypeBearer, commonmlflow.AuthTypeBasicAuth:
+		// The API server cannot inject per-run SecretKeyRef env vars into the
+		// Argo executor plugin sidecar, so the driver reads the namespace Secret
+		// directly for bearer/basic auth.
+		namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		if err != nil {
+			return commonmlflow.MLflowCredentials{}, fmt.Errorf("failed to resolve pod namespace for MLflow credentials: %w", err)
+		}
+		restConfig, err := util.GetKubernetesConfig()
+		if err != nil {
+			return commonmlflow.MLflowCredentials{}, fmt.Errorf("failed to initialize Kubernetes config for MLflow credentials: %w", err)
+		}
+		clientSet, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			return commonmlflow.MLflowCredentials{}, fmt.Errorf("failed to initialize Kubernetes clientset for MLflow credentials: %w", err)
+		}
+		return commonmlflow.ResolveSecretMLflowCredentials(ctx, clientSet, string(namespace), runtimeCfg.CredentialSecretRef, runtimeCfg.AuthType)
+	default:
+		return commonmlflow.ResolveRuntimeMLflowCredentials(runtimeCfg.AuthType)
+	}
 }
 
 // TaskStateToMLflowTerminalStatus converts a PipelineTask_TaskState to an MLflow

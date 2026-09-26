@@ -59,11 +59,11 @@ type Config interface {
 
 var (
 	configInstance Config = &nonInitializedConfig{}
-	emptyConfig           = newConfig("", "", "")
+	emptyConfig           = NewConfig("", "", "")
 )
 
 func InitializeConfig(httpProxy string, httpsProxy string, noProxy string) {
-	configInstance = newConfig(httpProxy, httpsProxy, noProxy)
+	configInstance = NewConfig(httpProxy, httpsProxy, noProxy)
 }
 
 func InitializeConfigWithEnv() {
@@ -78,7 +78,9 @@ func GetConfig() Config {
 	return configInstance
 }
 
-func newConfig(httpProxy string, httpsProxy string, noProxy string) Config {
+// NewConfig creates an independent proxy configuration without changing the global configuration.
+// Internal service addresses are added to noProxy when an HTTP or HTTPS proxy is configured.
+func NewConfig(httpProxy string, httpsProxy string, noProxy string) Config {
 	if httpProxy != "" || httpsProxy != "" {
 		noProxy = mergeNoProxyEntries(noProxy, getDefaultNoProxyValue())
 	}
@@ -114,10 +116,10 @@ func newConfigFromEnv() Config {
 	noProxyValue, isNoProxySet := os.LookupEnv(NoProxyEnv)
 
 	if (isHTTPProxySet || isHTTPSProxySet) && !isNoProxySet {
-		return newConfig(httpProxyValue, httpsProxyValue, "")
+		return NewConfig(httpProxyValue, httpsProxyValue, "")
 	}
 
-	return newConfig(httpProxyValue, httpsProxyValue, noProxyValue)
+	return NewConfig(httpProxyValue, httpsProxyValue, noProxyValue)
 }
 
 func EmptyConfig() Config {
