@@ -17,7 +17,7 @@
 # This script quickly tests whether major entrances of the manifests folder can
 # be hydrated. Maybe we can improve on it to provide snapshot diff.
 
-set -ex
+set -exo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 MANIFESTS_DIR="${DIR}/.."
@@ -45,11 +45,20 @@ done
 # These kustomization.yaml folders expect using kustomize v3+.
 kustomization_yamls_v3=(
   "base/installs/multi-user"
+  "env/plain-multi-user"
   "env/platform-agnostic-multi-user"
+  "env/platform-agnostic-multi-user-postgresql"
 )
 for path in "${kustomization_yamls_v3[@]}"
 do
-  kustomize build "${MANIFESTS_DIR}/${path}" >/dev/null
+  {
+    kustomize build "${MANIFESTS_DIR}/${path}" | yq read --tojson --doc '*' - || exit 1
+    # The base installation expects metacontroller to be installed separately.
+    if [[ "${path}" == "base/installs/multi-user" ]]; then
+      kustomize build "${MANIFESTS_DIR}/third-party/metacontroller/base" | \
+        yq read --tojson --doc '*' - || exit 1
+    fi
+  } | python3 "${DIR}/profile_controller_networkpolicy_test.py"
 done
 
 kpt pkg tree "${MANIFESTS_DIR}" >/dev/null
