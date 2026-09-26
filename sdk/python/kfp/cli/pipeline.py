@@ -113,7 +113,7 @@ def create_version(ctx: click.Context,
         description=description)
     output.print_output(
         version,
-        output.ModelType.PIPELINE,
+        output.ModelType.PIPELINE_VERSION,
         output_format,
     )
 
@@ -243,7 +243,7 @@ def get_version(ctx: click.Context, pipeline_id: str, version_id: str):
         pipeline_id=pipeline_id, pipeline_version_id=version_id)
     output.print_output(
         version,
-        output.ModelType.PIPELINE,
+        output.ModelType.PIPELINE_VERSION,
         output_format,
     )
 
