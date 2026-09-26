@@ -49,7 +49,7 @@ jobs:
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
     with:
-      src_branch: master
+      src_branch: ${{ github.sha }}
       target_tag: master
       arch_tag: ${{ matrix.arch.arch_name }}
       overwrite_imgs: True
@@ -81,4 +81,6 @@ jobs:
     with:
       target_tag: master
       app_to_build: ${{ matrix.component.image }}
+      source_sha: ${{ github.sha }}
+      expected_platforms: ${{ matrix.component.image == 'kfp-inverse-proxy-agent' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
       set_latest: ${{ 'false' }}

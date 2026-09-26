@@ -33,7 +33,21 @@ on:
         description: 'Dry run mode - build images without pushing to registry or creating tags.'
         required: false
 jobs:
+  resolve-source:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.src_branch }}
+      - id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   build-images-for-release:
+    needs: resolve-source
     strategy:
       fail-fast: true
       matrix:
@@ -78,7 +92,7 @@ jobs:
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
     with:
-      src_branch: ${{ inputs.src_branch }}
+      src_branch: ${{ needs.resolve-source.outputs.sha }}
       target_tag: ${{ inputs.target_tag }}
       arch_tag: ${{ matrix.arch.arch_name }}
       overwrite_imgs: ${{ inputs.overwrite_imgs }}
@@ -92,7 +106,7 @@ jobs:
       push: ${{ !inputs.dry_run }}
 
   create-manifests:
-    needs: build-images-for-release
+    needs: [resolve-source, build-images-for-release]
     if: ${{ !inputs.dry_run }}
     strategy:
       fail-fast: true
@@ -111,4 +125,6 @@ jobs:
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}
+      source_sha: ${{ needs.resolve-source.outputs.sha }}
+      expected_platforms: ${{ matrix.component.image == 'kfp-inverse-proxy-agent' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
       set_latest: ${{ inputs.set_latest }}
