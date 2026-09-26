@@ -31,6 +31,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/backend/src/v2/placeholder"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
@@ -1872,28 +1876,11 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	// Prepare input parameter placeholders.
 	for name, parameter := range executorInput.GetInputs().GetParameterValues() {
 		key := fmt.Sprintf(`{{$.inputs.parameters['%s']}}`, name)
-		switch t := parameter.Kind.(type) {
-		case *structpb.Value_StringValue:
-			placeholders[key] = parameter.GetStringValue()
-		case *structpb.Value_NumberValue:
-			placeholders[key] = strconv.FormatFloat(parameter.GetNumberValue(), 'f', -1, 64)
-		case *structpb.Value_BoolValue:
-			placeholders[key] = strconv.FormatBool(parameter.GetBoolValue())
-		case *structpb.Value_ListValue:
-			b, err := json.Marshal(parameter.GetListValue())
-			if err != nil {
-				return nil, fmt.Errorf("failed to JSON-marshal list input parameter %q: %w", name, err)
-			}
-			placeholders[key] = string(b)
-		case *structpb.Value_StructValue:
-			b, err := json.Marshal(parameter.GetStructValue())
-			if err != nil {
-				return nil, fmt.Errorf("failed to JSON-marshal dict input parameter %q: %w", name, err)
-			}
-			placeholders[key] = string(b)
-		default:
-			return nil, fmt.Errorf("unknown PipelineSpec Value type %T", t)
+		resolved, err := placeholder.PbValueToString(parameter)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert input parameter %q to string: %w", name, err)
 		}
+		placeholders[key] = resolved
 	}
 
 	// Prepare output parameter placeholders.
