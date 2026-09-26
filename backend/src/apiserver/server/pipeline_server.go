@@ -206,7 +206,7 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 		return nil, nil, util.NewInvalidInputError("error fetching pipeline spec from %v - request returned %v", pipelineURL.String(), resp.Status)
 	}
 	defer resp.Body.Close()
-	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
+	pipelineFile, err := ReadPipelineFileWithConfiguredLimits(pipelineFileName, resp.Body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -588,7 +588,7 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 	}
 	defer resp.Body.Close()
 	pipelineFileName := path.Base(pipelineUrl.String())
-	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
+	pipelineFile, err := ReadPipelineFileWithConfiguredLimits(pipelineFileName, resp.Body)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due error reading the pipeline spec")
 	}
