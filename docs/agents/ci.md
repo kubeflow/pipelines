@@ -48,6 +48,9 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 
 ## Common CI failures
 
+- Parallel API specs use a worker-prefixed UUID for resource names. Keep the full per-spec suffix in pipeline, experiment, filter, and tag names; wall-clock timestamps and truncated suffixes do not provide isolation between concurrent specs.
+- Distributed SDK tests retain pytest's default output capture. Do not add `-s` to `test/presubmit-tests-sdk.sh`: pytest-xdist does not forward uncaptured worker stdout, so failures lose the subprocess stderr that the local runner prints. The regression probe runs the actual presubmit command with a failing child and checks that its diagnostic is retained.
+
 - `sdk-upgrade.yml` uses a fresh virtual environment to install the latest published SDK before upgrading to source-built wheels. Install the SDK, pipeline-spec, and server API wheels together in one pip transaction so unpublished dependency versions resolve locally; never run the upgrade against the already-installed uv workspace.
 
 - Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.

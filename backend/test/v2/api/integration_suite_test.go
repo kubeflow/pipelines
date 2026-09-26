@@ -20,7 +20,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
@@ -156,7 +155,7 @@ var _ = BeforeEach(func() {
 	testContext = &TestContext{
 		TestStartTimeUTC: time.Now(),
 	}
-	randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
+	randomName = testutil.NewTestResourceNameSuffix(GinkgoParallelProcess())
 	testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
