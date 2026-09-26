@@ -237,7 +237,7 @@
     {
       "path": ".github/workflows/create-manifest.yml",
       "name": "Create Multi-Arch Manifest",
-      "header_sha256": "4e83724272fa5ee6663130a0f403b2ddc028a1f4133f881f1a85b18b807a36af",
+      "header_sha256": "f1ddea9fd34af652d5e55e8df405c60c404ec261329c70c73e427d4bb9d2ac28",
       "pull_request": null
     },
     {
