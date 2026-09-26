@@ -215,6 +215,44 @@ class PreflightStepTest(unittest.TestCase):
 
 class PublishImagesStepTest(unittest.TestCase):
 
+    def test_failed_publication_does_not_complete_checkpoint(self):
+        for release_type, version in (('minor', '2.18.0'), ('major', '3.0.0'),
+                                      ('patch', '3.0.1')):
+            with self.subTest(version=version), TemporaryDirectory() as tmpdir:
+                runner = mock.Mock(dry_run=False)
+                runner.capture.return_value = (
+                    '12345\thttps://github.com/kubeflow/pipelines/actions/runs/12345'
+                    '\t2026-07-08T19:05:01Z')
+
+                def fail_watch(command):
+                    if command[:3] == ['gh', 'run', 'watch']:
+                        self.assertIn('--exit-status', command)
+                        raise subprocess.CalledProcessError(1, command)
+
+                runner.run.side_effect = fail_watch
+                state = core.ReleaseState(Path(tmpdir) / 'state.json')
+                selected = steps.build_steps(release_type, True, False)
+                state.completed_steps = [
+                    step.step_id for step in selected[:next(
+                        i for i, step in enumerate(selected)
+                        if step.step_id == 'publish-images')]
+                ]
+                before = list(state.completed_steps)
+                context = core.ReleaseContext(
+                    root=Path(tmpdir),
+                    state=state,
+                    runner=runner,
+                    metadata=core.ReleaseMetadata.from_version(
+                        release_type, version),
+                    fork_remote='origin',
+                    include_backend=True,
+                    include_sdk=False)
+                with mock.patch('time.time', return_value=1783537500):
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        steps.run_steps(context)
+                self.assertEqual(state.completed_steps, before)
+                self.assertFalse(state.path.exists())
+
     def test_publish_images_prints_workflow_run_url(self):
         with TemporaryDirectory() as tmpdir:
 
@@ -251,7 +289,7 @@ class PublishImagesStepTest(unittest.TestCase):
             self.assertIn(
                 'Workflow run: \033[4mhttps://github.com/kubeflow/pipelines/actions/runs/12345\033[0m',
                 output)
-            self.assertIn(['gh', 'run', 'watch', '12345'],
+            self.assertIn(['gh', 'run', 'watch', '12345', '--exit-status'],
                           context.runner.commands)
 
 
@@ -426,6 +464,68 @@ class CreateSdkReleaseStepTest(unittest.TestCase):
 
 class CreateBackendReleaseStepTest(unittest.TestCase):
 
+    def test_architecture_checkpoint_and_communication_begin_with_backend_3(
+            self):
+        for release_type, version, supported in (('minor', '2.18.0', False),
+                                                 ('patch', '2.18.1', False),
+                                                 ('major', '3.0.0', True),
+                                                 ('patch', '3.0.1', True)):
+            with self.subTest(version=version):
+                metadata = core.ReleaseMetadata.from_version(
+                    release_type, version)
+                checklist = steps.manual_checklist('create-backend-release',
+                                                   metadata)
+                announcement = steps.manual_checklist(
+                    'confirm-website-and-slack', metadata)
+                self.assertEqual(bool(checklist), supported)
+                self.assertEqual('ARM64' in announcement, supported)
+                if supported:
+                    self.assertIn(f'target tag\n   {version}', checklist)
+                    self.assertIn('native ARM64 installation/pipeline smoke',
+                                  checklist)
+                sdk_only = [
+                    step.step_id for step in steps.build_steps(
+                        release_type, include_backend=False, include_sdk=True)
+                ]
+                self.assertNotIn('create-backend-release', sdk_only)
+                self.assertNotIn('confirm-website-and-slack', sdk_only)
+                self.assertNotIn('publish-images', sdk_only)
+
+    def test_declining_architecture_evidence_stops_before_creating_release(
+            self):
+        with TemporaryDirectory() as tmpdir:
+            runner = mock.Mock(dry_run=False)
+            context = core.ReleaseContext(
+                root=Path(tmpdir),
+                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
+                runner=runner,
+                metadata=core.ReleaseMetadata.from_version('major', '3.0.0'),
+                fork_remote='origin',
+                include_backend=True,
+                include_sdk=False)
+            with mock.patch('builtins.input', return_value='n'):
+                with self.assertRaises(SystemExit):
+                    steps.step_create_backend_release(context)
+            runner.run.assert_not_called()
+
+    def test_2_x_release_has_no_architecture_claim_or_confirmation(self):
+        with TemporaryDirectory() as tmpdir:
+            runner = mock.Mock(dry_run=False)
+            context = core.ReleaseContext(
+                root=Path(tmpdir),
+                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
+                runner=runner,
+                metadata=core.ReleaseMetadata.from_version('minor', '2.18.0'),
+                fork_remote='origin',
+                include_backend=True,
+                include_sdk=False)
+            with mock.patch('builtins.input', return_value='2.17.0') as input_mock, \
+                    mock.patch.object(steps, '_generate_backend_release_notes', return_value='Fixes'):
+                steps.step_create_backend_release(context)
+            input_mock.assert_called_once()
+            command = runner.run.call_args.args[0]
+            self.assertNotIn('ARM64', command[command.index('--notes') + 1])
+
     def test_create_backend_release_prompts_for_previous_tag_and_generates_notes(
             self):
         with TemporaryDirectory() as tmpdir:
@@ -451,15 +551,16 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
             )
 
             with mock.patch(
-                    'builtins.input',
-                    return_value='3.1.0') as input_mock, mock.patch.object(
+                    'builtins.input', side_effect=[
+                        'y', '3.1.0'
+                    ]) as input_mock, mock.patch.object(
                         steps,
                         '_generate_backend_release_notes',
                         return_value='## Features\n\n* add pipelines (#1)'
                     ) as notes_mock:
                 steps.step_create_backend_release(context)
 
-            input_mock.assert_called_once()
+            self.assertEqual(input_mock.call_count, 2)
             notes_mock.assert_called_once_with(Path(tmpdir), '3.1.0')
             release_command = context.runner.commands[-1]
             self.assertEqual(release_command[:4],
@@ -467,6 +568,7 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
             release_notes = release_command[release_command.index('--notes') +
                                             1]
             self.assertIn('## Features\n\n* add pipelines (#1)', release_notes)
+            self.assertIn('Linux AMD64 and ARM64 are supported', release_notes)
             self.assertIn(
                 'https://github.com/kubeflow/pipelines/compare/3.1.0...3.2.0',
                 release_notes)
@@ -2017,7 +2119,7 @@ class DryRunOutputTest(unittest.TestCase):
             'release notes list removal of Argo Workflows 3.x support as a breaking',
             final_checklist,
         )
-        self.assertIn('6. After the website PR merges', final_checklist)
+        self.assertIn('7. After the website PR merges', final_checklist)
 
     def test_final_confirmation_prints_release_completion_message(self):
         with TemporaryDirectory() as tmpdir:
