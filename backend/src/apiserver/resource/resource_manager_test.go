@@ -8555,3 +8555,76 @@ func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
 	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
 }
+
+func TestGetValidExperimentNamespacePair_MultiUserCreatesDefaultPerNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	// The shared fake returns one constant UUID, which cannot represent two
+	// experiments; this case needs a real generator.
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// An omitted experiment id resolves to a default experiment created in the
+	// caller's own namespace.
+	experimentId, namespace, err := manager.GetValidExperimentNamespacePair("", "ns1")
+	require.NoError(t, err)
+	assert.Equal(t, "ns1", namespace)
+	require.NotEmpty(t, experimentId)
+
+	experiment, err := manager.GetExperiment(experimentId)
+	require.NoError(t, err)
+	assert.Equal(t, "Default", experiment.Name)
+	assert.Equal(t, "ns1", experiment.Namespace)
+
+	// A second namespace must get its own default, not a reference to ns1's.
+	// The global default_experiments row cannot distinguish the two.
+	otherExperimentId, otherNamespace, err := manager.GetValidExperimentNamespacePair("", "ns2")
+	require.NoError(t, err)
+	assert.Equal(t, "ns2", otherNamespace)
+	assert.NotEqual(t, experimentId, otherExperimentId, "ns2 must not reuse ns1's default experiment")
+
+	otherExperiment, err := manager.GetExperiment(otherExperimentId)
+	require.NoError(t, err)
+	assert.Equal(t, "ns2", otherExperiment.Namespace)
+
+	// Resolving again returns the existing default rather than creating another.
+	repeatId, _, err := manager.GetValidExperimentNamespacePair("", "ns1")
+	require.NoError(t, err)
+	assert.Equal(t, experimentId, repeatId)
+}
+
+func TestGetValidExperimentNamespacePair_MultiUserRequiresNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Without a namespace there is nowhere to put the default experiment.
+	_, _, err := manager.GetValidExperimentNamespacePair("", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "namespace is required")
+}
+
+func TestGetValidExperimentNamespacePair_SingleUserUnchanged(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experimentId, namespace, err := manager.GetValidExperimentNamespacePair("", "")
+	require.NoError(t, err)
+	assert.Empty(t, namespace)
+	require.NotEmpty(t, experimentId)
+
+	// Single-user still records the global default id, so a repeat resolves to
+	// the same experiment through default_experiments.
+	storedId, err := manager.GetDefaultExperimentId()
+	require.NoError(t, err)
+	assert.Equal(t, experimentId, storedId)
+}

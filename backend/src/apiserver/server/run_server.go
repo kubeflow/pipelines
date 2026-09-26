@@ -113,6 +113,16 @@ func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.R
 	if run.DisplayName == "" {
 		return nil, util.Wrapf(util.NewInvalidInputError("The run name is empty. Please specify a valid name"), "Failed to create a run due to invalid name")
 	}
+	// Resolving an empty experiment id creates the namespace's default
+	// experiment, so authorize the requested namespace before that write.
+	if common.IsMultiUserMode() && run.ExperimentId == "" {
+		if err := s.canAccessRun(ctx, "", &authorizationv1.ResourceAttributes{
+			Namespace: run.Namespace,
+			Verb:      common.RbacResourceVerbCreate,
+		}); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
+		}
+	}
 	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(run.ExperimentId, run.Namespace)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to create a run due to invalid experimentId and namespace combination")
