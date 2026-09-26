@@ -40,6 +40,14 @@ export function isTrustedArtifactEndpoint(
   );
 }
 
+export function formatUntrustedArtifactEndpointError(endpointOrigin: string): string {
+  return (
+    `Artifact store endpoint ${endpointOrigin} is not allowed. ` +
+    'Ask a cluster operator to add this exact origin to the cluster-level ' +
+    'ALLOWED_ARTIFACT_ENDPOINTS setting.'
+  );
+}
+
 function normalizeEndpoint(endpoint: string): string | undefined {
   try {
     const parsedUrl = new URL(endpoint.includes('://') ? endpoint : `https://${endpoint}`);
