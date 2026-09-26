@@ -1044,7 +1044,7 @@ function parsePeekValue(value: string | undefined): number {
 }
 
 /**
- * Resolve a HTTP artifact within an absolute approved base, or preserve the
+ * Resolve an HTTP artifact within an absolute approved base, or preserve the
  * scheme-less gateway layout `${source}://${baseUrl}/${bucket}/${key}`.
  * @param source "http" or "https".
  * @param baseUrl string to prefix the url.
