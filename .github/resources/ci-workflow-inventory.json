@@ -35,7 +35,7 @@
     {
       "path": ".github/workflows/build-and-push.yml",
       "name": "Build and Push images",
-      "header_sha256": "69c2fd667ef7aed48863a2273eb0ff65c101642a38f734aace901bf79aea32fb",
+      "header_sha256": "a903b83e1462de91a13e3b83213d9946cba4f0d58ee5a5cf4dd79aa0733a830b",
       "pull_request": null
     },
     {

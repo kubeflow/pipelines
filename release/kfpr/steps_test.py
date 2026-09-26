@@ -251,7 +251,7 @@ class PublishImagesStepTest(unittest.TestCase):
             self.assertIn(
                 'Workflow run: \033[4mhttps://github.com/kubeflow/pipelines/actions/runs/12345\033[0m',
                 output)
-            self.assertIn(['gh', 'run', 'watch', '12345'],
+            self.assertIn(['gh', 'run', 'watch', '12345', '--exit-status'],
                           context.runner.commands)
 
 
