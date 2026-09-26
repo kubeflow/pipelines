@@ -171,8 +171,8 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		executionSpec.SetExecutionNamespace(modelJob.Namespace)
 	}
 	setDefaultServiceAccount(executionSpec, modelJob.ServiceAccount)
-	// Disable istio sidecar injection if not specified
-	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+	// Apply this installation's istio sidecar injection default if not specified
+	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, istioSidecarInjectDefault())
 	parameters, err := StringMapToCRDParameters(string(modelJob.RuntimeConfig.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
@@ -191,6 +191,22 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	scheduledWorkflow.Spec.ServiceAccount = executionSpec.ServiceAccount()
 
 	return scheduledWorkflow, nil
+}
+
+// WorkflowIstioSidecarInject names the installation setting that decides the istio sidecar
+// injection default written into every compiled workflow template that does not set its own
+// value. Upstream behaviour ("false") is preserved unless the installation sets exactly "true".
+// A control plane that requires STRICT mTLS has to set it, because a workflow pod with no
+// sidecar has no peer identity and cannot open a connection to the API server.
+const WorkflowIstioSidecarInject string = "WORKFLOW_ISTIO_SIDECAR_INJECT"
+
+func istioSidecarInjectDefault() string {
+	value := common.GetStringConfigWithDefault(
+		WorkflowIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+	if value != util.AnnotationValueIstioSidecarInjectEnabled {
+		return util.AnnotationValueIstioSidecarInjectDisabled
+	}
+	return util.AnnotationValueIstioSidecarInjectEnabled
 }
 
 func (t *V2Spec) GetTemplateType() TemplateType {
@@ -415,8 +431,8 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		executionSpec.SetExecutionNamespace(modelRun.Namespace)
 	}
 	setDefaultServiceAccount(executionSpec, modelRun.ServiceAccount)
-	// Disable istio sidecar injection if not specified
-	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
+	// Apply this installation's istio sidecar injection default if not specified
+	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, istioSidecarInjectDefault())
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
