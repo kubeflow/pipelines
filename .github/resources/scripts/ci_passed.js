@@ -11,7 +11,7 @@
 
 'use strict';
 
-const {verifyExpectedWorkflows, loadLocalInventory} = require('./ci_expected_workflows');
+const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 
 function eligible(pr) {
   const labels = new Set(pr.labels.map(label => label.name));
@@ -40,6 +40,14 @@ async function currentStatus(github, context, head) {
   return null;
 }
 
+function successDescription(pr) {
+  // Bind green evidence to the exact checked-in workflow policy. Legacy
+  // statuses and statuses from another base must be reconsidered by recovery.
+  const stamp = require('node:crypto').createHash('sha256')
+    .update(JSON.stringify([pr.base.ref, pr.base.sha])).digest('hex');
+  return `Expected CI and all checks passed; base policy ${stamp}.`;
+}
+
 async function recoveryCandidates({github, context}) {
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', per_page: 100,
@@ -47,9 +55,10 @@ async function recoveryCandidates({github, context}) {
   const candidates = [];
   for (const pr of prs) {
     if (!eligible(pr)) continue;
-    // Only recovery needs a timer. Event-driven reconciliation invalidates
-    // existing success; avoid allocating a runner for every green PR.
-    if ((await currentStatus(github, context, pr.head.sha))?.state === 'success') continue;
+    // Revisit green heads when their trusted base policy changes, including
+    // statuses published before base-policy stamps were introduced.
+    const status = await currentStatus(github, context, pr.head.sha);
+    if (status?.state === 'success' && status.description === successDescription(pr)) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -133,7 +142,8 @@ async function freshAfter(github, context, pr) {
   return cutoff;
 }
 
-async function evidence(github, context, pr, inventory) {
+async function evidence(github, context, pr, root) {
+  const inventory = await loadBaseInventory({github, ...context.repo, pullRequest: pr, root});
   return verifyExpectedWorkflows({github, ...context.repo, pullRequest: pr,
     ...inventory, freshAfter: await freshAfter(github, context, pr)});
 }
@@ -158,7 +168,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('snapshot', snapshot(pr));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.');
   if (pr.state !== 'open' || !eligible(pr)) return;
-  const result = await evidence(github, context, pr, loadLocalInventory(root));
+  const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
 }
@@ -172,19 +182,19 @@ async function finalize({github, context, core, number, head, before, pollPassed
   let reason = 'CI did not pass; complete current-head CI and retry.';
   try {
     if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && eligible(pr) && pollPassed) {
-      const result = await evidence(github, context, pr, loadLocalInventory(root));
+      const result = await evidence(github, context, pr, root);
       core.info(JSON.stringify(result));
       passed = result.passed;
       if (!passed) reason = result.reasons.join('; ');
     }
     await publish(github, context, original, passed ? 'success' : 'failure',
-      passed ? 'Expected CI and all checks passed for this head.' : reason);
+      passed ? successDescription(pr) : reason);
     // Status/label writes are not atomic with PR updates. Re-read the full
     // state and durable base history, and undo success when either drifted.
     if (passed) {
       const after = await readPR(github, context, Number(number));
       const current = snapshot(after) === before &&
-        (await evidence(github, context, after, loadLocalInventory(root))).passed;
+        (await evidence(github, context, after, root)).passed;
       if (!current) await publish(github, context, original, 'failure',
         'PR or CI changed during publication; rerun CI on the current head.');
     }
