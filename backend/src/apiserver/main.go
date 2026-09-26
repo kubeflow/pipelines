@@ -795,13 +795,6 @@ func registerRPCServices(s *grpc.Server, resourceManager *resource.ResourceManag
 
 	ArtifactServer := server.NewArtifactServer(resourceManager)
 
-	apiv2beta1.RegisterVisualizationServiceServer(
-		s,
-		server.NewVisualizationServer(
-			resourceManager,
-			common.GetStringConfig(cm.VisualizationServiceHost),
-			common.GetStringConfig(cm.VisualizationServicePort),
-		))
 	apiv2beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
 	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
@@ -812,7 +805,6 @@ func registerRPCServices(s *grpc.Server, resourceManager *resource.ResourceManag
 }
 
 func registerGatewayServices(register func(RegisterHttpHandlerFromEndpoint, string)) {
-	register(apiv2beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization")
 	register(apiv2beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService")
 	register(apiv2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService")
 	register(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService")

@@ -28,11 +28,11 @@ inputs:
     default: 'kubeflow'
   python_version:
     required: false
-    default: '3.9'
+    default: '3.11'
     description: "Python version to use"
   report_python_version:
     required: false
-    # Reporting uses a newer cached runtime to avoid setup-python
+    # Reporting uses a fixed cached runtime to avoid setup-python
     # rate-limit downloads and to keep junit2html/junit summary tooling stable.
     default: '3.11'
     description: "Python version to use for test reporting steps"

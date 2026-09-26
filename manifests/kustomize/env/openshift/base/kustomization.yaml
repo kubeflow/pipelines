@@ -11,15 +11,11 @@ resources:
   - route.yaml
 
 patches:
-  # Disable optional visualization services on OpenShift
+  # Disable the optional TensorBoard viewer controller on OpenShift
   - path: patches/viewer-crd.yaml
     target:
       kind: Deployment
       name: ml-pipeline-viewer-crd
-  - path: patches/visualizationserver.yaml
-    target:
-      kind: Deployment
-      name: ml-pipeline-visualizationserver
 
   # Openshift provides its own default restricted SCC's
   # Thus the following can be omitted:
@@ -85,12 +81,6 @@ patches:
       group: apps
       kind: Deployment
       name: ml-pipeline-viewer-crd
-      version: v1
-  - path: patches/remove-sc.json
-    target:
-      group: apps
-      kind: Deployment
-      name: ml-pipeline-visualizationserver
       version: v1
   - path: patches/remove-sc.json
     target:

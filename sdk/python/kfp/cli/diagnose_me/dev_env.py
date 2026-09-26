@@ -68,4 +68,4 @@ def get_dev_env_configuration(
     ):
         command_list.extend(['--format', 'json'])
 
-    return utility.ExecutorResponse().execute_command(command_list)
+    return utility.execute_command(command_list)

@@ -324,7 +324,6 @@ The `detect-changes.js` script maps changed files to backend components using 2-
 | `backend/src/agent/persistence/**` | persistence-agent | `image_persistence_agent` | `ml-pipeline-persistenceagent` |
 | `backend/src/crd/controller/scheduledworkflow/**` | scheduledworkflow | `image_swf` | `ml-pipeline-scheduledworkflow` |
 | `backend/src/crd/controller/viewer/**` | viewercontroller | `image_viewer` | `ml-pipeline-viewer-crd` |
-| `backend/src/apiserver/visualization/**` | visualization | `image_visualization` | `ml-pipeline-visualizationserver` |
 | `backend/src/v2/cmd/driver/**` | driver | `image_driver` | (runtime image) |
 | `backend/src/v2/cmd/launcher-v2/**` | launcher | `image_launcher` | (runtime image) |
 | `backend/src/common/**` | ALL Go components | | |

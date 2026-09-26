@@ -134,9 +134,6 @@ jobs:
           - image: viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
-          - image: visualization-server
-            dockerfile: backend/Dockerfile.visualization
-            context: .
 
     env:
       ARTIFACT_NAME: "${{ matrix.image }}"

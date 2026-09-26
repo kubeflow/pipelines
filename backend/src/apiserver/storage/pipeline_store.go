@@ -104,6 +104,7 @@ type PipelineStore struct {
 }
 
 // GetPipelineByNameAndNamespace returns the latest pipeline specified by name and namespace, including its tags.
+// An empty namespace matches only shared pipelines, as in ListPipelines.
 // Performance depends on the index (name, namespace) in `pipelines` table.
 func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	q := s.dbDialect.QuoteIdentifier
@@ -117,12 +118,7 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 			sq.Expr(fmt.Sprintf("LOWER(%s.%s) = LOWER(?)", q("pipelines"), q("Name")), name),
 			sq.Eq{fmt.Sprintf("%s.%s", q("pipelines"), q("Status")): model.PipelineReady},
 		})
-	if len(namespace) > 0 {
-		sqlTemp = sqlTemp.
-			Where(
-				sq.Eq{fmt.Sprintf("%s.%s", q("pipelines"), q("Namespace")): namespace},
-			)
-	}
+	sqlTemp = sqlTemp.Where(sq.Eq{fmt.Sprintf("%s.%s", q("pipelines"), q("Namespace")): namespace})
 	sql, args, err := sqlTemp.
 		OrderBy(fmt.Sprintf("%s.%s DESC", q("pipelines"), q("CreatedAtInSec"))).
 		Limit(1).

@@ -3,6 +3,32 @@
 Kubeflow Pipelines can be installed standalone and as part of the [community distribution](https://github.com/kubeflow/community-distribution).
 [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/).
 
+## Multi-user profile-controller ingress
+
+KFP's multi-user manifests include a component-scoped NetworkPolicy for the
+profile controller. Its ingress rule permits pods labeled `app=metacontroller`
+in the controller's namespace to reach TCP port 8080. The controller and its
+normal profile reconciliation behavior are unchanged.
+
+The CNI must enforce Kubernetes NetworkPolicy. If a custom installation changes
+metacontroller's labels or namespace, adjust the policy's peer selectors to match;
+a different namespace requires an explicit namespace selector alongside the pod
+selector. Keep these selectors aligned when upgrading custom installations.
+
+NetworkPolicy allowances are additive: this policy cannot narrow access granted
+by another policy. Full Kubeflow Community Distribution already supplies a
+default same-namespace allowance; dev-kind's broad same-namespace allowance also
+includes port 8080.
+Account for the complete policy set before relying on this component-local rule.
+It restricts network callers, does not add webhook authentication, and does not
+provide every security control of the full distribution.
+
+The manifest test suite checks the rendered selectors, namespace placement and
+port across the four multi-user entrypoints. Rendering is not enforcement
+validation: on a NetworkPolicy-enforcing test cluster, use non-sensitive
+connectivity checks from intended and unintended callers, inspect all applicable
+policies, and verify ordinary profile provisioning/reconciliation.
+
 ## Artifact download responses
 
 Artifact download routes return S3 and MinIO objects without extracting archive

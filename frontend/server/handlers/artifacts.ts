@@ -55,10 +55,14 @@ import { isAllowedDomain, isTrustedArtifactEndpoint } from './domain-checker.js'
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import { validateArtifactNamespace } from '../helpers/artifact-validator.js';
+import {
+  validateArtifactKeyPrefix,
+  validateArtifactNamespace,
+} from '../helpers/artifact-validator.js';
 import {
   ArtifactCoordinates,
   buildArtifactCoordinateUri,
+  isCanonicalArtifactUriKey,
   normalizeArtifactStorageCoordinates,
   resolveArtifactCoordinates,
 } from '../helpers/artifact-coordinates.js';
@@ -336,13 +340,14 @@ function retainDestinationSafeProviderInfo(providerInfoString: string): string {
  * @param authEnabled Whether authorization is enabled
  * @param kubeflowUserIdHeader The header name containing the user identity
  * @param apiServerAddress KFP API server address used for namespace-ownership validation (#9889).
+ * @param artifactProxyEnabled Whether volume artifacts are delegated to a namespace proxy.
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
   authEnabled: boolean,
   kubeflowUserIdHeader: string,
   apiServerAddress?: string,
-  allowNamespaceIsolatedCustomRoots = false,
+  artifactProxyEnabled = false,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     hardenArtifactResponse(response);
@@ -448,17 +453,26 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    if (coordinates.source === 'volume' && !allowNamespaceIsolatedCustomRoots) {
-      console.warn(
-        `[SECURITY] Rejected direct volume artifact access through the shared UI server. ` +
-          `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
-      );
-      sendArtifactError(
-        response,
-        403,
-        'Volume artifacts require a namespace-isolated artifact service in multi-user mode',
-      );
-      return;
+    if (coordinates.source === 'volume') {
+      if (!artifactProxyEnabled) {
+        console.warn(
+          `[SECURITY] Rejected direct volume artifact access through the shared UI server. ` +
+            `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
+        );
+        sendArtifactError(
+          response,
+          403,
+          'Volume artifacts require a namespace-isolated artifact service in multi-user mode',
+        );
+        return;
+      }
+      if (
+        !isAllowedResourceName(coordinates.bucket) ||
+        applyArtifactPathPolicy(coordinates.key, ARTIFACT_PATH_POLICIES.volume) === undefined
+      ) {
+        sendArtifactError(response, 400, 'Invalid volume artifact bucket or path');
+        return;
+      }
     }
 
     if (apiServerAddress) {
@@ -470,7 +484,6 @@ export function getArtifactsAuthMiddleware(
           artifactUri,
           namespace,
           validationHeaders,
-          allowNamespaceIsolatedCustomRoots,
         );
 
         if (!validation.valid) {
@@ -489,6 +502,16 @@ export function getArtifactsAuthMiddleware(
     }
 
     response.locals.authorizedArtifactUri = buildArtifactCoordinateUri(coordinates);
+    if (coordinates.source === 'volume') {
+      // The proxy URL parser removes harmless "." path segments. Allow only that change.
+      response.locals.authorizedNormalizedVolumeUri = buildArtifactCoordinateUri({
+        ...coordinates,
+        key: removeVolumeCurrentDirectorySegments(coordinates.key),
+        uriKey: coordinates.uriKey
+          ? removeVolumeCurrentDirectorySegments(coordinates.uriKey)
+          : undefined,
+      });
+    }
 
     next();
   };
@@ -823,14 +846,16 @@ export function getArtifactsHandler({
         break;
       case 'http':
       case 'https': {
+        const httpBaseUrl = http.baseUrl || '';
         const httpUrl = getHttpUrl(
           source,
-          http.baseUrl || '',
+          httpBaseUrl,
           bucket,
           coordinates.uriKey ?? key,
           coordinates.uriKey ? 'uri' : 'storage',
         );
-        if (!httpUrl) {
+        const httpArtifactRoot = getHttpUrl(source, httpBaseUrl, bucket, '');
+        if (!httpUrl || !httpArtifactRoot) {
           sendArtifactError(
             res,
             400,
@@ -840,7 +865,13 @@ export function getArtifactsHandler({
           );
           return;
         }
-        await getHttpArtifactsHandler(allowedDomain, httpUrl, http.auth, peek)(req, res);
+        await getHttpArtifactsHandler(
+          allowedDomain,
+          httpUrl,
+          http.auth,
+          peek,
+          options.auth.enabled ? { namespace, rootUrl: httpArtifactRoot } : undefined,
+        )(req, res);
         break;
       }
       case 'volume':
@@ -1070,6 +1101,7 @@ function getHttpArtifactsHandler(
     defaultValue: string;
   } = { key: '', defaultValue: '' },
   peek: number = 0,
+  redirectScope?: { namespace: string; rootUrl: string },
 ) {
   return async (req: Request, res: Response) => {
     const headers: Record<string, string> = {};
@@ -1097,7 +1129,21 @@ function getHttpArtifactsHandler(
         sendArtifactError(res, 500, 'Domain not allowed.');
         return;
       }
-      if (new URL(allowedUrl).origin !== credentialOrigin) {
+      const targetUrl = new URL(allowedUrl);
+      if (
+        hop > 0 &&
+        redirectScope &&
+        targetUrl.origin === credentialOrigin &&
+        !isHttpArtifactRedirectInNamespace(targetUrl, redirectScope)
+      ) {
+        sendArtifactError(res, 403, 'Redirected artifact is outside the requested namespace');
+        return;
+      }
+      if (targetUrl.origin !== credentialOrigin) {
+        if (redirectScope) {
+          sendArtifactError(res, 403, 'Cross-origin HTTP artifact redirects are not allowed');
+          return;
+        }
         requestHeaders = {};
       }
       response = await fetch(allowedUrl, { headers: requestHeaders, redirect: 'manual' });
@@ -1139,6 +1185,28 @@ function getHttpArtifactsHandler(
       sendArtifactError(res, 500, `Unable to retrieve artifact: ${err}`),
     );
   };
+}
+
+function isHttpArtifactRedirectInNamespace(
+  targetUrl: URL,
+  { namespace, rootUrl }: { namespace: string; rootUrl: string },
+): boolean {
+  // The fetched URL includes HTTP_BASE_URL's path and the bucket before the artifact key.
+  const rootPath = new URL(rootUrl).pathname.replace(/\/+$/, '');
+  if (!targetUrl.pathname.startsWith(`${rootPath}/`)) {
+    return false;
+  }
+  const uriKey = targetUrl.pathname.slice(rootPath.length + 1);
+  if (!isCanonicalArtifactUriKey(uriKey, targetUrl.protocol.slice(0, -1))) {
+    return false;
+  }
+  if (
+    applyArtifactPathPolicy(decodeURIComponent(uriKey), ARTIFACT_PATH_POLICIES.http) === undefined
+  ) {
+    return false;
+  }
+  return validateArtifactKeyPrefix(`${targetUrl.protocol}//${targetUrl.host}/${uriKey}`, namespace)
+    .valid;
 }
 
 function parseAllowedHttpArtifactUrl(url: string, allowedDomain: string): string | undefined {
@@ -1817,6 +1885,15 @@ export function getArtifactsProxyHandler({
   });
   return async (req, res, next) => {
     hardenArtifactResponse(res);
+    const authorizedArtifactUri = res.locals.authorizedArtifactUri;
+    if (
+      typeof authorizedArtifactUri === 'string' &&
+      (authorizedArtifactUri.startsWith('http://') || authorizedArtifactUri.startsWith('https://'))
+    ) {
+      // Serve through the shared handler, which pins the authorized URI and checks every redirect.
+      // A tenant service may still run older redirect handling code.
+      return next();
+    }
     const namespace = getNamespaceFromUrl(req.url || '');
     if (namespace && !isAllowedResourceName(namespace)) {
       sendArtifactError(res, 400, 'Invalid namespace');
@@ -1838,6 +1915,18 @@ export function getArtifactsProxyHandler({
       });
       if (resolvedCoordinates === null) {
         sendArtifactError(res, 400, INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
+        return;
+      }
+      // URL parsing can collapse dot segments and turn an authorized volume path into a
+      // different artifact source. Forward only the identity checked by the auth middleware.
+      const forwardedArtifactUri =
+        resolvedCoordinates && buildArtifactCoordinateUri(resolvedCoordinates);
+      if (
+        res.locals.authorizedArtifactUri !== undefined &&
+        forwardedArtifactUri !== res.locals.authorizedArtifactUri &&
+        forwardedArtifactUri !== res.locals.authorizedNormalizedVolumeUri
+      ) {
+        sendArtifactError(res, 403, 'Artifact request coordinates changed after authorization');
         return;
       }
       const coordinates: ArtifactCoordinates<LauncherArtifactSource> | undefined =
@@ -1911,10 +2000,7 @@ export function getArtifactsProxyHandler({
           return;
         }
         if (resolvedCoordinates.source === 'volume') {
-          const normalizedKey = storageKey
-            .split('/')
-            .filter((segment) => segment !== '.')
-            .join('/');
+          const normalizedKey = removeVolumeCurrentDirectorySegments(storageKey);
           if (normalizedKey !== storageKey && !url.searchParams.has('uriKey')) {
             url.searchParams.set('uriKey', encodeURI(storageKey));
           }
@@ -1938,6 +2024,13 @@ function updateProxyRequestUrl(request: Request, url: URL): void {
   const rewrittenUrl = url.pathname + url.search;
   request.url = rewrittenUrl;
   request.originalUrl = rewrittenUrl;
+}
+
+function removeVolumeCurrentDirectorySegments(key: string): string {
+  return key
+    .split('/')
+    .filter((segment) => segment !== '.')
+    .join('/');
 }
 
 function getNamespaceFromUrl(path: string): string | undefined {

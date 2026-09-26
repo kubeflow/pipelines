@@ -19,8 +19,6 @@ images:
   newTag: master
 - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
   newTag: master
-- name: ghcr.io/kubeflow/kfp-visualization-server
-  newTag: master
 - name: ghcr.io/kubeflow/kfp-inverse-proxy-agent
   newTag: master
 
