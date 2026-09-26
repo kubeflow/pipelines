@@ -12,14 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Find a same-repository issue that can admit an external pull request."""
 
 import json
 import os
 import re
 import sys
-
 
 CLOSING_REFERENCE = re.compile(
     r'^\s*(?:[-*]\s+)?(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+'
@@ -30,7 +28,8 @@ CLOSING_REFERENCE = re.compile(
 
 
 def admission_issue(pr, repository, default_branch):
-    """Return a linked issue, or an explicit release-branch closing reference."""
+    """Return a linked issue, or an explicit release-branch closing
+    reference."""
     for issue in pr['closingIssuesReferences']:
         issue_repository = issue['repository']
         full_name = (f"{issue_repository['owner']['login']}/"
@@ -44,8 +43,8 @@ def admission_issue(pr, repository, default_branch):
         for line in (pr['body'] or '').splitlines():
             match = CLOSING_REFERENCE.match(line)
             if match and (not match['repository'] or
-                          match['repository'].casefold() ==
-                          repository.casefold()):
+                          match['repository'].casefold()
+                          == repository.casefold()):
                 return int(match['number'])
 
     return None

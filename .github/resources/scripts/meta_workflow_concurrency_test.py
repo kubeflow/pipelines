@@ -424,27 +424,39 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         other_repo = {'owner': {'login': 'other'}, 'name': 'project'}
         cases = [
             ('master', '', [], [], 'closed'),
-            ('master', 'Fixes #123', [], [{'name': 'ready'}], 'closed'),
-            ('master', '', [{'number': 123, 'repository': same_repo}], [],
-             'closed'),
-            ('master', '', [{'number': 123, 'repository': same_repo}],
-             [{'name': 'ready'}], 'admitted'),
-            ('release-2.18', 'Fixes #123 for release-2.18', [],
-             [{'name': 'ready'}], 'admitted'),
-            ('release-2.18', 'Fixes #123', [], [{'name': 'not-ready'}],
-             'closed'),
-            ('release-2.18', 'Fixes other/project#123', [],
-             [{'name': 'ready'}], 'closed'),
-            ('release-2.18', '',
-             [{'number': 123, 'repository': other_repo}],
-             [{'name': 'ready'}], 'closed'),
+            ('master', 'Fixes #123', [], [{
+                'name': 'ready'
+            }], 'closed'),
+            ('master', '', [{
+                'number': 123,
+                'repository': same_repo
+            }], [], 'closed'),
+            ('master', '', [{
+                'number': 123,
+                'repository': same_repo
+            }], [{
+                'name': 'ready'
+            }], 'admitted'),
+            ('release-2.18', 'Fixes #123 for release-2.18', [], [{
+                'name': 'ready'
+            }], 'admitted'),
+            ('release-2.18', 'Fixes #123', [], [{
+                'name': 'not-ready'
+            }], 'closed'),
+            ('release-2.18', 'Fixes other/project#123', [], [{
+                'name': 'ready'
+            }], 'closed'),
+            ('release-2.18', '', [{
+                'number': 123,
+                'repository': other_repo
+            }], [{
+                'name': 'ready'
+            }], 'closed'),
             ('release-2.18', 'Fixes #123', [], None, 'error'),
         ]
         for base, body, issues, labels, expected_state in cases:
             with self.subTest(
-                    base=base,
-                    body=body,
-                    issues=issues,
+                    base=base, body=body, issues=issues,
                     labels=labels), tempfile.TemporaryDirectory() as directory:
                 comment_file = Path(directory) / 'comment'
                 state_file = Path(directory) / 'state'
@@ -483,9 +495,10 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                     cwd=ROOT,
                 )
                 closed = expected_state == 'closed'
-                self.assertEqual(result.returncode,
-                                 22 if expected_state == 'error' else 1
-                                 if closed else 0, result.stderr)
+                self.assertEqual(
+                    result.returncode,
+                    22 if expected_state == 'error' else 1 if closed else 0,
+                    result.stderr)
                 if expected_state == 'error':
                     self.assertFalse(state_file.exists())
                 else:

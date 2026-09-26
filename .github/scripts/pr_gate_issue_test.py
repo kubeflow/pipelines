@@ -51,15 +51,17 @@ class AdmissionIssueTest(unittest.TestCase):
             admission_issue(self.pr, 'kubeflow/pipelines', 'master'))
 
     def test_same_repository_link_takes_precedence(self):
-        self.pr.update(body='Fixes #14557', closingIssuesReferences=[{
-            'number': 42,
-            'repository': {
-                'owner': {
-                    'login': 'kubeflow'
+        self.pr.update(
+            body='Fixes #14557',
+            closingIssuesReferences=[{
+                'number': 42,
+                'repository': {
+                    'owner': {
+                        'login': 'kubeflow'
+                    },
+                    'name': 'pipelines',
                 },
-                'name': 'pipelines',
-            },
-        }])
+            }])
         self.assertEqual(
             admission_issue(self.pr, 'kubeflow/pipelines', 'master'), 42)
 
