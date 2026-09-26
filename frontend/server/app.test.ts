@@ -687,8 +687,13 @@ describe('UIServer apis', () => {
     beforeEach(() => {
       const kfpApiPort = 3001;
       kfpApiServer = express()
-        .all('/*', (_, res) => {
-          res.status(200).send('KFP API is working');
+        .use(express.json())
+        .all('/*', (req, res) => {
+          if (req.body && Object.keys(req.body).length > 0) {
+            res.status(200).json({ body: req.body });
+          } else {
+            res.status(200).send('KFP API is working');
+          }
         })
         .listen(kfpApiPort);
       app = new UIServer(
@@ -704,6 +709,14 @@ describe('UIServer apis', () => {
       if (kfpApiServer) {
         await new Promise<void>((resolve) => kfpApiServer.close(() => resolve()));
       }
+    });
+
+    it('successfully proxies a JSON POST request without consuming the body', async () => {
+      const response = await request
+        .post('/apis/v2beta1/some-endpoint')
+        .send({ testKey: 'testValue' })
+        .expect(200);
+      expect(response.body).toEqual({ body: { testKey: 'testValue' } });
     });
 
     it('rejects reportWorkflow because it is not public kfp api', async () => {

@@ -869,6 +869,234 @@ describe('/apps/tensorboard', () => {
         )
         .expect(200, existingTensorboardProxyPath);
     });
+
+    it('strips custom secret and configmap env references from podTemplateSpec body (credential protection)', async () => {
+      let getRequestCount = 0;
+      k8sGetCustomObjectSpy.mockImplementation(() => {
+        ++getRequestCount;
+        switch (getRequestCount) {
+          case 1:
+            return Promise.reject('Not found');
+          case 2:
+            return Promise.resolve(
+              newGetTensorboardResponse({
+                name: 'viewer-abcdefg',
+                logDir: 'log-dir-1',
+                tensorflowImage: 'tensorflow:2.0.0',
+              }),
+            );
+          default:
+            throw new Error('only expected to be called twice in this test');
+        }
+      });
+      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+      app = new UIServer(loadConfigs(argv, {}));
+      const secretPodTemplateSpec = {
+        spec: {
+          containers: [
+            {
+              env: [
+                { name: 'SAFE_ENV', value: 'safe' },
+                {
+                  name: 'SECRET_ENV',
+                  valueFrom: {
+                    secretKeyRef: { name: 'my-secret', key: 'password' },
+                  },
+                },
+                {
+                  name: 'CONFIGMAP_ENV',
+                  valueFrom: {
+                    configMapKeyRef: { name: 'my-config', key: 'data' },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      await requests(app.app)
+        .post(
+          `/apps/tensorboard?logdir=${encodeURIComponent(
+            'log-dir-1',
+          )}&namespace=test-ns&tfversion=2.0.0`,
+        )
+        .send({ podTemplateSpec: secretPodTemplateSpec })
+        .expect(200, existingTensorboardProxyPath);
+
+      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
+      const envs = createdBody.spec.podTemplateSpec.spec.containers[0].env;
+      expect(envs).toEqual([{ name: 'SAFE_ENV', value: 'safe' }]);
+    });
+
+    it('sanitizes a malicious podTemplateSpec body (privilege escalation regression)', async () => {
+      let getRequestCount = 0;
+      k8sGetCustomObjectSpy.mockImplementation(() => {
+        ++getRequestCount;
+        switch (getRequestCount) {
+          case 1:
+            return Promise.reject('Not found');
+          case 2:
+            return Promise.resolve(
+              newGetTensorboardResponse({
+                name: 'viewer-abcdefg',
+                logDir: 'log-dir-1',
+                tensorflowImage: 'tensorflow:2.0.0',
+              }),
+            );
+          default:
+            throw new Error('only expected to be called twice in this test');
+        }
+      });
+      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+      app = new UIServer(loadConfigs(argv, {}));
+      const maliciousPodTemplateSpec = {
+        spec: {
+          hostNetwork: true,
+          containers: [
+            {
+              name: 'pwned',
+              image: 'alpine',
+              securityContext: { privileged: true },
+              volumeMounts: [{ mountPath: '/host', name: 'root' }],
+            },
+          ],
+          volumes: [{ name: 'root', hostPath: { path: '/' } }],
+        },
+      };
+
+      await requests(app.app)
+        .post(
+          `/apps/tensorboard?logdir=${encodeURIComponent(
+            'log-dir-1',
+          )}&namespace=test-ns&tfversion=2.0.0`,
+        )
+        .send({ podTemplateSpec: maliciousPodTemplateSpec })
+        .expect(200, existingTensorboardProxyPath);
+
+      // The created Viewer CRD must use only the server-configured default
+      // podTemplateSpec, NOT the attacker-supplied one.
+      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
+      expect(createdBody.spec.podTemplateSpec).not.toHaveProperty('spec.hostNetwork');
+      expect(createdBody.spec.podTemplateSpec.spec.containers[0]).not.toHaveProperty(
+        'securityContext',
+      );
+    });
+
+    it('preserves safe volume mounts in podTemplateSpec body (PVC support regression)', async () => {
+      let getRequestCount = 0;
+      k8sGetCustomObjectSpy.mockImplementation(() => {
+        ++getRequestCount;
+        switch (getRequestCount) {
+          case 1:
+            return Promise.reject('Not found');
+          case 2:
+            return Promise.resolve(
+              newGetTensorboardResponse({
+                name: 'viewer-abcdefg',
+                logDir: 'log-dir-1',
+                tensorflowImage: 'tensorflow:2.0.0',
+              }),
+            );
+          default:
+            throw new Error('only expected to be called twice in this test');
+        }
+      });
+      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+      app = new UIServer(loadConfigs(argv, {}));
+      const safePodTemplateSpec = {
+        spec: {
+          containers: [
+            {
+              volumeMounts: [{ mountPath: '/data', name: 'my-pvc' }],
+            },
+          ],
+          volumes: [{ name: 'my-pvc', persistentVolumeClaim: { claimName: 'test-pvc' } }],
+        },
+      };
+
+      await requests(app.app)
+        .post(
+          `/apps/tensorboard?logdir=${encodeURIComponent(
+            'log-dir-1',
+          )}&namespace=test-ns&tfversion=2.0.0`,
+        )
+        .send({ podTemplateSpec: safePodTemplateSpec })
+        .expect(200, existingTensorboardProxyPath);
+
+      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
+      const volumes = createdBody.spec.podTemplateSpec.spec.volumes;
+      const mounts = createdBody.spec.podTemplateSpec.spec.containers[0].volumeMounts;
+      expect(volumes).toContainEqual({
+        name: 'my-pvc',
+        persistentVolumeClaim: { claimName: 'test-pvc' },
+      });
+      expect(mounts).toContainEqual({ mountPath: '/data', name: 'my-pvc' });
+    });
+  });
+
+  it('creates tensorboard viewer combining body-supplied template with volume:// logdir', async () => {
+    let getRequestCount = 0;
+    k8sGetCustomObjectSpy.mockImplementation(() => {
+      ++getRequestCount;
+      switch (getRequestCount) {
+        case 1:
+          return Promise.reject('Not found');
+        case 2:
+          return Promise.resolve(
+            newGetTensorboardResponse({
+              name: 'viewer-abcdefg',
+              logDir: '/my-pvc/log-dir-1',
+              tensorflowImage: 'tensorflow:2.0.0',
+            }),
+          );
+        default:
+          throw new Error('only expected to be called twice in this test');
+      }
+    });
+    k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+    app = new UIServer(loadConfigs(argv, {}));
+
+    const safePodTemplateSpec = {
+      spec: {
+        volumes: [
+          {
+            name: 'my-pvc',
+            persistentVolumeClaim: {
+              claimName: 'my-claim',
+            },
+          },
+        ],
+        containers: [
+          {
+            volumeMounts: [
+              {
+                name: 'my-pvc',
+                mountPath: '/my-pvc',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    await requests(app.app)
+      .post(
+        `/apps/tensorboard?logdir=${encodeURIComponent(
+          'Series1:volume://my-pvc/log-dir-1',
+        )}&namespace=test-ns&tfversion=2.0.0`,
+      )
+      .send({ podTemplateSpec: safePodTemplateSpec })
+      .expect(200, existingTensorboardProxyPath);
+
+    expect(k8sCreateCustomObjectSpy).toHaveBeenCalled();
+    expect(k8sCreateCustomObjectSpy.mock.calls[0][0].body.spec.tensorboardSpec.logDir).toEqual(
+      '/my-pvc/log-dir-1',
+    );
   });
 
   describe('delete', () => {

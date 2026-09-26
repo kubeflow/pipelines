@@ -366,7 +366,7 @@ describe('Apis', () => {
         },
       );
     });
-    it('encodes podTemplateSpec as JSON in arg', async () => {
+    it('sends podTemplateSpec via POST body instead of URL query', async () => {
       const spy = fetchSpy('http://some/address');
       const args = {
         ...defaultArgs,
@@ -416,16 +416,18 @@ describe('Apis', () => {
         },
       };
       await Apis.startTensorboardApp(args);
+      // The URL should NOT contain podtemplatespec
       expect(spy).toHaveBeenCalledWith(
         'apps/tensorboard?logdir=' +
           encodeURIComponent(args.logdir) +
           '&namespace=' +
           args.namespace +
           '&image=' +
-          encodeURIComponent(args.image) +
-          '&podtemplatespec=' +
-          encodeURIComponent(JSON.stringify(args.podTemplateSpec)),
-        expect.anything(),
+          encodeURIComponent(args.image),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ podTemplateSpec: args.podTemplateSpec }),
+        }),
       );
     });
   });
