@@ -1,0 +1,58 @@
+/* KFP UI design tokens — shadcn/ui CSS-variable theme (Tailwind v4 @theme compatible).
+   Source of truth: prototype/KFP Modern.dc.html (<helmet><style> body vars). */
+
+:root {
+  /* surfaces */
+  --background: #f5f6f9;        /* app bg (proto --bg) */
+  --card: #ffffff;              /* proto --surface */
+  --muted: #f0f1f5;             /* proto --surface2: hover rows, inputs-on-card, chips-on */
+  --border: #e3e5ec;
+  --border-strong: #d3d6df;     /* proto --border2 */
+  /* text */
+  --foreground: #15171e;        /* proto --ink */
+  --foreground-2: #4a4f5c;      /* proto --ink2: secondary cell text */
+  --muted-foreground: #737889;  /* proto --muted: labels, meta, headers */
+  /* brand */
+  --primary: #2563d9;           /* proto --accent */
+  --primary-foreground: #ffffff;
+  --primary-soft: #e7eefc;      /* active nav pill, selected row, focus ring */
+  /* status (fg / soft bg) — maps to lib/StatusUtils.ts */
+  --status-succeeded: #1f8a4c;  --status-succeeded-soft: #e3f5ea;
+  --status-running:   #2563d9;  --status-running-soft:   #e7eefc;
+  --status-failed:    #c9302c;  --status-failed-soft:    #fbe8e7;
+  --status-warning:   #b8700a;  --status-warning-soft:   #fdf2df;
+  --status-neutral:   #8a8f9d;  --status-neutral-soft:   #eceef3; /* pending, canceled, skipped */
+  --shadow-card: 0 1px 2px rgba(20,24,40,.06), 0 8px 24px -12px rgba(20,24,40,.12);
+  /* shape */
+  --radius-sm: 5px;   /* tags, kbd */
+  --radius: 8px;      /* buttons, inputs, nav items */
+  --radius-lg: 10px;  /* graph nodes, banners, toasts */
+  --radius-xl: 12px;  /* cards, tables */
+  --radius-full: 999px; /* status chips */
+  /* type */
+  --font-sans: "Public Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.dark {
+  --background: #0e1015;
+  --card: #161921;
+  --muted: #1d212b;
+  --border: #252933;
+  --border-strong: #333846;
+  --foreground: #eceef4;
+  --foreground-2: #b6bac6;
+  --muted-foreground: #8a8f9e;
+  --primary: #6b9cf5;
+  --primary-foreground: #0b1120;
+  --primary-soft: #1a2740;
+  --status-succeeded: #4fc27e;  --status-succeeded-soft: #14301f;
+  --status-running:   #6b9cf5;  --status-running-soft:   #1a2740;
+  --status-failed:    #f0716d;  --status-failed-soft:    #3a1a19;
+  --status-warning:   #e8a73a;  --status-warning-soft:   #3a2a10;
+  --status-neutral:   #8a8f9e;  --status-neutral-soft:   #242834;
+  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -12px rgba(0,0,0,.6);
+}
+
+@keyframes kfp-pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }  /* running dots, 1.6s ease-in-out infinite */
+@keyframes kfp-dash  { to { stroke-dashoffset: -16 } }                /* running graph edges, dasharray 6 6, 1s linear infinite */

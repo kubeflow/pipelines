@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%}
+body{font-family:"Public Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;
+--bg:#f5f6f9;--surface:#ffffff;--surface2:#f0f1f5;--ink:#15171e;--ink2:#4a4f5c;--muted:#737889;--border:#e3e5ec;--border2:#d3d6df;
+--accent:#2563d9;--accent-ink:#ffffff;--accent-soft:#e7eefc;--ok:#1f8a4c;--ok-soft:#e3f5ea;--run:#2563d9;--run-soft:#e7eefc;--err:#c9302c;--err-soft:#fbe8e7;--warn:#b8700a;--warn-soft:#fdf2df;--neutral:#8a8f9d;--neutral-soft:#eceef3;--shadow:0 1px 2px rgba(20,24,40,.06),0 8px 24px -12px rgba(20,24,40,.12);color:var(--ink);background:var(--bg)}
+body[data-theme="dark"]{--bg:#0e1015;--surface:#161921;--surface2:#1d212b;--ink:#eceef4;--ink2:#b6bac6;--muted:#8a8f9e;--border:#252933;--border2:#333846;--accent:#6b9cf5;--accent-ink:#0b1120;--accent-soft:#1a2740;--ok:#4fc27e;--ok-soft:#14301f;--run:#6b9cf5;--run-soft:#1a2740;--err:#f0716d;--err-soft:#3a1a19;--warn:#e8a73a;--warn-soft:#3a2a10;--neutral:#8a8f9e;--neutral-soft:#242834;--shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.6)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+*{box-sizing:border-box}
+@keyframes kfp-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes kfp-dash{to{stroke-dashoffset:-16}}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;height:100vh;min-height:640px;background:var(--bg);color:var(--ink);overflow:hidden" onKeyDown="{{ onKey }}" tabIndex="-1">
+
+<!-- Top bar variant -->
+<sc-if value="{{ isTopbar }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:8px;height:52px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);flex:none">
+  <div style="display:flex;align-items:center;gap:10px;margin-right:12px">
+    <div style="width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center">{{ logo }}</div>
+    <span style="font-weight:600;letter-spacing:-.01em">Pipelines</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:2px">
+    <sc-for list="{{ navItems }}" as="it" hint-placeholder-count="6">
+      <button onClick="{{ it.go }}" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;border:0;cursor:pointer;font:inherit;font-weight:500;background:{{ it.bg }};color:{{ it.fg }}">{{ it.label }}</button>
+    </sc-for>
+  </div>
+  <div style="flex:1"></div>
+  <button onClick="{{ openPalette }}" style="display:flex;align-items:center;gap:10px;height:32px;padding:0 10px 0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font:inherit;cursor:pointer;min-width:220px">
+    <span style="flex:1;text-align:left">Search or jump to…</span><kbd style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:1px 5px;border:1px solid var(--border2);border-radius:4px;color:var(--ink2)">⌘K</kbd>
+  </button>
+  <button onClick="{{ toggleTheme }}" title="Toggle theme" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:grid;place-items:center;color:var(--ink2)"><div style="width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent"></div></button>
+  <div style="display:flex;align-items:center;gap:8px;padding:0 6px 0 10px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface)"><span style="font-size:12px;color:var(--muted)">namespace</span><span style="font-weight:500;font-size:13px">ml-team</span></div>
+</div>
+</sc-if>
+
+<div style="display:flex;flex:1;min-height:0">
+
+<!-- Rail variant -->
+<sc-if value="{{ isRail }}" hint-placeholder-val="{{ true }}">
+<nav style="display:flex;flex-direction:column;flex:none;width:{{ railWidth }};background:var(--surface);border-right:1px solid var(--border);transition:width .2s ease;overflow:hidden">
+  <div style="display:flex;align-items:center;gap:10px;height:56px;padding:0 14px;flex:none">
+    <div style="width:28px;height:28px;flex:none;border-radius:8px;background:var(--accent);display:grid;place-items:center">{{ logo }}</div>
+    <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><div style="white-space:nowrap"><div style="font-weight:600;letter-spacing:-.01em;line-height:1.1">Pipelines</div><div style="font-size:11px;color:var(--muted);line-height:1.2">ml-team</div></div></sc-if>
+  </div>
+  <button onClick="{{ openPalette }}" style="display:flex;align-items:center;gap:10px;margin:4px 10px 10px;height:34px;padding:0 9px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font:inherit;cursor:pointer;white-space:nowrap;overflow:hidden">
+    <span style="width:14px;height:14px;flex:none;border-radius:50%;border:2px solid currentColor;position:relative"><span style="position:absolute;width:2px;height:6px;background:currentColor;right:-3px;bottom:-4px;transform:rotate(-45deg)"></span></span>
+    <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><span style="flex:1;text-align:left;font-size:13px">Search</span><kbd style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:0 5px;border:1px solid var(--border2);border-radius:4px;color:var(--ink2)">⌘K</kbd></sc-if>
+  </button>
+  <div style="display:flex;flex-direction:column;gap:2px;padding:0 10px">
+    <sc-for list="{{ navItems }}" as="it" hint-placeholder-count="6">
+      <button onClick="{{ it.go }}" title="{{ it.label }}" style="display:flex;align-items:center;gap:12px;height:36px;padding:0 9px;border-radius:8px;border:0;cursor:pointer;font:inherit;font-weight:500;white-space:nowrap;overflow:hidden;text-align:left;background:{{ it.bg }};color:{{ it.fg }}">
+        <span style="width:18px;height:18px;flex:none;display:grid;place-items:center">{{ it.icon }}</span>
+        <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><span style="flex:1">{{ it.label }}</span><span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted)">{{ it.count }}</span></sc-if>
+      </button>
+    </sc-for>
+  </div>
+  <div style="flex:1"></div>
+  <div style="display:flex;flex-direction:column;gap:2px;padding:10px;border-top:1px solid var(--border)">
+    <button onClick="{{ toggleTheme }}" style="display:flex;align-items:center;gap:12px;height:34px;padding:0 9px;border-radius:8px;border:0;cursor:pointer;font:inherit;color:var(--ink2);background:transparent;white-space:nowrap;overflow:hidden" style-hover="background:var(--surface2)">
+      <span style="width:18px;height:18px;display:grid;place-items:center;flex:none"><span style="width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent"></span></span>
+      <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><span>{{ themeLabel }}</span></sc-if>
+    </button>
+    <button onClick="{{ toggleRail }}" style="display:flex;align-items:center;gap:12px;height:34px;padding:0 9px;border-radius:8px;border:0;cursor:pointer;font:inherit;color:var(--ink2);background:transparent;white-space:nowrap;overflow:hidden" style-hover="background:var(--surface2)">
+      <span style="width:18px;height:18px;display:grid;place-items:center;flex:none"><span style="width:8px;height:8px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate({{ chevronRot }});transition:transform .2s"></span></span>
+      <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><span>Collapse</span></sc-if>
+    </button>
+    <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><div style="padding:8px 9px 2px;font-size:11px;color:var(--muted);white-space:nowrap">v2.6.0 · <a href="https://www.kubeflow.org/docs/components/pipelines/" target="_blank" rel="noopener">Docs</a> · <a href="https://github.com/kubeflow/pipelines" target="_blank" rel="noopener">GitHub</a></div></sc-if>
+  </div>
+</nav>
+</sc-if>
+
+<!-- Current (legacy) sidenav, colors from SideNav.tsx -->
+<sc-if value="{{ isCurrent }}" hint-placeholder-val="{{ false }}">
+<nav style="display:flex;flex-direction:column;flex:none;width:{{ legacyWidth }};background:#f8fafb;border-right:1px solid #e8eaed;padding-top:15px;transition:width .3s;overflow:hidden;font-family:'Google Sans','Helvetica Neue',Helvetica,Arial,sans-serif;color:#9aa0a6">
+  <div style="display:flex;flex-direction:column">
+    <sc-for list="{{ legacyNav }}" as="it" hint-placeholder-count="6">
+      <button onClick="{{ it.go }}" title="{{ it.label }}" style="position:relative;display:flex;align-items:center;height:44px;margin-bottom:16px;padding:12px 10px 10px 26px;border:0;border-radius:0;background:transparent;cursor:pointer;font:inherit;font-size:14px;font-weight:700;letter-spacing:.25px;white-space:nowrap;overflow:hidden;text-align:left;color:{{ it.fg }}" style-hover="background:#f1f3f4">
+        <span style="position:absolute;left:0;top:0;height:42px;border-left:3px solid {{ it.indicator }}"></span>
+        <span style="width:20px;height:20px;flex:none;display:grid;place-items:center">{{ it.icon }}</span>
+        <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><span style="margin-left:20px">{{ it.label }}</span></sc-if>
+      </button>
+    </sc-for>
+    <hr style="border:0;border-top:1px solid #bdc1c6;margin:20px">
+    <a href="https://www.kubeflow.org/docs/pipelines/" target="_blank" rel="noopener" style="display:flex;align-items:center;height:44px;margin-bottom:16px;padding:12px 10px 10px 26px;color:#9aa0a6;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-decoration:none"><span style="width:20px;height:20px;flex:none;display:grid;place-items:center">{{ legacyDocsIcon }}</span><sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><span style="margin-left:20px">Documentation ↗</span></sc-if></a>
+    <a href="https://github.com/kubeflow/pipelines" target="_blank" rel="noopener" style="display:flex;align-items:center;height:44px;margin-bottom:16px;padding:12px 10px 10px 26px;color:#9aa0a6;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-decoration:none"><img src="assets/github-mark.png" alt="Github" style="width:20px;height:20px;flex:none;opacity:.6"><sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><span style="margin-left:20px">Github Repo ↗</span></sc-if></a>
+    <hr style="border:0;border-top:1px solid #bdc1c6;margin:20px">
+    <button onClick="{{ toggleRail }}" style="width:36px;height:36px;margin-left:16px;border:0;border-radius:50%;background:transparent;cursor:pointer;color:#9aa0a6;display:grid;place-items:center" style-hover="background:#f1f3f4"><span style="width:9px;height:9px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate({{ chevronRot }});transition:transform .3s;display:block"></span></button>
+  </div>
+  <div style="flex:1"></div>
+  <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}"><div style="padding:0 0 16px 30px;font-size:14px;line-height:2.2;white-space:nowrap"><div>Version: <a href="https://github.com/kubeflow/pipelines" style="color:#77abda">2.6.0</a></div><div><a href="https://github.com/kubeflow/pipelines/issues/new/choose" style="color:#77abda">Report an Issue</a></div></div></sc-if>
+</nav>
+</sc-if>
+
+<!-- Grouped rail option -->
+<sc-if value="{{ isGrouped }}" hint-placeholder-val="{{ false }}">
+<nav style="display:flex;flex-direction:column;flex:none;width:248px;background:var(--surface);border-right:1px solid var(--border);overflow:hidden">
+  <div style="display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 14px 0 16px;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center">{{ logo }}</div><span style="font-weight:600;letter-spacing:-.01em">Pipelines</span></div>
+    <button onClick="{{ openPalette }}" title="Search ⌘K" style="width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;display:grid;place-items:center"><span style="width:12px;height:12px;border-radius:50%;border:2px solid currentColor;position:relative;display:block"><span style="position:absolute;width:2px;height:5px;background:currentColor;right:-3px;bottom:-4px;transform:rotate(-45deg)"></span></span></button>
+  </div>
+  <div style="padding:12px 10px;display:flex;flex-direction:column;gap:14px;overflow:auto">
+    <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="3">
+      <div>
+        <div style="padding:0 9px 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">{{ g.title }}</div>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="2">
+            <button onClick="{{ it.go }}" style="display:flex;align-items:center;gap:11px;height:34px;padding:0 9px;border-radius:8px;border:0;cursor:pointer;font:inherit;font-weight:500;text-align:left;background:{{ it.bg }};color:{{ it.fg }}" style-hover="background:var(--surface2)">
+              <span style="width:18px;height:18px;flex:none;display:grid;place-items:center">{{ it.icon }}</span><span style="flex:1">{{ it.label }}</span><span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted)">{{ it.count }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:1"></div>
+  <div style="margin:10px;padding:12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--ink2)"><span style="width:7px;height:7px;border-radius:50%;background:var(--run);animation:kfp-pulse 1.6s ease-in-out infinite"></span>Live</div>
+    <sc-for list="{{ liveRuns }}" as="r" hint-placeholder-count="2">
+      <button onClick="{{ r.open }}" style="display:flex;width:100%;justify-content:space-between;gap:8px;margin-top:8px;padding:0;border:0;background:transparent;font:inherit;font-size:12px;cursor:pointer;color:var(--ink);text-align:left"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font-family:'JetBrains Mono',monospace;color:var(--muted);flex:none">{{ r.duration }}</span></button>
+    </sc-for>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px 12px;font-size:12px;color:var(--muted)">
+    <span>ml-team · v2.6.0</span>
+    <button onClick="{{ toggleTheme }}" style="border:0;background:transparent;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;padding:0">{{ themeLabel }}</button>
+  </div>
+</nav>
+</sc-if>
+
+<!-- Main -->
+<main style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
+
+<!-- RUNS LIST -->
+<sc-if value="{{ isRuns }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Runs" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <sc-if value="{{ isCurrent }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;flex:1;min-height:0;background:#fff;color:#000;font-family:'Google Sans','Helvetica Neue',Helvetica,Arial,sans-serif">
+    <div style="display:flex;align-items:center;justify-content:space-between;height:64px;flex:none;padding:0 0 15px 20px;border-bottom:1px solid #eeeeee">
+      <div style="min-width:100px"><div style="font-family:Roboto,'Helvetica Neue',Arial,sans-serif;font-size:12px;letter-spacing:.25px;color:#5f6368;margin:10px 37px;height:14px"></div><div style="font-size:24px;line-height:28px;color:#202124">Runs</div></div>
+      <div style="display:flex;align-items:center;padding-top:25px;margin-right:16px">
+        <button style="height:24px;margin-right:10px;padding:0 8px;border:0;border-radius:4px;background:#1a73e8;color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer">+ Create run</button>
+        <button style="height:24px;margin-right:10px;padding:0 8px;border:1px solid #ddd;border-radius:4px;background:#fff;color:rgba(0,0,0,.38);font:inherit;font-size:14px;font-weight:700;cursor:default">Compare runs</button>
+        <button style="height:24px;margin-right:10px;padding:0 8px;border:1px solid #ddd;border-radius:4px;background:#fff;color:rgba(0,0,0,.38);font:inherit;font-size:14px;font-weight:700;cursor:default">Clone run</button>
+        <button style="height:24px;margin-right:10px;padding:0 8px;border:1px solid #ddd;border-radius:4px;background:#fff;color:rgba(0,0,0,.38);font:inherit;font-size:14px;font-weight:700;cursor:default">Archive</button>
+        <button style="height:24px;margin-right:10px;padding:0 8px;border:1px solid #ddd;border-radius:4px;background:#fff;color:#1a73e8;font:inherit;font-size:14px;font-weight:700;cursor:pointer">Refresh</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;padding:0 20px;border-bottom:1px solid #e0e0e0;flex:none">
+      <span style="padding:14px 4px 10px;font-size:14px;font-weight:700;color:#1a73e8;border-bottom:2px solid #1a73e8">Active</span><span style="padding:14px 4px 10px;font-size:14px;font-weight:700;color:#5f6368">Archived</span>
+    </div>
+    <div style="flex:1;overflow:auto;padding:0 20px 20px">
+      <div style="display:flex;align-items:center;gap:8px;height:40px;width:300px;margin:15px 0 20px;padding:0 10px;border:1px solid #ddd;border-radius:4px;color:#5f6368;font-size:14px"><span style="width:12px;height:12px;border-radius:50%;border:2px solid currentColor;display:block"></span>Filter runs</div>
+      <div style="min-width:900px">
+        <div style="display:grid;grid-template-columns:36px minmax(220px,2fr) 60px 90px minmax(120px,1fr) minmax(140px,1.2fr) minmax(120px,1fr) 150px;gap:12px;align-items:center;height:40px;padding:0 8px;border-bottom:1px solid #e0e0e0;font-size:14px;font-weight:700;color:#5f6368">
+          <span style="width:18px;height:18px;border:2px solid #5f6368;border-radius:2px;display:block"></span><span>Run name ▾</span><span>Status</span><span>Duration</span><span>Experiment</span><span>Pipeline Version</span><span>Recurring Run</span><span>Start time ▾</span>
+        </div>
+        <sc-for list="{{ visibleRuns }}" as="r" hint-placeholder-count="8">
+          <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:36px minmax(220px,2fr) 60px 90px minmax(120px,1fr) minmax(140px,1.2fr) minmax(120px,1fr) 150px;gap:12px;align-items:center;min-height:40px;padding:6px 8px;border-bottom:1px solid #e0e0e0;font-size:14px;color:#202124;cursor:pointer" style-hover="background:#f5f5f5">
+            <span style="width:18px;height:18px;border:2px solid #5f6368;border-radius:2px;display:block"></span>
+            <span style="color:#0d47a1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+            <span style="width:18px;height:18px;display:grid;place-items:center">{{ r.legacyIcon }}</span>
+            <span>{{ r.duration }}</span>
+            <span style="color:#0d47a1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.experiment }}</span>
+            <span style="color:#0d47a1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.pipeline }} ({{ r.version }})</span>
+            <span style="color:#5f6368">-</span>
+            <span>{{ r.startedFull }}</span>
+          </div>
+        </sc-for>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:24px;height:52px;font-size:12px;color:#5f6368">Rows per page: 10 ▾ <span>‹ ›</span></div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+  <sc-if value="{{ isModern }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:28px 32px 0;flex-wrap:wrap">
+    <div><h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em">Runs</h1><div style="color:var(--muted);margin-top:2px">{{ runsSummary }}</div></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onClick="{{ goCompare }}" style="height:34px;padding:0 12px;border-radius:8px;border:1px solid {{ compareBorder }};background:{{ compareBg }};color:{{ compareFg }};font:inherit;font-weight:500;cursor:pointer" style-hover="background:var(--surface2)">{{ compareLabel }}</button>
+      <button onClick="{{ goNewRun }}" style="height:34px;padding:0 14px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer">+ New run</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;padding:18px 32px 12px;flex-wrap:wrap">
+    <sc-for list="{{ statusChips }}" as="c" hint-placeholder-count="5">
+      <button onClick="{{ c.go }}" style="display:flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:999px;border:1px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }};font:inherit;font-size:13px;font-weight:500;cursor:pointer">
+        <span style="width:7px;height:7px;border-radius:50%;background:{{ c.dot }}"></span>{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.7">{{ c.n }}</span>
+      </button>
+    </sc-for>
+    <div style="flex:1"></div>
+    <input value="{{ query }}" onChange="{{ setQuery }}" placeholder="Filter by name, pipeline, experiment" style="height:32px;width:280px;max-width:100%;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font:inherit;font-size:13px;outline:none" style-focus="border-color:var(--accent)">
+  </div>
+  <div style="flex:1;overflow:auto;padding:0 32px 32px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:720px">
+      <div style="display:grid;grid-template-columns:28px minmax(220px,2fr) 110px minmax(160px,1.4fr) minmax(140px,1.2fr) 90px 150px;gap:16px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">
+        <span></span><span>Run</span><span>Status</span><span>Pipeline</span><span>Experiment</span><span>Duration</span><span>Started</span>
+      </div>
+      <sc-if value="{{ runsEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:48px 24px;text-align:center;color:var(--muted)"><div style="font-weight:600;color:var(--ink);font-size:15px">No runs match</div><div style="margin-top:4px;font-size:13px">Try another status or clear the filter.</div><button onClick="{{ clearRunFilters }}" style="margin-top:14px;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font:inherit;font-weight:500;cursor:pointer">Clear filters</button></div>
+      </sc-if>
+      <sc-for list="{{ visibleRuns }}" as="r" hint-placeholder-count="8">
+        <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:28px minmax(220px,2fr) 110px minmax(160px,1.4fr) minmax(140px,1.2fr) 90px 150px;gap:16px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;background:{{ r.rowBg }}" style-hover="background:var(--surface2)">
+          <button onClick="{{ r.toggleSel }}" aria-label="Select run" style="width:18px;height:18px;border-radius:5px;border:1.5px solid {{ r.cbBorder }};background:{{ r.cbBg }};cursor:pointer;display:grid;place-items:center;padding:0"><span style="width:8px;height:5px;border-left:2px solid var(--accent-ink);border-bottom:2px solid var(--accent-ink);transform:rotate(-45deg) translateY(-1px);display:block;opacity:{{ r.cbCheck }}"></span></button>
+          <div style="min-width:0;display:flex;align-items:center;gap:12px">
+            <div style="display:flex;gap:2px;flex:none">{{ r.spark }}</div>
+            <div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div><div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace">{{ r.id }}</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;color:{{ r.stFg }};font-weight:500;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:{{ r.stFg }};animation:{{ r.pulse }}"></span>{{ r.status }}</div>
+          <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)">{{ r.pipeline }}<span style="color:var(--muted)"> · {{ r.version }}</span></div>
+          <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)">{{ r.experiment }}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink2)">{{ r.duration }}</div>
+          <div style="color:var(--muted);font-size:13px">{{ r.started }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- RUN DETAIL -->
+<sc-if value="{{ isRunDetail }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Run detail" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <div style="padding:20px 32px 0;flex:none">
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)"><a href="#" onClick="{{ goRuns }}" style="color:var(--muted)">Runs</a><span>/</span><a href="#" onClick="{{ goExperiments }}" style="color:var(--muted)">{{ run.experiment }}</a></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:8px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0">
+        <span style="width:12px;height:12px;border-radius:50%;flex:none;background:{{ run.stFg }};animation:{{ run.pulse }}"></span>
+        <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ run.name }}</h1>
+        <span style="padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;background:{{ run.stBg }};color:{{ run.stFg }}">{{ run.status }}</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font:inherit;font-weight:500;cursor:pointer" style-hover="background:var(--surface2)">Clone</button>
+        <button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:{{ retryFg }};font:inherit;font-weight:500;cursor:pointer" style-hover="background:var(--surface2)">Retry</button>
+        <button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:{{ terminateFg }};font:inherit;font-weight:500;cursor:pointer" style-hover="background:var(--surface2)">Terminate</button>
+        <button style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink2);font:inherit;font-weight:500;cursor:pointer" style-hover="background:var(--surface2)">Archive</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:28px;margin-top:14px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap">
+      <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Pipeline</div><div style="margin-top:2px;font-weight:500"><a href="#" onClick="{{ goPipelines }}">{{ run.pipeline }}</a> <span style="color:var(--muted);font-weight:400">{{ run.version }}</span></div></div>
+      <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Started</div><div style="margin-top:2px;font-weight:500">{{ run.startedFull }}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Duration</div><div style="margin-top:2px;font-weight:500;font-family:'JetBrains Mono',monospace">{{ run.duration }}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Tasks</div><div style="margin-top:2px;font-weight:500">{{ run.taskSummary }}</div></div>
+      <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Run ID</div><div style="margin-top:2px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink2)">{{ run.id }}</div></div>
+    </div>
+    <sc-if value="{{ runFailed }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--err-soft);border:1px solid var(--err);color:var(--ink)">
+      <span style="width:18px;height:18px;border-radius:50%;background:var(--err);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;flex:none;margin-top:1px">!</span>
+      <div style="min-width:0;flex:1"><div style="font-weight:600;font-size:13px">Task <span style="font-family:'JetBrains Mono',monospace">evaluate-model</span> failed · exit code 1</div><div style="font-size:13px;color:var(--ink2);margin-top:2px;font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ failMsg }}</div></div>
+      <button onClick="{{ openFailedTask }}" style="height:30px;padding:0 12px;border-radius:7px;border:0;background:var(--err);color:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none">View logs</button>
+    </div>
+    </sc-if>
+    <div style="display:flex;gap:4px;margin-top:10px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+        <button onClick="{{ t.go }}" style="height:36px;padding:0 12px;border:0;border-bottom:2px solid {{ t.line }};background:transparent;color:{{ t.fg }};font:inherit;font-weight:500;cursor:pointer;border-radius:0">{{ t.label }}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-if value="{{ tabGraph }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;flex:1;min-height:0;position:relative">
+    <div style="flex:1;min-width:0;position:relative;overflow:auto;background:var(--bg);background-image:radial-gradient(var(--border2) 1px, transparent 1px);background-size:22px 22px">
+      <div style="position:relative;width:820px;height:520px;margin:24px auto">
+        <svg width="820" height="520" style="position:absolute;inset:0;pointer-events:none;overflow:visible">{{ edges }}</svg>
+        <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="7">
+          <button onClick="{{ n.select }}" style="position:absolute;left:{{ n.x }}px;top:{{ n.y }}px;width:200px;height:56px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:10px;border:1.5px solid {{ n.border }};background:var(--surface);box-shadow:{{ n.shadow }};cursor:pointer;font:inherit;text-align:left">
+            <span style="width:10px;height:10px;border-radius:50%;flex:none;background:{{ n.stFg }};animation:{{ n.pulse }}"></span>
+            <span style="min-width:0;flex:1"><span style="display:block;font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ n.name }}</span><span style="display:block;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">{{ n.meta }}</span></span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="position:absolute;left:16px;bottom:16px;display:flex;gap:14px;padding:8px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);font-size:12px;color:var(--muted)">
+        <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4"><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:{{ l.c }}"></span>{{ l.label }}</span></sc-for>
+      </div>
+    </div>
+    <sc-if value="{{ hasSelected }}" hint-placeholder-val="{{ false }}">
+    <aside style="width:380px;flex:none;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 0">
+        <div style="min-width:0"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Task</div><div style="font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ sel.name }}</div></div>
+        <button onClick="{{ closePanel }}" style="width:28px;height:28px;border-radius:6px;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:18px;line-height:1" style-hover="background:var(--surface2)">×</button>
+      </div>
+      <div style="display:flex;gap:4px;padding:12px 18px 0;border-bottom:1px solid var(--border)">
+        <sc-for list="{{ panelTabs }}" as="t" hint-placeholder-count="3">
+          <button onClick="{{ t.go }}" style="height:32px;padding:0 10px;border:0;border-bottom:2px solid {{ t.line }};background:transparent;color:{{ t.fg }};font:inherit;font-size:13px;font-weight:500;cursor:pointer;border-radius:0">{{ t.label }}</button>
+        </sc-for>
+      </div>
+      <div style="flex:1;overflow:auto;padding:16px 18px">
+        <sc-if value="{{ panelIsInfo }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:110px 1fr;gap:10px 12px;font-size:13px">
+            <span style="color:var(--muted)">Status</span><span style="color:{{ sel.stFg }};font-weight:500">{{ sel.status }}</span>
+            <span style="color:var(--muted)">Duration</span><span style="font-family:'JetBrains Mono',monospace">{{ sel.duration }}</span>
+            <span style="color:var(--muted)">Component</span><span style="font-family:'JetBrains Mono',monospace;word-break:break-all">{{ sel.component }}</span>
+            <span style="color:var(--muted)">Image</span><span style="font-family:'JetBrains Mono',monospace;word-break:break-all;color:var(--ink2)">{{ sel.image }}</span>
+            <span style="color:var(--muted)">Pod</span><span style="font-family:'JetBrains Mono',monospace;word-break:break-all;color:var(--ink2)">{{ sel.pod }}</span>
+          </div>
+          <div style="margin-top:20px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Input parameters</div>
+          <div style="margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <sc-for list="{{ sel.params }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--ink2)">{{ p.k }}</span><span style="font-family:'JetBrains Mono',monospace;color:var(--ink)">{{ p.v }}</span></div>
+            </sc-for>
+          </div>
+          <div style="margin-top:20px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Output artifacts</div>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ sel.artifacts }}" as="a" hint-placeholder-count="2">
+              <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;color:var(--ink);background:var(--surface2)"><span style="width:8px;height:8px;border-radius:2px;background:var(--accent);flex:none"></span><span style="flex:1;font-weight:500;font-size:13px">{{ a.name }}</span><span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">{{ a.type }}</span></a>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ panelIsLogs }}" hint-placeholder-val="{{ false }}">
+          <pre style="margin:0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:var(--ink2);white-space:pre-wrap;word-break:break-word">{{ sel.logs }}</pre>
+        </sc-if>
+        <sc-if value="{{ panelIsEvents }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ sel.events }}" as="e" hint-placeholder-count="3">
+              <div style="display:flex;gap:12px;font-size:13px"><span style="font-family:'JetBrains Mono',monospace;color:var(--muted);flex:none">{{ e.t }}</span><span style="color:var(--ink2)">{{ e.msg }}</span></div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </aside>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ tabDetails }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;overflow:auto;padding:24px 32px">
+    <div style="max-width:720px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <sc-for list="{{ runFields }}" as="f" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:16px;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)">{{ f.k }}</span><span style="font-family:'JetBrains Mono',monospace;color:var(--ink)">{{ f.v }}</span></div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ tabSpec }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;overflow:auto;padding:24px 32px"><pre style="margin:0;max-width:820px;padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;color:var(--ink2)">{{ spec }}</pre></div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- PIPELINES -->
+<sc-if value="{{ isPipelines }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Pipelines" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:28px 32px 18px;flex-wrap:wrap">
+    <div><h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em">Pipelines</h1><div style="color:var(--muted);margin-top:2px">{{ pipelinesSummary }}</div></div>
+    <button style="height:34px;padding:0 14px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer">+ Upload pipeline</button>
+  </div>
+  <div style="flex:1;overflow:auto;padding:0 32px 32px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+      <sc-for list="{{ pipelines }}" as="p" hint-placeholder-count="6">
+        <div onClick="{{ goRuns }}" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;display:flex;flex-direction:column;gap:10px" style-hover="border-color:var(--border2);box-shadow:var(--shadow)">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">{{ p.desc }}</div></div><span style="flex:none;font-size:11px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:5px;background:var(--surface2);color:var(--ink2)">{{ p.version }}</span></div>
+          <div style="display:flex;gap:2px;align-items:flex-end;height:26px">{{ p.bars }}</div>
+          <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)"><span style="white-space:nowrap">{{ p.runs }} runs · {{ p.rate }} success</span><span style="flex:none;white-space:nowrap">{{ p.updated }}</span></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- EXPERIMENTS / OTHER -->
+<sc-if value="{{ isExperiments }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Experiments" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:28px 32px 18px;flex-wrap:wrap">
+    <div><h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em">Experiments</h1><div style="color:var(--muted);margin-top:2px">Group runs by goal. Click one to see its runs.</div></div>
+    <button style="height:34px;padding:0 14px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer">+ New experiment</button>
+  </div>
+  <div style="flex:1;overflow:auto;padding:0 32px 32px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <sc-for list="{{ experiments }}" as="e" hint-placeholder-count="4">
+        <div onClick="{{ goRuns }}" style="display:grid;grid-template-columns:minmax(200px,2fr) minmax(200px,3fr) 120px 140px;gap:16px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer" style-hover="background:var(--surface2)">
+          <div style="font-weight:500">{{ e.name }}</div>
+          <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--neutral-soft)">{{ e.bar }}</div>
+          <div style="font-size:13px;color:var(--ink2)">{{ e.runs }} runs</div>
+          <div style="font-size:13px;color:var(--muted)">{{ e.last }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- COMPARE -->
+<sc-if value="{{ isCompare }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Compare runs" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <div style="padding:20px 32px 0;flex:none">
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)"><a href="#" onClick="{{ goRuns }}" style="color:var(--muted)">Runs</a><span>/</span><span>Compare</span></div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:8px;flex-wrap:wrap">
+      <div><h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em">Compare {{ compareCount }} runs</h1><div style="color:var(--muted);margin-top:2px">Parameters and metrics side by side. Differences are highlighted.</div></div>
+      <button onClick="{{ goRuns }}" style="height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font:inherit;font-weight:500;cursor:pointer" style-hover="background:var(--surface2)">Change selection</button>
+    </div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:20px 32px 32px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:640px">
+      <div style="display:grid;grid-template-columns:{{ compareCols }};border-bottom:1px solid var(--border)">
+        <div style="padding:14px 16px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;align-self:end">Run</div>
+        <sc-for list="{{ compareRuns }}" as="r" hint-placeholder-count="2">
+          <div onClick="{{ r.open }}" style="padding:14px 16px;border-left:1px solid var(--border);cursor:pointer;min-width:0" style-hover="background:var(--surface2)">
+            <div style="display:flex;align-items:center;gap:7px;color:{{ r.stFg }};font-weight:500;font-size:12px"><span style="width:7px;height:7px;border-radius:50%;background:{{ r.stFg }}"></span>{{ r.status }}</div>
+            <div style="font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div>
+            <div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace">{{ r.id }} · {{ r.duration }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <sc-for list="{{ compareRows }}" as="row" hint-placeholder-count="8">
+        <sc-if value="{{ row.isHeader }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:10px 16px 6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--bg);border-bottom:1px solid var(--border)">{{ row.label }}</div>
+        </sc-if>
+        <sc-if value="{{ row.isRow }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:{{ compareCols }};border-bottom:1px solid var(--border);background:{{ row.bg }}">
+            <div style="padding:9px 16px;font-size:13px;color:var(--ink2);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:{{ row.dot }};flex:none"></span>{{ row.label }}</div>
+            <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="2">
+              <div style="padding:9px 16px;border-left:1px solid var(--border);font-size:13px;font-family:'JetBrains Mono',monospace;color:{{ c.fg }};font-weight:{{ c.weight }};min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.v }}</div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- RECURRING RUNS -->
+<sc-if value="{{ isRecurring }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Recurring runs" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:28px 32px 18px;flex-wrap:wrap">
+    <div><h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em">Recurring runs</h1><div style="color:var(--muted);margin-top:2px">{{ recurringSummary }}</div></div>
+    <button onClick="{{ goNewRecurring }}" style="height:34px;padding:0 14px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer">+ New schedule</button>
+  </div>
+  <div style="flex:1;overflow:auto;padding:0 32px 32px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:760px">
+      <div style="display:grid;grid-template-columns:minmax(220px,2fr) 90px minmax(160px,1.4fr) minmax(140px,1.2fr) 150px 120px;gap:16px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">
+        <span>Schedule</span><span>Enabled</span><span>Trigger</span><span>Pipeline</span><span>Next run</span><span>Status</span>
+      </div>
+      <sc-for list="{{ recurring }}" as="rr" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:minmax(220px,2fr) 90px minmax(160px,1.4fr) minmax(140px,1.2fr) 150px 120px;gap:16px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)" style-hover="background:var(--surface2)">
+          <div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ rr.name }}</div><div style="font-size:12px;color:var(--muted)">{{ rr.experiment }} · max {{ rr.concurrency }} concurrent</div></div>
+          <button onClick="{{ rr.toggle }}" title="Toggle schedule" style="width:36px;height:20px;border-radius:10px;border:0;padding:2px;cursor:pointer;background:{{ rr.switchBg }};display:flex;justify-content:{{ rr.switchAlign }}"><span style="width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);display:block"></span></button>
+          <div style="min-width:0"><div style="font-size:13px;color:var(--ink2)">{{ rr.triggerText }}</div><div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace">{{ rr.cron }}</div></div>
+          <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)">{{ rr.pipeline }} <span style="color:var(--muted)">{{ rr.version }}</span></div>
+          <div style="font-size:13px;color:var(--ink2)">{{ rr.next }}</div>
+          <div style="display:flex;align-items:center;gap:7px;color:{{ rr.stFg }};font-weight:500;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:{{ rr.stFg }}"></span>{{ rr.scheduleStatus }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ARTIFACTS -->
+<sc-if value="{{ isArtifacts }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Artifacts" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:28px 32px 0;flex-wrap:wrap">
+    <div><h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em">Artifacts</h1><div style="color:var(--muted);margin-top:2px">Datasets, models and metrics produced by runs, recorded as native task outputs.</div></div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;padding:18px 32px 12px;flex-wrap:wrap">
+    <sc-for list="{{ artifactChips }}" as="c" hint-placeholder-count="5">
+      <button onClick="{{ c.go }}" style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;height:30px;padding:0 11px;border-radius:999px;border:1px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }};font:inherit;font-size:13px;font-weight:500;cursor:pointer">{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.7">{{ c.n }}</span></button>
+    </sc-for>
+  </div>
+  <div style="flex:1;overflow:auto;padding:0 32px 32px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:760px">
+      <div style="display:grid;grid-template-columns:minmax(220px,2fr) 100px minmax(200px,2fr) minmax(160px,1.4fr) 130px;gap:16px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">
+        <span>Artifact</span><span>Type</span><span>URI</span><span>Produced by</span><span>Created</span>
+      </div>
+      <sc-for list="{{ visibleArtifacts }}" as="a" hint-placeholder-count="8">
+        <div onClick="{{ a.open }}" style="display:grid;grid-template-columns:minmax(220px,2fr) 100px minmax(200px,2fr) minmax(160px,1.4fr) 130px;gap:16px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer" style-hover="background:var(--surface2)">
+          <div style="min-width:0;display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:3px;flex:none;background:{{ a.typeColor }}"></span><div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</div><div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap">id {{ a.id }}</div></div></div>
+          <span style="font-size:12px;font-weight:500;padding:2px 8px;border-radius:5px;background:var(--surface2);color:var(--ink2);justify-self:start">{{ a.type }}</span>
+          <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink2)">{{ a.uri }}</div>
+          <div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)">{{ a.task }} <span style="color:var(--muted)">· {{ a.run }}</span></div>
+          <div style="color:var(--muted);font-size:13px">{{ a.created }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- NEW RUN -->
+<sc-if value="{{ isNewRun }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="New run" style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <div style="padding:20px 32px 0;flex:none">
+    <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)"><a href="#" onClick="{{ goRuns }}" style="color:var(--muted)">Runs</a><span>/</span><span>New</span></div>
+    <h1 style="margin:8px 0 0;font-size:22px;font-weight:600;letter-spacing:-.02em">{{ newRunTitle }}</h1>
+  </div>
+  <div style="flex:1;overflow:auto;padding:20px 32px 32px">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;max-width:1040px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:14px">
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:600;display:grid;place-items:center">1</span><span style="font-weight:600">Pipeline</span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+            <sc-for list="{{ pipelineOptions }}" as="p" hint-placeholder-count="5">
+              <button onClick="{{ p.pick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 12px;border-radius:8px;border:1.5px solid {{ p.border }};background:{{ p.bg }};font:inherit;cursor:pointer;text-align:left"><span style="font-weight:500;font-size:13px;color:var(--ink)">{{ p.name }}</span><span style="font-size:12px;color:var(--muted)">{{ p.desc }}</span></button>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">
+            <span style="font-size:13px;color:var(--muted)">Version</span>
+            <sc-for list="{{ versionOptions }}" as="v" hint-placeholder-count="3">
+              <button onClick="{{ v.pick }}" style="height:28px;padding:0 10px;border-radius:6px;border:1px solid {{ v.border }};background:{{ v.bg }};color:var(--ink);font:inherit;font-size:12.5px;font-family:'JetBrains Mono',monospace;cursor:pointer">{{ v.label }}</button>
+            </sc-for>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2);margin-left:auto;cursor:pointer"><input type="checkbox" checked="{{ nr.latest }}" onChange="{{ toggleLatest }}" style="accent-color:var(--accent)">Always use latest</label>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:600;display:grid;place-items:center">2</span><span style="font-weight:600">Run details</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:500;color:var(--ink2)">Run name<input value="{{ nr.name }}" onChange="{{ setNrName }}" style="height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;outline:none" style-focus="border-color:var(--accent)"></label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:500;color:var(--ink2)">Experiment<select value="{{ nr.experiment }}" onChange="{{ setNrExperiment }}" style="height:34px;padding:0 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;outline:none"><sc-for list="{{ experimentNames }}" as="e" hint-placeholder-count="4"><option value="{{ e }}">{{ e }}</option></sc-for></select></label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:500;color:var(--ink2);grid-column:1 / -1">Description <span style="font-weight:400;color:var(--muted)">(optional)</span><input placeholder="Why this run exists" style="height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;outline:none" style-focus="border-color:var(--accent)"></label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:500;color:var(--ink2)">Service account<input value="pipeline-runner" style="height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none" style-focus="border-color:var(--accent)"></label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:500;color:var(--ink2)">Pipeline root<input value="{{ nr.root }}" onChange="{{ setNrRoot }}" style="height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none" style-focus="border-color:var(--accent)"></label>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:600;display:grid;place-items:center">3</span><span style="font-weight:600">Schedule</span></div>
+          <div style="display:inline-flex;padding:3px;border-radius:8px;background:var(--surface2);border:1px solid var(--border)">
+            <button onClick="{{ setOneOff }}" style="height:28px;padding:0 14px;border-radius:6px;border:0;background:{{ oneOffBg }};color:{{ oneOffFg }};box-shadow:{{ oneOffShadow }};font:inherit;font-size:13px;font-weight:500;cursor:pointer">Run once</button>
+            <button onClick="{{ setRecurringMode }}" style="height:28px;padding:0 14px;border-radius:6px;border:0;background:{{ recBg }};color:{{ recFg }};box-shadow:{{ recShadow }};font:inherit;font-size:13px;font-weight:500;cursor:pointer">Recurring</button>
+          </div>
+          <sc-if value="{{ nr.recurring }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:500;color:var(--ink2)">Trigger<select style="height:34px;padding:0 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;outline:none"><option>Cron</option><option>Periodic interval</option></select></label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:500;color:var(--ink2)">Cron expression<input value="0 22 * * *" style="height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none"></label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:500;color:var(--ink2)">Max concurrent runs<input value="10" style="height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none"></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);align-self:end;height:34px;cursor:pointer"><input type="checkbox" checked="{{ true }}" style="accent-color:var(--accent)">Catch up missed runs</label>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--muted)">Every day at 22:00 UTC · next run Sep 19, 2026 22:00</div>
+          </sc-if>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:600;display:grid;place-items:center">4</span><span style="font-weight:600">Parameters</span><span style="font-size:12px;color:var(--muted)">{{ paramSummary }}</span></div>
+          <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <sc-for list="{{ nrParams }}" as="p" hint-placeholder-count="4">
+              <div style="display:grid;grid-template-columns:minmax(140px,1fr) 90px minmax(160px,1.4fr);gap:12px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border)">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ p.k }}</span>
+                <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">{{ p.type }}</span>
+                <input value="{{ p.v }}" style="height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none" style-focus="border-color:var(--accent)">
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <aside style="position:sticky;top:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Summary</div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 12px;font-size:13px">
+          <span style="color:var(--muted)">Pipeline</span><span style="font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ nr.pipeline }} <span style="color:var(--muted);font-weight:400">{{ nrVersionLabel }}</span></span>
+          <span style="color:var(--muted)">Experiment</span><span style="font-weight:500">{{ nr.experiment }}</span>
+          <span style="color:var(--muted)">Mode</span><span style="font-weight:500">{{ nrModeLabel }}</span>
+          <span style="color:var(--muted)">Params</span><span style="font-weight:500">{{ paramSummary }}</span>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;flex-direction:column;gap:8px">
+          <button onClick="{{ submitRun }}" style="height:36px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer">{{ submitLabel }}</button>
+          <button onClick="{{ goRuns }}" style="height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink2);font:inherit;font-weight:500;cursor:pointer" style-hover="background:var(--surface2)">Cancel</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Runs with pipeline caching enabled reuse outputs from identical prior tasks.</div>
+      </aside>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+</main>
+</div>
+
+<!-- Toast -->
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:10px 12px 10px 14px;border-radius:10px;background:var(--ink);color:var(--bg);box-shadow:var(--shadow);font-size:13px;z-index:40;max-width:92vw">
+  <span style="width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ toast.msg }}</span>
+  <sc-if value="{{ toastHasAction }}" hint-placeholder-val="{{ false }}"><button onClick="{{ toast.action }}" style="border:0;background:transparent;color:var(--accent);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 4px">{{ toast.label }}</button></sc-if>
+  <button onClick="{{ dismissToast }}" style="border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px">×</button>
+</div>
+</sc-if>
+
+<!-- Command palette -->
+<sc-if value="{{ paletteOpen }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closePalette }}" style="position:fixed;inset:0;background:rgba(10,12,20,.45);display:flex;justify-content:center;align-items:flex-start;padding-top:14vh;z-index:50">
+  <div onClick="{{ stop }}" style="width:560px;max-width:92vw;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden">
+    <input autoFocus="{{ true }}" value="{{ paletteQ }}" onChange="{{ setPaletteQ }}" placeholder="Jump to a run, pipeline, experiment, or action…" style="width:100%;height:52px;padding:0 18px;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--ink);font:inherit;font-size:15px;outline:none">
+    <div style="max-height:360px;overflow:auto;padding:6px">
+      <sc-for list="{{ paletteItems }}" as="p" hint-placeholder-count="6">
+        <button onClick="{{ p.go }}" style="display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:inherit;cursor:pointer;text-align:left" style-hover="background:var(--surface2)">
+          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);width:76px;flex:none">{{ p.kind }}</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.label }}</span><span style="font-size:12px;color:var(--muted)">{{ p.hint }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;navStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;rail&quot;,&quot;current&quot;],&quot;default&quot;:&quot;rail&quot;,&quot;tsType&quot;:&quot;'rail'|'current'&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;,&quot;section&quot;:&quot;Appearance&quot;}}">
+const ST = {
+  Succeeded:{fg:'var(--ok)',bg:'var(--ok-soft)'}, Running:{fg:'var(--run)',bg:'var(--run-soft)',pulse:true},
+  Failed:{fg:'var(--err)',bg:'var(--err-soft)'}, Pending:{fg:'var(--neutral)',bg:'var(--neutral-soft)'},
+  Canceled:{fg:'var(--neutral)',bg:'var(--neutral-soft)'}, Cached:{fg:'var(--ok)',bg:'var(--ok-soft)'}, Skipped:{fg:'var(--neutral)',bg:'var(--neutral-soft)'}
+};
+const RUNS = [
+  {id:'run-7f3a2c',name:'churn-model nightly · 2026-09-04',status:'Running',pipeline:'churn-training',version:'v14',experiment:'Churn Q3',duration:'12m 41s',started:'8 min ago',startedFull:'Sep 4, 2026 · 22:10 UTC',hist:['Succeeded','Succeeded','Failed','Succeeded','Running']},
+  {id:'run-9b1e07',name:'feature-backfill 2026-09-04',status:'Succeeded',pipeline:'feature-store-backfill',version:'v3',experiment:'Default',duration:'48m 05s',started:'2 h ago',startedFull:'Sep 4, 2026 · 20:02 UTC',hist:['Succeeded','Succeeded','Succeeded','Succeeded','Succeeded']},
+  {id:'run-c41d88',name:'ranker eval · candidate 21',status:'Failed',pipeline:'ranker-eval',version:'v7',experiment:'Search ranking',duration:'6m 12s',started:'3 h ago',startedFull:'Sep 4, 2026 · 19:15 UTC',hist:['Succeeded','Failed','Failed','Succeeded','Failed']},
+  {id:'run-2e9f10',name:'ranker eval · candidate 20',status:'Succeeded',pipeline:'ranker-eval',version:'v7',experiment:'Search ranking',duration:'31m 50s',started:'5 h ago',startedFull:'Sep 4, 2026 · 17:31 UTC',hist:['Succeeded','Succeeded','Succeeded','Failed','Succeeded']},
+  {id:'run-a0c3b5',name:'embeddings refresh · weekly',status:'Pending',pipeline:'embeddings-refresh',version:'v2',experiment:'Default',duration:'—',started:'queued',startedFull:'Scheduled Sep 5, 2026 · 02:00 UTC',hist:['Succeeded','Succeeded','Succeeded','Succeeded','Pending']},
+  {id:'run-5d77e1',name:'churn-model nightly · 2026-09-03',status:'Succeeded',pipeline:'churn-training',version:'v14',experiment:'Churn Q3',duration:'54m 19s',started:'yesterday',startedFull:'Sep 3, 2026 · 22:10 UTC',hist:['Succeeded','Succeeded','Succeeded','Failed','Succeeded']},
+  {id:'run-11fa9c',name:'data-quality gate · prod',status:'Canceled',pipeline:'dq-gate',version:'v9',experiment:'Platform',duration:'2m 03s',started:'yesterday',startedFull:'Sep 3, 2026 · 14:48 UTC',hist:['Succeeded','Succeeded','Canceled','Succeeded','Canceled']},
+  {id:'run-88b0d2',name:'churn-model nightly · 2026-09-02',status:'Failed',pipeline:'churn-training',version:'v13',experiment:'Churn Q3',duration:'19m 30s',started:'2 days ago',startedFull:'Sep 2, 2026 · 22:10 UTC',hist:['Succeeded','Failed','Succeeded','Succeeded','Failed']},
+];
+const NODES = [
+  {id:'ingest',name:'ingest-events',x:310,y:20,status:'Succeeded',dur:'2m 14s',component:'comp-ingest-events',image:'gcr.io/ml-team/ingest:1.8.2',params:[{k:'source',v:'bq://events.raw'},{k:'lookback_days',v:'30'}],artifacts:[{name:'events_dataset',type:'Dataset'}]},
+  {id:'validate',name:'validate-schema',x:60,y:150,status:'Cached',dur:'0s (cached)',component:'comp-validate-schema',image:'gcr.io/ml-team/tfdv:0.44',params:[{k:'schema_path',v:'schemas/events.pbtxt'}],artifacts:[{name:'schema_report',type:'HTML'}]},
+  {id:'features',name:'build-features',x:310,y:150,status:'Succeeded',dur:'7m 48s',component:'comp-build-features',image:'gcr.io/ml-team/features:2.1.0',params:[{k:'window',v:'7d'},{k:'normalize',v:'true'}],artifacts:[{name:'train_features',type:'Dataset'},{name:'eval_features',type:'Dataset'}]},
+  {id:'split',name:'train-test-split',x:560,y:150,status:'Succeeded',dur:'0m 41s',component:'comp-split',image:'gcr.io/ml-team/utils:1.2',params:[{k:'test_fraction',v:'0.2'},{k:'seed',v:'42'}],artifacts:[{name:'splits',type:'Dataset'}]},
+  {id:'train',name:'train-xgboost',x:310,y:290,status:'Running',dur:'11m 02s …',component:'comp-train-xgboost',image:'gcr.io/ml-team/xgb:1.7.6-gpu',params:[{k:'max_depth',v:'8'},{k:'eta',v:'0.05'},{k:'n_estimators',v:'1200'}],artifacts:[{name:'model',type:'Model'},{name:'training_metrics',type:'Metrics'}]},
+  {id:'evaluate',name:'evaluate-model',x:180,y:430,status:'Pending',dur:'—',component:'comp-evaluate',image:'gcr.io/ml-team/eval:3.0.1',params:[{k:'threshold',v:'0.5'}],artifacts:[{name:'eval_report',type:'HTML'}]},
+  {id:'register',name:'register-model',x:440,y:430,status:'Pending',dur:'—',component:'comp-register',image:'gcr.io/ml-team/registry:1.0',params:[{k:'registry',v:'mlmd://models'},{k:'stage',v:'staging'}],artifacts:[{name:'model_version',type:'Model'}]},
+];
+const EDGES = [['ingest','validate'],['ingest','features'],['ingest','split'],['features','train'],['split','train'],['validate','train'],['train','evaluate'],['train','register'],['evaluate','register']];
+const PIPELINES = [
+  {name:'churn-training',desc:'Nightly churn propensity model',version:'v14',runs:212,rate:'91%',updated:'today',hist:[1,1,0,1,1,1,0,1,1,1,1,0,1,1]},
+  {name:'ranker-eval',desc:'Offline ranking candidates evaluation',version:'v7',runs:64,rate:'72%',updated:'3 h ago',hist:[1,0,1,1,0,1,0,1,1,0,1,1,1,0]},
+  {name:'feature-store-backfill',desc:'Backfills feature store daily',version:'v3',runs:180,rate:'98%',updated:'2 h ago',hist:[1,1,1,1,1,1,1,1,1,1,1,1,0,1]},
+  {name:'embeddings-refresh',desc:'Weekly item embeddings rebuild',version:'v2',runs:22,rate:'95%',updated:'6 d ago',hist:[1,1,1,1,1,1,0,1,1,1,1,1,1,1]},
+  {name:'dq-gate',desc:'Data quality gate before promotion',version:'v9',runs:540,rate:'88%',updated:'yesterday',hist:[1,1,0,1,1,1,1,0,1,1,1,1,0,1]},
+];
+const EXPERIMENTS = [
+  {name:'Churn Q3',runs:212,last:'8 min ago',ok:.86,err:.1},
+  {name:'Search ranking',runs:64,last:'3 h ago',ok:.7,err:.28},
+  {name:'Platform',runs:540,last:'yesterday',ok:.88,err:.06},
+  {name:'Default',runs:202,last:'2 h ago',ok:.97,err:.02},
+];
+const SPEC = `pipelineInfo:\n  name: churn-training\n  description: Nightly churn propensity model\nroot:\n  dag:\n    tasks:\n      ingest-events:\n        componentRef: {name: comp-ingest-events}\n        inputs:\n          parameters:\n            source: {runtimeValue: {constant: bq://events.raw}}\n            lookback_days: {runtimeValue: {constant: 30}}\n      build-features:\n        componentRef: {name: comp-build-features}\n        dependentTasks: [ingest-events]\n      train-xgboost:\n        componentRef: {name: comp-train-xgboost}\n        dependentTasks: [build-features, train-test-split, validate-schema]\n      register-model:\n        componentRef: {name: comp-register}\n        dependentTasks: [train-xgboost, evaluate-model]\nschemaVersion: 2.1.0\nsdkVersion: kfp-2.9.0`;
+const LOGS = `22:10:04  INFO  starting task train-xgboost\n22:10:05  INFO  loading train_features (1,284,332 rows)\n22:10:09  INFO  device=cuda:0  n_estimators=1200  max_depth=8\n22:11:12  INFO  [100]  auc=0.8412  logloss=0.3121\n22:13:40  INFO  [400]  auc=0.8691  logloss=0.2874\n22:16:55  INFO  [700]  auc=0.8760  logloss=0.2801\n22:20:31  INFO  [1000] auc=0.8783  logloss=0.2779\n22:21:06  INFO  checkpoint written → gs://ml-team/churn/ckpt/1000`;
+const EVENTS = [{t:'22:10:02',msg:'Pod scheduled on node gpu-pool-3'},{t:'22:10:04',msg:'Container started'},{t:'22:10:05',msg:'Pulled input artifacts (2)'},{t:'22:21:06',msg:'Checkpoint uploaded'}];
+
+const RECURRING = [
+  {id:'rr-01',name:'churn-model nightly',experiment:'Churn Q3',enabled:true,cron:'0 22 * * *',triggerText:'Every day at 22:00',pipeline:'churn-training',version:'latest',next:'today, 22:00 UTC',concurrency:1,schedule:'Active'},
+  {id:'rr-02',name:'feature-backfill daily',experiment:'Default',enabled:true,cron:'0 20 * * *',triggerText:'Every day at 20:00',pipeline:'feature-store-backfill',version:'v3',next:'today, 20:00 UTC',concurrency:2,schedule:'Active'},
+  {id:'rr-03',name:'embeddings refresh weekly',experiment:'Default',enabled:true,cron:'0 2 * * 1',triggerText:'Mondays at 02:00',pipeline:'embeddings-refresh',version:'v2',next:'Sep 22, 02:00 UTC',concurrency:1,schedule:'Scheduled'},
+  {id:'rr-04',name:'dq-gate hourly (staging)',experiment:'Platform',enabled:false,cron:'—',triggerText:'Every 1 hour',pipeline:'dq-gate',version:'v8',next:'—',concurrency:10,schedule:'Disabled'},
+];
+const ARTIFACTS = [
+  {id:'4821',name:'model',type:'Model',uri:'gs://ml-team/churn/run-7f3a2c/train-xgboost/model',task:'train-xgboost',run:'churn-model nightly · 09-04',created:'8 min ago'},
+  {id:'4820',name:'train_features',type:'Dataset',uri:'gs://ml-team/churn/run-7f3a2c/build-features/train_features',task:'build-features',run:'churn-model nightly · 09-04',created:'18 min ago'},
+  {id:'4819',name:'eval_features',type:'Dataset',uri:'gs://ml-team/churn/run-7f3a2c/build-features/eval_features',task:'build-features',run:'churn-model nightly · 09-04',created:'18 min ago'},
+  {id:'4815',name:'schema_report',type:'HTML',uri:'gs://ml-team/churn/run-7f3a2c/validate-schema/schema_report.html',task:'validate-schema',run:'churn-model nightly · 09-04',created:'20 min ago'},
+  {id:'4790',name:'feature_table',type:'Dataset',uri:'bq://ml-team.features.daily_20260904',task:'write-features',run:'feature-backfill 09-04',created:'2 h ago'},
+  {id:'4771',name:'eval_metrics',type:'Metrics',uri:'gs://ml-team/ranker/run-c41d88/evaluate/metrics.json',task:'evaluate',run:'ranker eval · candidate 21',created:'3 h ago'},
+  {id:'4752',name:'ranker_candidate_20',type:'Model',uri:'gs://ml-team/ranker/run-2e9f10/train/model',task:'train',run:'ranker eval · candidate 20',created:'5 h ago'},
+  {id:'4751',name:'eval_metrics',type:'Metrics',uri:'gs://ml-team/ranker/run-2e9f10/evaluate/metrics.json',task:'evaluate',run:'ranker eval · candidate 20',created:'5 h ago'},
+  {id:'4690',name:'model',type:'Model',uri:'gs://ml-team/churn/run-5d77e1/train-xgboost/model',task:'train-xgboost',run:'churn-model nightly · 09-03',created:'yesterday'},
+];
+const EXECUTIONS = [
+  {id:'9134',task:'train-xgboost',state:'Running',component:'comp-train-xgboost',run:'churn-model nightly · 09-04',duration:'11m 02s'},
+  {id:'9133',task:'train-test-split',state:'Succeeded',component:'comp-split',run:'churn-model nightly · 09-04',duration:'0m 41s'},
+  {id:'9132',task:'build-features',state:'Succeeded',component:'comp-build-features',run:'churn-model nightly · 09-04',duration:'7m 48s'},
+  {id:'9131',task:'validate-schema',state:'Cached',component:'comp-validate-schema',run:'churn-model nightly · 09-04',duration:'0s'},
+  {id:'9130',task:'ingest-events',state:'Succeeded',component:'comp-ingest-events',run:'churn-model nightly · 09-04',duration:'2m 14s'},
+  {id:'9102',task:'write-features',state:'Succeeded',component:'comp-write-features',run:'feature-backfill 09-04',duration:'31m 10s'},
+  {id:'9088',task:'evaluate',state:'Failed',component:'comp-evaluate-ranker',run:'ranker eval · candidate 21',duration:'1m 55s'},
+  {id:'9087',task:'train',state:'Succeeded',component:'comp-train-ranker',run:'ranker eval · candidate 21',duration:'4m 02s'},
+  {id:'9040',task:'promote',state:'Canceled',component:'comp-promote',run:'data-quality gate · prod',duration:'0m 12s'},
+];
+const PARAMS_BY_PIPELINE = {
+  'churn-training':[{k:'source',type:'STRING',v:'bq://events.raw'},{k:'lookback_days',type:'NUMBER_INTEGER',v:'30'},{k:'max_depth',type:'NUMBER_INTEGER',v:'8'},{k:'eta',type:'NUMBER_DOUBLE',v:'0.05'}],
+  'ranker-eval':[{k:'candidate_id',type:'NUMBER_INTEGER',v:'22'},{k:'eval_set',type:'STRING',v:'gs://ml-team/ranker/eval/2026-09'}],
+  'feature-store-backfill':[{k:'date',type:'STRING',v:'2026-09-19'},{k:'tables',type:'LIST',v:'["events","sessions"]'}],
+  'embeddings-refresh':[{k:'dim',type:'NUMBER_INTEGER',v:'256'}],
+  'dq-gate':[{k:'threshold',type:'NUMBER_DOUBLE',v:'0.98'},{k:'env',type:'STRING',v:'prod'}],
+};
+
+class Component extends DCLogic {
+  state = { screen:'runs', runId:null, tab:'graph', sel:null, panelTab:'info', filter:'All', query:'', rail:true, palette:false, pq:'', theme:null,
+    selected:[], toast:null, rrEnabled:{'rr-01':true,'rr-02':true,'rr-03':true,'rr-04':false}, artFilter:'All', execQuery:'',
+    nr:{pipeline:'churn-training',version:'v14',latest:false,name:'Run of churn-training v14 (k3f9a)',experiment:'Churn Q3',root:'gs://ml-team/pipeline-root',recurring:false} };
+  componentDidMount(){ this.applyTheme(); }
+  theme(){ return this.state.theme ?? this.props.theme ?? 'light'; }
+  applyTheme(){ document.body.setAttribute('data-theme', this.theme()); }
+  navStyle(){ return this.props.navStyle ?? 'rail'; }
+  go(screen, extra){ this.setState({screen, sel:null, palette:false, ...(extra||{})}); }
+  componentDidUpdate(){ this.applyTheme(); }
+  showToast(toast, extra){ clearTimeout(this._toastT); this.setState({toast, ...(extra||{})}); this._toastT=setTimeout(()=>this.setState({toast:null}),6000); }
+  icon(kind){
+    const c='currentColor';
+    const m = {
+      pipelines: React.createElement('svg',{width:18,height:18,viewBox:'0 0 18 18',fill:'none',stroke:c,strokeWidth:1.6},React.createElement('rect',{x:2,y:2,width:5,height:5,rx:1.2}),React.createElement('rect',{x:11,y:2,width:5,height:5,rx:1.2}),React.createElement('rect',{x:6.5,y:11,width:5,height:5,rx:1.2}),React.createElement('path',{d:'M4.5 7v2h9V7M9 9v2'})),
+      experiments: React.createElement('svg',{width:18,height:18,viewBox:'0 0 18 18',fill:'none',stroke:c,strokeWidth:1.6},React.createElement('path',{d:'M6 2h6M7 2v5l-4 7.5A1.5 1.5 0 0 0 4.3 16h9.4a1.5 1.5 0 0 0 1.3-1.5L11 7V2'})),
+      runs: React.createElement('svg',{width:18,height:18,viewBox:'0 0 18 18',fill:'none',stroke:c,strokeWidth:1.6},React.createElement('circle',{cx:9,cy:9,r:6.5}),React.createElement('path',{d:'M7.5 6.5v5l4-2.5z',fill:c,stroke:'none'})),
+      recurring: React.createElement('svg',{width:18,height:18,viewBox:'0 0 18 18',fill:'none',stroke:c,strokeWidth:1.6},React.createElement('path',{d:'M3 9a6 6 0 0 1 10.2-4.3M15 9a6 6 0 0 1-10.2 4.3'}),React.createElement('path',{d:'M13.5 2v3h-3M4.5 16v-3h3'})),
+      artifacts: React.createElement('svg',{width:18,height:18,viewBox:'0 0 18 18',fill:'none',stroke:c,strokeWidth:1.6},React.createElement('path',{d:'M9 2l6 3.2v7.6L9 16l-6-3.2V5.2z'}),React.createElement('path',{d:'M3 5.2l6 3.2 6-3.2M9 8.4V16'})),
+      executions: React.createElement('svg',{width:18,height:18,viewBox:'0 0 18 18',fill:'none',stroke:c,strokeWidth:1.6},React.createElement('rect',{x:2,y:3,width:14,height:12,rx:1.5}),React.createElement('path',{d:'M5 7l3 2-3 2M9.5 11h3'})),
+    };
+    return m[kind];
+  }
+  logo(){ // Kubeflow mark, paths from frontend/src/icons/kubeflowLogo.tsx
+    const P=['M13.280615,28.2895445 L25.6611429,12.4910476 C25.8744762,12.2190476 26.187619,12.043619 26.5310476,12.004 C26.875619,11.9641905 27.219619,12.063619 27.4893333,12.28 L33.8839688,17.4104681 C34.3147453,17.7560836 34.9441354,17.687047 35.2897509,17.2562705 C35.4883656,17.0087164 35.5576731,16.6815774 35.4765096,16.3747496 L33.6378449,9.42392156 C33.5041843,8.91863559 33.0039542,8.60151087 32.489937,8.69619653 L11.6932298,12.5270996 C11.2025358,12.617489 10.8535518,13.0557544 10.8753433,13.5542281 L11.494463,27.7164017 C11.5185839,28.2681595 11.9854258,28.6958937 12.5371835,28.6717728 C12.8289153,28.6590193 13.1004979,28.5193877 13.280615,28.2895445 Z',
+    'M23.7498017,32.7771547 L19.891889,29.5691687 C19.0425842,28.8629428 17.7815773,28.9789311 17.0753514,29.8282359 C17.0566259,29.8507551 17.0383974,29.8736828 17.020679,29.8970026 L13.7939072,34.1438508 C13.4597836,34.5836006 13.5454106,35.2109489 13.9851603,35.5450725 C14.1976017,35.7064863 14.4657379,35.776312 14.7299252,35.7390176 L23.2502146,34.5362384 C23.7970773,34.4590398 24.1778152,33.9531381 24.1006166,33.4062754 C24.0658889,33.1602706 23.9408305,32.9360017 23.7498017,32.7771547 Z',
+    'M21.4634549,25.9842193 L27.212891,30.4118587 C27.6364506,30.7380419 28.2416494,30.6733984 28.5867577,30.2651111 L34.4465587,23.3325537 C34.8030826,22.9107609 34.7501716,22.2798106 34.3283788,21.9232867 C34.3167911,21.9134922 34.3049821,21.9039626 34.2929607,21.8947054 L28.4845193,17.4218334 C28.0584482,17.0937314 27.4491884,17.1613382 27.1054127,17.5748667 L21.304617,24.5526566 C20.9515571,24.9773532 21.0096301,25.6078493 21.4343266,25.9609092 C21.4438902,25.9688597 21.4536014,25.9766311 21.4634549,25.9842193 Z',
+    'M10.9598921,2.32339463 L4.75822604,5.30992315 C3.66146381,5.83808955 2.86490023,6.83694834 2.59402821,8.02374044 L1.06234161,14.7346349 C0.939449081,15.2730733 1.27631553,15.8091879 1.8147539,15.9320804 C2.18925077,16.0175551 2.57960826,15.8809608 2.81910588,15.5806364 L7.53619048,9.66552381 L12.1756045,3.84785346 C12.5199474,3.41605902 12.4490539,2.78687542 12.0172594,2.44253256 C11.7169385,2.20303583 11.3059768,2.15673107 10.9598921,2.32339463 Z',
+    'M8.21352315,30.9427621 L7.69054913,17.8213507 C7.66855444,17.2695041 7.20336415,16.8399743 6.65151754,16.8619689 C6.36136678,16.8735334 6.09057161,17.010649 5.90951901,17.2376757 L1.43617766,22.8469201 C0.854379027,23.5764532 0.854372924,24.6113612 1.43616296,25.3409012 L6.43248567,31.6060776 C6.77683005,32.0378709 7.4060139,32.1087622 7.83780713,31.7644178 C8.0866848,31.565944 8.22620048,31.2608363 8.21352315,30.9427621 Z',
+    'M18.3667207,1.33231144 L13.9567062,6.86234847 C13.6123643,7.2941437 13.6832593,7.92332714 14.1150545,8.267669 C14.3414298,8.44819552 14.6349388,8.52174106 14.9196922,8.46928975 L27.7120482,6.11294919 C28.2551955,6.01290195 28.6143991,5.49148974 28.5143518,4.94834244 C28.4565321,4.63444455 28.2523431,4.36700464 27.9647717,4.22852098 L20.7981397,0.777337579 C19.9574387,0.372487253 18.9484977,0.602779078 18.3667207,1.33231144 Z'];
+    return React.createElement('svg',{width:18,height:18,viewBox:'0 0 36 36',fill:'var(--accent-ink)'},P.map((d,i)=>React.createElement('path',{key:i,d})));
+  }
+  legacyIcon(kind, color){ // paths from frontend/src/icons/pipelines.tsx, experiments.tsx; MUI glyphs approximated
+    const svg=(vb,children)=>React.createElement('svg',{width:20,height:20,viewBox:vb,fill:color},children);
+    const m={
+      pipelines: svg('2 4 20 20', React.createElement('path',{d:'M12.7244079,9.74960425 L17.4807112,9.74960425 C17.7675226,9.74960425 18,9.51894323 18,9.23437272 L18,4.51523153 C18,4.23066102 17.7675226,4 17.4807112,4 L12.7244079,4 C12.4375965,4 12.2051191,4.23066102 12.2051191,4.51523153 L12.2051191,6.06125154 L9.98218019,6.06125154 C9.52936032,6.06125154 9.16225043,6.42549311 9.16225043,6.87477501 L9.16225043,11.2135669 L7.05995053,11.2135669 C6.71661861,10.189612 5.74374462,9.45093267 4.59644424,9.45093267 C3.16249641,9.45093267 2,10.6043462 2,12.0270903 C2,13.4498886 3.16249641,14.603248 4.59644424,14.603248 C5.74379928,14.603248 6.71661861,13.8645687 7.06000519,12.8406138 L9.16225043,12.8406138 L9.16225043,17.1794057 C9.16225043,17.6286875 9.52936032,17.9929291 9.98218019,17.9929291 L12.2051191,17.9929291 L12.2051191,19.4847685 C12.2051191,19.769339 12.4375965,20 12.7244079,20 L17.4807112,20 C17.7675226,20 18,19.769339 18,19.4847685 L18,14.7656273 C18,14.4810568 17.7675226,14.2503957 17.4807112,14.2503957 L12.7244079,14.2503957 C12.4375965,14.2503957 12.2051191,14.4810568 12.2051191,14.7656273 L12.2051191,16.3658822 L10.80211,16.3658822 L10.80211,7.68829848 L12.2051191,7.68829848 L12.2051191,9.23437272 C12.2051191,9.51894323 12.4375965,9.74960425 12.7244079,9.74960425 Z'})),
+      experiments: svg('0 4 20 12', React.createElement('path',{d:'M15,5.83333333 L13.825,4.65833333 L8.54166667,9.94166667 L9.71666667,11.1166667 L15,5.83333333 Z M18.5333333,4.65833333 L9.71666667,13.475 L6.23333333,10 L5.05833333,11.175 L9.71666667,15.8333333 L19.7166667,5.83333333 L18.5333333,4.65833333 Z M0.341666667,11.175 L5,15.8333333 L6.175,14.6583333 L1.525,10 L0.341666667,11.175 Z'})),
+      runs: svg('0 0 24 24', React.createElement('path',{d:'M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z'})),
+      recurring: svg('0 0 24 24', React.createElement('path',{d:'M22 5.72l-4.6-3.86-1.29 1.53 4.6 3.86L22 5.72zM7.88 3.39L6.6 1.86 2 5.71l1.29 1.53 4.59-3.85zM12.5 8H11v6l4.75 2.85.75-1.23-4-2.37V8zM12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z'})),
+      artifacts: svg('0 0 24 24', React.createElement('path',{d:'M7 10c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm8 4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-.5-12C11.36 2 8.85 4.5 8.85 7.5s2.51 5.5 5.65 5.5S20 10.5 20 7.5 17.64 2 14.5 2z'})),
+      executions: svg('0 0 24 24', React.createElement('path',{d:'M8 5v14l11-7z'})),
+      docs: svg('0 0 24 24', React.createElement('path',{d:'M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z'})),
+    };
+    return m[kind];
+  }
+  legacyStatus(status){ // StatusV2 icon set: CheckCircle / Error / Schedule / running / terminated
+    const col={Succeeded:'#34a853',Running:'#4285f4',Failed:'#d50000',Pending:'#9aa0a6',Canceled:'#80868b'}[status];
+    const d={
+      Succeeded:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z',
+      Failed:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
+      Pending:'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
+      Canceled:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4 14H8V8h8v8z',
+    }[status];
+    if(status==='Running') return React.createElement('svg',{width:18,height:18,viewBox:'0 0 18 18',fill:col},React.createElement('path',{d:'M9,4 C6.23857143,4 4,6.23857143 4,9 C4,11.7614286 6.23857143,14 9,14 C11.7614286,14 14,11.7614286 14,9 C14,8.40214643 13.8950716,7.8288007 13.702626,7.29737398 L15.2180703,5.78192967 C15.7177126,6.74539838 16,7.83973264 16,9 C16,12.866 12.866,16 9,16 C5.134,16 2,12.866 2,9 C2,5.134 5.134,2 9,2 C10.933,2 12.683,2.7835 13.94975,4.05025 L12.7677679,5.23223214 L9,9 L9,4 Z'}));
+    return React.createElement('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:col},React.createElement('path',{d}));
+  }
+  spark(hist){ return hist.map((s,i)=>React.createElement('span',{key:i,style:{width:4,height:14,borderRadius:2,background:ST[s].fg,opacity:s==='Pending'?.4:1}})); }
+  renderVals(){
+    const s=this.state, theme=this.theme(), nav=this.navStyle();
+    const screens=[['pipelines','Pipelines',5],['experiments','Experiments',4],['runs','Runs',8],['recurring','Recurring runs',3],['artifacts','Artifacts',146]];
+    const activeScreen = (s.screen==='runDetail'||s.screen==='newRun') ? 'runs' : s.screen;
+    const navItems=screens.map(([k,label,count])=>({label,count,icon:this.icon(k),go:()=>this.go(k),
+      bg: activeScreen===k?'var(--accent-soft)':'transparent', fg: activeScreen===k?'var(--accent)':'var(--ink2)'}));
+    const statuses=['All','Running','Succeeded','Failed','Pending','Canceled'];
+    const cnt=st=>st==='All'?RUNS.length:RUNS.filter(r=>r.status===st).length;
+    const statusChips=statuses.map(st=>{const on=s.filter===st;const col=st==='All'?'var(--ink2)':ST[st].fg;return{label:st,n:cnt(st),dot:col,go:()=>this.setState({filter:st}),
+      bg:on?'var(--surface2)':'var(--surface)',border:on?'var(--border2)':'var(--border)',fg:on?'var(--ink)':'var(--ink2)'}});
+    const q=s.query.toLowerCase();
+    const visibleRuns=RUNS.filter(r=>(s.filter==='All'||r.status===s.filter)&&(!q||(r.name+r.pipeline+r.experiment).toLowerCase().includes(q)))
+      .map(r=>{const on=s.selected.includes(r.id);return{...r,stFg:ST[r.status].fg,pulse:ST[r.status].pulse?'kfp-pulse 1.6s ease-in-out infinite':'none',spark:this.spark(r.hist),open:()=>this.go('runDetail',{runId:r.id,tab:'graph'}),
+        rowBg:on?'var(--accent-soft)':'transparent',cbBorder:on?'var(--accent)':'var(--border2)',cbBg:on?'var(--accent)':'var(--surface)',cbCheck:on?1:0,
+        toggleSel:e=>{e.stopPropagation();this.setState({selected:on?s.selected.filter(x=>x!==r.id):[...s.selected,r.id]})}}});
+    const runsEmpty=visibleRuns.length===0;
+    const nSel=s.selected.length, canCompare=nSel>=2;
+    const RUN_PARAMS={'run-7f3a2c':{max_depth:'8',eta:'0.05',n_estimators:'1200',lookback_days:'30'},'run-5d77e1':{max_depth:'8',eta:'0.05',n_estimators:'1200',lookback_days:'30'},'run-88b0d2':{max_depth:'6',eta:'0.1',n_estimators:'800',lookback_days:'30'},'run-c41d88':{candidate_id:'21',eval_set:'2026-09'},'run-2e9f10':{candidate_id:'20',eval_set:'2026-09'}};
+    const RUN_METRICS={'run-7f3a2c':{auc:'0.8783',logloss:'0.2779'},'run-5d77e1':{auc:'0.8741',logloss:'0.2812'},'run-88b0d2':{auc:'—',logloss:'—'},'run-c41d88':{ndcg_10:'—',mrr:'—'},'run-2e9f10':{ndcg_10:'0.612',mrr:'0.548'}};
+    const compareRuns=RUNS.filter(r=>s.selected.includes(r.id)).map(r=>({...r,stFg:ST[r.status].fg,open:()=>this.go('runDetail',{runId:r.id,tab:'graph'})}));
+    const compareCols=`minmax(160px,1fr) repeat(${Math.max(compareRuns.length,1)}, minmax(180px,1.4fr))`;
+    const mkRows=(src,label,dot)=>{const keys=[...new Set(compareRuns.flatMap(r=>Object.keys(src[r.id]||{})))];if(!keys.length)return[];
+      return[{isHeader:true,label},...keys.map(k=>{const vals=compareRuns.map(r=>(src[r.id]||{})[k]??'—');const diff=new Set(vals).size>1;return{isRow:true,label:k,dot,bg:diff?'var(--warn-soft)':'transparent',cells:vals.map(v=>({v,fg:diff?'var(--ink)':'var(--ink2)',weight:diff?600:400}))}})]};
+    const compareRows=[...mkRows(RUN_PARAMS,'Parameters','var(--accent)'),...mkRows(RUN_METRICS,'Metrics','var(--ok)'),
+      {isHeader:true,label:'Run'},...[['Pipeline',r=>`${r.pipeline} ${r.version}`],['Experiment',r=>r.experiment],['Duration',r=>r.duration],['Started',r=>r.startedFull]].map(([k,f])=>{const vals=compareRuns.map(f);const diff=new Set(vals).size>1;return{isRow:true,label:k,dot:'var(--neutral)',bg:'transparent',cells:vals.map(v=>({v,fg:'var(--ink2)',weight:diff?600:400}))}})];
+    const run0=RUNS.find(r=>r.id===s.runId)||RUNS[0];
+    const runFailed=run0.status==='Failed';
+    const run={...run0,stFg:ST[run0.status].fg,stBg:ST[run0.status].bg,pulse:ST[run0.status].pulse?'kfp-pulse 1.6s ease-in-out infinite':'none',taskSummary:''};
+    const tabs=[['graph','Graph'],['details','Details'],['spec','Pipeline spec']].map(([k,label])=>({label,go:()=>this.setState({tab:k}),line:s.tab===k?'var(--accent)':'transparent',fg:s.tab===k?'var(--ink)':'var(--muted)'}));
+    const nodeStatus=n=>runFailed?({ingest:'Succeeded',validate:'Cached',features:'Succeeded',split:'Succeeded',train:'Succeeded',evaluate:'Failed',register:'Skipped'})[n.id]:n.status;
+    const pos=id=>NODES.find(n=>n.id===id);
+    const edges=EDGES.map(([a,b],i)=>{const A=pos(a),B=pos(b);const sa=nodeStatus(A),sb=nodeStatus(B);const x1=A.x+100,y1=A.y+56,x2=B.x+100,y2=B.y;const my=(y1+y2)/2;const running=sa==='Running'||sb==='Running';const bad=sb==='Failed'||sb==='Skipped';const done=!bad&&sa!=='Pending'&&sb!=='Pending';
+      return React.createElement('path',{key:i,d:`M${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`,fill:'none',stroke:bad?'var(--err)':done?'var(--ok)':'var(--border2)',strokeWidth:1.5,strokeDasharray:running?'6 6':'none',style:running?{animation:'kfp-dash 1s linear infinite'}:undefined,opacity:done||bad?.6:1})});
+    const FAIL_LOGS=`22:16:02  INFO  starting task evaluate-model\n22:16:03  INFO  loading model from gs://ml-team/churn/${run0.id}/train-xgboost/model\n22:16:04  INFO  loading eval_features (321,083 rows)\n22:16:09  ERROR Traceback (most recent call last):\n  File "/app/evaluate.py", line 88, in <module>\n    auc = roc_auc_score(y_true, y_pred)\n  File "sklearn/metrics/_ranking.py", line 640, in roc_auc_score\nValueError: Only one class present in y_true. ROC AUC score is not defined in that case.\n22:16:09  ERROR task exited with code 1`;
+    const failMsg='ValueError: Only one class present in y_true. ROC AUC score is not defined in that case.';
+    const nodes=NODES.map(n0=>{const n={...n0,status:nodeStatus(n0),dur:runFailed&&n0.id==='evaluate'?'0m 07s':runFailed&&n0.id==='register'?'skipped':runFailed&&n0.id==='train'?'9m 40s':n0.dur};const on=s.sel===n.id;return{...n,meta:n.dur,stFg:ST[n.status].fg,pulse:ST[n.status].pulse?'kfp-pulse 1.6s ease-in-out infinite':'none',border:on?'var(--accent)':'var(--border)',shadow:on?'0 0 0 3px var(--accent-soft)':'var(--shadow)',select:()=>this.setState({sel:n.id,panelTab:'info'})}});
+    { const c={};nodes.forEach(n=>{const k=(n.status==='Succeeded'||n.status==='Cached')?'done':n.status.toLowerCase();c[k]=(c[k]||0)+1});
+      run.taskSummary=['done','running','failed','skipped','pending'].filter(k=>c[k]).map(k=>`${c[k]} ${k}`).join(' · '); }
+    const selN=nodes.find(n=>n.id===s.sel||n.name===s.sel);
+    const sel=selN?{...selN,duration:selN.dur,stFg:ST[selN.status].fg,pod:`${run0.id}-${selN.id}-`+Math.abs(selN.id.length*7919%10000).toString(16),
+      logs:selN.status==='Pending'?'Task has not started.':selN.status==='Skipped'?'Task was skipped because an upstream task failed.':selN.status==='Failed'?FAIL_LOGS:LOGS,
+      events:selN.status==='Failed'?[...EVENTS.slice(0,3),{t:'22:16:09',msg:'Container exited with code 1'}]:EVENTS}:{params:[],artifacts:[],events:[]};
+    const panelTabs=[['info','Info'],['logs','Logs'],['events','Events']].map(([k,label])=>({label,go:()=>this.setState({panelTab:k}),line:s.panelTab===k?'var(--accent)':'transparent',fg:s.panelTab===k?'var(--ink)':'var(--muted)'}));
+    const runFields=[['Run ID',run0.id],['Name',run0.name],['Status',run0.status],['Pipeline',`${run0.pipeline} ${run0.version}`],['Experiment',run0.experiment],['Created',run0.startedFull],['Duration',run0.duration],['Service account','pipeline-runner'],['Caching','enabled']].map(([k,v])=>({k,v}));
+    const pipelines=PIPELINES.map(p=>({...p,bars:p.hist.map((h,i)=>React.createElement('span',{key:i,style:{flex:1,height:h?'100%':'40%',borderRadius:2,background:h?'var(--ok)':'var(--err)',opacity:h?.55:1}}))}));
+    const experiments=EXPERIMENTS.map(e=>({...e,bar:[React.createElement('span',{key:1,style:{width:(e.ok*100)+'%',background:'var(--ok)'}}),React.createElement('span',{key:2,style:{width:(e.err*100)+'%',background:'var(--err)'}})]}));
+    const pq=s.pq.toLowerCase();
+    const paletteItems=[
+      ...RUNS.map(r=>({kind:'Run',label:r.name,hint:r.status,go:()=>this.go('runDetail',{runId:r.id,tab:'graph'})})),
+      ...PIPELINES.map(p=>({kind:'Pipeline',label:p.name,hint:p.version,go:()=>this.go('pipelines')})),
+      ...EXPERIMENTS.map(e=>({kind:'Experiment',label:e.name,hint:e.runs+' runs',go:()=>this.go('experiments')})),
+      {kind:'Action',label:'Create new run',hint:'',go:()=>this.go('newRun')},{kind:'Action',label:'Toggle theme',hint:'',go:()=>this.setState({theme:theme==='dark'?'light':'dark',palette:false})},
+    ].filter(p=>!pq||(p.kind+p.label).toLowerCase().includes(pq)).slice(0,9);
+    const SCH={Active:'var(--ok)',Scheduled:'var(--run)',Expired:'var(--warn)',Disabled:'var(--neutral)'};
+    const recurring=RECURRING.map(rr=>{const on=s.rrEnabled[rr.id];const sch=on?rr.schedule==='Disabled'?'Active':rr.schedule:'Disabled';return{...rr,scheduleStatus:sch,stFg:SCH[sch],switchBg:on?'var(--ok)':'var(--border2)',switchAlign:on?'flex-end':'flex-start',toggle:()=>this.setState({rrEnabled:{...s.rrEnabled,[rr.id]:!on}})}});
+    const recurringSummary=`${recurring.filter(r=>r.scheduleStatus!=='Disabled').length} active · ${recurring.filter(r=>r.scheduleStatus==='Disabled').length} disabled`;
+    const TYPE_COLOR={Model:'var(--accent)',Dataset:'var(--ok)',Metrics:'var(--warn)',HTML:'var(--neutral)'};
+    const artTypes=['All','Model','Dataset','Metrics','HTML'];
+    const artifactChips=artTypes.map(t=>{const on=s.artFilter===t;return{label:t,n:t==='All'?ARTIFACTS.length:ARTIFACTS.filter(a=>a.type===t).length,go:()=>this.setState({artFilter:t}),bg:on?'var(--surface2)':'var(--surface)',border:on?'var(--border2)':'var(--border)',fg:on?'var(--ink)':'var(--ink2)'}});
+    const visibleArtifacts=ARTIFACTS.filter(a=>s.artFilter==='All'||a.type===s.artFilter).map(a=>({...a,typeColor:TYPE_COLOR[a.type],open:()=>this.go('runDetail',{runId:RUNS[0].id,tab:'graph',sel:NODES.find(n=>n.name===a.task)?a.task:null})}));
+    const xq=s.execQuery.toLowerCase();
+    const visibleExecutions=EXECUTIONS.filter(x=>!xq||(x.task+x.component).toLowerCase().includes(xq)).map(x=>({...x,stFg:ST[x.state].fg,pulse:ST[x.state].pulse?'kfp-pulse 1.6s ease-in-out infinite':'none',open:()=>this.go('runDetail',{runId:RUNS[0].id,tab:'graph',sel:NODES.find(n=>n.name===x.task)?x.task:null})}));
+    const nr=s.nr, setNr=patch=>this.setState({nr:{...s.nr,...patch}});
+    const pipelineOptions=PIPELINES.map(p=>{const on=nr.pipeline===p.name;return{name:p.name,desc:p.desc,border:on?'var(--accent)':'var(--border)',bg:on?'var(--accent-soft)':'var(--surface)',pick:()=>setNr({pipeline:p.name,version:p.version,name:`Run of ${p.name} ${p.version} (${Math.random().toString(36).slice(2,7)})`})}});
+    const curP=PIPELINES.find(p=>p.name===nr.pipeline)||PIPELINES[0];const vN=parseInt(curP.version.slice(1));
+    const versionOptions=[vN,vN-1,vN-2].filter(v=>v>0).map(v=>{const label='v'+v;const on=!nr.latest&&nr.version===label;return{label,border:on?'var(--accent)':'var(--border)',bg:on?'var(--accent-soft)':'var(--surface)',pick:()=>setNr({version:label,latest:false})}});
+    const nrParams=PARAMS_BY_PIPELINE[nr.pipeline]||[];
+    const seg=(on)=>({bg:on?'var(--surface)':'transparent',fg:on?'var(--ink)':'var(--muted)',shadow:on?'0 1px 2px rgba(0,0,0,.08)':'none'});
+    const oneOff=seg(!nr.recurring), rec=seg(nr.recurring);
+    const legacyCol={Succeeded:'#34a853',Running:'#4285f4',Failed:'#d50000',Pending:'#9aa0a6',Canceled:'#80868b'};
+    visibleRuns.forEach(r=>{r.legacyIcon=this.legacyStatus(r.status)});
+    const legacyNav=screens.map(([k,label])=>{const on=activeScreen===k;const c=on?'#0d6de7':'#9aa0a6';return{label,icon:this.legacyIcon(k,c),go:()=>this.go(k),fg:c,indicator:on?'#0d6de7':'transparent'}});
+    const legacyDocsIcon=this.legacyIcon('docs','#9aa0a6');
+    const byKey=Object.fromEntries(screens.map((sc,i)=>[sc[0],navItems[i]]));
+    const navGroups=[{title:'Build',items:[byKey.pipelines,byKey.experiments]},{title:'Observe',items:[byKey.runs,byKey.recurring]},{title:'Outputs',items:[byKey.artifacts]}];
+    const liveRuns=RUNS.filter(r=>r.status==='Running'||r.status==='Pending').map(r=>({name:r.name,duration:r.duration,open:()=>this.go('runDetail',{runId:r.id,tab:'graph'})}));
+    return {
+      isTopbar:nav==='topbar', isRail:nav==='rail', isCurrent:nav==='current', isGrouped:nav==='grouped', isModern:nav!=='current',
+      legacyWidth:s.rail?'220px':'72px', legacyNav, legacyDocsIcon, navGroups, liveRuns, railOpen:s.rail, railWidth:s.rail?'236px':'64px', chevronRot:s.rail?'45deg':'-135deg',
+      navItems, logo:this.logo(), themeLabel:theme==='dark'?'Light mode':'Dark mode',
+      toggleTheme:()=>this.setState({theme:theme==='dark'?'light':'dark'}), toggleRail:()=>this.setState({rail:!s.rail}),
+      openPalette:()=>this.setState({palette:true,pq:''}), closePalette:()=>this.setState({palette:false}), stop:e=>e.stopPropagation(),
+      paletteOpen:s.palette, paletteQ:s.pq, setPaletteQ:e=>this.setState({pq:e.target.value}), paletteItems,
+      onKey:e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();this.setState({palette:!s.palette,pq:''});} else if(e.key==='Escape'){this.setState({palette:false,sel:null});} },
+      isRuns:s.screen==='runs', isRunDetail:s.screen==='runDetail', isPipelines:s.screen==='pipelines', isExperiments:s.screen==='experiments', isRecurring:s.screen==='recurring', isArtifacts:s.screen==='artifacts', isExecutions:s.screen==='executions', isNewRun:s.screen==='newRun',
+      runsEmpty, clearRunFilters:()=>this.setState({filter:'All',query:''}),
+      compareLabel:nSel?`Compare (${nSel})`:'Compare', compareBorder:canCompare?'var(--accent)':'var(--border)', compareBg:canCompare?'var(--accent-soft)':'var(--surface)', compareFg:canCompare?'var(--accent)':nSel?'var(--ink)':'var(--muted)',
+      goCompare:()=>{ if(canCompare) this.go('compare'); else this.showToast({msg:'Select at least two runs to compare',label:''}); },
+      isCompare:s.screen==='compare', compareCount:nSel, compareRuns, compareCols, compareRows,
+      runFailed, failMsg, openFailedTask:()=>this.setState({sel:'evaluate',panelTab:'logs',tab:'graph'}),
+      hasToast:!!s.toast, toast:s.toast||{}, toastHasAction:!!(s.toast&&s.toast.label), dismissToast:()=>this.setState({toast:null}),
+      recurring, recurringSummary, artifactChips, visibleArtifacts, execQuery:s.execQuery, setExecQuery:e=>this.setState({execQuery:e.target.value}), visibleExecutions,
+      goNewRun:()=>this.go('newRun',{nr:{...nr,recurring:false}}), goNewRecurring:()=>this.go('newRun',{nr:{...nr,recurring:true}}),
+      newRunTitle:nr.recurring?'Start a recurring run':'Start a new run', nr, pipelineOptions, versionOptions, toggleLatest:e=>setNr({latest:e.target.checked}),
+      setNrName:e=>setNr({name:e.target.value}), setNrExperiment:e=>setNr({experiment:e.target.value}), setNrRoot:e=>setNr({root:e.target.value}), experimentNames:EXPERIMENTS.map(e=>e.name),
+      setOneOff:()=>setNr({recurring:false}), setRecurringMode:()=>setNr({recurring:true}), oneOffBg:oneOff.bg,oneOffFg:oneOff.fg,oneOffShadow:oneOff.shadow, recBg:rec.bg,recFg:rec.fg,recShadow:rec.shadow,
+      nrParams, paramSummary:nrParams.length?`${nrParams.length} parameters`:'No parameters', nrVersionLabel:nr.latest?'latest':nr.version, nrModeLabel:nr.recurring?'Recurring · 0 22 * * *':'Run once',
+      submitLabel:nr.recurring?'Create schedule':'Start run',
+      submitRun:()=>{ if(nr.recurring){ this.showToast({msg:`Schedule "${nr.name}" created`,label:''},{screen:'recurring',sel:null}); } else { this.showToast({msg:`Started "${nr.name}"`,label:'View run',action:()=>this.go('runDetail',{runId:RUNS[0].id,tab:'graph',toast:null})},{screen:'runs',sel:null,filter:'All',query:''}); } },
+      goRuns:e=>{e&&e.preventDefault&&e.preventDefault();this.go('runs')}, goPipelines:e=>{e&&e.preventDefault&&e.preventDefault();this.go('pipelines')}, goExperiments:e=>{e&&e.preventDefault&&e.preventDefault();this.go('experiments')},
+      runsSummary:`${cnt('Running')} running · ${cnt('Failed')} failed in the last 48 h`, statusChips, query:s.query, setQuery:e=>this.setState({query:e.target.value}), visibleRuns,
+      run, retryFg:run0.status==='Failed'?'var(--ink)':'var(--muted)', terminateFg:run0.status==='Running'?'var(--err)':'var(--muted)',
+      tabs, tabGraph:s.tab==='graph', tabDetails:s.tab==='details', tabSpec:s.tab==='spec', edges, nodes,
+      legend:[{c:'var(--ok)',label:'Succeeded'},{c:'var(--run)',label:'Running'},{c:'var(--err)',label:'Failed'},{c:'var(--neutral)',label:'Pending'}],
+      hasSelected:!!selN, sel, panelTabs, panelIsInfo:s.panelTab==='info', panelIsLogs:s.panelTab==='logs', panelIsEvents:s.panelTab==='events', closePanel:()=>this.setState({sel:null}),
+      runFields, spec:SPEC, pipelinesSummary:`${PIPELINES.length} pipelines · ${PIPELINES.reduce((a,p)=>a+p.runs,0)} runs total`, pipelines, experiments,
+    };
+  }
+}
+</script>
+</body>
+</html>
