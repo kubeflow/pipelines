@@ -302,6 +302,29 @@ class ExecutionTests(unittest.TestCase):
             "launcher_pods": ["component-pod"]
         })
 
+    def test_argo_emissary_wrapped_launcher_succeeds(self):
+        self.pods["items"][1]["spec"]["containers"][0]["command"] = [
+            "/var/run/argo/argoexec", "emissary", "--loglevel", "info",
+            "--log-format", "text", "--gloglevel", "0", "--",
+            "/kfp-launcher/launch", "--executor_type", "container", "--"
+        ]
+        self.assertEqual(self.verify()["launcher_pods"], ["component-pod"])
+
+    def test_wrapper_must_execute_launcher_not_merely_mention_it(self):
+        for command in (
+            ["/var/run/argo/argoexec", "emissary", "/kfp-launcher/launch"],
+            [
+                "/var/run/argo/argoexec", "emissary", "--", "echo",
+                "/kfp-launcher/launch"
+            ],
+            ["unexpected-wrapper", "--", "/kfp-launcher/launch"],
+        ):
+            with self.subTest(command=command):
+                self.pods["items"][1]["spec"]["containers"][0][
+                    "command"] = command
+                with self.assertRaisesRegex(ValueError, "Missing successful"):
+                    self.verify()
+
     def test_amd64_node_fails(self):
         self.nodes["items"][0]["status"]["nodeInfo"]["architecture"] = "amd64"
         with self.assertRaisesRegex(ValueError, "only native ARM64"):

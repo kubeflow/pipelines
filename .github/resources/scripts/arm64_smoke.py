@@ -223,6 +223,15 @@ def assert_arm_nodes(nodes):
     return {node["metadata"]["name"] for node in items}
 
 
+def executes_launcher(command):
+    # Argo's emissary executor wraps the compiled command in the actual Pod.
+    if command[:2] == ["/var/run/argo/argoexec", "emissary"]:
+        if "--" not in command:
+            return False
+        command = command[command.index("--") + 1:]
+    return command[:1] == ["/kfp-launcher/launch"]
+
+
 def assert_execution(pods, refs, arm_nodes):
     """Require successful driver and launcher execution on ARM nodes."""
     driver_pods = []
@@ -255,7 +264,7 @@ def assert_execution(pods, refs, arm_nodes):
                 (c for c in pod["spec"]["containers"] if c["name"] == "main"),
                 {})
             if (succeeded("kfp-launcher") and succeeded("main") and
-                    main.get("command", [None])[0] == "/kfp-launcher/launch"):
+                    executes_launcher(main.get("command", []))):
                 launcher_pods.append(pod["metadata"]["name"])
     if not driver_pods or not launcher_pods:
         raise ValueError(
