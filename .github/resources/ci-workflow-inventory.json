@@ -674,6 +674,12 @@
       "pull_request": null
     },
     {
+      "path": ".github/workflows/sync-maintainer-project-label.yml",
+      "name": "Sync Maintainer Review Project Label",
+      "header_sha256": "862e8330307470a683ce4bec9ed9d25e64e46fd00d0f64a9e0cdb5df1b2cf36f",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
       "header_sha256": "d4181ca07f2ebe92228ae568938392576bd99da397bbbc7f15c2ddb30ec77354",

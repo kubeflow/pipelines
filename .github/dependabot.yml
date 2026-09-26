@@ -137,6 +137,8 @@ updates:
       - "dependencies"
       - "python:uv"
       - "do-not-merge/hold"
+      - "project/maintainer-review"
+      - "project/dependabot-review"
     commit-message:
       prefix: "chore(deps)"
   - package-ecosystem: github-actions
