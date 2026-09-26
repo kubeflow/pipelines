@@ -130,7 +130,8 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                                                 iteration = '0', ), )
                                         ], ), 
                                 outputs = kfp_server_api.models.pipeline_task_input_outputs.PipelineTaskInputOutputs(), 
-                                scope_path = '0', )
+                                scope_path = '0', 
+                                lifecycle_message = '0', )
                             ], )
                     ], 
                 total_size = 56, 

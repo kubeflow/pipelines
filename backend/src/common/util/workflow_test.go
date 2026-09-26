@@ -1225,6 +1225,7 @@ func TestWorkflow_NodeStatuses(t *testing.T) {
 					StartedAt:   startTime,
 					FinishedAt:  finishTime,
 					Children:    []string{"node-2"},
+					Message:     "some message",
 				},
 			},
 		},
@@ -1239,6 +1240,22 @@ func TestWorkflow_NodeStatuses(t *testing.T) {
 	assert.Equal(t, startTime.Unix(), nodeStatus.StartTime)
 	assert.Equal(t, finishTime.Unix(), nodeStatus.FinishTime)
 	assert.Equal(t, []string{"node-2"}, nodeStatus.Children)
+	assert.Equal(t, "some message", nodeStatus.Message)
+
+	// Node without message → empty string
+	workflow = NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-2": {
+					ID:    "node-2",
+					Phase: workflowapi.NodePending,
+				},
+			},
+		},
+	})
+	statuses = workflow.NodeStatuses()
+	assert.Equal(t, "", statuses["node-2"].Message)
 
 	// Empty nodes → empty map
 	workflow = NewWorkflow(&workflowapi.Workflow{

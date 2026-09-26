@@ -2413,6 +2413,11 @@ func (r *ResourceManager) reportWorkflowResource(
 				manifestDigest:  sha256.Sum256([]byte(run.WorkflowRuntimeManifest)),
 			})
 	}
+	if runId != "" {
+		if err := r.persistTaskLifecycleMessages(runId, execSpec); err != nil {
+			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", runId)
+		}
+	}
 	// Delete a fully persisted workflow only after the version check above:
 	// a stale snapshot carrying the persisted-final-state label must not
 	// delete the live workflow object that a retry has since resubmitted
@@ -3977,6 +3982,88 @@ func (r *ResourceManager) GetArtifactsByURI(namespace, uri string) ([]*model.Art
 		return nil, util.Wrap(err, "Failed to get artifacts by URI")
 	}
 	return artifacts, nil
+}
+
+// podNamesFromTask returns the pod names recorded in task.Pods.
+func podNamesFromTask(task *model.Task) []string {
+	var names []string
+	for _, pod := range task.Pods {
+		podMap, ok := pod.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if name, ok := podMap["name"].(string); ok && name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+func containsString(values []string, want string) bool {
+	for _, v := range values {
+		if v == want {
+			return true
+		}
+	}
+	return false
+}
+
+// lifecycleMessageForTask matches a task to its executor pod node(s) via pod identity and returns the resolved message.
+// matched is true when at least one node was attributed to this task by pod name.
+func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
+	if task == nil {
+		return "", false
+	}
+	podNames := podNamesFromTask(task)
+	if len(podNames) == 0 {
+		return "", false
+	}
+	for id, node := range nodes {
+		if !containsString(podNames, node.ID) {
+			continue
+		}
+		matched = true
+		if resolved[id] != "" {
+			return resolved[id], true
+		}
+	}
+	return "", matched
+}
+
+// persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them to tasks.
+func (r *ResourceManager) persistTaskLifecycleMessages(runID string, execSpec util.ExecutionSpec) error {
+	if runID == "" || execSpec == nil || execSpec.ExecutionStatus() == nil {
+		return nil
+	}
+	nodes := execSpec.ExecutionStatus().NodeStatuses()
+	if len(nodes) == 0 {
+		return nil
+	}
+	tasks, err := r.taskStore.ListTasksByRun(runID)
+	if err != nil {
+		return err
+	}
+	if len(tasks) == 0 {
+		return nil
+	}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	for _, task := range tasks {
+		msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+		if !matched {
+			continue
+		}
+		if string(task.LifecycleMessage) == msg {
+			continue
+		}
+		if _, err := r.taskStore.UpdateTask(&model.Task{
+			UUID:                    task.UUID,
+			LifecycleMessage:        model.LargeText(msg),
+			LifecycleMessagePresent: true,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace, operation string) error {

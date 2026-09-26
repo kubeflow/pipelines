@@ -50,7 +50,8 @@ class V2beta1PipelineTask(object):
         'child_tasks': 'list[PipelineTaskChildTask]',
         'inputs': 'PipelineTaskInputOutputs',
         'outputs': 'PipelineTaskInputOutputs',
-        'scope_path': 'str'
+        'scope_path': 'str',
+        'lifecycle_message': 'str'
     }
 
     attribute_map = {
@@ -71,10 +72,11 @@ class V2beta1PipelineTask(object):
         'child_tasks': 'child_tasks',
         'inputs': 'inputs',
         'outputs': 'outputs',
-        'scope_path': 'scope_path'
+        'scope_path': 'scope_path',
+        'lifecycle_message': 'lifecycle_message'
     }
 
-    def __init__(self, name=None, display_name=None, task_id=None, run_id=None, pods=None, cache_fingerprint=None, create_time=None, end_time=None, state=None, status_metadata=None, state_history=None, type=None, type_attributes=None, parent_task_id=None, child_tasks=None, inputs=None, outputs=None, scope_path=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, name=None, display_name=None, task_id=None, run_id=None, pods=None, cache_fingerprint=None, create_time=None, end_time=None, state=None, status_metadata=None, state_history=None, type=None, type_attributes=None, parent_task_id=None, child_tasks=None, inputs=None, outputs=None, scope_path=None, lifecycle_message=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1PipelineTask - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -98,6 +100,7 @@ class V2beta1PipelineTask(object):
         self._inputs = None
         self._outputs = None
         self._scope_path = None
+        self._lifecycle_message = None
         self.discriminator = None
 
         if name is not None:
@@ -136,6 +139,8 @@ class V2beta1PipelineTask(object):
             self.outputs = outputs
         if scope_path is not None:
             self.scope_path = scope_path
+        if lifecycle_message is not None:
+            self.lifecycle_message = lifecycle_message
 
     @property
     def name(self):
@@ -530,6 +535,29 @@ class V2beta1PipelineTask(object):
         """
 
         self._scope_path = scope_path
+
+    @property
+    def lifecycle_message(self):
+        """Gets the lifecycle_message of this V2beta1PipelineTask.  # noqa: E501
+
+        Latest pod lifecycle diagnostic from the execution engine. Read-only via REST; the persistence agent clears this field automatically on recovery.  # noqa: E501
+
+        :return: The lifecycle_message of this V2beta1PipelineTask.  # noqa: E501
+        :rtype: str
+        """
+        return self._lifecycle_message
+
+    @lifecycle_message.setter
+    def lifecycle_message(self, lifecycle_message):
+        """Sets the lifecycle_message of this V2beta1PipelineTask.
+
+        Latest pod lifecycle diagnostic from the execution engine. Read-only via REST; the persistence agent clears this field automatically on recovery.  # noqa: E501
+
+        :param lifecycle_message: The lifecycle_message of this V2beta1PipelineTask.  # noqa: E501
+        :type lifecycle_message: str
+        """
+
+        self._lifecycle_message = lifecycle_message
 
     def to_dict(self):
         """Returns the model properties as a dict"""

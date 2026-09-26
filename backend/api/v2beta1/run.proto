@@ -570,6 +570,10 @@ message PipelineTask {
   // Example of a scope_path:
   // "root.primary-pipeline.secondary-pipeline.task"
   string scope_path = 18;
+
+  // Latest pod lifecycle diagnostic from the execution engine.
+  // Read-only via REST; the persistence agent clears this field automatically on recovery.
+  optional string lifecycle_message = 19;
 }
 
 message CreateRunRequest {

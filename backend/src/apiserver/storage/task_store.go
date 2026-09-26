@@ -60,6 +60,7 @@ var taskColumns = []string{
 	"TypeAttrs",
 	"ScopePath",
 	"LogicalKey",
+	"LifecycleMessage",
 }
 
 // Ensure TaskStore implements TaskStoreInterface
@@ -101,6 +102,9 @@ type TaskStoreInterface interface {
 	// GetTaskCountsForRuns fetches task counts keyed by run ID.
 	GetTaskCountsForRuns(runIDs []string) (map[string]int, error)
 
+	// ListTasksByRun fetches all tasks for a run without pagination.
+	ListTasksByRun(runID string) ([]*model.Task, error)
+
 	// FindLatestCachedTask returns the newest succeeded task for a fingerprint.
 	FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error)
 }
@@ -128,6 +132,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
 	var taskState, taskType int32
+	var lifecycleMessage sql.NullString
 	if err := rowscanner.Scan(
 		&uuid,
 		&namespace,
@@ -149,6 +154,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&typeAttrs,
 		&scopePath,
 		&logicalKey,
+		&lifecycleMessage,
 	); err != nil {
 		return nil, err
 	}
@@ -221,6 +227,7 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		TypeAttrs:        typeAttrsData,
 		ScopePath:        scopePathStr,
 		LogicalKey:       logicalKeyNew,
+		LifecycleMessage: model.LargeText(lifecycleMessage.String),
 	}, nil
 }
 
@@ -659,6 +666,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				q("Type"):             newTask.Type,
 				q("TypeAttrs"):        typeAttrsString,
 				q("LogicalKey"):       newTask.LogicalKey,
+				q("LifecycleMessage"): newTask.LifecycleMessage,
 			},
 		).
 		ToSql()
@@ -1000,6 +1008,33 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 	return tasksByID, nil
 }
 
+func (s *TaskStore) ListTasksByRun(runID string) ([]*model.Task, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	if runID == "" {
+		return nil, nil
+	}
+	rowsSQL, rowsArgs, err := qb.
+		Select(dialect.QuoteAll(q, taskColumns)...).
+		From(q("tasks")).
+		Where(sq.Eq{q("RunUUID"): runID}).
+		OrderBy(q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to list tasks by run: %v", err.Error())
+	}
+	rows, err := s.db.Query(rowsSQL, rowsArgs...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list tasks by run: %v", err.Error())
+	}
+	defer rows.Close()
+	tasks, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan tasks by run: %v", err.Error())
+	}
+	return tasks, nil
+}
+
 // getTaskForUpdate retrieves a task with a row-level lock (SELECT ... FOR UPDATE).
 // This must be called within a transaction.
 // The lock ensures that no other transaction can modify this row until the current transaction completes.
@@ -1197,6 +1232,14 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		}
 	}
 
+	if new.LifecycleMessagePresent {
+		if new.LifecycleMessage == "" {
+			setMap[q("LifecycleMessage")] = nil
+		} else {
+			setMap[q("LifecycleMessage")] = new.LifecycleMessage
+		}
+	}
+
 	if len(setMap) == 0 {
 		// Nothing to update; commit transaction and return current record
 		if err := tx.Commit(); err != nil {
@@ -1311,6 +1354,7 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 				q("pods"):             emptyJSONArray,
 				q("OutputParameters"): emptyJSONArray,
 				q("StateHistory"):     string(historyBytes),
+				q("LifecycleMessage"): nil,
 			}).
 			Where(sq.Eq{q("UUID"): task.UUID}).
 			ToSql()
