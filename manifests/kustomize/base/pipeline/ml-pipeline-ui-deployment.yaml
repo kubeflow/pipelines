@@ -90,6 +90,15 @@ spec:
                 name: pipeline-install-config
                 key: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
                 optional: true
+          # Temporary 2.18 migration escape hatch. Defaults to enforce. Audit permits
+          # custom roots only with matching MLMD evidence and retains exposure with
+          # shared downstream credentials. Remove audit before upgrading to 3.0.
+          - name: ARTIFACT_OWNERSHIP_ENFORCEMENT
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACT_OWNERSHIP_ENFORCEMENT
+                optional: true
           # Leading object-key segment used by the "mlmd-then-prefix" mode above to derive
           # an artifact's owning namespace (the "<prefix>/<namespace>/" convention). Override
           # only when a customized Argo keyFormat / pipeline root changes that leading
