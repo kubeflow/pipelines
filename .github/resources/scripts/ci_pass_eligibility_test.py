@@ -26,14 +26,13 @@ MODULE = ROOT / '.github/resources/scripts/ci_passed.js'
 def exercise(options=None):
     script = r"""
 const gate = require(process.argv[1]);
-const {loadLocalInventory} = require(process.argv[1].replace('ci_passed.js', 'ci_expected_workflows.js'));
 const options = JSON.parse(process.argv[2]);
 const root = process.argv[3];
 const calls = [], outputs = {};
 let pr = {
   number: 7, state: 'open', changed_files: 1,
   head: {sha: 'head', ref: 'feature', repo: {full_name: 'contributor/pipelines'}},
-  base: {sha: 'base', ref: 'master'},
+  base: {sha: 'b'.repeat(40), ref: 'master', repo: {full_name: 'kubeflow/pipelines'}},
   user: {login: 'dependabot[bot]'}, author_association: 'NONE', labels: [],
   ...options.pr,
 };
@@ -48,7 +47,22 @@ let published = false;
 let status = options.initialStatus;
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
 const methods = {files: {}, runs: {}, timeline: {}, pulls: {}};
-const github = {rest: {
+const github = {graphql: async (query, variables) => {
+  calls.push(['base-workflows', variables]);
+  if (options.inventoryFailure) throw Error('Workflow tree unavailable');
+  const content = `name: Frontend
+on:
+  pull_request:
+    paths: [frontend/**]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+`;
+  return {repository: {nameWithOwner: 'kubeflow/pipelines', object: {__typename: 'Tree', entries: [
+    {name: 'frontend.yml', type: 'blob', mode: 33188, object: {__typename: 'Blob',
+      text: content, byteSize: Buffer.byteLength(content), isBinary: false, isTruncated: false}},
+  ]}}};
+}, rest: {
   pulls: {listFiles: methods.files, list: methods.pulls,
     get: async () => ({data: structuredClone(pr)})},
   actions: {listWorkflowRunsForRepo: methods.runs},
@@ -77,11 +91,11 @@ const github = {rest: {
   if (method === methods.runs) {
     if (options.missing) return [];
     const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusion || 'success');
-    return loadLocalInventory(root).inventory.workflows.map(workflow => ({path: workflow.path, id: 42, event: 'pull_request', head_sha: 'head', head_branch: 'feature',
+    return [{path: '.github/workflows/frontend.yml', id: 42, event: 'pull_request', head_sha: 'head', head_branch: 'feature',
       head_repository: {full_name: 'contributor/pipelines'},
       status: options.runStatus || 'completed', conclusion,
       created_at: options.fresh ? '2026-09-07T12:01:00Z' : '2026-09-07T11:00:00Z',
-      run_started_at: '2026-09-07T12:02:00Z', pull_requests: []}));
+      run_started_at: '2026-09-07T12:02:00Z', pull_requests: []}];
   }
   throw Error('Unexpected API request');
 }};
@@ -296,7 +310,10 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
                     }]
                 }
             })
-            labels = [call for call in result['calls'] if call[0] != 'status']
+            labels = [
+                call for call in result['calls']
+                if call[0] in ('add-label', 'remove-label')
+            ]
             self.assertTrue(labels)
             for call in labels:
                 self.assertIn(call, [['add-label', ['ci-passed']],
@@ -399,6 +416,25 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
         result = exercise({'apiFailure': True})
         self.assertIn('API unavailable', result['error'])
         self.assert_last_status(result, 'failure')
+
+    def test_base_workflow_lookup_failure_cannot_publish_success(self):
+        result = exercise({'inventoryFailure': True})
+        self.assertIn('Workflow tree unavailable', result['error'])
+        self.assert_last_status(result, 'failure')
+        self.assertNotIn(['status', 'success', 'head'], result['calls'])
+
+    def test_each_publication_boundary_reads_the_immutable_base(self):
+        result = exercise()
+        self.assert_last_status(result, 'success')
+        reads = [c[1] for c in result['calls'] if c[0] == 'base-workflows']
+        self.assertEqual(len(reads), 3)
+        for read in reads:
+            self.assertEqual(
+                read, {
+                    'owner': 'kubeflow',
+                    'repo': 'pipelines',
+                    'expression': 'b' * 40 + ':.github/workflows',
+                })
 
 
 if __name__ == '__main__':

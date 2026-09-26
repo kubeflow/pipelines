@@ -695,7 +695,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "opt_in_variable": "KFP_ENABLE_MLMD_UPGRADE_TESTS"
     },
     {
       "path": ".github/workflows/validate-generated-files.yml",

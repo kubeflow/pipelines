@@ -11,7 +11,7 @@
 
 'use strict';
 
-const {verifyExpectedWorkflows, loadLocalInventory} = require('./ci_expected_workflows');
+const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 
 function eligible(pr) {
   const labels = new Set(pr.labels.map(label => label.name));
@@ -133,7 +133,8 @@ async function freshAfter(github, context, pr) {
   return cutoff;
 }
 
-async function evidence(github, context, pr, inventory) {
+async function evidence(github, context, pr, root) {
+  const inventory = await loadBaseInventory({github, ...context.repo, pullRequest: pr, root});
   return verifyExpectedWorkflows({github, ...context.repo, pullRequest: pr,
     ...inventory, freshAfter: await freshAfter(github, context, pr)});
 }
@@ -158,7 +159,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('snapshot', snapshot(pr));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.');
   if (pr.state !== 'open' || !eligible(pr)) return;
-  const result = await evidence(github, context, pr, loadLocalInventory(root));
+  const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
 }
@@ -172,7 +173,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
   let reason = 'CI did not pass; complete current-head CI and retry.';
   try {
     if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && eligible(pr) && pollPassed) {
-      const result = await evidence(github, context, pr, loadLocalInventory(root));
+      const result = await evidence(github, context, pr, root);
       core.info(JSON.stringify(result));
       passed = result.passed;
       if (!passed) reason = result.reasons.join('; ');
@@ -184,7 +185,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     if (passed) {
       const after = await readPR(github, context, Number(number));
       const current = snapshot(after) === before &&
-        (await evidence(github, context, after, loadLocalInventory(root))).passed;
+        (await evidence(github, context, after, root)).passed;
       if (!current) await publish(github, context, original, 'failure',
         'PR or CI changed during publication; rerun CI on the current head.');
     }

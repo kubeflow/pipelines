@@ -13,7 +13,7 @@ publisher and protection below are verified in production.
 | --- | --- | --- |
 | `needs-ok-to-test` present | No success, regardless of author | Publisher eligibility and Tide query exclusions |
 | No `ok-to-test` | Only exact Dependabot or MEMBER/OWNER/COLLABORATOR authors eligible | Publisher eligibility |
-| Expected workflow absent, pending, cancelled, or unsuccessful | No success | Trusted workflow inventory and current Actions run state |
+| Expected workflow absent, pending, cancelled, or unsuccessful | No success | Trusted PR base workflow definitions and current Actions run state |
 | Other discovered check unsuccessful | No success | Pinned allcheckspassed action and Tide contexts |
 | Head changes | Old events cannot publish onto the new head | Event SHA binding and PR rereads |
 | Base retargets | Old workflow executions cannot authorize the new base | Durable PR timeline cutoff; original run creation must follow the retarget |
@@ -38,17 +38,32 @@ validation still governs status and label changes after checkout.
 
 ## Expected workflow inventory
 
-`.github/resources/ci-workflow-inventory.json` records trusted `pull_request`
-branch/path filters. Every applicable workflow must register and complete
-successfully for the PR head, branch, and repository. Unknown filter syntax,
-incomplete API responses, and stale inventory block success. The inventory
-checks registration at workflow level; individual jobs and matrix conditions
-remain the responsibility of each workflow and the discovered-check poller.
+`.github/resources/ci-workflow-inventory.json` records local `pull_request`
+branch/path filters for regression checks. At runtime, the publisher loads workflow
+YAML from the PR's immutable base SHA in the upstream repository. It fetches the
+workflow directory in one GraphQL query and parses its contents as data with the
+trusted publisher's inventory generator and pinned PyYAML dependency. It never
+executes or checks out PR code. This lets release branches retain their own
+workflow filters, even when they predate the committed inventory.
 
-When changing workflow names or event triggers, regenerate the inventory:
+Every applicable workflow must register and complete successfully for the PR head,
+branch, and repository. Unknown filter syntax, incomplete or malformed API data,
+and changes to the PR snapshot block success. Inventory checks operate at workflow
+level; individual jobs and matrix conditions remain the responsibility of each
+workflow and the discovered-check poller.
+
+The sole optional lane is `.github/workflows/upgrade-test.yml` when every job has
+the exact `vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true'` opt-in guard. The publisher
+omits that lane only when the trusted repository variable is not `true`, and records
+it as disabled in its evidence. Enabling the variable requires a successful run.
+An unguarded release-branch lane, a different guard, and every other workflow still
+require success; a `skipped` conclusion does not satisfy an expected workflow.
+
+When changing workflow names, event triggers, or the recognized upgrade opt-in
+guards, regenerate the inventory:
 
 ```bash
-# Requires PyYAML in the development environment, not in the status job.
+# Requires PyYAML (pinned in .github/scripts/requirements.txt).
 python3 .github/resources/scripts/generate_ci_workflow_inventory.py
 python3 -m unittest discover -s .github/resources/scripts -p '*_test.py'
 ```
