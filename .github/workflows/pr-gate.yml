@@ -18,7 +18,7 @@ jobs:
       github.event.pull_request.user.login != 'dependabot[bot]' &&
       github.event.pull_request.user.login != 'copybara-service[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Checkout trusted membership helper
         uses: actions/checkout@v7
@@ -47,6 +47,7 @@ jobs:
         run: python3 .github/scripts/kubeflow_membership.py
 
       - name: Check linked issue admission for external contributors
+        id: admission
         if: steps.membership-check.outputs.is_member == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,6 +83,12 @@ jobs:
           if [[ "$ISSUE_READY" == "true" ]]; then
             echo "::notice::Success! Issue #$ISSUE_NUMBER contains the 'ready' label. Proceeding with CI. Adding 'ok-to-test' to the PR #$PR_NUMBER..."
             gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "ok-to-test"
+            PR_LABELS=$(gh pr view "$PR_NUMBER" --repo "$GH_REPO" --json labels)
+            NEEDS_OK_TO_TEST=$(printf '%s' "$PR_LABELS" |
+                jq -r 'any(.labels[]; .name == "needs-ok-to-test")')
+            if [[ "$NEEDS_OK_TO_TEST" == "true" ]]; then
+              gh pr edit "$PR_NUMBER" --repo "$GH_REPO" --remove-label "needs-ok-to-test"
+            fi
             echo "::notice::'ok-to-test' label added. CI can now proceed."
 
           else
@@ -92,3 +99,94 @@ jobs:
             gh pr close "$PR_NUMBER"
             exit 1
           fi
+
+      - name: Approve pending workflow runs after admission
+        if: steps.admission.outcome == 'success'
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          script: |
+            // A GITHUB_TOKEN-created label cannot trigger Approve Workflow Runs.
+            const {owner, repo} = context.repo;
+            const {number, head} = context.payload.pull_request;
+            const headSha = head.sha;
+            const headRepoId = head.repo.id;
+            const headBranch = head.ref;
+            const headOwner = head.repo.owner.login;
+            const listRequest = {
+              owner, repo, event: 'pull_request', status: 'action_required',
+              head_sha: headSha,
+            };
+            const matchesHead = run =>
+              run.event === 'pull_request' &&
+              run.head_sha === headSha &&
+              run.head_repository?.id === headRepoId &&
+              run.head_branch === headBranch &&
+              (!run.pull_requests?.length ||
+                run.pull_requests.some(pr => pr.number === number));
+            const approvedRunIds = new Set();
+            const maxAttempts = 7;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const {data: current} = await github.rest.pulls.get({
+                owner, repo, pull_number: number,
+              });
+              if (current.state !== 'open' || current.head.sha !== headSha ||
+                  current.head.repo?.id !== headRepoId ||
+                  current.head.ref !== headBranch) {
+                core.notice('PR head changed or closed; skipping old-head approval.');
+                return;
+              }
+              const labels = new Set(current.labels.map(label => label.name));
+              if (!labels.has('ok-to-test') || labels.has('needs-ok-to-test')) {
+                core.notice('PR approval label changed; skipping workflow approval.');
+                return;
+              }
+
+              // Fork runs can report pull_requests: []; one head must map to
+              // exactly one open PR before any run on it is approved.
+              const headPRs = await github.paginate(github.rest.pulls.list, {
+                owner, repo, state: 'open', head: `${headOwner}:${headBranch}`,
+                per_page: 100,
+              });
+              const matches = headPRs.filter(pr =>
+                pr.head.sha === headSha &&
+                pr.head.repo?.id === headRepoId &&
+                pr.head.ref === headBranch);
+              if (matches.length !== 1 || matches[0].number !== number) {
+                core.setFailed('PR head does not identify exactly one open PR; ' +
+                  'pending workflow runs need manual approval.');
+                return;
+              }
+
+              const runs = (await github.paginate(
+                github.rest.actions.listWorkflowRunsForRepo, listRequest
+              )).filter(matchesHead);
+              for (const run of runs) {
+                if (approvedRunIds.has(run.id)) continue;
+                try {
+                  await github.rest.actions.approveWorkflowRun({
+                    owner, repo, run_id: run.id,
+                  });
+                  approvedRunIds.add(run.id);
+                  core.info(`Approved workflow run ${run.id} (${run.name}).`);
+                } catch (error) {
+                  // Another approver may have completed the same run.
+                  core.warning(`Could not approve run ${run.id}: ${error.message}`);
+                }
+              }
+
+              if (attempt < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 10_000));
+              }
+            }
+
+            const unresolved = (await github.paginate(
+              github.rest.actions.listWorkflowRunsForRepo, listRequest
+            )).filter(matchesHead);
+            if (unresolved.length) {
+              core.setFailed(`Workflow runs still awaiting approval: ${
+                unresolved.map(run => run.id).join(', ')}`);
+            } else if (!approvedRunIds.size) {
+              core.warning(`No pending workflow runs found for ${headSha}.`);
+            }
