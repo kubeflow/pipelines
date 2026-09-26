@@ -6,5 +6,5 @@ sphinx-copybutton>=0.5.2,<1.0.0
 sphinx-design>=0.6.0,<1.0.0
 sphinx-autobuild>=2024.10.3
 sphinx-click>=6.0.0,<7.0.0
-autodocsumm>=0.2.12
+autodocsumm>=0.2.15
 sdk/python
