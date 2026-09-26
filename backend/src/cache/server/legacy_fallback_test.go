@@ -15,10 +15,12 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"testing"
 	"time"
@@ -58,6 +60,7 @@ func legacyCacheRow(t *testing.T) *model.ExecutionCache {
 }
 
 func TestLegacyCacheFallbackAdmission(t *testing.T) {
+	unsetCacheSecurityEnv(t)
 	for _, tc := range []struct {
 		name         string
 		setting      string
@@ -70,20 +73,20 @@ func TestLegacyCacheFallbackAdmission(t *testing.T) {
 		wantRowCount int64
 	}{
 		{name: "unset by default", wantRowCount: 1},
-		{name: "explicitly disabled", setting: "false", wantRowCount: 1},
-		{name: "legacy hit", setting: "true", wantHit: true, wantRowCount: 1},
-		{name: "another namespace excluded", setting: "true", namespace: "other", wantRowCount: 1},
-		{name: "pod caching disabled", setting: "true", podTTL: "P0D", wantRowCount: 1},
-		{name: "default caching disabled", setting: "true", defaultTTL: "P0D", wantRowCount: 1},
-		{name: "pod TTL expired", setting: "true", podTTL: "PT1S", wantRowCount: 1},
-		{name: "default TTL expired", setting: "true", defaultTTL: "PT1S", wantRowCount: 1},
-		{name: "row TTL expired", setting: "true", rowExpired: true, wantRowCount: 1},
-		{name: "maximum TTL expired", setting: "true", maximumTTL: "PT1S"},
+		{name: "explicitly disabled", setting: "enforce", wantRowCount: 1},
+		{name: "legacy hit", setting: "audit", wantHit: true, wantRowCount: 1},
+		{name: "another namespace excluded", setting: "audit", namespace: "other", wantRowCount: 1},
+		{name: "pod caching disabled", setting: "audit", podTTL: "P0D", wantRowCount: 1},
+		{name: "default caching disabled", setting: "audit", defaultTTL: "P0D", wantRowCount: 1},
+		{name: "pod TTL expired", setting: "audit", podTTL: "PT1S", wantRowCount: 1},
+		{name: "default TTL expired", setting: "audit", defaultTTL: "PT1S", wantRowCount: 1},
+		{name: "row TTL expired", setting: "audit", rowExpired: true, wantRowCount: 1},
+		{name: "maximum TTL expired", setting: "audit", maximumTTL: "PT1S"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("ALLOW_LEGACY_CACHE_FALLBACK", tc.setting)
+			t.Setenv(cacheSecurityModeEnv, tc.setting)
 			if tc.setting == "" {
-				require.NoError(t, os.Unsetenv("ALLOW_LEGACY_CACHE_FALLBACK"))
+				require.NoError(t, os.Unsetenv(cacheSecurityModeEnv))
 			}
 			t.Setenv("DEFAULT_CACHE_STALENESS", tc.defaultTTL)
 			t.Setenv("MAXIMUM_CACHE_STALENESS", tc.maximumTTL)
@@ -117,14 +120,15 @@ func TestLegacyCacheFallbackAdmission(t *testing.T) {
 }
 
 func TestLegacyCacheFallbackPreservesScopedWritesAndHitPrecedence(t *testing.T) {
+	unsetCacheSecurityEnv(t)
 	m := legacyCacheManager(t)
 	legacy := legacyCacheRow(t)
 	require.NoError(t, m.DB().Create(legacy).Error)
-	t.Setenv("ALLOW_LEGACY_CACHE_FALLBACK", "false")
+	t.Setenv(cacheSecurityModeEnv, "enforce")
 	p := cachePod("tenant")
 	require.False(t, admitCachePod(t, p, m))
 
-	t.Setenv("ALLOW_LEGACY_CACHE_FALLBACK", "true")
+	t.Setenv(cacheSecurityModeEnv, "audit")
 	t.Setenv("CACHE_NODE_RESTRICTIONS", "false")
 	p.Annotations[ArgoWorkflowOutputs] = `{"parameters":[{"name":"result","value":"scoped-output"}]}`
 	require.NoError(t, cacheCompletedPod(context.Background(), p, m))
@@ -140,14 +144,15 @@ func TestLegacyCacheFallbackPreservesScopedWritesAndHitPrecedence(t *testing.T) 
 }
 
 func TestLegacyCacheFallbackInvalidConfiguration(t *testing.T) {
-	t.Setenv("ALLOW_LEGACY_CACHE_FALLBACK", "invalid")
+	unsetCacheSecurityEnv(t)
+	t.Setenv(cacheSecurityModeEnv, "invalid")
 	m := legacyCacheManager(t)
 	require.NoError(t, m.DB().Create(legacyCacheRow(t)).Error)
 	p := cachePod("tenant")
 	req := GetFakeRequestFromPod(p)
 	req.Namespace = p.Namespace
 	patches, err := MutatePodIfCached(req, m)
-	require.ErrorContains(t, err, "ALLOW_LEGACY_CACHE_FALLBACK")
+	require.ErrorContains(t, err, cacheSecurityModeEnv)
 	require.Empty(t, patches)
 }
 
@@ -167,7 +172,8 @@ func (s *scopedLookupErrorStore) GetLegacyExecutionCache(key string, staleness, 
 }
 
 func TestLegacyCacheFallbackOnlyAfterCacheMiss(t *testing.T) {
-	t.Setenv("ALLOW_LEGACY_CACHE_FALLBACK", "true")
+	unsetCacheSecurityEnv(t)
+	t.Setenv(cacheSecurityModeEnv, "audit")
 	for _, tc := range []struct {
 		name    string
 		err     error
@@ -190,4 +196,29 @@ func TestLegacyCacheFallbackOnlyAfterCacheMiss(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCacheAuditTransitionToEnforcement(t *testing.T) {
+	unsetCacheSecurityEnv(t)
+	m := legacyCacheManager(t)
+	row := legacyCacheRow(t)
+	require.NoError(t, m.DB().Create(row).Error)
+	t.Setenv(cacheSecurityModeEnv, "audit")
+	var logs bytes.Buffer
+	originalOutput := log.Writer()
+	log.SetOutput(&logs)
+	t.Cleanup(func() { log.SetOutput(originalOutput) })
+	pod := cachePod("tenant")
+	require.True(t, admitCachePod(t, pod, m))
+	for _, field := range []string{"security_audit", "control=legacy_cache", "mode=audit", "reason=ownership_unknown", "tenant", pod.Name, fmt.Sprint(row.ID)} {
+		require.Contains(t, logs.String(), field)
+	}
+	require.NotContains(t, logs.String(), row.ExecutionOutput)
+	// Audit reuse must not turn unknown ownership into a trusted scoped record.
+	require.NoError(t, cacheCompletedPod(context.Background(), pod, m))
+	t.Setenv(cacheSecurityModeEnv, "enforce")
+	require.False(t, admitCachePod(t, cachePod("tenant"), m))
+	var rows []model.ExecutionCache
+	require.NoError(t, m.DB().Find(&rows).Error)
+	require.Equal(t, []model.ExecutionCache{*row}, rows)
 }
