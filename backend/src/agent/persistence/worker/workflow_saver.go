@@ -20,7 +20,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 // WorkflowSaver provides a function to persist a workflow to a database.
