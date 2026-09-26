@@ -26,7 +26,6 @@ dist
 frontend/test/ui/visual-regression/errorShots
 frontend/test/ui/visual-regression/screenshots/diff
 frontend/test/ui/visual-regression/screenshots/screen
-frontend/.visual/
 
 # sqlite db
 *.db

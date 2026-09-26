@@ -122,45 +122,62 @@ npm run start
 
 The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurring Runs list pages with deterministic fixture data. Use `npm run start:proxy-and-server` against a real KFP deployment when validating native tasks and artifacts, pod logs, authentication, or backend behavior beyond those fixtures.
 
-## Visual Regression Testing
+## Visual regression testing
 
-When making UI changes, use the smoke test tool to capture screenshots and generate side-by-side comparisons against a base branch. This catches layout regressions, styling issues, and unintended visual changes before they reach review.
+Use the UI smoke-test utility to capture fresh screenshots and generate a manifest-validated,
+side-by-side comparison against a base ref.
 
 ### Quick screenshot of your dev server
 
-The fastest workflow — point the tool at your already-running `npm start` server:
+Point the utility at an already-running `npm start` server:
 
 ```bash
 node scripts/ui-smoke-test/smoke-test-runner.js --current-only --use-existing --url http://localhost:3000
 ```
 
-Screenshots are saved to `.ui-smoke-test/screenshots/pr/`.
+This keeps the full URL and captures non-seeded pages without starting Kind.
 
 ### Compare your branch against master
 
-The full workflow — detects changed backend components, ensures a Kind cluster, builds both frontends, captures screenshots from both, and generates a side-by-side comparison with diff percentages:
+The full workflow detects committed and working-tree changes, creates a clean Kind cluster from the
+base ref, seeds deterministic resources, and captures both browser bundles against the same trusted
+base server and backend:
 
 ```bash
-node scripts/ui-smoke-test/smoke-test-runner.js --compare master
+node scripts/ui-smoke-test/smoke-test-runner.js --compare origin/master
 ```
 
-If your PR only touches frontend code, the backend rebuild is auto-skipped since no backend components changed.
+Any visual difference fails by default. The report is still written before the command exits.
+The utility uses a dedicated clean Kind cluster and refuses stale reuse; run
+`node scripts/ui-smoke-test/smoke-test-runner.js --teardown` before a subsequent comparison.
 
 ### Compare someone else's PR
 
-Fetch and test a PR you don't have checked out locally:
+Fetch and test a PR you do not have checked out locally. Fetched PR browser builds require explicit
+trust and run in restricted install/build containers:
 
 ```bash
-node scripts/ui-smoke-test/smoke-test-runner.js --compare master --pr 12756
+node scripts/ui-smoke-test/smoke-test-runner.js \
+  --compare origin/master \
+  --pr 12756 \
+  --trust-pr-code
 ```
 
-Results are saved to `.ui-smoke-test/screenshots/comparison/`. See [scripts/ui-smoke-test/README.md] for the full command reference, troubleshooting, and architecture details.
+Fetched lockfile, shrinkwrap, npm, and Corepack configuration changes are rejected. Server,
+backend, and manifest changes are not executed; they stop the run unless `--browser-only`
+explicitly ignores them and labels the result accordingly. GitHub is not modified unless
+`--comment` is supplied.
+
+Each run is retained under `.ui-smoke-test/runs/<run-id>/`; `.ui-smoke-test/latest-run.txt` points to
+the newest one. See [scripts/ui-smoke-test/README.md] for the complete command reference, output
+format, safety model, and troubleshooting details.
 
 ## Contributing
 
 For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 <!REFERENCES>
+
 [Docker]: https://docs.docker.com/engine/install/
 [Kind]: https://kind.sigs.k8s.io/#installation-and-usage
 [Kustomize]: https://kustomize.io
