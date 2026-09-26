@@ -21,7 +21,7 @@ certifi==2026.1.4
     #   requests
 cffi==2.0.0 ; platform_python_implementation != 'PyPy'
     # via cryptography
-charset-normalizer==3.4.4
+charset-normalizer==3.5.1
     # via requests
 click==8.3.1
     # via
