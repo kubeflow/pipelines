@@ -108,10 +108,11 @@ async function publish(github, context, pr, state, description) {
   // unchanged failing heads. Preserve non-success until recovery is proven.
   const preserve = context.eventName === 'schedule' && state === 'pending' &&
     current && current.state !== 'success';
-  if (!preserve && current?.state !== state) {
+  const boundedDescription = description.slice(0, 140);
+  if (!preserve && (current?.state !== state || current.description !== boundedDescription)) {
     await github.rest.repos.createCommitStatus({
       ...context.repo, sha: pr.head.sha, context: 'ci-passed', state,
-      description: description.slice(0, 140),
+      description: boundedDescription,
       target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
     });
   }
@@ -180,13 +181,17 @@ async function finalize({github, context, core, number, head, before, pollPassed
   const original = {...pr, head: {...pr.head, sha: head}};
   let passed = false;
   let reason = 'CI did not pass; complete current-head CI and retry.';
+  let errorReason = 'Cannot verify CI evidence; inspect CI Check and retry.';
   try {
-    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && eligible(pr) && pollPassed) {
+    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && eligible(pr)) {
       const result = await evidence(github, context, pr, root);
       core.info(JSON.stringify(result));
-      passed = result.passed;
-      if (!passed) reason = result.reasons.join('; ');
+      passed = result.passed && pollPassed;
+      if (!result.passed) reason = result.reasons.join('; ');
     }
+    // Keep a known failure explanation if label synchronization fails, rather
+    // than alternating it with the generic error on every recovery sweep.
+    if (!passed) errorReason = reason;
     await publish(github, context, original, passed ? 'success' : 'failure',
       passed ? successDescription(pr) : reason);
     // Status/label writes are not atomic with PR updates. Re-read the full
@@ -195,11 +200,13 @@ async function finalize({github, context, core, number, head, before, pollPassed
       const after = await readPR(github, context, Number(number));
       const current = snapshot(after) === before &&
         (await evidence(github, context, after, root)).passed;
-      if (!current) await publish(github, context, original, 'failure',
-        'PR or CI changed during publication; rerun CI on the current head.');
+      if (!current) {
+        errorReason = 'PR or CI changed during publication; rerun CI on the current head.';
+        await publish(github, context, original, 'failure', errorReason);
+      }
     }
   } catch (error) {
-    await publish(github, context, original, 'failure', 'Cannot verify CI evidence; inspect CI Check and retry.');
+    await publish(github, context, original, 'failure', errorReason);
     throw error;
   }
 }
