@@ -31,6 +31,22 @@ DIGEST = "b" * 64
 
 class WorkflowTests(unittest.TestCase):
 
+    def test_rollout_wait_names_installed_deployments(self):
+        kubectl = mock.Mock(side_effect=[
+            "deployment.apps/ml-pipeline\ndeployment.apps/mysql\n", "success"
+        ])
+        smoke.wait_for_deployments(kubectl)
+        self.assertEqual(kubectl.call_args_list, [
+            mock.call("-n", "kubeflow", "get", "deployments", "-o", "name"),
+            mock.call("-n", "kubeflow", "rollout", "status",
+                      "deployment.apps/ml-pipeline", "deployment.apps/mysql",
+                      "--timeout=600s"),
+        ])
+
+    def test_rollout_wait_rejects_empty_installation(self):
+        with self.assertRaisesRegex(ValueError, "no deployments"):
+            smoke.wait_for_deployments(mock.Mock(return_value=""))
+
     def test_master_smoke_consumes_same_publication_attempt(self):
         root = Path(__file__).resolve().parents[3]
         workflow = yaml.safe_load(

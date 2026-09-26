@@ -271,6 +271,16 @@ def api_request(url, body=None):
         return json.load(response)
 
 
+def wait_for_deployments(kubectl):
+    deployments = kubectl("-n", "kubeflow", "get", "deployments", "-o",
+                          "name").split()
+    if not deployments:
+        raise ValueError("Standalone installation created no deployments")
+    # Unlike kubectl wait, rollout status has no --all flag.
+    kubectl("-n", "kubeflow", "rollout", "status", *deployments,
+            "--timeout=600s")
+
+
 def run_smoke(args, refs):
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
@@ -291,8 +301,7 @@ def run_smoke(args, refs):
                        args.overlay)
     (output / "installation.yaml").write_text(rendered)
     kubectl("apply", "-f", str(output / "installation.yaml"))
-    kubectl("-n", "kubeflow", "rollout", "status", "deployment", "--all",
-            "--timeout=600s")
+    wait_for_deployments(kubectl)
     with (output / "port-forward.log").open("w") as log:
         forward = subprocess.Popen([
             "kubectl",
