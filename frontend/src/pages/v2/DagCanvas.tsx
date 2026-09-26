@@ -16,15 +16,18 @@
 
 import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  ReactFlow,
-  ReactFlowProvider,
+  applyNodeChanges,
   Background,
   Controls,
   Edge,
   MiniMap,
   Node,
+  NodeChange,
   OnNodeDrag,
+  ReactFlow,
   ReactFlowInstance,
+  ReactFlowProvider,
+  useNodesState,
 } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
@@ -62,6 +65,7 @@ export default function DagCanvas({
 }: DagCanvasProps) {
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
+
   const subDagExpand = useCallback(
     (nodeKey: string) => {
       const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
@@ -70,16 +74,57 @@ export default function DagCanvas({
     [layers, onLayersUpdate],
   );
 
-  const nodes = useMemo(
+  const initialNodes = useMemo(
     () =>
       elements.filter(isNode).map((node) => {
-        const selectedNode = { ...node, selected: node.id === selectedNodeId };
+        const selectedNode = {
+          ...node,
+          selected: node.id === selectedNodeId,
+        };
+
         return selectedNode.type === NodeTypeNames.SUB_DAG && selectedNode.data
-          ? { ...selectedNode, data: { ...selectedNode.data, expand: subDagExpand } }
+          ? {
+              ...selectedNode,
+              data: {
+                ...selectedNode.data,
+                expand: subDagExpand,
+              },
+            }
           : selectedNode;
       }),
     [elements, selectedNodeId, subDagExpand],
   );
+
+  const [nodes, setNodes] = useNodesState<PipelineNode>(initialNodes);
+
+  useEffect(() => {
+    setNodes((currentNodes) =>
+      initialNodes.map((node) => {
+        const currentNode = currentNodes.find((current) => current.id === node.id);
+
+        return currentNode
+          ? {
+              ...node,
+              width: currentNode.width,
+              height: currentNode.height,
+              measured: currentNode.measured,
+            }
+          : node;
+      }),
+    );
+  }, [initialNodes, setNodes]);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange<PipelineNode>[]) => {
+      const dimensionChanges = changes.filter((change) => change.type === 'dimensions');
+
+      if (dimensionChanges.length > 0) {
+        setNodes((currentNodes) => applyNodeChanges(dimensionChanges, currentNodes));
+      }
+    },
+    [setNodes],
+  );
+
   const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
 
   const onNodeDragStop = useCallback<OnNodeDrag<PipelineNode>>(
@@ -87,6 +132,7 @@ export default function DagCanvas({
       const updatedElements = elements.map((el) =>
         isNode(el) && el.id === draggedNode.id ? { ...el, position: draggedNode.position } : el,
       );
+
       setFlowElements(updatedElements);
     },
     [elements, setFlowElements],
@@ -107,6 +153,7 @@ export default function DagCanvas({
       const focusedNodes = focusNodeId
         ? nodes.filter((node) => node.id === focusNodeId)
         : undefined;
+
       void instance.fitView(focusedNodes?.length ? { nodes: focusedNodes } : undefined);
     },
     [focusNodeId, nodes],
@@ -117,6 +164,7 @@ export default function DagCanvas({
       lastFocusedNodeId.current = null;
       return;
     }
+
     if (reactFlowInstance.current && lastFocusedNodeId.current !== focusNodeId) {
       lastFocusedNodeId.current = focusNodeId;
       fitCurrentView(reactFlowInstance.current);
@@ -126,17 +174,19 @@ export default function DagCanvas({
   return (
     <>
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
+
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
-          {/* onNodesChange/onEdgesChange are intentionally omitted: this DAG viewer
-              does not need keyboard deletion, multi-select, or internal selection
-              tracking. Drag persistence is handled via onNodeDragStop only. */}
+          {/* React Flow change handling is intentionally limited to internal
+              dimension changes. Selection is controlled by selectedNodeId.
+              Drag persistence is handled via onNodeDragStop only. */}
           <ReactFlow<PipelineNode, Edge>
             style={{ background: color.lightGrey }}
             nodes={nodes}
             edges={edges}
             snapToGrid={true}
             nodesDraggable={nodesDraggable}
+            onNodesChange={onNodesChange}
             onInit={(instance) => {
               reactFlowInstance.current = instance;
               lastFocusedNodeId.current = focusNodeId || null;
