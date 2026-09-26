@@ -25,6 +25,7 @@ import tempfile
 import time
 from types import ModuleType
 from typing import Any, Dict, List, Optional, TextIO
+from urllib.parse import urlsplit
 import warnings
 import zipfile
 
@@ -226,6 +227,7 @@ class Client:
         verify_ssl: Optional[bool],
     ) -> kfp_server_api.Configuration:
         config = kfp_server_api.Configuration()
+        self._uses_gcp_credentials = False
 
         if proxy:
             # https://github.com/kubeflow/pipelines/blob/c6ac5e0b1fd991e19e96419f0f508ec0a4217c29/backend/api/python_http_client/kfp_server_api/rest.py#L100
@@ -283,6 +285,7 @@ class Client:
         elif self._is_inverse_proxy_host(host):
             token = auth.get_gcp_access_token()
             self._is_refresh_token = False
+            self._uses_gcp_credentials = True
         elif credentials:
             config.api_key['authorization'] = 'placeholder'
             config.api_key_prefix['authorization'] = 'Bearer'
@@ -332,7 +335,22 @@ class Client:
         return config
 
     def _is_inverse_proxy_host(self, host: str) -> bool:
-        return bool(re.match(r'\S+.googleusercontent.com/{0,1}$', host))
+        # This check authorizes automatic disclosure of Google credentials.
+        # Match the parsed authority, never a Google-looking URL path or query.
+        if not host or any(char in host for char in '\\?#') or any(
+                character.isspace() or ord(character) < 32 or
+                ord(character) == 127 for character in host):
+            return False
+        try:
+            parsed = urlsplit(host)
+            return (parsed.scheme == 'https' and parsed.username is None and
+                    parsed.password is None and parsed.port in (None, 443) and
+                    not parsed.query and not parsed.fragment and re.fullmatch(
+                        r'(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+'
+                        r'googleusercontent\.com', parsed.hostname or
+                        '') is not None)
+        except ValueError:
+            return False
 
     def _get_url_prefix(self) -> str:
         if self._uihost:
@@ -355,13 +373,17 @@ class Client:
                 'namespace': '',
             }
 
-    def _refresh_api_client_token(self) -> None:
-        """Refreshes the existing token associated with the kfp_api_client."""
-        if getattr(self, '_is_refresh_token', None):
-            return
+    def _refresh_api_client_token(self) -> bool:
+        """Returns whether automatic Google credentials were refreshed."""
+        if (not getattr(self, '_uses_gcp_credentials', False) or
+                not self._is_inverse_proxy_host(self._existing_config.host)):
+            return False
 
         new_token = auth.get_gcp_access_token()
-        self._existing_config.api_key['authorization'] = new_token
+        if new_token:
+            self._existing_config.api_key['authorization'] = new_token
+            return True
+        return False
 
     def _get_config_with_default_credentials(
             self, config: kfp_server_api.Configuration
@@ -1412,10 +1434,11 @@ class Client:
                 # then refresh the token
                 if is_valid_token and api_ex.status == 401:
                     logging.info('Access token has expired !!! Refreshing ...')
-                    self._refresh_api_client_token()
-                    continue
-                else:
-                    raise api_ex
+                    if self._refresh_api_client_token():
+                        # Require a successful poll before another refresh.
+                        is_valid_token = False
+                        continue
+                raise
             state = get_run_response.state
             elapsed_time = (datetime.datetime.now() -
                             start_time).total_seconds()

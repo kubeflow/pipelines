@@ -145,7 +145,7 @@ describe('artifact-validator', () => {
     });
   });
 
-  it('accepts a repeated-separator HTTP artifact through exact isolated ownership', async () => {
+  it('rejects a custom-root HTTP artifact despite an exact metadata match', async () => {
     const artifactUri = 'https://example.com/reports/a//b';
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
@@ -156,8 +156,8 @@ describe('artifact-validator', () => {
     vi.stubGlobal('fetch', fetchSpy);
 
     await expect(
-      validateArtifactNamespace('http://api-server', artifactUri, 'team-a', undefined, true),
-    ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
+      validateArtifactNamespace('http://api-server', artifactUri, 'team-a'),
+    ).resolves.toEqual({ valid: false, reason: 'custom-root-requires-namespace-prefix' });
   });
 
   it('rejects mismatched, absent, and non-normalized prefixes', () => {
@@ -212,7 +212,7 @@ describe('artifact-validator', () => {
     ).toEqual({ valid: false, reason: 'artifact-not-found' });
   });
 
-  it('accepts a custom-root ArtifactService match only for namespace-isolated reads', async () => {
+  it('rejects a custom-root ArtifactService match with forwarded caller identity', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
         headers: { 'Content-Type': 'application/json' },
@@ -222,16 +222,10 @@ describe('artifact-validator', () => {
     vi.stubGlobal('fetch', fetchSpy);
 
     await expect(
-      validateArtifactNamespace(
-        'http://api-server',
-        's3://bucket/shared/output',
-        'team-a',
-        {
-          'kubeflow-userid': 'user@example.com',
-        },
-        true,
-      ),
-    ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
+      validateArtifactNamespace('http://api-server', 's3://bucket/shared/output', 'team-a', {
+        'kubeflow-userid': 'user@example.com',
+      }),
+    ).resolves.toEqual({ valid: false, reason: 'custom-root-requires-namespace-prefix' });
 
     const [requestUrl, requestInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
     const url = new URL(requestUrl);
@@ -246,7 +240,7 @@ describe('artifact-validator', () => {
 
   it('preserves a provider query in the exact ArtifactService ownership lookup', async () => {
     const artifactUri =
-      's3://bucket/shared/output%25+plus?endpoint=https://ceph.example:9443&token=a%2Bb';
+      's3://bucket/private-artifacts/%74eam-a/output%25+plus?endpoint=https://ceph.example:9443&token=a%2Bb';
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
         headers: { 'Content-Type': 'application/json' },
@@ -256,7 +250,7 @@ describe('artifact-validator', () => {
     vi.stubGlobal('fetch', fetchSpy);
 
     await expect(
-      validateArtifactNamespace('http://api-server', artifactUri, 'team-a', undefined, true),
+      validateArtifactNamespace('http://api-server', artifactUri, 'team-a'),
     ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
 
     const requestUrl = new URL(fetchSpy.mock.calls[0][0] as string);
@@ -279,7 +273,7 @@ describe('artifact-validator', () => {
     await expect(
       validateArtifactNamespace('http://api-server', 's3://bucket/shared/output', 'team-a'),
     ).resolves.toEqual({
-      reason: 'custom-root-requires-namespace-isolation',
+      reason: 'custom-root-requires-namespace-prefix',
       valid: false,
     });
   });
