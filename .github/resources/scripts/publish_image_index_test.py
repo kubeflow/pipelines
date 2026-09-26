@@ -111,7 +111,21 @@ class PublicationTest(unittest.TestCase):
     def test_exact_platforms_with_attestations(self):
         result = publication.validate_index(
             index(['amd64', 'arm64']), PLATFORMS)
-        self.assertEqual(result, {digest(number) for number in range(1, 5)})
+        self.assertEqual(
+            result, {
+                ('platform', 'linux/amd64', digest(1)),
+                ('platform', 'linux/arm64', digest(2)),
+                ('attestation', digest(3), digest(1)),
+                ('attestation', digest(4), digest(2)),
+            })
+
+    def test_inventory_is_independent_of_descriptor_order(self):
+        original = index(['amd64', 'arm64'])
+        reordered = copy.deepcopy(original)
+        reordered['manifests'].reverse()
+        self.assertEqual(
+            publication.validate_index(original, PLATFORMS),
+            publication.validate_index(reordered, PLATFORMS))
 
     def test_inverse_proxy_single_platform(self):
         publication.validate_index(index(['amd64']), {'linux/amd64'})
@@ -185,6 +199,14 @@ class PublicationTest(unittest.TestCase):
                     result['manifests'][0]['digest'] = digest(99)
                     result['manifests'][1]['annotations'][
                         'vnd.docker.reference.digest'] = digest(99)
+                if corrupt == 'platform-swap':
+                    first, second = result['manifests'][0], result['manifests'][
+                        2]
+                    first['platform'], second['platform'] = (second['platform'],
+                                                             first['platform'])
+                if corrupt == 'attestation-retarget':
+                    result['manifests'][1]['annotations'][
+                        'vnd.docker.reference.digest'] = digest(2)
                 if corrupt == 'tag' and ':run-' in reference:
                     result['digest'] = digest(99)
             return json.dumps(result)
@@ -230,6 +252,12 @@ class PublicationTest(unittest.TestCase):
 
     def test_substituted_manifest_not_promoted(self):
         self.publish(corrupt='substitution')
+
+    def test_swapped_platform_mappings_not_promoted(self):
+        self.publish(corrupt='platform-swap')
+
+    def test_retargeted_attestation_not_promoted(self):
+        self.publish(corrupt='attestation-retarget')
 
     def test_changed_staging_tag_not_promoted(self):
         self.publish(corrupt='tag')

@@ -59,13 +59,13 @@ def load_sources(directory, source_sha, platforms):
 
 
 def validate_index(index, platforms):
-    """Check runnable platforms and linked BuildKit attestations."""
+    """Validate and retain runnable-platform and attestation-link mappings."""
     if index.get('schemaVersion') != 2 or index.get(
             'mediaType') not in INDEX_TYPES:
         raise ValueError('Expected an OCI index or Docker manifest list')
     found = {}
     descriptors = set()
-    attestations = []
+    attestations = {}
     for manifest in index.get('manifests', []):
         child_digest = digest(manifest.get('digest'))
         if child_digest in descriptors or manifest.get(
@@ -81,7 +81,8 @@ def validate_index(index, platforms):
                     'vnd.docker.reference.type') != 'attestation-manifest':
                 raise ValueError(
                     'Unknown platform without a BuildKit attestation')
-            attestations.append(annotations.get('vnd.docker.reference.digest'))
+            attestations[child_digest] = annotations.get(
+                'vnd.docker.reference.digest')
             continue
         if name not in platforms or name in found:
             raise ValueError(f'Unexpected or duplicate index platform: {name}')
@@ -91,9 +92,13 @@ def validate_index(index, platforms):
         found[name] = child_digest
     if set(found) != platforms:
         raise ValueError(f'Missing index platforms: {platforms - set(found)}')
-    if any(value not in found.values() for value in attestations):
+    if any(value not in found.values() for value in attestations.values()):
         raise ValueError('Attestation does not reference a runnable image')
-    return descriptors
+    # Digest membership alone cannot detect relabeled platforms or attestations.
+    return ({('platform', name, child_digest)
+             for name, child_digest in found.items()}
+            | {('attestation', child_digest, reference)
+               for child_digest, reference in attestations.items()})
 
 
 def imagetools(*args):
@@ -113,13 +118,13 @@ def publish(args):
             'Expected platforms must be linux/amd64 and/or linux/arm64')
     records = load_sources(args.digests, args.source_sha, platforms)
     sources = []
-    source_descriptors = set()
+    source_inventory = set()
     for platform, source_digest in records.items():
         reference = f'{args.image}@{source_digest}'
         index = inspect(reference)
         if index.get('digest') != source_digest:
             raise ValueError('Registry returned a different build digest')
-        source_descriptors.update(validate_index(index, {platform}))
+        source_inventory.update(validate_index(index, {platform}))
         sources.append(reference)
 
     with tempfile.TemporaryDirectory() as temporary:
@@ -134,9 +139,9 @@ def publish(args):
         index = inspect(reference)
         if index.get('digest') != created_digest:
             raise ValueError('Registry returned a different index digest')
-        if validate_index(index, platforms) != source_descriptors:
+        if validate_index(index, platforms) != source_inventory:
             raise ValueError(
-                'Published index does not contain exactly this run\'s build manifests'
+                'Published index does not preserve this run\'s platform and attestation mappings'
             )
         if inspect(run_reference).get('digest') != created_digest:
             raise ValueError('Run tag does not resolve to the verified index')
