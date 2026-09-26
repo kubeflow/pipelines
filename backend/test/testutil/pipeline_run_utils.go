@@ -98,7 +98,7 @@ func GetPipelineRun(runClient *api_server.RunClient, pipelineRunID *string) *run
 	return pipelineRun
 }
 
-func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *string, expectedStates []run_model.V2beta1RuntimeState, timeout *time.Duration) {
+func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *string, expectedStates []run_model.V2beta1RuntimeState, timeout *time.Duration, checks ...func() error) {
 	logger.Log("Waiting for pipeline run with id=%s to be in one of '%s'", *pipelineRunID, expectedStates)
 	maxTimeToWait := time.Duration(300)
 	pollTime := time.Duration(5)
@@ -115,7 +115,14 @@ func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *strin
 				logger.Log("Pipeline run with id=%s reached expected state %s", *pipelineRunID, *currentPipelineRunState)
 				return
 			}
-
+		}
+		for _, check := range checks {
+			if err := check(); err != nil {
+				ginkgo.Fail(fmt.Sprintf("Pipeline run with id=%s: %v", *pipelineRunID, err), 1)
+				return
+			}
+		}
+		if currentPipelineRunState != nil {
 			if time.Now().After(deadline) {
 				ginkgo.Fail(fmt.Sprintf("Pipeline run with id=%s did not reach one of %v within timeout, current state: %s", *pipelineRunID, expectedStates, *currentPipelineRunState), 1)
 				return

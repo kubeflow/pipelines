@@ -32,7 +32,7 @@ deploymentSpec:
 
           '
         - '{{$.inputs.parameters[''input_value'']}}'
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-producer:
       container:
         command:
@@ -47,7 +47,7 @@ deploymentSpec:
           '
         - '{{$.inputs.parameters[''input_text'']}}'
         - '{{$.outputs.parameters[''output_value''].output_file}}'
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
 pipelineInfo:
   name: producer-consumer-param-pipeline
 root:

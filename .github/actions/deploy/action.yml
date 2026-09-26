@@ -108,18 +108,14 @@ runs:
 
         RUNTIME_BASE_IMAGE_ARCHIVE="${{ inputs.image_path }}/runtime-base-images/runtime-base-images.tar"
 
-        if [[ -f "${RUNTIME_BASE_IMAGE_ARCHIVE}" ]]; then
-          if kind --name "${{ inputs.cluster_name }}" load image-archive "${RUNTIME_BASE_IMAGE_ARCHIVE}"; then
-            rm "${RUNTIME_BASE_IMAGE_ARCHIVE}"
-            exit 0
-          fi
-
-          echo "::warning::Failed to load runtime base image archive at ${RUNTIME_BASE_IMAGE_ARCHIVE}; pulling images directly."
-        else
-          echo "::warning::Runtime base image archive not found at ${RUNTIME_BASE_IMAGE_ARCHIVE}; pulling images directly."
+        if [[ ! -f "${RUNTIME_BASE_IMAGE_ARCHIVE}" ]]; then
+          echo "::error::Runtime base image archive not found at ${RUNTIME_BASE_IMAGE_ARCHIVE}; check the runtime image producer."
+          exit 1
         fi
         source .github/resources/scripts/helper-functions.sh
-        load_runtime_base_images_into_kind .github/resources/runtime-base-images.txt "${{ inputs.cluster_name }}"
+        retry 3 10 kind --name "${{ inputs.cluster_name }}" load image-archive "${RUNTIME_BASE_IMAGE_ARCHIVE}"
+        verify_runtime_base_images_in_kind .github/resources/runtime-base-images.txt "${{ inputs.cluster_name }}"
+        rm "${RUNTIME_BASE_IMAGE_ARCHIVE}"
 
     - name: Load Modelcar Fixture Into Kind
       if: ${{ inputs.load_modelcar_fixture == 'true' }}

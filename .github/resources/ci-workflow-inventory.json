@@ -92,7 +92,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bc31e48ec9321281766d03b29eca5637b85a3e5534ef078e632856d8b3e8ab72",
+      "header_sha256": "bb55d0aaee52861d35560423470c58c8b487fb73de3444586d5d5a7e7b3aec6d",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -151,6 +151,8 @@
           "backend/src/v2/Makefile",
           "release/kfpr/core.py",
           "test_data/sdk_compiled_pipelines/valid/**",
+          "backend/test/end2end/pipeline_e2e_test.go",
+          "backend/test/v2/resources/env-var.yaml",
           ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",

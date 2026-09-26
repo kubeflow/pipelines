@@ -29,7 +29,7 @@ def print_op1(msg: str) -> str:
 @dsl.container_component
 def print_op2(msg: str, data: Output[Artifact]):
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=[
             'sh',
             '-c',

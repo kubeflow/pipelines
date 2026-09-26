@@ -5,7 +5,10 @@ metadata:
     workflows.argoproj.io/pod-name-format: v1
   generateName: math-pipeline-
 spec:
-  arguments: {}
+  arguments:
+    parameters:
+    - name: kubernetes-comp-add-container
+      value: '{"imagePullPolicy":"IfNotPresent"}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -504,6 +507,8 @@ spec:
             value: add-container
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: kubernetes-config
+            value: '{{workflow.parameters.kubernetes-comp-add-container}}'
         depends: for-loop-2.Succeeded
         name: add-container-driver
         template: system-container-driver

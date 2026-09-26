@@ -18,7 +18,7 @@ from kfp.dsl import ContainerSpec
 @container_component
 def container_no_input():
     return ContainerSpec(
-        image='registry.access.redhat.com/ubi9/python-311:latest',
+        image='registry.access.redhat.com/ubi9/python-311:1-1779945715',
         command=['echo', 'hello world'],
         args=[],
     )

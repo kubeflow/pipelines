@@ -62,12 +62,16 @@ func CreatePipelineRunPayload(runName string, runDescription string, pipelineID 
 }
 
 // CreatePipelineRunAndWaitForItToFinish - Create a pipeline run and wait for it complete
-func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID string, pipelineDisplayName string, pipelineVersionID *string, experimentID *string, runTimeParams map[string]interface{}, maxPipelineWaitTime int) string {
+func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Client kubernetes.Interface, testContext *apitests.TestContext, pipelineID string, pipelineDisplayName string, pipelineVersionID *string, experimentID *string, runTimeParams map[string]interface{}, maxPipelineWaitTime int) string {
 	logger.Log("Create run for pipeline with id: '%s' and name: '%s'", pipelineID, pipelineDisplayName)
 	uploadedPipelineRun := CreatePipelineRun(runClient, testContext, &pipelineID, pipelineVersionID, experimentID, runTimeParams)
 	logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID)
 	timeout := time.Duration(maxPipelineWaitTime)
-	testutil.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeout)
+	var checks []func() error
+	if k8Client != nil {
+		checks = append(checks, testutil.NewRunImagePullCheck(k8Client, testutil.GetNamespace(), uploadedPipelineRun.RunID))
+	}
+	testutil.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeout, checks...)
 	return uploadedPipelineRun.RunID
 }
 
