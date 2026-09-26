@@ -25,7 +25,7 @@ runs:
       uses: actions/cache@v6
       with:
         path: /tmp/kind-node-${{ inputs.k8s_version }}.tar
-        key: kind-node-${{ runner.os }}-${{ inputs.k8s_version }}
+        key: kind-node-${{ runner.os }}-${{ runner.arch }}-${{ inputs.k8s_version }}
 
     - name: Load Kind node image from cache
       if: ${{ steps.kind-node-cache.outputs.cache-hit == 'true' }}

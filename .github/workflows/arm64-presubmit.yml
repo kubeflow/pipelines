@@ -1,0 +1,66 @@
+name: KFP ARM64 Presubmit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/arm64-presubmit.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/actions/arm64-smoke/**'
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/github-disk-cleanup/**'
+      - '.github/actions/download-artifact-with-retry/**'
+      - '.github/resources/scripts/**'
+      - '.github/resources/buildkitd.toml'
+      - '.github/resources/curl-retry/**'
+      - '.dockerignore'
+      - 'api/**'
+      - 'backend/**'
+      - 'frontend/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'kubernetes_platform/**'
+      - 'manifests/kustomize/**'
+      - 'pyproject.toml'
+      - 'samples/**'
+      - 'sdk/python/**'
+      - 'third_party/**'
+      - 'uv.lock'
+      - '!**/*.md'
+      - '!**/OWNERS'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: arm64-presubmit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # One invocation for the entire ARM lane, sharing the maintained image matrix.
+    uses: ./.github/workflows/image-builds.yml
+    with:
+      architecture: arm64
+
+  smoke:
+    name: Native ARM64 installation and pipeline
+    needs: build
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download only ARM image artifacts from this run
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: '*-arm64'
+          path: arm64-images
+          merge-multiple: 'true'
+      - name: Install KFP and run a pipeline natively
+        uses: ./.github/actions/arm64-smoke
+        with:
+          image_records: arm64-images
+          image_archives: arm64-images
+          image_mode: local
+          source_sha: ${{ github.sha }}

@@ -82,3 +82,23 @@ jobs:
       target_tag: master
       app_to_build: ${{ matrix.component.image }}
       set_latest: ${{ 'false' }}
+
+  arm64-smoke:
+    needs: create-manifests
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download this publication's verified index references
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: published-index-*-${{ github.run_attempt }}
+          path: published-indexes
+          merge-multiple: 'true'
+      - uses: ./.github/actions/arm64-smoke
+        with:
+          image_records: published-indexes
+          source_sha: ${{ github.sha }}
