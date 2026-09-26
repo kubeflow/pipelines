@@ -37,7 +37,13 @@ export async function initializeTensorboardSigningKey(
       const existing = secret.data?.[key];
       if (existing !== undefined) {
         const decoded = Buffer.from(existing, 'base64');
-        if (decoded.length < 32 || decoded.toString('base64') !== existing) {
+        // Kubernetes injects this value as text; reject bytes that cannot survive that boundary.
+        if (
+          decoded.length < 32 ||
+          decoded.toString('base64') !== existing ||
+          decoded.includes(0) ||
+          !Buffer.from(decoded.toString('utf8'), 'utf8').equals(decoded)
+        ) {
           throw new Error('invalid signing key');
         }
         return;
@@ -63,7 +69,7 @@ export async function initializeTensorboardSigningKey(
       // Kubernetes errors may contain Secret data. Never include their message/body in logs.
       // eslint-disable-next-line preserve-caught-error -- API error causes may disclose Secret data.
       throw new Error(
-        'Unable to initialize the TensorBoard signing Secret. Check that it exists, the Job has get/update permission, and any existing signing key is at least 32 bytes. Existing keys are never replaced.',
+        'Unable to initialize the TensorBoard signing Secret. Check that it exists, the Job has get/update permission, and any existing signing key is valid UTF-8 of at least 32 bytes without NUL characters. Existing keys are never replaced.',
       );
     }
   }
@@ -85,7 +91,7 @@ async function main(): Promise<void> {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(() => {
     console.error(
-      'TensorBoard signing Secret initialization failed. Check Job configuration, Secret key length, and get/update permission. Existing keys are never replaced.',
+      'TensorBoard signing Secret initialization failed. Check Job configuration, Secret key UTF-8 encoding and length (no NUL characters), and get/update permission. Existing keys are never replaced.',
     );
     process.exitCode = 1;
   });

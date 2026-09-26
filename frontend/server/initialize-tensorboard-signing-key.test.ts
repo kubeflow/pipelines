@@ -55,11 +55,15 @@ describe('initializeTensorboardSigningKey', () => {
     expect(fake.replaceNamespacedSecret).toHaveBeenCalledTimes(1);
   });
 
-  it('preserves an operator-provided key without updating the Secret', async () => {
-    const fake = fakeApi({ metadata: { name }, data: { [key]: encode('x'.repeat(32)) } });
-    await initializeTensorboardSigningKey(fake.api, namespace, name, key, wait);
-    expect(fake.replaceNamespacedSecret).not.toHaveBeenCalled();
-  });
+  it.each(['x'.repeat(32), 'é'.repeat(16)])(
+    'preserves an operator-provided UTF-8 key without updating the Secret',
+    async (value) => {
+      const fake = fakeApi({ metadata: { name }, data: { [key]: encode(value) } });
+      await initializeTensorboardSigningKey(fake.api, namespace, name, key, wait);
+      expect(fake.stored().data![key]).toBe(encode(value));
+      expect(fake.replaceNamespacedSecret).not.toHaveBeenCalled();
+    },
+  );
 
   it('converges on one key when two initializers race', async () => {
     const fake = fakeApi();
@@ -107,6 +111,23 @@ describe('initializeTensorboardSigningKey', () => {
       ).rejects.toThrow('Existing keys are never replaced');
       expect(fake.stored().data![key]).toBe(existing);
       expect(fake.replaceNamespacedSecret).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { label: 'invalid UTF-8', value: Buffer.alloc(32, 0xff) },
+    { label: 'NUL', value: Buffer.concat([Buffer.alloc(31, 0x61), Buffer.from([0])]) },
+  ])(
+    'rejects $label bytes that cannot be injected as an environment variable',
+    async ({ value }) => {
+      const existing = value.toString('base64');
+      const fake = fakeApi({ metadata: { name, resourceVersion: '1' }, data: { [key]: existing } });
+      await expect(
+        initializeTensorboardSigningKey(fake.api, namespace, name, key, wait),
+      ).rejects.toThrow('Existing keys are never replaced');
+      expect(fake.readNamespacedSecret).toHaveBeenCalledTimes(1);
+      expect(fake.replaceNamespacedSecret).not.toHaveBeenCalled();
+      expect(fake.stored().data![key]).toBe(existing);
     },
   );
 

@@ -143,9 +143,9 @@ initializers use Kubernetes resource versions to avoid overwriting each other.
 The Job can only get and update this named Secret; the UI receives no additional
 Secret permissions. UI pods wait for the required Secret field before starting.
 If initialization fails, check the Job status, its get/update permissions, and
-whether an existing key is too short. An invalid existing key is never replaced
-automatically. After correcting a failed initialization, delete the failed Job
-and reapply the manifests to retry. If the Secret was deleted, restore it from
+whether an existing key is valid UTF-8 of at least 32 bytes with no NUL characters.
+An invalid existing key is never replaced automatically. After correcting a failed
+initialization, delete the failed Job and reapply the manifests to retry. If the Secret was deleted, restore it from
 backup before starting replacement UI pods. If restoration is impossible,
 reapply the manifests to recreate the empty Secret, delete the existing
 initializer Job, and reapply again to generate a new key. Restart all UI replicas
@@ -169,7 +169,8 @@ the Job pod template, also add or change a literal in its ConfigMap generator to
 force a new Job name.
 
 To use an externally managed key, provide a dedicated random secret of at least
-32 bytes and override the deployment's reference if necessary:
+32 UTF-8 bytes with no NUL characters and override the deployment's reference if
+necessary:
 
 ```yaml
 env:
