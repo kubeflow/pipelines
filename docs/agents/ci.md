@@ -29,6 +29,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 - The shared runtime-image inventory pins acquisition of the Python 3.12 image used by the cache and proxy fixtures to a Docker Hub digest. Archive creation and direct Kind loading restore its runtime tag before save/load; keep fixture image references and source declarations aligned with that tag. CI script tests check this contract whenever those fixtures change.
 
+- `manifests/kustomize/hack/test.sh` runs `tensorboard_signing_key_test.py` to verify the shared Secret, least-privilege initializer permissions, migration-safe `Recreate` and documented opt-in `RollingUpdate`, generated Job names, and the actual CI and OpenShift overlays. The suite renders the exact rolling-update patch from `docs/operator-guides/server-config.md`, so changes to that guide also trigger `kubeflow-pipelines-manifests.yml`. The suite requires Python 3, `kustomize`, and mikefarah `yq` 3.4.1 (using its v3 command syntax); `manifests/kustomize/hack/presubmit.sh` already installs the pinned `kustomize` and `yq` versions. Keep coverage for CI's preloaded initializer image and OpenShift's namespace-assigned UID policy when changing these manifests.
+
 ## Common CI failures
 
 - SDK imports are checked by isort 5.10.1 in both lanes: `sdk/python/requirements-dev.txt` for the SDK presubmit, and the pre-commit hook's `additional_dependencies`. Keep the two pinned together; a newer pre-commit hook wraps long imports differently and conflicts with the SDK formatter.
