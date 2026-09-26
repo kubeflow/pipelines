@@ -30,33 +30,30 @@ class DevEnvTest(unittest.TestCase):
             self.assertNotIn('\t', dev_env._command_string[command])
             self.assertNotIn('\n', dev_env._command_string[command])
 
-    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-    def test_dev_env_configuration(self, mock_executor_response):
+    @mock.patch.object(utility, 'execute_command', autospec=True)
+    def test_dev_env_configuration(self, mock_execute_command):
         """Tests dev_env command execution."""
         dev_env.get_dev_env_configuration(dev_env.Commands.PIP3_LIST)
-        mock_executor_response().execute_command.assert_called_with(
+        mock_execute_command.assert_called_with(
             ['pip3', 'list', '--format', 'json'])
 
-    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-    def test_dev_env_configuration_human_readable(self, mock_executor_response):
+    @mock.patch.object(utility, 'execute_command', autospec=True)
+    def test_dev_env_configuration_human_readable(self, mock_execute_command):
         """Tests dev_env command execution."""
         dev_env.get_dev_env_configuration(
             dev_env.Commands.PIP3_LIST, human_readable=True)
-        mock_executor_response().execute_command.assert_called_with(
-            ['pip3', 'list'])
+        mock_execute_command.assert_called_with(['pip3', 'list'])
 
-    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-    def test_dev_env_configuration_version(self, mock_executor_response):
+    @mock.patch.object(utility, 'execute_command', autospec=True)
+    def test_dev_env_configuration_version(self, mock_execute_command):
         """Tests dev_env command execution."""
         # human readable = false should not set format flag for version calls
         dev_env.get_dev_env_configuration(
             dev_env.Commands.PIP3_VERSION, human_readable=False)
-        mock_executor_response().execute_command.assert_called_with(
-            ['pip3', '-V'])
+        mock_execute_command.assert_called_with(['pip3', '-V'])
         dev_env.get_dev_env_configuration(
             dev_env.Commands.PYHYON3_PIP_VERSION, human_readable=False)
-        mock_executor_response().execute_command.assert_called_with(
-            ['python3', '-m', 'pip', '-V'])
+        mock_execute_command.assert_called_with(['python3', '-m', 'pip', '-V'])
 
 
 if __name__ == '__main__':
