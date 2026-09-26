@@ -116,7 +116,18 @@ jobs:
           ref: refs/heads/${{ github.event.repository.default_branch }}
           persist-credentials: false
 
+      - name: Set up trusted workflow inventory parser
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install trusted workflow parser dependencies
+        run: python -m pip install -r .github/scripts/requirements.txt
+
       - name: Resolve PR and verify expected CI workflows
+        # Invalidate earlier success even when parser setup failed. The poll
+        # still requires successful prerequisite steps before it can run.
+        if: always() && !cancelled()
         env:
           CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}
           CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}

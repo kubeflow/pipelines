@@ -18,11 +18,53 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import sys
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / '.github/resources/ci-workflow-inventory.json'
+
+
+class UniqueKeyLoader(yaml.SafeLoader):
+    """Reject ambiguous workflow mappings, including merge overrides."""
+
+    def construct_mapping(self, node, deep=False):
+        self.flatten_mapping(node)
+        keys = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in keys:
+                raise ValueError(f'Duplicate workflow key: {key}')
+            keys.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
+def literal_bool(loader, node):
+    """Keep YAML 1.1 words such as off/no from becoming a literal false."""
+    if node.value == 'false':
+        return False
+    if node.value == 'true':
+        return True
+    return node.value
+
+
+UniqueKeyLoader.add_constructor('tag:yaml.org,2002:bool', literal_bool)
+
+
+def upgrade_paused(path, definition):
+    """Recognize only the checked-in whole-workflow pause for #14029."""
+    if path != '.github/workflows/upgrade-test.yml':
+        return False
+    jobs = definition.get('jobs')
+    if not isinstance(jobs, dict) or not jobs:
+        return False
+    for job in jobs.values():
+        condition = job.get('if') if isinstance(job, dict) else None
+        if condition is not False and not (isinstance(condition, str) and
+                                           condition.strip() == '${{ false }}'):
+            return False
+    return True
 
 
 def trigger_header(content):
@@ -48,21 +90,31 @@ def trigger_header(content):
     return '\n'.join(blocks).encode('utf-8')
 
 
-def main():
+def build_inventory(records):
+    """Parse workflow data without executing repository code."""
+    if not isinstance(records, list) or not records:
+        raise ValueError('Workflow records must be a nonempty list')
     workflows = []
-    for path in sorted((ROOT / '.github/workflows').iterdir()):
-        if path.suffix not in ('.yml', '.yaml'):
-            continue
-        content = path.read_bytes()
-        definition = yaml.safe_load(content)
+    seen = set()
+    for record in records:
+        path = record['path']
+        if (not isinstance(path, str) or not re.fullmatch(
+                r'\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml', path) or
+                path in seen):
+            raise ValueError('Invalid or duplicate workflow path')
+        seen.add(path)
+        content = record['content'].encode('utf-8')
+        definition = yaml.load(content, Loader=UniqueKeyLoader)
+        if not isinstance(definition, dict):
+            raise ValueError(f'Invalid workflow definition: {path}')
         header = trigger_header(content)
-        header_definition = yaml.safe_load(header)
+        header_definition = yaml.load(header, Loader=UniqueKeyLoader)
         if (header_definition.get('name') != definition.get('name') or
                 header_definition.get('on', header_definition.get(True))
                 != definition.get('on', definition.get(True))):
             raise ValueError(
                 f'Workflow header extraction is incomplete: {path}')
-        # PyYAML's YAML 1.1 loader interprets unquoted `on` as True.
+        # Preserve support for both quoted and unquoted workflow event keys.
         events = definition.get('on', definition.get(True, {}))
         if isinstance(events, str):
             events = {events: None}
@@ -70,22 +122,50 @@ def main():
             events = {event: None for event in events}
         if not isinstance(events, dict):
             raise ValueError(f'Unsupported workflow trigger: {path}')
-        workflows.append({
+        if not isinstance(definition.get('name'),
+                          str) or not definition['name']:
+            raise ValueError(f'Invalid workflow name: {path}')
+        workflow = {
             'path':
-                path.relative_to(ROOT).as_posix(),
+                path,
             'name':
                 definition['name'],
             'header_sha256':
                 hashlib.sha256(header).hexdigest(),
             'pull_request': (events['pull_request'] or {})
                             if 'pull_request' in events else None,
-        })
-    OUTPUT.write_text(
-        json.dumps({
-            'version': 1,
-            'workflows': workflows
-        }, indent=2) + '\n',
-        encoding='utf-8')
+        }
+        if upgrade_paused(path, definition):
+            workflow['disabled_for_migration'] = True
+        workflows.append(workflow)
+    workflows.sort(key=lambda workflow: workflow['path'])
+    return {'version': 1, 'workflows': workflows}
+
+
+def main():
+    if sys.argv[1:] == ['--stdin']:
+        inventory = build_inventory(json.load(sys.stdin))
+        json.dump(
+            {
+                'inventory':
+                    inventory,
+                'workflowFiles': [{
+                    'path': workflow['path'],
+                    'header_sha256': workflow['header_sha256'],
+                } for workflow in inventory['workflows']],
+            }, sys.stdout)
+    elif not sys.argv[1:]:
+        inventory = build_inventory(
+            [{
+                'path': path.relative_to(ROOT).as_posix(),
+                'content': path.read_text(encoding='utf-8'),
+            }
+             for path in sorted((ROOT / '.github/workflows').iterdir())
+             if path.suffix in ('.yml', '.yaml')])
+        OUTPUT.write_text(
+            json.dumps(inventory, indent=2) + '\n', encoding='utf-8')
+    else:
+        raise ValueError('Expected no arguments or --stdin')
 
 
 if __name__ == '__main__':

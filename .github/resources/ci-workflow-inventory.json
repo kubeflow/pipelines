@@ -695,7 +695,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "disabled_for_migration": true
     },
     {
       "path": ".github/workflows/validate-generated-files.yml",

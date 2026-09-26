@@ -110,8 +110,13 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, invent
   const paths = files.flatMap(file => file.previous_filename ?
     [file.filename, file.previous_filename] : [file.filename]);
   if (paths.some(path => typeof path !== 'string')) throw new Error('Invalid changed-file path');
-  const expected = inventory.workflows.filter(workflow => workflow.pull_request !== null &&
+  const applicableWorkflows = inventory.workflows.filter(workflow => workflow.pull_request !== null &&
     applicable(workflow.pull_request, pullRequest.base.ref, paths));
+  const disabled = applicableWorkflows.filter(workflow =>
+    workflow.path === '.github/workflows/upgrade-test.yml' &&
+    workflow.disabled_for_migration === true)
+    .map(workflow => ({path: workflow.path, reason: 'Upgrade workflow is paused in the trusted base pending #14029'}));
+  const expected = applicableWorkflows.filter(workflow => !disabled.some(item => item.path === workflow.path));
   const reasons = [];
   if (expected.length === 0) reasons.push('No expected PR workflows; CI coverage cannot be established');
   // Fetch one head-scoped snapshot for all lanes, rather than one request
@@ -151,7 +156,71 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, invent
       reasons.push(`${workflow.path}: workflow ran for a different base branch`);
     }
   }
-  return {passed: reasons.length === 0, reasons, expected: expected.map(workflow => workflow.path)};
+  return {passed: reasons.length === 0, reasons, expected: expected.map(workflow => workflow.path), disabled};
+}
+
+async function loadBaseInventory({github, owner, repo, pullRequest, root}) {
+  const base = pullRequest.base;
+  const fullName = `${owner}/${repo}`;
+  if (!/^[0-9a-f]{40}$/.test(base?.sha || '') ||
+      base.repo?.full_name?.toLowerCase() !== fullName.toLowerCase()) {
+    throw new Error('Workflow inventory requires an immutable trusted base repository SHA');
+  }
+  // Read the complete directory in one request. Never check out or execute
+  // anything from the PR or its base: the selected blobs are YAML data only.
+  const result = await github.graphql(`query BaseWorkflows($owner: String!, $repo: String!, $expression: String!) {
+    repository(owner: $owner, name: $repo) {
+      nameWithOwner
+      object(expression: $expression) {
+        __typename
+        ... on Tree { entries { name type mode object {
+          __typename
+          ... on Blob { text byteSize isBinary isTruncated }
+        } } }
+      }
+    }
+  }`, {owner, repo, expression: `${base.sha}:.github/workflows`});
+  const repository = result?.repository;
+  const tree = repository?.object;
+  if (repository?.nameWithOwner?.toLowerCase() !== fullName.toLowerCase() ||
+      tree?.__typename !== 'Tree' || !Array.isArray(tree.entries) ||
+      tree.entries.length === 0 || tree.entries.length >= 1000) {
+    throw new Error('Incomplete trusted base workflow tree');
+  }
+  const names = new Set();
+  const records = [];
+  let totalBytes = 0;
+  for (const entry of tree.entries) {
+    if (typeof entry?.name !== 'string' || !/^[A-Za-z0-9_.-]+$/.test(entry.name) ||
+        ['.', '..'].includes(entry.name) || names.has(entry.name)) {
+      throw new Error('Invalid or duplicate trusted workflow entry');
+    }
+    names.add(entry.name);
+    if (!/\.ya?ml$/.test(entry.name)) continue;
+    const blob = entry.object;
+    if (entry.type !== 'blob' || ![33188, 33261].includes(entry.mode) ||
+        blob?.__typename !== 'Blob' || blob.isBinary !== false || blob.isTruncated !== false ||
+        typeof blob.text !== 'string' || !Number.isSafeInteger(blob.byteSize) ||
+        blob.byteSize < 1 || blob.byteSize > 1024 * 1024 ||
+        Buffer.byteLength(blob.text, 'utf8') !== blob.byteSize) {
+      throw new Error(`Incomplete or invalid trusted workflow blob: ${entry.name}`);
+    }
+    totalBytes += blob.byteSize;
+    if (totalBytes > 8 * 1024 * 1024) throw new Error('Trusted workflow data exceeds size limit');
+    records.push({path: `.github/workflows/${entry.name}`, content: blob.text});
+  }
+  const {spawnSync} = require('node:child_process');
+  const path = require('node:path');
+  const parsed = spawnSync('python3', [path.join(root,
+    '.github/resources/scripts/generate_ci_workflow_inventory.py'), '--stdin'], {
+    input: JSON.stringify(records), encoding: 'utf8', timeout: 30000, maxBuffer: 16 * 1024 * 1024,
+  });
+  if (parsed.error || parsed.status !== 0) {
+    throw new Error(`Cannot parse trusted base workflows: ${parsed.error?.message || parsed.stderr}`);
+  }
+  const inventory = JSON.parse(parsed.stdout);
+  validateInventory(inventory.inventory, inventory.workflowFiles);
+  return inventory;
 }
 
 // Hash just top-level name/on blocks. Dependency bumps within jobs must not
@@ -197,4 +266,4 @@ function loadLocalInventory(root) {
 }
 
 module.exports = {globRegex, matchesPatterns, applicable, validateInventory,
-  verifyExpectedWorkflows, loadLocalInventory, triggerHeader};
+  verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, triggerHeader};
