@@ -337,8 +337,9 @@ class Client:
     def _is_inverse_proxy_host(self, host: str) -> bool:
         # This check authorizes automatic disclosure of Google credentials.
         # Match the parsed authority, never a Google-looking URL path or query.
-        if not host or '\\' in host or any(character.isspace() or ord(
-                character) < 32 or ord(character) == 127 for character in host):
+        if not host or any(char in host for char in '\\?#') or any(
+                character.isspace() or ord(character) < 32 or
+                ord(character) == 127 for character in host):
             return False
         try:
             parsed = urlsplit(host)
@@ -372,15 +373,17 @@ class Client:
                 'namespace': '',
             }
 
-    def _refresh_api_client_token(self) -> None:
-        """Refreshes the existing token associated with the kfp_api_client."""
+    def _refresh_api_client_token(self) -> bool:
+        """Returns whether automatic Google credentials were refreshed."""
         if (not getattr(self, '_uses_gcp_credentials', False) or
                 not self._is_inverse_proxy_host(self._existing_config.host)):
-            return
+            return False
 
         new_token = auth.get_gcp_access_token()
         if new_token:
             self._existing_config.api_key['authorization'] = new_token
+            return True
+        return False
 
     def _get_config_with_default_credentials(
             self, config: kfp_server_api.Configuration
@@ -1431,10 +1434,11 @@ class Client:
                 # then refresh the token
                 if is_valid_token and api_ex.status == 401:
                     logging.info('Access token has expired !!! Refreshing ...')
-                    self._refresh_api_client_token()
-                    continue
-                else:
-                    raise api_ex
+                    if self._refresh_api_client_token():
+                        # Require a successful poll before another refresh.
+                        is_valid_token = False
+                        continue
+                raise
             state = get_run_response.state
             elapsed_time = (datetime.datetime.now() -
                             start_time).total_seconds()

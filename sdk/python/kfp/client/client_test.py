@@ -288,8 +288,9 @@ class TestClient(parameterized.TestCase):
                 Mock(state='succeeded'),
             ]
 
-            with patch.object(self.client, '_refresh_api_client_token'
-                             ) as mock_refresh_api_client_token:
+            with patch.object(
+                    self.client, '_refresh_api_client_token',
+                    return_value=True) as mock_refresh_api_client_token:
                 self.client.wait_for_run_completion(
                     run_id='foo', timeout=1, sleep_duration=0)
                 mock_get_run.assert_called_with(run_id='foo')
@@ -651,8 +652,16 @@ class TestInverseProxyCredentials(parameterized.TestCase):
             with patch.object(
                     auth, 'get_gcp_access_token',
                     return_value='refreshed-token') as get_token:
-                self.sdk_client.wait_for_run_completion(
-                    run_id='test-run', timeout=10, sleep_duration=0)
+                if should_refresh:
+                    self.sdk_client.wait_for_run_completion(
+                        run_id='test-run', timeout=10, sleep_duration=0)
+                else:
+                    with self.assertRaises(
+                            kfp_server_api.ApiException) as error:
+                        self.sdk_client.wait_for_run_completion(
+                            run_id='test-run', timeout=10, sleep_duration=0)
+                    self.assertEqual(error.exception.status, 401)
+                    self.assertLen(headers_seen, 2)
         if should_refresh:
             get_token.assert_called_once_with()
             self.assertEqual(headers_seen[-1]['authorization'],
@@ -660,6 +669,31 @@ class TestInverseProxyCredentials(parameterized.TestCase):
         else:
             get_token.assert_not_called()
             self.assertEqual(headers_seen[-1], headers_seen[0])
+
+    @parameterized.parameters(None, '', 'refreshed-token')
+    def test_polling_stops_when_refresh_cannot_recover(self, refreshed_token):
+        with patch.object(
+                auth, 'get_gcp_access_token', return_value='initial-token'):
+            config = self._load_config('https://abc.googleusercontent.com')
+        self.sdk_client._existing_config = config
+        self.sdk_client._run_api = Mock()
+        unauthorized = kfp_server_api.ApiException(status=401)
+        self.sdk_client._run_api.run_service_get_run.side_effect = [
+            Mock(state='running'), unauthorized, unauthorized
+        ]
+        with patch.object(
+                auth, 'get_gcp_access_token',
+                return_value=refreshed_token) as get_token:
+            with self.assertRaises(kfp_server_api.ApiException) as error:
+                self.sdk_client.wait_for_run_completion(
+                    run_id='test-run', timeout=10, sleep_duration=0)
+        self.assertIs(error.exception, unauthorized)
+        get_token.assert_called_once_with()
+        self.assertEqual(
+            self.sdk_client._run_api.run_service_get_run.call_count,
+            3 if refreshed_token else 2)
+        self.assertEqual(config.api_key['authorization'], refreshed_token or
+                         'initial-token')
 
     def test_refresh_rechecks_endpoint(self):
         with patch.object(
@@ -744,6 +778,8 @@ class TestInverseProxyCredentials(parameterized.TestCase):
         ('http://abc.googleusercontent.com', False),
         ('https://abc.googleusercontent.com?query=value', False),
         ('https://abc.googleusercontent.com#fragment', False),
+        ('https://abc.googleusercontent.com?', False),
+        ('https://abc.googleusercontent.com#', False),
         ('https://attacker.example', False),
     )
     def test_automatic_credentials_only_for_trusted_authority(
