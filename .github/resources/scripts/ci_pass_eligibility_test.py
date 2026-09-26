@@ -28,7 +28,7 @@ def exercise(options=None):
 const gate = require(process.argv[1]);
 const options = JSON.parse(process.argv[2]);
 const root = process.argv[3];
-const calls = [], outputs = {};
+const calls = [], outputs = {}, descriptions = [];
 let pr = {
   number: 7, state: 'open', changed_files: 1,
   head: {sha: 'head', ref: 'feature', repo: {full_name: 'contributor/pipelines'}},
@@ -58,10 +58,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
 `;
-  return {repository: {nameWithOwner: 'kubeflow/pipelines', object: {__typename: 'Tree', entries: [
-    {name: 'frontend.yml', type: 'blob', mode: 33188, object: {__typename: 'Blob',
-      text: content, byteSize: Buffer.byteLength(content), isBinary: false, isTruncated: false}},
-  ]}}};
+  const definitions = [{name: 'frontend.yml', content}];
+  if (options.upgradePolicy) definitions.push({name: 'upgrade-test.yml', content:
+    content + (options.upgradePolicy === 'paused' ? '    if: false\n' : '')});
+  return {repository: {nameWithOwner: 'kubeflow/pipelines', object: {__typename: 'Tree',
+    entries: definitions.map(({name, content}) => ({name, type: 'blob', mode: 33188,
+      object: {__typename: 'Blob', text: content, byteSize: Buffer.byteLength(content),
+        isBinary: false, isTruncated: false}}))}}};
 }, rest: {
   pulls: {listFiles: methods.files, list: methods.pulls,
     get: async () => ({data: structuredClone(pr)})},
@@ -71,6 +74,7 @@ jobs:
     removeLabel: async request => {calls.push(['remove-label', request.name]);}},
   repos: {getCombinedStatusForRef: {}, createCommitStatus: async request => {
     status = request.state;
+    descriptions.push(request.description);
     calls.push(['status', request.state, request.sha]);
     if (request.state === 'success') {
       published = true;
@@ -114,7 +118,7 @@ github.paginate.iterator = async function* () {
       pollPassed: outputs.ready === 'true' && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
   } catch (e) {error = e.message;}
   }
-  console.log(JSON.stringify({calls, outputs, error, status}));
+  console.log(JSON.stringify({calls, outputs, error, status, descriptions}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run([
@@ -174,18 +178,21 @@ console.log(JSON.stringify(result));
         self.assertEqual(result['outputs']['ready'], 'false')
         self.assert_last_status(result, 'failure')
 
-    def test_recovery_discovery_skips_green_and_ineligible_prs(self):
+    def test_recovery_revisits_legacy_and_changed_base_success(self):
         script = r"""
 const {recoveryCandidates} = require(process.argv[1]);
 const requests = [];
-const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked'].map((state, i) => ({
-  number: i + 1, head: {sha: state}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
+const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked', 'stale-success', 'legacy-success', 'retarget-success'].map((state, i) => ({
+  number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
   labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: 'NONE',
 }));
 const github = {paginate: async () => prs, rest: {pulls: {list: {}}, repos: {
   getCombinedStatusForRef: async ({ref}) => {
     requests.push(ref);
-    return {data: {statuses: ref === 'missing' ? [] : [{context: 'ci-passed', state: ref}]}};
+    const state = ref.endsWith('success') ? 'success' : ref;
+    const description = ref === 'legacy-success' ? 'Expected CI and all checks passed for this head.' :
+      ref === 'stale-success' ? 'Expected CI and all checks passed; base policy f5b15f0f51bf0e3cbf5297bbe7629a426d5320f3955fbeb78d2de0c60e0e19a8.' : ref === 'retarget-success' ? 'Expected CI and all checks passed; base policy 3088c340a17fbd230c03d711b568e0962de9b3aa3565c6ab227bd0638dae905e.' : 'Expected CI and all checks passed; base policy bf60a45a7f48d31d1cf806d3517d6cc8d24985621eaf55baea8599faee6e508c.';
+    return {data: {statuses: ref === 'missing' ? [] : [{context: 'ci-passed', state, description}]}};
   },
 }}};
 github.paginate.iterator = async function* (method, params) {
@@ -211,9 +218,42 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
         }, {
             'number': 4,
             'head': 'missing'
+        }, {
+            'number': 7,
+            'head': 'stale-success'
+        }, {
+            'number': 8,
+            'head': 'legacy-success'
+        }, {
+            'number': 9,
+            'head': 'retarget-success'
         }])
-        self.assertEqual(actual['requests'],
-                         ['success', 'failure', 'pending', 'missing'])
+        self.assertEqual(actual['requests'], [
+            'success', 'failure', 'pending', 'missing', 'stale-success',
+            'legacy-success', 'retarget-success'
+        ])
+
+    def test_success_records_the_validated_base_policy(self):
+        result = exercise()
+        self.assert_last_status(result, 'success')
+        self.assertEqual(
+            result['descriptions'][-1],
+            'Expected CI and all checks passed; base policy bf60a45a7f48d31d1cf806d3517d6cc8d24985621eaf55baea8599faee6e508c.'
+        )
+
+    def test_green_recovery_requires_newly_enabled_upgrade_workflow(self):
+        for policy, expected in [('paused', 'success'), ('enabled', 'failure')]:
+            with self.subTest(policy=policy):
+                result = exercise({
+                    'schedule': True,
+                    'initialStatus': 'success',
+                    'upgradePolicy': policy,
+                })
+                self.assert_last_status(result, expected)
+                if policy == 'enabled':
+                    self.assertEqual(result['outputs']['ready'], 'false')
+                    self.assertNotIn(['status', 'success', 'head'],
+                                     result['calls'])
 
     def test_external_check_finishing_after_final_workflow_recovers(self):
         self.assert_last_status(

@@ -90,8 +90,6 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      CI_ENABLE_MLMD_UPGRADE_TESTS: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS }}
     permissions:
       actions: read
       checks: read

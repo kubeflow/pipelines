@@ -40,6 +40,14 @@ async function currentStatus(github, context, head) {
   return null;
 }
 
+function successDescription(pr) {
+  // Bind green evidence to the exact checked-in workflow policy. Legacy
+  // statuses and statuses from another base must be reconsidered by recovery.
+  const stamp = require('node:crypto').createHash('sha256')
+    .update(JSON.stringify([pr.base.ref, pr.base.sha])).digest('hex');
+  return `Expected CI and all checks passed; base policy ${stamp}.`;
+}
+
 async function recoveryCandidates({github, context}) {
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', per_page: 100,
@@ -47,9 +55,10 @@ async function recoveryCandidates({github, context}) {
   const candidates = [];
   for (const pr of prs) {
     if (!eligible(pr)) continue;
-    // Only recovery needs a timer. Event-driven reconciliation invalidates
-    // existing success; avoid allocating a runner for every green PR.
-    if ((await currentStatus(github, context, pr.head.sha))?.state === 'success') continue;
+    // Revisit green heads when their trusted base policy changes, including
+    // statuses published before base-policy stamps were introduced.
+    const status = await currentStatus(github, context, pr.head.sha);
+    if (status?.state === 'success' && status.description === successDescription(pr)) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -179,7 +188,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
       if (!passed) reason = result.reasons.join('; ');
     }
     await publish(github, context, original, passed ? 'success' : 'failure',
-      passed ? 'Expected CI and all checks passed for this head.' : reason);
+      passed ? successDescription(pr) : reason);
     // Status/label writes are not atomic with PR updates. Re-read the full
     // state and durable base history, and undo success when either drifted.
     if (passed) {

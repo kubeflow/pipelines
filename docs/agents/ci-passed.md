@@ -52,15 +52,24 @@ and changes to the PR snapshot block success. Inventory checks operate at workfl
 level; individual jobs and matrix conditions remain the responsibility of each
 workflow and the discovered-check poller.
 
-The sole optional lane is `.github/workflows/upgrade-test.yml` when every job has
-the exact `vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true'` opt-in guard. The publisher
-omits that lane only when the trusted repository variable is not `true`, and records
-it as disabled in its evidence. Enabling the variable requires a successful run.
-An unguarded release-branch lane, a different guard, and every other workflow still
-require success; a `skipped` conclusion does not satisfy an expected workflow.
+The sole paused lane is `.github/workflows/upgrade-test.yml` when every job has
+an explicit checked-in `if: false` or `if: ${{ false }}` condition. The publisher
+reports this pause in its evidence. The workflow is paused pending #14029;
+re-enabling it requires a reviewed change that removes the pause guards and
+updates the inventory. There is no repository-variable override. Other guards,
+mixed enabled/disabled jobs, and all other workflows still require success;
+a `skipped` conclusion does not satisfy an expected workflow.
 
-When changing workflow names, event triggers, or the recognized upgrade opt-in
-guards, regenerate the inventory:
+This policy belongs to the PR's immutable base SHA. After the enabling change
+merges, update PR branches to include that base policy and trigger fresh upgrade
+coverage. A successful status records a bounded fingerprint of its validated
+base branch and SHA. Scheduled recovery revisits older successes without that
+stamp and successes for a different base branch or SHA; publication also rechecks
+the base before and after writing success. Branch
+protection must continue to require an up-to-date base as described above.
+
+When changing workflow names, event triggers, or the checked-in upgrade pause,
+regenerate the inventory:
 
 ```bash
 # Requires PyYAML (pinned in .github/scripts/requirements.txt).
@@ -80,9 +89,11 @@ If any expected workflow does not run, inspect its trigger and approval state.
 ## External-check recovery
 
 A scheduled sweep every 15 minutes selects eligible open PRs without a successful
-`ci-passed` status and runs the same reconciler for each captured number/head
-pair, with at most four jobs running in parallel. Green PRs rely on the existing
-event-driven invalidation path and do not allocate recovery runners.
+`ci-passed` status for their current base branch and SHA, and runs the same reconciler for
+each captured number/head pair, with at most four jobs running in parallel.
+Successes from a different base, or legacy successes without a base stamp, are
+revalidated. Green PRs with a matching base stamp rely on event-driven
+invalidation and do not allocate recovery runners.
 Each job holds the same SHA-scoped writer lock as event-driven reconciliation
 only while checking and publishing; no sleep or long poll holds that lock.
 A late external check such as DCO can therefore recover after the final

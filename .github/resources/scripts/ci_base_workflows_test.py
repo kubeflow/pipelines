@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Exercise trusted base workflow loading and the bounded upgrade opt-in."""
+"""Exercise trusted base workflow loading and the checked-in upgrade pause."""
 
 import copy
 import json
@@ -71,7 +71,6 @@ def tree(workflows):
 
 def exercise(workflows=None,
              response=None,
-             enabled='',
              missing=None,
              skipped=None,
              base=None):
@@ -80,8 +79,6 @@ def exercise(workflows=None,
     fixture = {
         'response':
             response,
-        'enabled':
-            enabled,
         'missing':
             missing or [],
         'skipped':
@@ -118,7 +115,7 @@ const github = {
     const inventory = await gate.loadBaseInventory({github, owner: 'kubeflow', repo: 'pipelines',
       pullRequest: pr, root});
     const result = await gate.verifyExpectedWorkflows({github, owner: 'kubeflow', repo: 'pipelines',
-      pullRequest: pr, ...inventory, enableMlmdUpgradeTests: fixture.enabled});
+      pullRequest: pr, ...inventory});
     console.log(JSON.stringify({...result, inventory: inventory.inventory, requests}));
   } catch (error) {console.log(JSON.stringify({error: error.message, requests}));}
 })();
@@ -277,37 +274,32 @@ class BaseWorkflowsTest(unittest.TestCase):
             with self.subTest(content=content):
                 self.assertIn('error', exercise({'frontend.yml': content}))
 
-    def test_disabled_exact_whole_upgrade_workflow_is_disclosed(self):
-        workflows = {
-            'frontend.yml':
-                workflow(),
-            'upgrade-test.yml':
-                workflow(
-                    jobs={
+    def test_paused_exact_whole_upgrade_workflow_is_disclosed(self):
+        result = exercise(
+            {
+                'frontend.yml':
+                    workflow(),
+                'upgrade-test.yml':
+                    workflow(jobs={
                         'build': {
-                            'if': '${{ ' + GUARD + ' }}'
+                            'if': False
                         },
                         'test': {
-                            'if': '  ' + GUARD + '  '
+                            'if': '  ${{ false }}  '
                         },
                     }),
-        }
-        for enabled in ['', 'false', 'TRUE']:
-            with self.subTest(enabled=enabled):
-                result = exercise(
-                    workflows, enabled=enabled, skipped=['upgrade-test.yml'])
-                self.assertTrue(result['passed'], result)
-                self.assertEqual(result['expected'],
-                                 ['.github/workflows/frontend.yml'])
-                self.assertEqual(result['disabled'][0]['path'],
-                                 '.github/workflows/upgrade-test.yml')
-        result = exercise(
-            workflows, enabled='true', skipped=['upgrade-test.yml'])
-        self.assertFalse(result['passed'])
-        self.assertEqual(result['disabled'], [])
-        self.assertTrue(exercise(workflows, enabled='true')['passed'])
+            },
+            skipped=['upgrade-test.yml'])
+        self.assertTrue(result['passed'], result)
+        self.assertEqual(result['expected'], ['.github/workflows/frontend.yml'])
+        self.assertEqual(result['disabled'], [{
+            'path':
+                '.github/workflows/upgrade-test.yml',
+            'reason':
+                'Upgrade workflow is paused in the trusted base pending #14029',
+        }])
 
-    def test_unguarded_mixed_or_unrecognized_upgrade_jobs_remain_required(self):
+    def test_variable_mixed_unrecognized_or_enabled_jobs_remain_required(self):
         for jobs in [
             {
                 'test': {
@@ -315,8 +307,26 @@ class BaseWorkflowsTest(unittest.TestCase):
                 }
             },
             {
-                'build': {
+                'test': {
+                    'if': '${{ ' + GUARD + ' }}'
+                }
+            },
+            {
+                'test': {
                     'if': GUARD
+                }
+            },
+            {
+                'build': {
+                    'if': False
+                },
+                'test': {
+                    'if': GUARD
+                }
+            },
+            {
+                'build': {
+                    'if': False
                 },
                 'test': {
                     'runs-on': 'ubuntu-latest'
@@ -324,41 +334,98 @@ class BaseWorkflowsTest(unittest.TestCase):
             },
             {
                 'test': {
-                    'if': GUARD + ' || true'
+                    'if': '${{ false || true }}'
                 }
             },
             {
                 'test': {
-                    'if': False
+                    'if': True
+                }
+            },
+            {
+                'test': {
+                    'if': '${{ true }}'
+                }
+            },
+            {
+                'test': {
+                    'if': 'false'
                 }
             },
         ]:
             with self.subTest(jobs=jobs):
+                workflows = {
+                    'frontend.yml': workflow(),
+                    'upgrade-test.yml': workflow(jobs=jobs)
+                }
+                result = exercise(workflows, skipped=['upgrade-test.yml'])
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['disabled'], [])
+                self.assertTrue(exercise(workflows)['passed'])
+
+    def test_yaml_11_false_words_do_not_disable_workflow(self):
+        for value in ['off', 'no', 'FALSE', 'False', '0']:
+            with self.subTest(value=value):
+                content = 'name: Upgrade\non: pull_request\njobs:\n  test:\n    if: ' + value + '\n'
                 result = exercise(
                     {
                         'frontend.yml': workflow(),
-                        'upgrade-test.yml': workflow(jobs=jobs)
+                        'upgrade-test.yml': content
                     },
                     skipped=['upgrade-test.yml'])
                 self.assertFalse(result['passed'])
                 self.assertEqual(result['disabled'], [])
 
-    def test_same_guard_on_other_workflow_never_omits_requirement(self):
-        result = exercise(
-            {'frontend.yml': workflow(jobs={'test': {
-                'if': GUARD
-            }})},
-            skipped=['frontend.yml'])
-        self.assertFalse(result['passed'])
-        self.assertEqual(result['disabled'], [])
+    def test_false_guard_on_other_workflow_never_omits_requirement(self):
+        for condition in [False, '${{ false }}']:
+            with self.subTest(condition=condition):
+                result = exercise(
+                    {
+                        'frontend.yml':
+                            workflow(jobs={'test': {
+                                'if': condition
+                            }})
+                    },
+                    skipped=['frontend.yml'])
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['disabled'], [])
+
+    def test_base_policy_transition_recalculates_required_lanes(self):
+        for sha, condition, passed in [
+            ('a' * 40, False, True),
+            ('b' * 40, '${{ true }}', False),
+            ('c' * 40, '${{ false }}', True),
+        ]:
+            with self.subTest(sha=sha):
+                result = exercise(
+                    {
+                        'frontend.yml':
+                            workflow(),
+                        'upgrade-test.yml':
+                            workflow(jobs={'test': {
+                                'if': condition
+                            }})
+                    },
+                    skipped=['upgrade-test.yml'],
+                    base={
+                        'sha': sha,
+                        'ref': 'master',
+                        'repo': {
+                            'full_name': 'kubeflow/pipelines'
+                        }
+                    })
+                self.assertEqual(result['passed'], passed)
+                self.assertEqual(
+                    result['requests'][0]['variables']['expression'],
+                    sha + ':.github/workflows')
+                self.assertEqual(bool(result['disabled']), passed)
 
     def test_workflow_installs_trusted_parser_and_invalidates_after_setup_failure(
             self):
         definition = yaml.safe_load(
             (ROOT / '.github/workflows/ci-checks.yml').read_text())
         job = definition['jobs']['check_ci_status']
-        self.assertEqual(job['env']['CI_ENABLE_MLMD_UPGRADE_TESTS'],
-                         '${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS }}')
+        self.assertNotIn('CI_ENABLE_MLMD_UPGRADE_TESTS', job.get('env', {}))
         steps = job['steps']
         prepare_index = next(
             i for i, step in enumerate(steps) if step.get('id') == 'prepare')

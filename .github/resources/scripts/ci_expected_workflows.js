@@ -95,7 +95,7 @@ function validateInventory(inventory, workflowFiles) {
 }
 
 async function verifyExpectedWorkflows({github, owner, repo, pullRequest, inventory,
-  workflowFiles, freshAfter = null, enableMlmdUpgradeTests = process.env.CI_ENABLE_MLMD_UPGRADE_TESTS}) {
+  workflowFiles, freshAfter = null}) {
   validateInventory(inventory, workflowFiles);
   const cutoff = freshAfter === null ? null : Date.parse(freshAfter);
   if (cutoff !== null && !Number.isFinite(cutoff)) throw new Error('Invalid CI freshness cutoff');
@@ -114,8 +114,8 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, invent
     applicable(workflow.pull_request, pullRequest.base.ref, paths));
   const disabled = applicableWorkflows.filter(workflow =>
     workflow.path === '.github/workflows/upgrade-test.yml' &&
-    workflow.opt_in_variable === 'KFP_ENABLE_MLMD_UPGRADE_TESTS' && enableMlmdUpgradeTests !== 'true')
-    .map(workflow => ({path: workflow.path, reason: 'KFP_ENABLE_MLMD_UPGRADE_TESTS is not true'}));
+    workflow.disabled_for_migration === true)
+    .map(workflow => ({path: workflow.path, reason: 'Upgrade workflow is paused in the trusted base pending #14029'}));
   const expected = applicableWorkflows.filter(workflow => !disabled.some(item => item.path === workflow.path));
   const reasons = [];
   if (expected.length === 0) reasons.push('No expected PR workflows; CI coverage cannot be established');

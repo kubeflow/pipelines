@@ -40,8 +40,20 @@ class UniqueKeyLoader(yaml.SafeLoader):
         return super().construct_mapping(node, deep=deep)
 
 
-def upgrade_opt_in(path, definition):
-    """Recognize only the repository's whole-workflow MLMD upgrade opt-in."""
+def literal_bool(loader, node):
+    """Keep YAML 1.1 words such as off/no from becoming a literal false."""
+    if node.value == 'false':
+        return False
+    if node.value == 'true':
+        return True
+    return node.value
+
+
+UniqueKeyLoader.add_constructor('tag:yaml.org,2002:bool', literal_bool)
+
+
+def upgrade_paused(path, definition):
+    """Recognize only the checked-in whole-workflow pause for #14029."""
     if path != '.github/workflows/upgrade-test.yml':
         return False
     jobs = definition.get('jobs')
@@ -49,12 +61,8 @@ def upgrade_opt_in(path, definition):
         return False
     for job in jobs.values():
         condition = job.get('if') if isinstance(job, dict) else None
-        if not isinstance(condition, str):
-            return False
-        condition = condition.strip()
-        if condition.startswith('${{') and condition.endswith('}}'):
-            condition = condition[3:-2].strip()
-        if condition != "vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true'":
+        if condition is not False and not (isinstance(condition, str) and
+                                           condition.strip() == '${{ false }}'):
             return False
     return True
 
@@ -106,7 +114,7 @@ def build_inventory(records):
                 != definition.get('on', definition.get(True))):
             raise ValueError(
                 f'Workflow header extraction is incomplete: {path}')
-        # PyYAML's YAML 1.1 loader interprets unquoted `on` as True.
+        # Preserve support for both quoted and unquoted workflow event keys.
         events = definition.get('on', definition.get(True, {}))
         if isinstance(events, str):
             events = {events: None}
@@ -127,8 +135,8 @@ def build_inventory(records):
             'pull_request': (events['pull_request'] or {})
                             if 'pull_request' in events else None,
         }
-        if upgrade_opt_in(path, definition):
-            workflow['opt_in_variable'] = 'KFP_ENABLE_MLMD_UPGRADE_TESTS'
+        if upgrade_paused(path, definition):
+            workflow['disabled_for_migration'] = True
         workflows.append(workflow)
     workflows.sort(key=lambda workflow: workflow['path'])
     return {'version': 1, 'workflows': workflows}
