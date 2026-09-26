@@ -26,7 +26,9 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   applies the same label through `.github/dependabot.yml`, and a 15-minute default-branch reconciliation
   repairs missed events and reflects root approver changes. Dependabot PRs also receive the exclusive
   `project/dependabot-review` label so project views do not depend on manually populated custom fields.
-  The workflow never executes PR-head code.
+  The workflow never executes PR-head code. It reads open PRs with `pull-requests: read`
+  and changes labels with `issues: write`. Root `OWNERS` changes run the CI script
+  tests; parser fixtures define exact expectations without duplicating live membership.
 - `python-syntax.yml` parses every tracked Python file with Python 3.11 grammar without importing it, so syntax errors fail presubmit without creating `__pycache__` directories.
 - `docs.yml` builds the Sphinx documentation site with warnings treated as errors and runs a non-blocking external link check; Read the Docs (`.readthedocs.yml`) handles publishing, not this workflow. Both jobs use the uv CI extra and generate the Python API bindings through `.github/actions/protobuf`. Read the Docs generates Python bindings directly with its system protoc, without Docker.
 - Requirements export checks run from the repository root and compare all four tracked exports. Both CI and release tooling use `uv export --no-hashes`: pip cannot combine hash-checking mode with editable workspace packages. The compatibility job also dry-runs pip resolution of every export in a clean Python 3.11 environment. Run `pip install -r <export>` from the repository root so editable paths resolve correctly; `uv.lock` remains the hashed source of truth for uv users. Release-tool checks use `uv run --with-editable ./release` so they exercise current sources with the release tool's declared dependencies, rather than a cached wheel or the workspace's older Typer.

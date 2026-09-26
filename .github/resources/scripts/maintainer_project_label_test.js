@@ -39,14 +39,12 @@ test("fails closed for a missing or malformed approvers list", () => {
 
 test("parses the repository root OWNERS file", () => {
   const owners = fs.readFileSync(path.join(__dirname, "../../../OWNERS"), "utf8");
-  assert.deepEqual([...parseRootApprovers(owners)], [
-    "chensun",
-    "droctothorpe",
-    "humairak",
-    "jeffspahr",
-    "mprahl",
-    "zazulam",
-  ]);
+  const approvers = parseRootApprovers(owners);
+  assert.ok(approvers.size > 0);
+  for (const login of approvers) {
+    assert.match(login, /^[a-z0-9][a-z0-9-]{0,38}$/);
+    assert.equal(login, login.toLowerCase());
+  }
 });
 
 test("workflow uses a trusted event and least-privilege label permissions", () => {
@@ -56,11 +54,27 @@ test("workflow uses a trusted event and least-privilege label permissions", () =
   );
 
   assert.match(workflow, /pull_request_target:\n    types:\n      - opened\n      - reopened\n      - synchronize/);
-  assert.match(workflow, /permissions:\n  contents: read\n  issues: write/);
+  const permissions = workflow.match(/^permissions:\n((?:  [^\n]+\n)+)/m);
+  assert.ok(permissions, "workflow must declare its token permissions");
+  assert.deepEqual(permissions[1].trim().split("\n").map((line) => line.trim()), [
+    "contents: read",
+    "issues: write",
+    "pull-requests: read",
+  ]);
   assert.match(workflow, /cron: '7,22,37,52 \* \* \* \*'/);
   assert.match(workflow, /uses: actions\/github-script@v9/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
   assert.doesNotMatch(workflow, /pull_request\.head|github\.head_ref/);
+});
+
+test("OWNERS changes run the parser and workflow tests", () => {
+  const workflow = fs.readFileSync(
+    path.join(__dirname, "../../workflows/ci-scripts-tests.yml"),
+    "utf8"
+  );
+  const paths = workflow.match(/^  pull_request:\n    paths:\n((?:      - [^\n]+\n)+)/m);
+  assert.ok(paths, "CI script tests must declare pull-request path filters");
+  assert.match(paths[1], /^      - ['"]?OWNERS['"]?$/m);
 });
 
 test("reconciles maintainer tracking labels", async () => {

@@ -9,6 +9,7 @@ on:
       - master
   pull_request:
     paths:
+      - OWNERS
       - '.github/dependabot.yml'
       - '**/go.mod'
       - '**/package.json'

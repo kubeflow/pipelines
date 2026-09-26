@@ -92,9 +92,10 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bc31e48ec9321281766d03b29eca5637b85a3e5534ef078e632856d8b3e8ab72",
+      "header_sha256": "b4501a53400b2df5e1d8fbf684d5a9c617b4086d859972d819726605b4d928f1",
       "pull_request": {
         "paths": [
+          "OWNERS",
           ".github/dependabot.yml",
           "**/go.mod",
           "**/package.json",
