@@ -225,18 +225,9 @@ func (f *Filter) ValidateKeys(validator func(segment string) error) error {
 // field names (e.g. "name", "display_name") that should use case-insensitive
 // comparison; it may be nil when no fields need this treatment.
 func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string, caseInsensitiveAPIFields map[string]struct{}) error {
+	f.SetCaseInsensitiveFields(keyMap, prefix, caseInsensitiveAPIFields)
 	if prefix != "" {
 		prefix = prefix + "."
-	}
-
-	// Build the case-insensitive key set using qualified column names.
-	if len(caseInsensitiveAPIFields) > 0 {
-		f.caseInsensitiveKeys = make(map[string]struct{})
-		for apiField := range caseInsensitiveAPIFields {
-			if colName, ok := keyMap[apiField]; ok {
-				f.caseInsensitiveKeys[prefix+colName] = struct{}{}
-			}
-		}
 	}
 
 	if err := replaceMapKeys(f.eq, keyMap, prefix); err != nil {
@@ -264,6 +255,26 @@ func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string, caseInsens
 		return err
 	}
 	return nil
+}
+
+// SetCaseInsensitiveFields rebuilds derived comparison metadata from the server's
+// model definition. Call this when restoring a page-token filter: older tokens
+// omit this metadata, and client-supplied metadata must not choose semantics.
+// Predicate keys are already qualified and are left unchanged.
+func (f *Filter) SetCaseInsensitiveFields(keyMap map[string]string, prefix string, caseInsensitiveAPIFields map[string]struct{}) {
+	if prefix != "" {
+		prefix += "."
+	}
+	f.caseInsensitiveKeys = nil
+	// Build the case-insensitive key set using qualified column names.
+	if len(caseInsensitiveAPIFields) > 0 {
+		f.caseInsensitiveKeys = make(map[string]struct{})
+		for apiField := range caseInsensitiveAPIFields {
+			if colName, ok := keyMap[apiField]; ok {
+				f.caseInsensitiveKeys[prefix+colName] = struct{}{}
+			}
+		}
+	}
 }
 
 // Replaces string keys in a map and adds a prefix.
