@@ -648,7 +648,19 @@ export function getArtifactsHandler({
         buildAttachmentDisposition(transformed ? 'artifact' : keyBaseName),
       );
     };
-    if (!isAllowedResourceName(bucket)) {
+    const isHttpArtifact = source === 'http' || source === 'https';
+    if (isHttpArtifact && !http.baseUrl.trim()) {
+      sendArtifactError(
+        res,
+        400,
+        'HTTP artifact base URL is not configured. Set HTTP_BASE_URL to an approved artifact base.',
+      );
+      return;
+    }
+    // In absolute HTTP-base mode the UI's "bucket" is the URI authority,
+    // not a Kubernetes resource name. getHttpUrl validates it against the base.
+    const absoluteHttpBase = isHttpArtifact && http.baseUrl.includes('://');
+    if (!absoluteHttpBase && !isAllowedResourceName(bucket)) {
       sendArtifactError(res, 500, 'Invalid bucket name');
       return;
     }
@@ -834,13 +846,19 @@ export function getArtifactsHandler({
           sendArtifactError(
             res,
             400,
-            http.baseUrl.trim()
-              ? 'Invalid HTTP artifact path'
-              : 'HTTP artifact base URL is not configured',
+            absoluteHttpBase
+              ? 'Invalid HTTP artifact URL. Check HTTP_BASE_URL and the artifact origin/path.'
+              : 'Invalid HTTP artifact path',
           );
           return;
         }
-        await getHttpArtifactsHandler(allowedDomain, httpUrl, http.auth, peek)(req, res);
+        await getHttpArtifactsHandler(
+          allowedDomain,
+          httpUrl,
+          http.auth,
+          peek,
+          absoluteHttpBase ? new URL(http.baseUrl.trim()) : undefined,
+        )(req, res);
         break;
       }
       case 'volume':
@@ -1026,7 +1044,8 @@ function parsePeekValue(value: string | undefined): number {
 }
 
 /**
- * Returns the http/https url to retrieve a kfp artifact (of the form: `${source}://${baseUrl}${bucket}/${key}`)
+ * Resolve an HTTP artifact within an absolute approved base, or preserve the
+ * scheme-less gateway layout `${source}://${baseUrl}/${bucket}/${key}`.
  * @param source "http" or "https".
  * @param baseUrl string to prefix the url.
  * @param bucket name of the bucket.
@@ -1039,26 +1058,70 @@ function getHttpUrl(
   key: string,
   keyEncoding: 'storage' | 'uri' = 'storage',
 ) {
-  const configuredBaseUrl = baseUrl.trim().replace(/^\/+/, '');
+  const configuredBaseUrl = baseUrl.includes('://')
+    ? baseUrl.trim()
+    : baseUrl.trim().replace(/^\/+/, '');
   if (!configuredBaseUrl) {
     return undefined;
   }
   try {
-    const artifactUrl = new URL(`${source}://${configuredBaseUrl}`);
+    const absoluteBase = configuredBaseUrl.includes('://');
+    const base = new URL(absoluteBase ? configuredBaseUrl : `${source}://${configuredBaseUrl}`);
+    if (
+      !['http:', 'https:'].includes(base.protocol) ||
+      base.username ||
+      base.password ||
+      base.search ||
+      base.hash
+    ) {
+      return undefined;
+    }
     const storageKey = keyEncoding === 'uri' ? decodeURIComponent(key) : key;
     const safeKey = applyArtifactPathPolicy(storageKey, ARTIFACT_PATH_POLICIES.http);
     if (safeKey === undefined) {
       return undefined;
     }
     const escapedKey = keyEncoding === 'uri' ? key : safeKey.replace(/%/g, '%25');
-    artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
-      .filter(Boolean)
-      .join('/');
+    let artifactUrl: URL;
+    if (absoluteBase) {
+      // Reject authority delimiters before URL normalization can hide them.
+      if (/[\\/?#@\s]/.test(bucket)) {
+        return undefined;
+      }
+      artifactUrl = new URL(`${source}://${bucket}/`);
+      artifactUrl.pathname = `/${escapedKey}`;
+      if (!isWithinHttpArtifactBase(artifactUrl, base)) {
+        return undefined;
+      }
+    } else {
+      artifactUrl = base;
+      artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
+        .filter(Boolean)
+        .join('/');
+    }
     artifactUrl.search = '';
     artifactUrl.hash = '';
     return artifactUrl.toString();
   } catch {
     return undefined;
+  }
+}
+
+// Decode once for the boundary comparison, matching the HTTP key policy.
+// Keep the original escaped path for fetching so encoded filename data survives.
+function isWithinHttpArtifactBase(url: URL, base: URL): boolean {
+  try {
+    const path = decodeURIComponent(url.pathname);
+    const prefix = decodeURIComponent(base.pathname).replace(/\/+$/, '');
+    return (
+      url.origin === base.origin &&
+      !url.username &&
+      !url.password &&
+      applyArtifactPathPolicy(path, ARTIFACT_PATH_POLICIES.http) !== undefined &&
+      (path === prefix || path.startsWith(`${prefix}/`))
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -1070,6 +1133,7 @@ function getHttpArtifactsHandler(
     defaultValue: string;
   } = { key: '', defaultValue: '' },
   peek: number = 0,
+  approvedBase?: URL,
 ) {
   return async (req: Request, res: Response) => {
     const headers: Record<string, string> = {};
@@ -1095,6 +1159,14 @@ function getHttpArtifactsHandler(
       const allowedUrl = parseAllowedHttpArtifactUrl(currentUrl, allowedDomain);
       if (!allowedUrl) {
         sendArtifactError(res, 500, 'Domain not allowed.');
+        return;
+      }
+      if (approvedBase && !isWithinHttpArtifactBase(new URL(allowedUrl), approvedBase)) {
+        sendArtifactError(
+          res,
+          400,
+          'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.',
+        );
         return;
       }
       if (new URL(allowedUrl).origin !== credentialOrigin) {

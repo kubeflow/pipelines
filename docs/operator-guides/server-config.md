@@ -105,6 +105,12 @@ in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/bl
 
 ### Artifact storage endpoint allowlist
 
+For S3-compatible storage, `ALLOWED_ARTIFACT_ENDPOINTS` lists additional exact
+trusted origins; a permissive domain regex alone does not authorize a custom
+storage origin. See the [custom S3 upgrade example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
+for ConfigMap, profile-proxy rollout, alias, and archived-log credential guidance.
+HTTP artifact bases use the separate setting described below.
+
 You can configure `ALLOWED_ARTIFACT_DOMAIN_REGEX` to allowlist object storage endpoint
 that your frontend server will fetch artifacts from. If the domain that frontend server
 tries to fetch does not match the regular expression defined in
@@ -124,6 +130,66 @@ To configure the `ALLOWED_ARTIFACT_DOMAIN_REGEX` value for user namespace, add a
 just like this example in [sync.py](https://github.com/kubeflow/pipelines/blob/b630d5c8ae7559be0011e67f01e3aec1946ef765/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py#L304-L310) for `ALLOWED_ARTIFACT_DOMAIN_REGEX` environment variable,
 the entry is identical to the environment variable instruction in Standalone Kubeflow Pipelines
 deployment.
+
+### HTTP artifact migration for 2.18
+
+For an existing artifact URI such as
+`https://files.example:9443/reports/result.json`, configure a fully qualified
+approved base on the frontend server:
+
+```yaml
+# Merge into the existing ConfigMap; preserve its other keys.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-install-config
+  namespace: kubeflow
+data:
+  HTTP_BASE_URL: "https://files.example:9443/reports/"
+```
+
+The server retrieves the original URI without appending the hostname or
+`reports/` a second time. Existing artifact URIs do not need rewriting. In this
+form, the request's scheme, host, and effective port must match the configured
+origin, and its path must stay within the configured path boundary. For example,
+`/reports-other/file` and `/private/file` are outside `/reports/`. Redirects must
+remain in the same approved origin/path and also pass
+`ALLOWED_ARTIFACT_DOMAIN_REGEX`. Use a common approved path prefix if your storage
+server redirects into a different download directory. Do not widen the boundary
+to destinations that should not receive artifact requests or configured HTTP
+credentials.
+
+A fully qualified base cannot contain credentials, a query, or a fragment.
+Configure supported HTTP authentication through `HTTP_AUTHORIZATION_KEY` and
+`HTTP_AUTHORIZATION_DEFAULT_VALUE` on the serving process, rather than embedding
+credentials in the URL. The installation configuration propagates the base URL,
+not authentication credentials. Query-bearing signed URLs are not a replacement
+for the supported artifact path/authentication configuration.
+
+The existing **scheme-less gateway form remains supported**:
+`HTTP_BASE_URL=gateway.example/artifacts/`, with an HTTP artifact request for
+logical bucket `dataset` and key `result.json`, still fetches
+`http://gateway.example/artifacts/dataset/result.json` (or HTTPS when requested).
+Keep that form if you intentionally use gateway bucket/path mapping. Adding a
+scheme selects the original-URI behavior above; it is not a cosmetic change to a
+gateway setting. Neither form permits fetching an arbitrary request-selected
+host with an unset base.
+
+The base is read at process startup. After applying the ConfigMap, restart
+`ml-pipeline-ui`. In the standard multi-user installation, also restart
+`kubeflow-pipelines-profile-controller`, wait for profile reconciliation, and
+verify that each `ml-pipeline-ui-artifact` Deployment has the new `HTTP_BASE_URL`
+and completes its rollout. The profile proxies perform the outbound fetch, so
+setting only the shared UI's environment is insufficient. Preserve the setting
+in your installation manifests for later upgrades.
+
+Test an existing artifact preview and download after rollout. A missing base
+returns HTTP 400 naming `HTTP_BASE_URL`; an invalid base, mismatched origin/path,
+or out-of-base redirect also returns HTTP 400 without fetching the disallowed
+destination. Domain-regex rejection remains an additional restriction. Endpoint
+configuration does not bypass namespace authorization or artifact ownership
+checks. Artifact responses remain attachments, and HTTP archive bytes remain
+unextracted.
 
 ### TensorBoard proxy signing secret
 

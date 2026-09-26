@@ -161,6 +161,24 @@ def test_sync_server_without_pipeline_enabled(sync_server):
     assert post_sync(sync_server, {}, {}) == {"status": {}, "attachments": []}
 
 
+def test_http_base_url_default_and_override():
+    with mock.patch.dict(os.environ, ENV_BASE, clear=True):
+        assert get_settings_from_env()["http_base_url"] == ""
+
+    with mock.patch.dict(
+            os.environ, {
+                "KFP_VERSION": KFP_VERSION,
+                "HTTP_BASE_URL": "https://artifacts.example.com/pipelines/",
+            },
+            clear=True):
+        assert get_settings_from_env()["http_base_url"] == \
+            "https://artifacts.example.com/pipelines/"
+        assert get_settings_from_env(http_base_url="")["http_base_url"] == ""
+        assert get_settings_from_env(
+            http_base_url="https://other.example.com/prefix")["http_base_url"] == \
+            "https://other.example.com/prefix"
+
+
 def test_allowed_gcs_universe_domains_default_and_override():
     with mock.patch.dict(os.environ, ENV_BASE, clear=True):
         assert get_settings_from_env(
@@ -179,6 +197,8 @@ def test_allowed_gcs_universe_domains_default_and_override():
 @pytest.mark.parametrize(
     "sync_server", [{
         **ENV_IMAGES,
+        "HTTP_BASE_URL":
+            "https://artifacts.example.com:9443/pipelines/",
         "ALLOWED_ARTIFACT_ENDPOINTS":
             "https://objects.example.com:9443",
         "ALLOWED_GCS_UNIVERSE_DOMAINS":
@@ -190,6 +210,10 @@ def test_artifact_proxy_receives_allowed_endpoints(sync_server):
     deployment = next(
         item for item in result["attachments"] if item["kind"] == "Deployment")
     environment = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    assert {
+        "name": "HTTP_BASE_URL",
+        "value": "https://artifacts.example.com:9443/pipelines/",
+    } in environment
     assert {
         "name": "ALLOWED_ARTIFACT_ENDPOINTS",
         "value": "https://objects.example.com:9443",
