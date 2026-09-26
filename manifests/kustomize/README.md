@@ -92,7 +92,12 @@ List only destinations approved to receive storage credentials. A DNS alias is a
 separate origin: the two `store` entries above permit both hostname spellings,
 without trusting other hosts in the namespace. The provider's TLS setting must
 agree with the scheme (for example, `disableSSL: 'false'` for the HTTPS origin).
-Allowlisting does not grant bucket access or configure credentials.
+Allowlisting does not grant bucket access or configure credentials. Authenticated
+multi-user artifact keys must still use `private-artifacts/<namespace>/` (or the
+operator-configured namespace prefix), including through tenant proxies. Configuring
+an endpoint or proxy does not make an existing custom-root object belong to a
+namespace. See [artifact ownership](../../frontend/README.md#multi-user-artifact-ownership)
+for migrating those object paths.
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
 providers require namespace-isolated artifact proxies. Set

@@ -133,7 +133,7 @@ deployment.
 
 ### HTTP artifact migration for 2.18
 
-For an existing artifact URI such as
+For a standalone deployment with an existing artifact URI such as
 `https://files.example:9443/reports/result.json`, configure a fully qualified
 approved base on the frontend server:
 
@@ -176,12 +176,20 @@ gateway setting. Neither form permits fetching an arbitrary request-selected
 host with an unset base.
 
 The base is read at process startup. After applying the ConfigMap, restart
-`ml-pipeline-ui`. In the standard multi-user installation, also restart
+`ml-pipeline-ui`. Authenticated multi-user HTTP requests are fetched by the shared
+UI even when namespace artifact proxies are enabled. Configure any HTTP
+authentication on the shared UI as well. Both the configured base boundary and
+the namespace ownership policy apply: artifact keys and redirects must stay under
+`private-artifacts/<namespace>/` (or the configured namespace prefix). For example,
+use `https://files.example:9443/private-artifacts/` as the base for namespace-scoped
+URIs; the `/reports/` example above applies to standalone deployments.
+
+The installation also propagates the base to profile proxies for their direct
+HTTP serving configuration. To update those processes, restart
 `kubeflow-pipelines-profile-controller`, wait for profile reconciliation, and
-verify that each `ml-pipeline-ui-artifact` Deployment has the new `HTTP_BASE_URL`
-and completes its rollout. The profile proxies perform the outbound fetch, so
-setting only the shared UI's environment is insufficient. Preserve the setting
-in your installation manifests for later upgrades.
+verify the generated `ml-pipeline-ui-artifact` Deployments complete their rollouts.
+This propagation does not change the shared UI's authenticated HTTP serving path.
+Preserve the setting in your installation manifests for later upgrades.
 
 Test an existing artifact preview and download after rollout. A missing base
 returns HTTP 400 naming `HTTP_BASE_URL`; an invalid base, mismatched origin/path,

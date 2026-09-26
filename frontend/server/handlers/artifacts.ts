@@ -867,9 +867,10 @@ export function getArtifactsHandler({
           coordinates.uriKey ? 'uri' : 'storage',
         );
         // Absolute URIs already contain the namespace key; gateway URLs prepend a base/bucket.
-        const httpArtifactRoot = absoluteHttpBase && httpUrl
-          ? new URL('/', httpUrl).toString()
-          : getHttpUrl(source, httpBaseUrl, bucket, '');
+        const httpArtifactRoot =
+          absoluteHttpBase && httpUrl
+            ? new URL('/', httpUrl).toString()
+            : getHttpUrl(source, httpBaseUrl, bucket, '');
         if (!httpUrl || !httpArtifactRoot) {
           sendArtifactError(
             res,
