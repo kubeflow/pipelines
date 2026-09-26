@@ -194,7 +194,7 @@ jobs:
       - name: Set up Python
         uses: ./.github/actions/setup-python-pip-cache
         with:
-          python-version: '3.9'
+          python-version: '3.11'
           cache-scope: readiness-schedules
           cache-dependency-hash: ${{ hashFiles('.github/workflows/upgrade-test.yml') }}
 

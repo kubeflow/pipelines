@@ -39,6 +39,7 @@ on:
       - 'KFP SDK Upgrade Test'
       - 'KFP SDK YAPF Tests'
       - 'KFP upgrade tests'
+      - 'Upgrade readiness tool'
       - 'Validate Generated Files'
     types: [requested, in_progress, completed]
 

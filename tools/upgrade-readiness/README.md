@@ -25,7 +25,7 @@ live lane do not certify the current master target.
 
 ## Run alongside an existing installation
 
-Requires Python 3.9+ and `kubectl` on Linux or macOS. No Python packages, KFP SDK,
+Requires Python 3.11+ and `kubectl` on Linux or macOS. No Python packages, KFP SDK,
 server patch, database access or additional running service are needed.
 
 ```bash
