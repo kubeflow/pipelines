@@ -17,7 +17,13 @@ package component
 import (
 	"context"
 	"fmt"
+	"net"
 	"testing"
+
+	apiclient "github.com/kubeflow/pipelines/backend/src/v2/apiclient"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
@@ -34,6 +40,50 @@ type flakyArtifactTaskMockAPI struct {
 	createArtifactsBulkCalls int
 	createArtifactTaskCalls  int
 	updateTasksBulkCalls     int
+}
+
+type disruptionArtifactService struct {
+	apiv2beta1.UnimplementedArtifactServiceServer
+
+	failCreateArtifactTasks bool
+
+	createArtifactsBulkCalls     int
+	createArtifactTasksBulkCalls int
+}
+
+func (s *disruptionArtifactService) CreateArtifactsBulk(
+	context.Context,
+	*apiv2beta1.CreateArtifactsBulkRequest,
+) (*apiv2beta1.CreateArtifactsBulkResponse, error) {
+	s.createArtifactsBulkCalls++
+	return &apiv2beta1.CreateArtifactsBulkResponse{}, nil
+}
+
+func (s *disruptionArtifactService) CreateArtifactTasksBulk(
+	context.Context,
+	*apiv2beta1.CreateArtifactTasksBulkRequest,
+) (*apiv2beta1.CreateArtifactTasksBulkResponse, error) {
+	s.createArtifactTasksBulkCalls++
+
+	if s.failCreateArtifactTasks {
+		return nil, status.Error(codes.Unavailable, "simulated API disruption")
+	}
+
+	return &apiv2beta1.CreateArtifactTasksBulkResponse{}, nil
+}
+
+type disruptionRunService struct {
+	apiv2beta1.UnimplementedRunServiceServer
+
+	updateTasksBulkCalls int
+}
+
+func (s *disruptionRunService) UpdateTasksBulk(
+	context.Context,
+	*apiv2beta1.UpdateTasksBulkRequest,
+) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+	s.updateTasksBulkCalls++
+	return &apiv2beta1.UpdateTasksBulkResponse{}, nil
 }
 
 func (m *orderingMockAPI) CreateArtifactsBulk(ctx context.Context, req *apiv2beta1.CreateArtifactsBulkRequest) (*apiv2beta1.CreateArtifactsBulkResponse, error) {
@@ -322,4 +372,88 @@ func TestBatchUpdater_GetMetricsAccumulatesAcrossFlushes(t *testing.T) {
 
 	metrics := updater.GetMetrics()
 	require.Equal(t, 2, metrics["actual_task_update_calls"])
+}
+
+func TestBatchUpdater_FlushResumesAfterNativeAPIUnavailable(t *testing.T) {
+	grpcServer := grpc.NewServer()
+
+	artifactService := &disruptionArtifactService{
+		failCreateArtifactTasks: true,
+	}
+	runService := &disruptionRunService{}
+
+	apiv2beta1.RegisterArtifactServiceServer(grpcServer, artifactService)
+	apiv2beta1.RegisterRunServiceServer(grpcServer, runService)
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	go func() {
+		_ = grpcServer.Serve(listener)
+	}()
+
+	t.Cleanup(func() {
+		grpcServer.Stop()
+		_ = listener.Close()
+	})
+
+	client, err := apiclient.New(
+		&apiclient.Config{
+			Endpoint: listener.Addr().String(),
+		},
+		nil,
+	)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = client.Close()
+	})
+
+	api := kfpapi.New(client)
+
+	updater := NewBatchUpdater()
+
+	updater.QueueArtifact(&apiv2beta1.CreateArtifactRequest{
+		RunId:       "run-1",
+		TaskId:      "task-1",
+		ProducerKey: "output",
+		Artifact: &apiv2beta1.Artifact{
+			Name: "artifact-1",
+		},
+	})
+
+	updater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		TaskId:     "task-1",
+		ArtifactId: "artifact-1",
+	})
+
+	updater.QueueTaskUpdate(&apiv2beta1.PipelineTask{
+		TaskId: "task-1",
+		RunId:  "run-1",
+		State:  apiv2beta1.PipelineTask_SUCCEEDED,
+	})
+
+	err = updater.Flush(context.Background(), api)
+	require.Equal(t, codes.Unavailable, status.Code(err))
+
+	require.Equal(t, 1, artifactService.createArtifactsBulkCalls)
+	require.Equal(t, 1, artifactService.createArtifactTasksBulkCalls)
+	require.Equal(t, 0, runService.updateTasksBulkCalls)
+
+	require.Empty(t, updater.artifacts)
+	require.Len(t, updater.artifactTasks, 1)
+	require.Len(t, updater.taskUpdates, 1)
+
+	artifactService.failCreateArtifactTasks = false
+
+	err = updater.Flush(context.Background(), api)
+	require.NoError(t, err)
+
+	require.Equal(t, 1, artifactService.createArtifactsBulkCalls)
+	require.Equal(t, 2, artifactService.createArtifactTasksBulkCalls)
+	require.Equal(t, 1, runService.updateTasksBulkCalls)
+
+	require.Empty(t, updater.artifacts)
+	require.Empty(t, updater.artifactTasks)
+	require.Empty(t, updater.taskUpdates)
 }
