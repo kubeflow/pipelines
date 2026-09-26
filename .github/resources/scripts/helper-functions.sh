@@ -141,9 +141,15 @@ verify_runtime_base_images_in_kind() {
   verify_runtime_base_image() {
     local image=${1%@*}
     local node
+    local inspection
     while IFS= read -r node; do
-      if ! docker exec "$node" crictl inspecti "$image" > /dev/null; then
-        echo "Runtime image $image is missing from $node; rebuild the shared runtime image archive." >&2
+      # ctr import returns before containerd's asynchronous CRI image index
+      # necessarily observes it. Poll local metadata only; never pull here.
+      if ! inspection=$(retry 10 2 docker exec "$node" crictl inspecti "$image" 2>&1); then
+        printf '%s\n' "$inspection" >&2
+        echo "Runtime image $image is missing from $node after 10 checks; inspect the local image stores below and rebuild the shared runtime image archive if incomplete." >&2
+        docker exec "$node" crictl images >&2 || true
+        docker exec "$node" ctr --namespace=k8s.io images ls >&2 || true
         return 1
       fi
     done <<< "$nodes"

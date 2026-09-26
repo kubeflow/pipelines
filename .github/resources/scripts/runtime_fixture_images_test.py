@@ -18,6 +18,7 @@ import ast
 from pathlib import Path
 import re
 import unittest
+from unittest import mock
 
 import yaml
 
@@ -42,6 +43,14 @@ IMAGE_EXCEPTIONS = {
         'Driver-terminal Kubernetes executor, not an image pull.',
     'kfp-dra-sdk:test':
         'Built and loaded into Kind by the DRA E2E job.',
+}
+# Ray creates its own pods outside the KFP executor archive contract. Keep its
+# compatibility-pinned workload external, rather than retagging away its digest.
+EXTERNAL_WORKLOAD_IMAGES = {
+    ('integration/ray_integration.py',
+     'quay.io/modh/ray@sha256:6d076aeb38ab3c34a6a2ef0f58dc667089aa15826fa08a73273c629333e12f1e'
+    ):
+        'CodeFlare integration workload; Ray pods pull this exact digest directly.',
 }
 
 
@@ -118,6 +127,24 @@ def yaml_images(path):
 def python_images(path):
     """Check source literals too, so regeneration cannot undo a preload fix."""
     tree = ast.parse(path.read_text())
+    imports = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imports[alias.asname or alias.name.split('.')[0]] = (
+                    alias.name if alias.asname else alias.name.split('.')[0])
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            for alias in node.names:
+                imports[alias.asname or
+                        alias.name] = f'{node.module}.{alias.name}'
+
+    def qualified_name(node):
+        if isinstance(node, ast.Name):
+            return imports.get(node.id, node.id)
+        if isinstance(node, ast.Attribute):
+            return f'{qualified_name(node.value)}.{node.attr}'
+        return ''
+
     constants = {
         target.id: node.value for node in tree.body
         if isinstance(node, ast.Assign) for target in node.targets
@@ -125,10 +152,11 @@ def python_images(path):
     }
     images = []
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Call) or not isinstance(
-                node.func, ast.Attribute):
+        if not isinstance(node, ast.Call):
             continue
-        if node.func.attr not in ('component', 'ContainerSpec'):
+        if qualified_name(node.func) not in (
+                'kfp.dsl.component', 'kfp.dsl.ContainerSpec',
+                'codeflare_sdk.ray.cluster.ClusterConfiguration'):
             continue
         for keyword in node.keywords:
             if keyword.arg not in ('image', 'base_image'):
@@ -141,6 +169,14 @@ def python_images(path):
                     f'{path}: runtime image must be an inventoried literal')
             images.append(value.value)
     return images
+
+
+def source_coverage_errors(path, images, inventory):
+    fixture = path.relative_to(FIXTURES).as_posix()
+    checked = [(image, None)
+               for image in images
+               if (fixture, image) not in EXTERNAL_WORKLOAD_IMAGES]
+    return coverage_errors(checked, inventory, check_policy=False)
 
 
 def coverage_errors(images, inventory, *, check_policy=True):
@@ -168,6 +204,59 @@ def coverage_errors(images, inventory, *, check_policy=True):
 
 class RuntimeFixtureImagesTest(unittest.TestCase):
 
+    def test_python_image_calls_include_imports_and_aliases(self):
+        sources = [
+            "from kfp.dsl import ContainerSpec\nContainerSpec(image='missing:v1')",
+            "from kfp.dsl import ContainerSpec as Spec\nSpec(image='missing:v1')",
+            "from kfp.dsl import component as comp\ncomp(base_image='missing:v1')",
+            "from kfp import dsl as pipeline\npipeline.ContainerSpec(image='missing:v1')",
+            "import kfp.dsl as pipeline\npipeline.component(base_image='missing:v1')",
+            "import kfp\nkfp.dsl.ContainerSpec(image='missing:v1')",
+            "from codeflare_sdk.ray.cluster import ClusterConfiguration as Config\nConfig(image='missing:v1')",
+            "import codeflare_sdk.ray.cluster as cluster\ncluster.ClusterConfiguration(image='missing:v1')",
+        ]
+        for source in sources:
+            with self.subTest(source=source):
+                with mock.patch.object(Path, 'read_text', return_value=source):
+                    images = python_images(Path('fixture.py'))
+                self.assertEqual(images, ['missing:v1'])
+                self.assertTrue(coverage_errors([(images[0], None)], []))
+
+    def test_ray_workload_is_detected_separately_from_executor(self):
+        images = python_images(FIXTURES / 'integration/ray_integration.py')
+        self.assertEqual(len(images), 2)
+        self.assertTrue(
+            any(
+                image.startswith('quay.io/modh/ray@sha256:')
+                for image in images))
+
+    def test_external_workload_exception_is_fixture_and_digest_specific(self):
+        for (fixture, image), reason in EXTERNAL_WORKLOAD_IMAGES.items():
+            self.assertTrue(reason)
+            path = FIXTURES / fixture
+            self.assertIn(image, python_images(path))
+            self.assertEqual(source_coverage_errors(path, [image], []), [])
+            self.assertTrue(
+                source_coverage_errors(FIXTURES / 'other.py', [image], []))
+            changed = image.split('@')[0] + '@sha256:' + '0' * 64
+            self.assertTrue(source_coverage_errors(path, [changed], []))
+            self.assertTrue(
+                source_coverage_errors(path, [image.split('@')[0] + ':latest'],
+                                       []))
+            # The committed lightweight component contains the same workload.
+            compiled = list(
+                yaml.safe_load_all(
+                    (FIXTURES / 'integration/ray_integration_compiled.yaml'
+                    ).read_text()))[0]
+            command = compiled['deploymentSpec']['executors']['exec-ray-fn'][
+                'container']['command']
+            self.assertTrue(any(image in argument for argument in command))
+
+    def test_unrelated_calls_are_not_treated_as_kfp_images(self):
+        source = "from another_library import ContainerSpec\nContainerSpec(image='not-a-runtime-image')"
+        with mock.patch.object(Path, 'read_text', return_value=source):
+            self.assertEqual(python_images(Path('fixture.py')), [])
+
     def test_inventory_directories_match_runtime_suite_selection(self):
         suite = (ROOT / 'backend/test/end2end/pipeline_e2e_test.go').read_text()
         selected = set(re.findall(r'var pipelineDir = "valid/([^"]+)"', suite))
@@ -187,9 +276,9 @@ class RuntimeFixtureImagesTest(unittest.TestCase):
                     ).read_text().splitlines()
         for path in fixture_paths('.py'):
             with self.subTest(fixture=str(path.relative_to(ROOT))):
-                images = [(image, None) for image in python_images(path)]
+                images = python_images(path)
                 self.assertEqual(
-                    coverage_errors(images, inventory, check_policy=False), [])
+                    source_coverage_errors(path, images, inventory), [])
 
     def test_proxy_fixture_copy_uses_the_same_preloaded_images(self):
         self.assertEqual(

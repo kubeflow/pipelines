@@ -42,6 +42,11 @@ docker() {
     esac
   fi
   if [[ "$1" == exec && "$SCENARIO" == missing ]]; then return 1; fi
+  if [[ "$1" == exec && "$SCENARIO" == delayed ]]; then
+    local count
+    count=$(wc -l < "$COMMANDS")
+    if [[ "$count" -lt 3 ]]; then echo 'image not found' >&2; return 1; fi
+  fi
 }
 sleep() { echo "sleep $1"; }
 kind() {
@@ -146,10 +151,28 @@ kind() {
         ])
 
     def test_missing_loaded_image_fails_setup(self):
-        result, _ = self.run_helper(
+        result, commands = self.run_helper(
             'verify_runtime_base_images_in_kind "$IMAGES" test', 'missing')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('example/image:ci is missing from node1', result.stderr)
+        self.assertEqual(
+            commands[:10],
+            ['docker exec node1 crictl inspecti example/image:ci'] * 10)
+        self.assertEqual(commands[10:], [
+            'docker exec node1 crictl images',
+            'docker exec node1 ctr --namespace=k8s.io images ls',
+        ])
+
+    def test_kind_verification_waits_for_delayed_cri_index_visibility(self):
+        result, commands = self.run_helper(
+            'verify_runtime_base_images_in_kind "$IMAGES" test', 'delayed')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            commands[:3],
+            ['docker exec node1 crictl inspecti example/image:ci'] * 3)
+        self.assertEqual(len(commands), 6)
+        self.assertTrue(
+            all('crictl inspecti' in command for command in commands))
 
     def test_missing_kind_nodes_fail_setup(self):
         result, commands = self.run_helper(
