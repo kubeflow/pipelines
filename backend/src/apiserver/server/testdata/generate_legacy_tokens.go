@@ -107,7 +107,7 @@ func main() {
 		token, err := list.NewOptionsFromToken(f.Token, 10)
 		must(err)
 		f.Matches = token.Matches(o)
-		f.SQL, f.Args, err = token.AddFilterToSelect(token.AddPaginationToSelect(token.AddSortingToSelect(sq.Select("*").From("experiments")))).ToSql()
+		f.SQL, f.Args, err = token.AddFilterToSelect(token.AddPaginationToSelect(sq.Select("*").From("experiments"))).ToSql()
 		must(err)
 	}
 	out, err := json.MarshalIndent(fixtures, "", "  ")
