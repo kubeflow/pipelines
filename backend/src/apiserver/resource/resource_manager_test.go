@@ -265,6 +265,7 @@ func testWorkflowWithoutStatus() *util.Workflow {
 }
 
 type retryDuringTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	manager  *ResourceManager
 	runID    string
 	retryErr error
@@ -288,6 +289,7 @@ func (d *retryDuringTerminalReportDispatcher) PluginsRegistered() bool {
 }
 
 type countingTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunEndCalls int
 }
 
@@ -3516,9 +3518,8 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		DisplayName: "j1",
 		K8SName:     "job-",
 		Namespace:   "ns1",
-		// Since there is no pipeline version or service account specified, the API server will select the service
-		// account when compiling the run, not within the ScheduledWorkflow.
-		ServiceAccount: "",
+		// Persist the effective account authorized when the follow-latest schedule is created.
+		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -7375,6 +7376,9 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 
+	retainedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	retainedWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
+
 	// Pre-create a run as if it was already submitted for this recurring run trigger.
 	// This simulates a race where one replica already persisted the run.
 	preExistingRun := &model.Run{
@@ -7388,7 +7392,7 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			State:                   model.RuntimeStatePending,
-			WorkflowRuntimeManifest: model.LargeText(v2SpecHelloWorld),
+			WorkflowRuntimeManifest: model.LargeText(retainedWorkflow.ToStringForStore()),
 		},
 	}
 	_, err := manager.runStore.CreateRun(preExistingRun)
@@ -7403,7 +7407,7 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 		PipelineSpec:   job.PipelineSpec,
 	}
 	returned, err := manager.CreateRun(context.Background(), duplicateRun)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "pre-existing-run-uuid", returned.UUID, "should return existing run, not create a new one")
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no new Argo Workflow should be submitted")
 }
@@ -7677,6 +7681,7 @@ func TestRetryRun_ExpiredClaimWithoutWorkflowIsTakenOver(t *testing.T) {
 }
 
 type retryHookCountingDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunRetryCalls int
 }
 
