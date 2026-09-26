@@ -1,0 +1,297 @@
+# PIPELINE DEFINITION
+# Name: image-anomaly-detection-pipeline
+# Description: KFP v2 image processing, feature extraction, and anomaly detection pipeline.
+# Inputs:
+#    contamination: float [Default: 0.2]
+#    num_images: int [Default: 20.0]
+#    random_state: int [Default: 42.0]
+#    target_height: int [Default: 224.0]
+#    target_width: int [Default: 224.0]
+components:
+  comp-extract-visual-features:
+    executorLabel: exec-extract-visual-features
+    inputDefinitions:
+      artifacts:
+        raw_images_dir:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        target_height:
+          defaultValue: 224.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        target_width:
+          defaultValue: 224.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        features_dir:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-fetch-image-batch:
+    executorLabel: exec-fetch-image-batch
+    inputDefinitions:
+      parameters:
+        num_images:
+          defaultValue: 20.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        random_state:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        raw_images_dir:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-train-anomaly-detector:
+    executorLabel: exec-train-anomaly-detector
+    inputDefinitions:
+      artifacts:
+        features_dir:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        contamination:
+          defaultValue: 0.2
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        random_state:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+        model_artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-extract-visual-features:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - extract_visual_features
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'numpy' 'pillow'\
+          \ 'pandas'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef extract_visual_features(\n    raw_images_dir: dsl.Input[dsl.Artifact],\n\
+          \    features_dir: dsl.Output[dsl.Artifact],\n    target_width: int = 224,\n\
+          \    target_height: int = 224,\n):\n    \"\"\"Iterates through raw image\
+          \ paths, resizes them to standard dimensions, flattens into structural feature\
+          \ matrices, and outputs directory path.\"\"\"\n    import os\n    import\
+          \ numpy as np\n    import pandas as pd\n    from PIL import Image\n\n  \
+          \  os.makedirs(features_dir.path, exist_ok=True)\n\n    features_list =\
+          \ []\n    filenames = sorted([f for f in os.listdir(raw_images_dir.path)\
+          \ if f.endswith('.png')])\n\n    for fname in filenames:\n        img_path\
+          \ = os.path.join(raw_images_dir.path, fname)\n        with Image.open(img_path)\
+          \ as img:\n            resized_img = img.resize((target_width, target_height))\n\
+          \            arr = np.array(resized_img, dtype=np.float32) / 255.0\n   \
+          \         flattened = arr.flatten()\n            mean_val = float(np.mean(flattened))\n\
+          \            std_val = float(np.std(flattened))\n            max_val = float(np.max(flattened))\n\
+          \            min_val = float(np.min(flattened))\n            row = [mean_val,\
+          \ std_val, max_val, min_val] + flattened[:100].tolist()\n            features_list.append(row)\n\
+          \n    df = pd.DataFrame(features_list)\n    df.to_csv(os.path.join(features_dir.path,\
+          \ 'features.csv'), index=False)\n\n"
+        image: python:3.11
+    exec-fetch-image-batch:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - fetch_image_batch
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'numpy' 'pillow'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef fetch_image_batch(\n    raw_images_dir: dsl.Output[dsl.Artifact],\n\
+          \    num_images: int = 20,\n    random_state: int = 42,\n):\n    \"\"\"\
+          Simulates pulling a compressed batch of image arrays from an object store\
+          \ and unpacking them into a target staging path.\"\"\"\n    import os\n\
+          \    import numpy as np\n    from PIL import Image\n\n    np.random.seed(random_state)\n\
+          \    os.makedirs(raw_images_dir.path, exist_ok=True)\n\n    for i in range(num_images):\n\
+          \        if i % 5 == 0:\n            arr = np.random.randint(200, 256, size=(100,\
+          \ 100, 3), dtype=np.uint8)\n        else:\n            arr = np.random.randint(0,\
+          \ 120, size=(100, 100, 3), dtype=np.uint8)\n\n        img = Image.fromarray(arr)\n\
+          \        img.save(os.path.join(raw_images_dir.path, f'image_{i:03d}.png'))\n\
+          \n"
+        image: python:3.11
+    exec-train-anomaly-detector:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_anomaly_detector
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'numpy' 'pandas'\
+          \ 'scikit-learn' 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_anomaly_detector(\n    features_dir: dsl.Input[dsl.Artifact],\n\
+          \    model_artifact: dsl.Output[dsl.Model],\n    metrics: dsl.Output[dsl.Metrics],\n\
+          \    contamination: float = 0.2,\n    random_state: int = 42,\n):\n    \"\
+          \"\"Loads extracted features to fit an Isolation Forest to detect visual\
+          \ anomalies, logging execution time and anomaly score.\"\"\"\n    import\
+          \ os\n    import time\n    import joblib\n    import numpy as np\n    import\
+          \ pandas as pd\n    from sklearn.ensemble import IsolationForest\n\n   \
+          \ start_time = time.time()\n\n    features_path = os.path.join(features_dir.path,\
+          \ 'features.csv')\n    df = pd.read_csv(features_path)\n\n    clf = IsolationForest(\n\
+          \        contamination=contamination,\n        random_state=random_state,\n\
+          \    )\n    clf.fit(df)\n\n    predictions = clf.predict(df)\n    scores\
+          \ = clf.decision_function(df)\n\n    execution_time = float(time.time()\
+          \ - start_time)\n    num_anomalies = int(np.sum(predictions == -1))\n  \
+          \  mean_anomaly_score = float(np.mean(scores))\n\n    metrics.log_metric('execution_time_seconds',\
+          \ execution_time)\n    metrics.log_metric('num_anomalies_detected', num_anomalies)\n\
+          \    metrics.log_metric('mean_anomaly_score', mean_anomaly_score)\n\n  \
+          \  os.makedirs(os.path.dirname(model_artifact.path), exist_ok=True)\n  \
+          \  joblib.dump(clf, model_artifact.path)\n\n    print(f'Execution Time:\
+          \ {execution_time:.4f}s')\n    print(f'Anomalies Detected: {num_anomalies}')\n\
+          \    print(f'Mean Anomaly Score: {mean_anomaly_score:.4f}')\n\n"
+        image: python:3.11
+pipelineInfo:
+  description: KFP v2 image processing, feature extraction, and anomaly detection
+    pipeline.
+  name: image-anomaly-detection-pipeline
+root:
+  dag:
+    tasks:
+      extract-visual-features:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-extract-visual-features
+        dependentTasks:
+        - fetch-image-batch
+        inputs:
+          artifacts:
+            raw_images_dir:
+              taskOutputArtifact:
+                outputArtifactKey: raw_images_dir
+                producerTask: fetch-image-batch
+          parameters:
+            target_height:
+              componentInputParameter: target_height
+            target_width:
+              componentInputParameter: target_width
+        taskInfo:
+          name: extract-visual-features
+      fetch-image-batch:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-fetch-image-batch
+        inputs:
+          parameters:
+            num_images:
+              componentInputParameter: num_images
+            random_state:
+              componentInputParameter: random_state
+        taskInfo:
+          name: fetch-image-batch
+      train-anomaly-detector:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-anomaly-detector
+        dependentTasks:
+        - extract-visual-features
+        inputs:
+          artifacts:
+            features_dir:
+              taskOutputArtifact:
+                outputArtifactKey: features_dir
+                producerTask: extract-visual-features
+          parameters:
+            contamination:
+              componentInputParameter: contamination
+            random_state:
+              componentInputParameter: random_state
+        taskInfo:
+          name: train-anomaly-detector
+  inputDefinitions:
+    parameters:
+      contamination:
+        defaultValue: 0.2
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      num_images:
+        defaultValue: 20.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      random_state:
+        defaultValue: 42.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      target_height:
+        defaultValue: 224.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      target_width:
+        defaultValue: 224.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.17.0
