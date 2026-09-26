@@ -11,6 +11,8 @@ those dependencies when this module is imported for code generation.
 import inspect
 import textwrap
 
+from kfp.dsl.templates.safe_extract import get_safe_extract_source
+
 
 def __kfp_write_parameters_cell(nb, params):
     """Inject parameters following Papermill semantics.
@@ -220,6 +222,7 @@ def get_notebook_executor_source(archive_b64_placeholder: str,
     # Combine everything into the final source with archive extraction at import
     functions_code = streaming_client_source + '\n' + '\n'.join(
         function_sources)
+    safe_extract_source = get_safe_extract_source()
     return f"""__KFP_EMBEDDED_ARCHIVE_B64 = '{archive_b64_placeholder}'
 __KFP_NOTEBOOK_REL_PATH = '{notebook_relpath_placeholder}'
 
@@ -232,6 +235,7 @@ import tarfile as __kfp_tarfile
 import tempfile as __kfp_tempfile
 from nbclient import NotebookClient
 
+{safe_extract_source}
 # Extract embedded archive at import time to ensure sys.path and globals are set
 print('[KFP] Extracting embedded notebook archive...', flush=True)
 __kfp_tmpdir = __kfp_tempfile.TemporaryDirectory()
@@ -239,7 +243,7 @@ __KFP_EMBEDDED_ASSET_DIR = __kfp_tmpdir.name
 try:
     __kfp_bytes = __kfp_b64.b64decode(__KFP_EMBEDDED_ARCHIVE_B64.encode('ascii'))
     with __kfp_tarfile.open(fileobj=__kfp_io.BytesIO(__kfp_bytes), mode='r:gz') as __kfp_tar:
-        __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)
+        __kfp_safe_extract(__kfp_tar, __KFP_EMBEDDED_ASSET_DIR)
     print(f'[KFP] Notebook archive extracted to: {{__KFP_EMBEDDED_ASSET_DIR}}', flush=True)
 except Exception as __kfp_e:
     raise RuntimeError(f'Failed to extract embedded notebook archive: {{__kfp_e}}')
