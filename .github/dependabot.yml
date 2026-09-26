@@ -159,6 +159,10 @@ updates:
       - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # v1.7.8 removes blank lines that YAPF restores on every formatter pass.
+      - dependency-name: "https://github.com/pycqa/docformatter"
+        versions: ["1.7.8"]
     groups:
       pre-commit-hooks:
         patterns:
