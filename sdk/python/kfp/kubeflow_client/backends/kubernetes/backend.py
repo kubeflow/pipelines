@@ -383,6 +383,12 @@ class KubernetesBackend:
                 'key': 'state',
                 'stringValue': status.upper(),
             })
+        if pipeline_id is not None:
+            filter_predicates.append({
+                'operation': 'EQUALS',
+                'key': 'pipeline_id',
+                'stringValue': pipeline_id,
+            })
 
         filter_str = None
         if filter_predicates:
@@ -395,19 +401,6 @@ class KubernetesBackend:
             page_size=page_size,
             filter=filter_str,
         )
-
-        if pipeline_id is not None and response.runs:
-            original_count = len(response.runs)
-            response.runs = [
-                run for run in response.runs
-                if (run.pipeline_version_reference and
-                    run.pipeline_version_reference.pipeline_id == pipeline_id)
-            ]
-            filtered_count = original_count - len(response.runs)
-            if filtered_count > 0:
-                logger.info(
-                    'Client-side pipeline filter removed %d of %d runs.',
-                    filtered_count, original_count)
 
         return response
 
