@@ -10,7 +10,7 @@
     {
       "path": ".github/workflows/api-server-tests.yml",
       "name": "API Server Tests",
-      "header_sha256": "840698608f47a4e250d7502b48a933a60cf5d0b07d6ceb883d99f4278b06f4eb",
+      "header_sha256": "fdaa4553eaf85f170f816efa7d74570c0eb949396826bf3b5b7a663fa52e9875",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -20,6 +20,7 @@
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
           ".github/actions/test-and-report/**",
+          ".github/actions/publish-ci-result/**",
           ".github/actions/junit-summary/**",
           ".github/resources/**",
           "backend/api/v2beta1/**",
@@ -86,13 +87,13 @@
     {
       "path": ".github/workflows/ci-health-report.yml",
       "name": "CI Health Report",
-      "header_sha256": "c8e4449ebad6fbfb532f414c0d822cce0c6ea3548b8727fceef74003b5df3e3f",
+      "header_sha256": "6ba8cec80b47ba050c332bfccce733d8cf0cf9595bc77ed01b6415d93116611b",
       "pull_request": null
     },
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bc31e48ec9321281766d03b29eca5637b85a3e5534ef078e632856d8b3e8ab72",
+      "header_sha256": "4b23dd3467a28d42b1ee515bc56a279ca07280fbce4adae479b916b8f2457a6c",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -116,15 +117,19 @@
           ".github/resources/ci-workflow-inventory.json",
           ".github/workflows/**",
           ".github/scripts/*.py",
+          ".github/resources/ci-health-dashboard/**",
           ".github/resources/scripts/*.sh",
           ".github/resources/scripts/kfp-readiness/**",
           ".github/actions/junit-summary/**",
+          ".github/workflows/*.yml",
+          ".github/workflows/*.yaml",
           ".github/workflows/ci-checks.yml",
           ".github/workflows/create-manifest.yml",
           ".github/actions/upload-artifact-with-retry/**",
           ".github/actions/test-and-report/**",
           ".github/workflows/api-server-tests.yml",
           ".github/workflows/create-manifest.yml",
+          ".github/actions/publish-ci-result/**",
           ".github/workflows/e2e-test.yml",
           ".github/workflows/e2e-test-frontend.yml",
           ".github/workflows/image-builds.yml",
@@ -138,6 +143,7 @@
           ".github/workflows/publish-packages.yml",
           ".github/workflows/pre-commit.yml",
           ".github/workflows/pr-gate.yml",
+          ".github/workflows/ci-health-report.yml",
           ".github/workflows/gh-workflow-approve.yml",
           ".github/workflows/contributor-report.yml",
           "manifests/kustomize/**",
@@ -261,7 +267,7 @@
     {
       "path": ".github/workflows/e2e-test.yml",
       "name": "KFP E2E Pipeline tests",
-      "header_sha256": "6313327c20427f108279b8f2a1f5f57bcdaf003dbe5e603ab5d3cee0c142f3d6",
+      "header_sha256": "daebcf15d7005f34d33ef57fbd7e2182e25912fc6cd7b0c5d10e2cc71470183b",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -275,6 +281,7 @@
           ".github/actions/install-fgo-fake/**",
           ".github/actions/install-dra-driver/**",
           ".github/actions/test-and-report/**",
+          ".github/actions/publish-ci-result/**",
           ".github/resources/**",
           "api/**",
           "go.mod",
@@ -396,7 +403,7 @@
     {
       "path": ".github/workflows/kfp-sdk-client-tests.yml",
       "name": "KFP Python Client Tests",
-      "header_sha256": "6cc5612d5c3d2c3d99b977a8036007cf75fab7c5b5d8e4cd82fbe43736c5fc42",
+      "header_sha256": "7a735e6c8233f37b9fa398817358d91ae93c2486f750d77b003ea59a230308ab",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -406,6 +413,7 @@
           ".github/workflows/image-builds.yml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
+          ".github/actions/publish-ci-result/**",
           ".github/resources/**",
           "sdk/python/**",
           "api/v2alpha1/**",
@@ -456,11 +464,12 @@
     {
       "path": ".github/workflows/kfp-webhooks.yml",
       "name": "KFP Webhook Integration",
-      "header_sha256": "2d7e54635e08eed2f9905ad078e85316fa71f37fc20ff4fa7876d0840ab8f3f1",
+      "header_sha256": "2829faf27733c3f56b8d7e5a1328645c1cb864d75194097de99e851e5a6a4787",
       "pull_request": {
         "paths": [
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
+          ".github/actions/publish-ci-result/**",
           ".github/resources/**",
           ".github/workflows/kfp-webhooks.yml",
           ".github/workflows/image-builds.yml",
@@ -486,7 +495,7 @@
     {
       "path": ".github/workflows/legacy-v2-api-integration-tests.yml",
       "name": "KFP API Integration V2 (Legacy)",
-      "header_sha256": "e45a4789ab0e8fefdf5805022ef9ae2c9c711e3f4e5de8bcbc6959a20b38a0d3",
+      "header_sha256": "59525b8b0879c0371eef4ebb37c30d668978514b7aec35bff33ad066000867b2",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -495,6 +504,7 @@
           ".github/workflows/image-builds.yml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
+          ".github/actions/publish-ci-result/**",
           ".github/resources/**",
           "api/**",
           "go.mod",
@@ -676,7 +686,7 @@
     {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
-      "header_sha256": "d4181ca07f2ebe92228ae568938392576bd99da397bbbc7f15c2ddb30ec77354",
+      "header_sha256": "982959ebb8d8bfd30f0d10b21d578b2d791af0571b42922328d4d3298c7ee42d",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -686,6 +696,7 @@
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
           ".github/actions/test-and-report/**",
+          ".github/actions/publish-ci-result/**",
           ".github/resources/**",
           "backend/api/v2beta1/**",
           "backend/src/**",
