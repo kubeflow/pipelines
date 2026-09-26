@@ -191,6 +191,73 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertIn("delay: '0'", writer)
         self.assertNotIn('sleep', writer)
 
+    def test_publisher_has_pr_label_write_permission(self):
+        workflow = self._read_workflow('ci-checks.yml')
+        jobs = _mapping_block(workflow, 'jobs', 0)
+        for name, expected in [('check_ci_status', 'write'),
+                               ('recovery_candidates', 'read')]:
+            with self.subTest(job=name):
+                job = _mapping_block(jobs, name, 2)
+                permissions = _mapping_block(job, 'permissions', 4)
+                self.assertEqual(
+                    _plain_scalar(permissions, 'pull-requests', 6), expected)
+
+    def test_publisher_checkout_uses_only_trusted_refs(self):
+        workflow = self._read_workflow('ci-checks.yml')
+        writer = _mapping_block(
+            _mapping_block(workflow, 'jobs', 0), 'check_ci_status', 2)
+        checkouts = [
+            step for step in writer.split('      - ')
+            if re.search(r'(?m)^        uses: actions/checkout@', step)
+        ]
+        cases = [
+            ('pull_request_target', 'opened', 'base-sha'),
+            ('pull_request_target', 'synchronize', 'base-sha'),
+            ('pull_request_target', 'reopened', 'base-sha'),
+            ('pull_request_target', 'closed', 'merged-pr-sha'),
+            ('pull_request_target', 'closed', 'base-sha'),
+            ('workflow_run', 'completed', 'default-sha'),
+            ('schedule', '', 'default-sha'),
+        ]
+        for event_name, action, sha in cases:
+            for default_branch in ['master', 'release/main']:
+                with self.subTest(
+                        event=event_name,
+                        action=action,
+                        sha=sha,
+                        default_branch=default_branch):
+                    active = []
+                    for step in checkouts:
+                        condition = _plain_scalar(step, 'if', 8)
+                        condition = condition.replace('github.event_name',
+                                                      'event_name')
+                        condition = condition.replace('github.event.action',
+                                                      'action')
+                        condition = condition.replace('&&', ' and ')
+                        condition = condition.replace('||', ' or ')
+                        if _evaluate_condition_node(
+                                ast.parse(condition, mode='eval'), {
+                                    'event_name': event_name,
+                                    'action': action,
+                                }):
+                            active.append(step)
+                    self.assertEqual(len(active), 1)
+                    step = active[0]
+                    ref = _plain_scalar(step, 'ref', 10)
+                    ref = ref.replace('${{ github.sha }}', sha).replace(
+                        '${{ github.event.repository.default_branch }}',
+                        default_branch)
+                    expected = (f'refs/heads/{default_branch}'
+                                if event_name == 'pull_request_target' and
+                                action == 'closed' else sha)
+                    self.assertEqual(ref, expected)
+                    self.assertEqual(
+                        _plain_scalar(step, 'repository', 10),
+                        '${{ github.repository }}')
+                    self.assertEqual(
+                        _plain_scalar(step, 'persist-credentials', 10), 'false')
+                    self.assertNotIn('allow-unsafe-pr-checkout', step)
+
     def test_publisher_exclusion_matches_hosted_matrix_job_name(self):
         workflow = self._read_workflow('ci-checks.yml')
         exclusions = re.search(r"checks_exclude: '([^']+)'", workflow).group(1)

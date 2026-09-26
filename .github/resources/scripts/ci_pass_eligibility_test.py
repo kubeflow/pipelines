@@ -358,6 +358,24 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
             with self.subTest(pr=pr):
                 self.assert_last_status(exercise({'pr': pr}), 'failure')
 
+    def test_closed_pr_invalidates_prior_success_without_polling(self):
+        for merged in [False, True]:
+            with self.subTest(merged=merged):
+                result = exercise({
+                    'action': 'closed',
+                    'initialStatus': 'success',
+                    'pr': {
+                        'state': 'closed',
+                        'merged': merged
+                    },
+                })
+                self.assertNotIn('error', result)
+                self.assert_last_status(result, 'failure')
+                self.assertNotIn('ready', result['outputs'])
+                self.assertIn(['remove-label', 'ci-passed'], result['calls'])
+                self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+                self.assertNotIn(['status', 'success', 'head'], result['calls'])
+
     def test_revocation_before_publication_fails(self):
         self.assert_last_status(
             exercise({'revokeBeforeFinal': True}), 'failure')
