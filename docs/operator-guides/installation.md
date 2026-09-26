@@ -6,6 +6,10 @@ you can also choose to deploy only Kubeflow Pipelines standalone.
 You should be familiar with [Kubernetes](https://kubernetes.io/docs/home/),
 [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/), and [kustomize](https://kustomize.io/).
 
+Check [supported platforms](supported-platforms.md) for architecture support by
+release, shared image tags, and pipeline component image requirements. ARM64
+support begins with 3.0; the 2.x examples below retain the 2.x support policy.
+
 > **Note:** Replace `2.17.0` with the Kubeflow Pipelines release you want to
 > install. See the [releases page](https://github.com/kubeflow/pipelines/releases)
 > for available versions.
@@ -48,9 +52,9 @@ kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-man
 
 ## Deploying Kubeflow Pipelines with Pod-to-Pod TLS Enabled
 
-Kubeflow Pipelines can be deployed with pod-to-pod TLS enabled. The API server serves over TLS, and all connecting deployments are mounted with CA certificates. This mode provides enhanced security. 
+Kubeflow Pipelines can be deployed with pod-to-pod TLS enabled. The API server serves over TLS, and all connecting deployments are mounted with CA certificates. This mode provides enhanced security.
 
-Deploy KFP on a KinD cluster with pod-to-pod TLS enabled using the Makefile target [here](https://github.com/kubeflow/pipelines/blob/master/backend/Makefile). The corresponding manifests can be manually accessed [here](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls). 
+Deploy KFP on a KinD cluster with pod-to-pod TLS enabled using the Makefile target [here](https://github.com/kubeflow/pipelines/blob/master/backend/Makefile). The corresponding manifests can be manually accessed [here](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls).
 
 ## Accessing the Kubeflow Pipelines UI
 
