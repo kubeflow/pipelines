@@ -95,15 +95,25 @@ jobs:
       checks: read
       contents: read
       issues: write
-      pull-requests: read
+      pull-requests: write
       statuses: write
     steps:
       - name: Check out the trusted workflow revision
+        if: github.event_name != 'pull_request_target' || github.event.action != 'closed'
         uses: actions/checkout@v7
         with:
-          # For both events github.sha is a base/default-branch commit,
-          # never the pull request head or a workflow_run artifact.
+          repository: ${{ github.repository }}
           ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Check out the trusted default branch for a closed PR
+        if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+        uses: actions/checkout@v7
+        with:
+          # After merge, github.sha equals the PR merge SHA and checkout's
+          # fork guard rejects it. Use the base repo's named trusted branch.
+          repository: ${{ github.repository }}
+          ref: refs/heads/${{ github.event.repository.default_branch }}
           persist-credentials: false
 
       - name: Resolve PR and verify expected CI workflows

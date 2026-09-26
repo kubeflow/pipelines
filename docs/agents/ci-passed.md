@@ -28,6 +28,14 @@ claim immediate queued-rerun protection from this publisher alone. Verify that
 the deployed Tide configuration blocks that window before making the status
 required, and before any follow-up removes the automatic creation holds.
 
+The writer needs `pull-requests: write` to synchronize PR labels, in addition to
+its commit-status permission; recovery discovery remains read-only. Normal
+reconciliations check out the trusted event SHA. Closed PR events instead check
+out the base repository's fully qualified default branch: after a fork PR merges,
+its trusted event SHA is also the PR merge SHA that checkout's safety guard
+rejects. Neither path checks out a PR ref or disables the guard. Current PR/head
+validation still governs status and label changes after checkout.
+
 ## Expected workflow inventory
 
 `.github/resources/ci-workflow-inventory.json` records trusted `pull_request`
