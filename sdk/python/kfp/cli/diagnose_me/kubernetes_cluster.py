@@ -61,7 +61,7 @@ def execute_kubectl_command(
     if not human_readable:
         command_list.extend(['-o', 'json'])
 
-    return utility.ExecutorResponse().execute_command(command_list)
+    return utility.execute_command(command_list)
 
 
 def get_kubectl_configuration(

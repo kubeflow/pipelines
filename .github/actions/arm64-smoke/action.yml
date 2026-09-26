@@ -1,0 +1,103 @@
+name: Native ARM64 pipeline smoke
+description: Deploy the standalone profile and prove driver and launcher execution on ARM64
+inputs:
+  image_records:
+    description: Directory containing the seven source-matched image JSON records
+    required: true
+  source_sha:
+    description: Commit SHA used to build the images and checked-out manifests
+    required: true
+  image_mode:
+    description: published (shared OCI index digests) or local (Kind-loaded images)
+    default: published
+  image_archives:
+    description: Directory containing local image tar archives; required in local mode
+    default: ''
+  cluster_name:
+    description: Name of the fresh dedicated Kind cluster
+    default: kfp-arm64
+  k8s_version:
+    description: Kubernetes version for the native ARM64 Kind node
+    default: v1.36.1
+runs:
+  using: composite
+  steps:
+    - name: Validate native host and image inventory
+      shell: bash
+      env:
+        IMAGE_RECORDS: ${{ inputs.image_records }}
+        SOURCE_SHA: ${{ inputs.source_sha }}
+        IMAGE_MODE: ${{ inputs.image_mode }}
+        CLUSTER_NAME: ${{ inputs.cluster_name }}
+      run: |
+        test "$(uname -m)" = aarch64
+        test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+        if command -v kind >/dev/null && kind get clusters | grep -Fxq -- "$CLUSTER_NAME"; then
+          echo "Refusing to reuse existing cluster $CLUSTER_NAME" >&2
+          exit 1
+        fi
+        python3 .github/resources/scripts/arm64_smoke.py prepare \
+          --records "$IMAGE_RECORDS" --source-sha "$SOURCE_SHA" --mode "$IMAGE_MODE" \
+          --overlay "$RUNNER_TEMP/arm64-overlay"
+
+    - name: Create native ARM64 cluster
+      id: cluster
+      uses: ./.github/actions/create-cluster
+      with:
+        cluster_name: ${{ inputs.cluster_name }}
+        k8s_version: ${{ inputs.k8s_version }}
+
+    - name: Load local ARM64 images
+      if: inputs.image_mode == 'local'
+      shell: bash
+      env:
+        IMAGE_ARCHIVES: ${{ inputs.image_archives }}
+        IMAGE_RECORDS: ${{ inputs.image_records }}
+        SOURCE_SHA: ${{ inputs.source_sha }}
+        CLUSTER_NAME: ${{ inputs.cluster_name }}
+      run: |
+        python3 .github/resources/scripts/arm64_smoke.py load \
+          --records "$IMAGE_RECORDS" --source-sha "$SOURCE_SHA" --mode local \
+          --archives "$IMAGE_ARCHIVES" --cluster "$CLUSTER_NAME"
+
+    - name: Install standalone KFP and run pipeline
+      shell: bash
+      env:
+        IMAGE_RECORDS: ${{ inputs.image_records }}
+        SOURCE_SHA: ${{ inputs.source_sha }}
+        IMAGE_MODE: ${{ inputs.image_mode }}
+        CLUSTER_NAME: ${{ inputs.cluster_name }}
+      run: |
+        python3 .github/resources/scripts/arm64_smoke.py run \
+          --records "$IMAGE_RECORDS" --source-sha "$SOURCE_SHA" --mode "$IMAGE_MODE" \
+          --overlay "$RUNNER_TEMP/arm64-overlay" --context "kind-$CLUSTER_NAME" \
+          --output "$RUNNER_TEMP/arm64-smoke-results"
+
+    - name: Collect ARM64 diagnostics
+      if: always()
+      shell: bash
+      env:
+        CLUSTER_NAME: ${{ inputs.cluster_name }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/arm64-smoke-results"
+        kubectl --context "kind-$CLUSTER_NAME" get pods -A -o wide \
+          > "$RUNNER_TEMP/arm64-smoke-results/pods.txt" 2>&1 || true
+        kubectl --context "kind-$CLUSTER_NAME" -n kubeflow get events --sort-by=.metadata.creationTimestamp \
+          > "$RUNNER_TEMP/arm64-smoke-results/events.txt" 2>&1 || true
+        kubectl --context "kind-$CLUSTER_NAME" -n kubeflow describe pods \
+          > "$RUNNER_TEMP/arm64-smoke-results/pod-details.txt" 2>&1 || true
+        kind export logs --name "$CLUSTER_NAME" "$RUNNER_TEMP/arm64-smoke-results/kind" || true
+
+    - name: Upload ARM64 smoke evidence
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: arm64-smoke-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/arm64-smoke-results
+
+    - name: Remove dedicated smoke cluster
+      if: always() && (steps.cluster.outcome == 'success' || steps.cluster.outcome == 'failure')
+      shell: bash
+      env:
+        CLUSTER_NAME: ${{ inputs.cluster_name }}
+      run: kind delete cluster --name "$CLUSTER_NAME"

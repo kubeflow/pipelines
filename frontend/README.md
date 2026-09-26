@@ -175,3 +175,35 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [sample pipeline]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.py
 [sample pipeline in yaml]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.yaml
 [KFP docs]: https://www.kubeflow.org/docs/components/pipelines/getting-started/
+
+## Multi-user artifact ownership
+
+With `ENABLE_AUTHZ=true`, artifact previews and downloads require an object key under
+`private-artifacts/<namespace>/...`, or the equivalent prefix configured by the operator through
+`ARTIFACT_NAMESPACE_KEY_PREFIX`. This applies to MinIO, S3, GCS, and HTTP(S) artifacts, including
+requests made with `ARTIFACTS_SERVICE_PROXY_ENABLED=true`. A namespace-scoped metadata record does
+not establish ownership of an arbitrary object: a pipeline can import an existing URI.
+
+**Compatibility change:** custom-root objects outside that namespace prefix return HTTP 403,
+even when a tenant proxy has isolated credentials. To retain frontend previews/downloads, configure
+pipeline roots with the tenant namespace segment and write or copy authorized artifacts to those
+paths. Updating metadata alone does not move existing objects. Keep storage credentials and tenant
+proxy access isolated; the path policy does not replace storage or network authorization.
+
+For example, namespace `team-a` can serve `s3://bucket/private-artifacts/team-a/run/model`, but not
+`s3://bucket/shared/model`. A different common prefix, such as `tenant-data`, may be configured by
+the operator; the next path segment must still be the authorized namespace. Do not disable
+authorization to restore custom-root access in a multi-user deployment.
+
+With `ENABLE_AUTHZ=true`, HTTP(S) artifacts use the shared UI's configured `HTTP_BASE_URL` and,
+when needed, its `HTTP_AUTHORIZATION_KEY` and `HTTP_AUTHORIZATION_DEFAULT_VALUE`, even when the
+namespace artifact proxy is enabled. Without a shared UI `HTTP_BASE_URL`, these requests return
+HTTP 400. The shared UI checks redirect targets itself rather than forwarding HTTP(S) requests to
+tenant services that may run older redirect handling code.
+Redirects must stay on the configured origin and under the same namespace prefix. Cross-origin
+signed URLs and same-origin signed URLs outside that prefix return HTTP 403. Standalone mode keeps
+its existing redirect behavior.
+
+Standalone mode and namespace-proxied volume artifacts are unchanged. The `artifact-only` mode
+(also accepted as legacy `mlmd-only`) requires metadata evidence in addition to the namespace
+path policy; it does not enable arbitrary custom roots.
