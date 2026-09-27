@@ -387,12 +387,11 @@ class QueueCITest(unittest.TestCase):
     def test_exact_group_sha_passes_only_after_all_release_workflows(self):
         result = exercise()
         self.assertEqual(result['status'], 'success', result)
-        statuses = [call for call in result['calls']
-                    if call[0] == 'ci-passed-release']
-        self.assertEqual(
-            statuses,
-            [['ci-passed-release', 'pending', SHA],
-             ['ci-passed-release', 'success', SHA]])
+        statuses = [
+            call for call in result['calls'] if call[0] == 'ci-passed-release'
+        ]
+        self.assertEqual(statuses, [['ci-passed-release', 'pending', SHA],
+                                    ['ci-passed-release', 'success', SHA]])
         self.assertEqual(
             len([call for call in result['calls'] if call[0] == 'current-run']),
             3)
@@ -462,21 +461,26 @@ console.log(JSON.stringify(tests.map(trigger => {{
             })['status'], 'success')
 
     def test_fork_workflow_edits_and_truncated_history_block_group(self):
-        for option in ['workflowChange', 'workflowChangeReverted',
-                       'workflowTreeMissing', 'compareBaseDrift',
-                       'mergeBaseMissing', 'historyTruncated', 'parentMissing']:
+        for option in [
+                'workflowChange', 'workflowChangeReverted',
+                'workflowTreeMissing', 'compareBaseDrift', 'mergeBaseMissing',
+                'historyTruncated', 'parentMissing'
+        ]:
             with self.subTest(option=option):
                 result = exercise({option: True})
                 self.assertEqual(result['status'], 'failure', result)
-                self.assertFalse(any(call[0] == 'current-run'
-                                     for call in result['calls']))
-        prior = exercise({'priorEntry': True, 'priorHeadNull': True,
-                          'priorWorkflowChange': True})
+                self.assertFalse(
+                    any(call[0] == 'current-run' for call in result['calls']))
+        prior = exercise({
+            'priorEntry': True,
+            'priorHeadNull': True,
+            'priorWorkflowChange': True
+        })
         self.assertEqual(prior['status'], 'failure', prior)
         same_repo = exercise({'sameRepo': True, 'workflowChange': True})
         self.assertEqual(same_repo['status'], 'success', same_repo)
-        self.assertFalse(any(call[0] == 'test-merge'
-                             for call in same_repo['calls']))
+        self.assertFalse(
+            any(call[0] == 'test-merge' for call in same_repo['calls']))
 
     def test_cumulative_group_checks_all_earlier_queue_entries(self):
         self.assertEqual(

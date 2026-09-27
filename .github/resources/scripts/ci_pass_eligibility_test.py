@@ -180,9 +180,10 @@ class CIPassedTest(unittest.TestCase):
     def assert_last_status(self, result, state):
         statuses = [call for call in result['calls'] if call[0] == 'status']
         self.assertTrue(statuses, result)
-        self.assertEqual(statuses[-1],
-                         ['status', state,
-                          result['outputs'].get('head_sha', 'head')], result)
+        self.assertEqual(
+            statuses[-1],
+            ['status', state, result['outputs'].get('head_sha', 'head')],
+            result)
 
     def test_eligibility_truth_table(self):
         script = """
@@ -257,74 +258,126 @@ console.log(JSON.stringify(result));
             }), 'success')
 
     def test_retarget_to_release_revokes_old_master_status(self):
-        release = {'pr': {'base': {'sha': 'b' * 40, 'ref': 'release-2.18',
-                                  'repo': {'full_name': 'kubeflow/pipelines'}}}}
-        result = exercise({**release, 'initialStatus': 'success',
-                           'initialStatusContext': 'ci-passed',
-                           'action': 'edited'})
+        release = {
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            }
+        }
+        result = exercise({
+            **release, 'initialStatus': 'success',
+            'initialStatusContext': 'ci-passed',
+            'action': 'edited'
+        })
         self.assert_last_status(result, 'success')
-        self.assertEqual(result['statusContexts'],
-                         ['ci-passed-release', 'ci-passed',
-                          'ci-passed-release', 'ci-passed'])
+        self.assertEqual(result['statusContexts'], [
+            'ci-passed-release', 'ci-passed', 'ci-passed-release', 'ci-passed'
+        ])
         self.assertIn(['compare', 'b' * 40 + '...contributor:' + 'a' * 40],
                       result['calls'])
 
     def test_fork_release_pr_cannot_change_workflows(self):
-        release = {'sha': 'b' * 40, 'ref': 'release-2.18',
-                   'repo': {'full_name': 'kubeflow/pipelines'}}
-        for option in ['workflowChange', 'workflowChangeReverted',
-                       'mergeSecondParentChanged',
-                       'workflowTreeMissing', 'compareBaseDrift',
-                       'mergeBaseMissing', 'historyTruncated', 'parentMissing']:
+        release = {
+            'sha': 'b' * 40,
+            'ref': 'release-2.18',
+            'repo': {
+                'full_name': 'kubeflow/pipelines'
+            }
+        }
+        for option in [
+                'workflowChange', 'workflowChangeReverted',
+                'mergeSecondParentChanged', 'workflowTreeMissing',
+                'compareBaseDrift', 'mergeBaseMissing', 'historyTruncated',
+                'parentMissing'
+        ]:
             with self.subTest(option=option):
                 changed = {'pr': {'base': release}, option: True}
                 result = exercise(changed)
                 self.assert_last_status(result, 'failure')
-                self.assertFalse(any(call[0] == 'status' and
-                                     call[1] == 'success'
-                                     for call in result['calls']))
-                self.assertEqual(result['statusContexts'],
-                                 ['ci-passed-release', 'ci-passed',
-                                  'ci-passed-release', 'ci-passed'])
-        good = exercise({'pr': {'base': release,
-                                'merge_commit_sha': None}})
+                self.assertFalse(
+                    any(call[0] == 'status' and call[1] == 'success'
+                        for call in result['calls']))
+                self.assertEqual(result['statusContexts'], [
+                    'ci-passed-release', 'ci-passed', 'ci-passed-release',
+                    'ci-passed'
+                ])
+        good = exercise({'pr': {'base': release, 'merge_commit_sha': None}})
         self.assert_last_status(good, 'success')
-        self.assertEqual(len([call for call in good['calls']
-                              if call[0] == 'workflow-trees']), 3)
-        guard_calls = [call for call in good['calls']
-                       if call[0] in ('compare', 'workflow-trees')]
+        self.assertEqual(
+            len([call for call in good['calls'] if call[0] == 'workflow-trees'
+                ]), 3)
+        guard_calls = [
+            call for call in good['calls']
+            if call[0] in ('compare', 'workflow-trees')
+        ]
         self.assertEqual(guard_calls[0],
                          ['compare', 'b' * 40 + '...contributor:' + 'a' * 40])
         self.assertIn('b' * 40 + ':.github/workflows', guard_calls[1][1])
         self.assertIn('a' * 40 + ':.github/workflows', guard_calls[1][1])
 
-        advanced = exercise({'mergeBaseSha': 'b' * 40, 'pr': {
-            'base': {'sha': 'd' * 40, 'ref': 'release-2.18',
-                     'repo': {'full_name': 'kubeflow/pipelines'}}}})
+        advanced = exercise({
+            'mergeBaseSha': 'b' * 40,
+            'pr': {
+                'base': {
+                    'sha': 'd' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            }
+        })
         self.assert_last_status(advanced, 'success')
         self.assertIn(['compare', 'd' * 40 + '...contributor:' + 'a' * 40],
                       advanced['calls'])
 
     def test_same_repository_release_workflow_change_uses_writer_trust(self):
-        result = exercise({'workflowChange': True, 'pr': {
-            'base': {'sha': 'b' * 40, 'ref': 'release-2.18',
-                     'repo': {'full_name': 'kubeflow/pipelines'}},
-            'head': {'sha': 'head', 'ref': 'feature',
-                     'repo': {'full_name': 'kubeflow/pipelines',
-                              'name': 'pipelines',
-                              'owner': {'login': 'kubeflow'}}},
-        }})
+        result = exercise({
+            'workflowChange': True,
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                },
+                'head': {
+                    'sha': 'head',
+                    'ref': 'feature',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines',
+                        'name': 'pipelines',
+                        'owner': {
+                            'login': 'kubeflow'
+                        }
+                    }
+                },
+            }
+        })
         self.assert_last_status(result, 'success')
         self.assertFalse(any(call[0] == 'compare' for call in result['calls']))
 
     def test_release_invalidation_survives_legacy_status_write_failure(self):
-        result = exercise({'legacyWriteError': True,
-                           'initialStatus': 'success',
-                           'initialStatusContext': 'ci-passed-release',
-                           'pr': {'base': {'sha': 'b' * 40,
-                                           'ref': 'release-2.18',
-                                           'repo': {'full_name':
-                                                    'kubeflow/pipelines'}}}})
+        result = exercise({
+            'legacyWriteError': True,
+            'initialStatus': 'success',
+            'initialStatusContext': 'ci-passed-release',
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            }
+        })
         self.assertEqual(result['status'], 'failure', result)
         self.assertEqual(result['statusContexts'],
                          ['ci-passed-release', 'ci-passed-release'])
@@ -333,8 +386,7 @@ console.log(JSON.stringify(result));
         result = exercise()
         self.assertEqual(result['calls'][0], ['status', 'pending', 'head'])
         self.assert_last_status(result, 'success')
-        self.assertEqual(result['statusContexts'],
-                         ['ci-passed', 'ci-passed'])
+        self.assertEqual(result['statusContexts'], ['ci-passed', 'ci-passed'])
 
     def test_failed_poll_blocks_otherwise_complete_workflows(self):
         self.assert_last_status(exercise({'pollPassed': False}), 'failure')
@@ -426,10 +478,11 @@ github.paginate.iterator = async function* () {yield {data: {statuses: github.vi
   console.log(JSON.stringify(results));
 })().catch(error => {console.error(error); process.exit(1);});
 """
-        result = subprocess.run(['node', '-e', script, str(MODULE)],
-                                check=True,
-                                capture_output=True,
-                                text=True)
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
         candidate = [{'number': 7, 'head': 'a' * 40}]
         self.assertEqual(json.loads(result.stdout), [[], candidate, candidate])
 
