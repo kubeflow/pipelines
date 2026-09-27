@@ -18,6 +18,7 @@ const QUEUE_BRANCH_PREFIX = `gh-readonly-queue/${RELEASE_BRANCH}/`;
 const MASTER_STATUS_CONTEXT = 'ci-passed';
 const RELEASE_STATUS_CONTEXT = 'ci-passed-release';
 const MAX_WORKFLOW_GUARD_COMMITS = 100;
+const MAX_TRUSTED_WORKFLOW_IMPORTS = 8;
 const WORKFLOW_TREE_BATCH_SIZE = 40;
 const RELEASE_BLOCKED_LABELS = new Set([
   'do-not-merge', 'do-not-merge/hold', 'do-not-merge/invalid-owners-file',
@@ -124,8 +125,8 @@ async function releaseWorkflowGuard(github, context, pr) {
   if (revisions.size > 256) {
     return {passed: false, reason: 'Release PR commit history exceeds workflow verification limit.'};
   }
-  // Compare each commit with every parent. A change followed by a revert has
-  // the same final tree but must stay blocked as the base branch advances.
+  // Check every fork-only commit, including commits on merged side branches.
+  // A final-tree check alone would miss a change followed by a revert.
   const trees = new Map();
   const shas = [...revisions];
   for (let offset = 0; offset < shas.length; offset += WORKFLOW_TREE_BATCH_SIZE) {
@@ -150,11 +151,34 @@ async function releaseWorkflowGuard(github, context, pr) {
       trees.set(sha, oid);
     }
   }
-  if (trees.get(mergeBase) !== trees.get(pr.head.sha) ||
-      commits.some(commit => commit.parents.some(parent =>
-        trees.get(commit.sha) !== trees.get(parent.sha)))) {
+  if (trees.get(mergeBase) !== trees.get(pr.head.sha)) {
     return {passed: false,
       reason: 'Fork PR history edits release workflows; a repository writer must land those edits.'};
+  }
+  const ahead = new Set(commits.map(commit => commit.sha));
+  let imports = 0;
+  for (const commit of commits) {
+    const tree = trees.get(commit.sha);
+    if (commit.parents.every(parent => trees.get(parent.sha) === tree)) continue;
+    // A fork merge may import the workflow tree from a release ancestor. The
+    // matching parent must be the latest shared base at this merge, so an old
+    // release commit cannot roll back workflows and later restore them.
+    const trustedParents = commit.parents.filter(parent =>
+      !ahead.has(parent.sha) && trees.get(parent.sha) === tree);
+    if (commit.parents.length < 2 || trustedParents.length === 0 ||
+        ++imports > MAX_TRUSTED_WORKFLOW_IMPORTS) {
+      return {passed: false,
+        reason: 'Fork PR history edits release workflows; a repository writer must land those edits.'};
+    }
+    const prefix = commit.sha === pr.head.sha ? comparison :
+      (await github.rest.repos.compareCommitsWithBasehead({
+        ...context.repo, basehead: `${pr.base.sha}...${headOwner}:${commit.sha}`,
+        per_page: 1,
+      })).data;
+    if (prefix.base_commit?.sha !== pr.base.sha ||
+        !trustedParents.some(parent => parent.sha === prefix.merge_base_commit?.sha)) {
+      return {passed: false, reason: 'Cannot verify the trusted release workflow import.'};
+    }
   }
   return {passed: true};
 }
@@ -163,7 +187,7 @@ function successDescription(pr) {
   // Bind green evidence to the exact checked-in workflow policy. Legacy
   // statuses and statuses from another base must be reconsidered by recovery.
   const policy = [pr.base.ref, pr.base.sha];
-  if (pr.base.ref === RELEASE_BRANCH) policy.push('release-workflow-guard-v3');
+  if (pr.base.ref === RELEASE_BRANCH) policy.push('release-workflow-guard-v4');
   const stamp = require('node:crypto').createHash('sha256')
     .update(JSON.stringify(policy)).digest('hex');
   return `Expected CI and all checks passed; base policy ${stamp}.`;

@@ -24,18 +24,21 @@ GitHub runs `merge_group` workflows on a temporary commit containing PR code.
 The documented read-only token downgrade for fork-origin `pull_request`
 events does not apply to `merge_group`. Before reporting release PR-head
 success, CI Check resolves a fork PR's merge base from the exact current base
-and head SHAs, then verifies that no PR-only commit after that merge base
-changed the complete `.github/workflows` tree. It rejects incomplete or
-mismatched API evidence. A net tree comparison is insufficient: a PR could
-change then revert a workflow, and a later base update could make the
-intermediate commit the new merge base while an old green head status remains.
-The commit-history condition remains true as the release branch advances
-without changing the PR head. It permits stale PR heads while rejecting fork
-changes to workflow definitions that would run with a queue token. The queue
-publisher repeats the check for every included fork PR. A fork PR with more
-than 100 ahead commits or 256 unique compared revisions remains blocked until
-its history is reduced or the guard is expanded. Review the baseline `merge_group` **and
-queue-ref `push`** workflows for write permissions and exposed credentials
+and head SHAs, then checks the complete `.github/workflows` tree at every
+PR-only commit and every parent. Ordinary fork commits cannot change that tree.
+A merge commit may import a trusted release ancestor's workflow tree only when
+that ancestor is its own merge base with the current release branch. This
+allows a fork PR to merge newer release commits without a false CI rejection,
+while rejecting fork-authored workflow changes, change-then-revert histories,
+and rollback to an older release workflow version. The final PR head must
+still match its merge base's workflow tree. Incomplete or mismatched API
+evidence blocks the PR. The queue publisher repeats the check against the
+current base for every included fork PR; the PR-head success description is
+also stamped with its checked base SHA. A fork PR with more than 100 ahead
+commits, 256 unique compared revisions, or eight trusted workflow imports
+remains blocked until its history is reduced or the guard is expanded. Review
+the baseline `merge_group` **and queue-ref `push`** workflows for write
+permissions and exposed credentials
 before activation. Repository writers can create their own privileged
 workflows and status writers, so this guard relies on the existing trust in
 people with write access. Fork authors who need to change release workflows

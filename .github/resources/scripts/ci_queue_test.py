@@ -127,7 +127,8 @@ const github = {
           revision === priorHead && options.priorWorkflowChange ||
           revision === '8'.repeat(40) && options.workflowChangeReverted;
         repository[alias] = options.workflowTreeMissing ? null :
-          {oid: changed ? '2'.repeat(40) : '1'.repeat(40)};
+          {oid: options.workflowOids?.[revision] ||
+            (changed ? '2'.repeat(40) : '1'.repeat(40))};
       }
       return {repository};
     }
@@ -156,14 +157,18 @@ const github = {
         calls.push(['compare', request.basehead]);
         if (options.compareError) throw Error('Compare unavailable');
         const target = request.basehead.endsWith(`:${priorHead}`) ? prior : pr;
-        const commits = options.workflowChangeReverted && target === pr ? [
+        const comparedHead = request.basehead.split(':').at(-1);
+        const prefix = options.prefixComparisons?.[comparedHead];
+        const commits = prefix?.commits || (target === pr && options.commits) ||
+          (options.workflowChangeReverted && target === pr ? [
           {sha: '8'.repeat(40), parents: [{sha: base}]},
           {sha: prHead, parents: [{sha: '8'.repeat(40)}]},
         ] : [{sha: target.head.sha,
-          parents: options.parentMissing ? [] : [{sha: base}]}];
+          parents: options.parentMissing ? [] : [{sha: base}]}]);
         return {data: {
           base_commit: {sha: options.compareBaseDrift ? '0'.repeat(40) : target.base.sha},
-          merge_base_commit: options.mergeBaseMissing ? null : {sha: base},
+          merge_base_commit: options.mergeBaseMissing ? null :
+            {sha: prefix?.mergeBaseSha || base},
           commits, ahead_by: commits.length,
           total_commits: options.historyTruncated ? commits.length + 1 : commits.length,
         }};
@@ -481,6 +486,134 @@ console.log(JSON.stringify(tests.map(trigger => {{
         self.assertEqual(same_repo['status'], 'success', same_repo)
         self.assertFalse(
             any(call[0] == 'test-merge' for call in same_repo['calls']))
+
+    def test_fork_merge_imports_trusted_release_workflow_change(self):
+        base, old_base, feature, imported, head = ('b' * 40, '9' * 40, '8' * 40,
+                                                   '7' * 40, 'c' * 40)
+        commits = [{
+            'sha': feature,
+            'parents': [{
+                'sha': old_base
+            }]
+        }, {
+            'sha': imported,
+            'parents': [{
+                'sha': feature
+            }, {
+                'sha': base
+            }]
+        }, {
+            'sha': head,
+            'parents': [{
+                'sha': imported
+            }]
+        }]
+        result = exercise({
+            'commits': commits,
+            'prefixComparisons': {
+                imported: {
+                    'mergeBaseSha': base,
+                    'commits': commits[:2],
+                }
+            },
+            'workflowOids': {
+                old_base: '1' * 40,
+                feature: '1' * 40,
+                base: '2' * 40,
+                imported: '2' * 40,
+                head: '2' * 40,
+            }
+        })
+        self.assertEqual(result['status'], 'success', result)
+        self.assertIn(['compare', f'{base}...contributor:{imported}'],
+                      result['calls'])
+        queries = [
+            call[1] for call in result['calls'] if call[0] == 'workflow-trees'
+        ]
+        self.assertTrue(
+            any(f'{old_base}:.github/workflows' in query for query in queries))
+
+    def test_fork_merge_cannot_launder_side_branch_workflow_edit(self):
+        base, feature, edited, reverted, head = ('b' * 40, '8' * 40, '6' * 40,
+                                                 '7' * 40, 'c' * 40)
+        result = exercise({
+            'commits': [{
+                'sha': feature,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': edited,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': reverted,
+                'parents': [{
+                    'sha': edited
+                }]
+            }, {
+                'sha': head,
+                'parents': [{
+                    'sha': feature
+                }, {
+                    'sha': reverted
+                }]
+            }],
+            'workflowOids': {
+                edited: '2' * 40,
+            }
+        })
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertFalse(
+            any(call[0] == 'current-run' for call in result['calls']))
+        queries = [
+            call[1] for call in result['calls'] if call[0] == 'workflow-trees'
+        ]
+        self.assertTrue(
+            any(f'{edited}:.github/workflows' in query for query in queries))
+
+    def test_fork_merge_cannot_reimport_stale_base_workflows(self):
+        base, stale, feature, imported, head = ('b' * 40, '5' * 40, '8' * 40,
+                                                '7' * 40, 'c' * 40)
+        commits = [{
+            'sha': feature,
+            'parents': [{
+                'sha': base
+            }]
+        }, {
+            'sha': imported,
+            'parents': [{
+                'sha': feature
+            }, {
+                'sha': stale
+            }]
+        }, {
+            'sha': head,
+            'parents': [{
+                'sha': imported
+            }, {
+                'sha': base
+            }]
+        }]
+        result = exercise({
+            'commits': commits,
+            'prefixComparisons': {
+                imported: {
+                    'mergeBaseSha': base,
+                    'commits': commits[:2],
+                }
+            },
+            'workflowOids': {
+                stale: '2' * 40,
+                imported: '2' * 40,
+            }
+        })
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertIn(['compare', f'{base}...contributor:{imported}'],
+                      result['calls'])
+        self.assertFalse(
+            any(call[0] == 'current-run' for call in result['calls']))
 
     def test_cumulative_group_checks_all_earlier_queue_entries(self):
         self.assertEqual(

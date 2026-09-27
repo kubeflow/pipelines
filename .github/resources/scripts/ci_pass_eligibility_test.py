@@ -63,7 +63,8 @@ const github = {graphql: async (query, variables) => {
         options.workflowChangeReverted && sha === '8'.repeat(40) ||
         options.mergeSecondParentChanged && sha === '6'.repeat(40);
       repository[alias] = options.workflowTreeMissing ? null :
-        {oid: changed ? '2'.repeat(40) : '1'.repeat(40)};
+        {oid: options.workflowOids?.[sha] ||
+          (changed ? '2'.repeat(40) : '1'.repeat(40))};
     }
     return {repository};
   }
@@ -95,13 +96,17 @@ jobs:
     compareCommitsWithBasehead: async request => {
       calls.push(['compare', request.basehead]);
       if (options.compareError) throw Error('Compare unavailable');
-      const mergeBase = options.mergeBaseSha || pr.base.sha;
-      const commits = options.workflowChangeReverted ? [
+      const comparedHead = request.basehead.split(':').at(-1);
+      const prefix = options.prefixComparisons?.[comparedHead];
+      const mergeBase = prefix?.mergeBaseSha || options.mergeBaseSha || pr.base.sha;
+      const commits = prefix?.commits || options.commits || (options.workflowChangeReverted ? [
         {sha: '8'.repeat(40), parents: [{sha: mergeBase}]},
         {sha: pr.head.sha, parents: [{sha: '8'.repeat(40)}]},
+      ] : options.mergeSecondParentChanged ? [
+        {sha: '6'.repeat(40), parents: [{sha: mergeBase}]},
+        {sha: pr.head.sha, parents: [{sha: mergeBase}, {sha: '6'.repeat(40)}]},
       ] : [{sha: pr.head.sha,
-        parents: options.parentMissing ? [] : options.mergeSecondParentChanged ?
-          [{sha: mergeBase}, {sha: '6'.repeat(40)}] : [{sha: mergeBase}]}];
+        parents: options.parentMissing ? [] : [{sha: mergeBase}]}]);
       return {data: {
         base_commit: {sha: options.compareBaseDrift ? '0'.repeat(40) : pr.base.sha},
         merge_base_commit: options.mergeBaseMissing ? null : {sha: mergeBase},
@@ -336,6 +341,219 @@ console.log(JSON.stringify(result));
         self.assertIn(['compare', 'd' * 40 + '...contributor:' + 'a' * 40],
                       advanced['calls'])
 
+    def test_fork_release_merge_imports_trusted_workflow_change(self):
+        base, old_base, feature, imported, head = ('b' * 40, '9' * 40, '8' * 40,
+                                                   '7' * 40, 'a' * 40)
+        # The release base changed its workflows after the fork branched.
+        # Merging that base into the fork preserves the trusted base tree.
+        commits = [{
+            'sha': feature,
+            'parents': [{
+                'sha': old_base
+            }]
+        }, {
+            'sha': imported,
+            'parents': [{
+                'sha': feature
+            }, {
+                'sha': base
+            }]
+        }, {
+            'sha': head,
+            'parents': [{
+                'sha': imported
+            }]
+        }]
+        result = exercise({
+            'pr': {
+                'base': {
+                    'sha': base,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+            'commits': commits,
+            'prefixComparisons': {
+                imported: {
+                    'mergeBaseSha': base,
+                    'commits': commits[:2],
+                }
+            },
+            'workflowOids': {
+                old_base: '1' * 40,
+                feature: '1' * 40,
+                base: '2' * 40,
+                imported: '2' * 40,
+                head: '2' * 40,
+            }
+        })
+        self.assert_last_status(result, 'success')
+        self.assertIn(['compare', f'{base}...contributor:{imported}'],
+                      result['calls'])
+        queries = [
+            call[1] for call in result['calls'] if call[0] == 'workflow-trees'
+        ]
+        self.assertTrue(
+            any(f'{old_base}:.github/workflows' in query for query in queries))
+
+    def test_fork_release_merge_cannot_launder_side_branch_workflow_edit(self):
+        base, feature, edited, reverted, head = ('b' * 40, '8' * 40, '6' * 40,
+                                                 '7' * 40, 'a' * 40)
+        # The side branch returns to the original tree before merging, but
+        # its intermediate workflow edit must still block admission.
+        result = exercise({
+            'pr': {
+                'base': {
+                    'sha': base,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+            'commits': [{
+                'sha': feature,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': edited,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': reverted,
+                'parents': [{
+                    'sha': edited
+                }]
+            }, {
+                'sha': head,
+                'parents': [{
+                    'sha': feature
+                }, {
+                    'sha': reverted
+                }]
+            }],
+            'workflowOids': {
+                edited: '2' * 40,
+            }
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertFalse(
+            any(call[0] == 'status' and call[1] == 'success'
+                for call in result['calls']))
+        queries = [
+            call[1] for call in result['calls'] if call[0] == 'workflow-trees'
+        ]
+        self.assertTrue(
+            any(f'{edited}:.github/workflows' in query for query in queries))
+
+    def test_fork_release_merge_cannot_reimport_stale_base_workflows(self):
+        base, stale, feature, imported, head = ('b' * 40, '5' * 40, '8' * 40,
+                                                '7' * 40, 'a' * 40)
+        # A stale release ancestor is a merge parent, but the current base is
+        # already in this fork's history. The stale parent cannot authorize a
+        # workflow rollback followed by a clean final tree.
+        commits = [{
+            'sha': feature,
+            'parents': [{
+                'sha': base
+            }]
+        }, {
+            'sha': imported,
+            'parents': [{
+                'sha': feature
+            }, {
+                'sha': stale
+            }]
+        }, {
+            'sha': head,
+            'parents': [{
+                'sha': imported
+            }, {
+                'sha': base
+            }]
+        }]
+        result = exercise({
+            'pr': {
+                'base': {
+                    'sha': base,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+            'commits': commits,
+            'prefixComparisons': {
+                imported: {
+                    'mergeBaseSha': base,
+                    'commits': commits[:2],
+                }
+            },
+            'workflowOids': {
+                stale: '2' * 40,
+                imported: '2' * 40,
+            }
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertIn(['compare', f'{base}...contributor:{imported}'],
+                      result['calls'])
+        self.assertFalse(
+            any(call[0] == 'status' and call[1] == 'success'
+                for call in result['calls']))
+
+    def test_fork_release_merge_cannot_hide_workflow_conflict_resolution(self):
+        base, feature, side, resolved, head = ('b' * 40, '8' * 40, '6' * 40,
+                                               '7' * 40, 'a' * 40)
+        # Neither parent changed workflows. The merge resolution did, then a
+        # later merge restored the final tree to the trusted release base.
+        result = exercise({
+            'pr': {
+                'base': {
+                    'sha': base,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+            'commits': [{
+                'sha': feature,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': side,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': resolved,
+                'parents': [{
+                    'sha': feature
+                }, {
+                    'sha': side
+                }]
+            }, {
+                'sha': head,
+                'parents': [{
+                    'sha': resolved
+                }, {
+                    'sha': base
+                }]
+            }],
+            'workflowOids': {
+                resolved: '2' * 40,
+            }
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertFalse(
+            any(call[0] == 'status' and call[1] == 'success'
+                for call in result['calls']))
+
     def test_same_repository_release_workflow_change_uses_writer_trust(self):
         result = exercise({
             'workflowChange': True,
@@ -460,7 +678,7 @@ const pr = {number: 7, state: 'open', draft: false,
   user: {login: 'human'}, author_association: 'MEMBER',
   labels: ['lgtm', 'approved'].map(name => ({name}))};
 const stamp = crypto.createHash('sha256').update(JSON.stringify([
-  'release-2.18', pr.base.sha, 'release-workflow-guard-v3',
+  'release-2.18', pr.base.sha, 'release-workflow-guard-v4',
 ])).digest('hex');
 const description = `Expected CI and all checks passed; base policy ${stamp}.`;
 const statuses = ['ci-passed-release', 'ci-passed'].map(context =>
