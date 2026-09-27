@@ -80,6 +80,59 @@ class SyncArgoVersionsTest(unittest.TestCase):
         self.assertEqual(
             sync_argo_versions.sync(self.repo_root, check=True), [])
 
+    def test_each_workflow_requires_both_supported_versions(self):
+        self.add_runtime_files()
+        sync_argo_versions.sync(self.repo_root)
+        incomplete = (
+            'argo_version: ["v4.0.5"]\n',
+            'argo_version: ["v4.1.2"]\n',
+            'argo_version: ${{ matrix.argo_version }}\n',
+        )
+        with mock.patch.object(sync_argo_versions, '_tidied_module') as tidy:
+            for relative_path in sync_argo_versions.WORKFLOW_PATHS:
+                path = self.repo_root / relative_path
+                original = path.read_text()
+                for contents in incomplete:
+                    path.write_text(contents)
+                    before = self.snapshot()
+                    for check in (False, True):
+                        with self.subTest(
+                                path=relative_path, contents=contents,
+                                check=check):
+                            with self.assertRaises(ValueError) as error:
+                                sync_argo_versions.sync(
+                                    self.repo_root, scope='all', check=check)
+                            self.assertIn(
+                                str(relative_path), str(error.exception))
+                            self.assertEqual(before, self.snapshot())
+                path.write_text(original)
+            tidy.assert_not_called()
+
+    def test_workflows_require_matching_source_version_pairs(self):
+        path = self.repo_root / sync_argo_versions.WORKFLOW_PATHS[0]
+        path.write_text('argo_version: ["v3.7.14", "v4.1.2"]\n')
+        before = self.snapshot()
+        for check in (False, True):
+            with self.subTest(check=check):
+                with self.assertRaisesRegex(ValueError,
+                                            'two Argo versions in CI matrices'):
+                    sync_argo_versions.sync(self.repo_root, check=check)
+                self.assertEqual(before, self.snapshot())
+
+    def test_single_version_jobs_preserve_workflow_coverage(self):
+        for relative_path in sync_argo_versions.WORKFLOW_PATHS:
+            path = self.repo_root / relative_path
+            path.write_text(
+                path.read_text() + 'legacy_job:\n  argo_version: ["v3.7.14"]\n'
+                'input:\n  argo_version: ${{ matrix.argo_version }}\n')
+        sync_argo_versions.sync(self.repo_root)
+        for relative_path in sync_argo_versions.WORKFLOW_PATHS:
+            contents = (self.repo_root / relative_path).read_text()
+            self.assertIn('argo_version: ["v4.0.5", "v4.1.2"]', contents)
+            self.assertIn('legacy_job:\n  argo_version: ["v4.0.5"]', contents)
+        self.assertEqual(
+            sync_argo_versions.sync(self.repo_root, check=True), [])
+
     def test_check_reports_changes_without_writing(self):
         changed_paths = sync_argo_versions.sync(self.repo_root, check=True)
 

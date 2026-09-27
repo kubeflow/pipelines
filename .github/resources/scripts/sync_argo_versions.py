@@ -66,10 +66,18 @@ def _workflow_versions(repo_root: Path) -> List[str]:
     versions = set()
     for relative_path in WORKFLOW_PATHS:
         contents = (repo_root / relative_path).read_text(encoding='utf-8')
+        workflow_versions = set()
         for value in ARGO_VERSION_LINE.findall(contents):
             tokens = re.findall(r'''(?<![A-Za-z0-9_.])v[0-9][^\s,\]\"']*''',
                                 value.split('#', 1)[0])
-            versions.update(_validate_version(token) for token in tokens)
+            workflow_versions.update(
+                _validate_version(token) for token in tokens)
+        if len(workflow_versions) != 2:
+            raise ValueError(
+                f'{relative_path}: expected exactly two Argo versions; restore '
+                f'both supported workflow lanes, found {sorted(workflow_versions, key=_version_key)}'
+            )
+        versions.update(workflow_versions)
     return sorted(versions, key=_version_key)
 
 
