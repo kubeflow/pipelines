@@ -20,12 +20,15 @@ merge-group workflow that requests `statuses: write` and reports a successful
 Actions App would not distinguish that workflow from CI Check. Before
 activation, publish release `ci-passed` statuses with a dedicated GitHub App
 installed only on this repository, keep its private key in a protected
-default-branch environment, use its installation token for queue API reads,
-and require that App as the status source in the release branch rule. The App
-needs Actions and Contents read, Commit statuses write, and Pull requests
-write for dequeue. A controlled canary must also verify the effective
-merge-group token permission. This App and credential path is not implemented
-by the current publisher change.
+default-branch environment, use its installation token for PR-head status
+publication and queue API reads and writes, and require that App as the status
+source in the release branch rule. The App needs Actions and Contents read,
+Commit statuses write, Pull requests write, and Merge queues write for
+dequeue. The publisher must interpret only statuses created by that App when
+reading `ci-passed` history; a status from another source must not hide its
+status or supply a rerun fence. A controlled canary must also verify the
+effective merge-group token permission. This App and credential path is not
+implemented by the current publisher change.
 
 When enabled, the `release-2.18` queue uses the same required `ci-passed`
 context on both PR heads and GitHub's temporary merge-group SHA. The trusted
