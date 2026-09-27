@@ -14,7 +14,7 @@
 html,body{margin:0;height:100%}
 body{font-family:"Public Sans",system-ui,sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;
 --bg:#f5f6f9;--surface:#ffffff;--surface2:#f0f1f5;--ink:#15171e;--ink2:#4a4f5c;--muted:#737889;--border:#e3e5ec;--border2:#d3d6df;
---accent:#2563d9;--accent-ink:#ffffff;--accent-soft:#e7eefc;--ok:#1f8a4c;--ok-soft:#e3f5ea;--run:#2563d9;--run-soft:#e7eefc;--err:#c9302c;--err-soft:#fbe8e7;--warn:#b8700a;--warn-soft:#fdf2df;--neutral:#8a8f9d;--neutral-soft:#eceef3;--shadow:0 1px 2px rgba(20,24,40,.06),0 8px 24px -12px rgba(20,24,40,.12);color:var(--ink);background:var(--bg)}
+--accent:#2563d9;--accent-ink:#ffffff;--accent-soft:#e7eefc;--ok:#19733f;--ok-soft:#e3f5ea;--run:#2563d9;--run-soft:#e7eefc;--err:#c9302c;--err-soft:#fbe8e7;--warn:#945908;--warn-soft:#fdf2df;--neutral:#626977;--neutral-soft:#eceef3;--shadow:0 1px 2px rgba(20,24,40,.06),0 8px 24px -12px rgba(20,24,40,.12);color:var(--ink);background:var(--bg)}
 body[data-theme="dark"]{--bg:#0e1015;--surface:#161921;--surface2:#1d212b;--ink:#eceef4;--ink2:#b6bac6;--muted:#8a8f9e;--border:#252933;--border2:#333846;--accent:#6b9cf5;--accent-ink:#0b1120;--accent-soft:#1a2740;--ok:#4fc27e;--ok-soft:#14301f;--run:#6b9cf5;--run-soft:#1a2740;--err:#f0716d;--err-soft:#3a1a19;--warn:#e8a73a;--warn-soft:#3a2a10;--neutral:#8a8f9e;--neutral-soft:#242834;--shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -12px rgba(0,0,0,.6)}
 a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 *{box-sizing:border-box}
@@ -746,7 +746,7 @@ class Component extends DCLogic {
   renderVals(){
     const s=this.state, theme=this.theme(), nav=this.navStyle();
     const screens=[['pipelines','Pipelines',5],['experiments','Experiments',4],['runs','Runs',8],['recurring','Recurring runs',3],['artifacts','Artifacts',146]];
-    const activeScreen = (s.screen==='runDetail'||s.screen==='newRun') ? 'runs' : s.screen;
+    const activeScreen = (s.screen==='runDetail'||s.screen==='compare'||s.screen==='newRun') ? 'runs' : s.screen;
     const navItems=screens.map(([k,label,count])=>({label,count,icon:this.icon(k),go:()=>this.go(k),
       bg: activeScreen===k?'var(--accent-soft)':'transparent', fg: activeScreen===k?'var(--accent)':'var(--ink2)'}));
     const statuses=['All','Running','Succeeded','Failed','Pending','Canceled'];

@@ -145,3 +145,40 @@ permission states, first-use empty/loading/error states, keyboard focus, reduced
 motion, and rich graph/artifact behavior in implementation verification. Artifact
 rows must retain access to artifact details, preview, and lineage as well as the
 producing task. Keep existing return destinations and supported form options.
+
+### Preview runtime provenance and maintenance
+
+`prototype/support.js` is the readable JavaScript runtime supplied with the original
+UI design handoff. Its imported bytes are preserved in commit
+`0b3282dc198048a6dce10e3fed997aecd1afb1f8`; their SHA-256 is
+`8fe7df74405f3c55f49b7249c74ea1397e65d07dea2b1bd3b4a489bec2e28cbe`.
+The handoff included no `dc-runtime` TypeScript sources, build files, source map,
+or upstream source URL. The inherited generator banner therefore described an
+unavailable build and has been removed. We maintain this vendored JavaScript file
+as the editable preview source; there is no claimed TypeScript regeneration step.
+
+Make small, reviewable changes directly in `support.js`, retaining any attribution.
+Validate its syntax from this directory with `node --check prototype/support.js`,
+then serve and inspect the prototype using the preview command above. Exercise
+navigation and light/dark rendering after runtime changes. React 18.3.1, ReactDOM
+18.3.1, and Babel standalone 7.29.0 remain explicitly versioned external preview
+dependencies. This runtime is not part of the production frontend build.
+
+### Status text contrast
+
+The light-theme succeeded, warning, and neutral foregrounds are darkened in both
+`tokens.css` and the interactive reference. All five light status foregrounds meet
+4.5:1 against white and their corresponding soft background:
+
+| Status | On white | On soft background |
+| --- | ---: | ---: |
+| Succeeded | 5.89:1 | 5.19:1 |
+| Running | 5.43:1 | 4.67:1 |
+| Failed | 5.33:1 | 4.51:1 |
+| Warning | 5.69:1 | 5.13:1 |
+| Neutral | 5.52:1 | 4.75:1 |
+
+Ratios use WCAG sRGB relative luminance. The supplied screenshots remain the
+original design captures; the tokens and interactive reference contain these
+review corrections. Recheck contrast for actual text/surface combinations during
+implementation, including interaction states and dark mode.

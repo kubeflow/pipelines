@@ -17,11 +17,11 @@
   --primary-foreground: #ffffff;
   --primary-soft: #e7eefc;      /* active nav pill, selected row, focus ring */
   /* status (fg / soft bg) — maps to lib/StatusUtils.ts */
-  --status-succeeded: #1f8a4c;  --status-succeeded-soft: #e3f5ea;
+  --status-succeeded: #19733f;  --status-succeeded-soft: #e3f5ea;
   --status-running:   #2563d9;  --status-running-soft:   #e7eefc;
   --status-failed:    #c9302c;  --status-failed-soft:    #fbe8e7;
-  --status-warning:   #b8700a;  --status-warning-soft:   #fdf2df;
-  --status-neutral:   #8a8f9d;  --status-neutral-soft:   #eceef3; /* pending, canceled, skipped */
+  --status-warning:   #945908;  --status-warning-soft:   #fdf2df;
+  --status-neutral:   #626977;  --status-neutral-soft:   #eceef3; /* pending, canceled, skipped */
   --shadow-card: 0 1px 2px rgba(20,24,40,.06), 0 8px 24px -12px rgba(20,24,40,.12);
   /* shape */
   --radius-sm: 5px;   /* tags, kbd */
