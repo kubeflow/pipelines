@@ -2062,3 +2062,55 @@ func Test_provisionOutputs(t *testing.T) {
 		})
 	}
 }
+
+// A $(VAR) reference in a value expands from the entries before it, so the pod
+// has to get user env in spec order. The cache key hashes that same order.
+func Test_initPodSpecPatch_keepsUserEnvOrder(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.11",
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{
+			{Name: "B", Value: "$(A)"},
+			{Name: "A", Value: "x"},
+			{Name: "B", Value: "$(A)-last"},
+		},
+	}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		&pipelinespec.ComponentSpec{},
+		&pipelinespec.ExecutorInput{},
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		&TaskConfig{},
+		false,
+		false,
+		"",
+		"ml-pipeline.kubeflow",
+		"8887",
+		"metadata-grpc-service.kubeflow",
+		"8080",
+		nil,
+	)
+	require.NoError(t, err)
+	require.Len(t, podSpec.Containers, 1)
+
+	var userEnv []k8score.EnvVar
+	for _, env := range podSpec.Containers[0].Env {
+		if env.Name == "A" || env.Name == "B" {
+			userEnv = append(userEnv, env)
+		}
+	}
+	assert.Equal(t, []k8score.EnvVar{
+		{Name: "B", Value: "$(A)"},
+		{Name: "A", Value: "x"},
+		{Name: "B", Value: "$(A)-last"},
+	}, userEnv)
+}
