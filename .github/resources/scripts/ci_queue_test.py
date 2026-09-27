@@ -55,22 +55,28 @@ const statuses = new Map();
 const statusHistory = new Map();
 if (options.prefillStatuses) statusHistory.set(sha,
   Array.from({length: options.prefillStatuses}, () => ({
-    context: 'ci-passed', state: 'success', description: 'Prior queue check',
+    context: 'ci-passed-release', state: 'success', description: 'Prior queue check',
   })));
 if (options.initialStatus) {
   statuses.set(sha, options.initialStatus);
   statuses.set(priorSha, options.initialStatus);
 }
 let pr = {number: 7, node_id: 'PR_7', state: 'open', draft: false,
-  head: {sha: prHead}, base: {ref: 'release-2.18'},
+  head: {sha: prHead, repo: {full_name: 'contributor/pipelines',
+    name: 'pipelines', owner: {login: 'contributor'}}},
+  base: {sha: base, ref: 'release-2.18'},
   user: {login: 'human'}, author_association: 'MEMBER',
   labels: ['lgtm', 'approved'].map(name => ({name}))};
 if (options.labels) pr.labels = options.labels.map(name => ({name}));
 if (options.dependabot) pr.user.login = 'dependabot[bot]';
 if (options.retargetAway) pr.base.ref = 'master';
+if (options.sameRepo) pr.head.repo = {full_name: 'kubeflow/pipelines',
+  name: 'pipelines', owner: {login: 'kubeflow'}};
 let prior = {number: 8, node_id: 'PR_8', state: 'open', draft: false,
-  head: {sha: options.priorHeadDrift ? 'f'.repeat(40) : priorHead},
-  base: {ref: 'release-2.18'},
+  head: {sha: options.priorHeadDrift ? 'f'.repeat(40) : priorHead,
+    repo: {full_name: 'contributor/pipelines',
+      name: 'pipelines', owner: {login: 'contributor'}}},
+  base: {sha: base, ref: 'release-2.18'},
   user: {login: 'human'}, author_association: 'MEMBER',
   labels: ['lgtm', 'approved'].map(name => ({name}))};
 if (options.priorLabels) prior.labels = options.priorLabels.map(name => ({name}));
@@ -112,6 +118,19 @@ const runs = head => paths.filter(path => path !== options.missing).map((path, i
 }));
 const github = {
   graphql: async (query, variables) => {
+    if (query.includes('query ReleaseWorkflowTrees')) {
+      calls.push(['workflow-trees', query]);
+      if (options.workflowTreeError) throw Error('Workflow tree unavailable');
+      const repository = {nameWithOwner: `${variables.owner}/${variables.repo}`};
+      for (const [, alias, revision] of query.matchAll(/(r\d+): object\(expression: "([0-9a-f]{40}):\.github\/workflows"\)/g)) {
+        const changed = revision === prHead && options.workflowChange ||
+          revision === priorHead && options.priorWorkflowChange ||
+          revision === '8'.repeat(40) && options.workflowChangeReverted;
+        repository[alias] = options.workflowTreeMissing ? null :
+          {oid: changed ? '2'.repeat(40) : '1'.repeat(40)};
+      }
+      return {repository};
+    }
     if (options.queueError) throw Error('Queue unavailable');
     if (query.includes('mutation DequeueReleasePR')) {
       calls.push(['dequeue', variables.id]);
@@ -133,6 +152,22 @@ const github = {
     pulls: {get: async request => ({data: structuredClone(
       request.pull_number === 8 ? prior : pr)})},
     repos: {
+      compareCommitsWithBasehead: async request => {
+        calls.push(['compare', request.basehead]);
+        if (options.compareError) throw Error('Compare unavailable');
+        const target = request.basehead.endsWith(`:${priorHead}`) ? prior : pr;
+        const commits = options.workflowChangeReverted && target === pr ? [
+          {sha: '8'.repeat(40), parents: [{sha: base}]},
+          {sha: prHead, parents: [{sha: '8'.repeat(40)}]},
+        ] : [{sha: target.head.sha,
+          parents: options.parentMissing ? [] : [{sha: base}]}];
+        return {data: {
+          base_commit: {sha: options.compareBaseDrift ? '0'.repeat(40) : target.base.sha},
+          merge_base_commit: options.mergeBaseMissing ? null : {sha: base},
+          commits, ahead_by: commits.length,
+          total_commits: options.historyTruncated ? commits.length + 1 : commits.length,
+        }};
+      },
       getBranch: async () => ({data: {commit: {sha: base}}}),
       getCombinedStatusForRef: {},
       listCommitStatusesForRef: {},
@@ -189,7 +224,7 @@ const github = {
 };
 github.paginate.iterator = async function* (_, request) {
   const status = statuses.get(request.ref);
-  yield {data: {statuses: status ? [{context: 'ci-passed', state: status}] : []}};
+  yield {data: {statuses: status ? [{context: 'ci-passed-release', state: status}] : []}};
 };
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
   runAttempt: 1,
@@ -352,10 +387,12 @@ class QueueCITest(unittest.TestCase):
     def test_exact_group_sha_passes_only_after_all_release_workflows(self):
         result = exercise()
         self.assertEqual(result['status'], 'success', result)
-        statuses = [call for call in result['calls'] if call[0] == 'ci-passed']
+        statuses = [call for call in result['calls']
+                    if call[0] == 'ci-passed-release']
         self.assertEqual(
             statuses,
-            [['ci-passed', 'pending', SHA], ['ci-passed', 'success', SHA]])
+            [['ci-passed-release', 'pending', SHA],
+             ['ci-passed-release', 'success', SHA]])
         self.assertEqual(
             len([call for call in result['calls'] if call[0] == 'current-run']),
             3)
@@ -424,6 +461,23 @@ console.log(JSON.stringify(tests.map(trigger => {{
                 'dependabot': True
             })['status'], 'success')
 
+    def test_fork_workflow_edits_and_truncated_history_block_group(self):
+        for option in ['workflowChange', 'workflowChangeReverted',
+                       'workflowTreeMissing', 'compareBaseDrift',
+                       'mergeBaseMissing', 'historyTruncated', 'parentMissing']:
+            with self.subTest(option=option):
+                result = exercise({option: True})
+                self.assertEqual(result['status'], 'failure', result)
+                self.assertFalse(any(call[0] == 'current-run'
+                                     for call in result['calls']))
+        prior = exercise({'priorEntry': True, 'priorHeadNull': True,
+                          'priorWorkflowChange': True})
+        self.assertEqual(prior['status'], 'failure', prior)
+        same_repo = exercise({'sameRepo': True, 'workflowChange': True})
+        self.assertEqual(same_repo['status'], 'success', same_repo)
+        self.assertFalse(any(call[0] == 'test-merge'
+                             for call in same_repo['calls']))
+
     def test_cumulative_group_checks_all_earlier_queue_entries(self):
         self.assertEqual(
             exercise({
@@ -456,8 +510,8 @@ console.log(JSON.stringify(tests.map(trigger => {{
         self.assertEqual(result['status'], 'failure')
         self.assertEqual(result['priorStatus'], 'failure')
         self.assertEqual(result['calls'][:2], [
-            ['ci-passed', 'pending', 'd' * 40],
-            ['ci-passed', 'pending', SHA],
+            ['ci-passed-release', 'pending', 'd' * 40],
+            ['ci-passed-release', 'pending', SHA],
         ])
         multiple_built = exercise({
             'priorEntry': True,
@@ -465,7 +519,7 @@ console.log(JSON.stringify(tests.map(trigger => {{
             'labelEventEarlier': True
         })
         self.assertFalse(
-            any(call[0] == 'ci-passed' and call[1] == 'success'
+            any(call[0] == 'ci-passed-release' and call[1] == 'success'
                 for call in multiple_built['calls']))
 
     def test_rerun_start_revokes_success_before_run_api_updates(self):
@@ -532,7 +586,7 @@ console.log(JSON.stringify(tests.map(trigger => {{
         self.assertFalse(
             any(call[1] == 'success'
                 for call in near_limit['calls']
-                if call[0] == 'ci-passed'))
+                if call[0] == 'ci-passed-release'))
 
     def test_dequeue_invalid_release_pr_before_null_successor_blocks_discovery(
             self):
@@ -633,7 +687,8 @@ console.log(JSON.stringify(tests.map(trigger => {{
     def test_drift_after_success_revokes_group(self):
         result = exercise({'removeLabelAfterSuccess': True})
         self.assertEqual(result['status'], 'failure')
-        self.assertEqual(result['calls'][-1], ['ci-passed', 'failure', SHA])
+        self.assertEqual(result['calls'][-1],
+                         ['ci-passed-release', 'failure', SHA])
         self.assertEqual(
             exercise({
                 'priorEntry': True,

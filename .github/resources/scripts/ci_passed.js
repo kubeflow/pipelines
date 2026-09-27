@@ -15,6 +15,10 @@ const {applicable, verifyExpectedWorkflows, loadBaseInventory} = require('./ci_e
 
 const RELEASE_BRANCH = 'release-2.18';
 const QUEUE_BRANCH_PREFIX = `gh-readonly-queue/${RELEASE_BRANCH}/`;
+const MASTER_STATUS_CONTEXT = 'ci-passed';
+const RELEASE_STATUS_CONTEXT = 'ci-passed-release';
+const MAX_WORKFLOW_GUARD_COMMITS = 100;
+const WORKFLOW_TREE_BATCH_SIZE = 40;
 const RELEASE_BLOCKED_LABELS = new Set([
   'do-not-merge', 'do-not-merge/hold', 'do-not-merge/invalid-owners-file',
   'do-not-merge/work-in-progress', 'needs-rebase',
@@ -45,6 +49,13 @@ function admitted(pr) {
     (labels.has('lgtm') && labels.has('approved'));
 }
 
+function prStatusContexts(pr) {
+  if (pr.base.ref !== RELEASE_BRANCH) return [MASTER_STATUS_CONTEXT];
+  // Invalidate the required release status before touching the legacy Tide
+  // context if a status write fails partway through publication.
+  return [RELEASE_STATUS_CONTEXT, MASTER_STATUS_CONTEXT];
+}
+
 function snapshot(pr) {
   return JSON.stringify([pr.number, pr.state, pr.head.sha, pr.base.ref, pr.base.sha, admitted(pr)]);
 }
@@ -53,23 +64,108 @@ async function readPR(github, context, number) {
   return (await github.rest.pulls.get({...context.repo, pull_number: number})).data;
 }
 
-async function currentStatus(github, context, head) {
+async function currentStatus(github, context, head, name) {
   // Combined-status responses are paginated independently of commit history.
   for await (const response of github.paginate.iterator(github.rest.repos.getCombinedStatusForRef, {
     ...context.repo, ref: head, per_page: 100,
   })) {
     const statuses = response.data.statuses || response.data;
-    const status = statuses.find(item => item.context === 'ci-passed');
+    const status = statuses.find(item => item.context === name);
     if (status) return status;
   }
   return null;
 }
 
+async function releaseWorkflowGuard(github, context, pr) {
+  if (pr.base.ref !== RELEASE_BRANCH) return {passed: true};
+  const repository = `${context.repo.owner}/${context.repo.repo}`.toLowerCase();
+  const {login: headOwner} = pr.head.repo?.owner || {};
+  const {name: headRepo, full_name: headRepository} = pr.head.repo || {};
+  if (!headOwner || !headRepo ||
+      headRepository?.toLowerCase() !== `${headOwner}/${headRepo}`.toLowerCase()) {
+    return {passed: false, reason: 'Cannot identify the release PR head repository.'};
+  }
+  // A same-repository branch writer already has permission to edit workflows.
+  // Fork PRs cannot introduce write-capable merge_group or queue-ref workflows.
+  if (headRepository.toLowerCase() === repository) return {passed: true};
+  if (!/^[0-9a-f]{40}$/.test(pr.base.sha || '') ||
+      !/^[0-9a-f]{40}$/.test(pr.head.sha || '')) {
+    return {passed: false, reason: 'Cannot identify the release PR revisions.'};
+  }
+  const comparison = (await github.rest.repos.compareCommitsWithBasehead({
+    ...context.repo, basehead: `${pr.base.sha}...${headOwner}:${pr.head.sha}`,
+    per_page: MAX_WORKFLOW_GUARD_COMMITS,
+  })).data;
+  const mergeBase = comparison.merge_base_commit?.sha;
+  const commits = comparison.commits;
+  if (comparison.base_commit?.sha !== pr.base.sha || !/^[0-9a-f]{40}$/.test(mergeBase || '') ||
+      !Number.isSafeInteger(comparison.total_commits) ||
+      comparison.total_commits !== comparison.ahead_by ||
+      comparison.total_commits > MAX_WORKFLOW_GUARD_COMMITS ||
+      !Array.isArray(commits) || commits.length !== comparison.total_commits ||
+      (commits.length && commits.at(-1)?.sha !== pr.head.sha) ||
+      (!commits.length && mergeBase !== pr.head.sha)) {
+    return {passed: false, reason: 'Cannot verify the release PR merge base.'};
+  }
+  const revisions = new Set([mergeBase, pr.head.sha]);
+  for (const commit of commits) {
+    if (!/^[0-9a-f]{40}$/.test(commit?.sha || '') ||
+        !Array.isArray(commit.parents) || commit.parents.length === 0) {
+      return {passed: false, reason: 'Cannot verify the release PR commit history.'};
+    }
+    revisions.add(commit.sha);
+    for (const parent of commit.parents) {
+      if (!/^[0-9a-f]{40}$/.test(parent?.sha || '')) {
+        return {passed: false, reason: 'Cannot verify the release PR commit history.'};
+      }
+      revisions.add(parent.sha);
+    }
+  }
+  if (revisions.size > 256) {
+    return {passed: false, reason: 'Release PR commit history exceeds workflow verification limit.'};
+  }
+  // Compare each commit with every parent. A change followed by a revert has
+  // the same final tree but must stay blocked as the base branch advances.
+  const trees = new Map();
+  const shas = [...revisions];
+  for (let offset = 0; offset < shas.length; offset += WORKFLOW_TREE_BATCH_SIZE) {
+    const batch = shas.slice(offset, offset + WORKFLOW_TREE_BATCH_SIZE);
+    const fields = batch.map((sha, index) =>
+      `r${index}: object(expression: "${sha}:.github/workflows") { ... on Tree { oid } }`);
+    const result = await github.graphql(`query ReleaseWorkflowTrees($owner: String!, $repo: String!) {
+      repository(owner: $owner, name: $repo) {
+        nameWithOwner
+        ${fields.join('\n')}
+      }
+    }`, {owner: headOwner, repo: headRepo});
+    const fork = result?.repository;
+    if (fork?.nameWithOwner?.toLowerCase() !== headRepository.toLowerCase()) {
+      return {passed: false, reason: 'Cannot verify the release workflow trees.'};
+    }
+    for (const [index, sha] of batch.entries()) {
+      const oid = fork[`r${index}`]?.oid;
+      if (!/^[0-9a-f]{40}$/.test(oid || '')) {
+        return {passed: false, reason: 'Cannot verify the release workflow trees.'};
+      }
+      trees.set(sha, oid);
+    }
+  }
+  if (trees.get(mergeBase) !== trees.get(pr.head.sha) ||
+      commits.some(commit => commit.parents.some(parent =>
+        trees.get(commit.sha) !== trees.get(parent.sha)))) {
+    return {passed: false,
+      reason: 'Fork PR history edits release workflows; a repository writer must land those edits.'};
+  }
+  return {passed: true};
+}
+
 function successDescription(pr) {
   // Bind green evidence to the exact checked-in workflow policy. Legacy
   // statuses and statuses from another base must be reconsidered by recovery.
+  const policy = [pr.base.ref, pr.base.sha];
+  if (pr.base.ref === RELEASE_BRANCH) policy.push('release-workflow-guard-v3');
   const stamp = require('node:crypto').createHash('sha256')
-    .update(JSON.stringify([pr.base.ref, pr.base.sha])).digest('hex');
+    .update(JSON.stringify(policy)).digest('hex');
   return `Expected CI and all checks passed; base policy ${stamp}.`;
 }
 
@@ -82,9 +178,13 @@ async function recoveryCandidates({github, context}) {
     if (!eligible(pr) && pr.base.ref !== RELEASE_BRANCH) continue;
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
-    const status = await currentStatus(github, context, pr.head.sha);
-    if (status?.state === 'success' && status.description === successDescription(pr) && admitted(pr)) continue;
-    if (!admitted(pr) && status?.state !== 'success') continue;
+    const statuses = [];
+    for (const name of prStatusContexts(pr)) {
+      statuses.push(await currentStatus(github, context, pr.head.sha, name));
+    }
+    if (statuses.every(status => status?.state === 'success' &&
+        status.description === successDescription(pr)) && admitted(pr)) continue;
+    if (!admitted(pr) && statuses.every(status => status?.state !== 'success')) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -123,23 +223,25 @@ async function resolve(github, context, recovery) {
 }
 
 async function publish(github, context, pr, state, description) {
-  let current;
-  try {
-    current = await currentStatus(github, context, pr.head.sha);
-  } catch (error) {
-    // A failed read must not prevent invalidating a previously green head.
-    if (state === 'success') throw error;
-  }
-  // A timer must not exhaust the finite per-SHA/context status history on
-  // unchanged failing heads. Preserve non-success until recovery is proven.
-  const preserve = context.eventName === 'schedule' && state === 'pending' &&
-    current && current.state !== 'success';
-  if (!preserve && current?.state !== state) {
-    await github.rest.repos.createCommitStatus({
-      ...context.repo, sha: pr.head.sha, context: 'ci-passed', state,
-      description: description.slice(0, 140),
-      target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-    });
+  for (const name of prStatusContexts(pr)) {
+    let current;
+    try {
+      current = await currentStatus(github, context, pr.head.sha, name);
+    } catch (error) {
+      // A failed read must not prevent invalidating a previously green head.
+      if (state === 'success') throw error;
+    }
+    // A timer must not exhaust the finite per-SHA/context status history on
+    // unchanged failing heads. Preserve non-success until recovery is proven.
+    const preserve = context.eventName === 'schedule' && state === 'pending' &&
+      current && current.state !== 'success';
+    if (!preserve && current?.state !== state) {
+      await github.rest.repos.createCommitStatus({
+        ...context.repo, sha: pr.head.sha, context: name, state,
+        description: description.slice(0, 140),
+        target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+      });
+    }
   }
   if (state === 'success') {
     await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
@@ -169,6 +271,8 @@ async function freshAfter(github, context, pr) {
 }
 
 async function evidence(github, context, pr, root) {
+  const guard = await releaseWorkflowGuard(github, context, pr);
+  if (!guard.passed) return {passed: false, reasons: [guard.reason]};
   const inventory = await loadBaseInventory({github, ...context.repo, pullRequest: pr, root});
   return verifyExpectedWorkflows({github, ...context.repo, pullRequest: pr,
     ...inventory, freshAfter: await freshAfter(github, context, pr)});
@@ -180,10 +284,17 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
     pr = await resolve(github, context, recovery);
   } catch (error) {
     const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha || recovery?.head;
-    if (sha) await github.rest.repos.createCommitStatus({
-      ...context.repo, sha, context: 'ci-passed', state: 'failure',
-      description: 'Cannot identify the PR for this head; inspect CI Check and retry.',
-    });
+    if (sha) {
+      const eventPR = context.payload.pull_request;
+      const contexts = eventPR ? prStatusContexts(eventPR) :
+        [RELEASE_STATUS_CONTEXT, MASTER_STATUS_CONTEXT];
+      for (const name of contexts) {
+        await github.rest.repos.createCommitStatus({
+          ...context.repo, sha, context: name, state: 'failure',
+          description: 'Cannot identify the PR for this head; inspect CI Check and retry.',
+        });
+      }
+    }
     throw error;
   }
   if (!pr) return;
@@ -473,6 +584,8 @@ async function queueEvidence({github, context, sha, root, verifyCurrentRuns = fa
         pr.head.sha !== queued.headRefOid || !admitted(pr)) {
       return {state: 'failure', reason: `Queued PR #${queued.number} is no longer admitted at this head.`};
     }
+    const guard = await releaseWorkflowGuard(github, context, pr);
+    if (!guard.passed) return {state: 'failure', reason: `Queued PR #${queued.number}: ${guard.reason}`};
   }
   const branch = (await github.rest.repos.getBranch({
     ...context.repo, branch: RELEASE_BRANCH,
@@ -555,7 +668,7 @@ async function queueStatus(github, context, sha, state, description) {
   // A status read can lag a previous write. Always append the desired state:
   // a stale pending read must never suppress revocation of newer success.
   await github.rest.repos.createCommitStatus({
-    ...context.repo, sha, context: 'ci-passed', state,
+    ...context.repo, sha, context: RELEASE_STATUS_CONTEXT, state,
     description: description.slice(0, 140),
     target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
   });
@@ -586,7 +699,7 @@ async function queueRerunFence(github, context, sha, requireCurrentMarker = true
   const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
     ...context.repo, ref: sha, per_page: 100,
   });
-  const gateStatuses = statuses.filter(status => status.context === 'ci-passed');
+  const gateStatuses = statuses.filter(status => status.context === RELEASE_STATUS_CONTEXT);
   // Keep a write slot to revoke a success if the queue changes immediately
   // afterward. A stalled SHA must stop at pending before GitHub's per-context
   // status limit can strand a green result.

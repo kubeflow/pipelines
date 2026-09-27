@@ -3,7 +3,9 @@ name: CI Check
 
 on:
   schedule:
-    - cron: '7,22,37,52 * * * *'
+    # Scheduled PR-head and release queue recovery share the repository's
+    # hourly GITHUB_TOKEN API budget; event-driven validation remains prompt.
+    - cron: '7 * * * *'
   pull_request_target:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed, ready_for_review, converted_to_draft]
   workflow_run:
