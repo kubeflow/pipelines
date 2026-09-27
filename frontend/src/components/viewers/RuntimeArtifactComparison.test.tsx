@@ -370,18 +370,13 @@ describe('RuntimeArtifactComparison', () => {
     expect(nextPage).toHaveFocus();
     await user.keyboard('{Enter}');
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
-    await waitFor(() =>
-      expect(screen.getAllByRole('option').filter((option) => option.dataset.value)).toHaveLength(
-        50,
-      ),
-    );
+    const secondPageOptions = await waitFor(() => {
+      const options = screen.getAllByRole('option').filter((option) => option.dataset.value);
+      expect(options).toHaveLength(50);
+      return options;
+    });
     expect(screen.getByText(/Showing 101–150 of 150 matching curves/)).toBeVisible();
-    fireEvent.click(
-      screen
-        .getAllByRole('option')
-        .filter((option) => option.dataset.value)
-        .at(-1)!,
-    );
+    fireEvent.click(secondPageOptions.at(-1)!);
     expect(screen.getByRole('combobox', { name: 'ROC curves', hidden: true })).toHaveTextContent(
       '4 curves selected',
     );
