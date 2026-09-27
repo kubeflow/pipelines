@@ -156,12 +156,18 @@ without dispatching a new workflow run.
 
 ## Release image CVE gate
 
-Every non-dry-run `publish-images` workflow scans each architecture-specific
-image by immutable digest before publishing the versioned or `latest`
-manifests. The gate uses the current Trivy advisory database and fails on CVEs
+The current 3.x non-dry-run `publish-images` workflow scans each
+architecture-specific image by immutable digest before publishing the versioned
+or `latest` manifests. The gate uses the current Trivy advisory database and fails on CVEs
 of any severity for which a fixed version is available. Findings without a
 published fix and advisories without a CVE identifier do not block the
 release.
+
+The 2.18 CLI path dispatches the workflow from `release-2.18`, so merging this
+policy into master alone does not gate 2.18 publication. Apply a selective
+backport of the scan input, enforcement helper, and release-workflow wiring to
+that branch before relying on the gate there. Preserve its existing image
+inventory; do not backport the 3.x ARM64 requirements for this policy.
 
 If the gate fails:
 
