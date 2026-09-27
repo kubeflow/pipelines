@@ -20,7 +20,6 @@ import subprocess
 import tempfile
 import unittest
 
-
 WORKFLOWS = Path(__file__).resolve().parents[2] / 'workflows'
 REPOSITORY_ROOT = WORKFLOWS.parents[1]
 
@@ -41,8 +40,7 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
                     '    branches: [release-2.18]\n', source)
                 self.assertIn('permissions:\n  contents: read\n', source)
                 self.assertRegex(
-                    source,
-                    r'(?m)^  build:\n    permissions:\n'
+                    source, r'(?m)^  build:\n    permissions:\n'
                     r'      actions: read\n      contents: read\n'
                     r'    uses: ./\.github/workflows/image-builds\.yml$')
 
@@ -52,16 +50,14 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
             if '\n  merge_group:\n' not in source:
                 continue
             with self.subTest(workflow=path.name):
-                self.assertRegex(source,
-                                 r'(?m)^permissions:\n  contents: read(?:\n|$)')
+                self.assertRegex(
+                    source, r'(?m)^permissions:\n  contents: read(?:\n|$)')
                 self.assertNotRegex(source, r'(?m)^\s+[\w-]+: write\s*$')
 
     def test_queue_only_image_builds_do_not_publish(self):
         for queue_name, original_name in (
-                ('build-tools-images-merge-group.yml',
-                 'build-tools-images.yml'),
-                ('runtime-base-images-merge-group.yml',
-                 'runtime-base-images.yml'),
+            ('build-tools-images-merge-group.yml', 'build-tools-images.yml'),
+            ('runtime-base-images-merge-group.yml', 'runtime-base-images.yml'),
         ):
             with self.subTest(workflow=queue_name):
                 queue_source = workflow(queue_name)
@@ -85,12 +81,14 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
         original_fingerprint = fingerprint_pattern.search(original_source)
         self.assertIsNotNone(queue_fingerprint)
         self.assertIsNotNone(original_fingerprint)
-        self.assertEqual(queue_fingerprint.group(), original_fingerprint.group())
+        self.assertEqual(queue_fingerprint.group(),
+                         original_fingerprint.group())
         self.assertIn(
             'name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}',
             queue_source)
-        self.assertIn('SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
-                      image_builds_source)
+        self.assertIn(
+            'SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
+            image_builds_source)
 
     def test_sdk_tests_install_from_the_queued_commit(self):
         queued_sha = '0123456789abcdef0123456789abcdef01234567'
@@ -106,8 +104,8 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
             for script_name in ('presubmit-tests-sdk.sh',
                                 'presubmit-tests-sdk-unit.sh'):
                 for event_name, expected_ref in (
-                        ('merge_group', queued_sha),
-                        ('pull_request', 'refs/pull/123/merge'),
+                    ('merge_group', queued_sha),
+                    ('pull_request', 'refs/pull/123/merge'),
                 ):
                     with self.subTest(script=script_name, event=event_name):
                         env = os.environ.copy()
@@ -121,8 +119,10 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
                             'PATH': f'{temp_dir}{os.pathsep}{env["PATH"]}',
                         })
                         result = subprocess.run(
-                            ['bash', str(REPOSITORY_ROOT / 'test' /
-                                         script_name)],
+                            [
+                                'bash',
+                                str(REPOSITORY_ROOT / 'test' / script_name)
+                            ],
                             cwd=REPOSITORY_ROOT,
                             env=env,
                             text=True,
