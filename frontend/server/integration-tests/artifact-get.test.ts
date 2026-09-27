@@ -2239,6 +2239,10 @@ s3:
     it.each([
       ['https://files.example/reports/', 'https://files.example/reports/report.txt'],
       ['https://files.example/', 'https://files.example/reports/report.txt'],
+      ['https://files.example/reports', 'https://files.example/reports/report.txt'],
+      ['https://files.example/reports//', 'https://files.example/reports//report.txt'],
+      ['https://files.example/reports///', 'https://files.example/reports///report.txt'],
+      ['https://files.example//', 'https://files.example//report.txt'],
       ['http://files.example:8080/reports/', 'http://files.example:8080/reports/report.txt'],
       ['https://files.example/reports/', 'https://files.example/reports/A%26B%3FC%23D.csv'],
       ['https://files.example/reports/', 'https://files.example/reports/caf%C3%A9%20report.txt'],
@@ -2271,6 +2275,19 @@ s3:
         expect(mockedFetch).not.toHaveBeenCalled();
       },
     );
+
+    it.each([
+      ['https://files.example/reports//', 'reports/report.txt'],
+      ['https://files.example/reports///', 'reports//report.txt'],
+      ['https://files.example//', 'report.txt'],
+    ])('preserves repeated trailing slashes in the HTTP base: %s', async (base, key) => {
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: base }));
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'files.example', key })
+        .expect(400);
+      expect(mockedFetch).not.toHaveBeenCalled();
+    });
 
     it.each([
       'https://user:password@files.example/reports/',
@@ -2307,6 +2324,27 @@ s3:
         .expect(400, 'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.');
       expect(mockedFetch).toHaveBeenCalledTimes(1);
     });
+
+    it.each([
+      ['https://files.example/reports//', 'reports//report.txt', '/reports/redirected.txt'],
+      ['https://files.example/reports///', 'reports///report.txt', '/reports//redirected.txt'],
+      ['https://files.example//', '/report.txt', '/redirected.txt'],
+    ])(
+      'rejects redirects that collapse repeated base slashes: %s',
+      async (base, key, destination) => {
+        mockedFetch.mockResolvedValueOnce({
+          status: 302,
+          headers: new Map([['location', destination]]),
+          body: toWebStream(''),
+        });
+        app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: base }));
+        await requests(app.app)
+          .get('/artifacts/get')
+          .query({ source: 'https', bucket: 'files.example', key })
+          .expect(400, 'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.');
+        expect(mockedFetch).toHaveBeenCalledTimes(1);
+      },
+    );
 
     it('rejects credentials in an HTTP redirect before fetching it', async () => {
       mockedFetch.mockResolvedValueOnce({
@@ -2349,28 +2387,36 @@ s3:
       });
     });
 
-    it('follows an in-base HTTP redirect with an additional domain restriction', async () => {
-      mockedFetch.mockResolvedValueOnce({
-        status: 302,
-        headers: new Map([['location', '/reports/redirected.txt']]),
-        body: toWebStream(''),
-      });
-      mockedFetch.mockResolvedValueOnce({ body: toWebStream('redirected') });
-      app = new UIServer(
-        loadConfigs(argv, {
-          HTTP_BASE_URL: 'https://files.example/reports/',
-          ALLOWED_ARTIFACT_DOMAIN_REGEX: '^files\\.example$',
-        }),
-      );
-      await requests(app.app)
-        .get('/artifacts/get')
-        .query({ source: 'https', bucket: 'files.example', key: 'reports/report.txt' })
-        .expect(200, 'redirected');
-      expect(mockedFetch).toHaveBeenLastCalledWith('https://files.example/reports/redirected.txt', {
-        headers: {},
-        redirect: 'manual',
-      });
-    });
+    it.each([
+      ['https://files.example/reports/', 'reports/report.txt', '/reports/redirected.txt'],
+      ['https://files.example/reports//', 'reports//report.txt', '/reports//redirected.txt'],
+      ['https://files.example//', '/report.txt', 'https://files.example//redirected.txt'],
+    ])(
+      'follows an in-base HTTP redirect with an additional domain restriction: %s',
+      async (base, key, destination) => {
+        mockedFetch.mockResolvedValueOnce({
+          status: 302,
+          headers: new Map([['location', destination]]),
+          body: toWebStream(''),
+        });
+        mockedFetch.mockResolvedValueOnce({ body: toWebStream('redirected') });
+        app = new UIServer(
+          loadConfigs(argv, {
+            HTTP_BASE_URL: base,
+            ALLOWED_ARTIFACT_DOMAIN_REGEX: '^files\\.example$',
+          }),
+        );
+        await requests(app.app)
+          .get('/artifacts/get')
+          .query({ source: 'https', bucket: 'files.example', key })
+          .expect(200, 'redirected');
+        expect(mockedFetch).toHaveBeenCalledTimes(2);
+        expect(mockedFetch).toHaveBeenLastCalledWith(new URL(destination, base).toString(), {
+          headers: {},
+          redirect: 'manual',
+        });
+      },
+    );
 
     it('responds with a http artifact if source=http', async () => {
       const artifactContent = 'hello world';

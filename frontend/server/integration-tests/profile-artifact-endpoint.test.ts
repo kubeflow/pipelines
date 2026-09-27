@@ -14,11 +14,12 @@
 
 import express from 'express';
 import { Client as MinioClient } from 'minio';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import requests from 'supertest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadConfigs, type ProcessEnv } from '../configs.js';
 import { getArtifactsHandler } from '../handlers/artifacts.js';
 import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
@@ -33,24 +34,35 @@ vi.mock('../k8s-helper.js', () => ({
 const origin = 'https://objects.example.com:9443';
 const getObject = vi.fn();
 
-function profileEnvironment(allowedOrigins: string): ProcessEnv {
-  const generated = JSON.parse(
-    execFileSync(
+describe('profile-generated custom artifact endpoint configuration', () => {
+  let environments: Record<string, ProcessEnv>;
+
+  beforeAll(async () => {
+    // Cold Python startup belongs to fixture setup, not each endpoint test's budget.
+    const { stdout } = await promisify(execFile)(
       'python3',
       [
         fileURLToPath(new URL('./testdata/profile-artifact-environment.py', import.meta.url)),
-        allowedOrigins,
+        '',
+        origin,
       ],
-      { encoding: 'utf8', timeout: 5000 },
-    ),
-  ) as Array<{ name: string; value?: string }>;
-  // Kubernetes resolves Secret references separately; the provider below uses its own Secret.
-  return Object.fromEntries(
-    generated.filter((entry) => entry.value !== undefined).map(({ name, value }) => [name, value]),
-  );
-}
+      { encoding: 'utf8', timeout: 30_000 },
+    );
+    const generated = JSON.parse(stdout) as Record<string, Array<{ name: string; value?: string }>>;
+    environments = Object.fromEntries(
+      Object.entries(generated).map(([allowedOrigins, entries]) => [
+        allowedOrigins,
+        // Kubernetes resolves Secret references separately; the provider uses its own Secret.
+        Object.fromEntries(
+          entries
+            .filter((entry) => entry.value !== undefined)
+            .map(({ name, value }) => [name, value]),
+        ),
+      ]),
+    );
+    expect(Object.keys(environments)).toEqual(['', origin]);
+  }, 35_000);
 
-describe('profile-generated custom artifact endpoint configuration', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     launcherConfigTestOnly.clearLauncherConfigurationCache();
@@ -70,7 +82,7 @@ describe('profile-generated custom artifact endpoint configuration', () => {
   it.each([false, true])(
     'allows a profile-local custom store only after operator allowlisting (allowed=%s)',
     async (allowed) => {
-      const env = profileEnvironment(allowed ? origin : '');
+      const env = environments[allowed ? origin : ''];
       expect(env.FRONTEND_SERVER_NAMESPACE).toBe('tenant');
       expect(env.ALLOWED_ARTIFACT_ENDPOINTS).toBe(allowed ? origin : '');
       const configs = loadConfigs(['node', 'server.js', '/tmp', '3000'], env);

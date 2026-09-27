@@ -38,6 +38,9 @@ with patch.dict(sys.modules, {
 }):
     spec.loader.exec_module(producer)
 print(
-    json.dumps(
-        producer.artifact_server_environment("tenant", ".svc.cluster.local",
-                                             sys.argv[1])))
+    json.dumps({
+        allowed_origins:
+            producer.artifact_server_environment("tenant", ".svc.cluster.local",
+                                                 allowed_origins)
+        for allowed_origins in sys.argv[1:]
+    }))

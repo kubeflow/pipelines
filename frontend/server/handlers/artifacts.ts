@@ -1142,7 +1142,8 @@ function getHttpUrl(
 function isWithinHttpArtifactBase(url: URL, base: URL): boolean {
   try {
     const path = decodeURIComponent(url.pathname);
-    const prefix = decodeURIComponent(base.pathname).replace(/\/+$/, '');
+    // Preserve empty path segments beyond the conventional trailing delimiter.
+    const prefix = decodeURIComponent(base.pathname).replace(/\/$/, '');
     return (
       url.origin === base.origin &&
       !url.username &&
