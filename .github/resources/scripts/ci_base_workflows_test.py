@@ -133,6 +133,16 @@ const github = {
 
 class BaseWorkflowsTest(unittest.TestCase):
 
+    def test_trusted_inventory_records_merge_group_trigger(self):
+        content = workflow().replace(
+            '  pull_request:',
+            '  merge_group:\n    types: [checks_requested]\n'
+            '    branches: [release-2.18]\n  pull_request:')
+        result = exercise({'frontend.yml': content})
+        self.assertTrue(result['passed'], result)
+        self.assertEqual(result['inventory']['workflows'][0]['merge_group'], {
+            'types': ['checks_requested'], 'branches': ['release-2.18']})
+
     def test_release_triggers_and_release_only_lanes_replace_master_inventory(
             self):
         result = exercise(

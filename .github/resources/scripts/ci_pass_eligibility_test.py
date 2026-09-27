@@ -165,6 +165,28 @@ console.log(JSON.stringify(result));
                                       in {'MEMBER', 'OWNER', 'COLLABORATOR'})
             self.assertEqual(actual, expected, (author, association, ok, needs))
 
+    def test_release_admission_requires_tide_labels_and_rejects_holds(self):
+        release = {'base': {'sha': 'b' * 40, 'ref': 'release-2.18',
+                            'repo': {'full_name': 'kubeflow/pipelines'}},
+                   'user': {'login': 'human'},
+                   'author_association': 'MEMBER'}
+        for names, expected in [(['lgtm', 'approved'], 'success'),
+                                (['lgtm'], 'failure'),
+                                (['approved'], 'failure'),
+                                (['lgtm', 'approved', 'do-not-merge/hold'],
+                                 'failure'),
+                                (['lgtm', 'approved', 'needs-rebase'],
+                                 'failure')]:
+            with self.subTest(names=names):
+                pr = {**release, 'labels': [{'name': name} for name in names]}
+                self.assert_last_status(exercise({'pr': pr}), expected)
+        self.assert_last_status(exercise({'pr': {**release, 'draft': True,
+            'labels': [{'name': 'lgtm'}, {'name': 'approved'}]}}), 'failure')
+        # The existing Tide Dependabot query admits this exact account without
+        # human approval labels; author eligibility and holds still apply.
+        self.assert_last_status(exercise({'pr': {**release,
+            'user': {'login': 'dependabot[bot]'}, 'labels': []}}), 'success')
+
     def test_complete_ci_publishes_pending_then_success(self):
         result = exercise()
         self.assertEqual(result['calls'][0], ['status', 'pending', 'head'])

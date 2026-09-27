@@ -11,7 +11,22 @@
 
 'use strict';
 
-const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
+const {applicable, verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
+
+const RELEASE_BRANCH = 'release-2.18';
+const QUEUE_BRANCH_PREFIX = `gh-readonly-queue/${RELEASE_BRANCH}/`;
+const RELEASE_BLOCKED_LABELS = new Set([
+  'do-not-merge', 'do-not-merge/hold', 'do-not-merge/invalid-owners-file',
+  'do-not-merge/work-in-progress', 'needs-rebase',
+]);
+// These release workflows include write-capable push or dispatch behavior.
+// Queue equivalents execute the needed CI with a read-only token.
+const RELEASE_QUEUE_EQUIVALENTS = new Map([
+  ['.github/workflows/build-tools-images.yml',
+    '.github/workflows/build-tools-images-merge-group.yml'],
+  ['.github/workflows/runtime-base-images.yml',
+    '.github/workflows/runtime-base-images-merge-group.yml'],
+]);
 
 function eligible(pr) {
   const labels = new Set(pr.labels.map(label => label.name));
@@ -20,8 +35,18 @@ function eligible(pr) {
     ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(pr.author_association));
 }
 
+function admitted(pr) {
+  if (!eligible(pr)) return false;
+  if (pr.base.ref !== RELEASE_BRANCH) return true;
+  const labels = new Set(pr.labels.map(label => label.name));
+  if (pr.draft || [...RELEASE_BLOCKED_LABELS].some(label => labels.has(label))) return false;
+  // Tide's release Dependabot query does not require human approval labels.
+  return pr.user.login === 'dependabot[bot]' ||
+    (labels.has('lgtm') && labels.has('approved'));
+}
+
 function snapshot(pr) {
-  return JSON.stringify([pr.number, pr.state, pr.head.sha, pr.base.ref, pr.base.sha, eligible(pr)]);
+  return JSON.stringify([pr.number, pr.state, pr.head.sha, pr.base.ref, pr.base.sha, admitted(pr)]);
 }
 
 async function readPR(github, context, number) {
@@ -54,11 +79,12 @@ async function recoveryCandidates({github, context}) {
   });
   const candidates = [];
   for (const pr of prs) {
-    if (!eligible(pr)) continue;
+    if (!eligible(pr) && pr.base.ref !== RELEASE_BRANCH) continue;
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
     const status = await currentStatus(github, context, pr.head.sha);
-    if (status?.state === 'success' && status.description === successDescription(pr)) continue;
+    if (status?.state === 'success' && status.description === successDescription(pr) && admitted(pr)) continue;
+    if (!admitted(pr) && status?.state !== 'success') continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -167,7 +193,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.');
-  if (pr.state !== 'open' || !eligible(pr)) return;
+  if (pr.state !== 'open' || !admitted(pr)) return;
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
@@ -181,7 +207,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
   let passed = false;
   let reason = 'CI did not pass; complete current-head CI and retry.';
   try {
-    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && eligible(pr) && pollPassed) {
+    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && admitted(pr) && pollPassed) {
       const result = await evidence(github, context, pr, root);
       core.info(JSON.stringify(result));
       passed = result.passed;
@@ -204,4 +230,477 @@ async function finalize({github, context, core, number, head, before, pollPassed
   }
 }
 
-module.exports = {recoveryCandidates, eligible, snapshot, resolve, freshAfter, prepare, finalize};
+async function queueEntries(github, context) {
+  const entries = [];
+  let cursor = null;
+  let configuration;
+  do {
+    const result = await github.graphql(`query ReleaseQueue($owner: String!, $repo: String!, $cursor: String) {
+      repository(owner: $owner, name: $repo) {
+        nameWithOwner
+        mergeQueue(branch: "release-2.18") {
+          configuration { maximumEntriesToBuild maximumEntriesToMerge mergingStrategy }
+          entries(first: 100, after: $cursor) {
+            nodes { id position headCommit { oid } pullRequest { id number headRefOid } }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }
+    }`, {...context.repo, cursor});
+    const repository = result?.repository;
+    if (repository?.nameWithOwner?.toLowerCase() !==
+        `${context.repo.owner}/${context.repo.repo}`.toLowerCase()) {
+      throw new Error('Cannot verify the release merge queue repository');
+    }
+    const queue = repository.mergeQueue;
+    if (!queue) return {entries: [], configuration: null};
+    if (configuration !== undefined &&
+        JSON.stringify(configuration) !== JSON.stringify(queue.configuration)) {
+      throw new Error('Release merge queue configuration changed during pagination');
+    }
+    configuration = queue.configuration;
+    const page = queue.entries;
+    if (!Array.isArray(page?.nodes) || typeof page.pageInfo?.hasNextPage !== 'boolean') {
+      throw new Error('Incomplete release merge queue entries');
+    }
+    entries.push(...page.nodes);
+    if (entries.length > 256) throw new Error('Release merge queue exceeds recovery limit');
+    cursor = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+    if (page.pageInfo.hasNextPage && !cursor) {
+      throw new Error('Release merge queue has an incomplete page cursor');
+    }
+  } while (cursor);
+  return {entries, configuration};
+}
+
+function orderedQueueEntries(entries) {
+  if (entries.some(entry => !Number.isSafeInteger(entry?.position) || entry.position < 0)) {
+    throw new Error('Release merge queue has an invalid entry position');
+  }
+  const ordered = [...entries].sort((left, right) => left.position - right.position);
+  if (ordered.some((entry, index) => index > 0 &&
+      entry.position === ordered[index - 1].position)) {
+    throw new Error('Release merge queue has duplicate entry positions');
+  }
+  return ordered;
+}
+
+async function queueRecoveryCandidates({github, context}) {
+  const {entries} = await queueEntries(github, context);
+  const shas = entries.map(entry => entry?.headCommit?.oid).filter(Boolean);
+  if (shas.some(sha => !/^[0-9a-f]{40}$/.test(sha)) || new Set(shas).size !== shas.length) {
+    throw new Error('Invalid or ambiguous release merge queue heads');
+  }
+  return shas.map(sha => ({sha}));
+}
+
+async function pullRequestQueueEntry(github, context, id) {
+  const result = await github.graphql(`query ReleaseQueuedPR($id: ID!) {
+    node(id: $id) {
+      ... on PullRequest { id mergeQueueEntry { id } }
+    }
+  }`, {id});
+  if (result?.node?.id !== id ||
+      !Object.hasOwn(result.node, 'mergeQueueEntry')) {
+    throw new Error('Cannot verify the PR merge queue entry');
+  }
+  return result.node.mergeQueueEntry;
+}
+
+async function queueEventCandidates({github, context}) {
+  if (context.eventName !== 'pull_request_target') {
+    return (await queueHeads({github, context})).map(sha => ({sha}));
+  }
+  const number = context.payload.pull_request?.number;
+  if (!Number.isSafeInteger(number) || number <= 0) return [];
+  const {entries} = await queueEntries(github, context);
+  const ordered = orderedQueueEntries(entries);
+  const matches = ordered.filter(entry => entry?.pullRequest?.number === number);
+  if (matches.length > 1) throw new Error('PR has ambiguous release merge queue entries');
+  if (matches.length === 0) return [];
+  const queued = matches[0];
+  const affected = ordered.filter(entry => entry.position >= queued.position);
+  const known = [];
+  for (const entry of affected) {
+    const sha = entry?.headCommit?.oid;
+    if (sha == null) continue;
+    if (!/^[0-9a-f]{40}$/.test(sha) || known.includes(sha)) {
+      throw new Error('Affected release queue heads are invalid or ambiguous');
+    }
+    known.push(sha);
+  }
+  const pr = await readPR(github, context, number);
+  const isAdmitted = pr.number === number && pr.node_id === queued.pullRequest?.id &&
+    pr.state === 'open' && pr.base.ref === RELEASE_BRANCH &&
+    pr.head.sha === queued.pullRequest?.headRefOid && admitted(pr);
+  if (isAdmitted) {
+    // A successor may be queued but not built yet. It has no SHA to refresh
+    // and cannot satisfy the required queue status until a build starts.
+    return known.map(sha => ({sha}));
+  }
+  // Dequeue removes the invalid PR, but the old cumulative SHAs may remain
+  // green until that mutation finishes. Revoke every known affected SHA first.
+  let invalidationError;
+  for (const sha of known) {
+    try {
+      await queueStatus(github, context, sha, 'pending',
+        `queue-retired:${context.runId}.${context.runAttempt || process.env.GITHUB_RUN_ATTEMPT || 1}`);
+    } catch (error) {
+      // The queue mutation may still work when status creation fails. Keep
+      // trying to remove the ineligible PR, then report the write failure.
+      invalidationError ||= error;
+    }
+  }
+  if (!queued.id || !queued.pullRequest?.id || pr.node_id !== queued.pullRequest.id) {
+    throw new Error('Cannot identify the queued PR to remove');
+  }
+  const current = await readPR(github, context, number);
+  if (current.number !== number || current.node_id !== queued.pullRequest.id) {
+    throw new Error('Queued PR identity changed during dequeue');
+  }
+  if (current.state === 'open' && current.base.ref === RELEASE_BRANCH &&
+      current.head.sha === queued.pullRequest.headRefOid && admitted(current)) {
+    // Eligibility recovered after retirement. Keep the old cumulative SHAs
+    // blocked; dequeue and re-enqueue manually to obtain fresh candidates.
+    if (invalidationError) throw invalidationError;
+    return [];
+  }
+  const before = await pullRequestQueueEntry(github, context, queued.pullRequest.id);
+  if (before === null) {
+    if (invalidationError) throw invalidationError;
+    return [];
+  }
+  if (before?.id !== queued.id) {
+    throw new Error('Queued PR entry changed during dequeue');
+  }
+  await github.graphql(`mutation DequeueReleasePR($id: ID!) {
+    dequeuePullRequest(input: {id: $id}) { mergeQueueEntry { id } }
+  }`, {id: queued.pullRequest.id});
+  if (await pullRequestQueueEntry(github, context, queued.pullRequest.id) !== null) {
+    throw new Error('Queued PR is still present after dequeue');
+  }
+  if (invalidationError) throw invalidationError;
+  // Old cumulative SHAs stay pending. Fresh queue builds need fresh CI.
+  return [];
+}
+
+async function queueHeads({github, context, recovery}) {
+  if (context.eventName === 'schedule') {
+    return /^[0-9a-f]{40}$/.test(recovery?.sha || '') ? [recovery.sha] : [];
+  }
+  if (context.eventName === 'workflow_run') {
+    const run = context.payload.workflow_run;
+    if (run?.event !== 'merge_group' ||
+        !run.head_branch?.startsWith(QUEUE_BRANCH_PREFIX) ||
+        run.head_repository?.full_name?.toLowerCase() !==
+          `${context.repo.owner}/${context.repo.repo}`.toLowerCase()) return [];
+    return /^[0-9a-f]{40}$/.test(run.head_sha || '') ? [run.head_sha] : [];
+  }
+  if (context.eventName === 'pull_request_target') {
+    const eventPR = context.payload.pull_request;
+    // The read-only discovery job already identified this affected SHA.
+    // Preserve it even if a queue entry disappears before validation.
+    if (recovery?.sha) {
+      if (!/^[0-9a-f]{40}$/.test(recovery.sha)) {
+        throw new Error('Invalid discovered release queue head');
+      }
+      return [recovery.sha];
+    }
+    if (eventPR?.base?.ref !== RELEASE_BRANCH) return [];
+    const {entries} = await queueEntries(github, context);
+    const ordered = orderedQueueEntries(entries);
+    const matches = ordered.filter(entry => entry?.pullRequest?.number === eventPR.number);
+    if (matches.length > 1) throw new Error('PR has ambiguous release merge queue heads');
+    if (matches.length === 0) return [];
+    const affected = ordered.filter(entry => entry.position >= matches[0].position);
+    if (affected.some(entry => !/^[0-9a-f]{40}$/.test(entry?.headCommit?.oid || ''))) {
+      throw new Error('Cannot identify all affected release merge queue heads');
+    }
+    return affected.map(entry => entry.headCommit.oid);
+  }
+  return [];
+}
+
+function queueTriggerApplies(trigger) {
+  if (!trigger || typeof trigger !== 'object' || Array.isArray(trigger)) return false;
+  const {types, ...filters} = trigger;
+  if (types !== undefined && (!Array.isArray(types) ||
+      types.length !== 1 || types[0] !== 'checks_requested')) {
+    throw new Error('Unsupported release merge_group event types');
+  }
+  if (filters.paths || filters['paths-ignore']) {
+    throw new Error('merge_group cannot use path filters');
+  }
+  return applicable(filters, RELEASE_BRANCH, []);
+}
+
+async function queueEvidence({github, context, sha, root, verifyCurrentRuns = false}) {
+  const queue = await queueEntries(github, context);
+  if (queue.configuration?.maximumEntriesToBuild !== 1 ||
+      queue.configuration?.maximumEntriesToMerge !== 1 ||
+      queue.configuration?.mergingStrategy !== 'ALLGREEN') {
+    throw new Error('Release merge queue must build and merge one PR at a time with ALLGREEN checks');
+  }
+  const ordered = orderedQueueEntries(queue.entries);
+  // The setting limits concurrently dispatched builds, not necessarily the
+  // number of completed heads still visible. If more than one head exists,
+  // fail before the expensive direct-run checks and require a live canary.
+  if (ordered.filter(entry => entry?.headCommit?.oid != null).length > 1) {
+    return {state: 'failure', reason: 'Multiple built queue heads exceed the CI publisher budget.'};
+  }
+  const matching = ordered.filter(entry => entry?.headCommit?.oid === sha);
+  if (matching.length === 0) {
+    // Actions completion can precede GraphQL queue entry visibility. A
+    // missing required status blocks merge; the scheduled sweep will retry.
+    return {state: 'pending', reason: 'Waiting for the merge queue entry to become visible.'};
+  }
+  if (matching.length !== 1 || !Number.isSafeInteger(matching[0]?.pullRequest?.number)) {
+    return {state: 'failure', reason: 'Queue head ambiguously identifies a PR.'};
+  }
+  // A later temporary commit contains every PR ahead of it in the queue.
+  // Recheck all those PRs, not just the PR named by this queue entry.
+  const included = ordered.filter(entry => entry.position <= matching[0].position);
+  const numbers = new Set();
+  for (const entry of included) {
+    const queued = entry.pullRequest;
+    if (!Number.isSafeInteger(queued?.number) || queued.number <= 0 ||
+        !/^[0-9a-f]{40}$/.test(queued.headRefOid || '') || numbers.has(queued.number)) {
+      return {state: 'failure', reason: 'Queue prefix does not identify unique current PRs.'};
+    }
+    numbers.add(queued.number);
+    const pr = await readPR(github, context, queued.number);
+    if (pr.state !== 'open' || pr.base.ref !== RELEASE_BRANCH ||
+        pr.head.sha !== queued.headRefOid || !admitted(pr)) {
+      return {state: 'failure', reason: `Queued PR #${queued.number} is no longer admitted at this head.`};
+    }
+  }
+  const branch = (await github.rest.repos.getBranch({
+    ...context.repo, branch: RELEASE_BRANCH,
+  })).data;
+  const baseSha = branch?.commit?.sha;
+  if (!/^[0-9a-f]{40}$/.test(baseSha || '')) {
+    throw new Error('Cannot identify the trusted release branch workflow policy');
+  }
+  const {inventory} = await loadBaseInventory({github, ...context.repo,
+    pullRequest: {base: {ref: RELEASE_BRANCH, sha: baseSha,
+      repo: {full_name: `${context.repo.owner}/${context.repo.repo}`}}}, root});
+  const prWorkflows = inventory.workflows.filter(workflow =>
+    workflow.pull_request !== null && workflow.disabled_for_migration !== true);
+  if (prWorkflows.length === 0) {
+    throw new Error('No release CI workflows found in trusted branch policy');
+  }
+  const byPath = new Map(inventory.workflows.map(workflow => [workflow.path, workflow]));
+  for (const workflow of prWorkflows) {
+    const queueWorkflow = byPath.get(RELEASE_QUEUE_EQUIVALENTS.get(workflow.path) || workflow.path);
+    if (!queueWorkflow || !queueTriggerApplies(queueWorkflow.merge_group)) {
+      return {state: 'failure', reason: `${workflow.path} has no release merge-group CI equivalent.`};
+    }
+  }
+  // Every group-only workflow also counts. A newly added queue lane cannot
+  // fail unnoticed just because it has no pull_request trigger.
+  const expected = inventory.workflows.filter(workflow =>
+    workflow.disabled_for_migration !== true && queueTriggerApplies(workflow.merge_group));
+  const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+    ...context.repo, event: 'merge_group', head_sha: sha, per_page: 100,
+  });
+  if (runs.length >= 1000) throw new Error('Merge-group workflow history is truncated');
+  const incomplete = [];
+  const selected = [];
+  for (const workflow of expected) {
+    const matchingRuns = runs.filter(run => run.path === workflow.path &&
+      run.event === 'merge_group' && run.head_sha === sha &&
+      run.head_branch?.startsWith(QUEUE_BRANCH_PREFIX) &&
+      run.head_repository?.full_name?.toLowerCase() ===
+        `${context.repo.owner}/${context.repo.repo}`.toLowerCase());
+    const attemptTime = run => Math.max(Date.parse(run.created_at) || 0,
+      Date.parse(run.run_started_at) || 0);
+    matchingRuns.sort((left, right) => attemptTime(right) - attemptTime(left) || right.id - left.id);
+    const run = matchingRuns[0];
+    if (!run || run.status !== 'completed') {
+      incomplete.push(workflow.path);
+    } else if (run.conclusion !== 'success') {
+      return {state: 'failure', reason: `${workflow.path} completed with ${run.conclusion}.`};
+    } else {
+      selected.push({workflow, run});
+    }
+  }
+  if (incomplete.length) return {state: 'pending', reason: `${incomplete.length} release CI workflows still running.`};
+  if (!verifyCurrentRuns) {
+    return {state: 'success', reason: 'All release merge-group CI and PR admission checks passed.'};
+  }
+  // The run listing can retain a successful earlier attempt after a rerun
+  // starts. Only spend direct API calls once every listed lane is green.
+  for (const {workflow, run} of selected) {
+    const current = (await github.rest.actions.getWorkflowRun({
+      ...context.repo, run_id: run.id,
+    })).data;
+    if (current.id !== run.id || current.head_sha !== sha ||
+        current.path !== workflow.path || current.event !== 'merge_group' ||
+        !current.head_branch?.startsWith(QUEUE_BRANCH_PREFIX) ||
+        current.head_repository?.full_name?.toLowerCase() !==
+          `${context.repo.owner}/${context.repo.repo}`.toLowerCase() ||
+        !Number.isSafeInteger(current.run_attempt) || current.run_attempt < 1 ||
+        !Number.isSafeInteger(run.run_attempt) ||
+        current.run_attempt !== run.run_attempt || current.status !== 'completed') {
+      incomplete.push(workflow.path);
+    } else if (current.conclusion !== 'success') {
+      return {state: 'failure', reason: `${workflow.path} completed with ${current.conclusion}.`};
+    }
+  }
+  if (incomplete.length) return {state: 'pending', reason: `${incomplete.length} release CI workflows still running.`};
+  return {state: 'success', reason: 'All release merge-group CI and PR admission checks passed.'};
+}
+
+async function queueStatus(github, context, sha, state, description) {
+  // A status read can lag a previous write. Always append the desired state:
+  // a stale pending read must never suppress revocation of newer success.
+  await github.rest.repos.createCommitStatus({
+    ...context.repo, sha, context: 'ci-passed', state,
+    description: description.slice(0, 140),
+    target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+  });
+}
+
+function queueInvalidationDescription(context) {
+  const publisher = `${context.runId}.${context.runAttempt || process.env.GITHUB_RUN_ATTEMPT || 1}`;
+  const run = context.payload.workflow_run;
+  if (context.eventName === 'workflow_run' &&
+      ['requested', 'in_progress'].includes(context.payload.action) &&
+      run?.event === 'merge_group') {
+    if (!Number.isSafeInteger(run.id) || !Number.isSafeInteger(run.run_attempt) ||
+        run.run_attempt < 1) {
+      // Still revoke the known SHA even when the webhook cannot identify its
+      // attempt. Later evidence cannot prove this start has finished.
+      return `queue-fence-invalid:${publisher}`;
+    }
+    return `queue-fence:${publisher}:${run.id}:${run.run_attempt}`;
+  }
+  return `queue-check:${publisher}`;
+}
+
+async function queueRerunFence(github, context, sha, requireCurrentMarker = true) {
+  // Commit status history is append-only and returned newest first. Seeing
+  // this publisher's pending marker at the front is a read-after-write
+  // barrier for every earlier rerun marker on this SHA. If the status API
+  // lags or a newer event has invalidated the SHA, leave it pending.
+  const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
+    ...context.repo, ref: sha, per_page: 100,
+  });
+  const gateStatuses = statuses.filter(status => status.context === 'ci-passed');
+  // Keep a write slot to revoke a success if the queue changes immediately
+  // afterward. A stalled SHA must stop at pending before GitHub's per-context
+  // status limit can strand a green result.
+  if (gateStatuses.length >= 999) {
+    return {state: 'pending', reason: 'Queue status history is full; recreate the queue entry.'};
+  }
+  if (requireCurrentMarker &&
+      (gateStatuses[0]?.description !== queueInvalidationDescription(context) ||
+       gateStatuses[0]?.state !== 'pending')) {
+    return {state: 'pending', reason: 'Waiting for current queue invalidation to become visible.'};
+  }
+  if (!requireCurrentMarker && gateStatuses[0]?.state === 'pending') {
+    return {state: 'pending', reason: 'A newer queue invalidation is pending.'};
+  }
+  const fenced = new Map();
+  for (const status of gateStatuses) {
+    if (/^queue-retired:\d+\.\d+$/.test(status.description || '')) {
+      return {state: 'pending', reason: 'This cumulative queue SHA was retired for dequeue.'};
+    }
+    if (status.description?.startsWith('queue-retired')) {
+      return {state: 'failure', reason: 'A retired queue marker is malformed.'};
+    }
+    if (/^queue-fence-invalid:\d+\.\d+$/.test(status.description || '')) {
+      return {state: 'failure', reason: 'A merge-group start had no verifiable attempt.'};
+    }
+    const match = /^queue-fence:\d+\.\d+:(\d+):(\d+)$/.exec(status.description || '');
+    if (status.description?.startsWith('queue-fence') && !match) {
+      return {state: 'failure', reason: 'A merge-group fence marker is malformed.'};
+    }
+    if (match) {
+      const runId = Number(match[1]);
+      const attempt = Number(match[2]);
+      if (!Number.isSafeInteger(runId) || !Number.isSafeInteger(attempt) || attempt < 1) {
+        return {state: 'failure', reason: 'A merge-group fence marker is invalid.'};
+      }
+      fenced.set(`${runId}:${attempt}`, {runId, attempt});
+    }
+  }
+  for (const {runId, attempt} of fenced.values()) {
+    const request = {...context.repo, run_id: runId};
+    const exact = (await github.rest.actions.getWorkflowRunAttempt({
+      ...request, attempt_number: attempt,
+    })).data;
+    const current = (await github.rest.actions.getWorkflowRun(request)).data;
+    if (exact.id !== runId || exact.run_attempt !== attempt ||
+        exact.head_sha !== sha || exact.event !== 'merge_group' ||
+        !exact.head_branch?.startsWith(QUEUE_BRANCH_PREFIX) ||
+        exact.head_repository?.full_name?.toLowerCase() !==
+          `${context.repo.owner}/${context.repo.repo}`.toLowerCase() ||
+        current.id !== runId || !Number.isSafeInteger(current.run_attempt) ||
+        current.run_attempt < attempt ||
+        current.head_sha !== sha || current.event !== 'merge_group' ||
+        !current.head_branch?.startsWith(QUEUE_BRANCH_PREFIX) ||
+        current.head_repository?.full_name?.toLowerCase() !==
+          `${context.repo.owner}/${context.repo.repo}`.toLowerCase() ||
+        current.status !== 'completed' ||
+        exact.status !== 'completed') {
+      return {state: 'pending', reason: 'A fenced release workflow attempt is still running.'};
+    }
+    if (current.conclusion !== 'success') {
+      return {state: 'failure', reason: 'The latest fenced release workflow attempt failed.'};
+    }
+    if (current.run_attempt === attempt && exact.conclusion !== 'success') {
+      return {state: 'pending', reason: 'Exact and current attempt conclusions disagree.'};
+    }
+  }
+  return {state: 'success'};
+}
+
+async function reconcileQueue({github, context, core, recovery, alreadyPending = false,
+  root = process.env.GITHUB_WORKSPACE}) {
+  const shas = await queueHeads({github, context, recovery});
+  if (!alreadyPending) {
+    // Direct callers revoke every affected build before slower validation.
+    for (const sha of shas) {
+      await queueStatus(github, context, sha, 'pending', queueInvalidationDescription(context));
+    }
+  }
+  for (const sha of shas) {
+    // A requested/in_progress workflow_run invalidates a previous success.
+    // Actions' run-list API may still show the prior completed attempt here.
+    if (context.eventName === 'workflow_run' &&
+        ['requested', 'in_progress'].includes(context.payload.action)) continue;
+    try {
+      let result = await queueEvidence({github, context, sha, root});
+      core.info(JSON.stringify(result));
+      if (result.state === 'success') {
+        // A label, PR head, queue entry, or CI rerun may change during reads.
+        result = await queueEvidence({github, context, sha, root, verifyCurrentRuns: true});
+      }
+      if (result.state === 'success') {
+        result = await queueRerunFence(github, context, sha);
+        if (result.state === 'success') {
+          result = {state: 'success', reason: 'All release merge-group CI and PR admission checks passed.'};
+        }
+      }
+      await queueStatus(github, context, sha, result.state, result.reason);
+      if (result.state === 'success') {
+        let after = await queueEvidence({github, context, sha, root});
+        if (after.state === 'success') {
+          after = await queueRerunFence(github, context, sha, false);
+        }
+        if (after.state !== 'success') await queueStatus(github, context, sha,
+          'failure', 'Release queue or CI changed during publication.');
+      }
+    } catch (error) {
+      await queueStatus(github, context, sha, 'failure',
+        'Cannot verify release queue CI; inspect CI Check and retry.');
+      throw error;
+    }
+  }
+}
+
+module.exports = {recoveryCandidates, eligible, admitted, snapshot, resolve, freshAfter,
+  prepare, finalize, queueRecoveryCandidates, queueEventCandidates, queueHeads,
+  queueTriggerApplies,
+  queueEvidence, queueStatus, queueInvalidationDescription, queueRerunFence, reconcileQueue};

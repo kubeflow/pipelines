@@ -125,6 +125,14 @@ class ExpectedWorkflowsTest(unittest.TestCase):
             for workflow in inventory['workflows']
             if workflow['pull_request'] is not None
         ]
+        # This release-only lane is not present in the master inventory, but
+        # its merge-group completion must still wake the trusted publisher.
+        expected.extend([
+            'KFP backend visualization tests',
+            'KFP API Integration v1 tests',
+            'Build tools images merge group',
+            'Runtime Base Images Merge Group',
+        ])
         workflow = (ROOT / '.github/workflows/ci-checks.yml').read_text()
         selector = workflow.split('  workflow_run:\n',
                                   1)[1].split('    workflows:\n', 1)[1]
