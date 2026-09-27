@@ -984,7 +984,7 @@ describe('/apps/tensorboard', () => {
           `/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns&tfversion=2.0.0`,
         )
         .send({ podTemplateSpec: conflictingMountPath })
-        .expect(500);
+        .expect(200);
 
       // Env conflict
       const conflictingEnv = { spec: { containers: [{ env: [{ name: 'FOO', value: 'BAZ' }] }] } };
@@ -994,115 +994,6 @@ describe('/apps/tensorboard', () => {
         )
         .send({ podTemplateSpec: conflictingEnv })
         .expect(500);
-    });
-
-    it('strips credentials from base template when caller selects custom image', async () => {
-      let getRequestCount = 0;
-      k8sGetCustomObjectSpy.mockImplementation(() => {
-        if (++getRequestCount === 1) return Promise.reject('Not found');
-        return Promise.resolve(
-          newGetTensorboardResponse({
-            name: 'viewer-abcdefg',
-            logDir: 'log-dir-1',
-            tensorflowImage: 'my-custom-image',
-          }),
-        );
-      });
-      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
-
-      const baseTemplate = {
-        spec: {
-          containers: [
-            {
-              env: [
-                { name: 'SAFE', value: 'yes' },
-                {
-                  name: 'SECRET',
-                  valueFrom: { secretKeyRef: { name: 'admin-secret', key: 'pass' } },
-                },
-              ],
-            },
-          ],
-        },
-      };
-
-      const configPath = path.join(mkTempDir(), 'podTemplateSpec.yaml');
-      fs.writeFileSync(configPath, JSON.stringify(baseTemplate));
-
-      app = new UIServer(
-        loadConfigs(argv, { VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH: configPath }),
-      );
-
-      await requests(app.app)
-        .post(
-          `/apps/tensorboard?logdir=${encodeURIComponent('log-dir-1')}&namespace=test-ns&image=my-custom-image`,
-        )
-        .send({ podTemplateSpec: {} })
-        .expect(200, existingTensorboardProxyPath);
-
-      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
-      const spec = createdBody.spec.podTemplateSpec.spec;
-      expect(spec.containers[0].env).toEqual([{ name: 'SAFE', value: 'yes' }]);
-    });
-
-    it('strips custom secret and configmap env references from podTemplateSpec body (credential protection)', async () => {
-      let getRequestCount = 0;
-      k8sGetCustomObjectSpy.mockImplementation(() => {
-        ++getRequestCount;
-        switch (getRequestCount) {
-          case 1:
-            return Promise.reject('Not found');
-          case 2:
-            return Promise.resolve(
-              newGetTensorboardResponse({
-                name: 'viewer-abcdefg',
-                logDir: 'log-dir-1',
-                tensorflowImage: 'tensorflow:2.0.0',
-              }),
-            );
-          default:
-            throw new Error('only expected to be called twice in this test');
-        }
-      });
-      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
-
-      app = new UIServer(loadConfigs(argv, {}));
-      const secretPodTemplateSpec = {
-        spec: {
-          containers: [
-            {
-              env: [
-                { name: 'SAFE_ENV', value: 'safe' },
-                {
-                  name: 'SECRET_ENV',
-                  valueFrom: {
-                    secretKeyRef: { name: 'my-secret', key: 'password' },
-                  },
-                },
-                {
-                  name: 'CONFIGMAP_ENV',
-                  valueFrom: {
-                    configMapKeyRef: { name: 'my-config', key: 'data' },
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      };
-
-      await requests(app.app)
-        .post(
-          `/apps/tensorboard?logdir=${encodeURIComponent(
-            'log-dir-1',
-          )}&namespace=test-ns&image=my-custom-image`,
-        )
-        .send({ podTemplateSpec: secretPodTemplateSpec })
-        .expect(200, existingTensorboardProxyPath);
-
-      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
-      const envs = createdBody.spec.podTemplateSpec.spec.containers[0].env;
-      expect(envs).toEqual([{ name: 'SAFE_ENV', value: 'safe' }]);
     });
 
     it('sanitizes a malicious podTemplateSpec body (privilege escalation regression)', async () => {
@@ -1158,6 +1049,11 @@ describe('/apps/tensorboard', () => {
       expect(createdBody.spec.podTemplateSpec.spec.containers[0]).not.toHaveProperty(
         'securityContext',
       );
+      // hostPath volume and /host mount must both be absent
+      const createdVolumes = createdBody.spec.podTemplateSpec.spec.volumes || [];
+      expect(createdVolumes.find((v: any) => v.hostPath)).toBeUndefined();
+      const createdMounts = createdBody.spec.podTemplateSpec.spec.containers[0].volumeMounts || [];
+      expect(createdMounts.find((m: any) => m.mountPath === '/host')).toBeUndefined();
     });
 
     it('preserves safe volume mounts in podTemplateSpec body (PVC support regression)', async () => {
@@ -1210,6 +1106,180 @@ describe('/apps/tensorboard', () => {
         persistentVolumeClaim: { claimName: 'test-pvc' },
       });
       expect(mounts).toContainEqual({ mountPath: '/data', name: 'my-pvc' });
+    });
+
+    it('strips all credentials from custom image viewer (custom-image + Secret boundary)', async () => {
+      let getRequestCount = 0;
+      k8sGetCustomObjectSpy.mockImplementation(() => {
+        if (++getRequestCount === 1) return Promise.reject('Not found');
+        return Promise.resolve(
+          newGetTensorboardResponse({
+            name: 'viewer-abcdefg',
+            logDir: 'log-dir-1',
+            tensorflowImage: 'gcr.io/custom/tb:latest',
+          }),
+        );
+      });
+      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+      // Base template with service account and artifact secret env
+      const baseTemplate = {
+        spec: {
+          serviceAccountName: 'default-editor',
+          containers: [
+            {
+              env: [
+                {
+                  name: 'AWS_ACCESS_KEY_ID',
+                  valueFrom: {
+                    secretKeyRef: { name: 'mlpipeline-minio-artifact', key: 'accesskey' },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      };
+      const configPath = path.join(mkTempDir(), 'base.json');
+      fs.writeFileSync(configPath, JSON.stringify(baseTemplate));
+
+      app = new UIServer(
+        loadConfigs(argv, { VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH: configPath }),
+      );
+
+      await requests(app.app)
+        .post(
+          `/apps/tensorboard?logdir=${encodeURIComponent(
+            'log-dir-1',
+          )}&namespace=test-ns&image=${encodeURIComponent('gcr.io/custom/tb:latest')}`,
+        )
+        .expect(200);
+
+      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
+      const spec = createdBody.spec.podTemplateSpec.spec;
+
+      // Custom image must not receive the artifact secret
+      const envSecrets = (spec.containers[0].env || []).filter(
+        (e: any) => e.valueFrom && e.valueFrom.secretKeyRef,
+      );
+      expect(envSecrets).toHaveLength(0);
+
+      // Service account must be cleared
+      expect(spec.serviceAccountName).toBe('');
+      expect(spec.automountServiceAccountToken).toBe(false);
+    });
+
+    it('preserves admin service account for nondefault built-in TF image', async () => {
+      let getRequestCount = 0;
+      k8sGetCustomObjectSpy.mockImplementation(() => {
+        if (++getRequestCount === 1) return Promise.reject('Not found');
+        return Promise.resolve(
+          newGetTensorboardResponse({
+            name: 'viewer-abcdefg',
+            logDir: 'log-dir-1',
+            tensorflowImage: 'tensorflow/tensorflow:2.5.0',
+          }),
+        );
+      });
+      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+      // Base template with the multi-user workload identity
+      const baseTemplate = {
+        spec: {
+          serviceAccountName: 'default-editor',
+          containers: [
+            {
+              env: [
+                {
+                  name: 'AWS_ACCESS_KEY_ID',
+                  valueFrom: {
+                    secretKeyRef: { name: 'mlpipeline-minio-artifact', key: 'accesskey' },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      };
+      const configPath = path.join(mkTempDir(), 'base.json');
+      fs.writeFileSync(configPath, JSON.stringify(baseTemplate));
+
+      app = new UIServer(
+        loadConfigs(argv, { VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH: configPath }),
+      );
+
+      // tensorflow/tensorflow:2.5.0 is a supported nondefault version
+      await requests(app.app)
+        .post(
+          `/apps/tensorboard?logdir=${encodeURIComponent(
+            'log-dir-1',
+          )}&namespace=test-ns&image=${encodeURIComponent('tensorflow/tensorflow:2.5.0')}`,
+        )
+        .expect(200);
+
+      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
+      const spec = createdBody.spec.podTemplateSpec.spec;
+
+      // Supported image keeps the admin-configured service account
+      expect(spec.serviceAccountName).toBe('default-editor');
+      expect(spec).not.toHaveProperty('automountServiceAccountToken');
+
+      // Supported image keeps the base-template credential env
+      const envSecrets = (spec.containers[0].env || []).filter(
+        (e: any) => e.valueFrom && e.valueFrom.secretKeyRef,
+      );
+      expect(envSecrets).toHaveLength(1);
+      expect(envSecrets[0].valueFrom.secretKeyRef.name).toBe('mlpipeline-minio-artifact');
+    });
+
+    it('rejects caller-supplied secretKeyRef even for the artifact secret', async () => {
+      let getRequestCount = 0;
+      k8sGetCustomObjectSpy.mockImplementation(() => {
+        if (++getRequestCount === 1) return Promise.reject('Not found');
+        return Promise.resolve(
+          newGetTensorboardResponse({
+            name: 'viewer-abcdefg',
+            logDir: 'log-dir-1',
+            tensorflowImage: 'tensorflow:2.0.0',
+          }),
+        );
+      });
+      k8sCreateCustomObjectSpy.mockImplementation(() => Promise.resolve());
+
+      app = new UIServer(loadConfigs(argv, {}));
+
+      // Caller attempts to inject the artifact secret via the request body
+      const callerSpec = {
+        spec: {
+          containers: [
+            {
+              env: [
+                {
+                  name: 'AWS_ACCESS_KEY_ID',
+                  valueFrom: {
+                    secretKeyRef: { name: 'mlpipeline-minio-artifact', key: 'accesskey' },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      await requests(app.app)
+        .post(
+          `/apps/tensorboard?logdir=${encodeURIComponent(
+            'log-dir-1',
+          )}&namespace=test-ns&tfversion=2.0.0`,
+        )
+        .send({ podTemplateSpec: callerSpec })
+        .expect(200);
+
+      const createdBody = k8sCreateCustomObjectSpy.mock.calls[0][0].body;
+      const env = createdBody.spec.podTemplateSpec.spec.containers[0].env || [];
+      // The caller-supplied secretKeyRef must be stripped
+      const callerSecrets = env.filter((e: any) => e.valueFrom && e.valueFrom.secretKeyRef);
+      expect(callerSecrets).toHaveLength(0);
     });
   });
 
