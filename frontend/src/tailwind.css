@@ -1,3 +1,56 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer theme, base, components;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+/* Keep utilities unlayered while they coexist with MUI and TypeStyle rules. */
+@import 'tailwindcss/utilities.css' source(none);
+@import './styles/modernization.css';
+
+@config '../tailwind.config.js';
+@source '../index.html';
+@source './';
+
+/* Preserve the legacy palette and focus treatment until those screens migrate. */
+@theme {
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-900: #111827;
+  --color-blue-500: #3b82f6;
+  --default-ring-width: 3px;
+  --default-ring-color: rgb(59 130 246 / 0.5);
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :disabled {
+    cursor: default;
+  }
+}
+
+/* These names remain in the existing navigation and graph components. */
+@utility flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+@utility flex-grow {
+  flex-grow: 1;
+}

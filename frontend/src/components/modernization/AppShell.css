@@ -1,0 +1,274 @@
+.kfp-theme .kfp-shell,
+.kfp-theme .kfp-shell * {
+  box-sizing: border-box;
+}
+
+.kfp-theme .kfp-shell {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--kfp-font-sans);
+  font-size: 14px;
+}
+
+.kfp-theme .kfp-shell-sidebar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  width: 236px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--card);
+  transition: width 200ms ease;
+}
+
+.kfp-theme .kfp-shell-sidebar[data-collapsed='true'] {
+  width: 64px;
+}
+
+.kfp-theme .kfp-shell-brand {
+  display: flex;
+  flex: 0 0 56px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+}
+
+.kfp-theme .kfp-shell-brand-mark {
+  display: flex;
+  flex: 0 0 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--primary);
+}
+
+.kfp-theme .kfp-shell-brand-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.kfp-theme .kfp-shell-brand-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 19px;
+}
+
+.kfp-theme .kfp-shell-namespace {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kfp-theme .kfp-shell-navigation {
+  flex: 1;
+  padding: 12px 10px;
+}
+
+.kfp-theme .kfp-shell-nav-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kfp-theme .kfp-shell-nav-link {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 9px;
+  border-radius: 8px;
+  color: var(--foreground-2);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.kfp-theme .kfp-shell-nav-link svg {
+  flex-shrink: 0;
+}
+
+.kfp-theme .kfp-shell-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kfp-theme .kfp-shell-nav-link:hover {
+  background: var(--muted);
+}
+
+.kfp-theme .kfp-shell-nav-link[aria-current='page'] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.kfp-theme .kfp-shell-secondary-nav {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.kfp-theme .kfp-shell-footer {
+  padding: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.kfp-theme .kfp-shell-theme-control {
+  position: relative;
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 9px;
+  border-radius: 8px;
+  color: var(--foreground-2);
+  font-size: 13px;
+}
+
+.kfp-theme .kfp-shell-theme-control select {
+  min-width: 0;
+  flex: 1;
+  margin-left: auto;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.kfp-theme .kfp-shell-sidebar[data-collapsed='true'] .kfp-shell-theme-control select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.kfp-theme .kfp-shell-theme-control:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.kfp-theme .kfp-shell-collapse {
+  width: 100%;
+  min-height: 36px;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 0 9px;
+  color: var(--foreground-2);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.kfp-theme .kfp-shell-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.kfp-theme .kfp-shell-footer-links a {
+  display: flex;
+  width: 36px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--muted-foreground);
+}
+
+.kfp-theme .kfp-shell-footer-links a:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.kfp-theme .kfp-shell-sidebar[data-collapsed='true'] .kfp-shell-footer-links {
+  flex-direction: column;
+}
+
+.kfp-theme .kfp-shell-sidebar[data-collapsed='true'] .kfp-shell-nav-link,
+.kfp-theme .kfp-shell-sidebar[data-collapsed='true'] .kfp-shell-theme-control,
+.kfp-theme .kfp-shell-sidebar[data-collapsed='true'] .kfp-shell-collapse {
+  justify-content: center;
+}
+
+.kfp-theme .kfp-shell-metadata {
+  display: grid;
+  gap: 3px;
+  overflow-wrap: anywhere;
+  padding: 8px 9px 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.kfp-theme .kfp-shell-metadata a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.kfp-theme .kfp-shell-metadata a:hover {
+  text-decoration: underline;
+}
+
+.kfp-theme .kfp-shell-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kfp-theme .kfp-shell :is(a, button, select):focus-visible,
+.kfp-theme .kfp-shell-main:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.kfp-theme .kfp-shell-main:focus-visible {
+  outline-offset: -2px;
+}
+
+.kfp-theme .kfp-shell-skip-link {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: 8px;
+  padding: 8px 12px;
+  transform: translateY(-160%);
+  border-radius: 8px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  text-decoration: none;
+}
+
+.kfp-theme .kfp-shell-skip-link:focus {
+  transform: translateY(0);
+}
+
+.kfp-theme .kfp-shell-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kfp-theme .kfp-shell-sidebar {
+    transition: none;
+  }
+}
