@@ -310,10 +310,15 @@ const core = {info: () => {}};
     priorStatus: statuses.get(priorSha) || null, error}));
 })().catch(error => {console.error(error); process.exit(1);});
 '''
-    result = subprocess.run(
-        ['node', '-e', script, str(MODULE), str(EXPECTED_MODULE),
-         json.dumps(options or {})],
-        check=True, capture_output=True, text=True)
+    result = subprocess.run([
+        'node', '-e', script,
+        str(MODULE),
+        str(EXPECTED_MODULE),
+        json.dumps(options or {})
+    ],
+                            check=True,
+                            capture_output=True,
+                            text=True)
     return json.loads(result.stdout)
 
 
@@ -328,8 +333,7 @@ class QueueCITest(unittest.TestCase):
         self.assertIn('invalidate_queue_status', validate['needs'])
         self.assertEqual(invalidate['concurrency']['group'],
                          validate['concurrency']['group'])
-        self.assertIn('matrix.candidate.sha',
-                      validate['concurrency']['group'])
+        self.assertIn('matrix.candidate.sha', validate['concurrency']['group'])
         self.assertEqual(invalidate['strategy']['matrix'],
                          validate['strategy']['matrix'])
         self.assertIn('queueInvalidationDescription(context)',
@@ -348,25 +352,41 @@ class QueueCITest(unittest.TestCase):
     def test_exact_group_sha_passes_only_after_all_release_workflows(self):
         result = exercise()
         self.assertEqual(result['status'], 'success', result)
-        statuses = [call for call in result['calls']
-                    if call[0] == 'ci-passed']
-        self.assertEqual(statuses, [['ci-passed', 'pending', SHA],
-                                    ['ci-passed', 'success', SHA]])
-        self.assertEqual(len([call for call in result['calls']
-                              if call[0] == 'current-run']), 3)
+        statuses = [call for call in result['calls'] if call[0] == 'ci-passed']
+        self.assertEqual(
+            statuses,
+            [['ci-passed', 'pending', SHA], ['ci-passed', 'success', SHA]])
+        self.assertEqual(
+            len([call for call in result['calls'] if call[0] == 'current-run']),
+            3)
 
     def test_missing_or_running_workflow_keeps_group_pending(self):
-        for options in [{'missing': '.github/workflows/frontend.yml'},
-                        {'inProgress': '.github/workflows/pre-commit.yml'}]:
+        for options in [{
+                'missing': '.github/workflows/frontend.yml'
+        }, {
+                'inProgress': '.github/workflows/pre-commit.yml'
+        }]:
             with self.subTest(options=options):
                 self.assertEqual(exercise(options)['status'], 'pending')
 
     def test_failed_workflow_or_missing_trigger_blocks_group(self):
-        for options in [{'failed': '.github/workflows/frontend.yml'},
-                        {'missingTrigger': True}, {'missingEquivalent': True},
-                        {'groupSize': 2}, {'buildConcurrency': 2},
-                        {'strategy': 'HEADGREEN'},
-                        {'duplicateQueue': True}, {'oldHead': True}]:
+        for options in [{
+                'failed': '.github/workflows/frontend.yml'
+        }, {
+                'missingTrigger': True
+        }, {
+                'missingEquivalent': True
+        }, {
+                'groupSize': 2
+        }, {
+                'buildConcurrency': 2
+        }, {
+                'strategy': 'HEADGREEN'
+        }, {
+                'duplicateQueue': True
+        }, {
+                'oldHead': True
+        }]:
             with self.subTest(options=options):
                 self.assertEqual(exercise(options)['status'], 'failure')
         self.assertEqual(exercise({'staleQueue': True})['status'], 'pending')
@@ -383,91 +403,125 @@ console.log(JSON.stringify(tests.map(trigger => {{
   catch (error) {{ return error.message; }}
 }})));
 '''
-        result = subprocess.run(['node'], input=script, check=True,
-                                capture_output=True, text=True)
-        self.assertEqual(json.loads(result.stdout), [
-            True, False, 'Unsupported release merge_group event types'])
+        result = subprocess.run(['node'],
+                                input=script,
+                                check=True,
+                                capture_output=True,
+                                text=True)
+        self.assertEqual(
+            json.loads(result.stdout),
+            [True, False, 'Unsupported release merge_group event types'])
 
     def test_unapproved_or_held_pr_blocks_group(self):
-        for labels in [['lgtm'], ['approved'], ['lgtm', 'approved',
-                                               'do-not-merge/hold']]:
+        for labels in [['lgtm'], ['approved'],
+                       ['lgtm', 'approved', 'do-not-merge/hold']]:
             with self.subTest(labels=labels):
-                self.assertEqual(exercise({'labels': labels})['status'],
-                                 'failure')
-        self.assertEqual(exercise({'labels': [], 'dependabot': True})['status'],
-                         'success')
+                self.assertEqual(
+                    exercise({'labels': labels})['status'], 'failure')
+        self.assertEqual(
+            exercise({
+                'labels': [],
+                'dependabot': True
+            })['status'], 'success')
 
     def test_cumulative_group_checks_all_earlier_queue_entries(self):
-        self.assertEqual(exercise({'priorEntry': True,
-                                   'priorHeadNull': True})['status'], 'success')
-        for options in [{'priorLabels': ['lgtm']},
-                        {'priorHeadDrift': True}]:
+        self.assertEqual(
+            exercise({
+                'priorEntry': True,
+                'priorHeadNull': True
+            })['status'], 'success')
+        for options in [{'priorLabels': ['lgtm']}, {'priorHeadDrift': True}]:
             with self.subTest(options=options):
-                self.assertEqual(exercise({'priorEntry': True,
-                                           'priorHeadNull': True,
-                                           **options})['status'],
-                                 'failure')
+                self.assertEqual(
+                    exercise({
+                        'priorEntry': True,
+                        'priorHeadNull': True,
+                        **options
+                    })['status'], 'failure')
 
     def test_two_built_heads_fail_before_direct_run_reads(self):
         result = exercise({'priorEntry': True})
         self.assertEqual(result['status'], 'failure', result)
-        self.assertFalse(any(call[0] == 'current-run' for call in result['calls']))
+        self.assertFalse(
+            any(call[0] == 'current-run' for call in result['calls']))
 
     def test_earlier_pr_label_event_invalidates_all_later_groups(self):
-        result = exercise({'priorEntry': True, 'priorLabels': ['lgtm'],
-                           'labelEvent': True, 'labelEventEarlier': True,
-                           'initialStatus': 'success'})
+        result = exercise({
+            'priorEntry': True,
+            'priorLabels': ['lgtm'],
+            'labelEvent': True,
+            'labelEventEarlier': True,
+            'initialStatus': 'success'
+        })
         self.assertEqual(result['status'], 'failure')
         self.assertEqual(result['priorStatus'], 'failure')
         self.assertEqual(result['calls'][:2], [
             ['ci-passed', 'pending', 'd' * 40],
             ['ci-passed', 'pending', SHA],
         ])
-        multiple_built = exercise({'priorEntry': True, 'labelEvent': True,
-                                   'labelEventEarlier': True})
-        self.assertFalse(any(call[0] == 'ci-passed' and call[1] == 'success'
-                             for call in multiple_built['calls']))
+        multiple_built = exercise({
+            'priorEntry': True,
+            'labelEvent': True,
+            'labelEventEarlier': True
+        })
+        self.assertFalse(
+            any(call[0] == 'ci-passed' and call[1] == 'success'
+                for call in multiple_built['calls']))
 
     def test_rerun_start_revokes_success_before_run_api_updates(self):
         for action in ['requested', 'in_progress']:
             with self.subTest(action=action):
-                result = exercise({'initialStatus': 'success',
-                                   'action': action, 'runsError': True})
+                result = exercise({
+                    'initialStatus': 'success',
+                    'action': action,
+                    'runsError': True
+                })
                 self.assertEqual(result['status'], 'pending')
                 self.assertNotIn('error', result)
-                self.assertFalse(any(call[0] == 'runs-for'
-                                     for call in result['calls']))
+                self.assertFalse(
+                    any(call[0] == 'runs-for' for call in result['calls']))
 
-    def test_rerun_fence_blocks_stale_run_listing_until_exact_attempt_completes(self):
-        stale = exercise({'initialStatus': 'success',
-                          'rerunSequence': 'stale'})
+    def test_rerun_fence_blocks_stale_run_listing_until_exact_attempt_completes(
+            self):
+        stale = exercise({'initialStatus': 'success', 'rerunSequence': 'stale'})
         self.assertEqual(stale['afterStart'], 'pending', stale)
         self.assertEqual(stale['afterSchedule'], 'pending', stale)
         self.assertEqual(stale['status'], 'pending', stale)
-        recovered = exercise({'initialStatus': 'success',
-                              'rerunSequence': 'recover'})
+        recovered = exercise({
+            'initialStatus': 'success',
+            'rerunSequence': 'recover'
+        })
         self.assertEqual(recovered['afterSchedule'], 'pending', recovered)
         self.assertEqual(recovered['status'], 'success', recovered)
         latest_failed = exercise({'fenceOnly': True})
         self.assertEqual(latest_failed['fenceState'], 'failure', latest_failed)
-        malformed_current = exercise({'fenceOnly': True,
-                                      'omitCurrentAttempt': True})
+        malformed_current = exercise({
+            'fenceOnly': True,
+            'omitCurrentAttempt': True
+        })
         self.assertEqual(malformed_current['fenceState'], 'pending',
                          malformed_current)
-        contradictory = exercise({'fenceOnly': True,
-                                  'attemptTwoFailed': True})
+        contradictory = exercise({'fenceOnly': True, 'attemptTwoFailed': True})
         self.assertEqual(contradictory['fenceState'], 'pending', contradictory)
 
-    def test_rerun_fence_handles_later_attempt_and_missing_status_visibility(self):
-        third = exercise({'rerunSequence': 'third-attempt',
-                          'attemptTwoFailed': True})
+    def test_rerun_fence_handles_later_attempt_and_missing_status_visibility(
+            self):
+        third = exercise({
+            'rerunSequence': 'third-attempt',
+            'attemptTwoFailed': True
+        })
         self.assertEqual(third['status'], 'pending', third)
-        recovered = exercise({'rerunSequence': 'failed-then-success',
-                              'attemptTwoFailed': True})
+        recovered = exercise({
+            'rerunSequence': 'failed-then-success',
+            'attemptTwoFailed': True
+        })
         self.assertEqual(recovered['status'], 'success', recovered)
-        self.assertEqual(exercise({'staleStatusRead': True})['status'], 'pending')
-        malformed = exercise({'action': 'in_progress',
-                              'malformedAttempt': True})
+        self.assertEqual(
+            exercise({'staleStatusRead': True})['status'], 'pending')
+        malformed = exercise({
+            'action': 'in_progress',
+            'malformedAttempt': True
+        })
         self.assertEqual(malformed['status'], 'pending', malformed)
         self.assertNotIn('error', malformed)
 
@@ -475,40 +529,64 @@ console.log(JSON.stringify(tests.map(trigger => {{
         near_limit = exercise({'prefillStatuses': 998})
         self.assertEqual(near_limit['status'], 'pending', near_limit)
         self.assertNotIn('error', near_limit)
-        self.assertFalse(any(call[1] == 'success' for call in
-                             near_limit['calls'] if call[0] == 'ci-passed'))
+        self.assertFalse(
+            any(call[1] == 'success'
+                for call in near_limit['calls']
+                if call[0] == 'ci-passed'))
 
-    def test_dequeue_invalid_release_pr_before_null_successor_blocks_discovery(self):
-        earlier = exercise({'dequeueEvent': True, 'labelEventEarlier': True,
-                            'priorEntry': True, 'nullCurrentHead': True,
-                            'priorLabels': ['lgtm'], 'initialStatus': 'success'})
+    def test_dequeue_invalid_release_pr_before_null_successor_blocks_discovery(
+            self):
+        earlier = exercise({
+            'dequeueEvent': True,
+            'labelEventEarlier': True,
+            'priorEntry': True,
+            'nullCurrentHead': True,
+            'priorLabels': ['lgtm'],
+            'initialStatus': 'success'
+        })
         self.assertEqual(earlier['priorStatus'], 'pending', earlier)
         self.assertEqual(earlier['status'], 'success', earlier)
         self.assertEqual(earlier['candidates'], [], earlier)
         self.assertIn(['dequeue', 'PR_8'], earlier['calls'])
         self.assertTrue(earlier['dequeued'])
 
-        stale_successor = exercise({'dequeueEvent': True,
-                                    'labelEventEarlier': True,
-                                    'priorEntry': True,
-                                    'priorLabels': ['lgtm'],
-                                    'checkRetired': True})
+        stale_successor = exercise({
+            'dequeueEvent': True,
+            'labelEventEarlier': True,
+            'priorEntry': True,
+            'priorLabels': ['lgtm'],
+            'checkRetired': True
+        })
         self.assertEqual(stale_successor['status'], 'pending', stale_successor)
         self.assertEqual(stale_successor['retiredState'], 'pending',
                          stale_successor)
 
-        unbuilt = exercise({'dequeueEvent': True, 'priorEntry': True,
-                            'nullCurrentHead': True, 'labels': ['lgtm']})
+        unbuilt = exercise({
+            'dequeueEvent': True,
+            'priorEntry': True,
+            'nullCurrentHead': True,
+            'labels': ['lgtm']
+        })
         self.assertEqual(unbuilt['priorStatus'], None, unbuilt)
         self.assertEqual(unbuilt['candidates'], [], unbuilt)
         self.assertIn(['dequeue', 'PR_7'], unbuilt['calls'])
 
     def test_dequeue_denial_and_readback_failure_preserve_pending(self):
-        options = {'dequeueEvent': True, 'priorEntry': True,
-                   'nullCurrentHead': True, 'labelEventEarlier': True,
-                   'priorLabels': ['lgtm'], 'initialStatus': 'success'}
-        for failure in [{'dequeueDenied': True}, {'readbackError': True},
-                        {'readbackStillPresent': True}]:
+        options = {
+            'dequeueEvent': True,
+            'priorEntry': True,
+            'nullCurrentHead': True,
+            'labelEventEarlier': True,
+            'priorLabels': ['lgtm'],
+            'initialStatus': 'success'
+        }
+        for failure in [{
+                'dequeueDenied': True
+        }, {
+                'readbackError': True
+        }, {
+                'readbackStillPresent': True
+        }]:
             with self.subTest(failure=failure):
                 result = exercise({**options, **failure})
                 self.assertEqual(result['priorStatus'], 'pending', result)
@@ -523,9 +601,14 @@ console.log(JSON.stringify(tests.map(trigger => {{
         self.assertEqual(result['candidates'], [{'sha': SHA}], result)
         self.assertFalse(any(call[0] == 'dequeue' for call in result['calls']))
 
-    def test_eligible_release_pr_refreshes_built_head_with_unbuilt_successor(self):
-        result = exercise({'dequeueEvent': True, 'labelEventEarlier': True,
-                           'priorEntry': True, 'nullCurrentHead': True})
+    def test_eligible_release_pr_refreshes_built_head_with_unbuilt_successor(
+            self):
+        result = exercise({
+            'dequeueEvent': True,
+            'labelEventEarlier': True,
+            'priorEntry': True,
+            'nullCurrentHead': True
+        })
         self.assertEqual(result['candidates'], [{'sha': 'd' * 40}], result)
         self.assertFalse(any(call[0] == 'dequeue' for call in result['calls']))
 
@@ -540,22 +623,34 @@ console.log(JSON.stringify(tests.map(trigger => {{
         self.assertIn(['dequeue', 'PR_7'], result['calls'])
 
     def test_late_workflow_and_label_event_recover(self):
-        self.assertEqual(exercise({'missing': '.github/workflows/frontend.yml',
-                                   'schedule': True})['status'], 'pending')
+        self.assertEqual(
+            exercise({
+                'missing': '.github/workflows/frontend.yml',
+                'schedule': True
+            })['status'], 'pending')
         self.assertEqual(exercise({'labelEvent': True})['status'], 'success')
 
     def test_drift_after_success_revokes_group(self):
         result = exercise({'removeLabelAfterSuccess': True})
         self.assertEqual(result['status'], 'failure')
         self.assertEqual(result['calls'][-1], ['ci-passed', 'failure', SHA])
-        self.assertEqual(exercise({'priorEntry': True,
-                                   'priorHeadNull': True,
-                                   'removePriorLabelAfterSuccess': True})['status'],
-                         'failure')
+        self.assertEqual(
+            exercise({
+                'priorEntry': True,
+                'priorHeadNull': True,
+                'removePriorLabelAfterSuccess': True
+            })['status'], 'failure')
 
     def test_api_errors_fail_closed_and_stale_branch_does_not_publish(self):
-        for options in [{'inventoryError': True}, {'runsError': True},
-                        {'queueError': True}, {'statusWriteError': True}]:
+        for options in [{
+                'inventoryError': True
+        }, {
+                'runsError': True
+        }, {
+                'queueError': True
+        }, {
+                'statusWriteError': True
+        }]:
             with self.subTest(options=options):
                 result = exercise(options)
                 self.assertNotEqual(result['status'], 'success', result)
