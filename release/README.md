@@ -97,6 +97,35 @@ tool setup is independent of the selected checkout, and package builds use that
 tag's Makefiles or a setuptools-compatible source-path build. Use `dry_run=true`
 to build and validate distributions without uploading them to PyPI.
 
+### Architecture support and release validation
+
+The [supported-platforms policy](../docs/operator-guides/supported-platforms.md)
+commits to Linux AMD64 and ARM64 support starting with backend 3.0. The image
+publication workflow for that release line verifies shared-tag resolution on native
+AMD64 and ARM64 runners, then runs the native ARM64 installation/pipeline smoke
+against the same run's immutable published image indexes. Validation follows image
+publication; a failed validation blocks release completion, not the initial upload.
+Dry-run publication builds images without running checks against published tags.
+
+For backend 3.0 and later, the existing `create-backend-release` checkpoint asks the
+release manager to review the successful release run and retain its published-index,
+native image-validation, and smoke artifacts before creating the GitHub release.
+Release notes and final communications link to the policy. A successful master smoke is not a substitute
+for validating the release images. Existing checkpoint IDs are unchanged; when
+resuming a release whose backend-release step was already marked done, review the
+new checklist explicitly rather than recreating an existing release.
+
+The remaining **2.18 release does not acquire ARM64 support or these validation
+requirements**. Use the current CLI with version `2.18.0` (or a 2.18 patch version):
+it dispatches `image-builds-release.yml` from `release-2.18`, using that branch's
+existing inputs and image inventory. Do not dispatch the master workflow for 2.x
+or backport the 3.x image inventory. SDK-only releases also have no backend-image
+architecture checkpoint. All workflow watchers stop on failure, including on 2.x.
+
+These checks prepare the tooling for future releases; no release candidate needs
+to be cut now. The CLI still accepts final `MAJOR.MINOR.PATCH` versions only;
+prerelease image validation can use the release workflow directly.
+
 If you complete a step outside `kfpr` (for example, manually creating an already-existing
 release branch), mark that step done before resuming:
 

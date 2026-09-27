@@ -6,6 +6,7 @@ Documentation for operators deploying and configuring Kubeflow Pipelines.
 :maxdepth: 1
 
 installation
+supported-platforms
 server-config
 multi-user
 configure-object-store

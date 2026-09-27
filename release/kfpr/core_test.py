@@ -59,6 +59,10 @@ class TestReleaseMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             ReleaseMetadata.from_version('major', '1.0')
 
+    def test_prerelease_versions_remain_outside_cli_contract(self):
+        with self.assertRaises(ValueError):
+            ReleaseMetadata.from_version('major', '3.0.0-rc.1')
+
     def test_from_version_major_not_x_0_0(self):
         with self.assertRaises(ValueError):
             ReleaseMetadata.from_version('major', '1.1.0')
@@ -168,6 +172,39 @@ class GithubCommandTest(unittest.TestCase):
                          ['gh', 'workflow', 'run', 'image-builds-release.yml'])
         self.assertIn('src_branch=release-3.2', command)
         self.assertIn('target_tag=3.2.1', command)
+
+    def test_image_workflow_dispatch_preserves_release_branch_contract(self):
+        for version, release_type, branch in (('2.18.0', 'minor',
+                                               'release-2.18'),
+                                              ('2.18.1', 'patch',
+                                               'release-2.18'),
+                                              ('3.0.0', 'major', 'release-3.0'),
+                                              ('3.0.1', 'patch',
+                                               'release-3.0')):
+            with self.subTest(version=version):
+                metadata = core.ReleaseMetadata.from_version(
+                    release_type, version)
+                self.assertEqual(
+                    core.image_workflow_command(metadata), [
+                        'gh',
+                        'workflow',
+                        'run',
+                        'image-builds-release.yml',
+                        '--ref',
+                        branch,
+                        '-f',
+                        f'src_branch={branch}',
+                        '-f',
+                        f'target_tag={version}',
+                        '-f',
+                        'overwrite_imgs=false',
+                        '-f',
+                        'set_latest=true',
+                        '-f',
+                        'add_sha_tag=true',
+                        '-f',
+                        'dry_run=false',
+                    ])
 
     def test_sdk_workflow_command(self):
         metadata = core.ReleaseMetadata.from_version('minor', '3.2.0')
