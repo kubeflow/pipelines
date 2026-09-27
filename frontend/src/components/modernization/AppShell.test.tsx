@@ -23,7 +23,13 @@ import type { AppShellProps } from './AppShell';
 import { ThemeProvider } from './ThemeProvider';
 
 const items = [
-  { id: 'pipelines', label: 'Pipelines', href: '/pipelines', icon: Workflow },
+  {
+    id: 'pipelines',
+    elementId: 'pipelinesBtn',
+    label: 'Pipelines',
+    href: '/pipelines',
+    icon: Workflow,
+  },
   { id: 'experiments', label: 'Experiments', href: '/experiments', icon: FlaskConical },
   { id: 'runs', label: 'Runs', href: '/runs', icon: PlayCircle },
 ];
@@ -82,6 +88,7 @@ describe('AppShell', () => {
     });
     expect(screen.getByRole('link', { name: 'Runs' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Pipelines' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Pipelines' })).toHaveAttribute('id', 'pipelinesBtn');
     await userEvent.click(screen.getByRole('link', { name: 'Pipelines' }));
     expect(screen.getByLabelText('Current location')).toHaveTextContent('/pipelines');
   });

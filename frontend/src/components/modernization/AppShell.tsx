@@ -40,6 +40,7 @@ export interface AppShellNavItem {
   href: string;
   icon: LucideIcon;
   active?: boolean;
+  elementId?: string;
 }
 
 export interface AppShellProps {
@@ -127,6 +128,7 @@ export function AppShell({
     return (
       <li key={item.id}>
         <Link
+          id={item.elementId}
           to={item.href}
           className='kfp-shell-nav-link'
           aria-current={active ? 'page' : undefined}

@@ -96,7 +96,15 @@ describe('ArchivedRuns', () => {
   it('renders archived runs', () => {
     renderArchivedRuns();
     expect(lastRunListProps).toBeTruthy();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(lastRunListProps.presentation).toBe('modern');
+    expect(renderResult!.container.querySelector('[data-testid="run-list"]')).not.toBeNull();
+  });
+
+  it('clears the page banner when a filter or paging load recovers', () => {
+    renderArchivedRuns();
+    updateBannerSpy.mockClear();
+    lastRunListProps.onLoadSuccess();
+    expect(updateBannerSpy).toHaveBeenCalledExactlyOnceWith({});
   });
 
   it('lists archived runs in namespace', () => {

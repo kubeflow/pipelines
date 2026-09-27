@@ -353,7 +353,7 @@ describe('RunList', () => {
   });
 
   it('calls error callback when loading runs fails', async () => {
-    TestUtils.makeErrorResponseOnce(listRunsSpy as any, 'bad stuff happened');
+    listRunsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const props = generateProps();
     await renderRunList(props);
     await waitFor(() => {
@@ -598,13 +598,9 @@ describe('RunList', () => {
 
     expect(screen.getAllByText('shared pipeline version')).toHaveLength(2);
 
-    // CustomTable's reload() overlaps under React Strict Mode in tests (see the
-    // isBusy comment in CustomTable.tsx), so the list loads twice here, one
-    // getPipelineVersion call per load. The property under test is that it's one
-    // call per load per unique (pipeline, version), not one call per run: two runs
-    // referencing the same version never produce more calls than two loads' worth
-    // of unique versions.
-    expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
+    // A superseded Strict Mode load stops before enrichment; the current load
+    // fetches this shared version once for both rows.
+    expect(getPipelineVersionSpy).toHaveBeenCalledTimes(1);
     expect(getPipelineVersionSpy).toHaveBeenCalledWith(sharedPipelineId, sharedVersionId);
     expect(listPipelineVersionsSpy).not.toHaveBeenCalled();
   });

@@ -182,12 +182,41 @@ export const css = stylesheet({
   },
 });
 
+export interface CustomTableRenderModel {
+  columns: Column[];
+  rows: Row[];
+  selectedIds: string[];
+  filter: string;
+  filterLabel: string;
+  onFilterChange: (value: string) => void;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+  onSort: (key: string) => void;
+  onSelect: (id: string) => void;
+  onSelectAll: (checked: boolean) => void;
+  isBusy: boolean;
+  emptyMessage?: string;
+  errorMessage?: string;
+  pageSize: number;
+  onPageSizeChange: (size: number) => void;
+  canPrevious: boolean;
+  canNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  disablePaging?: boolean;
+  disableSelection?: boolean;
+  disableSorting?: boolean;
+  noFilterBox?: boolean;
+}
+
 interface CustomTableProps {
   columns: Column[];
+  renderTable?: (model: CustomTableRenderModel) => React.ReactNode;
   disablePaging?: boolean;
   disableSelection?: boolean;
   disableSorting?: boolean;
   emptyMessage?: string;
+  errorMessage?: string;
   filterLabel?: string;
   getExpandComponent?: (index: number) => React.ReactNode;
   initialSortColumn?: string;
@@ -238,7 +267,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
-      pageSize: LocalStorage.getTablePageSize(this._getPageId()),
+      pageSize: this.readPageSize(),
       sortBy:
         props.initialSortColumn || (props.columns.length ? props.columns[0].sortKey || '' : ''),
       sortOrder: props.initialSortOrder || 'desc',
@@ -251,13 +280,23 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       // This should be impossible to reach
       return;
     }
-    const selectedIds = event.target.checked ? this.props.rows.map((v) => v.id) : [];
+    this.selectAll(event.target.checked);
+  }
+
+  private selectAll(checked: boolean): void {
+    if (this.props.disableSelection) return;
+    const selectedIds = checked ? this.props.rows.map((v) => v.id) : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }
   }
 
   public handleClick(e: React.MouseEvent, id: string): void {
+    this.selectRow(id);
+    e.stopPropagation();
+  }
+
+  private selectRow(id: string): void {
     if (this.props.disableSelection === true) {
       return;
     }
@@ -277,8 +316,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     if (this.props.updateSelection) {
       this.props.updateSelection(newSelected);
     }
-
-    e.stopPropagation();
   }
 
   public isSelected(id: string): boolean {
@@ -292,12 +329,45 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public componentWillUnmount(): void {
     this._isMounted = false;
+    this._activeReloadGeneration++;
     this._debouncedFilterRequest.cancel();
   }
 
   public render(): React.JSX.Element {
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
-    const numSelected = (this.props.selectedIds || []).length;
+    if (this.props.renderTable) {
+      return (
+        <>
+          {this.props.renderTable({
+            columns: this.props.columns,
+            rows: this.props.rows,
+            selectedIds: this.props.selectedIds || [],
+            filter: filterString,
+            filterLabel: this.props.filterLabel || 'Filter',
+            onFilterChange: this.changeFilter,
+            sortBy,
+            sortOrder,
+            onSort: (key) => this._requestSort(key),
+            onSelect: (id) => this.selectRow(id),
+            onSelectAll: (checked) => this.selectAll(checked),
+            isBusy: this.state.isBusy,
+            emptyMessage: this.props.emptyMessage,
+            errorMessage: this.props.errorMessage,
+            pageSize,
+            onPageSizeChange: (size) => this.changePageSize(size),
+            canPrevious: this.state.currentPage > 0,
+            canNext: this.state.currentPage < this.state.maxPageIndex,
+            onPrevious: () => this._pageChanged(-1),
+            onNext: () => this._pageChanged(1),
+            disablePaging: this.props.disablePaging,
+            disableSelection: this.props.disableSelection,
+            disableSorting: this.props.disableSorting,
+            noFilterBox: this.props.noFilterBox,
+          })}
+        </>
+      );
+    }
+    const numSelected = this.props.rows.filter((row) => this.isSelected(row.id)).length;
     const totalFlex = this.props.columns.reduce((total, c) => total + (c.flex || 1), 0);
     const widths = this.props.columns.map((c) => ((c.flex || 1) / totalFlex) * 100);
 
@@ -526,8 +596,11 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     return result;
   }
 
-  public handleFilterChange = (event: any) => {
-    const value = event.target.value;
+  public handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.changeFilter(event.target.value);
+  };
+
+  private changeFilter = (value: string) => {
     if (this.props.setFilterString) {
       this.props.setFilterString(value || '');
     }
@@ -542,7 +615,11 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   protected async _requestFilter(filterString?: string): Promise<void> {
     const filterStringEncoded = filterString ? this._createAndEncodeFilterV2(filterString) : '';
     this.setStateSafe({ filterStringEncoded });
-    this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }));
+    const generation = this._activeReloadGeneration + 1;
+    const nextToken = await this.reload({ filter: filterStringEncoded, pageToken: '' });
+    if (this._isMounted && generation === this._activeReloadGeneration) {
+      this._resetToFirstPage(nextToken);
+    }
   }
 
   private _createAndEncodeFilterV2(filterString: string): string {
@@ -572,9 +649,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       const sortOrder =
         this.state.sortBy === sortBy ? (this.state.sortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
       this.setStateSafe({ sortOrder, sortBy }, async () => {
-        this._resetToFirstPage(
-          await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }),
-        );
+        const generation = this._activeReloadGeneration + 1;
+        const nextToken = await this.reload({
+          pageToken: '',
+          orderAscending: sortOrder === 'asc',
+          sortBy,
+        });
+        if (this._isMounted && generation === this._activeReloadGeneration) {
+          this._resetToFirstPage(nextToken);
+        }
       });
     }
   }
@@ -608,9 +691,28 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   private async _requestRowsPerPage(
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ): Promise<void> {
-    const pageSize = Number(event.target.value);
-    LocalStorage.saveTablePageSize(pageSize, this._getPageId());
-    this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
+    await this.changePageSize(Number(event.target.value));
+  }
+
+  private async changePageSize(pageSize: number): Promise<void> {
+    try {
+      LocalStorage.saveTablePageSize(pageSize, this._getPageId());
+    } catch {
+      // Keep paging usable if browser policy or quota prevents saving the preference.
+    }
+    const generation = this._activeReloadGeneration + 1;
+    const nextToken = await this.reload({ pageSize, pageToken: '' });
+    if (this._isMounted && generation === this._activeReloadGeneration) {
+      this._resetToFirstPage(nextToken);
+    }
+  }
+
+  private readPageSize(): number {
+    try {
+      return LocalStorage.getTablePageSize(this._getPageId());
+    } catch {
+      return 10;
+    }
   }
 
   private _getPageId(): string | undefined {

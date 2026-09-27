@@ -86,7 +86,15 @@ describe('AllRunsList', () => {
   it('renders all runs', () => {
     renderAllRunsList();
     expect(lastRunListProps).toBeTruthy();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(lastRunListProps.presentation).toBe('modern');
+    expect(renderResult!.container.querySelector('[data-testid="run-list"]')).not.toBeNull();
+  });
+
+  it('clears the page banner when a filter or paging load recovers', () => {
+    renderAllRunsList();
+    updateBannerSpy.mockClear();
+    lastRunListProps.onLoadSuccess();
+    expect(updateBannerSpy).toHaveBeenCalledExactlyOnceWith({});
   });
 
   it('lists all runs in namespace', () => {

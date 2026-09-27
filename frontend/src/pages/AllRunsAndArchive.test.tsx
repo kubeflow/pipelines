@@ -14,51 +14,55 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen } from '@testing-library/react';
-import { vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, useLocation } from 'react-router';
 import AllRunsAndArchive, {
   AllRunsAndArchiveProps,
   AllRunsAndArchiveTab,
 } from './AllRunsAndArchive';
 
-describe('RunsAndArchive', () => {
-  function generateProps(): AllRunsAndArchiveProps {
-    return {
-      navigate: vi.fn(),
-      location: '' as any,
-      params: {},
-      toolbarProps: {} as any,
-      updateBanner: () => null,
-      updateDialog: vi.fn(),
-      updateSnackbar: vi.fn(),
-      updateToolbar: () => null,
-      view: AllRunsAndArchiveTab.RUNS,
-    };
-  }
-
-  it('renders runs page', () => {
-    const { asFragment } = render(<AllRunsAndArchive {...(generateProps() as any)} />);
-    expect(asFragment()).toMatchSnapshot();
-  });
-
-  it('renders archive page', () => {
-    const props = generateProps();
-    props.view = AllRunsAndArchiveTab.ARCHIVE;
-    const { asFragment } = render(<AllRunsAndArchive {...(props as any)} />);
-    expect(asFragment()).toMatchSnapshot();
-  });
-
-  it('switches to clicked page by pushing to history', () => {
-    const spy = vi.fn();
-    const props = generateProps();
-    props.navigate = spy;
-    const { rerender } = render(<AllRunsAndArchive {...(props as any)} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
-    expect(spy).toHaveBeenCalledWith('/archive/runs');
-
-    rerender(<AllRunsAndArchive {...(props as any)} view={AllRunsAndArchiveTab.ARCHIVE} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Active' }));
-    expect(spy).toHaveBeenCalledWith('/runs');
-  });
+vi.mock('./AllRunsList', () => ({ default: () => <div>Active run content</div> }));
+vi.mock('./ArchivedRuns', () => ({ default: () => <div>Archived run content</div> }));
+function Location() {
+  return <output aria-label='Location'>{useLocation().pathname}</output>;
+}
+function props(view = AllRunsAndArchiveTab.RUNS): AllRunsAndArchiveProps {
+  return {
+    navigate: vi.fn(),
+    location: { pathname: '/runs', search: '', hash: '', state: null, key: 'test' },
+    params: {},
+    toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
+    updateBanner: vi.fn(),
+    updateDialog: vi.fn(),
+    updateSnackbar: vi.fn(),
+    updateToolbar: vi.fn(),
+    view,
+  };
+}
+it.each([AllRunsAndArchiveTab.RUNS, AllRunsAndArchiveTab.ARCHIVE])(
+  'renders the requested view %s and marks its navigation link',
+  (view) => {
+    render(
+      <MemoryRouter>
+        <AllRunsAndArchive {...props(view)} />
+      </MemoryRouter>,
+    );
+    const label = view === AllRunsAndArchiveTab.RUNS ? 'Active' : 'Archived';
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText(`${label} run content`)).toBeVisible();
+  },
+);
+it('preserves active and archived route destinations with keyboard-operable links', async () => {
+  render(
+    <MemoryRouter initialEntries={['/runs']}>
+      <AllRunsAndArchive {...props()} />
+      <Location />
+    </MemoryRouter>,
+  );
+  await userEvent.click(screen.getByRole('link', { name: 'Archived' }));
+  expect(screen.getByLabelText('Location')).toHaveTextContent('/archive/runs');
+  screen.getByRole('link', { name: 'Active' }).focus();
+  await userEvent.keyboard('{Enter}');
+  expect(screen.getByLabelText('Location')).toHaveTextContent('/runs');
 });

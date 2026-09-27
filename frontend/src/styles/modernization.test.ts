@@ -39,10 +39,12 @@ describe.each(['.kfp-theme', '.kfp-theme.dark'])('%s semantic text contrast', (s
     ['muted-foreground', 'muted'],
     ['primary-foreground', 'primary'],
     ['status-failed-foreground', 'status-failed'],
-    ...['succeeded', 'running', 'failed', 'warning', 'neutral'].map((status) => [
-      `status-${status}`,
-      `status-${status}-soft`,
-    ]),
+    ...['succeeded', 'running', 'failed', 'warning', 'neutral'].flatMap((status) =>
+      [`status-${status}-soft`, 'card', 'muted', 'primary-soft'].map((surface) => [
+        `status-${status}`,
+        surface,
+      ]),
+    ),
   ];
   it.each(pairs)('%s on %s meets 4.5:1 for small text', (foreground, background) => {
     expect(tokens[foreground]).toMatch(/^#[0-9a-f]{6}$/);

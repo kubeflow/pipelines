@@ -1,0 +1,42 @@
+.kfp-application-theme {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+}
+
+/* Unmigrated pages retain their existing light presentation during development. */
+.kfp-theme .kfp-legacy-page {
+  min-width: 0;
+  min-height: 0;
+  background: white;
+  color: rgb(0 0 0 / 66%);
+  font-family: 'Google Sans', 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color-scheme: light;
+}
+
+.kfp-theme .kfp-navigation-notice {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 32px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.kfp-theme .kfp-navigation-notice > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.kfp-theme .kfp-navigation-notice p {
+  flex: 1;
+  margin: 0;
+}

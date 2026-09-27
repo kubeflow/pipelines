@@ -352,38 +352,40 @@ describe('RuntimeArtifactComparison', () => {
         <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
       </CommonTestWrapper>,
     );
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search ROC curves' }), {
+    const searchInput = screen.getByLabelText('Search ROC curves');
+    const selector = screen.getByRole('combobox', { name: 'ROC curves' });
+    fireEvent.change(searchInput, {
       target: { value: 'Same run / Evaluate / evaluation' },
     });
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
-    expect(
-      (await screen.findAllByRole('option')).filter((option) => option.dataset.value),
-    ).toHaveLength(100);
-
-    const listbox = screen.getByRole('listbox', { name: 'ROC curves' });
-    expect(listbox).toBeVisible();
+    fireEvent.mouseDown(selector);
+    const firstPage = await screen.findByRole('listbox', { name: 'ROC curves' });
+    expect(firstPage).toBeVisible();
+    // Count labels within the visible popup without repeating whole-document accessibility scans.
+    const firstPageLabels = within(firstPage).getAllByText('Same run / Evaluate / evaluation');
+    expect(firstPageLabels).toHaveLength(100);
+    expect(firstPageLabels[0]).toBeVisible();
+    expect(firstPageLabels.at(-1)).toBeVisible();
     await user.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull());
+    await waitFor(() => expect(firstPage).not.toBeInTheDocument());
     const nextPage = screen.getByRole('button', { name: 'Next ROC curves' });
     expect(nextPage.closest('[role="listbox"]')).toBeNull();
     await user.tab();
     expect(nextPage).toHaveFocus();
     await user.keyboard('{Enter}');
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
-    const secondPageOptions = await waitFor(() => {
-      const options = screen.getAllByRole('option').filter((option) => option.dataset.value);
-      expect(options).toHaveLength(50);
-      return options;
-    });
+    fireEvent.mouseDown(selector);
+    const secondPage = await screen.findByRole('listbox', { name: 'ROC curves' });
+    expect(secondPage).toBeVisible();
+    const secondPageLabels = within(secondPage).getAllByText('Same run / Evaluate / evaluation');
+    expect(secondPageLabels).toHaveLength(50);
+    expect(secondPageLabels[0]).toBeVisible();
+    expect(secondPageLabels.at(-1)).toBeVisible();
     expect(screen.getByText(/Showing 101–150 of 150 matching curves/)).toBeVisible();
-    fireEvent.click(secondPageOptions.at(-1)!);
-    expect(screen.getByRole('combobox', { name: 'ROC curves', hidden: true })).toHaveTextContent(
-      '4 curves selected',
-    );
+    fireEvent.click(secondPageLabels.at(-1)!);
+    expect(selector).toHaveTextContent('4 curves selected');
 
-    fireEvent.keyDown(screen.getByRole('listbox', { name: 'ROC curves' }), { key: 'Escape' });
-    await waitFor(() => expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull());
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search ROC curves' }), {
+    fireEvent.keyDown(secondPage, { key: 'Escape' });
+    await waitFor(() => expect(secondPage).not.toBeInTheDocument());
+    fireEvent.change(searchInput, {
       target: { value: 'not present' },
     });
     expect(screen.getByRole('status')).toHaveTextContent('No ROC curves match this search.');

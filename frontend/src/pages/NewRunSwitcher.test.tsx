@@ -79,13 +79,22 @@ describe('NewRunSwitcher', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('v2 run creation', () => {
+    // Keep the real router and both modal phases; their jsdom style work needs more time
+    // under coverage than the default unit-test budget.
     it('reloads the latest pipeline version after inline experiment creation', async () => {
       const olderVersion = {
         ...ORIGINAL_TEST_PIPELINE_VERSION,
@@ -161,7 +170,7 @@ describe('NewRunSwitcher', () => {
         ),
       );
       expect(await screen.findByDisplayValue(latestVersion.display_name)).toBeVisible();
-    });
+    }, 10_000);
 
     it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
       render(

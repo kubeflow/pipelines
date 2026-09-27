@@ -16,12 +16,11 @@
 
 import type * as React from 'react';
 import AllRunsListPage from './AllRunsList';
-import MD2Tabs from '../atoms/MD2Tabs';
+import { Link } from 'react-router';
+import '../components/modernization/RunsTable.css';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
 import ArchivedRunsPage from './ArchivedRuns';
 
 export enum AllRunsAndArchiveTab {
@@ -44,12 +43,21 @@ class AllRunsAndArchive extends Page<AllRunsAndArchiveProps, AllRunsAndArchiveSt
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs
-          tabs={['Active', 'Archived']}
-          selectedTab={this.props.view}
-          onSwitch={this._tabSwitched.bind(this)}
-        />
+      <div className='kfp-runs-page'>
+        <nav className='kfp-runs-tabs' aria-label='Run views'>
+          <Link
+            to={RoutePage.RUNS}
+            aria-current={this.props.view === AllRunsAndArchiveTab.RUNS ? 'page' : undefined}
+          >
+            Active
+          </Link>
+          <Link
+            to={RoutePage.ARCHIVED_RUNS}
+            aria-current={this.props.view === AllRunsAndArchiveTab.ARCHIVE ? 'page' : undefined}
+          >
+            Archived
+          </Link>
+        </nav>
         {this.props.view === 0 && <AllRunsListPage {...this.props} />}
 
         {this.props.view === 1 && <ArchivedRunsPage {...this.props} />}
@@ -59,12 +67,6 @@ class AllRunsAndArchive extends Page<AllRunsAndArchiveProps, AllRunsAndArchiveSt
 
   public async refresh(): Promise<void> {
     return;
-  }
-
-  private _tabSwitched(newTab: AllRunsAndArchiveTab): void {
-    this.props.navigate(
-      newTab === AllRunsAndArchiveTab.RUNS ? RoutePage.RUNS : RoutePage.ARCHIVED_RUNS,
-    );
   }
 }
 

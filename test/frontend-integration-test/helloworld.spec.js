@@ -43,6 +43,7 @@ const runStartTimeout = 30000;
 const runCompletionTimeout = 180000;
 const logsLoadTimeout = 60000;
 const outputParameterValue = 'Hello world in test';
+const runsFilterSelector = 'input[type="search"][placeholder="Filter runs by name"]';
 
 function getGraphNodeByLabel(label) {
   return $(
@@ -271,10 +272,10 @@ describe('deploy helloworld sample run', () => {
       await waitForHashPrefix('#/runs', { timeout: uiTimeout });
     }
 
-    await waitForSelectorDisplayed('#tableFilterBox', { timeout: uiTimeout });
+    await waitForSelectorDisplayed(runsFilterSelector, { timeout: uiTimeout });
 
     const runLinkSelector = `[data-testid="run-name-link"][data-run-name="${runName}"]`;
-    await $('#tableFilterBox').click();
+    await $(runsFilterSelector).click();
     await clearDefaultInput();
     await browser.keys(runName);
     await waitForCondition(
@@ -287,7 +288,7 @@ describe('deploy helloworld sample run', () => {
 
     const runWithoutExperimentLinkSelector =
       `[data-testid="run-name-link"][data-run-name*="${runWithoutExperimentName}"]`;
-    await $('#tableFilterBox').click();
+    await $(runsFilterSelector).click();
     await clearDefaultInput();
     await browser.keys(runWithoutExperimentName);
     await waitForCondition(
@@ -300,7 +301,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('navigates back to the experiment list', async () => {
-    await $('button=Experiments').click();
+    await $('a[aria-label="Experiments"]').click();
     await waitForHashPrefix('#/experiments', { timeout: uiTimeout });
   });
 

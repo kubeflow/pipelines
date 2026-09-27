@@ -20,8 +20,6 @@ import RunList from './RunList';
 import { Page, PageProps } from './Page';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ToolbarProps } from 'src/components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from 'src/Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchivedRunsState {
@@ -59,8 +57,10 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-runs-view'>
         <RunList
+          presentation='modern'
+          onLoadSuccess={this.clearBanner.bind(this)}
           namespaceMask={this.props.namespace}
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}

@@ -43,7 +43,20 @@ import PrivateAndSharedPipelines, {
   PrivateAndSharedTab,
 } from 'src/pages/PrivateAndSharedPipelines';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
-import SideNavigation from './SideNav';
+import {
+  BookOpen,
+  FlaskConical,
+  Info,
+  Package,
+  PlayCircle,
+  Repeat,
+  Workflow,
+  X,
+} from 'lucide-react';
+import { ApplicationShell } from './modernization/ApplicationShell';
+import type { AppShellNavItem } from './modernization/AppShell';
+import { ModernPageChrome } from './modernization/ModernPageChrome';
+import { Button as ModernButton } from './ui/button';
 import Toolbar, { ToolbarProps } from './Toolbar';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 
@@ -180,9 +193,6 @@ export interface RouterProps {
   configs?: RouteConfig[]; // only used in tests
 }
 
-const DEFAULT_ROUTE =
-  KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
-
 const RemovedExecutionRoute = ({ params }: NavigationProps) => {
   return (
     <Navigate
@@ -208,27 +218,41 @@ const LegacyRunExecutionRoute = ({ location, params }: NavigationProps) => {
 };
 
 // Keep navigation guidance separate from page-owned loading and error banners.
-const ExecutionRedirectNotice = () => {
+const ExecutionRedirectNotice = ({ modern = false }: { modern?: boolean }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const query = new URLSearchParams(location.search);
   const reason = query.get(QUERY_PARAMS.executionRedirect);
   if (reason !== 'list' && reason !== 'detail') return null;
-  return (
-    <Alert
-      severity='info'
-      onClose={() => {
-        query.delete(QUERY_PARAMS.executionRedirect);
-        navigate(
-          { ...location, search: query.size ? `?${query}` : '' },
-          { replace: true, state: location.state },
-        );
-      }}
-    >
+  const closeNotice = () => {
+    query.delete(QUERY_PARAMS.executionRedirect);
+    navigate(
+      { ...location, search: query.size ? `?${query}` : '' },
+      { replace: true, state: location.state },
+    );
+  };
+  const message = (
+    <>
       Execution pages have moved to Runs and task details. Open a run and select a task to view its
       inputs, outputs, status, and logs.
       {reason === 'detail' &&
         ' This legacy execution link cannot select the corresponding task automatically.'}
+    </>
+  );
+  if (modern) {
+    return (
+      <div role='alert' className='kfp-navigation-notice'>
+        <Info size={18} aria-hidden='true' />
+        <p>{message}</p>
+        <ModernButton variant='ghost' size='icon' aria-label='Close' onClick={closeNotice}>
+          <X size={16} aria-hidden='true' />
+        </ModernButton>
+      </div>
+    );
+  }
+  return (
+    <Alert severity='info' onClose={closeNotice}>
+      {message}
     </Alert>
   );
 };
@@ -236,6 +260,8 @@ const ExecutionRedirectNotice = () => {
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const buildInfo = React.useContext(BuildInfoContext);
+  const defaultRoute =
+    KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
 
   let routes: RouteConfig[] = configs || [
     { path: RoutePage.START, Component: GettingStarted },
@@ -288,10 +314,10 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   }
 
   return (
-    // There will be only one instance of SideNav, throughout UI usage.
-    <SideNavLayout>
+    // Keep the shell mounted across route changes.
+    <ApplicationLayout>
       <Routes>
-        <Route path='/' element={<Navigate replace to={DEFAULT_ROUTE} />} />
+        <Route path='/' element={<Navigate replace to={defaultRoute} />} />
         {routes.map((route) => (
           <Route
             key={route.path}
@@ -301,7 +327,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
         ))}
         <Route path='*' element={<RoutePageElement />} />
       </Routes>
-    </SideNavLayout>
+    </ApplicationLayout>
   );
 };
 
@@ -368,13 +394,33 @@ class RoutedPage extends React.Component<
     const { route, location, navigate, params } = this.props;
     const Component = route?.Component ?? Page404;
     const navigation = { location, navigate, params };
+    const navigationNotice =
+      route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS ? (
+        <ExecutionRedirectNotice modern={route?.path === RoutePage.RUNS} />
+      ) : undefined;
+    const page = <Component {...navigation} {...this.childProps} view={route?.view} />;
+
+    if (route?.path === RoutePage.RUNS || route?.path === RoutePage.ARCHIVED_RUNS) {
+      return (
+        <ModernPageChrome
+          toolbarProps={{ ...this.state.toolbarProps, navigate }}
+          bannerProps={this.state.bannerProps}
+          dialogProps={this.state.dialogProps}
+          snackbarProps={this.state.snackbarProps}
+          onDialogClose={this._handleDialogClosed}
+          onSnackbarClose={this._handleSnackbarClose}
+          navigationNotice={navigationNotice}
+          showThemeControl={KFP_FLAGS.HIDE_SIDENAV}
+        >
+          {page}
+        </ModernPageChrome>
+      );
+    }
 
     return (
-      <div className={classes(commonCss.page)}>
+      <div className={classes(commonCss.page, 'kfp-legacy-page')}>
         <Toolbar {...this.state.toolbarProps} navigate={navigate} />
-        {(route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS) && (
-          <ExecutionRedirectNotice />
-        )}
+        {navigationNotice}
         {this.state.bannerProps.message && (
           <Banner
             message={this.state.bannerProps.message}
@@ -384,13 +430,13 @@ class RoutedPage extends React.Component<
             showTroubleshootingGuideLink={true}
           />
         )}
-        <Component {...navigation} {...this.childProps} view={route?.view} />
+        {page}
 
         <Snackbar
           autoHideDuration={this.state.snackbarProps.autoHideDuration}
           message={this.state.snackbarProps.message}
           open={this.state.snackbarProps.open}
-          onClose={this._handleSnackbarClose.bind(this)}
+          onClose={this._handleSnackbarClose}
         />
 
         <Dialog
@@ -449,7 +495,7 @@ class RoutedPage extends React.Component<
     this.setState({ snackbarProps });
   }
 
-  private _handleDialogClosed(onClick?: () => void): void {
+  private _handleDialogClosed = (onClick?: () => void): void => {
     this.setState({ dialogProps: { open: false } });
     if (onClick) {
       onClick();
@@ -457,24 +503,76 @@ class RoutedPage extends React.Component<
     if (this.state.dialogProps.onClose) {
       this.state.dialogProps.onClose();
     }
-  }
-  private _handleSnackbarClose(): void {
+  };
+  private _handleSnackbarClose = (): void => {
     this.setState({ snackbarProps: { open: false, message: '' } });
-  }
+  };
 }
 
 // TODO: loading/error experience until backend is reachable
 
 export default Router;
 
-const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
+const ApplicationLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { pathname } = useLocation();
+  const items: AppShellNavItem[] = [
+    {
+      id: 'pipelines',
+      elementId: 'pipelinesBtn',
+      label: 'Pipelines',
+      href: RoutePage.PIPELINES,
+      icon: Workflow,
+      active:
+        pathname.startsWith(RoutePage.PIPELINES) || pathname.startsWith(RoutePage.PIPELINES_SHARED),
+    },
+    {
+      id: 'experiments',
+      label: 'Experiments',
+      href: RoutePage.EXPERIMENTS,
+      icon: FlaskConical,
+      active:
+        pathname.startsWith(RoutePage.EXPERIMENTS) || pathname === RoutePage.ARCHIVED_EXPERIMENTS,
+    },
+    {
+      id: 'runs',
+      elementId: 'runsBtn',
+      label: 'Runs',
+      href: RoutePage.RUNS,
+      icon: PlayCircle,
+      active:
+        pathname.startsWith(RoutePage.RUNS) ||
+        pathname.startsWith(RoutePage.COMPARE) ||
+        pathname === RoutePage.ARCHIVED_RUNS,
+    },
+    {
+      id: 'recurring-runs',
+      label: 'Recurring runs',
+      href: RoutePage.RECURRING_RUNS,
+      icon: Repeat,
+      active:
+        pathname.startsWith(RoutePage.RECURRING_RUNS) ||
+        pathname.startsWith(RoutePrefix.RECURRING_RUN),
+    },
+    {
+      id: 'artifacts',
+      label: 'Artifacts',
+      href: RoutePage.ARTIFACTS,
+      icon: Package,
+      active: pathname.startsWith(RoutePrefix.ARTIFACT),
+    },
+  ];
+  if (KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE) {
+    items.unshift({
+      id: 'getting-started',
+      label: 'Getting Started',
+      href: RoutePage.START,
+      icon: BookOpen,
+      active: pathname.startsWith(RoutePage.START),
+    });
+  }
   return (
-    <div className={classes(commonCss.page)}>
-      <div className={classes(commonCss.flexGrow)}>
-        <SideNavigation page={location.pathname} />
-        {children}
-      </div>
-    </div>
+    <ApplicationShell items={items} currentPath={pathname}>
+      {children}
+    </ApplicationShell>
   );
 };

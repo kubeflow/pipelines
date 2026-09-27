@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
   createMemoryRouter,
   HashRouter,
@@ -26,8 +26,10 @@ import { NavigationProps } from 'src/lib/Navigation';
 import { NavigationErrorBoundary } from 'src/atoms/NavigationErrorBoundary';
 import { useEffect, useState } from 'react';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage, RoutePageFactory } from './Router';
-import { Page } from '../pages/Page';
+import { Page, PageProps } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
 
 vi.mock('src/pages/RunDetailsRouter', () => ({
   default: () => <div>Run details</div>,
@@ -39,6 +41,26 @@ vi.mock('src/pages/AllRunsAndArchive', () => ({
 }));
 
 describe('Router', () => {
+  const originalFlags = { ...KFP_FLAGS };
+
+  beforeEach(() => {
+    localStorage.clear();
+    Object.assign(KFP_FLAGS, originalFlags);
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+  });
+
+  afterEach(() => {
+    Object.assign(KFP_FLAGS, originalFlags);
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
   it('initial render', () => {
     const renderResult = render(
       <MemoryRouter initialEntries={['/does-not-exist']}>
@@ -46,6 +68,8 @@ describe('Router', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText('404')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Pipelines' })).toHaveAttribute('id', 'pipelinesBtn');
+    expect(screen.getByRole('link', { name: 'Runs' })).toHaveAttribute('id', 'runsBtn');
     expect(screen.getByText('Page Not Found: /does-not-exist')).toBeVisible();
     expect(renderResult.asFragment()).toMatchSnapshot();
   });
@@ -385,5 +409,154 @@ describe('Router', () => {
     expect(router.state.location.search).toBe('?task=task-1');
     expect(router.state.location.hash).toBe('#node');
     expect(router.state.location.state).toEqual({ from: 'runs' });
+  });
+
+  it.each([
+    ['/pipelines/details/id/version/version', 'Pipelines'],
+    ['/shared/pipelines', 'Pipelines'],
+    ['/experiments/details/id', 'Experiments'],
+    ['/archive/experiments', 'Experiments'],
+    ['/runs/new', 'Runs'],
+    ['/runs/details/id', 'Runs'],
+    ['/compare', 'Runs'],
+    ['/archive/runs', 'Runs'],
+    ['/recurringruns', 'Recurring runs'],
+    ['/recurringrun/details/id', 'Recurring runs'],
+    ['/artifacts/123', 'Artifacts'],
+  ])('keeps the %s destination in the %s navigation group', (path, label) => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <BuildInfoContext.Provider value={{ apiServerMultiUser: true }}>
+          <Router configs={[{ path, Component: () => <div>Route content</div> }]} />
+        </BuildInfoContext.Provider>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('Route content')).toBeInTheDocument();
+  });
+
+  it.each([
+    [undefined, RoutePage.PIPELINES, 'Pipelines landing'],
+    [Deployments.MARKETPLACE, RoutePage.START, 'Getting Started landing'],
+  ])('retains the default route for deployment %s', async (deployment, expectedPath, title) => {
+    KFP_FLAGS.DEPLOYMENT = deployment;
+    const router = createMemoryRouter(
+      [
+        {
+          path: '*',
+          element: (
+            <Router
+              configs={[
+                { path: RoutePage.PIPELINES, Component: () => <div>Pipelines landing</div> },
+                { path: RoutePage.START, Component: () => <div>Getting Started landing</div> },
+              ]}
+            />
+          ),
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+    render(<RouterProvider router={router} />);
+    expect(await screen.findByText(title)).toBeVisible();
+    expect(router.state.location.pathname).toBe(expectedPath);
+    if (deployment === Deployments.MARKETPLACE) {
+      expect(screen.getByRole('link', { name: 'Getting Started' })).toHaveAttribute(
+        'href',
+        RoutePage.START,
+      );
+    } else {
+      expect(screen.queryByRole('link', { name: 'Getting Started' })).not.toBeInTheDocument();
+    }
+  });
+
+  it('keeps shared pipelines gated by the existing multi-user metadata', () => {
+    const configs = [
+      { path: RoutePage.PIPELINES_SHARED, Component: () => <div>Shared pipelines page</div> },
+    ];
+    const shell = (multiUser: boolean) => (
+      <MemoryRouter initialEntries={[RoutePage.PIPELINES_SHARED]}>
+        <BuildInfoContext.Provider value={{ apiServerMultiUser: multiUser }}>
+          <Router configs={configs} />
+        </BuildInfoContext.Provider>
+      </MemoryRouter>
+    );
+    const view = render(shell(false));
+    expect(screen.queryByText('Shared pipelines page')).not.toBeInTheDocument();
+    expect(screen.getByText('404')).toBeVisible();
+    view.rerender(shell(true));
+    expect(screen.getByText('Shared pipelines page')).toBeVisible();
+  });
+
+  it('preserves shell preferences through route changes and bounds unmigrated pages', async () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '*',
+          element: (
+            <Router
+              configs={[
+                { path: RoutePage.RUNS, Component: () => <div>Modern runs content</div> },
+                { path: RoutePage.PIPELINES, Component: () => <div>Legacy pipelines content</div> },
+              ]}
+            />
+          ),
+        },
+      ],
+      { initialEntries: [RoutePage.RUNS] },
+    );
+    render(<RouterProvider router={router} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Theme' }), {
+      target: { value: 'dark' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+    expect(screen.getByText('Modern runs content').closest('.kfp-legacy-page')).toBeNull();
+    await act(() => router.navigate(RoutePage.PIPELINES));
+    expect(screen.getByText('Legacy pipelines content').closest('.kfp-legacy-page')).not.toBeNull();
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('dark');
+    expect(screen.getByRole('complementary')).toHaveAttribute('data-collapsed', 'true');
+  });
+
+  it('keeps Runs confirmation actions and close callbacks under the existing page owner', async () => {
+    const action = vi.fn();
+    const onClose = vi.fn();
+    const PromptPage = ({ updateDialog }: PageProps) => (
+      <button
+        onClick={() =>
+          updateDialog({
+            title: 'Confirm selection',
+            content: 'Apply this action to the selected runs?',
+            buttons: [{ text: 'Confirm action', onClick: action }],
+            onClose,
+          })
+        }
+      >
+        Open confirmation
+      </button>
+    );
+    render(
+      <MemoryRouter initialEntries={[RoutePage.RUNS]}>
+        <Router configs={[{ path: RoutePage.RUNS, Component: PromptPage }]} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Open confirmation' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm action' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps embedded Runs content and theme selection when the host hides the rail', () => {
+    KFP_FLAGS.DEPLOYMENT = Deployments.KUBEFLOW;
+    KFP_FLAGS.HIDE_SIDENAV = true;
+    render(
+      <MemoryRouter initialEntries={[RoutePage.RUNS]}>
+        <Router
+          configs={[{ path: RoutePage.RUNS, Component: () => <div>Embedded runs content</div> }]}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    expect(screen.getByText('Embedded runs content')).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toBeInTheDocument();
   });
 });
