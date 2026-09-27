@@ -3,7 +3,7 @@ name: Workflow Compiler Tests
 env:
   TESTS_DIR: "./backend/test/compiler"
   TESTS_LABEL: "WorkflowCompiler"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
 
 on:
   push:

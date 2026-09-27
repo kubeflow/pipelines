@@ -410,9 +410,6 @@ echo "All tools installed"
 cd "$REPO_ROOT"
 git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"
-export API_VERSION=v1beta1
-"$REPO_ROOT/backend/api/hack/generator.sh"
-"$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
 export API_VERSION=v2beta1
 "$REPO_ROOT/backend/api/hack/generator.sh"
 "$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
@@ -763,7 +760,7 @@ def watch_latest_workflow_run(
             f'Could not find workflow run for {workflow} on {branch}.')
     run_id, run_url, _ = run_info.split('\t', 2)
     print(underline_links(f'Workflow run: {run_url}'))
-    runner.run(['gh', 'run', 'watch', run_id])
+    runner.run(['gh', 'run', 'watch', run_id, '--exit-status'])
 
 
 def prompt_choice(question: str,

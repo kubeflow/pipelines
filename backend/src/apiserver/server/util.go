@@ -207,3 +207,9 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 	// Default to 32MB to maintain backwards compatibility
 	return decompressPipelineZip(compressedFile, common.MaxFileLength)
 }
+
+// apiError is the error envelope used by native HTTP upload and streaming routes.
+type apiError struct {
+	ErrorMessage string `json:"error_message,omitempty"`
+	ErrorDetails string `json:"error_details,omitempty"`
+}

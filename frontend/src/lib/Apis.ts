@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {
-  Configuration as ExperimentConfiguration,
-  ExperimentServiceApi,
-  FetchAPI,
-} from 'src/apis/experiment';
+import { FetchAPI } from 'src/generated/openapi/runtime';
 import {
   Configuration as ExperimentConfigurationV2,
   ExperimentServiceApi as ExperimentServiceApiV2,
@@ -25,17 +21,10 @@ import {
   ArtifactServiceApi as ArtifactServiceApiV2,
   Configuration as ArtifactConfigurationV2,
 } from 'src/apisv2beta1/artifact';
-import { Configuration as JobConfiguration, JobServiceApi } from 'src/apis/job';
 import {
   Configuration as RecurringRunConfiguration,
   RecurringRunServiceApi,
 } from 'src/apisv2beta1/recurringrun';
-import {
-  ApiPipeline,
-  ApiPipelineVersion,
-  Configuration as PipelineConfiguration,
-  PipelineServiceApi,
-} from 'src/apis/pipeline';
 import {
   Configuration as PipelineConfigurationV2,
   V2beta1Pipeline,
@@ -43,25 +32,13 @@ import {
   PipelineServiceApi as PipelineServiceApiV2,
 } from 'src/apisv2beta1/pipeline';
 import {
-  Configuration as RunConfigurationV1,
-  RunServiceApi as RunServiceApiV1,
-} from 'src/apis/run';
-import {
   Configuration as RunConfigurationV2,
   RunServiceApi as RunServiceApiV2,
 } from 'src/apisv2beta1/run';
-import {
-  ApiVisualization,
-  Configuration as VisualizationConfiguration,
-  VisualizationServiceApi,
-} from 'src/apis/visualization';
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
-import { PlotType } from 'src/components/viewers/Viewer';
 import * as Utils from './Utils';
 import { buildQuery } from './Utils';
-import { StoragePath, StorageService } from './WorkflowParser';
+import { StoragePath, StorageService } from './StoragePath';
 
-const v1beta1Prefix = 'apis/v1beta1';
 const v2beta1Prefix = 'apis/v2beta1';
 
 export interface ListRequest {
@@ -89,52 +66,12 @@ export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 export type JSONObject = { [member: string]: JSONValue };
 export type JSONArray = JSONValue[];
 
-let customVisualizationsAllowed: boolean;
-
 // For cross browser support, fetch should use 'same-origin' as default. This fixes firefox auth issues.
 // Refrence: https://github.com/github/fetch#sending-cookies
 const crossBrowserFetch: FetchAPI = (url, init) =>
   fetch(url, { credentials: 'same-origin', ...init });
 
 export class Apis {
-  public static async areCustomVisualizationsAllowed(): Promise<boolean> {
-    // Result is cached to prevent excessive network calls for simple request.
-    // The value of customVisualizationsAllowed will only change if the
-    // deployment is updated and then the entire pod is restarted.
-    if (customVisualizationsAllowed === undefined) {
-      const result = await this._fetch('visualizations/allowed');
-      customVisualizationsAllowed = result === 'true';
-    }
-    return customVisualizationsAllowed;
-  }
-
-  public static async buildPythonVisualizationConfig(
-    visualizationData: ApiVisualization,
-    namespace?: string,
-  ): Promise<HTMLViewerConfig> {
-    const visualization = await Apis.visualizationServiceApi.createVisualization(
-      namespace || '',
-      visualizationData,
-    );
-    if (visualization.html) {
-      const htmlContent = visualization.html
-        // Fixes issue with TFX components (and other iframe based
-        // visualizations), where the method in which javascript interacts
-        // with embedded iframes is not allowed when embedded in an additional
-        // iframe. This is resolved by setting the srcdoc value rather that
-        // manipulating the document directly.
-        .replace('contentWindow.document.write', 'srcdoc=');
-      return {
-        htmlContent,
-        type: PlotType.WEB_APP,
-      } as HTMLViewerConfig;
-    } else {
-      // This should never be thrown as the html property of a generated
-      // visualization is always set for successful visualization generations.
-      throw new Error('Visualization was generated successfully but generated HTML was not found.');
-    }
-  }
-
   /**
    * Get pod logs
    */
@@ -184,20 +121,6 @@ export class Apis {
     return path.endsWith('/') ? path.substr(0, path.length - 1) : path;
   }
 
-  // TODO(jlyaoyuli): deprecate v1 experimentServiceApi function after all integrations.
-  public static get experimentServiceApi(): ExperimentServiceApi {
-    if (!this._experimentServiceApi) {
-      this._experimentServiceApi = new ExperimentServiceApi(
-        new ExperimentConfiguration({
-          basePath: this.basePath,
-          fetchApi: crossBrowserFetch,
-        }),
-      );
-    }
-    return this._experimentServiceApi;
-  }
-
-  // Add v2 experimentServiceV2 for partial integration
   public static get experimentServiceApiV2(): ExperimentServiceApiV2 {
     if (!this._experimentServiceApiV2) {
       this._experimentServiceApiV2 = new ExperimentServiceApiV2(
@@ -222,18 +145,6 @@ export class Apis {
     return this._artifactServiceApiV2;
   }
 
-  public static get jobServiceApi(): JobServiceApi {
-    if (!this._jobServiceApi) {
-      this._jobServiceApi = new JobServiceApi(
-        new JobConfiguration({
-          basePath: this.basePath,
-          fetchApi: crossBrowserFetch,
-        }),
-      );
-    }
-    return this._jobServiceApi;
-  }
-
   public static get recurringRunServiceApi(): RecurringRunServiceApi {
     if (!this._recurringRunServiceApi) {
       this._recurringRunServiceApi = new RecurringRunServiceApi(
@@ -244,18 +155,6 @@ export class Apis {
       );
     }
     return this._recurringRunServiceApi;
-  }
-
-  public static get pipelineServiceApi(): PipelineServiceApi {
-    if (!this._pipelineServiceApi) {
-      this._pipelineServiceApi = new PipelineServiceApi(
-        new PipelineConfiguration({
-          basePath: this.basePath,
-          fetchApi: crossBrowserFetch,
-        }),
-      );
-    }
-    return this._pipelineServiceApi;
   }
 
   public static get pipelineServiceApiV2(): PipelineServiceApiV2 {
@@ -270,18 +169,6 @@ export class Apis {
     return this._pipelineServiceApiV2;
   }
 
-  public static get runServiceApi(): RunServiceApiV1 {
-    if (!this._runServiceApiV1) {
-      this._runServiceApiV1 = new RunServiceApiV1(
-        new RunConfigurationV1({
-          basePath: this.basePath,
-          fetchApi: crossBrowserFetch,
-        }),
-      );
-    }
-    return this._runServiceApiV1;
-  }
-
   public static get runServiceApiV2(): RunServiceApiV2 {
     if (!this._runServiceApiV2) {
       this._runServiceApiV2 = new RunServiceApiV2(
@@ -292,18 +179,6 @@ export class Apis {
       );
     }
     return this._runServiceApiV2;
-  }
-
-  public static get visualizationServiceApi(): VisualizationServiceApi {
-    if (!this._visualizationServiceApi) {
-      this._visualizationServiceApi = new VisualizationServiceApi(
-        new VisualizationConfiguration({
-          basePath: this.basePath,
-          fetchApi: crossBrowserFetch,
-        }),
-      );
-    }
-    return this._visualizationServiceApi;
   }
 
   /**
@@ -482,53 +357,6 @@ export class Apis {
    * Uploads the given pipeline file to the backend, and gets back a Pipeline
    * object with its metadata parsed.
    */
-  public static async uploadPipeline(
-    pipelineName: string,
-    pipelineDisplayName: string,
-    pipelineDescription: string,
-    pipelineData: File,
-    namespace?: string,
-  ): Promise<ApiPipeline> {
-    const fd = new FormData();
-    fd.append('uploadfile', pipelineData, pipelineData.name);
-    let query = `name=${encodeURIComponent(pipelineName)}&display_name=${encodeURIComponent(
-      pipelineDisplayName,
-    )}&description=${encodeURIComponent(pipelineDescription)}`;
-
-    if (namespace) {
-      query = `${query}&namespace=${encodeURIComponent(namespace)}`;
-    }
-
-    return await this._fetchAndParse<ApiPipeline>('/pipelines/upload', v1beta1Prefix, query, {
-      body: fd,
-      cache: 'no-cache',
-      method: 'POST',
-    });
-  }
-
-  public static async uploadPipelineVersion(
-    versionName: string,
-    versionDisplayName: string,
-    pipelineId: string,
-    versionData: File,
-    description?: string,
-  ): Promise<ApiPipelineVersion> {
-    const fd = new FormData();
-    fd.append('uploadfile', versionData, versionData.name);
-    return await this._fetchAndParse<ApiPipelineVersion>(
-      '/pipelines/upload_version',
-      v1beta1Prefix,
-      `name=${encodeURIComponent(versionName)}&pipelineid=${encodeURIComponent(pipelineId)}` +
-        `&display_name=${encodeURIComponent(versionDisplayName)}` +
-        (description ? `&description=${encodeURIComponent(description)}` : ''),
-      {
-        body: fd,
-        cache: 'no-cache',
-        method: 'POST',
-      },
-    );
-  }
-
   public static async uploadPipelineV2(
     pipelineName: string,
     pipelineDisplayName: string,
@@ -596,16 +424,11 @@ export class Apis {
     return this._fetch('system/project-id');
   }
 
-  private static _experimentServiceApi?: ExperimentServiceApi;
   private static _experimentServiceApiV2?: ExperimentServiceApiV2;
   private static _artifactServiceApiV2?: ArtifactServiceApiV2;
-  private static _jobServiceApi?: JobServiceApi;
   private static _recurringRunServiceApi?: RecurringRunServiceApi;
-  private static _pipelineServiceApi?: PipelineServiceApi;
   private static _pipelineServiceApiV2?: PipelineServiceApiV2;
-  private static _runServiceApiV1?: RunServiceApiV1;
   private static _runServiceApiV2?: RunServiceApiV2;
-  private static _visualizationServiceApi?: VisualizationServiceApi;
 
   /**
    * This function will call this._fetch() and parse the resulting JSON into an object of type T.

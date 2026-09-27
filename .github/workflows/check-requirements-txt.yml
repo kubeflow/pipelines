@@ -29,7 +29,7 @@ jobs:
             kubernetes_platform/python/requirements.txt api/v2alpha1/python/requirements.txt
       - name: Check pip can consume requirements exports
         run: |
-          uv venv --python 3.9 --seed "$RUNNER_TEMP/pip-compat"
+          uv venv --python 3.11 --seed "$RUNNER_TEMP/pip-compat"
           for requirements in requirements.txt sdk/python/requirements.txt \
             kubernetes_platform/python/requirements.txt api/v2alpha1/python/requirements.txt; do
             "$RUNNER_TEMP/pip-compat/bin/python" -m pip install \

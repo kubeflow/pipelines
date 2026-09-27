@@ -1,7 +1,7 @@
 # Dependabot configuration for scheduled version updates.
 #
 # Scope: every supported dependency ecosystem present in the repository: Go,
-# container images, npm, pip, GitHub Actions, and pre-commit. This makes bumps
+# container images, npm, pip, uv, GitHub Actions, and pre-commit. This makes bumps
 # explicit and deterministic rather than relying on implicit/security-only
 # behavior.
 #
@@ -100,7 +100,6 @@ updates:
       - "/"
       - "/.github/scripts"
       - "/api/v2alpha1/python"
-      - "/backend/src/apiserver/visualization"
       - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"
@@ -120,6 +119,18 @@ updates:
       # Keep shared Python constraints aligned across the monorepo.
       python-dependencies:
         group-by: dependency-name
+  - package-ecosystem: uv
+    # uv.lock updates use a separate ecosystem from pip, including security PRs.
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python:uv"
+      - "do-not-merge/hold"
+    commit-message:
+      prefix: "chore(deps)"
   - package-ecosystem: github-actions
     # Root covers .github/workflows; the glob covers reusable actions.
     directories:

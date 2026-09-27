@@ -13,24 +13,18 @@
 # limitations under the License.
 
 from kfp import compiler
-from kfp import components
 from kfp import dsl
 
-component_op = components.load_component_from_text("""
-name: Print Text
-inputs:
-- {name: text, type: String}
-implementation:
-  container:
-    image: alpine
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "$0"
-    - {inputValue: text}
-""")
+
+@dsl.container_component
+def print_text(text: str):
+    return dsl.ContainerSpec(
+        image='alpine',
+        command=['sh', '-c', 'set -e -x\necho "$0"\n', text],
+    )
+
+
+component_op = print_text
 
 
 @dsl.pipeline(name='pipeline-with-after')

@@ -76,7 +76,7 @@ Observe that these are wrapped Python functions. The `@component` wrapper helps 
 
 The `hello_world` component just uses the default behavior, which is to run the Python function on the default base image (`kfp.dsl.component_factory._DEFAULT_BASE_IMAGE`).
 
-The `process_data` component adds layers of customization, by supplying the name of a specific `base_image`, and `packages_to_install`. Note the inclusion of the `import pandas as pd` statement inside the function; since the function will run inside a container (and won't have the script context), all Python library dependencies need to be imported within the component function. This component also uses KFP's `Output[Dataset]` class, which takes care of creating a KFP [artifact][artifacts] type output. 
+The `process_data` component adds layers of customization, by supplying the name of a specific `base_image`, and `packages_to_install`. Note the inclusion of the `import pandas as pd` statement inside the function; since the function will run inside a container (and won't have the script context), all Python library dependencies need to be imported within the component function. This component also uses KFP's `Output[Dataset]` class, which takes care of creating a KFP [artifact][artifacts] type output.
 
 Note that inputs and outputs are defined as Python function parameters. Also, dependencies can often be installed at runtime, avoiding the need for custom base containers. Python-based components give close access to the Python tools that ML experimenters rely on, like modules and imports, usage information, type hints, and debugging tools.
 
@@ -96,50 +96,16 @@ print(process_data.python_func.__doc__)
 Component usage can get much more complex, as AI/ML use-cases often have demanding code and environment dependencies. For more on creating Python-based components, see the {py:func}`component <kfp.dsl.component>` SDK documentation.
 
 
-### 2. YAML-Based Components
+### 2. Container Components and IR YAML
 
-The KFP backend uses YAML-based definitions to specify components. While the [KFP Python SDK][KFP SDK] can do this conversion automatically when a Python-based [pipeline][pipeline] is submitted, some use-cases can benefit from the direct YAML-based component approach.
+Use [`@dsl.container_component`](../user-guides/components/container-components.md)
+to configure an existing container's image, command, and arguments. Compile the
+component with `kfp.compiler.Compiler().compile()` to produce a portable
+[IR YAML definition](ir-yaml.md). The file, URL, and text component loaders accept
+only this compiled format. Legacy v1 container component YAML must be
+[migrated before upgrading](../user-guides/migration.md).
 
-A YAML-based component definition has the following parts:
-
-* **Metadata:** name, description, etc.
-* **Interface:** input/output specifications (name, type, description, default value, etc).
-* **Implementation:** A specification of how to run the component given a set of argument values for the component’s inputs. The implementation section also describes how to get the output values from the component once the component has finished running.
-
-YAML-based components support system commands directly. In fact, any command (or binary) that exists on the base image can be run. Here is simple YAML-based component example:
-```yaml
-# my_component.yaml file
-name: my-component
-description: "Component that outputs \"<string prefix>...<num>\""
-
-inputs:
-- {name: string prefix, type: String}
-- {name: num, type: Integer}
-
-outputs: []
-
-implementation:
-  container:
-    image: python:3.12-slim-bookworm
-    args:
-    - echo
-    - {inputValue: string prefix}
-    - ...
-    - {inputValue: num}
-```
-
-For the complete definition of a YAML-based component, see the [component specification][yaml-component].
-
-YAML-based components can be loaded for use in the Python SDK alongside Python-based components:
-```python
-from kfp.components import load_component_from_file
-
-my_comp = load_component_from_file("my_component.yaml")
-```
-
-Note that a component loaded from a YAML-based component will not have the same level of Python support that Python-based components do (like executing the function locally).
-
-<!-- TODO: Briefly discuss graph components, container components, and importer components (see sdk dsl scripts) -->
+See [loading and sharing components](../user-guides/components/load-and-share-components.md).
 
 ## "Containerize" a Component
 
@@ -155,19 +121,18 @@ Note that creating and maintaining custom containers can carry a significant mai
 
 * Read the user guides for [Creating Components][Creating Components]
 * Read an [overview of Kubeflow Pipelines](../overview.md).
-* Follow the [pipelines quickstart guide](../getting-started.md) 
-  to deploy Kubeflow and run a sample pipeline directly from the Kubeflow 
+* Follow the [pipelines quickstart guide](../getting-started.md)
+  to deploy Kubeflow and run a sample pipeline directly from the Kubeflow
   Pipelines UI.
-* Build your own 
-  [component and pipeline](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk/component-development/).
-* Build a [reusable component](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk/component-development/) for
+* Build your own
+  [component and pipeline](../user-guides/components/index.md).
+* Build a [reusable component](../user-guides/components/index.md) for
   sharing in multiple pipelines.
 
 
 [pipeline]: pipeline.md
 [KFP SDK]: ../python-sdk.md
 [artifacts]: output-artifact.md
-[yaml-component]: ../reference/component-spec.md
 [docker-cli]: https://github.com/docker/cli
 [podman-cli]: https://github.com/containers/podman
 [Creating Components]: ../user-guides/components/index.md

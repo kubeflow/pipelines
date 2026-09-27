@@ -26,11 +26,6 @@ steps:
     args:
       ["build", "-t", "$_GCR_BASE/viewer-crd-controller", "-f", "backend/Dockerfile.viewercontroller", "."]
     waitFor: ["-"]
-  - id: "visualization-server"
-    name: "gcr.io/cloud-builders/docker"
-    args:
-      ["build", "-t", "$_GCR_BASE/visualization-server", "-f", "backend/Dockerfile.visualization", "."]
-    waitFor: ["-"]
   - id: "inverse-proxy-agent"
     name: "gcr.io/cloud-builders/docker"
     args:
@@ -39,14 +34,6 @@ steps:
   - id: 'buildMetadataWriter'
     name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', '$_GCR_BASE/metadata-writer', '-f', 'backend/metadata_writer/Dockerfile', '.']
-    waitFor: ["-"]
-  - id: 'buildCacheServer'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/cache-server', '-f', 'backend/Dockerfile.cacheserver', '.']
-    waitFor: ["-"]
-  - id: 'buildCacheDeployer'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/cache-deployer', '-f', 'backend/src/cache/deployer/Dockerfile', '.']
     waitFor: ["-"]
   - id: 'buildMetadataEnvoy'
     name: 'gcr.io/cloud-builders/docker'
@@ -59,10 +46,7 @@ images:
   - "$_GCR_BASE/scheduledworkflow"
   - "$_GCR_BASE/frontend"
   - "$_GCR_BASE/viewer-crd-controller"
-  - "$_GCR_BASE/visualization-server"
   - "$_GCR_BASE/inverse-proxy-agent"
   - "$_GCR_BASE/metadata-writer"
-  - "$_GCR_BASE/cache-server"
-  - "$_GCR_BASE/cache-deployer"
   - "$_GCR_BASE/metadata-envoy"
 timeout: 1800s # 30min

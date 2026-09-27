@@ -77,7 +77,7 @@ def execute_gcloud_command(
     if project_id is not None:
         command_list.extend(['--project', project_id])
 
-    return utility.ExecutorResponse().execute_command(command_list)
+    return utility.execute_command(command_list)
 
 
 def execute_gsutil_command(
@@ -101,7 +101,7 @@ def execute_gsutil_command(
     if project_id is not None:
         command_list.extend(['-p', project_id])
 
-    return utility.ExecutorResponse().execute_command(command_list)
+    return utility.execute_command(command_list)
 
 
 def get_gcp_configuration(

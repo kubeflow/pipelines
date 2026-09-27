@@ -19,7 +19,6 @@ import (
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -76,9 +75,6 @@ type JobServerOptions struct {
 	CollectMetrics bool
 }
 
-// BaseJobServer wraps JobServer and JobServerV1
-// to enable method sharing. It can be removed once JobServerV1
-// is removed.
 type BaseJobServer struct {
 	resourceManager *resource.ResourceManager
 	options         *JobServerOptions
@@ -87,11 +83,6 @@ type BaseJobServer struct {
 type JobServer struct {
 	*BaseJobServer
 	apiv2beta1.UnimplementedRecurringRunServiceServer
-}
-
-type JobServerV1 struct {
-	*BaseJobServer
-	apiv1beta1.UnimplementedJobServiceServer
 }
 
 func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
@@ -123,62 +114,12 @@ func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.J
 	return s.resourceManager.CreateJob(ctx, job)
 }
 
-func (s *JobServerV1) CreateJob(ctx context.Context, request *apiv1beta1.CreateJobRequest) (*apiv1beta1.Job, error) {
-	if s.options.CollectMetrics {
-		createJobRequests.Inc()
-	}
-
-	modelJob, err := toModelJob(request.GetJob())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run due to conversion error")
-	}
-
-	// In the v2 API, the pipeline version being empty means always pick the latest at run submission time. In v1,
-	// it means to use the latest pipeline version at recurring run creation time. Handle this case here since
-	// modelJob does not have the concept of which API version it came from.
-	if modelJob.PipelineId != "" && modelJob.WorkflowSpecManifest == "" && modelJob.PipelineSpecManifest == "" && modelJob.PipelineVersionId == "" {
-		pipelineVersion, err := s.resourceManager.GetLatestPipelineVersion(modelJob.PipelineId)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to fetch a pipeline version from pipeline %v", modelJob.PipelineId)
-		}
-
-		modelJob.PipelineVersionId = pipelineVersion.UUID
-	}
-
-	newJob, err := s.createJob(ctx, modelJob)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run")
-	}
-
-	if s.options.CollectMetrics {
-		jobCount.Inc()
-	}
-	return toApiJobV1(newJob), nil
-}
-
 func (s *BaseJobServer) getJob(ctx context.Context, jobId string) (*model.Job, error) {
 	err := s.canAccessJob(ctx, jobId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 	return s.resourceManager.GetJob(jobId)
-}
-
-func (s *JobServerV1) GetJob(ctx context.Context, request *apiv1beta1.GetJobRequest) (*apiv1beta1.Job, error) {
-	if s.options.CollectMetrics {
-		getJobRequests.Inc()
-	}
-
-	recurringRun, err := s.getJob(ctx, request.GetId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to fetch a v1beta1 recurring run")
-	}
-
-	apiJob := toApiJobV1(recurringRun)
-	if apiJob == nil {
-		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representation to its v1beta1 API counterpart"), "Failed to fetch a v1beta1 recurring run")
-	}
-	return apiJob, nil
 }
 
 func (s *BaseJobServer) listJobs(ctx context.Context, pageToken string, pageSize int, sortBy string, opts *list.Options, namespace string, experimentId string) ([]*model.Job, int, string, error) {
@@ -217,76 +158,12 @@ func (s *BaseJobServer) listJobs(ctx context.Context, pageToken string, pageSize
 	return jobs, totalSize, token, nil
 }
 
-func (s *JobServerV1) ListJobs(ctx context.Context, r *apiv1beta1.ListJobsRequest) (*apiv1beta1.ListJobsResponse, error) {
-	if s.options.CollectMetrics {
-		listJobRequests.Inc()
-	}
-
-	filterContext, err := validateFilterV1(r.GetResourceReferenceKey())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed")
-	}
-	namespace := ""
-	experimentId := ""
-
-	if filterContext.ReferenceKey != nil {
-		switch filterContext.ReferenceKey.Type {
-		case model.NamespaceResourceType:
-			namespace = filterContext.ReferenceKey.ID
-		case model.ExperimentResourceType:
-			experimentId = filterContext.ReferenceKey.ID
-		}
-	}
-
-	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), "v1beta1")
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to list jobs due to error parsing the listing options")
-	}
-
-	jobs, total_size, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, namespace, experimentId)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to list jobs")
-	}
-	apiJobs := toApiJobsV1(jobs)
-	if apiJobs == nil {
-		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal recurring run representations to their v1beta1 API counterparts"), "Failed to list v1beta1 recurring runs")
-	}
-	return &apiv1beta1.ListJobsResponse{
-		Jobs:          apiJobs,
-		TotalSize:     int32(total_size),
-		NextPageToken: nextPageToken,
-	}, nil
-}
-
-func (s *JobServerV1) EnableJob(ctx context.Context, request *apiv1beta1.EnableJobRequest) (*emptypb.Empty, error) {
-	if s.options.CollectMetrics {
-		enableJobRequests.Inc()
-	}
-	err := s.enableJob(ctx, request.GetId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to enable a v1beta1 recurring run")
-	}
-	return &emptypb.Empty{}, nil
-}
-
 func (s *BaseJobServer) disableJob(ctx context.Context, jobId string) error {
 	err := s.canAccessJob(ctx, jobId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDisable})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
 	return s.resourceManager.ChangeJobMode(ctx, jobId, false)
-}
-
-func (s *JobServerV1) DisableJob(ctx context.Context, request *apiv1beta1.DisableJobRequest) (*emptypb.Empty, error) {
-	if s.options.CollectMetrics {
-		disableJobRequests.Inc()
-	}
-
-	err := s.disableJob(ctx, request.GetId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to disable a v1beta1 recurring run")
-	}
-	return &emptypb.Empty{}, nil
 }
 
 func (s *BaseJobServer) deleteJob(ctx context.Context, jobID string, propagationPolicy apiv2beta1.DeletePropagationPolicy) error {
@@ -296,20 +173,6 @@ func (s *BaseJobServer) deleteJob(ctx context.Context, jobID string, propagation
 	}
 
 	return s.resourceManager.DeleteJob(ctx, jobID, propagationPolicy)
-}
-
-func (s *JobServerV1) DeleteJob(ctx context.Context, request *apiv1beta1.DeleteJobRequest) (*emptypb.Empty, error) {
-	if s.options.CollectMetrics {
-		deleteJobRequests.Inc()
-	}
-	err := s.deleteJob(ctx, request.GetId(), apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to disable a recurring run")
-	}
-	if s.options.CollectMetrics {
-		jobCount.Dec()
-	}
-	return &emptypb.Empty{}, nil
 }
 
 func (s *BaseJobServer) enableJob(ctx context.Context, jobId string) error {
@@ -367,7 +230,7 @@ func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRec
 		listJobRequests.Inc()
 	}
 
-	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), "v2beta1")
+	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list recurring runs due to error parsing the listing options")
 	}
@@ -463,15 +326,6 @@ func (s *BaseJobServer) canAccessJob(ctx context.Context, jobID string, resource
 
 func NewJobServer(resourceManager *resource.ResourceManager, options *JobServerOptions) *JobServer {
 	return &JobServer{
-		BaseJobServer: &BaseJobServer{
-			resourceManager: resourceManager,
-			options:         options,
-		},
-	}
-}
-
-func NewJobServerV1(resourceManager *resource.ResourceManager, options *JobServerOptions) *JobServerV1 {
-	return &JobServerV1{
 		BaseJobServer: &BaseJobServer{
 			resourceManager: resourceManager,
 			options:         options,

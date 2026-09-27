@@ -19,7 +19,6 @@ All tracked Go modules are managed. The current set is:
 The managed Go builder images are the single builder `FROM` instructions in:
 
 - `backend/Dockerfile`
-- `backend/Dockerfile.cacheserver`
 - `backend/Dockerfile.conformance`
 - `backend/Dockerfile.driver`
 - `backend/Dockerfile.launcher`

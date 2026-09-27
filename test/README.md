@@ -58,7 +58,7 @@ Execute the desired test suite:
 
 For additional guidance on deploying Kubeflow Pipelines in Kind, refer to:
 
--   [Kind Local Cluster Deployment Guide](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/installation/localcluster-deployment/#kind)
+-   [Kind Local Cluster Deployment Guide](../docs/agents/development.md#local-clusters)
 -   [Operator Deployment Guide](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/#deploying-kubeflow-pipelines)
 
 

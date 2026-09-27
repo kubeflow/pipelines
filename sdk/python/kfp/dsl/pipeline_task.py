@@ -103,7 +103,7 @@ class PipelineTask:
 
     **Note:** ``PipelineTask`` should not be constructed by pipeline authors directly, but instead obtained via an instantiated component (see example).
 
-    Replaces ``ContainerOp`` from ``kfp`` v1. Holds operations available on a task object, such as
+    Holds operations available on a task object, such as
     ``.after()``, ``.set_memory_limit()``, ``.enable_caching()``, etc.
 
     Args:
@@ -914,17 +914,14 @@ class PipelineTask:
         return self
 
 
-# TODO: this function should ideally be in the function kfp.dsl.structures.check_placeholder_references_valid_io_name, which does something similar, but this causes the exception to be raised at component definition time, rather than compile time. This would break tests that load v1 component YAML, even though that YAML is invalid.
 def check_primitive_placeholder_is_used_for_correct_io_type(
     inputs_dict: Dict[str, structures.InputSpec],
     outputs_dict: Dict[str, structures.OutputSpec],
     arg: Union[placeholders.CommandLineElement, Any],
 ):
     """Validates input/output placeholders refer to an input/output with an
-    appropriate type for the placeholder. This should only apply to components
-    loaded from v1 component YAML, where the YAML is authored directly. For v2
-    YAML, this is encapsulated in the DSL logic which does not permit writing
-    incorrect placeholders.
+    appropriate type for the placeholder. Validates structured placeholders in
+    container components before their conversion to IR strings.
 
     Args:
         inputs_dict: The existing input names.

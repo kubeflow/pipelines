@@ -118,7 +118,7 @@ func TestWorkflowServiceAccountAuditChecks(t *testing.T) {
 						}
 					})
 					if audit && test.finding != "authorization_error" {
-						assert.Contains(t, logs, `operation="create_run" namespace="ns1" workflow="workflow-name"`)
+						assert.Contains(t, logs, `operation="create_run" namespace="ns1" workflow="`+workflow.Name+`"`)
 						assert.Contains(t, logs, `reason="`+test.finding+`"`)
 						assert.Contains(t, logs, "control=workflow_identity mode=audit")
 						if test.finding != "inspection_incomplete" {
@@ -142,15 +142,12 @@ func TestWorkflowServiceAccountAuditStillEnforcesMainAccount(t *testing.T) {
 			viper.Set(common.AllowedServiceAccountsFlag, allowList)
 			store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
 			defer store.Close()
-			workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-			workflow.Spec.ServiceAccountName = "main-sa"
-			workflow.Spec.PodSpecPatch = `{"serviceAccountName":"{{workflow.parameters.param1}}"}`
+			viper.Set(common.CompiledPipelineSpecPatch, `{"podSpecPatch":"{\"serviceAccountName\":\"{{workflow.parameters.param1}}\"}"}`)
+			t.Cleanup(func() { viper.Set(common.CompiledPipelineSpecPatch, "") })
 			_, err := manager.CreateRun(multiUserContext(), &model.Run{
 				DisplayName: "audit", ExperimentId: experiment.UUID,
-				PipelineSpec: model.PipelineSpec{
-					WorkflowSpecManifest: model.LargeText(workflow.ToStringForStore()),
-					Parameters:           `[{"name":"param1","value":"pipeline-runner"}]`,
-				},
+				ServiceAccount: "main-sa",
+				PipelineSpec:   model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
 			})
 			require.Error(t, err)
 			assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
@@ -159,53 +156,38 @@ func TestWorkflowServiceAccountAuditStillEnforcesMainAccount(t *testing.T) {
 }
 
 func TestWorkflowServiceAccountAuditFreshWorkflows(t *testing.T) {
-	for _, version := range []string{"v1", "v2"} {
-		for _, externalReference := range []bool{false, true} {
-			name := version + "/valid"
-			if externalReference {
-				name = version + "/external reference"
-			}
-			t.Run(name, func(t *testing.T) {
-				configureWorkflowIdentityAuditTest(t, true)
-				store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
-				defer store.Close()
-				workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-				workflow.Status.StoredTemplates = map[string]workflowapi.Template{"untrusted": {Name: "untrusted", ServiceAccountName: "nested-sa"}}
-				if externalReference {
-					workflow.Spec.WorkflowTemplateRef = &workflowapi.WorkflowTemplateRef{Name: "external"}
-				}
-				pipelineSpec := model.PipelineSpec{
-					WorkflowSpecManifest: model.LargeText(workflow.ToStringForStore()),
-					Parameters:           `[{"name":"param1","value":"world"}]`,
-				}
-				if version == "v2" {
-					pipelineSpec = model.PipelineSpec{
-						PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
-						RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
-					}
-					if externalReference {
-						viper.Set(common.CompiledPipelineSpecPatch, `{"workflowTemplateRef":{"name":"external"}}`)
-						t.Cleanup(func() { viper.Set(common.CompiledPipelineSpecPatch, "") })
-					}
-				}
-				logs := captureServiceAccountAuditLogs(t, func() {
-					run, err := manager.CreateRun(multiUserContext(), &model.Run{DisplayName: "audit", ExperimentId: experiment.UUID, PipelineSpec: pipelineSpec})
-					if externalReference {
-						require.ErrorContains(t, err, "external workflow template references")
-						assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
-						return
-					}
-					require.NoError(t, err)
-					created, err := store.ExecClient().Execution(run.Namespace).Get(context.Background(), run.K8SName, metav1.GetOptions{})
-					require.NoError(t, err)
-					assert.Empty(t, created.(*util.Workflow).Status.StoredTemplates)
-					if version == "v2" {
-						assert.Contains(t, created.ToStringForStore(), "{{inputs.parameters.pod-spec-patch}}")
-					}
-				})
-				assert.NotContains(t, logs, "security_audit")
-			})
+	for _, externalReference := range []bool{false, true} {
+		name := "valid"
+		if externalReference {
+			name = "external reference"
 		}
+		t.Run(name, func(t *testing.T) {
+			configureWorkflowIdentityAuditTest(t, true)
+			store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+			defer store.Close()
+			pipelineSpec := model.PipelineSpec{
+				PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+				RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
+			}
+			if externalReference {
+				viper.Set(common.CompiledPipelineSpecPatch, `{"workflowTemplateRef":{"name":"external"}}`)
+				t.Cleanup(func() { viper.Set(common.CompiledPipelineSpecPatch, "") })
+			}
+			logs := captureServiceAccountAuditLogs(t, func() {
+				run, err := manager.CreateRun(multiUserContext(), &model.Run{DisplayName: "audit", ExperimentId: experiment.UUID, PipelineSpec: pipelineSpec})
+				if externalReference {
+					require.ErrorContains(t, err, "external workflow template references")
+					assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
+					return
+				}
+				require.NoError(t, err)
+				created, err := store.ExecClient().Execution(run.Namespace).Get(context.Background(), run.K8SName, metav1.GetOptions{})
+				require.NoError(t, err)
+				assert.Empty(t, created.(*util.Workflow).Status.StoredTemplates)
+				assert.Contains(t, created.ToStringForStore(), "{{inputs.parameters.pod-spec-patch}}")
+			})
+			assert.NotContains(t, logs, "security_audit")
+		})
 	}
 }
 
@@ -237,11 +219,9 @@ func TestWorkflowServiceAccountAuditCreateRunAndJob(t *testing.T) {
 			configureWorkflowIdentityAuditTest(t, true)
 			store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
 			defer store.Close()
-			pipelineSpec := model.PipelineSpec{WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa")}
+			pipelineSpec := pipelineSpecWithTemplateServiceAccount(t, "nested-sa")
 			if kind == "dynamic run" {
-				workflow := util.NewWorkflow(testWorkflow.DeepCopy())
-				workflow.Spec.PodSpecPatch = `{"serviceAccountName":"{{workflow.parameters.param1}}"}`
-				pipelineSpec.WorkflowSpecManifest = model.LargeText(workflow.ToStringForStore())
+				viper.Set(common.CompiledPipelineSpecPatch, `{"podSpecPatch":"{\"serviceAccountName\":\"{{workflow.parameters.param1}}\"}"}`)
 			}
 			if kind == "job with plugins" {
 				manager.pluginDispatcher = &countingTerminalReportDispatcher{}
@@ -249,7 +229,7 @@ func TestWorkflowServiceAccountAuditCreateRunAndJob(t *testing.T) {
 			if kind == "latest job" {
 				pipeline, err := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
 				require.NoError(t, err)
-				_, err = manager.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "v1", "", string(pipelineSpec.WorkflowSpecManifest), "", "ns1"))
+				_, err = manager.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "v1", "", string(pipelineSpec.PipelineSpecManifest), "", "ns1"))
 				require.NoError(t, err)
 				pipelineSpec = model.PipelineSpec{PipelineId: pipeline.UUID}
 			}
@@ -300,7 +280,7 @@ func TestWorkflowServiceAccountAuditPluginMutation(t *testing.T) {
 			logs := captureServiceAccountAuditLogs(t, func() {
 				_, err := manager.CreateRun(multiUserContext(), &model.Run{
 					DisplayName: "audit", ExperimentId: experiment.UUID,
-					PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()), Parameters: `[{"name":"param1","value":"world"}]`},
+					PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
 				})
 				if mainAccount {
 					require.Error(t, err)
@@ -348,7 +328,7 @@ func TestWorkflowServiceAccountAuditRetryAndEnable(t *testing.T) {
 		defer store.Close()
 		job, err := manager.CreateJob(multiUserContext(), &model.Job{
 			DisplayName: "audit", Enabled: false, ExperimentId: experiment.UUID,
-			PipelineSpec: model.PipelineSpec{WorkflowSpecManifest: workflowManifestWithTemplateServiceAccount("nested-sa")},
+			PipelineSpec: pipelineSpecWithTemplateServiceAccount(t, "nested-sa"),
 		})
 		require.NoError(t, err)
 		logs := captureServiceAccountAuditLogs(t, func() {

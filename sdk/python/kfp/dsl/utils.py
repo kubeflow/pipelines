@@ -139,7 +139,7 @@ _RESOURCE_QUANTITY_PATTERN = re.compile(
 def normalize_resource_quantity(value: str) -> Optional[str]:
     """Normalizes a Kubernetes resource quantity such as ``'1.5Gi'``.
 
-    KFP has documented ``'K'`` as a kilobyte suffix since v1, but Kubernetes
+    KFP accepts ``'K'`` as a kilobyte suffix, but Kubernetes
     only reads the lowercase ``'k'`` and rejects the rest of the quantity when
     it sees ``'K'``. Such a value is rewritten rather than refused, so pipelines
     written against the older docs keep compiling and start reaching the cluster

@@ -11,8 +11,6 @@ resources:
 # The ownerReference ensures the resources get garbage collected
 # when application is deleted.
 
-# !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
 labels:
 - includeSelectors: true

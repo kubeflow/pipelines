@@ -330,7 +330,7 @@ spec:
             value: xgboost-predict
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        depends: chicago-taxi-trips-dataset.Succeeded && xgboost-train.Succeeded
+        depends: convert-csv-to-apache-parquet.Succeeded && xgboost-train.Succeeded
         name: xgboost-predict-driver
         template: system-container-driver
       - arguments:
@@ -349,7 +349,7 @@ spec:
             value: xgboost-predict-2
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        depends: convert-csv-to-apache-parquet.Succeeded && xgboost-train-2.Succeeded
+        depends: convert-csv-to-apache-parquet.Succeeded && xgboost-train-csv.Succeeded
         name: xgboost-predict-2-driver
         template: system-container-driver
       - arguments:
@@ -365,40 +365,40 @@ spec:
       - arguments:
           parameters:
           - name: task-name
-            value: xgboost-predict-3
+            value: xgboost-predict-csv
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        depends: convert-csv-to-apache-parquet.Succeeded && xgboost-train.Succeeded
-        name: xgboost-predict-3-driver
+        depends: chicago-taxi-trips-dataset.Succeeded && xgboost-train-csv.Succeeded
+        name: xgboost-predict-csv-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.xgboost-predict-3-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.xgboost-predict-csv-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.xgboost-predict-3-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-predict-3-driver.Succeeded
-        name: xgboost-predict-3
+            value: '{{tasks.xgboost-predict-csv-driver.outputs.parameters.cached-decision}}'
+        depends: xgboost-predict-csv-driver.Succeeded
+        name: xgboost-predict-csv
         template: system-container-executor
       - arguments:
           parameters:
           - name: task-name
-            value: xgboost-predict-4
+            value: xgboost-predict-csv-2
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        depends: chicago-taxi-trips-dataset.Succeeded && xgboost-train-2.Succeeded
-        name: xgboost-predict-4-driver
+        depends: chicago-taxi-trips-dataset.Succeeded && xgboost-train.Succeeded
+        name: xgboost-predict-csv-2-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.xgboost-predict-4-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.xgboost-predict-csv-2-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.xgboost-predict-4-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-predict-4-driver.Succeeded
-        name: xgboost-predict-4
+            value: '{{tasks.xgboost-predict-csv-2-driver.outputs.parameters.cached-decision}}'
+        depends: xgboost-predict-csv-2-driver.Succeeded
+        name: xgboost-predict-csv-2
         template: system-container-executor
       - arguments:
           parameters:
@@ -406,7 +406,7 @@ spec:
             value: xgboost-train
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        depends: chicago-taxi-trips-dataset.Succeeded
+        depends: convert-csv-to-apache-parquet.Succeeded
         name: xgboost-train-driver
         template: system-container-driver
       - arguments:
@@ -422,21 +422,21 @@ spec:
       - arguments:
           parameters:
           - name: task-name
-            value: xgboost-train-2
+            value: xgboost-train-csv
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        depends: convert-csv-to-apache-parquet.Succeeded
-        name: xgboost-train-2-driver
+        depends: chicago-taxi-trips-dataset.Succeeded
+        name: xgboost-train-csv-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.xgboost-train-2-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.xgboost-train-csv-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.xgboost-train-2-driver.outputs.parameters.cached-decision}}'
-        depends: xgboost-train-2-driver.Succeeded
-        name: xgboost-train-2
+            value: '{{tasks.xgboost-train-csv-driver.outputs.parameters.cached-decision}}'
+        depends: xgboost-train-csv-driver.Succeeded
+        name: xgboost-train-csv
         template: system-container-executor
     inputs:
       parameters:

@@ -15,7 +15,7 @@ Prerequisites:
     This does not currently work on other envs, because some tests use GCS & GCS client.
     Welcome contributions to make it portable.
 
-* Install go, python, kfp pypi package, docker.
+* Install go, python, the kfp PyPI package, docker, and kubectl.
 
 * Install [ko](https://github.com/google/ko) CLI tool:
 
@@ -27,7 +27,9 @@ Prerequisites:
 it should have the following content:
 
   ```makefile
-  export DEV_IMAGE_PREFIX=<an container image registry prefix you own>
+  export DEV_IMAGE_PREFIX=<a container image registry prefix you own>
+  DEV_KUBE_CONTEXT=<your development kubectl context>
+  DEV_NAMESPACE=kubeflow
   ```
 
   For example:
@@ -76,7 +78,9 @@ it should have the following content:
   Requirements on the KFP backend installation:
 
   * Current limitation, this only works for [KFP Standalone](https://www.kubeflow.org/docs/components/pipelines/installation/standalone-deployment/), not tested on full Kubeflow yet.
-  * KFP backend version should be at least 1.7.0-rc.2.
+  * Use a KFP v2 backend. To exercise backend compiler changes, deploy an
+    API-server build from the same source revision: the local compiler output
+    is linted, but the API server compiles the submitted IR for execution.
 
   Requirements on the KFP SDK package:
 
@@ -89,7 +93,15 @@ it should have the following content:
 
 Instructions:
 
-* Run everything e2e: build images, backend compiler, compile pipelines and run them:
+* Run everything e2e: build images, backend compiler, compile pipelines and run them.
+  This updates `V2_DRIVER_IMAGE` and `V2_LAUNCHER_IMAGE` on the development API-server
+  deployment to the published image digests and waits for its rollout before
+  submitting IR. Use a dedicated development cluster: the image settings affect
+  all subsequent runs compiled by that API server. `DEV_KUBE_CONTEXT` must be
+  explicit, and your KFP client's endpoint must refer to the same installation.
+  Override `DEV_API_DEPLOYMENT` if its name is not `ml-pipeline`. If the client
+  uses a pod port-forward, run `make configure-dev-runtime` first and restart
+  that forward after the rollout; then run the pipeline target.
 
   ```bash
   make dev

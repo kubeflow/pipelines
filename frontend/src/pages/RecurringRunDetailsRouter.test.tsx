@@ -15,29 +15,17 @@
  */
 
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { QueryClientProvider } from '@tanstack/react-query';
-import * as JsYaml from 'js-yaml';
-import * as features from 'src/features';
-import { CommonTestWrapper } from 'src/TestWrapper';
-import { queryKeys } from 'src/hooks/queryKeys';
-import { RouteParams } from 'src/components/Router';
-import { Apis } from 'src/lib/Apis';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { RouteParams } from 'src/components/Router';
+import * as features from 'src/features';
+import { queryKeys } from 'src/hooks/queryKeys';
+import { Apis } from 'src/lib/Apis';
+import { PageProps } from './Page';
 import RecurringRunDetailsRouter from './RecurringRunDetailsRouter';
-import { PageProps } from 'src/pages/Page';
-import { queryClientTest } from 'src/TestUtils';
-import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
-import { BrowserRouter } from 'react-router';
-import { vi } from 'vitest';
-
-vi.mock('src/pages/RecurringRunDetails', () => ({
-  __esModule: true,
-  default: () => <div data-testid='recurring-run-details-v1' />,
-}));
 
 vi.mock('src/pages/RecurringRunDetailsV2', () => ({
-  __esModule: true,
   default: () => <div data-testid='recurring-run-details-v2' />,
 }));
 
@@ -45,14 +33,13 @@ vi.mock('src/pages/functional_components/RecurringRunDetailsV2FC', () => ({
   RecurringRunDetailsV2FC: () => <div data-testid='recurring-run-details-v2-fc' />,
 }));
 
-const TEST_RECURRING_RUN_ID = 'test-recurring-run-id';
-const TEST_PIPELINE_ID = 'test-pipeline-id';
-const TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
+const recurringRunId = 'test-recurring-run-id';
+let client: QueryClient;
+let props: PageProps;
 
-const v2PipelineSpec = JsYaml.load(v2YamlTemplateString);
-
-function generateProps(recurringRunId = TEST_RECURRING_RUN_ID): PageProps {
-  return {
+beforeEach(() => {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  props = {
     navigate: vi.fn(),
     location: { pathname: `/recurringrun/details/${recurringRunId}` } as any,
     params: { [RouteParams.recurringRunId]: recurringRunId },
@@ -61,322 +48,118 @@ function generateProps(recurringRunId = TEST_RECURRING_RUN_ID): PageProps {
     updateDialog: vi.fn(),
     updateSnackbar: vi.fn(),
     updateToolbar: vi.fn(),
-  } as any;
+  };
+});
+
+afterEach(() => {
+  client.clear();
+  vi.restoreAllMocks();
+});
+
+function page() {
+  return (
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <RecurringRunDetailsRouter {...props} />
+      </QueryClientProvider>
+    </MemoryRouter>
+  );
 }
 
-describe('RecurringRunDetailsRouter', () => {
-  let getRecurringRunSpy: ReturnType<typeof vi.spyOn>;
-  let getPipelineVersionSpy: ReturnType<typeof vi.spyOn>;
+it.each([
+  { pipeline_version_reference: { pipeline_id: 'pipeline' } },
+  { pipeline_version_reference: { pipeline_id: 'pipeline', pipeline_version_id: 'version' } },
+  { pipeline_spec: { pipelineInfo: { name: 'inline-pipeline' } } },
+  {},
+])('renders native metadata without resolving the pipeline source: %j', async (source) => {
+  vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun').mockResolvedValue({
+    recurring_run_id: recurringRunId,
+    ...source,
+  });
+  const getPipelineVersion = vi
+    .spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion')
+    .mockRejectedValue(new Error('Version not found'));
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    getRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
-    getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
+  render(page());
+
+  expect(await screen.findByTestId('recurring-run-details-v2')).toBeInTheDocument();
+  expect(getPipelineVersion).not.toHaveBeenCalled();
+  expect(props.updateBanner).not.toHaveBeenCalled();
+});
+
+it('renders the functional native page when enabled', async () => {
+  vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+    (key) => key === features.FeatureKey.FUNCTIONAL_COMPONENT,
+  );
+  vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun').mockResolvedValue({
+    recurring_run_id: recurringRunId,
+    pipeline_version_reference: { pipeline_id: 'pipeline' },
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  render(page());
+
+  expect(await screen.findByTestId('recurring-run-details-v2-fc')).toBeInTheDocument();
+});
+
+it('shows loading while the recurring-run request is pending', () => {
+  vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun').mockReturnValue(new Promise(() => {}));
+
+  render(page());
+
+  expect(screen.getByRole('progressbar')).toBeInTheDocument();
+});
+
+it('keeps cached details visible during refetch and after a failed refresh', async () => {
+  const run: V2beta1RecurringRun = {
+    recurring_run_id: recurringRunId,
+    pipeline_version_reference: { pipeline_id: 'pipeline' },
+  };
+  const getRecurringRun = vi
+    .spyOn(Apis.recurringRunServiceApi, 'getRecurringRun')
+    .mockResolvedValue(run);
+  render(page());
+  await screen.findByTestId('recurring-run-details-v2');
+
+  let rejectRefresh!: (error: Error) => void;
+  getRecurringRun.mockReturnValueOnce(
+    new Promise((_resolve, reject) => {
+      rejectRefresh = reject;
+    }),
+  );
+  act(() => {
+    void client.invalidateQueries({ queryKey: queryKeys.v2RecurringRunDetail(recurringRunId) });
   });
+  expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
+  expect(screen.queryByRole('progressbar')).toBeNull();
 
-  it('renders RecurringRunDetailsV2 when template is a v2 pipeline spec', async () => {
-    // Required by WorkflowUtils.isPipelineSpec, which gates v2 spec parsing on V2_ALPHA.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-    );
-    const recurringRun: V2beta1RecurringRun = {
-      recurring_run_id: TEST_RECURRING_RUN_ID,
-      pipeline_version_reference: {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      },
-    };
-    const pipelineVersion: V2beta1PipelineVersion = {
-      pipeline_id: TEST_PIPELINE_ID,
-      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      pipeline_spec: v2PipelineSpec,
-    };
+  await act(async () => rejectRefresh(new Error('Refresh unavailable')));
+  await waitFor(() =>
+    expect(props.updateBanner).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'error', additionalInfo: 'Refresh unavailable' }),
+    ),
+  );
+  expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).toBeNull();
+});
 
-    getRecurringRunSpy.mockResolvedValue(recurringRun);
-    getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
+it('shows an initial request failure and recovers on retry', async () => {
+  const getRecurringRun = vi
+    .spyOn(Apis.recurringRunServiceApi, 'getRecurringRun')
+    .mockRejectedValue(new Error('Run unavailable'));
+  render(page());
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to load recurring run details',
+  );
+  await waitFor(() =>
+    expect(props.updateBanner).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'error', additionalInfo: 'Run unavailable' }),
+    ),
+  );
 
-    render(
-      <CommonTestWrapper>
-        <RecurringRunDetailsRouter {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
-    });
+  getRecurringRun.mockResolvedValue({ recurring_run_id: recurringRunId });
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: queryKeys.v2RecurringRunDetail(recurringRunId) });
   });
-
-  it('prefers inline recurring run pipeline_spec over pipeline version template', async () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-    );
-    const recurringRun: V2beta1RecurringRun = {
-      recurring_run_id: TEST_RECURRING_RUN_ID,
-      pipeline_spec: v2PipelineSpec,
-      pipeline_version_reference: {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      },
-    };
-
-    getRecurringRunSpy.mockResolvedValue(recurringRun);
-
-    render(
-      <CommonTestWrapper>
-        <RecurringRunDetailsRouter {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
-    });
-    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
-  });
-
-  it('renders RecurringRunDetailsV2FC when FUNCTIONAL_COMPONENT flag is enabled', async () => {
-    // Enables both V2_ALPHA (required by isPipelineSpec) and FUNCTIONAL_COMPONENT (router branch).
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) =>
-        featureKey === features.FeatureKey.V2_ALPHA ||
-        featureKey === features.FeatureKey.FUNCTIONAL_COMPONENT,
-    );
-    const recurringRun: V2beta1RecurringRun = {
-      recurring_run_id: TEST_RECURRING_RUN_ID,
-      pipeline_version_reference: {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      },
-    };
-    const pipelineVersion: V2beta1PipelineVersion = {
-      pipeline_id: TEST_PIPELINE_ID,
-      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      pipeline_spec: v2PipelineSpec,
-    };
-
-    getRecurringRunSpy.mockResolvedValue(recurringRun);
-    getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
-
-    render(
-      <CommonTestWrapper>
-        <RecurringRunDetailsRouter {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('recurring-run-details-v2-fc')).toBeInTheDocument();
-    });
-  });
-
-  it('renders RecurringRunDetails (V1) when template is not a v2 pipeline spec', async () => {
-    // V2_ALPHA must be enabled so isPipelineSpec evaluates the template structure.
-    // Without it, isPipelineSpec returns false for any template regardless of content.
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-    );
-    const argoWorkflow = {
-      apiVersion: 'argoproj.io/v1alpha1',
-      kind: 'Workflow',
-      metadata: { name: 'test' },
-      spec: { arguments: { parameters: [{ name: 'output' }] } },
-    };
-    const recurringRun: V2beta1RecurringRun = {
-      recurring_run_id: TEST_RECURRING_RUN_ID,
-      pipeline_version_reference: {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      },
-    };
-    const pipelineVersion: V2beta1PipelineVersion = {
-      pipeline_id: TEST_PIPELINE_ID,
-      pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      pipeline_spec: argoWorkflow,
-    };
-
-    getRecurringRunSpy.mockResolvedValue(recurringRun);
-    getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
-
-    render(
-      <CommonTestWrapper>
-        <RecurringRunDetailsRouter {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-
-    await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalledWith(TEST_RECURRING_RUN_ID);
-      expect(getPipelineVersionSpy).toHaveBeenCalledWith(
-        TEST_PIPELINE_ID,
-        TEST_PIPELINE_VERSION_ID,
-      );
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
-    });
-  });
-
-  describe('template refetch regression', () => {
-    afterEach(() => {
-      queryClientTest.clear();
-    });
-
-    it('keeps RecurringRunDetails visible during template refetch after the template is cached', async () => {
-      const argoWorkflow = {
-        apiVersion: 'argoproj.io/v1alpha1',
-        kind: 'Workflow',
-        metadata: { name: 'from-version' },
-        spec: { arguments: { parameters: [{ name: 'output' }] } },
-      };
-      const recurringRun: V2beta1RecurringRun = {
-        recurring_run_id: TEST_RECURRING_RUN_ID,
-        pipeline_version_reference: {
-          pipeline_id: TEST_PIPELINE_ID,
-          pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-        },
-      };
-      const pipelineVersion: V2beta1PipelineVersion = {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-        pipeline_spec: argoWorkflow,
-      };
-      // Use a dedicated query client so the test can invalidate the cached template query directly.
-      const wrapper = (props: { children: React.ReactElement }) => (
-        <BrowserRouter>
-          <QueryClientProvider client={queryClientTest}>{props.children}</QueryClientProvider>
-        </BrowserRouter>
-      );
-
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-        (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-      );
-      getRecurringRunSpy.mockResolvedValue(recurringRun);
-      getPipelineVersionSpy.mockResolvedValue(pipelineVersion);
-
-      render(<RecurringRunDetailsRouter {...generateProps()} />, { wrapper });
-
-      await waitFor(() => {
-        expect(getPipelineVersionSpy).toHaveBeenCalledWith(
-          TEST_PIPELINE_ID,
-          TEST_PIPELINE_VERSION_ID,
-        );
-      });
-      expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
-      expect(screen.queryByRole('progressbar')).toBeNull();
-
-      getPipelineVersionSpy.mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(() => resolve(pipelineVersion), 100);
-          }),
-      );
-
-      act(() => {
-        queryClientTest.invalidateQueries({
-          queryKey: queryKeys.pipelineVersionTemplate(TEST_PIPELINE_ID, TEST_PIPELINE_VERSION_ID),
-        });
-      });
-
-      expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
-      expect(screen.queryByRole('progressbar')).toBeNull();
-
-      await waitFor(() => {
-        expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
-      });
-      expect(screen.getByTestId('recurring-run-details-v1')).toBeInTheDocument();
-      expect(screen.queryByRole('progressbar')).toBeNull();
-    });
-  });
-
-  it('returns null when fetch fails and no template is available', async () => {
-    getRecurringRunSpy.mockRejectedValue(new Error('Not found'));
-
-    render(
-      <CommonTestWrapper>
-        <RecurringRunDetailsRouter {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-
-    await waitFor(() => {
-      expect(getRecurringRunSpy).toHaveBeenCalledWith(TEST_RECURRING_RUN_ID);
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('recurring-run-details-v1')).toBeNull();
-      expect(screen.queryByTestId('recurring-run-details-v2')).toBeNull();
-      expect(screen.queryByTestId('recurring-run-details-v2-fc')).toBeNull();
-      expect(screen.queryByRole('progressbar')).toBeNull();
-    });
-  });
-
-  it('shows error banner when pipeline version template fetch fails', async () => {
-    const recurringRun: V2beta1RecurringRun = {
-      recurring_run_id: TEST_RECURRING_RUN_ID,
-      pipeline_version_reference: {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      },
-    };
-    getRecurringRunSpy.mockResolvedValue(recurringRun);
-    getPipelineVersionSpy.mockRejectedValue(new Error('Version not found'));
-
-    const props = generateProps();
-    render(
-      <CommonTestWrapper>
-        <RecurringRunDetailsRouter {...props} />
-      </CommonTestWrapper>,
-    );
-
-    await waitFor(() => {
-      expect(props.updateBanner).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining('failed to retrieve pipeline version template'),
-          mode: 'error',
-        }),
-      );
-    });
-  });
-
-  it('does not show error banner when inline pipeline_spec is present and getPipelineVersion rejects', async () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-    );
-    const recurringRun: V2beta1RecurringRun = {
-      recurring_run_id: TEST_RECURRING_RUN_ID,
-      pipeline_spec: v2PipelineSpec,
-      pipeline_version_reference: {
-        pipeline_id: TEST_PIPELINE_ID,
-        pipeline_version_id: TEST_PIPELINE_VERSION_ID,
-      },
-    };
-    getRecurringRunSpy.mockResolvedValue(recurringRun);
-    getPipelineVersionSpy.mockRejectedValue(new Error('Version not found'));
-
-    const props = generateProps();
-    render(
-      <CommonTestWrapper>
-        <RecurringRunDetailsRouter {...props} />
-      </CommonTestWrapper>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('recurring-run-details-v2')).toBeInTheDocument();
-    });
-    expect(props.updateBanner).not.toHaveBeenCalled();
-  });
-
-  it('shows loading message while recurring run data is being fetched', () => {
-    getRecurringRunSpy.mockReturnValue(new Promise(() => {}));
-
-    render(
-      <CommonTestWrapper>
-        <RecurringRunDetailsRouter {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-    expect(screen.getByText('Currently loading recurring run information')).toBeInTheDocument();
-  });
+  expect(await screen.findByTestId('recurring-run-details-v2')).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).toBeNull();
 });

@@ -14,7 +14,7 @@
 
 import { V2beta1Artifact } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
-import WorkflowParser, { StorageService } from 'src/lib/WorkflowParser';
+import { parseStoragePath, StorageService } from 'src/lib/StoragePath';
 
 const LAUNCHER_ARTIFACT_SOURCES = new Set<StorageService>([
   StorageService.GCS,
@@ -27,7 +27,7 @@ function isLauncherArtifactSource(source: StorageService): boolean {
 }
 
 export interface ArtifactFileLocation {
-  path: ReturnType<typeof WorkflowParser.parseStoragePath>;
+  path: ReturnType<typeof parseStoragePath>;
   artifactUriQuery?: string;
 }
 
@@ -86,7 +86,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
       'Artifact URIs cannot end with an empty query marker. Remove the trailing ? and retry.',
     );
   }
-  const parsedPath = WorkflowParser.parseStoragePath(uriWithoutQuery);
+  const parsedPath = parseStoragePath(uriWithoutQuery);
   const schemeEnd = uriWithoutQuery.indexOf('://');
   const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
   const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);

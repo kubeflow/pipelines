@@ -27,7 +27,6 @@ from kfp_server_api.api.pipeline_upload_service_api import PipelineUploadService
 from kfp_server_api.api.recurring_run_service_api import RecurringRunServiceApi
 from kfp_server_api.api.report_service_api import ReportServiceApi
 from kfp_server_api.api.run_service_api import RunServiceApi
-from kfp_server_api.api.visualization_service_api import VisualizationServiceApi
 
 # import ApiClient
 from kfp_server_api.api_client import ApiClient
@@ -113,6 +112,4 @@ from kfp_server_api.models.v2beta1_runtime_status import V2beta1RuntimeStatus
 from kfp_server_api.models.v2beta1_trigger import V2beta1Trigger
 from kfp_server_api.models.v2beta1_update_tasks_bulk_response import V2beta1UpdateTasksBulkResponse
 from kfp_server_api.models.v2beta1_url import V2beta1Url
-from kfp_server_api.models.v2beta1_visualization import V2beta1Visualization
-from kfp_server_api.models.v2beta1_visualization_type import V2beta1VisualizationType
 

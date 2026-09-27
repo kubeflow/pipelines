@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     workflows.argoproj.io/pod-name-format: v1
-  generateName: conditional-execution-pipeline-
+  generateName: pipeline-with-nested-conditions-yaml-
 spec:
   arguments: {}
   entrypoint: entrypoint
@@ -23,7 +23,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - conditional-execution-pipeline
+      - pipeline-with-nested-conditions-yaml
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -290,20 +290,20 @@ spec:
       - arguments:
           parameters:
           - name: task-name
-            value: print
+            value: print-op
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        name: print-driver
+        name: print-op-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.print-op-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-driver.outputs.parameters.cached-decision}}'
-        depends: print-driver.Succeeded
-        name: print
+            value: '{{tasks.print-op-driver.outputs.parameters.cached-decision}}'
+        depends: print-op-driver.Succeeded
+        name: print-op
         template: system-container-executor
     inputs:
       parameters:
@@ -316,20 +316,20 @@ spec:
       - arguments:
           parameters:
           - name: task-name
-            value: print-2
+            value: print-op-2
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        name: print-2-driver
+        name: print-op-2-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-2-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.print-op-2-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-2-driver.outputs.parameters.cached-decision}}'
-        depends: print-2-driver.Succeeded
-        name: print-2
+            value: '{{tasks.print-op-2-driver.outputs.parameters.cached-decision}}'
+        depends: print-op-2-driver.Succeeded
+        name: print-op-2
         template: system-container-executor
     inputs:
       parameters:
@@ -342,7 +342,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - conditional-execution-pipeline
+      - pipeline-with-nested-conditions-yaml
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -539,20 +539,20 @@ spec:
       - arguments:
           parameters:
           - name: task-name
-            value: print-3
+            value: print-op-3
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        name: print-3-driver
+        name: print-op-3-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-3-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.print-op-3-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-3-driver.outputs.parameters.cached-decision}}'
-        depends: print-3-driver.Succeeded
-        name: print-3
+            value: '{{tasks.print-op-3-driver.outputs.parameters.cached-decision}}'
+        depends: print-op-3-driver.Succeeded
+        name: print-op-3
         template: system-container-executor
     inputs:
       parameters:
@@ -565,20 +565,20 @@ spec:
       - arguments:
           parameters:
           - name: task-name
-            value: print-4
+            value: print-op-4
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
-        name: print-4-driver
+        name: print-op-4-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.print-4-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.print-op-4-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.print-4-driver.outputs.parameters.cached-decision}}'
-        depends: print-4-driver.Succeeded
-        name: print-4
+            value: '{{tasks.print-op-4-driver.outputs.parameters.cached-decision}}'
+        depends: print-op-4-driver.Succeeded
+        name: print-op-4
         template: system-container-executor
     inputs:
       parameters:

@@ -16,7 +16,6 @@ spec:
         - cluster.local/ns/kubeflow/sa/ml-pipeline-persistenceagent
         - cluster.local/ns/kubeflow/sa/ml-pipeline-scheduledworkflow
         - cluster.local/ns/kubeflow/sa/ml-pipeline-viewer-crd-service-account
-        - cluster.local/ns/kubeflow/sa/kubeflow-pipelines-cache
 
 ---
 

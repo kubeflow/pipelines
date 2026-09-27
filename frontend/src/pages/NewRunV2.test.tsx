@@ -48,7 +48,6 @@ import {
   ORIGINAL_TEST_PIPELINE_VERSION_ID,
   ORIGINAL_TEST_PIPELINE_VERSION_NAME,
   NEW_EXPERIMENT,
-  V1_PIPELINE_VERSION,
 } from './__tests__/newRunTestFixtures';
 
 const V2_XG_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
@@ -332,11 +331,6 @@ describe('NewRunV2', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(Apis.pipelineServiceApi, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-    vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion').mockResolvedValue(V1_PIPELINE_VERSION);
-    vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersionTemplate').mockResolvedValue({
-      template: v2XGYamlTemplateString,
-    });
   });
 
   afterEach(() => {

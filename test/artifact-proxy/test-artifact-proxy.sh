@@ -16,7 +16,7 @@ HEALTH_RESPONSE=""
 for attempt in $(seq 1 30); do
   if HEALTH_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
     curl -fsS -H 'kubeflow-userid: user@example.com' \
-    "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v1beta1/healthz") && \
+    "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v2beta1/healthz") && \
     jq -e '.apiServerReady == true' >/dev/null <<<"$HEALTH_RESPONSE"; then
     break
   fi

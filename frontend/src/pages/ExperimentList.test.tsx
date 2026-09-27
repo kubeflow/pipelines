@@ -34,7 +34,7 @@ import { MemoryRouter } from 'react-router';
 import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 
-// Default arguments for Apis.experimentServiceApi.listExperiment.
+// Default arguments for Apis.experimentServiceApiV2.listExperiments.
 const LIST_EXPERIMENT_DEFAULTS = [
   '', // page token
   10, // page size

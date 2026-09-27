@@ -15,23 +15,19 @@
  */
 
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { graphlib } from 'dagre';
 import * as React from 'react';
 import * as JsYaml from 'js-yaml';
 import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
-import { ApiJob } from 'src/apis/job';
-import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiRunDetail } from 'src/apis/run';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
-import * as features from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { ButtonKeys } from 'src/lib/Buttons';
-import * as StaticGraphParser from 'src/lib/StaticGraphParser';
+import * as StaticFlow from 'src/lib/v2/StaticFlow';
+import template from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import TestUtils, { mockResizeObserver } from 'src/TestUtils';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
@@ -89,16 +85,6 @@ describe('PipelineDetails', () => {
   const updateSnackbarSpy = vi.fn();
   const updateToolbarSpy = vi.fn();
   const navigateSpy = vi.fn();
-  const getV1PipelineSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-  const getV1PipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
-  const getV1TemplateSpy = vi.spyOn(Apis.pipelineServiceApi, 'getTemplate');
-  const getV1PipelineVersionTemplateSpy = vi.spyOn(
-    Apis.pipelineServiceApi,
-    'getPipelineVersionTemplate',
-  );
-  const listV1PipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
-  const getV1RunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
-  const getV1RecurringRunSpy = vi.spyOn(Apis.jobServiceApi, 'getJob');
   const getV2PipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
   const getV2PipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
   const listV2PipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
@@ -106,14 +92,10 @@ describe('PipelineDetails', () => {
   const getV2RecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
   const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const deletePipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'deletePipelineVersion');
-  const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
+  const createGraphSpy = vi.spyOn(StaticFlow, 'convertFlowElements');
   const PIPELINE_VERSION_ID = 'test-pipeline-version-id';
 
   let tree: PipelineDetailsWrapper | undefined;
-  let testV1Pipeline: ApiPipeline = {};
-  let testV1PipelineVersion: ApiPipelineVersion = {};
-  let testV1Run: ApiRunDetail = {};
-  let testV1RecurringRun: ApiJob = {};
   let testV2Pipeline: V2beta1Pipeline = {};
   let originalTestV2PipelineVersion: V2beta1PipelineVersion = {};
   let newTestV2PipelineVersion: V2beta1PipelineVersion = {};
@@ -162,41 +144,6 @@ describe('PipelineDetails', () => {
     vi.clearAllMocks();
     mockResizeObserver();
 
-    testV1Pipeline = {
-      created_at: new Date(2018, 8, 5, 4, 3, 2),
-      description: 'test pipeline description',
-      id: 'test-pipeline-id',
-      name: 'test pipeline',
-      parameters: [{ name: 'param1', value: 'value1' }],
-      default_version: {
-        id: 'test-pipeline-version-id',
-        name: 'test-pipeline-version',
-      },
-    };
-
-    testV1PipelineVersion = {
-      id: 'test-pipeline-version-id',
-      name: 'test-pipeline-version',
-    };
-
-    testV1Run = {
-      run: {
-        id: 'test-run-id',
-        name: 'test run',
-        pipeline_spec: {
-          pipeline_id: 'run-pipeline-id',
-        },
-      },
-    };
-
-    testV1RecurringRun = {
-      id: 'test-recurring-run-id',
-      name: 'test recurring run',
-      pipeline_spec: {
-        pipeline_id: 'run-pipeline-id',
-      },
-    };
-
     testV2Pipeline = {
       created_at: new Date(2018, 8, 5, 4, 3, 2),
       description: 'test pipeline description',
@@ -208,14 +155,14 @@ describe('PipelineDetails', () => {
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
-      pipeline_spec: JsYaml.load('spec:\n  arguments:\n    parameters:\n      - name: output\n'),
+      pipeline_spec: JsYaml.load(template),
     };
 
     newTestV2PipelineVersion = {
       display_name: 'new-test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'new-test-pipeline-version-id',
-      pipeline_spec: JsYaml.load('spec:\n  arguments:\n    parameters:\n      - name: output\n'),
+      pipeline_spec: JsYaml.load(template),
     };
 
     testV2Run = {
@@ -229,18 +176,6 @@ describe('PipelineDetails', () => {
       display_name: 'test recurring run',
       pipeline_version_reference: {},
     };
-
-    getV1PipelineSpy.mockImplementation(() => Promise.resolve(testV1Pipeline));
-    getV1PipelineVersionSpy.mockImplementation(() => Promise.resolve(testV1PipelineVersion));
-    getV1TemplateSpy.mockImplementation(() => Promise.resolve({ template: 'test template' }));
-    getV1PipelineVersionTemplateSpy.mockImplementation(() =>
-      Promise.resolve({ template: 'test version template' }),
-    );
-    listV1PipelineVersionsSpy.mockImplementation(() =>
-      Promise.resolve({ versions: [testV1PipelineVersion] }),
-    );
-    getV1RunSpy.mockImplementation(() => Promise.resolve(testV1Run));
-    getV1RecurringRunSpy.mockImplementation(() => Promise.resolve(testV1RecurringRun));
 
     getV2PipelineSpy.mockImplementation(() => Promise.resolve(testV2Pipeline));
     getV2PipelineVersionSpy.mockImplementation(() =>
@@ -259,7 +194,7 @@ describe('PipelineDetails', () => {
         display_name: 'test experiment',
       } as V2beta1Experiment),
     );
-    createGraphSpy.mockImplementation(() => new graphlib.Graph());
+    createGraphSpy.mockReturnValue([]);
   });
 
   afterEach(() => {
@@ -289,7 +224,6 @@ describe('PipelineDetails', () => {
       'comes from a run spec that does not have an experiment',
     async () => {
       tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
-      await getV1RunSpy;
       await getV2RunSpy;
       await createGraphSpy;
       await TestUtils.flushPromises();
@@ -298,8 +232,8 @@ describe('PipelineDetails', () => {
           breadcrumbs: [
             { displayName: 'All runs', href: RoutePage.RUNS },
             {
-              displayName: testV1Run.run!.name,
-              href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, testV1Run.run!.id!),
+              displayName: testV2Run.display_name,
+              href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, testV2Run.run_id!),
             },
           ],
           pageTitle: 'Pipeline details',
@@ -315,7 +249,6 @@ describe('PipelineDetails', () => {
       tree = renderPipelineDetailsElement(
         <PipelineDetails {...generateProps(undefined, false, true)} />,
       );
-      await getV1RecurringRunSpy;
       await getV2RecurringRunSpy;
       await TestUtils.flushPromises();
       expect(updateToolbarSpy).toHaveBeenLastCalledWith(
@@ -323,10 +256,10 @@ describe('PipelineDetails', () => {
           breadcrumbs: [
             { displayName: 'All recurring runs', href: RoutePage.RECURRING_RUNS },
             {
-              displayName: testV1RecurringRun.name,
+              displayName: testV2RecurringRun.display_name,
               href: RoutePage.RECURRING_RUN_DETAILS.replace(
                 ':' + RouteParams.recurringRunId,
-                testV1RecurringRun.id!,
+                testV2RecurringRun.recurring_run_id!,
               ),
             },
           ],
@@ -342,7 +275,6 @@ describe('PipelineDetails', () => {
     async () => {
       testV2Run.experiment_id = 'test-experiment-id';
       tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
-      await getV1RunSpy;
       await getV2RunSpy;
       await getExperimentSpy;
       await TestUtils.flushPromises();
@@ -376,7 +308,6 @@ describe('PipelineDetails', () => {
       tree = renderPipelineDetailsElement(
         <PipelineDetails {...generateProps(undefined, false, true)} />,
       );
-      await getV1RecurringRunSpy;
       await getV2RecurringRunSpy;
       await getExperimentSpy;
       await TestUtils.flushPromises();
@@ -392,10 +323,10 @@ describe('PipelineDetails', () => {
               ),
             },
             {
-              displayName: testV1RecurringRun.name,
+              displayName: testV2RecurringRun.display_name,
               href: RoutePage.RECURRING_RUN_DETAILS.replace(
                 ':' + RouteParams.recurringRunId,
-                testV1RecurringRun.id!,
+                testV2RecurringRun.recurring_run_id!,
               ),
             },
           ],
@@ -406,93 +337,43 @@ describe('PipelineDetails', () => {
   );
 
   it(
-    'parses the workflow source in embedded pipeline spec as JSON ' +
-      'and then converts it to YAML (v1)',
+    'directly use YAML dumped from ' + 'pipeline_spec in run as template string (v2)',
     async () => {
-      testV1Run.run!.pipeline_spec = {
-        pipeline_id: 'run-pipeline-id',
-        workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
-      };
+      testV2Run.pipeline_spec = JsYaml.load(template);
 
       tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
-      await getV1RunSpy;
       await getV2RunSpy;
       await TestUtils.flushPromises();
 
-      expect(tree.state('templateString')).toBe(
-        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-      );
+      expect(tree.state('templateString')).toBe(JsYaml.dump(JsYaml.load(template)));
     },
   );
 
   it(
-    'directly use pipeline_manifest dumped from ' + 'pipeline_spec in run as template string (v2)',
+    'directly use YAML dumped from pipeline_spec ' + 'in recurring run as template string (v2)',
     async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
-        if (featureKey === features.FeatureKey.V2_ALPHA) {
-          return true;
-        }
-        return false;
-      });
-      testV2Run.pipeline_spec = { spec: { arguments: { parameters: [{ name: 'output' }] } } };
-
-      tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
-      await getV1RunSpy;
-      await getV2RunSpy;
-      await TestUtils.flushPromises();
-
-      expect(tree.state('templateString')).toBe(
-        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-      );
-    },
-  );
-
-  it(
-    'directly use pipeline_manifest dumped from pipeline_spec ' +
-      'in recurring run as template string (v2)',
-    async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
-        if (featureKey === features.FeatureKey.V2_ALPHA) {
-          return true;
-        }
-        return false;
-      });
-      testV2RecurringRun.pipeline_spec = {
-        spec: { arguments: { parameters: [{ name: 'output' }] } },
-      };
+      testV2RecurringRun.pipeline_spec = JsYaml.load(template);
 
       tree = renderPipelineDetailsElement(
         <PipelineDetails {...generateProps(undefined, false, true)} />,
       );
-      await getV1RecurringRunSpy;
       await getV2RecurringRunSpy;
       await TestUtils.flushPromises();
 
-      expect(tree.state('templateString')).toBe(
-        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-      );
+      expect(tree.state('templateString')).toBe(JsYaml.dump(JsYaml.load(template)));
     },
   );
 
   it('use pipeline_version_id in run to get pipeline template string (v2)', async () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
     testV2Run.pipeline_version_reference.pipeline_id = 'test-pipeline-id';
     testV2Run.pipeline_version_reference.pipeline_version_id = 'test-pipeline-version-id';
 
     tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
-    await getV1RunSpy;
     await getV2RunSpy;
     await getV2PipelineVersionSpy;
     await TestUtils.flushPromises();
 
-    expect(tree.state('templateString')).toBe(
-      'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-    );
+    expect(tree.state('templateString')).toBe(JsYaml.dump(JsYaml.load(template)));
   });
 
   it('calls listPipelineVersions() if no pipeline version id', async () => {
@@ -513,66 +394,32 @@ describe('PipelineDetails', () => {
     );
   });
 
-  it('renders "No graph to show" if it is empty pipeline', async () => {
+  it('renders the pipeline details shell if it is empty', async () => {
     TestUtils.makeErrorResponse(getV2PipelineVersionSpy, 'No pipeline version is found');
     renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
     await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
 
-    screen.getByText('No graph to show');
+    expect(screen.getByTestId('pipeline-detail-v2')).toBeInTheDocument();
   });
 
   it('use pipeline_version_id in recurring run to get pipeline template string (v2)', async () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
     testV2RecurringRun.pipeline_version_reference.pipeline_id = 'test-pipeline-id';
     testV2RecurringRun.pipeline_version_reference.pipeline_version_id = 'test-pipeline-version-id';
 
     tree = renderPipelineDetailsElement(
       <PipelineDetails {...generateProps(undefined, false, true)} />,
     );
-    await getV1RecurringRunSpy;
     await getV2RecurringRunSpy;
     await getV2PipelineVersionSpy;
     await TestUtils.flushPromises();
 
-    expect(tree.state('templateString')).toBe(
-      'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-    );
+    expect(tree.state('templateString')).toBe(JsYaml.dump(JsYaml.load(template)));
   });
 
-  it(
-    'shows load error banner when failing to parse the workflow source ' +
-      'in embedded pipeline spec',
-    async () => {
-      testV1Run.run!.pipeline_spec = {
-        pipeline_id: 'run-pipeline-id',
-        workflow_manifest: 'not valid JSON',
-      };
-      renderPipelineDetailsPage(<PipelineDetails {...generateProps(undefined, true)} />);
-
-      await waitFor(() => expect(getV1RunSpy).toHaveBeenCalled());
-
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          additionalInfo: 'Unexpected token \'o\', "not valid JSON" is not valid JSON',
-          message: `Failed to parse pipeline spec from run with ID: ${
-            testV1Run.run!.id
-          }. Click Details for more information.`,
-          mode: 'error',
-        }),
-      );
-    },
-  );
-
   it('shows load error banner when failing to get run details, when loading from run spec', async () => {
-    TestUtils.makeErrorResponseOnce(getV1RunSpy, 'woops');
+    TestUtils.makeErrorResponseOnce(getV2RunSpy, 'woops');
     tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
-    await getV1PipelineSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -590,7 +437,6 @@ describe('PipelineDetails', () => {
       testV2Run.experiment_id = 'test-experiment-id';
       TestUtils.makeErrorResponse(getExperimentSpy, 'woops');
       tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps(undefined, true)} />);
-      await getV1PipelineSpy;
       await TestUtils.flushPromises();
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -603,9 +449,8 @@ describe('PipelineDetails', () => {
   );
 
   it('shows load error banner when failing to get pipeline', async () => {
-    TestUtils.makeErrorResponseOnce(getV1PipelineSpy, 'woops');
+    TestUtils.makeErrorResponseOnce(getV2PipelineSpy, 'woops');
     tree = renderPipelineDetailsElement(<PipelineDetails {...generateProps()} />);
-    await getV1PipelineSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -632,76 +477,56 @@ describe('PipelineDetails', () => {
     );
   });
 
-  it(
-    'uses an empty string and does not show error ' +
-      'when pipeline_spec in the response of getPipelineVersion() is undefined' +
-      'and v1 getPipelineVersionTemplate() returns empty string',
-    async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
-        if (featureKey === features.FeatureKey.V2_ALPHA) {
-          return true;
-        }
-        return false;
-      });
-      getV2PipelineVersionSpy.mockResolvedValue({
-        display_name: 'test-pipeline-version',
-        pipeline_id: 'test-pipeline-id',
-        pipeline_version_id: 'test-pipeline-version-id',
-        pipeline_spec: undefined, // empty pipeline_spec
-      });
-      getV1PipelineVersionTemplateSpy.mockResolvedValue({ template: '' });
-      renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
+  it('warns when the selected pipeline version has no pipeline_spec', async () => {
+    getV2PipelineVersionSpy.mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: 'test-pipeline-version-id',
+      pipeline_spec: undefined, // empty pipeline_spec
+    });
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-      await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
-      await waitFor(() => expect(getV1PipelineVersionTemplateSpy).toHaveBeenCalled());
-      // empty template string from empty pipeline_spec and it won't call createGraph()
-      expect(createGraphSpy).toHaveBeenCalledTimes(0);
+    await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
+    // empty template string from empty pipeline_spec and it won't call createGraph()
+    expect(createGraphSpy).toHaveBeenCalledTimes(0);
 
-      // No errors
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
-    },
-  );
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          mode: 'warning',
+          message: expect.stringContaining('no pipeline spec'),
+        }),
+      ),
+    );
+  });
 
-  it(
-    'uses an empty string and does not show error ' +
-      'when pipeline_spec in the response of getPipelineVersion() is undefined' +
-      'and v1 getTemplate() returns empty string',
-    async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
-        if (featureKey === features.FeatureKey.V2_ALPHA) {
-          return true;
-        }
-        return false;
-      });
-      getV2PipelineVersionSpy.mockResolvedValue({
-        display_name: 'test-pipeline-version',
-        pipeline_id: 'test-pipeline-id',
-        pipeline_version_id: undefined,
-        pipeline_spec: undefined, // empty pipeline_spec
-      });
-      getV1TemplateSpy.mockResolvedValue({ template: '' });
-      renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
+  it('warns when the returned version has neither an ID nor a pipeline spec', async () => {
+    getV2PipelineVersionSpy.mockResolvedValue({
+      display_name: 'test-pipeline-version',
+      pipeline_id: 'test-pipeline-id',
+      pipeline_version_id: undefined,
+      pipeline_spec: undefined, // empty pipeline_spec
+    });
+    renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
-      await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
-      await waitFor(() => expect(getV1TemplateSpy).toHaveBeenCalled()); // because no pipeline version id
-      // empty template string from empty pipeline_spec and it won't call createGraph()
-      expect(createGraphSpy).toHaveBeenCalledTimes(0);
+    await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
+    // empty template string from empty pipeline_spec and it won't call createGraph()
+    expect(createGraphSpy).toHaveBeenCalledTimes(0);
 
-      // No errors
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
-    },
-  );
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          mode: 'warning',
+          message: expect.stringContaining('no pipeline spec'),
+        }),
+      ),
+    );
+  });
 
   it(
     'shows no graph error banner ' +
       'when pipeline_spec in the response of getPipelineVersion() is invalid format',
     async () => {
-      vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
-        if (featureKey === features.FeatureKey.V2_ALPHA) {
-          return true;
-        }
-        return false;
-      });
       getV2PipelineVersionSpy.mockResolvedValue({
         display_name: 'test-pipeline-version',
         pipeline_id: 'test-pipeline-id',
@@ -723,22 +548,15 @@ describe('PipelineDetails', () => {
   );
 
   it('shows no graph error banner when failing to parse graph', async () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
     getV2PipelineVersionSpy.mockResolvedValue({
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
-      pipeline_spec: {
-        apiVersion: 'argoproj.io/v1alpha1',
-        kind: 'Workflow',
-      },
+      pipeline_spec: JsYaml.load(template),
     });
-    TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
+    createGraphSpy.mockImplementationOnce(() => {
+      throw new Error('bad graph');
+    });
     renderPipelineDetailsPage(<PipelineDetails {...generateProps(PIPELINE_VERSION_ID)} />);
 
     await waitFor(() => expect(getV2PipelineVersionSpy).toHaveBeenCalled());
@@ -795,7 +613,7 @@ describe('PipelineDetails', () => {
       cloneRunBtn!.action();
       expect(navigateSpy).toHaveBeenCalledTimes(1);
       expect(navigateSpy).toHaveBeenLastCalledWith(
-        RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testV1Run.run!.id}`,
+        RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testV2Run.run_id}`,
       );
     },
   );
@@ -815,7 +633,7 @@ describe('PipelineDetails', () => {
       expect(navigateSpy).toHaveBeenCalledTimes(1);
       expect(navigateSpy).toHaveBeenLastCalledWith(
         RoutePage.NEW_RUN +
-          `?${QUERY_PARAMS.cloneFromRecurringRun}=${testV1RecurringRun.id}&recurring=1`,
+          `?${QUERY_PARAMS.cloneFromRecurringRun}=${testV2RecurringRun.recurring_run_id}&recurring=1`,
       );
     },
   );
@@ -889,7 +707,7 @@ describe('PipelineDetails', () => {
     await newExperimentBtn.action();
     expect(navigateSpy).toHaveBeenCalledTimes(1);
     expect(navigateSpy).toHaveBeenLastCalledWith(
-      RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testV1Pipeline.id}`,
+      RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testV2Pipeline.pipeline_id}`,
     );
   });
 
@@ -904,7 +722,7 @@ describe('PipelineDetails', () => {
       await newExperimentBtn.action();
       expect(navigateSpy).toHaveBeenCalledTimes(1);
       expect(navigateSpy).toHaveBeenLastCalledWith(
-        RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testV1Pipeline.id}`,
+        RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testV2Pipeline.pipeline_id}`,
       );
     },
   );
@@ -975,8 +793,8 @@ describe('PipelineDetails', () => {
     await confirmBtn.onClick();
     expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
     expect(deletePipelineVersionSpy).toHaveBeenLastCalledWith(
-      testV1Pipeline.id,
-      testV1Pipeline.default_version!.id!,
+      testV2Pipeline.pipeline_id,
+      originalTestV2PipelineVersion.pipeline_version_id!,
     );
   });
 
@@ -994,8 +812,8 @@ describe('PipelineDetails', () => {
     await confirmBtn.onClick();
     expect(deletePipelineVersionSpy).toHaveBeenCalledTimes(1);
     expect(deletePipelineVersionSpy).toHaveBeenLastCalledWith(
-      testV1Pipeline.id,
-      testV1Pipeline.default_version!.id!,
+      testV2Pipeline.pipeline_id,
+      originalTestV2PipelineVersion.pipeline_version_id!,
     );
   });
 

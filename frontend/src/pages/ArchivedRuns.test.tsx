@@ -82,7 +82,7 @@ describe('ArchivedRuns', () => {
     refreshSpy.mockClear();
     lastRunListProps = null;
     toolbarProps = null;
-    deleteRunSpy = vi.spyOn(Apis.runServiceApi, 'deleteRun');
+    deleteRunSpy = vi.spyOn(Apis.runServiceApiV2, 'deleteRun');
   });
 
   afterEach(() => {

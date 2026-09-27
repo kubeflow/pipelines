@@ -6,7 +6,7 @@ env:
   NUMBER_OF_PARALLEL_NODES: 15
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
 
 on:
   push:
@@ -37,13 +37,13 @@ concurrency:
 
 jobs:
   build:
-    # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
-    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
+    # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
+    if: ${{ false }}
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
-    # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
-    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
+    # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -63,7 +63,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: 3.9
+          python-version: 3.11
 
       - name: Get last release tag
         shell: bash

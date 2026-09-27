@@ -25,17 +25,17 @@ from ml_metadata.proto import Execution
 from .condition_v2 import condition as condition_v2
 
 
-def verify_heads(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+def verify_heads(t: unittest.TestCase, run: kfp_server_api.V2beta1Run,
                  tasks: dict[str, KfpTask], **kwargs):
-    t.assertEqual(run.status, 'Succeeded')
+    t.assertEqual(run.state, 'SUCCEEDED')
     t.assertCountEqual(['print-msg', 'condition-1', 'flip-coin'], tasks.keys())
     t.assertCountEqual(['print-msg-2', 'print-msg-3', 'flip-coin-2'],
                        tasks['condition-1'].children.keys())
 
 
-def verify_tails(t: unittest.TestCase, run: kfp_server_api.ApiRun,
+def verify_tails(t: unittest.TestCase, run: kfp_server_api.V2beta1Run,
                  tasks: dict[str, KfpTask], **kwargs):
-    t.assertEqual(run.status, 'Succeeded')
+    t.assertEqual(run.state, 'SUCCEEDED')
     t.assertCountEqual(['print-msg', 'condition-1', 'flip-coin'], tasks.keys())
     t.assertIsNone(tasks['condition-1'].children)
     # MLMD canceled state means NotTriggered state for KFP.

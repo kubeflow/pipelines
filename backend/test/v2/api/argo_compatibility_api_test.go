@@ -419,7 +419,7 @@ func findArgoCompatibilityTaskArtifact(tasks []*run_model.V2beta1PipelineTask) b
 
 func readArgoCompatibilityRunLog(runID string, nodeID string) (string, error) {
 	logURL := fmt.Sprintf(
-		"%s/apis/v1alpha1/runs/%s/nodes/%s/log?follow=false",
+		"%s/apis/v2beta1/runs/%s/nodes/%s/log?follow=false",
 		strings.TrimRight(*config.ApiUrl, "/"),
 		url.PathEscape(runID),
 		url.PathEscape(nodeID),

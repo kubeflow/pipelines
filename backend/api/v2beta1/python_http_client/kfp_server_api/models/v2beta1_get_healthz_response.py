@@ -61,7 +61,7 @@ class V2beta1GetHealthzResponse(object):
     def multi_user(self):
         """Gets the multi_user of this V2beta1GetHealthzResponse.  # noqa: E501
 
-        Returns if KFP in multi-user mode  # noqa: E501
+        Returns whether KFP is in multi-user mode.  # noqa: E501
 
         :return: The multi_user of this V2beta1GetHealthzResponse.  # noqa: E501
         :rtype: bool
@@ -72,7 +72,7 @@ class V2beta1GetHealthzResponse(object):
     def multi_user(self, multi_user):
         """Sets the multi_user of this V2beta1GetHealthzResponse.
 
-        Returns if KFP in multi-user mode  # noqa: E501
+        Returns whether KFP is in multi-user mode.  # noqa: E501
 
         :param multi_user: The multi_user of this V2beta1GetHealthzResponse.  # noqa: E501
         :type multi_user: bool

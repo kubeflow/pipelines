@@ -40,7 +40,6 @@ import {
 } from '@mui/material';
 import { CustomTableRow } from './CustomTableRow';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-import { ApiFilter, PredicateOp } from 'src/apis/filter';
 
 export enum ExpandState {
   COLLAPSED,
@@ -194,7 +193,6 @@ interface CustomTableProps {
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
   initialFilterString?: string;
-  isCalledByV1?: boolean;
   setFilterString?: (filterString: string) => void;
   noFilterBox?: boolean;
   reload: (request: ListRequest) => Promise<string>;
@@ -235,12 +233,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.state = {
       currentPage: 0,
       filterString: this.props.initialFilterString || '',
-      filterStringEncoded:
-        this.props.initialFilterString && this.props.isCalledByV1
-          ? this._createAndEncodeFilterV1(this.props.initialFilterString)
-          : this.props.initialFilterString
-            ? this._createAndEncodeFilterV2(this.props.initialFilterString)
-            : '',
+      filterStringEncoded: this.props.initialFilterString
+        ? this._createAndEncodeFilterV2(this.props.initialFilterString)
+        : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: LocalStorage.getTablePageSize(this._getPageId()),
@@ -545,28 +540,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   // Exposed for testing
   protected async _requestFilter(filterString?: string): Promise<void> {
-    const filterStringEncoded =
-      filterString && this.props.isCalledByV1
-        ? this._createAndEncodeFilterV1(filterString)
-        : filterString
-          ? this._createAndEncodeFilterV2(filterString)
-          : '';
+    const filterStringEncoded = filterString ? this._createAndEncodeFilterV2(filterString) : '';
     this.setStateSafe({ filterStringEncoded });
     this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }));
-  }
-
-  private _createAndEncodeFilterV1(filterString: string): string {
-    const filter: ApiFilter = {
-      predicates: [
-        {
-          // TODO: remove this hardcoding once more sophisticated filtering is supported
-          key: 'name',
-          op: PredicateOp.IS_SUBSTRING,
-          string_value: filterString,
-        },
-      ],
-    };
-    return encodeURIComponent(JSON.stringify(filter));
   }
 
   private _createAndEncodeFilterV2(filterString: string): string {

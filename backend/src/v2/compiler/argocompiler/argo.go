@@ -189,10 +189,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
-					"pipelines.kubeflow.org/v2_component": "true",
+					util.V2ComponentKey: "true",
 				},
 				Labels: map[string]string{
-					"pipelines.kubeflow.org/v2_component": "true",
+					util.V2ComponentKey: "true",
 				},
 			},
 			Arguments: wfapi.Arguments{

@@ -644,6 +644,13 @@ func TestLoadSamples_MultiUserMode_RestartNewVersion(t *testing.T) {
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
 	require.NoError(t, err)
 
+	// A newer tenant pipeline with the same name must not receive sample versions.
+	privatePipeline, err := rm.CreatePipeline(&model.Pipeline{
+		Name:      "Sample Pipeline",
+		Namespace: "tenant-a",
+	})
+	require.NoError(t, err)
+
 	// Second load with a new version name (simulates config update + restart).
 	pc.Pipelines[0].VersionName = "v2"
 	path, err = writeSampleConfig(t, pc, "sample.json")
@@ -655,6 +662,9 @@ func TestLoadSamples_MultiUserMode_RestartNewVersion(t *testing.T) {
 	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 2, totalSize, "new version should be created under existing pipeline")
+	_, privateVersions, _, err := rm.ListPipelineVersions(privatePipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	assert.Zero(t, privateVersions, "sample reload must not write a tenant pipeline version")
 }
 
 func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {

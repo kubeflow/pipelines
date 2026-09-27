@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from kfp import compiler
-from kfp import components
 from kfp import dsl
 from kfp.dsl import component
 
@@ -25,23 +24,20 @@ def print_env_op():
     print('ENV2', os.environ.get('ENV2'))
 
 
-print_env_2_op = components.load_component_from_text("""
-name: Print env
-implementation:
-  container:
-    image: alpine
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "$ENV1"
-      echo "$ENV2"
-      echo "$ENV3"
-    env:
-      ENV1: val0
-      ENV2: val0
-""")
+@dsl.container_component
+def print_env():
+    return dsl.ContainerSpec(
+        image='alpine',
+        command=[
+            'sh', '-c', 'set -e -x\necho "$ENV1"\necho "$ENV2"\necho "$ENV3"\n'
+        ],
+    )
+
+
+def print_env_2_op():
+    return print_env().set_env_variable(
+        name='ENV1', value='val0').set_env_variable(
+            name='ENV2', value='val0')
 
 
 @dsl.pipeline(name='pipeline-with-env')

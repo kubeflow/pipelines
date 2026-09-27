@@ -24,20 +24,11 @@ jobs:
           - name: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
-          - name: kfp-visualization-server
-            dockerfile: backend/Dockerfile.visualization
-            context: .
           - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
           - name: kfp-driver
             dockerfile: backend/Dockerfile.driver
-            context: .
-          - name: kfp-cache-deployer
-            dockerfile: backend/src/cache/deployer/Dockerfile
-            context: .
-          - name: kfp-cache-server
-            dockerfile: backend/Dockerfile.cacheserver
             context: .
           - name: kfp-inverse-proxy-agent
             dockerfile: proxy/Dockerfile
@@ -58,7 +49,7 @@ jobs:
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
     with:
-      src_branch: master
+      src_branch: ${{ github.sha }}
       target_tag: master
       arch_tag: ${{ matrix.arch.arch_name }}
       overwrite_imgs: True
@@ -82,15 +73,34 @@ jobs:
           - image: kfp-persistence-agent
           - image: kfp-scheduled-workflow-controller
           - image: kfp-viewer-crd-controller
-          - image: kfp-visualization-server
           - image: kfp-launcher
           - image: kfp-driver
-          - image: kfp-cache-deployer
-          - image: kfp-cache-server
           - image: kfp-inverse-proxy-agent
     uses: ./.github/workflows/create-manifest.yml
     secrets: inherit
     with:
       target_tag: master
       app_to_build: ${{ matrix.component.image }}
+      source_sha: ${{ github.sha }}
+      expected_platforms: ${{ matrix.component.image == 'kfp-inverse-proxy-agent' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
       set_latest: ${{ 'false' }}
+
+  arm64-smoke:
+    needs: create-manifests
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download this publication's verified index references
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: published-index-*-${{ github.run_attempt }}
+          path: published-indexes
+          merge-multiple: 'true'
+      - uses: ./.github/actions/arm64-smoke
+        with:
+          image_records: published-indexes
+          source_sha: ${{ github.sha }}

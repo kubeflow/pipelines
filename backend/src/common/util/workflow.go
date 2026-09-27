@@ -19,7 +19,6 @@ import (
 	"context"
 	stdjson "encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -33,13 +32,10 @@ import (
 	"github.com/argoproj/argo-workflows/v4/workflow/packer"
 	"github.com/argoproj/argo-workflows/v4/workflow/validate"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -760,99 +756,6 @@ const (
 	metricsArtifactName = "mlpipeline-metrics"
 )
 
-func (w *Workflow) CollectionMetrics(readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error)) ([]*api.RunMetric, []error) {
-	runID := w.Labels[LabelKeyWorkflowRunId]
-	runMetrics := make([]*api.RunMetric, 0, len(w.Status.Nodes))
-	partialFailures := make([]error, 0, len(w.Status.Nodes))
-	for _, nodeStatus := range w.Status.Nodes {
-		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, readArtifact, *w.Workflow)
-		if err != nil {
-			partialFailures = append(partialFailures, err)
-			continue
-		}
-		if nodeMetrics != nil {
-			if len(runMetrics)+len(nodeMetrics) >= maxMetricsCountLimit {
-				leftQuota := maxMetricsCountLimit - len(runMetrics)
-				runMetrics = append(runMetrics, nodeMetrics[0:leftQuota]...)
-				// TODO(#1426): report the error back to api server to notify user
-				log.Errorf("Reported metrics are more than the limit %v", maxMetricsCountLimit)
-				break
-			}
-			runMetrics = append(runMetrics, nodeMetrics...)
-		}
-	}
-	return runMetrics, partialFailures
-}
-
-func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error), wf workflowapi.Workflow) (
-	[]*api.RunMetric, error,
-) {
-	if !nodeStatus.Completed() {
-		return nil, nil
-	}
-	metrics, err := readNodeMetricsOrNil(runID, nodeStatus, readArtifact, &wf)
-	if err != nil || metrics == nil {
-		return nil, err
-	}
-
-	retrievedNodeID := nodeStatus.ID
-	for _, metric := range metrics {
-		// User metrics just have name and value but no NodeId.
-		metric.NodeId = retrievedNodeID
-	}
-	return metrics, nil
-}
-
-func readNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus,
-	readArtifact func(*artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error), wf *workflowapi.Workflow,
-) ([]*api.RunMetric, error) {
-	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
-		return nil, nil // No output artifacts, skip the reporting
-	}
-
-	var foundMetricsArtifact bool = false
-	for _, artifact := range nodeStatus.Outputs.Artifacts {
-		if artifact.Name == metricsArtifactName {
-			foundMetricsArtifact = true
-		}
-	}
-	if !foundMetricsArtifact {
-		return nil, nil // No metrics artifact, skip the reporting
-	}
-
-	artifactRequest := &artifactclient.ReadArtifactRequest{
-		RunID:            runID,
-		NodeID:           nodeStatus.ID,
-		ArtifactName:     metricsArtifactName,
-		MaxResponseBytes: ArchiveWireResponseBudget(GetMaxMetricsFileBytes()),
-	}
-	artifactResponse, err := readArtifact(artifactRequest)
-	if err != nil {
-		return nil, err
-	}
-	if artifactResponse == nil || artifactResponse.Data == nil || len(artifactResponse.Data) == 0 {
-		// If artifact is not found or empty content, skip the reporting.
-		return nil, nil
-	}
-
-	var metrics []*api.RunMetric
-	err = readSingleFileFromTgz(artifactResponse.Data, GetMaxMetricsFileBytes(), func(reader io.Reader) error {
-		var decodeError error
-		metrics, decodeError = decodeRunMetrics(reader)
-		return decodeError
-	})
-	if err != nil {
-		// Contract violations and malformed metrics artifacts are permanent for this completed node.
-		return nil, NewCustomError(err, CUSTOM_CODE_PERMANENT,
-			"Unable to read metrics tgz file from (%+v): %v", artifactRequest, err)
-	}
-	return metrics, nil
-}
-
-func (w *Workflow) HasMetrics() bool {
-	return w.Status.Nodes != nil
-}
-
 func (w *Workflow) ToStringForStore() string {
 	workflow, err := json.Marshal(w.Workflow)
 	if err != nil {
@@ -1085,12 +988,6 @@ func (w *Workflow) PersistedFinalState() bool {
 	return false
 }
 
-// IsV2Compatible whether the workflow is a v2 compatible pipeline.
-func (w *Workflow) IsV2Compatible() bool {
-	value := w.GetObjectMeta().GetAnnotations()["pipelines.kubeflow.org/v2_pipeline"]
-	return value == "true"
-}
-
 func (w *Workflow) Validate(lint, ignoreEntrypoint bool) error {
 	// Argo validation receives no external-template getters, so reject
 	// references instead of allowing validation to dereference a nil getter.
@@ -1115,8 +1012,16 @@ func ArgoContext() context.Context {
 }
 
 func (w *Workflow) CanRetry() error {
+	if w == nil || w.Workflow == nil {
+		return NewInvalidInputError("Cannot retry an empty workflow; create a new run from pipeline IR")
+	}
 	if w.Workflow.Status.OffloadNodeStatusVersion != "" {
 		return NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
+	}
+	// The IR compiler emits this format marker. It is not an authorization boundary.
+	metadata := w.Spec.PodMetadata
+	if metadata == nil || (metadata.Labels[V2ComponentKey] != "true" && metadata.Annotations[V2ComponentKey] != "true") {
+		return NewInvalidInputError("Cannot retry workflow missing the IR compiler's v2_component pod metadata marker; create a new run from pipeline IR and ensure controllers and webhooks preserve spec.podMetadata")
 	}
 	return nil
 }
@@ -1129,18 +1034,6 @@ func (w *Workflow) ToStringForSchedule() string {
 		return ""
 	}
 	return string(workflow)
-}
-
-// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
-// TODO: Fix the components to explicitly declare the artifacts they really output.
-func (w *Workflow) PatchTemplateOutputArtifacts() {
-	for templateIdx, template := range w.Spec.Templates {
-		for artIdx, artifact := range template.Outputs.Artifacts {
-			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
-				w.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
-			}
-		}
-	}
 }
 
 func (w *Workflow) NodeStatuses() map[string]NodeStatus {

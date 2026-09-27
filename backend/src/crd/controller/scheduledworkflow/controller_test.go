@@ -23,7 +23,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	util "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -32,182 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 )
-
-// v1AllowedNamespaces mirrors the unexported constant in backend/src/common/util/v1_support.go.
-const v1AllowedNamespaces = "V1_ALLOWED_NAMESPACES"
-
-func TestShouldEnforceV1Block(t *testing.T) {
-	v1WorkflowSpec := map[string]interface{}{
-		"entrypoint": "main",
-		"templates": []interface{}{
-			map[string]interface{}{
-				"name": "main",
-				"container": map[string]interface{}{
-					"image": "alpine",
-				},
-			},
-		},
-	}
-	v1Workflow := map[string]interface{}{
-		"apiVersion": "argoproj.io/v1alpha1",
-		"kind":       "Workflow",
-		"spec":       v1WorkflowSpec,
-	}
-	v2WorkflowSpec := map[string]interface{}{
-		"podMetadata": map[string]interface{}{
-			"labels": map[string]interface{}{
-				util.V2Key: "true",
-			},
-		},
-		"entrypoint": "main",
-		"templates": []interface{}{
-			map[string]interface{}{
-				"name": "main",
-				"container": map[string]interface{}{
-					"image": "alpine",
-				},
-			},
-		},
-	}
-	v2Workflow := map[string]interface{}{
-		"apiVersion": "argoproj.io/v1alpha1",
-		"kind":       "Workflow",
-		"spec":       v2WorkflowSpec,
-	}
-
-	tests := []struct {
-		name              string
-		spec              interface{}
-		blockV1           string
-		allowedNamespaces string
-		namespace         string
-		expected          bool
-	}{
-		{
-			name:      "V1 workflow spec, blocking enabled - blocked",
-			spec:      v1WorkflowSpec,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:      "V1 full workflow, blocking enabled - blocked",
-			spec:      v1Workflow,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:      "V1 workflow spec string, blocking enabled - blocked",
-			spec:      `{"entrypoint":"main","templates":[{"name":"main","container":{"image":"alpine"}}]}`,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:      "V1 full workflow string, blocking enabled - blocked",
-			spec:      `{"apiVersion":"argoproj.io/v1alpha1","kind":"Workflow","spec":{"entrypoint":"main","templates":[{"name":"main","container":{"image":"alpine"}}]}}`,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:      "V2 full workflow on v1beta1 ScheduledWorkflow, blocking enabled - not blocked",
-			spec:      v2Workflow,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "V2 workflow spec on v1beta1 ScheduledWorkflow, blocking enabled - not blocked",
-			spec:      v2WorkflowSpec,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "V2 marker in annotation, blocking enabled - not blocked",
-			spec:      `{"spec":{"podMetadata":{"annotations":{"pipelines.kubeflow.org/v2_component":"true"}},"entrypoint":"main"}}`,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "V2 compatible workflow marker, blocking enabled - not blocked",
-			spec:      `{"metadata":{"annotations":{"pipelines.kubeflow.org/v2_pipeline":"true"}},"spec":{"entrypoint":"main"}}`,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "V2 marker false, blocking enabled - blocked",
-			spec:      `{"spec":{"podMetadata":{"labels":{"pipelines.kubeflow.org/v2_component":"false"}},"entrypoint":"main"}}`,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  true,
-		},
-		{
-			name:      "V1 workflow spec, blocking disabled - not blocked",
-			spec:      v1WorkflowSpec,
-			blockV1:   "false",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:              "V1 workflow spec, namespace allowed - not blocked",
-			spec:              v1WorkflowSpec,
-			blockV1:           "true",
-			allowedNamespaces: "ns1",
-			namespace:         "ns1",
-			expected:          false,
-		},
-		{
-			name:      "Missing workflow spec, blocking enabled - not blocked",
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  false,
-		},
-		{
-			name:      "Malformed embedded workflow, blocking enabled - blocked",
-			spec:      `not valid json`,
-			blockV1:   "true",
-			namespace: "ns1",
-			expected:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			viper.Set(commonutil.BlockV1Pipelines, tt.blockV1)
-			viper.Set(v1AllowedNamespaces, tt.allowedNamespaces)
-			defer func() {
-				viper.Set(commonutil.BlockV1Pipelines, nil)
-				viper.Set(v1AllowedNamespaces, nil)
-			}()
-
-			swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "kubeflow.org/v1beta1",
-					Kind:       "ScheduledWorkflow",
-				},
-				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
-				Spec: swfapi.ScheduledWorkflowSpec{
-					Workflow: &swfapi.WorkflowResource{
-						Spec: tt.spec,
-					},
-				},
-			})
-			assert.Equal(t, tt.expected, shouldEnforceV1Block(swf))
-		})
-	}
-
-	t.Run("Nil ScheduledWorkflow - not blocked", func(t *testing.T) {
-		viper.Set(commonutil.BlockV1Pipelines, "true")
-		defer viper.Set(commonutil.BlockV1Pipelines, nil)
-
-		assert.False(t, shouldEnforceV1Block(nil))
-	})
-}
 
 func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 	tests := []struct {
@@ -229,7 +52,7 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 				}
 			}`,
 			expectCreated: false,
-			expectError:   "not allowed to run v1 pipelines",
+			expectError:   "has a legacy workflow template",
 		},
 		{
 			name: "allows v2 embedded workflow",
@@ -254,11 +77,7 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			viper.Set(commonutil.BlockV1Pipelines, "true")
-			viper.Set(v1AllowedNamespaces, "")
 			defer func() {
-				viper.Set(commonutil.BlockV1Pipelines, nil)
-				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			executionClient := &fakeExecutionClient{}

@@ -1,8 +1,6 @@
 ## Contributing to the `kfp` SDK
 
-For developing KFP v2 SDK, use the `master` branch.
-
-For developing KFP v1 SDK, use the [sdk/release-1.8 branch](https://github.com/kubeflow/pipelines/tree/sdk/release-1.8).
+For developing the KFP SDK, use the `master` branch.
 
 For general contribution guidelines including pull request conventions, see [pipelines/CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md).
 

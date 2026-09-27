@@ -23,16 +23,12 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	authorizationv1 "k8s.io/api/authorization/v1"
 
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 )
 
-// BaseReportServer wraps ReportServer and ReportServerV1
-// to enable method sharing. It can be removed once ReportServerV1
-// is removed.
 type BaseReportServer struct {
 	resourceManager *resource.ResourceManager
 }
@@ -40,11 +36,6 @@ type BaseReportServer struct {
 type ReportServer struct {
 	*BaseReportServer
 	apiv2beta1.UnimplementedReportServiceServer
-}
-
-type ReportServerV1 struct {
-	*BaseReportServer
-	apiv1beta1.UnimplementedReportServiceServer
 }
 
 // Reports a workflow.
@@ -70,12 +61,6 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 	}
 
 	return &emptypb.Empty{}, nil
-}
-
-func (s *ReportServerV1) ReportWorkflowV1(ctx context.Context,
-	request *apiv1beta1.ReportWorkflowRequest,
-) (*emptypb.Empty, error) {
-	return s.reportWorkflow(ctx, request.GetWorkflow())
 }
 
 func (s *ReportServer) ReportWorkflow(ctx context.Context,
@@ -104,12 +89,6 @@ func (s *BaseReportServer) reportScheduledWorkflow(ctx context.Context, swf stri
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil
-}
-
-func (s *ReportServerV1) ReportScheduledWorkflowV1(ctx context.Context,
-	request *apiv1beta1.ReportScheduledWorkflowRequest,
-) (*emptypb.Empty, error) {
-	return s.reportScheduledWorkflow(ctx, request.GetScheduledWorkflow())
 }
 
 func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
@@ -167,14 +146,6 @@ func (s *BaseReportServer) canAccessWorkflow(ctx context.Context, executionName 
 
 func NewReportServer(resourceManager *resource.ResourceManager) *ReportServer {
 	return &ReportServer{
-		BaseReportServer: &BaseReportServer{
-			resourceManager: resourceManager,
-		},
-	}
-}
-
-func NewReportServerV1(resourceManager *resource.ResourceManager) *ReportServerV1 {
-	return &ReportServerV1{
 		BaseReportServer: &BaseReportServer{
 			resourceManager: resourceManager,
 		},
