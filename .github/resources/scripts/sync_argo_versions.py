@@ -234,14 +234,12 @@ def planned_contents(repo_root: Path,
                                     target) if scope in ('all', 'ci') else {}
     if scope == 'ci':
         return planned
-    # Validate the supported module major even for a manifests-only update.
-    module_path = repo_root / 'go.mod'
-    updated_mod = _module_contents(
-        module_path.read_text(encoding='utf-8'), target)
     if scope == 'all':
         planned[repo_root / VERSION_PATH] = target + '\n'
     if scope in ('all', 'backend'):
-        planned[module_path] = updated_mod
+        module_path = repo_root / 'go.mod'
+        planned[module_path] = _module_contents(
+            module_path.read_text(encoding='utf-8'), target)
     if scope in ('all', 'manifests'):
         pins = [
             (p, r'https://github\.com/argoproj/argo-workflows/[^\s?]+\?ref=',

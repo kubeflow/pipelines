@@ -335,6 +335,62 @@ class SyncArgoVersionsTest(unittest.TestCase):
             sync_argo_versions.sync(self.repo_root)
         self.assertEqual(before, self.snapshot())
 
+    def test_make_can_select_compatibility_runtime_without_updating_go(self):
+        self.add_runtime_files()
+        (self.repo_root / 'third_party/argo/VERSION').write_text('v3.7.18\n')
+        script = self.repo_root / '.github/resources/scripts/sync_argo_versions.py'
+        script.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(SCRIPT_PATH, script)
+        shutil.copyfile(SCRIPT_PATH.parents[3] / 'third_party/argo/Makefile',
+                        self.repo_root / 'third_party/argo/Makefile')
+        bin_path = self.repo_root / 'bin'
+        bin_path.mkdir()
+        fake_go = bin_path / 'go'
+        fake_go.write_text(
+            '#!/bin/sh\necho "Go must not run for runtime selection" >&2\nexit 23\n'
+        )
+        fake_go.chmod(0o755)
+        before = self.snapshot()
+        command = [
+            'make', '-C',
+            str(self.repo_root / 'third_party/argo'), 'update_manifests'
+        ]
+        environment = dict(
+            os.environ, PATH=str(bin_path) + os.pathsep + os.environ['PATH'])
+        result = subprocess.run(
+            command, env=environment, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        after = self.snapshot()
+        self.assertEqual(before.keys(), after.keys())
+        changed = {path for path in before if before[path] != after[path]}
+        expected = {str(path) for path, _ in sync_argo_versions.MANIFEST_REFS}
+        expected.update(
+            str(sync_argo_versions.MANIFEST_ROOT / 'base' / name)
+            for name in ('workflow-controller-deployment-patch.yaml',
+                         'workflow-controller-configmap-patch.yaml'))
+        self.assertEqual(changed, expected)
+        for path in changed:
+            self.assertIn(b'v3.7.18', after[path])
+            self.assertNotIn(b'v4.1.2', after[path])
+        self.assertEqual(
+            sync_argo_versions.sync(
+                self.repo_root, scope='manifests', check=True), [])
+        repeated = subprocess.run(
+            command, env=environment, capture_output=True, text=True)
+        self.assertEqual(repeated.returncode, 0, repeated.stderr)
+        self.assertEqual(after, self.snapshot())
+
+    def test_backend_update_still_rejects_a_different_module_major(self):
+        self.add_runtime_files()
+        (self.repo_root / 'third_party/argo/VERSION').write_text('v3.7.18\n')
+        before = self.snapshot()
+        with mock.patch.object(sync_argo_versions, '_tidied_module') as tidy:
+            with self.assertRaisesRegex(
+                    ValueError, 'major upgrades require a code migration'):
+                sync_argo_versions.sync(self.repo_root, scope='backend')
+            tidy.assert_not_called()
+        self.assertEqual(before, self.snapshot())
+
     def test_make_propagates_go_failure_without_tracked_writes(self):
         self.add_runtime_files()
         script = self.repo_root / '.github/resources/scripts/sync_argo_versions.py'

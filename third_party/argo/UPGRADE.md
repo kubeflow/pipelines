@@ -63,7 +63,9 @@ remain enabled.
 
 The component targets `update_ci` (also `update_tests`), `update_manifests`,
 `update_backend`, and `update_docs` are available for focused maintenance. They
-read `VERSION`; a partial target does not constitute a complete upgrade. Use
-`make update` for a release change.
+read `VERSION`; a partial target does not constitute a complete upgrade. CI uses
+`update_manifests` to select an older supported Argo runtime without changing the
+Go module or CI version matrix. The module-major guard applies to `update` and
+`update_backend`. Use `make update` for a complete release change.
 
 `release.sh` is a no-op retained for consistency with other third-party dependencies.
