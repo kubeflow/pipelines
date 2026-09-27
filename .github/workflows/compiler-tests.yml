@@ -6,6 +6,9 @@ env:
   PYTHON_VERSION: "3.9"
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
   push:
     branches: [master]
 
@@ -36,6 +39,9 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

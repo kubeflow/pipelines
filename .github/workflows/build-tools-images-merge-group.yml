@@ -1,0 +1,49 @@
+name: Build tools images merge group
+
+on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_ORG: ${{ github.repository_owner }}
+  IMAGE_TAG: release-2.18
+
+jobs:
+  build-tools:
+    name: Build tools images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Read frontend Node version
+        id: frontend_node
+        run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
+      - name: Build api-generator
+        shell: bash
+        run: |
+          source ./.github/resources/scripts/helper-functions.sh
+          IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}"
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build --file backend/api/Dockerfile --tag "$IMAGE" .
+
+      - name: Build release tools
+        shell: bash
+        run: |
+          source ./.github/resources/scripts/helper-functions.sh
+          IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-release:${{ env.IMAGE_TAG }}"
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file release/Dockerfile.release \
+            --build-arg "BASE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}" \
+            --build-arg "NODE_VERSION=${{ steps.frontend_node.outputs.version }}" \
+            --tag "$IMAGE" \
+            .

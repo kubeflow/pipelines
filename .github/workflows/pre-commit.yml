@@ -9,6 +9,10 @@ on:
     branches:
       - master
       - release-2.18
+  merge_group:
+    types: [checks_requested]
+    branches:
+      - release-2.18
 
 
 concurrency:
@@ -40,7 +44,7 @@ jobs:
         id: pre-commit-range
         shell: bash
         env:
-          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT_BASE_SHA: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha || github.event.before }}
         run: |
           set -euo pipefail
 

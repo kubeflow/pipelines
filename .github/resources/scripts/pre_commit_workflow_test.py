@@ -68,6 +68,13 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertIn('Unable to resolve the event base commit', self.workflow)
         self.assertNotIn('git rev-parse HEAD^', self.workflow)
 
+    def test_queue_checks_use_the_merge_group_base(self):
+        self.assertIn('  merge_group:\n    types: [checks_requested]',
+                      self.workflow)
+        self.assertIn('github.event.merge_group.base_sha || '
+                      'github.event.pull_request.base.sha || '
+                      'github.event.before', self.workflow)
+
     def test_config_changes_execute_each_applicable_hook_family(self):
         self.assertIn(
             "if: steps.pre-commit-range.outputs.config-changed == 'true'",

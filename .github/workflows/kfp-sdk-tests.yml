@@ -1,6 +1,9 @@
 name: KFP SDK Tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
   push:
     branches: [master]
   pull_request:
@@ -13,6 +16,9 @@ on:
       - '.github/actions/setup-python-pip-cache/**'
       - '!**/*.md'
       - '!**/OWNERS'
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

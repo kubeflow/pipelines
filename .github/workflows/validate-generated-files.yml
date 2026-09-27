@@ -1,5 +1,8 @@
 name: Validate Generated Files
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
   push:
     branches:
       - master
@@ -35,6 +38,9 @@ on:
       - '!**/OWNERS'
       - 'VERSION'
 
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

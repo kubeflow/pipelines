@@ -1,6 +1,9 @@
 name: Frontend Tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
   push:
     branches:
       - master
@@ -22,6 +25,9 @@ on:
       - 'backend/src/apiserver/config/sample_config.json'
 
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -33,6 +39,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
 
     - name: Set up Node.js
       uses: actions/setup-node@v7
@@ -51,11 +59,11 @@ jobs:
         npm --version
 
     - name: Check for toolchain version drift
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+      env:
+        BASE_SHA: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
       run: |
-        git fetch origin ${{ github.base_ref }} --depth=1
-        git fetch --deepen=100 2>/dev/null || true
-        cd frontend && node scripts/check-lockfile-drift.mjs --base-ref "origin/${{ github.base_ref }}"
+        cd frontend && node scripts/check-lockfile-drift.mjs --base-ref "$BASE_SHA"
 
     - name: Clean npm cache
       run: npm cache clean --force

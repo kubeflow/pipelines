@@ -41,7 +41,10 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -I api/v2alpha1/python
 fi
 
-if [[ -z "${PULL_NUMBER}" ]]; then
+if [[ "${GITHUB_EVENT_NAME:-}" == "merge_group" ]]; then
+  : "${GITHUB_SHA:?merge_group requires the queued commit SHA}"
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${GITHUB_SHA}#egg=kfp&subdirectory=sdk/python"
+elif [[ -z "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
 else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
