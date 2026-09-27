@@ -20,8 +20,10 @@ merge-group workflow that requests `statuses: write` and reports a successful
 Actions App would not distinguish that workflow from CI Check. Before
 activation, publish release `ci-passed` statuses with a dedicated GitHub App
 installed only on this repository, keep its private key in a protected
-default-branch environment, and require that App as the status source in the
-release branch rule. A controlled canary must also verify the effective
+default-branch environment, use its installation token for queue API reads,
+and require that App as the status source in the release branch rule. The App
+needs Actions and Contents read, Commit statuses write, and Pull requests
+write for dequeue. A controlled canary must also verify the effective
 merge-group token permission. This App and credential path is not implemented
 by the current publisher change.
 
@@ -59,12 +61,22 @@ supersede a completed failed attempt. The publisher reserves one write before
 GitHub's 1,000-status limit per SHA and context so it can revoke success. A
 stalled entry near that limit must be recreated. An undelivered webhook or a
 merge decision made before invalidation starts remains a canary risk.
-With one visible built head, a green reconciliation makes one direct lookup
-per expected workflow: at most 31 with both release E2E workflows enabled, or
-124 direct lookups per hour from the 15-minute sweep. This count
-excludes queue, PR, and workflow-list reads and event-driven checks. During
-the canary, inspect the token's remaining API budget and the number of
-visible built heads; stop if either exceeds the planned envelope.
+With one visible built head, a green reconciliation makes `N + 4F` direct
+Actions run lookups, where `N` is the number of expected workflows and `F`
+is the number of distinct fenced run attempts in status history. The current
+31-lane inventory normally creates at least one fence per lane, so a green
+reconciliation makes 155 direct lookups, or 620 per hour from the 15-minute
+sweep alone. Each additional fenced rerun adds four lookups per green
+reconciliation; rerunning all 31 lanes once raises the scheduled sweep to
+1,116 direct lookups per hour. This excludes queue, PR, branch, inventory,
+workflow-list, and status-history reads, plus event-driven reconciliations.
+GitHub's [`GITHUB_TOKEN` REST limit](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#primary-rate-limit-for-github_token-in-github-actions)
+is 1,000 requests per hour per repository. The current token and sweep can
+exhaust that budget before normal queue traffic is included. Before
+activation, measure the complete API budget with a live canary using the
+App installation token, whose [REST limit starts at 5,000 requests per hour](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#primary-rate-limit-for-github-app-installations).
+Stop if remaining capacity or the number of visible built heads falls outside
+the verified envelope.
 
 The release PR dequeue helper runs in CI Check's release queue discovery job.
 Its `pull-requests: write` token still needs a live canary to confirm GitHub
