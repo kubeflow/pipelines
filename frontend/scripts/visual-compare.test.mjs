@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 /*
  * Copyright 2026 The Kubeflow Authors
  *
