@@ -1,0 +1,764 @@
+{
+  "baseUrl": "http://127.0.0.1:4173",
+  "routesPath": "frontend/scripts/visual-compare.routes.json",
+  "browser": "145.0.7632.6",
+  "locale": "en-US",
+  "timezoneId": "UTC",
+  "colorScheme": "light",
+  "reducedMotion": "reduce",
+  "fixedTime": "2026-09-26T12:00:00.000Z",
+  "results": [
+    {
+      "name": "pipelines",
+      "route": "/pipelines",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "a[href=\"#/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1460\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/pipelines-1280x720.png",
+      "status": "ok",
+      "sha256": "09b7ecbe6b5fb0817d6e509af15d9881f80a86d04128b5737bee62e715e7e051",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "experiments",
+      "route": "/experiments",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "[data-experiment-id=\"275ea11d-ac63-4ce3-bc33-ec81981ed56b\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/experiments-1280x720.png",
+      "status": "ok",
+      "sha256": "db102f29898f93a10a32d0f20afc226e0f2e03de3ca52c279adb313d77d9828f",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "runs",
+      "route": "/runs",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/runs-1280x720.png",
+      "status": "ok",
+      "sha256": "304efb6a3003c3a883d9bad96f1f9af0e406e810fe3e91ba4798c9328e8320e4",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "recurring-runs",
+      "route": "/recurringruns",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "a[href=\"#/recurringrun/details/mock-recurring-0\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/recurring-runs-1280x720.png",
+      "status": "ok",
+      "sha256": "6fe958dae44ed09b92620f4358b840e76f0eb80b1c54cf841df115dd8fa78a54",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "artifacts",
+      "route": "/artifacts",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "a[aria-label=\"Artifact ID mock-artifact-1\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/artifacts-1280x720.png",
+      "status": "ok",
+      "sha256": "c540424cc6c0569dd5a27da37ecd0fa1bee0691575c10fb1f55b560ce936c033",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "archived-runs-empty",
+      "route": "/archive/runs",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=No archived runs found.",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/archived-runs-empty-1280x720.png",
+      "status": "ok",
+      "sha256": "406e90d7e181b50c678ac889b01da3e63a519c802fcc922135255e3c7607518b",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "archived-experiments",
+      "route": "/archive/experiments",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "a[href=\"#/experiments/details/archived-experiment\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/archived-experiments-1280x720.png",
+      "status": "ok",
+      "sha256": "c8fbe0c7330636e3536f2bc98894e64c17d879f133bd07b670ca66873789246a",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "frontend-features",
+      "route": "/frontend_features",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=Feature Flag Name",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/frontend-features-1280x720.png",
+      "status": "ok",
+      "sha256": "82ec7b9ccb1f2a535ee54f9cd9718a62219cda7464ebe149865313abdae2a85a",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "getting-started",
+      "route": "/start",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": ".kfp-start-page h2",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/getting-started-1280x720.png",
+      "status": "ok",
+      "sha256": "ec47b4ee5d8de5912b7c5f5ef851befda37e298a410494885e0feabd31865d8e",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "pipeline-details",
+      "route": "/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1460/version/8fbe3bd6-a01f-11e8-98d0-529269fb1460",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "[data-testid=\"pipeline-detail-v2\"] .react-flow__node",
+      "waitForTimeoutMs": 1000,
+      "fitGraph": true,
+      "filePath": "screenshots/pipeline-details-1280x720.png",
+      "status": "ok",
+      "sha256": "89cb962c46898780e58199d431a0392171edddd4d44b44ce2503e6b403cc3581",
+      "repeatability": "reference-only"
+    },
+    {
+      "name": "pipeline-loops",
+      "route": "/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1461",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "[data-testid=\"pipeline-detail-v2\"] .react-flow__node",
+      "waitForTimeoutMs": 1000,
+      "fitGraph": true,
+      "filePath": "screenshots/pipeline-loops-1280x720.png",
+      "status": "ok",
+      "sha256": "1110b0c2bac10a322f69e0ed5098dd0f869fcaf5dfff7519efe9683ed82bef67",
+      "repeatability": "reference-only"
+    },
+    {
+      "name": "experiment-details",
+      "route": "/experiments/details/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/experiment-details-1280x720.png",
+      "status": "ok",
+      "sha256": "8e5899637ac4e5ae9cc43cd0d6a9e9263af927b9bf9ecf7f1da2c51af67c3cb2",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "experiment-empty",
+      "route": "/experiments/details/empty-experiment",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=No available runs found for this experiment.",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/experiment-empty-1280x720.png",
+      "status": "ok",
+      "sha256": "abd4098a13b2f3e1cdd39e4735e4fb430565956c7460aad5b59fd97149d915fc",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "run-details",
+      "route": "/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "[data-testid=\"DagCanvas\"] .react-flow__node[data-id=\"task.chicago-taxi-trips-dataset\"]",
+      "waitForTimeoutMs": 1000,
+      "fitGraph": true,
+      "filePath": "screenshots/run-details-1280x720.png",
+      "status": "ok",
+      "sha256": "385b75c0a576b6d13940e8b39e72a3d9566990afb94767440b541bba554c703d",
+      "repeatability": "reference-only"
+    },
+    {
+      "name": "run-task",
+      "route": "/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b?task=mock-task-consumer",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=Task Details",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/run-task-1280x720.png",
+      "status": "ok",
+      "sha256": "1f32b3985f1531c32b33623a1bea25e54a7521217219f5ef7b0f3b97f0239bbf",
+      "repeatability": "reference-only"
+    },
+    {
+      "name": "recurring-run-details",
+      "route": "/recurringrun/details/mock-recurring-0",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=Recurring run details",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/recurring-run-details-1280x720.png",
+      "status": "ok",
+      "sha256": "94592ab18ed1bd3933a924cf4039bfbf7dead2260a3443e3cf5226c177b38d1c",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "artifact-details",
+      "route": "/artifacts/mock-artifact-1",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=Artifact details",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/artifact-details-1280x720.png",
+      "status": "ok",
+      "sha256": "ae8a6aa120fc34e616b871358c284846745813128e6767d8e2ac03485eab7dc1",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "artifact-related-tasks",
+      "route": "/artifacts/mock-artifact-1/lineage",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "a[href=\"#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b?task=mock-task-producer\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/artifact-related-tasks-1280x720.png",
+      "status": "ok",
+      "sha256": "69e141a8c70a7601b356d6a6f06a70d2cf3faab1371c513a7b48e8cedff7b59c",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "artifact-lineage",
+      "route": "/artifacts/mock-artifact-1/explorer",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "section[aria-label=\"Producer Chicago taxi trips dataset\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/artifact-lineage-1280x720.png",
+      "status": "ok",
+      "sha256": "a420bd5dfbb141a401aa009468169341a45ac8bff456694c77af62ab0092d2a2",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "compare",
+      "route": "/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=There are no parameters available on the selected runs.",
+      "waitForTimeoutMs": 1000,
+      "waitForSelectors": [
+        "[data-run-id=\"mock-run-0\"][data-run-name=\"Python two steps\"]",
+        "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"][data-run-name=\"v2-xgboost-ilbo\"]"
+      ],
+      "failOnRequestErrors": ["/apis/v2beta1/runs/", "/apis/v2beta1/experiments/"],
+      "failOnPageErrors": true,
+      "filePath": "screenshots/compare-1280x720.png",
+      "status": "ok",
+      "sha256": "986a1414d6b5b90dac4df627464c43ff42bf47e87d1d6faceaa996befd17f27a",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "new-experiment",
+      "route": "/experiments/new",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "#experimentName",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/new-experiment-1280x720.png",
+      "status": "ok",
+      "sha256": "f6eadb314ca26358cd5f94438413d0acfdbb72402c93524551556b7b58a4f0d8",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "upload-pipeline",
+      "route": "/pipeline_versions/new",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "[data-testid=\"uploadFileInput\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/upload-pipeline-1280x720.png",
+      "status": "ok",
+      "sha256": "405bb797496d6e69624b952c5640aad611ebbb52a3d73fe15338c5d6d0719fce",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "new-run",
+      "route": "/runs/new",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "#startNewRunBtn",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/new-run-1280x720.png",
+      "status": "ok",
+      "sha256": "af83fb37c214b23d067e9675942c7ec0199bc01710b165d89738fd61a41d9f84",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "new-run-configured",
+      "route": "/runs/new?pipelineId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&pipelineVersionId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&experimentId=275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=Specify parameters required by the pipeline",
+      "waitForTimeoutMs": 1000,
+      "fillFields": [
+        {
+          "label": "Run name",
+          "value": "Run of default version (baseline)"
+        }
+      ],
+      "filePath": "screenshots/new-run-configured-1280x720.png",
+      "status": "ok",
+      "sha256": "f6492b785bc85268b4b0d6de24572fa81ff028d95ce7d7c3d6e067b0fe8f4f1d",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "new-recurring-run",
+      "route": "/runs/new?pipelineId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&pipelineVersionId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&experimentId=275ea11d-ac63-4ce3-bc33-ec81981ed56b&recurring=1",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "waitForSelector": "text=Run trigger",
+      "waitForTimeoutMs": 1000,
+      "fillFields": [
+        {
+          "label": "Recurring run config name",
+          "value": "Recurring run of default version (baseline)"
+        }
+      ],
+      "filePath": "screenshots/new-recurring-run-1280x720.png",
+      "status": "ok",
+      "sha256": "906d284eaab84b2266b328355c5656896f49836c26ce6bfaf11af3c82ebc4510",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "pipelines",
+      "route": "/pipelines",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "a[href=\"#/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1460\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/pipelines-900x900.png",
+      "status": "ok",
+      "sha256": "6fdf333d242f6a85bec7746c470d6672953d515d8c2e7ca3c33f0b7ddbbea5f6",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "experiments",
+      "route": "/experiments",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "[data-experiment-id=\"275ea11d-ac63-4ce3-bc33-ec81981ed56b\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/experiments-900x900.png",
+      "status": "ok",
+      "sha256": "2b1582296fc68fc70eb45d3fe540eb9aaf6a669e4d80c7c9d4eb1153b7cb9999",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "runs",
+      "route": "/runs",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/runs-900x900.png",
+      "status": "ok",
+      "sha256": "3ef5b297690fcde2ee84cf52865ad17c7b9b0e43e470bfa3353f66107e038c45",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "recurring-runs",
+      "route": "/recurringruns",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "a[href=\"#/recurringrun/details/mock-recurring-0\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/recurring-runs-900x900.png",
+      "status": "ok",
+      "sha256": "de640361dd95bd37d14b3d114e13f747c85abdf1f579becee265f96551198a01",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "artifacts",
+      "route": "/artifacts",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "a[aria-label=\"Artifact ID mock-artifact-1\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/artifacts-900x900.png",
+      "status": "ok",
+      "sha256": "a913dd4eb611e94387e9350d0b918c29a7fdeb68fc8af84d0b5e0ba460eb4e81",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "archived-runs-empty",
+      "route": "/archive/runs",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=No archived runs found.",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/archived-runs-empty-900x900.png",
+      "status": "ok",
+      "sha256": "73022c9b31ee124a2db9ea5719f1b0254e58c0f32404bb1beeb3ea2d935266c2",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "archived-experiments",
+      "route": "/archive/experiments",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "a[href=\"#/experiments/details/archived-experiment\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/archived-experiments-900x900.png",
+      "status": "ok",
+      "sha256": "2b5b466ff68cbeb5eaf8b6fe09d90e334827d1063daacbfeebbeb7ee2d84dc20",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "frontend-features",
+      "route": "/frontend_features",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=Feature Flag Name",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/frontend-features-900x900.png",
+      "status": "ok",
+      "sha256": "301e9365db9d7297f92eecefb940aa18d93d59494c68a9bfabaedc0bac53d1e7",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "getting-started",
+      "route": "/start",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": ".kfp-start-page h2",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/getting-started-900x900.png",
+      "status": "ok",
+      "sha256": "71c2fdbd116c1955c5fd6e195b7acd50037b0728c353b643c95def056bcfd276",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "pipeline-details",
+      "route": "/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1460/version/8fbe3bd6-a01f-11e8-98d0-529269fb1460",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "[data-testid=\"pipeline-detail-v2\"] .react-flow__node",
+      "waitForTimeoutMs": 1000,
+      "fitGraph": true,
+      "filePath": "screenshots/pipeline-details-900x900.png",
+      "status": "ok",
+      "sha256": "6d090c8279a56bb4921bed2e1c71c8f5c8c5d7deb262e353d654671ec72fad5c",
+      "repeatability": "reference-only"
+    },
+    {
+      "name": "pipeline-loops",
+      "route": "/pipelines/details/8fbe3bd6-a01f-11e8-98d0-529269fb1461",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "[data-testid=\"pipeline-detail-v2\"] .react-flow__node",
+      "waitForTimeoutMs": 1000,
+      "fitGraph": true,
+      "filePath": "screenshots/pipeline-loops-900x900.png",
+      "status": "ok",
+      "sha256": "4b9fdbde20556067a860534bdd2d384d3e2a8e44ae49caaea01960377afe8be9",
+      "repeatability": "reference-only"
+    },
+    {
+      "name": "experiment-details",
+      "route": "/experiments/details/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/experiment-details-900x900.png",
+      "status": "ok",
+      "sha256": "4f47828445567fae5351ae97ee02b66b4289526b03f66d02decfb90dabe18608",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "experiment-empty",
+      "route": "/experiments/details/empty-experiment",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=No available runs found for this experiment.",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/experiment-empty-900x900.png",
+      "status": "ok",
+      "sha256": "c274744655e60a6faaed75ed62977bda0ecf8cfd5d32b4b2a1bc381d6e802114",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "run-details",
+      "route": "/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "[data-testid=\"DagCanvas\"] .react-flow__node[data-id=\"task.chicago-taxi-trips-dataset\"]",
+      "waitForTimeoutMs": 1000,
+      "fitGraph": true,
+      "filePath": "screenshots/run-details-900x900.png",
+      "status": "ok",
+      "sha256": "7ef85f405bd8ea1d87a8bfc30a86f9af746ee6d21bec07e7baf35fb5cf60eed8",
+      "repeatability": "reference-only"
+    },
+    {
+      "name": "run-task",
+      "route": "/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b?task=mock-task-consumer",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=Task Details",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/run-task-900x900.png",
+      "status": "ok",
+      "sha256": "d9416276ecb60e7884e82835cf5e57e8c659f41de7a7cbd34bc92030a0d131df",
+      "repeatability": "reference-only"
+    },
+    {
+      "name": "recurring-run-details",
+      "route": "/recurringrun/details/mock-recurring-0",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=Recurring run details",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/recurring-run-details-900x900.png",
+      "status": "ok",
+      "sha256": "611120e6bb9fcd66e12fee4a58e727b17f8a0213291e3f6e4e6cf35f1b996c7d",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "artifact-details",
+      "route": "/artifacts/mock-artifact-1",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=Artifact details",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/artifact-details-900x900.png",
+      "status": "ok",
+      "sha256": "34e8e29a52cd96e90b5906e746f95c8f998dabc10337df6d2527b4d6e62d59df",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "artifact-related-tasks",
+      "route": "/artifacts/mock-artifact-1/lineage",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "a[href=\"#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b?task=mock-task-producer\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/artifact-related-tasks-900x900.png",
+      "status": "ok",
+      "sha256": "2e3fb466c670dd29e917be302281518d77b91b01da00bdadd52bffd3d7cd4a8d",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "artifact-lineage",
+      "route": "/artifacts/mock-artifact-1/explorer",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "section[aria-label=\"Producer Chicago taxi trips dataset\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/artifact-lineage-900x900.png",
+      "status": "ok",
+      "sha256": "5d062824359c256d44f28456876026294b5eb845e756e67c8a8df264200c53b7",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "compare",
+      "route": "/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=There are no parameters available on the selected runs.",
+      "waitForTimeoutMs": 1000,
+      "waitForSelectors": [
+        "[data-run-id=\"mock-run-0\"][data-run-name=\"Python two steps\"]",
+        "[data-run-id=\"e0115ac1-0479-4194-a22d-01e65e09a32b\"][data-run-name=\"v2-xgboost-ilbo\"]"
+      ],
+      "failOnRequestErrors": ["/apis/v2beta1/runs/", "/apis/v2beta1/experiments/"],
+      "failOnPageErrors": true,
+      "filePath": "screenshots/compare-900x900.png",
+      "status": "ok",
+      "sha256": "027b24898028d9f4d663578bfbd60007401b1c87b6e4f462f8fa76047cbd96b0",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "new-experiment",
+      "route": "/experiments/new",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "#experimentName",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/new-experiment-900x900.png",
+      "status": "ok",
+      "sha256": "7c655aa98a16b69227c0dbf073ceb021b5ca65695607de070a999f91351cddfd",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "upload-pipeline",
+      "route": "/pipeline_versions/new",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "[data-testid=\"uploadFileInput\"]",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/upload-pipeline-900x900.png",
+      "status": "ok",
+      "sha256": "410f93b614acc59f62e703d177c078a001f0376db3ff422df8a71f2da99faaf5",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "new-run",
+      "route": "/runs/new",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "#startNewRunBtn",
+      "waitForTimeoutMs": 1000,
+      "filePath": "screenshots/new-run-900x900.png",
+      "status": "ok",
+      "sha256": "e56200f36519976acb6b845c87627d5f9668ee92410e8ef5a2b038fd7a003da4",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "new-run-configured",
+      "route": "/runs/new?pipelineId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&pipelineVersionId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&experimentId=275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=Specify parameters required by the pipeline",
+      "waitForTimeoutMs": 1000,
+      "fillFields": [
+        {
+          "label": "Run name",
+          "value": "Run of default version (baseline)"
+        }
+      ],
+      "filePath": "screenshots/new-run-configured-900x900.png",
+      "status": "ok",
+      "sha256": "ded50e0ae485fd1f108aa6ccbf202097d0ba6521e0759b773cd239ecbe0611d1",
+      "repeatability": "byte-identical"
+    },
+    {
+      "name": "new-recurring-run",
+      "route": "/runs/new?pipelineId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&pipelineVersionId=8fbe3bd6-a01f-11e8-98d0-529269fb1460&experimentId=275ea11d-ac63-4ce3-bc33-ec81981ed56b&recurring=1",
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "waitForSelector": "text=Run trigger",
+      "waitForTimeoutMs": 1000,
+      "fillFields": [
+        {
+          "label": "Recurring run config name",
+          "value": "Recurring run of default version (baseline)"
+        }
+      ],
+      "filePath": "screenshots/new-recurring-run-900x900.png",
+      "status": "ok",
+      "sha256": "ce9edb53940da3109a1ad3fd620638f5a9d1ce8f60b01e343c6a1dbf4464a889",
+      "repeatability": "byte-identical"
+    }
+  ],
+  "sourceCommit": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+  "fullPage": true,
+  "capturedAt": "2026-09-26",
+  "pathResolution": "filePath is relative to frontend/docs/ui-modernization; routesPath is relative to repository root.",
+  "captureBatches": [
+    {
+      "routes": "All 25 routes at both widths; then the three unfocused graph routes recaptured with fitGraph enabled.",
+      "date": "2026-09-26"
+    }
+  ]
+}

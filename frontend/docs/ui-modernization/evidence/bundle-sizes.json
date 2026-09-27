@@ -1,0 +1,76 @@
+{
+  "sourceCommit": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+  "node": "v24.14.0",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "method": "Production npm run build. Compression is per-file offline size (gzip level 9, Node Brotli defaults), not measured HTTP transfer; sourcemaps and analyzer report excluded.",
+  "groups": {
+    "html": {
+      "files": 1,
+      "bytes": 1388,
+      "gzipBytes": 777,
+      "brotliBytes": 515
+    },
+    "png": {
+      "files": 1,
+      "bytes": 4268,
+      "gzipBytes": 4045,
+      "brotliBytes": 3884
+    },
+    "ico": {
+      "files": 1,
+      "bytes": 5653,
+      "gzipBytes": 5676,
+      "brotliBytes": 5657
+    },
+    "css": {
+      "files": 1,
+      "bytes": 28104,
+      "gzipBytes": 5521,
+      "brotliBytes": 4879
+    },
+    "js": {
+      "files": 1,
+      "bytes": 2803952,
+      "gzipBytes": 780136,
+      "brotliBytes": 630132
+    }
+  },
+  "assets": [
+    {
+      "path": "index.html",
+      "bytes": 1388,
+      "gzipBytes": 777,
+      "brotliBytes": 515,
+      "sha256": "2b522c6931acdcc51150adfa9e149040f094e699a2414a2269cdc7755d898738"
+    },
+    {
+      "path": "static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+      "bytes": 4268,
+      "gzipBytes": 4045,
+      "brotliBytes": 3884,
+      "sha256": "7898110808edb63a715e399ebd3c9bd0281520c5e404a8820f91abffdd7da7e6"
+    },
+    {
+      "path": "static/favicon.ico",
+      "bytes": 5653,
+      "gzipBytes": 5676,
+      "brotliBytes": 5657,
+      "sha256": "792f3f1737b381689c7cf3618fa30492cdf8cfd5ccbd1e5112d6c08db5419efd"
+    },
+    {
+      "path": "static/index-BxIXFz_o.css",
+      "bytes": 28104,
+      "gzipBytes": 5521,
+      "brotliBytes": 4879,
+      "sha256": "548147ec2665ab9307e8bca328dfc51b2411f6e004023890ef6144f203f7f03c"
+    },
+    {
+      "path": "static/index-DgtN70-0.js",
+      "bytes": 2803952,
+      "gzipBytes": 780136,
+      "brotliBytes": 630132,
+      "sha256": "17cd40de4ada67a7f8dc4b6b3e55578adaa4064bae817068c330cdf554068024"
+    }
+  ]
+}

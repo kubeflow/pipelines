@@ -24,7 +24,7 @@ function toSlug(input) {
 }
 
 function parseViewports(value) {
-  return value.split(',').map(entry => {
+  return value.split(',').map((entry) => {
     const [width, height] = entry.split('x').map(Number);
     if (!width || !height) {
       throw new Error(`Invalid viewport "${entry}". Use WIDTHxHEIGHT, e.g. 1280x720.`);
@@ -39,21 +39,64 @@ function buildUrl(baseUrl, routePath) {
   return `${base}/${hashPath}`;
 }
 
-function loadRoutes(routesPath) {
-  const content = fs.readFileSync(routesPath, 'utf8');
-  const routes = JSON.parse(content);
-  if (!Array.isArray(routes)) {
-    throw new Error(`Routes file must be an array: ${routesPath}`);
+export function loadRoutes(routesPath) {
+  const routes = JSON.parse(fs.readFileSync(routesPath, 'utf8'));
+  if (!Array.isArray(routes) || routes.length === 0) {
+    throw new Error(`Routes file must be a nonempty array: ${routesPath}`);
   }
-  return routes.map(route => ({
-    name: route.name || route.path,
-    path: route.path,
-    waitForSelector: route.waitForSelector,
-    waitForTimeoutMs: route.waitForTimeoutMs,
-  }));
+  const names = new Set();
+  return routes.map((route) => {
+    if (!route || typeof route.path !== 'string' || !route.path.startsWith('/')) {
+      throw new Error('Each capture route must have a path beginning with /.');
+    }
+    const name = route.name || route.path;
+    if (typeof name !== 'string' || !toSlug(name) || names.has(toSlug(name))) {
+      throw new Error(`Capture route names must produce unique filenames: ${name}`);
+    }
+    names.add(toSlug(name));
+    for (const key of ['waitForSelectors', 'failOnRequestErrors']) {
+      if (
+        route[key] !== undefined &&
+        (!Array.isArray(route[key]) ||
+          route[key].some((value) => typeof value !== 'string' || !value))
+      ) {
+        throw new Error(`${key} must be an array of nonempty strings: ${name}`);
+      }
+    }
+    if (
+      route.fillFields !== undefined &&
+      (!Array.isArray(route.fillFields) ||
+        route.fillFields.some(
+          (field) =>
+            !field ||
+            typeof field.label !== 'string' ||
+            !field.label ||
+            typeof field.value !== 'string',
+        ))
+    ) {
+      throw new Error(`fillFields must contain textbox labels and string values: ${name}`);
+    }
+    if (route.failOnPageErrors !== undefined && typeof route.failOnPageErrors !== 'boolean') {
+      throw new Error(`failOnPageErrors must be a boolean: ${name}`);
+    }
+    if (route.fitGraph !== undefined && typeof route.fitGraph !== 'boolean') {
+      throw new Error(`fitGraph must be a boolean: ${name}`);
+    }
+    return {
+      name,
+      path: route.path,
+      waitForSelector: route.waitForSelector,
+      waitForTimeoutMs: route.waitForTimeoutMs,
+      waitForSelectors: route.waitForSelectors,
+      fillFields: route.fillFields,
+      fitGraph: route.fitGraph,
+      failOnRequestErrors: route.failOnRequestErrors,
+      failOnPageErrors: route.failOnPageErrors,
+    };
+  });
 }
 
-async function captureScreenshots({
+export async function captureScreenshots({
   baseUrl,
   outDir,
   routesPath,
@@ -61,48 +104,195 @@ async function captureScreenshots({
   defaultWaitFor,
   defaultWaitMs,
   fullPage,
+  fixedTime,
+  browserType = chromium,
 }) {
   const routes = loadRoutes(routesPath);
+  if (
+    fixedTime &&
+    (Number.isNaN(Date.parse(fixedTime)) ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(fixedTime))
+  ) {
+    throw new Error(`Invalid fixed time: ${fixedTime}`);
+  }
   ensureDir(outDir);
-  const browser = await chromium.launch();
+  const manifestPath = path.join(outDir, 'capture-results.json');
+  fs.rmSync(manifestPath, { force: true });
+  const browser = await browserType.launch();
   const results = [];
+  const contextOptions = {
+    locale: 'en-US',
+    timezoneId: 'UTC',
+    colorScheme: 'light',
+    reducedMotion: 'reduce',
+  };
 
-  for (const viewport of viewports) {
-    const page = await browser.newPage({ viewport });
-    for (const route of routes) {
-      const url = buildUrl(baseUrl, route.path);
-      const slug = toSlug(route.name || route.path);
-      const fileName = `${slug}-${viewport.width}x${viewport.height}.png`;
-      const filePath = path.join(outDir, fileName);
-      const waitForSelector = route.waitForSelector || defaultWaitFor;
-      const waitForTimeoutMs =
-        route.waitForTimeoutMs !== undefined ? route.waitForTimeoutMs : defaultWaitMs;
+  try {
+    for (const viewport of viewports) {
+      for (const route of routes) {
+        const url = buildUrl(baseUrl, route.path);
+        const fileName = `${toSlug(route.name)}-${viewport.width}x${viewport.height}.png`;
+        const filePath = path.join(outDir, fileName);
+        const waitForSelector = route.waitForSelector || defaultWaitFor;
+        const waitForTimeoutMs = route.waitForTimeoutMs ?? defaultWaitMs;
+        const setup = {
+          waitForSelectors: route.waitForSelectors,
+          fillFields: route.fillFields,
+          fitGraph: route.fitGraph,
+          failOnRequestErrors: route.failOnRequestErrors,
+          failOnPageErrors: route.failOnPageErrors,
+        };
+        const pageErrors = [];
+        let page;
 
-      try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await page.addStyleTag({
-          content: '*{animation:none !important; transition:none !important;}',
-        });
-        if (waitForSelector) {
-          await page.waitForSelector(waitForSelector, { timeout: 60000 });
+        // A failed recapture must never leave a previous screenshot looking current.
+        fs.rmSync(filePath, { force: true });
+        try {
+          // Isolate storage, query caches, and route state between captures.
+          page = await browser.newPage({ viewport, ...contextOptions });
+          // Error checks are opt-in per route: some deployment pages intentionally probe
+          // endpoints that can return 404, and error-state captures need those responses.
+          if (route.failOnPageErrors) {
+            page.on('pageerror', (error) => pageErrors.push(`Page error: ${error.message}`));
+          }
+          if (route.failOnRequestErrors?.length) {
+            const deploymentUrl = new URL(baseUrl);
+            const deploymentPath = deploymentUrl.pathname.replace(/\/+$/, '');
+            const checkedPath = (requestUrl) => {
+              const parsed = new URL(requestUrl);
+              if (
+                parsed.origin !== deploymentUrl.origin ||
+                !parsed.pathname.startsWith(`${deploymentPath}/`)
+              ) {
+                return undefined;
+              }
+              const relativePath = parsed.pathname.slice(deploymentPath.length);
+              return route.failOnRequestErrors.some((prefix) => relativePath.startsWith(prefix))
+                ? parsed.pathname
+                : undefined;
+            };
+            page.on('response', (response) => {
+              const pathname = checkedPath(response.url());
+              if (pathname && response.status() >= 400) {
+                pageErrors.push(`HTTP ${response.status()}: ${pathname}`);
+              }
+            });
+            page.on('requestfailed', (request) => {
+              const pathname = checkedPath(request.url());
+              if (pathname) {
+                pageErrors.push(
+                  `Request failed: ${pathname}: ${request.failure()?.errorText || 'unknown error'}`,
+                );
+              }
+            });
+          }
+          if (fixedTime) {
+            await page.clock.setFixedTime(new Date(fixedTime));
+          }
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+          await page.addStyleTag({
+            content: '*{animation:none !important; transition:none !important;}',
+          });
+          if (waitForSelector) {
+            await page.waitForSelector(waitForSelector, { timeout: 60000 });
+          }
+          for (const selector of route.waitForSelectors || []) {
+            await page.waitForSelector(selector, { timeout: 60000 });
+          }
+          for (const field of route.fillFields || []) {
+            await page.getByRole('textbox', { name: field.label }).fill(field.value);
+          }
+          await page.evaluate(() => document.fonts.ready);
+          if (route.fitGraph) {
+            // React Flow hides nodes until its ResizeObserver has measured them. Fit
+            // through the existing control after that measurement and font loading,
+            // rather than preserving an onInit viewport based on transient dimensions.
+            await page.waitForFunction(
+              () => {
+                const nodes = [
+                  ...document.querySelectorAll('[data-testid="DagCanvas"] .react-flow__node'),
+                ];
+                return (
+                  nodes.length > 0 &&
+                  nodes.every(
+                    (node) =>
+                      node.offsetWidth > 0 &&
+                      node.offsetHeight > 0 &&
+                      getComputedStyle(node).visibility !== 'hidden',
+                  )
+                );
+              },
+              undefined,
+              { timeout: 60000 },
+            );
+            await page.locator('[data-testid="DagCanvas"] .react-flow__controls-fitview').click();
+          }
+          if (waitForTimeoutMs) {
+            await page.waitForTimeout(waitForTimeoutMs);
+          }
+          if (pageErrors.length) {
+            throw new Error(pageErrors.join('; '));
+          }
+          await page.screenshot({ path: filePath, fullPage, animations: 'disabled' });
+          if (pageErrors.length) {
+            throw new Error(pageErrors.join('; '));
+          }
+          results.push({
+            name: route.name,
+            route: route.path,
+            viewport,
+            waitForSelector,
+            waitForTimeoutMs,
+            ...setup,
+            filePath,
+            status: 'ok',
+          });
+          // eslint-disable-next-line no-console
+          console.log(`Captured ${url} -> ${filePath}`);
+        } catch (error) {
+          fs.rmSync(filePath, { force: true });
+          results.push({
+            name: route.name,
+            route: route.path,
+            viewport,
+            waitForSelector,
+            waitForTimeoutMs,
+            ...setup,
+            filePath,
+            status: 'error',
+            error: String(error),
+          });
+          // eslint-disable-next-line no-console
+          console.error(`Failed to capture ${url}: ${error}`);
+        } finally {
+          await page?.close();
         }
-        if (waitForTimeoutMs) {
-          await page.waitForTimeout(waitForTimeoutMs);
-        }
-        await page.screenshot({ path: filePath, fullPage });
-        results.push({ route: route.path, filePath, status: 'ok' });
-        // eslint-disable-next-line no-console
-        console.log(`Captured ${url} -> ${filePath}`);
-      } catch (error) {
-        results.push({ route: route.path, filePath, status: 'error', error: String(error) });
-        // eslint-disable-next-line no-console
-        console.error(`Failed to capture ${url}: ${error}`);
       }
     }
-    await page.close();
+  } finally {
+    fs.writeFileSync(
+      manifestPath,
+      JSON.stringify(
+        {
+          baseUrl,
+          routesPath,
+          browser: browser.version(),
+          ...contextOptions,
+          fixedTime,
+          fullPage,
+          results,
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+    await browser.close();
   }
 
-  await browser.close();
+  const failures = results.filter((result) => result.status === 'error');
+  if (failures.length) {
+    throw new Error(`${failures.length} screenshot capture(s) failed. See ${manifestPath}`);
+  }
   return results;
 }
 
@@ -242,6 +432,7 @@ async function run() {
       viewports: { type: 'string', default: '1280x720' },
       'wait-for': { type: 'string', default: '#root' },
       'wait-ms': { type: 'string', default: '1000' },
+      'fixed-time': { type: 'string' },
       'full-page': { type: 'boolean', default: true },
       'include-diff': { type: 'boolean', default: false },
       'fail-on-diff': { type: 'boolean', default: false },
@@ -261,6 +452,7 @@ Optional flags:
   --viewports 1280x720,375x812   (default: 1280x720)
   --wait-for "#root"             (default: #root)
   --wait-ms 1000                 (default: 1000)
+  --fixed-time ISO_TIMESTAMP     (freeze Date while allowing timers to run)
   --full-page                    (default: true)
   --side-by-side-dir .visual/side-by-side
   --include-diff                 (include diff image as third panel)
@@ -281,6 +473,7 @@ Optional flags:
       defaultWaitFor: values['wait-for'],
       defaultWaitMs: Number(values['wait-ms']),
       fullPage: values['full-page'],
+      fixedTime: values['fixed-time'],
     });
     return;
   }
@@ -361,8 +554,10 @@ Optional flags:
   }
 }
 
-run().catch(error => {
-  // eslint-disable-next-line no-console
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  run().catch((error) => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
