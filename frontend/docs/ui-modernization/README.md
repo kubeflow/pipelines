@@ -6,6 +6,8 @@ The accompanying changes extend the existing screenshot harness and add the miss
 
 ## Evidence
 
+[Browser performance measurements](performance-baseline.md) add nine fresh-context load samples, three filter trials and one exploratory run/task interaction trace under recorded CPU/network conditions. These extend the initial capture with controlled lab evidence.
+
 | Artifact                                                                                        | Scope                                                                                                                                                                                                   |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Route/action/state inventory](route-inventory.md)                                              | 23 page routes, root redirect and not-found handling; artifact subviews, actions, state and URL/storage/integration contracts. Unchecked items are verification work, not missing product requirements. |
@@ -99,7 +101,7 @@ The [route manifest](../../scripts/visual-compare.routes.json) is the executable
 - [ ] Populate comparison parameters and metrics, ClassificationMetrics, HTML/Markdown/table viewers, multiple artifacts and missing/deleted provenance. Existing static viewer files are not wired native workflow evidence.
 - [ ] Exercise graph/task navigation, logs/events, form validation, upload, creation/cloning, archive/restore/delete, retry/terminate and schedule enable/disable against a seeded backend. Reuse the existing [interactive smoke harness](../../scripts/ui-smoke-test/README.md) rather than growing a second general action framework.
 - [ ] Qualify standalone and embedded multi-user namespace/permission behavior, shared pipelines and Kubernetes-backed pipeline storage. The default mock health response is single-user with database storage; artifact fixture endpoints ignore query filtering/paging.
-- [ ] Agree a versioned browser floor and measure representative initial load, list operations, graph/task navigation and comparison under fixed workload/network/CPU conditions. Record browser trace evidence and use it to set budgets. The current bundle-size data cannot close this gate.
+- [ ] Agree a versioned browser floor and measured performance budgets. The [initial browser baseline](performance-baseline.md) covers loads, filtering and exploratory run/task navigation; extend it to realistic workload sizes, repeated task navigation, selection and populated comparison before closing this gate.
 - [ ] Verify the previous UI image and modernized UI against the same backend, record immutable UI/backend identities, and rehearse rollback using the [deployment checklist](deployment-baseline.md). Registry resolution alone does not establish compatibility.
 
 The 900-pixel capture documents existing narrow layout, not mobile acceptance. Dark theme, keyboard/focus, contrast and broader responsive acceptance remain implementation/qualification work. KFP Local execution, SDKs and backend schemas are unchanged by this baseline; the KEP's no-migration requirement still applies to the eventual UI cutover.

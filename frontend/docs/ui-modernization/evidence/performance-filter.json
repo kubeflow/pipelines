@@ -1,0 +1,397 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+  "harnessCommit": "4699581fa9b4e2951105200724aa56e92c841791",
+  "sourceInputSha256": "dd330fcb48c2cd78ec186009b69eb58d35f0af35ebb318d601683957ccc69e46",
+  "route": "/#/runs",
+  "settings": {
+    "browser": "Chrome 154.0.0.0 (HeadlessChrome, reported by user agent)",
+    "chromeDevToolsMcp": "1.10.1",
+    "node": "24.14.0",
+    "npm": "11.17.0",
+    "vite": "8.0.16",
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "deviceScaleFactor": 1,
+      "isMobile": false,
+      "hasTouch": false,
+      "isLandscape": false
+    },
+    "cpuSlowdownMultiplier": 4,
+    "networkPreset": "Fast 4G",
+    "colorScheme": "light",
+    "language": "en-US",
+    "timezone": "America/New_York",
+    "serving": "Production build via Vite preview, native mock API, HTTP/1.1 loopback origin.",
+    "cacheMethod": "Same browser page/context reused; reload before each trial resets application/filter state. Wait for four rows and empty input before arming measurement. These are warm-page filter interactions, not fresh-context loads."
+  },
+  "protocol": {
+    "before": "Reload the Runs page, assert four run-name links and empty #tableFilterBox, then arm the listener and observer.",
+    "start": "An input listener creates filter-start only when the input value reaches xgboost; time spent typing earlier characters is outside filter-results.",
+    "ready": "A MutationObserver requires exactly one run-name link whose text includes xgboost, then waits two requestAnimationFrame callbacks and marks filter-ready.",
+    "measure": "performance.measure(\"filter-results\", \"filter-start\", \"filter-ready\")",
+    "scope": "Includes the existing 300 ms filter debounce, mock API requests, application rendering and the readiness-observer/two-frame boundary. This is a lab time-to-results measure, not INP or a field latency percentile.",
+    "retainedPostcondition": "The returned measurement records retain value=xgboost and rows=1. Four rows before filtering and matching row text were asserted by the collection protocol but are not stored as DOM snapshots in these artifacts.",
+    "independence": "Three separately reloaded trials; no claim of independent browser processes or real-user samples."
+  },
+  "metricDefinitions": {
+    "filterResultsReportedMs": "Duration returned by the browser User Timing measure filter-results, in milliseconds.",
+    "filterResultsTraceMs": "Difference between original filter-start and filter-ready trace timestamps; the paired filter-results trace begin/end timestamps match those marks exactly.",
+    "reportedMinusTraceMs": "Browser-reported measure duration minus trace mark duration. The observed differences are below 0.5 ms and are preserved rather than treated as exact equality.",
+    "observedInpReportedMs": "Rounded INP reported by Chrome DevTools MCP for the bounded typing trace (lab/observed only). This concerns the tool-selected typing interaction; it is not filter-result readiness, a full-session field INP measurement or a user-population percentile.",
+    "observedInpTraceDurationMs": "Duration of EventTiming events at the timestamp selected by the tool; rounds to the reported INP value.",
+    "clsReported": "Tool-reported CLS rounded to two decimal places; 0.00 does not prove zero layout shift.",
+    "network": "Requests/statuses and ResourceFinish byte fields come from trace events. They are not Navigation/Resource Timing transferSize totals and should not be compared as the same byte measure."
+  },
+  "validation": {
+    "samples": 3,
+    "samplesWithValueXgboostAndOneReturnedRow": 3,
+    "rawTraceFilesPresentDuringExtraction": 3,
+    "allMarkAndMeasureTraceEndpointsMatch": true,
+    "allBrowserAndTraceDurationsAgreeWithinMs": 0.5,
+    "allReportedInpMatchesRoundedSelectedEventTiming": true,
+    "traceResponseStatusCounts": {
+      "200": 6
+    },
+    "failedTraceRequests": 0,
+    "eachTraceContainsExpectedFilteredRunsAndExperimentsRequests": true
+  },
+  "filteredTraceArtifact": {
+    "path": "performance-filter-traces.json.gz",
+    "gzipSha256": "ad97cce4c42b443e5af1d336c3b1bcd49e3c0a20eae4e9bb4444dc55616e0584",
+    "jsonSha256": "52a817d6b0f9080b744b446bd6b45a12b200b033eb11e06d6b28d9553b043fef",
+    "gzipBytes": 7886,
+    "jsonBytes": 74800,
+    "originalGzipBytesTotal": 3912250,
+    "originalTraceEventsTotal": 27856,
+    "retainedTraceEventsTotal": 243,
+    "filterPolicy": {
+      "retainedEventNames": [
+        "EventTiming",
+        "LayoutShift",
+        "ResourceFinish",
+        "ResourceReceiveResponse",
+        "ResourceSendRequest",
+        "filter-ready",
+        "filter-results",
+        "filter-start"
+      ],
+      "retainedTopLevelEventFields": [
+        "cat",
+        "dur",
+        "id",
+        "id2",
+        "name",
+        "ph",
+        "pid",
+        "s",
+        "tdur",
+        "tid",
+        "ts",
+        "tts"
+      ],
+      "retainedArgsFields": ["callTime", "data", "frame", "startTime", "traceId"],
+      "retainedDataFields": [
+        "callTime",
+        "cancelable",
+        "candidateIndex",
+        "commitFinishTime",
+        "connectionReused",
+        "cumulative_score",
+        "decodedBodyLength",
+        "didFail",
+        "documentLoaderURL",
+        "duration",
+        "encodedDataLength",
+        "enqueuedToMainThreadTime",
+        "fetchPriorityHint",
+        "finishTime",
+        "frame",
+        "fromCache",
+        "fromServiceWorker",
+        "had_recent_input",
+        "headers",
+        "interactionId",
+        "interactionOffset",
+        "isLinkPreload",
+        "isLoadingMainFrame",
+        "isMainFrame",
+        "isOutermostMainFrame",
+        "is_main_frame",
+        "last_input_timestamp",
+        "mimeType",
+        "navigationId",
+        "nodeId",
+        "page",
+        "performanceTimelineNavigationId",
+        "priority",
+        "processingEnd",
+        "processingStart",
+        "protocol",
+        "renderBlocking",
+        "requestId",
+        "requestMethod",
+        "resourceType",
+        "score",
+        "size",
+        "startTime",
+        "statusCode",
+        "timeStamp",
+        "timing",
+        "type",
+        "url",
+        "weighted_score_delta"
+      ],
+      "retainedResponseHeaderNames": [
+        "cache-control",
+        "content-encoding",
+        "content-length",
+        "content-type",
+        "transfer-encoding",
+        "vary"
+      ],
+      "timingFields": "Numeric resource-response timing fields are preserved. EventTiming durations and processing timestamps are browser timing values in milliseconds; top-level trace timestamps remain microseconds. UserTiming marks and paired measure begin/end IDs are retained.",
+      "urlNormalization": "The local preview origin is removed; path, query and fragment are preserved.",
+      "excluded": "All other events/fields, CPU profiles, screenshots, netlog events, trace metadata, process command lines, stack traces, node names/geometry, unlisted response headers and local filesystem paths are omitted.",
+      "limits": "Filtered event extract, not a complete DevTools recording. Tool summary event keys refer to original event ordering. The trace contains the typing sequence; reported INP is the tool-selected observed interaction within that trace, not filter-result duration or field INP."
+    }
+  },
+  "aggregate": {
+    "sampleCount": 3,
+    "filterResultsReportedMs": {
+      "median": 693.7999999523163,
+      "min": 693.6999998092651,
+      "max": 695.5999999046326
+    },
+    "filterResultsTraceMs": {
+      "median": 693.811,
+      "min": 693.307,
+      "max": 695.445
+    },
+    "observedInpReportedMs": {
+      "median": 45,
+      "min": 42,
+      "max": 45
+    },
+    "observedInpTraceDurationMs": {
+      "median": 44.773,
+      "min": 41.593,
+      "max": 45.33
+    },
+    "clsReported": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "samples": [
+    {
+      "sampleId": "filter-1",
+      "sample": 1,
+      "postcondition": {
+        "measure": {
+          "name": "filter-results",
+          "start": 17058.300000190735,
+          "duration": 693.6999998092651
+        },
+        "value": "xgboost",
+        "rows": 1
+      },
+      "filterResultsReportedMs": 693.6999998092651,
+      "filterResultsTraceMs": 693.307,
+      "reportedMinusTraceMs": 0.39299980926512035,
+      "filterStartTraceTimestampUs": 1277637873401,
+      "filterReadyTraceTimestampUs": 1277638566708,
+      "observedInpReportedMs": 42,
+      "observedInpTraceDurationMs": 41.593,
+      "observedInpTraceTimestampUs": 1277637699814,
+      "observedInpEventTypes": ["keydown", "keypress"],
+      "clsReported": "0.00",
+      "requests": [
+        {
+          "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522name%2522%252C%2522operation%2522%253A%2522IS_SUBSTRING%2522%252C%2522string_value%2522%253A%2522xgboost%2522%257D%252C%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+          "requestId": "17342.49",
+          "requestTraceTimestampUs": 1277638194991,
+          "responseTraceTimestampUs": 1277638367832,
+          "finishTraceTimestampUs": 1277638369603,
+          "requestFromFilterStartMs": 321.59,
+          "statusCode": 200,
+          "fromCache": false,
+          "fromServiceWorker": false,
+          "resourceFinishData": {
+            "decodedBodyLength": 53509,
+            "didFail": false,
+            "encodedDataLength": 323,
+            "finishTime": 1277638.367771
+          }
+        },
+        {
+          "url": "/apis/v2beta1/experiments",
+          "requestId": "17342.50",
+          "requestTraceTimestampUs": 1277638370638,
+          "responseTraceTimestampUs": 1277638543187,
+          "finishTraceTimestampUs": 1277638543759,
+          "requestFromFilterStartMs": 497.237,
+          "statusCode": 200,
+          "fromCache": false,
+          "fromServiceWorker": false,
+          "resourceFinishData": {
+            "decodedBodyLength": 610,
+            "didFail": false,
+            "encodedDataLength": 322,
+            "finishTime": 1277638.542386
+          }
+        }
+      ],
+      "devToolsSummaryExcerpt": "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1277633661173µs, max: 1277647002999µs}\nMetrics (lab / observed):\n  - INP: 42 ms, event: (eventKey: s-6778, ts: 1277637699814)\n  - CLS: 0.00, event: (eventKey: s-4481, ts: 1277638564770)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "filter-1.json.gz",
+        "gzipSha256": "da239168d7df0aa3af9462390bca59a70669eeb19a3fc42f2af389e9a70903b2",
+        "jsonSha256": "e3fa2e27fa739f11b63e6ffa9e2c79ca7d172baa2ed5acbf7675da44535bbf60",
+        "gzipBytes": 1293754,
+        "jsonBytes": 6124704,
+        "traceEventCount": 9294
+      },
+      "filteredTraceSampleId": "filter-1"
+    },
+    {
+      "sampleId": "filter-2",
+      "sample": 2,
+      "postcondition": {
+        "measure": {
+          "name": "filter-results",
+          "start": 179573.90000009537,
+          "duration": 695.5999999046326
+        },
+        "value": "xgboost",
+        "rows": 1
+      },
+      "filterResultsReportedMs": 695.5999999046326,
+      "filterResultsTraceMs": 695.445,
+      "reportedMinusTraceMs": 0.15499990463251834,
+      "filterStartTraceTimestampUs": 1277830720735,
+      "filterReadyTraceTimestampUs": 1277831416180,
+      "observedInpReportedMs": 45,
+      "observedInpTraceDurationMs": 45.33,
+      "observedInpTraceTimestampUs": 1277830537577,
+      "observedInpEventTypes": ["keydown", "keypress"],
+      "clsReported": "0.00",
+      "requests": [
+        {
+          "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522name%2522%252C%2522operation%2522%253A%2522IS_SUBSTRING%2522%252C%2522string_value%2522%253A%2522xgboost%2522%257D%252C%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+          "requestId": "17342.64",
+          "requestTraceTimestampUs": 1277831041590,
+          "responseTraceTimestampUs": 1277831215322,
+          "finishTraceTimestampUs": 1277831217581,
+          "requestFromFilterStartMs": 320.855,
+          "statusCode": 200,
+          "fromCache": false,
+          "fromServiceWorker": false,
+          "resourceFinishData": {
+            "decodedBodyLength": 53509,
+            "didFail": false,
+            "encodedDataLength": 323,
+            "finishTime": 1277831.215077
+          }
+        },
+        {
+          "url": "/apis/v2beta1/experiments",
+          "requestId": "17342.65",
+          "requestTraceTimestampUs": 1277831218934,
+          "responseTraceTimestampUs": 1277831387787,
+          "finishTraceTimestampUs": 1277831388623,
+          "requestFromFilterStartMs": 498.199,
+          "statusCode": 200,
+          "fromCache": false,
+          "fromServiceWorker": false,
+          "resourceFinishData": {
+            "decodedBodyLength": 610,
+            "didFail": false,
+            "encodedDataLength": 322,
+            "finishTime": 1277831.38769
+          }
+        }
+      ],
+      "devToolsSummaryExcerpt": "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1277826584061µs, max: 1277838234354µs}\nMetrics (lab / observed):\n  - INP: 45 ms, event: (eventKey: s-6804, ts: 1277830537577)\n  - CLS: 0.00, event: (eventKey: s-4689, ts: 1277831414135)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "filter-2.json.gz",
+        "gzipSha256": "bc4ba695f3696443981af937ee7fe0a1b90039524b02964cf26e0bcb16174058",
+        "jsonSha256": "d86e31a4cfa3121b122156f50b6693675cfdff7595f21012e5e9075b60d1503b",
+        "gzipBytes": 1279432,
+        "jsonBytes": 6070631,
+        "traceEventCount": 9204
+      },
+      "filteredTraceSampleId": "filter-2"
+    },
+    {
+      "sampleId": "filter-3",
+      "sample": 3,
+      "postcondition": {
+        "measure": {
+          "name": "filter-results",
+          "start": 14448.299999952316,
+          "duration": 693.7999999523163
+        },
+        "value": "xgboost",
+        "rows": 1
+      },
+      "filterResultsReportedMs": 693.7999999523163,
+      "filterResultsTraceMs": 693.811,
+      "reportedMinusTraceMs": -0.01100004768375129,
+      "filterStartTraceTimestampUs": 1277855613315,
+      "filterReadyTraceTimestampUs": 1277856307126,
+      "observedInpReportedMs": 45,
+      "observedInpTraceDurationMs": 44.773,
+      "observedInpTraceTimestampUs": 1277855436657,
+      "observedInpEventTypes": ["keydown", "keypress"],
+      "clsReported": "0.00",
+      "requests": [
+        {
+          "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522name%2522%252C%2522operation%2522%253A%2522IS_SUBSTRING%2522%252C%2522string_value%2522%253A%2522xgboost%2522%257D%252C%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+          "requestId": "17342.79",
+          "requestTraceTimestampUs": 1277855932234,
+          "responseTraceTimestampUs": 1277856101688,
+          "finishTraceTimestampUs": 1277856103282,
+          "requestFromFilterStartMs": 318.919,
+          "statusCode": 200,
+          "fromCache": false,
+          "fromServiceWorker": false,
+          "resourceFinishData": {
+            "decodedBodyLength": 53509,
+            "didFail": false,
+            "encodedDataLength": 323,
+            "finishTime": 1277856.101171
+          }
+        },
+        {
+          "url": "/apis/v2beta1/experiments",
+          "requestId": "17342.80",
+          "requestTraceTimestampUs": 1277856104228,
+          "responseTraceTimestampUs": 1277856276395,
+          "finishTraceTimestampUs": 1277856276919,
+          "requestFromFilterStartMs": 490.913,
+          "statusCode": 200,
+          "fromCache": false,
+          "fromServiceWorker": false,
+          "resourceFinishData": {
+            "decodedBodyLength": 610,
+            "didFail": false,
+            "encodedDataLength": 322,
+            "finishTime": 1277856.275869
+          }
+        }
+      ],
+      "devToolsSummaryExcerpt": "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1277852033240µs, max: 1277865528155µs}\nMetrics (lab / observed):\n  - INP: 45 ms, event: (eventKey: s-7195, ts: 1277855436657)\n  - CLS: 0.00, event: (eventKey: s-4652, ts: 1277856298450)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "filter-3.json.gz",
+        "gzipSha256": "45c09d31d6d3396f2116f061ba45b220270843a903f302018138fcded0f8ed4c",
+        "jsonSha256": "af1ee85db793f5bb582659b9b2bf696b4f846cc55826d59cd5c5afb0908d1468",
+        "gzipBytes": 1339064,
+        "jsonBytes": 6176248,
+        "traceEventCount": 9358
+      },
+      "filteredTraceSampleId": "filter-3"
+    }
+  ]
+}

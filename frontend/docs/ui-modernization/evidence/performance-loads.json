@@ -1,0 +1,1639 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+  "harnessCommit": "4699581fa9b4e2951105200724aa56e92c841791",
+  "sourceInputSha256": "65abc7cf9dffe22a6fee1ac4441996b507e32c6f9c2c2c6c0f4d7627f89d6767",
+  "settings": {
+    "browser": "Chrome 154.0.0.0 (HeadlessChrome, reported by user agent)",
+    "chromeDevToolsMcp": "1.10.1",
+    "node": "24.14.0",
+    "npm": "11.17.0",
+    "vite": "8.0.16",
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "deviceScaleFactor": 1,
+      "isMobile": false,
+      "hasTouch": false,
+      "isLandscape": false
+    },
+    "cpuSlowdownMultiplier": 4,
+    "networkPreset": "Fast 4G",
+    "colorScheme": "light",
+    "language": "en-US",
+    "timezone": "America/New_York",
+    "serving": "Production build via Vite preview, native mock API, HTTP/1.1 loopback origin.",
+    "cacheMethod": "Unique isolated browser context at about:blank for each sample; start trace without automatic reload/stop, then first navigation to the target. Browser process, operating-system caches and mock server remain warm. No claim of a cold browser process or backend.",
+    "workload": "Four succeeded available runs, four pipelines and four experiments; three native tasks for one run, one Dataset artifact and comparison without runtime parameters/scalar metrics."
+  },
+  "metricDefinitions": {
+    "fcpMs": "Browser Paint Timing first-contentful-paint entry startTime, in milliseconds from navigation start. Presentation timing can differ slightly from the corresponding raw trace paint timestamp.",
+    "lcpReportedMs": "LCP in milliseconds as reported by the Chrome DevTools MCP navigation insight summary (rounded to whole milliseconds); checked against the corresponding original LCP candidate and navigation timestamps.",
+    "clsReported": "CLS exactly as reported by the Chrome DevTools MCP summary, rounded to two decimal places. A reported 0.00 is not proof of zero layout shift. Aggregates operate on these rounded reported values.",
+    "network": "Navigation Timing and Resource Timing byte fields are browser-reported observations; transferSize includes browser-accounted protocol overhead. Body sizes are not interchangeable with bytes transferred. Totals include the document and every resource entry, including duplicate URLs.",
+    "compareByteCaveat": "Each Compare sample includes two repeated run-detail resources reporting transferSize=300 despite nonzero encoded/decoded body sizes. Trace response statuses are 200 and fromCache is false; no cache-hit or revalidation cause is inferred from these fields.",
+    "fieldMetrics": "No field INP, real-user percentile, performance budget or production-deployment qualification is established."
+  },
+  "validation": {
+    "samples": 9,
+    "samplesPerRoute": 3,
+    "allRawTraceFilesExist": true,
+    "allBrowserResponseStatuses200": true,
+    "allTraceResponseStatuses200": true,
+    "failedTraceRequests": 0,
+    "allReportedLcpValuesMatchRoundedTraceDurations": true
+  },
+  "filteredTraceArtifact": {
+    "path": "performance-load-traces.json.gz",
+    "gzipSha256": "58d5d7f458c443278a0c322ee6a15cd583d2b6a3deb1bc098308040ff5bba980",
+    "jsonSha256": "744a02dcc79ab9ef7aa7e77f089e8d31e057285a793f3d3d205b78f9a91c2736",
+    "gzipBytes": 19567,
+    "jsonBytes": 237823,
+    "originalGzipBytesTotal": 28158857,
+    "originalTraceEventsTotal": 237964,
+    "retainedTraceEventsTotal": 601,
+    "filterPolicy": {
+      "retainedEventNames": [
+        "LayoutShift",
+        "MarkDOMContent",
+        "MarkLoad",
+        "ResourceChangePriority",
+        "ResourceFinish",
+        "ResourceReceiveResponse",
+        "ResourceSendRequest",
+        "ResourceWillSendRequest",
+        "commitNavigationEnd",
+        "domComplete",
+        "domContentLoadedEventEnd",
+        "domContentLoadedEventStart",
+        "domInteractive",
+        "domLoading",
+        "fetchStart",
+        "firstContentfulPaint",
+        "firstPaint",
+        "largestContentfulPaint::Candidate",
+        "loadEventEnd",
+        "loadEventStart",
+        "navigationStart",
+        "responseEnd",
+        "unloadEventEnd",
+        "unloadEventStart"
+      ],
+      "retainedTopLevelEventFields": [
+        "cat",
+        "dur",
+        "name",
+        "ph",
+        "pid",
+        "s",
+        "tdur",
+        "tid",
+        "ts",
+        "tts"
+      ],
+      "retainedArgsFields": ["data", "frame"],
+      "retainedDataFields": [
+        "candidateIndex",
+        "connectionReused",
+        "cumulative_score",
+        "decodedBodyLength",
+        "didFail",
+        "documentLoaderURL",
+        "encodedDataLength",
+        "fetchPriorityHint",
+        "finishTime",
+        "frame",
+        "fromCache",
+        "fromServiceWorker",
+        "had_recent_input",
+        "headers",
+        "isLinkPreload",
+        "isLoadingMainFrame",
+        "isMainFrame",
+        "isOutermostMainFrame",
+        "is_main_frame",
+        "last_input_timestamp",
+        "mimeType",
+        "navigationId",
+        "nodeId",
+        "page",
+        "performanceTimelineNavigationId",
+        "priority",
+        "protocol",
+        "renderBlocking",
+        "requestId",
+        "requestMethod",
+        "resourceType",
+        "score",
+        "size",
+        "statusCode",
+        "timing",
+        "type",
+        "url",
+        "weighted_score_delta"
+      ],
+      "retainedResponseHeaderNames": [
+        "cache-control",
+        "content-encoding",
+        "content-length",
+        "content-type",
+        "transfer-encoding",
+        "vary"
+      ],
+      "timingFields": "Numeric response timing fields are preserved.",
+      "urlNormalization": "The local preview origin is removed; URL path, query and fragment are preserved. about:blank is retained.",
+      "timestamps": "Original monotonic trace timestamps are preserved in microseconds; each sample records its main navigation start.",
+      "excluded": "All other event names and fields are omitted, including CPU profiles, screenshots, netlog events, trace metadata, process command lines, stack traces, initiator stacks, node debug names and geometry, unlisted response headers and local filesystem paths.",
+      "limits": "This event extract is not a complete DevTools recording and cannot reproduce CPU-profile, screenshot or full critical-path analyses. Metric and resource events support inspection of the reported load observations. Tool excerpt event keys refer to the original trace event ordering, not this filtered subset."
+    }
+  },
+  "routeSummaries": [
+    {
+      "routeName": "runs",
+      "sampleCount": 3,
+      "fcpMs": {
+        "median": 1836,
+        "min": 1808,
+        "max": 1856
+      },
+      "lcpReportedMs": {
+        "median": 2002,
+        "min": 1972,
+        "max": 2053
+      },
+      "clsReported": {
+        "median": 0.01,
+        "min": 0.01,
+        "max": 0.01
+      },
+      "entryCountIncludingDocument": {
+        "median": 10,
+        "min": 10,
+        "max": 10
+      },
+      "transferSizeBytes": {
+        "median": 962495,
+        "min": 962495,
+        "max": 962495
+      },
+      "encodedBodySizeBytes": {
+        "median": 959495,
+        "min": 959495,
+        "max": 959495
+      },
+      "decodedBodySizeBytes": {
+        "median": 3004420,
+        "min": 3004420,
+        "max": 3004420
+      }
+    },
+    {
+      "routeName": "run-details",
+      "sampleCount": 3,
+      "fcpMs": {
+        "median": 1736,
+        "min": 1732,
+        "max": 1748
+      },
+      "lcpReportedMs": {
+        "median": 1912,
+        "min": 1910,
+        "max": 1919
+      },
+      "clsReported": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "entryCountIncludingDocument": {
+        "median": 11,
+        "min": 11,
+        "max": 11
+      },
+      "transferSizeBytes": {
+        "median": 855865,
+        "min": 855865,
+        "max": 855865
+      },
+      "encodedBodySizeBytes": {
+        "median": 852565,
+        "min": 852565,
+        "max": 852565
+      },
+      "decodedBodySizeBytes": {
+        "median": 2897490,
+        "min": 2897490,
+        "max": 2897490
+      }
+    },
+    {
+      "routeName": "compare",
+      "sampleCount": 3,
+      "fcpMs": {
+        "median": 1936,
+        "min": 1888,
+        "max": 1968
+      },
+      "lcpReportedMs": {
+        "median": 2329,
+        "min": 2300,
+        "max": 2364
+      },
+      "clsReported": {
+        "median": 0.04,
+        "min": 0.04,
+        "max": 0.04
+      },
+      "entryCountIncludingDocument": {
+        "median": 15,
+        "min": 15,
+        "max": 15
+      },
+      "transferSizeBytes": {
+        "median": 898575,
+        "min": 898575,
+        "max": 898575
+      },
+      "encodedBodySizeBytes": {
+        "median": 985277,
+        "min": 985277,
+        "max": 985277
+      },
+      "decodedBodySizeBytes": {
+        "median": 3030202,
+        "min": 3030202,
+        "max": 3030202
+      }
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "runs-load-1",
+      "routeName": "runs",
+      "sample": 1,
+      "route": "/#/runs",
+      "fcpMs": 1808,
+      "lcpReportedMs": 1972,
+      "clsReported": "0.01",
+      "lcpTraceTimestampUs": 1276865511615,
+      "navigationStartTraceTimestampUs": 1276863539973,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1552.2999999523163,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.5,
+        "domainLookupEnd": 0.5,
+        "connectStart": 0.5,
+        "connectEnd": 0.5,
+        "requestStart": 2.4000000953674316,
+        "responseStart": 5.799999952316284,
+        "responseEnd": 173.20000004768372,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 205.79999995231628,
+        "domContentLoadedEventStart": 1552.2000000476837,
+        "domContentLoadedEventEnd": 1552.2999999523163,
+        "domComplete": 1552.2999999523163,
+        "loadEventStart": 1552.2999999523163,
+        "loadEventEnd": 1552.2999999523163,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 10,
+        "browserResponseStatusCounts": {
+          "200": 10
+        },
+        "traceResponseStatusCounts": {
+          "200": 10
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 962495,
+        "encodedBodySizeBytes": 959495,
+        "decodedBodySizeBytes": 3004420,
+        "resources": [
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 947.3999998569489,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 178,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 168,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 167,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 167.19999980926514,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 177.09999990463257,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140,
+            "duration": 337.2999999523163,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 177,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 167.59999990463257,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/runs\nBounds: {min: 1276863539973µs, max: 1276871693463µs}\nMetrics (lab / observed):\n  - LCP: 1972 ms, event: (eventKey: r-15210, ts: 1276865511615), nodeId: 53\n  - LCP breakdown:\n    - TTFB: 6 ms, bounds: {min: 1276863539973µs, max: 1276863545808.9998µs}\n    - Render delay: 1,966 ms, bounds: {min: 1276863545808.9998µs, max: 1276865511615µs}\n  - CLS: 0.01, event: (eventKey: s-17445, ts: 1276865481086)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "runs-load-1.json.gz",
+        "gzipSha256": "1ab5c573526e035710ea2d9e53d37faa57f190665cffef7592b77486c6471a88",
+        "jsonSha256": "00fe97eaa9c542b7cc4ebc90830d0b4641af6bf0e8be03b2e14579ccb6d3428b",
+        "gzipBytes": 3071793,
+        "jsonBytes": 15108237,
+        "traceEventCount": 25357
+      },
+      "filteredTraceSampleId": "runs-load-1"
+    },
+    {
+      "sampleId": "runs-load-2",
+      "routeName": "runs",
+      "sample": 2,
+      "route": "/#/runs",
+      "fcpMs": 1856,
+      "lcpReportedMs": 2053,
+      "clsReported": "0.01",
+      "lcpTraceTimestampUs": 1276885529933,
+      "navigationStartTraceTimestampUs": 1276883476720,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1568.8999998569489,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.5,
+        "domainLookupEnd": 0.5,
+        "connectStart": 0.5,
+        "connectEnd": 0.5,
+        "requestStart": 1.0999999046325684,
+        "responseStart": 3.5999999046325684,
+        "responseEnd": 170.09999990463257,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 200.79999995231628,
+        "domContentLoadedEventStart": 1568.2000000476837,
+        "domContentLoadedEventEnd": 1568.2999999523163,
+        "domComplete": 1568.8999998569489,
+        "loadEventStart": 1568.8999998569489,
+        "loadEventEnd": 1568.8999998569489,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 10,
+        "browserResponseStatusCounts": {
+          "200": 10
+        },
+        "traceResponseStatusCounts": {
+          "200": 10
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 962495,
+        "encodedBodySizeBytes": 959495,
+        "decodedBodySizeBytes": 3004420,
+        "resources": [
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 951.2999999523163,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 181.70000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 168.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 166.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 167.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 175.70000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140,
+            "duration": 335.90000009536743,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 177.30000019073486,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 167,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/runs\nBounds: {min: 1276883476720µs, max: 1276892556812µs}\nMetrics (lab / observed):\n  - LCP: 2053 ms, event: (eventKey: r-15776, ts: 1276885529933), nodeId: 54\n  - LCP breakdown:\n    - TTFB: 4 ms, bounds: {min: 1276883476720µs, max: 1276883480243.9998µs}\n    - Render delay: 2,050 ms, bounds: {min: 1276883480243.9998µs, max: 1276885529933µs}\n  - CLS: 0.01, event: (eventKey: s-17664, ts: 1276885497483)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "runs-load-2.json.gz",
+        "gzipSha256": "8f765264edebbf0f198964932241bc6eb813063bf19076308c31dd2a6180465b",
+        "jsonSha256": "ec11aeef62ef0b806236860777b4c5c56b2edd9d2fde8fc04de8717e0e1beae5",
+        "gzipBytes": 3106037,
+        "jsonBytes": 15382182,
+        "traceEventCount": 25797
+      },
+      "filteredTraceSampleId": "runs-load-2"
+    },
+    {
+      "sampleId": "runs-load-3",
+      "routeName": "runs",
+      "sample": 3,
+      "route": "/#/runs",
+      "fcpMs": 1836,
+      "lcpReportedMs": 2002,
+      "clsReported": "0.01",
+      "lcpTraceTimestampUs": 1276908898551,
+      "navigationStartTraceTimestampUs": 1276906896558,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1562.2999999523163,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.5,
+        "domainLookupEnd": 0.5,
+        "connectStart": 0.5,
+        "connectEnd": 0.5,
+        "requestStart": 1.4000000953674316,
+        "responseStart": 3.200000047683716,
+        "responseEnd": 170.59999990463257,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 200.29999995231628,
+        "domContentLoadedEventStart": 1561.5999999046326,
+        "domContentLoadedEventEnd": 1562.2999999523163,
+        "domComplete": 1562.2999999523163,
+        "loadEventStart": 1562.2999999523163,
+        "loadEventEnd": 1562.2999999523163,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 10,
+        "browserResponseStatusCounts": {
+          "200": 10
+        },
+        "traceResponseStatusCounts": {
+          "200": 10
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 962495,
+        "encodedBodySizeBytes": 959495,
+        "decodedBodySizeBytes": 3004420,
+        "resources": [
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 950.7000000476837,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 181.79999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 166.89999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 167.40000009536743,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 167.90000009536743,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 180.79999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140,
+            "duration": 340.89999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 176.79999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 170.70000004768372,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/runs\nBounds: {min: 1276906896558µs, max: 1276919520537µs}\nMetrics (lab / observed):\n  - LCP: 2002 ms, event: (eventKey: r-15345, ts: 1276908898551), nodeId: 53\n  - LCP breakdown:\n    - TTFB: 3 ms, bounds: {min: 1276906896558µs, max: 1276906899693.9998µs}\n    - Render delay: 1,999 ms, bounds: {min: 1276906899693.9998µs, max: 1276908898551µs}\n  - CLS: 0.01, event: (eventKey: s-17678, ts: 1276908883171)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "runs-load-3.json.gz",
+        "gzipSha256": "1fcbded3cb78121a1748ca6d42d425a48decc83a5a9b9d191744bfac369f3c5b",
+        "jsonSha256": "ad176f265e6a34c57a704ab462d9a4a09b2b548c0fdb6092d8b9292c9cd43265",
+        "gzipBytes": 3097638,
+        "jsonBytes": 15287744,
+        "traceEventCount": 25734
+      },
+      "filteredTraceSampleId": "runs-load-3"
+    },
+    {
+      "sampleId": "run-details-load-1",
+      "routeName": "run-details",
+      "sample": 1,
+      "route": "/#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "fcpMs": 1748,
+      "lcpReportedMs": 1919,
+      "clsReported": "0.00",
+      "lcpTraceTimestampUs": 1276948361255,
+      "navigationStartTraceTimestampUs": 1276946442188,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1563.2000000476837,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.5,
+        "domainLookupEnd": 0.5,
+        "connectStart": 0.5,
+        "connectEnd": 0.5,
+        "requestStart": 1.5999999046325684,
+        "responseStart": 4.3999998569488525,
+        "responseEnd": 169.29999995231628,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 198.70000004768372,
+        "domContentLoadedEventStart": 1562.3999998569489,
+        "domContentLoadedEventEnd": 1562.3999998569489,
+        "domComplete": 1563.2000000476837,
+        "loadEventStart": 1563.2000000476837,
+        "loadEventEnd": 1563.2000000476837,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 11,
+        "browserResponseStatusCounts": {
+          "200": 11
+        },
+        "traceResponseStatusCounts": {
+          "200": 11
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 855865,
+        "encodedBodySizeBytes": 852565,
+        "decodedBodySizeBytes": 2897490,
+        "resources": [
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 950.7000000476837,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 182,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 170,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 165.70000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 167,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 180.70000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 231.09999990463257,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 176.10000014305115,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 175.29999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "transferSize": 422,
+            "encodedBodySize": 122,
+            "decodedBodySize": 122,
+            "duration": 172.40000009536743,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1276946442188µs, max: 1276954625385µs}\nMetrics (lab / observed):\n  - LCP: 1919 ms, event: (eventKey: r-14298, ts: 1276948361255), nodeId: 28\n  - LCP breakdown:\n    - TTFB: 4 ms, bounds: {min: 1276946442188µs, max: 1276946446587µs}\n    - Render delay: 1,915 ms, bounds: {min: 1276946446587µs, max: 1276948361255µs}\n  - CLS: 0.00, event: (eventKey: s-14166, ts: 1276948353398)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "run-details-load-1.json.gz",
+        "gzipSha256": "befa34314b379059a3ee95e59a23561a9d111d202c37c0049655a6640c30edfa",
+        "jsonSha256": "25904acdf3010887e3f67366fc78ae1a04956af0904e70a259f853eceac492ab",
+        "gzipBytes": 3076656,
+        "jsonBytes": 15995717,
+        "traceEventCount": 26991
+      },
+      "filteredTraceSampleId": "run-details-load-1"
+    },
+    {
+      "sampleId": "run-details-load-2",
+      "routeName": "run-details",
+      "sample": 2,
+      "route": "/#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "fcpMs": 1732,
+      "lcpReportedMs": 1910,
+      "clsReported": "0.00",
+      "lcpTraceTimestampUs": 1276968825495,
+      "navigationStartTraceTimestampUs": 1276966915439,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1554,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.2999999523162842,
+        "domainLookupEnd": 0.2999999523162842,
+        "connectStart": 0.2999999523162842,
+        "connectEnd": 0.2999999523162842,
+        "requestStart": 0.8999998569488525,
+        "responseStart": 2.6999998092651367,
+        "responseEnd": 169.39999985694885,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 199.39999985694885,
+        "domContentLoadedEventStart": 1553.5999999046326,
+        "domContentLoadedEventEnd": 1553.5999999046326,
+        "domComplete": 1554,
+        "loadEventStart": 1554,
+        "loadEventEnd": 1554,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 11,
+        "browserResponseStatusCounts": {
+          "200": 11
+        },
+        "traceResponseStatusCounts": {
+          "200": 11
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 855865,
+        "encodedBodySizeBytes": 852565,
+        "decodedBodySizeBytes": 2897490,
+        "resources": [
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 948.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 179.79999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 166.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 167.69999980926514,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 168.59999990463257,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 179.39999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 230.20000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 177.40000009536743,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 175.60000014305115,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "transferSize": 422,
+            "encodedBodySize": 122,
+            "decodedBodySize": 122,
+            "duration": 171.90000009536743,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1276966915439µs, max: 1276974916717µs}\nMetrics (lab / observed):\n  - LCP: 1910 ms, event: (eventKey: r-14533, ts: 1276968825495), nodeId: 28\n  - LCP breakdown:\n    - TTFB: 3 ms, bounds: {min: 1276966915439µs, max: 1276966918082µs}\n    - Render delay: 1,907 ms, bounds: {min: 1276966918082µs, max: 1276968825495µs}\n  - CLS: 0.00, event: (eventKey: s-14350, ts: 1276968810380)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "run-details-load-2.json.gz",
+        "gzipSha256": "86e40c65f07ef3cd0b65cb167198194c264852aefa129fe02422b38a705b240c",
+        "jsonSha256": "4744d10b399656e3be36a973e2d90f57afe02e71e8c214588a5f97305475ce02",
+        "gzipBytes": 3157686,
+        "jsonBytes": 16521901,
+        "traceEventCount": 27560
+      },
+      "filteredTraceSampleId": "run-details-load-2"
+    },
+    {
+      "sampleId": "run-details-load-3",
+      "routeName": "run-details",
+      "sample": 3,
+      "route": "/#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "fcpMs": 1736,
+      "lcpReportedMs": 1912,
+      "clsReported": "0.00",
+      "lcpTraceTimestampUs": 1276989173222,
+      "navigationStartTraceTimestampUs": 1276987261500,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1547.5999999046326,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.40000009536743164,
+        "domainLookupEnd": 0.40000009536743164,
+        "connectStart": 0.40000009536743164,
+        "connectEnd": 0.40000009536743164,
+        "requestStart": 1.0999999046325684,
+        "responseStart": 3,
+        "responseEnd": 172.29999995231628,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 202,
+        "domContentLoadedEventStart": 1546.5999999046326,
+        "domContentLoadedEventEnd": 1547.0999999046326,
+        "domComplete": 1547.2000000476837,
+        "loadEventStart": 1547.5999999046326,
+        "loadEventEnd": 1547.5999999046326,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 11,
+        "browserResponseStatusCounts": {
+          "200": 11
+        },
+        "traceResponseStatusCounts": {
+          "200": 11
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 855865,
+        "encodedBodySizeBytes": 852565,
+        "decodedBodySizeBytes": 2897490,
+        "resources": [
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 951.3000001907349,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 182,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 166.70000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 168.09999990463257,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 168.20000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 178.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 228.90000009536743,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 176.69999980926514,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 175.40000009536743,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "transferSize": 422,
+            "encodedBodySize": 122,
+            "decodedBodySize": 122,
+            "duration": 171.80000019073486,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1276987261500µs, max: 1276995345542µs}\nMetrics (lab / observed):\n  - LCP: 1912 ms, event: (eventKey: r-14728, ts: 1276989173222), nodeId: 28\n  - LCP breakdown:\n    - TTFB: 3 ms, bounds: {min: 1276987261500µs, max: 1276987264578µs}\n    - Render delay: 1,909 ms, bounds: {min: 1276987264578µs, max: 1276989173222µs}\n  - CLS: 0.00, event: (eventKey: s-14561, ts: 1276989159938)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "run-details-load-3.json.gz",
+        "gzipSha256": "6b7e5944c79da3e47d0d9b18705e6a0c1f3e3a88231d879d4f850038f60ae4a1",
+        "jsonSha256": "69f86bf9c2a4d491f4f4f373b3e423c36acc4393bd98524e0371504e2416f10c",
+        "gzipBytes": 3170465,
+        "jsonBytes": 16578540,
+        "traceEventCount": 27697
+      },
+      "filteredTraceSampleId": "run-details-load-3"
+    },
+    {
+      "sampleId": "compare-load-1",
+      "routeName": "compare",
+      "sample": 1,
+      "route": "/#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "fcpMs": 1936,
+      "lcpReportedMs": 2329,
+      "clsReported": "0.04",
+      "lcpTraceTimestampUs": 1277024085248,
+      "navigationStartTraceTimestampUs": 1277021756130,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1600.6000001430511,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.5,
+        "domainLookupEnd": 0.5,
+        "connectStart": 0.5,
+        "connectEnd": 0.5,
+        "requestStart": 1.3000001907348633,
+        "responseStart": 4,
+        "responseEnd": 168.90000009536743,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 202.40000009536743,
+        "domContentLoadedEventStart": 1600.5,
+        "domContentLoadedEventEnd": 1600.5,
+        "domComplete": 1600.6000001430511,
+        "loadEventStart": 1600.6000001430511,
+        "loadEventEnd": 1600.6000001430511,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 15,
+        "browserResponseStatusCounts": {
+          "200": 15
+        },
+        "traceResponseStatusCounts": {
+          "200": 15
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 898575,
+        "encodedBodySizeBytes": 985277,
+        "decodedBodySizeBytes": 3030202,
+        "resources": [
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 181.20000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 949.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 167.79999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 167.89999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 168.29999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 187.79999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "transferSize": 41305,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 259.89999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 270.09999990463257,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "transferSize": 300,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 354.69999980926514,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 257.10000014305115,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 300,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 426.89999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 275.7999999523163,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 198.89999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 170.5,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1277021756130µs, max: 1277030536147µs}\nMetrics (lab / observed):\n  - LCP: 2329 ms, event: (eventKey: r-17728, ts: 1277024085248), nodeId: 73\n  - LCP breakdown:\n    - TTFB: 4 ms, bounds: {min: 1277021756130µs, max: 1277021760062µs}\n    - Render delay: 2,325 ms, bounds: {min: 1277021760062µs, max: 1277024085248µs}\n  - CLS: 0.04, event: (eventKey: s-17650, ts: 1277023812036)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "compare-load-1.json.gz",
+        "gzipSha256": "1b2eb7a0c8958a37553a895c8e9b0e4f4b05c319e930cbd3bc12079fa04dc101",
+        "jsonSha256": "9658368a298ae38ac05af2c2c75eb36de4175ebccf149287e46c8ca368f343f6",
+        "gzipBytes": 3147668,
+        "jsonBytes": 15471087,
+        "traceEventCount": 26140
+      },
+      "filteredTraceSampleId": "compare-load-1"
+    },
+    {
+      "sampleId": "compare-load-2",
+      "routeName": "compare",
+      "sample": 2,
+      "route": "/#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "fcpMs": 1888,
+      "lcpReportedMs": 2300,
+      "clsReported": "0.04",
+      "lcpTraceTimestampUs": 1277052110901,
+      "navigationStartTraceTimestampUs": 1277049811076,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1579.4000000953674,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.5,
+        "domainLookupEnd": 0.5,
+        "connectStart": 0.5,
+        "connectEnd": 0.5,
+        "requestStart": 1.2000000476837158,
+        "responseStart": 6.1000001430511475,
+        "responseEnd": 173,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 205.30000019073486,
+        "domContentLoadedEventStart": 1578.5,
+        "domContentLoadedEventEnd": 1578.6000001430511,
+        "domComplete": 1579.4000000953674,
+        "loadEventStart": 1579.4000000953674,
+        "loadEventEnd": 1579.4000000953674,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 15,
+        "browserResponseStatusCounts": {
+          "200": 15
+        },
+        "traceResponseStatusCounts": {
+          "200": 15
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 898575,
+        "encodedBodySizeBytes": 985277,
+        "decodedBodySizeBytes": 3030202,
+        "resources": [
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 950.2000000476837,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 181,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 170.79999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 168.59999990463257,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 169.09999990463257,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 184.40000009536743,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "transferSize": 41305,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 266.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 266.7000000476837,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "transferSize": 300,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 352.2000000476837,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 263,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 300,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 434.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 278.2000000476837,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 210.89999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 167,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1277049811076µs, max: 1277058205730µs}\nMetrics (lab / observed):\n  - LCP: 2300 ms, event: (eventKey: r-17806, ts: 1277052110901), nodeId: 74\n  - LCP breakdown:\n    - TTFB: 6 ms, bounds: {min: 1277049811076µs, max: 1277049817229µs}\n    - Render delay: 2,294 ms, bounds: {min: 1277049817229µs, max: 1277052110901µs}\n  - CLS: 0.04, event: (eventKey: s-17757, ts: 1277051837841)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "compare-load-2.json.gz",
+        "gzipSha256": "cfe96e9ccd38d4d673709fd029c9ad86318d2b7a951e2091153e50dd2e520695",
+        "jsonSha256": "8a725b9509e49fd43757a9999c933f84b5d507990d7b6c5ae201a33dc0aad5fa",
+        "gzipBytes": 3181892,
+        "jsonBytes": 15809215,
+        "traceEventCount": 26411
+      },
+      "filteredTraceSampleId": "compare-load-2"
+    },
+    {
+      "sampleId": "compare-load-3",
+      "routeName": "compare",
+      "sample": 3,
+      "route": "/#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+      "fcpMs": 1968,
+      "lcpReportedMs": 2364,
+      "clsReported": "0.04",
+      "lcpTraceTimestampUs": 1277076951596,
+      "navigationStartTraceTimestampUs": 1277074587276,
+      "navigation": {
+        "startTime": 0,
+        "duration": 1642.6000001430511,
+        "nextHopProtocol": "http/1.1",
+        "contentType": "text/html",
+        "contentEncoding": "gzip",
+        "domainLookupStart": 0.5,
+        "domainLookupEnd": 0.5,
+        "connectStart": 0.5,
+        "connectEnd": 0.5,
+        "requestStart": 1.4000000953674316,
+        "responseStart": 16.40000009536743,
+        "responseEnd": 170.79999995231628,
+        "transferSize": 1077,
+        "encodedBodySize": 777,
+        "decodedBodySize": 1388,
+        "responseStatus": 200,
+        "domInteractive": 231.60000014305115,
+        "domContentLoadedEventStart": 1642.6000001430511,
+        "domContentLoadedEventEnd": 1642.6000001430511,
+        "domComplete": 1642.6000001430511,
+        "loadEventStart": 1642.6000001430511,
+        "loadEventEnd": 1642.6000001430511,
+        "type": "navigate",
+        "redirectCount": 0
+      },
+      "network": {
+        "entryCountIncludingDocument": 15,
+        "browserResponseStatusCounts": {
+          "200": 15
+        },
+        "traceResponseStatusCounts": {
+          "200": 15
+        },
+        "failedTraceRequests": 0,
+        "traceResponsesFromCache": 0,
+        "traceResponsesFromServiceWorker": 0,
+        "transferSizeBytes": 898575,
+        "encodedBodySizeBytes": 985277,
+        "decodedBodySizeBytes": 3030202,
+        "resources": [
+          {
+            "url": "/static/index-DgtN70-0.js",
+            "transferSize": 782498,
+            "encodedBodySize": 782198,
+            "decodedBodySize": 2803952,
+            "duration": 959.5999999046326,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/index-BxIXFz_o.css",
+            "transferSize": 5844,
+            "encodedBodySize": 5544,
+            "decodedBodySize": 28104,
+            "duration": 184.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 171.40000009536743,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/cluster-name",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 168.79999995231628,
+            "responseStatus": 200
+          },
+          {
+            "url": "/system/project-id",
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 169.70000004768372,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/GitHub-Mark-120px-plus-3a2y1fjz.png",
+            "transferSize": 4568,
+            "encodedBodySize": 4268,
+            "decodedBodySize": 4268,
+            "duration": 184.80000019073486,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "transferSize": 41305,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 256.5,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 267.39999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "transferSize": 300,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 353.7999999523163,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 257.19999980926514,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "transferSize": 300,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 425.2999999523163,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 273.7000000476837,
+            "responseStatus": 200
+          },
+          {
+            "url": "/static/favicon.ico",
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 200.39999985694885,
+            "responseStatus": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 167.89999985694885,
+            "responseStatus": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpt": "## insight set id: NAVIGATION_0\n\nURL: /#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1277074587276µs, max: 1277085223801µs}\nMetrics (lab / observed):\n  - LCP: 2364 ms, event: (eventKey: r-17703, ts: 1277076951596), nodeId: 73\n  - LCP breakdown:\n    - TTFB: 16 ms, bounds: {min: 1277074587276µs, max: 1277074603692.0002µs}\n    - Render delay: 2,348 ms, bounds: {min: 1277074603692.0002µs, max: 1277076951596µs}\n  - CLS: 0.04, event: (eventKey: s-17654, ts: 1277076679907)\nMetrics (field / real users): n/a – no data for this page in CrUX",
+      "originalTrace": {
+        "fileName": "compare-load-3.json.gz",
+        "gzipSha256": "9c5cbe67c67fcfb42c24c06196fab12200bad23a78a51176f4e93fb970274378",
+        "jsonSha256": "19fa82b77390e6a7fc02fc4bc80e741d54e1f5dc9a6164940e8eb15b068c1421",
+        "gzipBytes": 3149022,
+        "jsonBytes": 15540669,
+        "traceEventCount": 26277
+      },
+      "filteredTraceSampleId": "compare-load-3"
+    }
+  ]
+}
