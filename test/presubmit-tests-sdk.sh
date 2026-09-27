@@ -23,7 +23,7 @@ if [ "${SETUP_ENV}" = "true" ]; then
   source venv/bin/activate
 
   python3 -m pip install --upgrade pip
-  python3 -m pip install -r sdk/python/requirements.txt 
+  python3 -m pip install -r sdk/python/requirements.txt
   python3 -m pip install -r sdk/python/requirements-dev.txt
   python3 -m pip install setuptools
   python3 -m pip install wheel==0.42.0

@@ -4,8 +4,8 @@
 import argparse
 import hashlib
 import json
-import sys
 from pathlib import Path
+import sys
 from typing import Any, Iterable, Optional
 
 QUEUE_BRANCH_PREFIX = 'gh-readonly-queue/release-2.18/'
@@ -29,7 +29,8 @@ def select_producer_run_id(payload: Any,
                            source_sha: str,
                            require_source_sha: bool = False,
                            queue_runs: Any = None) -> Optional[int]:
-    """Return a matching producer, requiring queue provenance for merge groups."""
+    """Return a matching producer, requiring queue provenance for merge
+    groups."""
     if not isinstance(payload, dict):
         raise ValueError('Expected an artifact API response object')
     artifacts = payload.get('artifacts')

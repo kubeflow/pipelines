@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
 import tempfile
 import unittest
-from pathlib import Path
 
 import runtime_base_image_artifacts as artifacts
 
