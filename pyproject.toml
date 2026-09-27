@@ -131,7 +131,7 @@ legacy-compatible-runtime = [
   "kubernetes>=8.0.0,<=31.0.0",
   "lru-dict>=1.1.7,<2.0.0",
   "minio==5.0.10",
-  "mypy-extensions==0.4.3",
+  "mypy-extensions==1.1.0",
   "numpy==1.23.1",
   "pathlib2==2.3.7.post1",
   "PyYAML>=5.3,<7",
