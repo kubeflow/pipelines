@@ -40,13 +40,11 @@ Use the pinned Node/npm versions and run from `frontend`:
 
 ```sh
 npm run test:ci
-npm run build
+npm run test:bundle
 npm run build:storybook
-node --test scripts/production-bundle.smoke.mjs
-node --test scripts/ui-modernization-runs.smoke.mjs
 ```
 
-Set `KFP_RUNS_SCREENSHOT_DIR` when running the Runs harness to retain its three screenshots. Storybook includes **Modernization → Runs table** light/dark, loading and empty examples.
+`test:bundle` builds the application and runs the startup and Runs browser tests serially; the existing frontend CI job installs Chromium and executes this command. Set `KFP_RUNS_SCREENSHOT_DIR` when running the Runs harness to retain its three screenshots. Storybook includes **Modernization → Runs table** light/dark, loading and empty examples.
 
 The full application browser harness verifies UI/API contracts against controlled responses. It does not establish real cluster authentication, authorization, ingress behavior or a supported minimum browser version. The hosted frontend integration specs retain their real cluster assertions with updated semantic selectors.
 
