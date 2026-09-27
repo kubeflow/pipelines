@@ -35,7 +35,7 @@ cryptography==50.0.0
     # via google-auth
 docstring-parser==0.17.0
     # via kfp
-google-api-core==2.29.0
+google-api-core==2.38.0
     # via
     #   google-cloud-core
     #   google-cloud-storage
