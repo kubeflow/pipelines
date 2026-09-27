@@ -1,6 +1,6 @@
 # CI merge gate
 
-CI Check is the sole publisher of the `ci-passed` commit status. The label with
+CI Check is the sole intended publisher of the `ci-passed` commit status. The label with
 the same name is informational. Tide remains the merge authority on `master`
 and branches without a GitHub merge queue; human PRs still require review.
 This change does not touch Dependabot creation holds: every
@@ -9,6 +9,21 @@ Removing the automatic creation holds is a separate follow-up, merged only after
 publisher and protection below are verified in production.
 
 ## Release 2.18 merge queue
+
+**Do not enable the queue or relax strict protection with the current status
+credential.** CI Check currently publishes `ci-passed` with `GITHUB_TOKEN`.
+GitHub runs `merge_group` workflows on a temporary commit containing PR code;
+the documented read-only token downgrade applies to fork-origin
+`pull_request` events, not to `merge_group`. A PR could add or change a
+merge-group workflow that requests `statuses: write` and reports a successful
+`ci-passed` on that temporary SHA. Pinning the required check to the GitHub
+Actions App would not distinguish that workflow from CI Check. Before
+activation, publish release `ci-passed` statuses with a dedicated GitHub App
+installed only on this repository, keep its private key in a protected
+default-branch environment, and require that App as the status source in the
+release branch rule. A controlled canary must also verify the effective
+merge-group token permission. This App and credential path is not implemented
+by the current publisher change.
 
 When enabled, the `release-2.18` queue uses the same required `ci-passed`
 context on both PR heads and GitHub's temporary merge-group SHA. The trusted
@@ -73,14 +88,16 @@ Roll out in this order:
 1. Land the trusted publisher on the default branch and all release workflow
    `merge_group` triggers or read-only equivalents on `release-2.18`. Keep the
    current branch protection while any workflow is missing.
-2. Inspect a live PR-head `ci-passed` status creator and its GitHub App ID.
-   Configure `ALLGREEN`, build concurrency `1`, and at most one PR merged per
-   operation. Enable the
-   queue and require `ci-passed` in the exact `release-2.18` branch rule while
-   keeping the up-to-date head requirement active. Preserve DCO, pre-commit,
-   conversation resolution, and linear history requirements. Once queue
-   enforcement is active, remove the up-to-date head requirement.
-3. Enqueue a controlled canary PR first. Verify its
+2. Complete the dedicated status-source implementation and repository App
+   setup above. Confirm a live release PR-head `ci-passed` status comes from
+   that App. Confirm the repository's Actions event policy permits CI Check's
+   trusted `pull_request_target` path.
+3. Configure `ALLGREEN`, build concurrency `1`, and at most one PR merged per
+   operation. Enable the queue and require `ci-passed` from the dedicated App
+   in the exact `release-2.18` branch rule while keeping the up-to-date head
+   requirement active. Preserve DCO, pre-commit, conversation resolution, and
+   linear history requirements.
+4. Enqueue a controlled canary PR. Verify its
    `workflow_run.head_branch`, GraphQL
    `mergeQueue.entries.headCommit.oid`, and published `ci-passed` SHA agree.
    Queue A and B together: confirm A has the only built head while B waits
@@ -88,7 +105,9 @@ Roll out in this order:
    commit. If two heads remain visible, the publisher fails closed. Revoking
    A's label must retire its known SHA and dequeue it. Confirm the token can
    perform that mutation and read back the absent entry. Check missing/failed
-   CI, rerun start, and label/hold revocation before normal queue use.
+   CI, rerun start, and label/hold revocation. Verify that a queue workflow
+   cannot impersonate the App's required status. Only after those checks pass,
+   remove the up-to-date head requirement and begin normal queue use.
 
 If queue validation fails, restore the previous strict branch rule while the
 queue remains active, then disable the queue. Only afterward remove the new
