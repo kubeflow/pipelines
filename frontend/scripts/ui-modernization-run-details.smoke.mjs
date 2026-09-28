@@ -821,11 +821,11 @@ test('Run Details inspector restores desktop focus and traps keyboard focus on n
         document.activeElement?.getAttribute('aria-label') === 'close',
     );
     assert.equal(await inspector.getAttribute('aria-modal'), 'true');
-    assert.equal(
-      await page
-        .locator('.kfp-inspector-panel')
-        .evaluate((element) => Math.abs(element.getBoundingClientRect().width - innerWidth) < 1),
-      true,
+    await page.waitForFunction(
+      () =>
+        Math.abs(
+          document.querySelector('.kfp-inspector-panel').getBoundingClientRect().width - innerWidth,
+        ) < 1,
     );
     await page.setViewportSize({ width: 1440, height: 900 });
     await assertWidth(360);
