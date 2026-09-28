@@ -94,6 +94,18 @@ function validateInventory(inventory, workflowFiles) {
   if (actual.size !== recorded.size) throw new Error('CI workflow inventory is incomplete; regenerate it');
 }
 
+function invalidRunMetadata(run) {
+  for (const field of ['id', 'run_attempt']) {
+    if (!Number.isSafeInteger(run[field]) || run[field] <= 0) return field;
+  }
+  const timestamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
+  if (!timestamp(run.created_at)) return 'created_at';
+  const unstarted = run.run_attempt === 1 && run.run_started_at === null &&
+    ['queued', 'requested', 'waiting', 'pending'].includes(run.status) && run.conclusion == null;
+  if (!unstarted && !timestamp(run.run_started_at)) return 'run_started_at';
+  return null;
+}
+
 async function verifyExpectedWorkflows({github, owner, repo, pullRequest, inventory,
   workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now()}) {
   validateInventory(inventory, workflowFiles);
@@ -137,11 +149,18 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, invent
     const matching = runs.filter(run => run.path === workflow.path && run.event === 'pull_request' &&
       run.head_sha === pullRequest.head.sha && run.head_branch === pullRequest.head.ref &&
       run.head_repository?.full_name === pullRequest.head.repo.full_name);
+    // Invalid metadata can change which execution sorts latest. Reject the
+    // workflow instead of discarding a malformed run and reusing an old pass.
+    const invalidField = matching.map(invalidRunMetadata).find(field => field !== null);
+    if (invalidField) {
+      failures.push(`${workflow.path}: invalid workflow run ${invalidField}; inspect CI Check and retry`);
+      continue;
+    }
     // A rerun updates an existing ID. Order by attempt start as well as run
     // creation so rerunning an older execution cannot hide behind a newer
     // run's prior success. Creation remains the separate base-freshness proof.
-    const attemptTime = run => Math.max(Date.parse(run.created_at) || 0,
-      Date.parse(run.run_started_at) || 0);
+    const attemptTime = run => run.run_started_at === null ? Date.parse(run.created_at) :
+      Math.max(Date.parse(run.created_at), Date.parse(run.run_started_at));
     matching.sort((left, right) => attemptTime(right) - attemptTime(left) || right.id - left.id);
     const run = matching[0];
     if (!run) {

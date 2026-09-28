@@ -15,7 +15,9 @@
 'use strict';
 
 const EXCLUDED = /^(?:check_ci_status(?: \(.*\))?|Cleanup artifacts|Upload results|Agent|Prepare)$/;
+const OWN_WORKFLOW_PATH = '.github/workflows/ci-checks.yml';
 const ACTIVE = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
+const UNSTARTED = new Set(['queued', 'waiting', 'requested', 'pending']);
 const PASSED = new Set(['success', 'skipped', 'neutral']);
 const FAILED = new Set(['failure', 'cancelled', 'timed_out', 'action_required', 'stale', 'startup_failure']);
 const positiveId = value => Number.isSafeInteger(value) && value > 0;
@@ -63,11 +65,12 @@ async function readPages(route, field, options) {
 }
 
 function validateRun(run, sha) {
+  const unstarted = run.run_attempt === 1 && UNSTARTED.has(run.status) && run.conclusion === null;
   if (!positiveId(run.workflow_id) || !positiveId(run.check_suite_id) ||
       !positiveId(run.run_attempt) || run.head_sha !== sha ||
+      typeof run.path !== 'string' || !run.path || run.path.trim() !== run.path ||
       typeof run.event !== 'string' || !run.event || !timestamp(run.created_at) ||
-      (run.run_started_at !== null && !timestamp(run.run_started_at)) ||
-      (run.run_attempt > 1 && !timestamp(run.run_started_at))) {
+      (run.run_started_at === null ? !unstarted : !timestamp(run.run_started_at))) {
     throw new Error(`Workflow run ${run.id}: incomplete identity or attempt metadata`);
   }
   validateState(run, `Workflow run ${run.id}`);
@@ -145,7 +148,6 @@ async function verifyCheckRuns({github, owner, repo, sha}) {
     }
   }
 
-  const relevantWorkflowIds = new Set();
   const candidates = [];
   for (const check of checks) {
     try {
@@ -159,7 +161,7 @@ async function verifyCheckRuns({github, owner, repo, sha}) {
       if (check.app.slug === 'github-actions') {
         const run = bySuite.get(check.check_suite.id);
         if (!run) throw new Error(`Check ${check.name}: workflow run metadata is missing`);
-        relevantWorkflowIds.add(run.workflow_id);
+        if (run.path === OWN_WORKFLOW_PATH) continue;
         if (latestRuns.get(run.workflow_id)?.id !== run.id) continue;
       }
       candidates.push(check);
@@ -168,12 +170,15 @@ async function verifyCheckRuns({github, owner, repo, sha}) {
     }
   }
 
+  // Workflow registration can precede every job's check record. Assess all
+  // latest head runs, even when only an external check is visible. Identify
+  // this publisher by its authoritative path, never a display or job name.
   // Reruns reuse a suite ID. Fetch actual jobs only for rerun attempts, rather
   // than inferring an attempt from check IDs or timestamp coincidence. Earlier
   // successful jobs remain valid during failed-jobs-only reruns.
   const attemptChecks = new Map();
-  for (const workflowId of relevantWorkflowIds) {
-    const run = latestRuns.get(workflowId);
+  for (const run of latestRuns.values()) {
+    if (run.path === OWN_WORKFLOW_PATH) continue;
     addState(run, `Workflow run ${run.id}, attempt ${run.run_attempt}`);
     if (run.run_attempt === 1) continue;
     try {

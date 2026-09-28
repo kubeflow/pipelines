@@ -231,6 +231,57 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                 self.assertEqual(result['state'], 'failure')
                 self.assertFalse(result['passed'])
 
+    def test_matching_run_requires_identity_and_attempt_timestamps(self):
+        for field in ['id', 'run_attempt', 'created_at', 'run_started_at']:
+            with self.subTest(field=field, missing=True):
+                run = good_run()
+                del run[field]
+                result = verify(runs=[run])
+                self.assertEqual(result['state'], 'failure')
+                self.assertFalse(result['passed'])
+        invalid_values = {
+            'id': [None, 0, -1, 1.5, '100', True, 9007199254740992],
+            'run_attempt': [None, 0, -1, 1.5, '1', True, 9007199254740992],
+            'created_at': [None, 0, True, '', 'invalid', [], {}],
+            'run_started_at': [None, 0, True, '', 'invalid', [], {}],
+        }
+        for field, values in invalid_values.items():
+            for value in values:
+                with self.subTest(field=field, value=value):
+                    result = verify(runs=[good_run(**{field: value})])
+                    self.assertEqual(result['state'], 'failure')
+                    self.assertFalse(result['passed'])
+
+    def test_malformed_competing_run_cannot_fall_back_to_success(self):
+        for field in ['id', 'run_attempt', 'created_at', 'run_started_at']:
+            malformed = good_run(id=99, conclusion='failure')
+            del malformed[field]
+            for runs in [[malformed, good_run()], [good_run(), malformed]]:
+                with self.subTest(field=field, runs=runs):
+                    result = verify(runs=runs)
+                    self.assertEqual(result['state'], 'failure')
+                    self.assertFalse(result['passed'])
+
+    def test_only_unstarted_first_attempt_can_have_null_start_time(self):
+        result = verify(runs=[
+            good_run(status='queued', conclusion=None, run_started_at=None)
+        ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        for overrides in [{'run_attempt': 2}, {'status': 'in_progress'}]:
+            with self.subTest(overrides=overrides):
+                result = verify(runs=[
+                    good_run(
+                        **{
+                            'status': 'queued',
+                            'conclusion': None,
+                            'run_started_at': None,
+                            **overrides,
+                        })
+                ])
+                self.assertEqual(result['state'], 'failure')
+                self.assertFalse(result['passed'])
+
     def test_failure_takes_precedence_over_pending_workflow(self):
         paths = [
             '.github/workflows/frontend.yml', '.github/workflows/backend.yml'

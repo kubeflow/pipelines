@@ -52,8 +52,10 @@ workflow filters, even when they predate the committed inventory.
 
 Every applicable workflow must register and complete successfully for the PR head,
 branch, and repository. Unknown filter syntax, incomplete or malformed API data,
-and changes to the PR snapshot block success. Inventory checks operate at workflow
-level; individual jobs and matrix conditions remain the responsibility of each
+and changes to the PR snapshot block success. Matching runs require valid IDs,
+attempt numbers, and creation/start timestamps before latest-attempt selection;
+a malformed competing run cannot be discarded in favor of an older success.
+Inventory checks operate at workflow level; individual jobs and matrix conditions remain the responsibility of each
 workflow and the discovered-check validators.
 
 The sole paused lane is `.github/workflows/upgrade-test.yml` when every job has
@@ -120,6 +122,9 @@ not replace an already selected failure explanation.
 
 The structured reader paginates check runs and head-scoped Actions runs, matches
 GitHub Actions checks to workflow suite IDs, and ignores superseded executions.
+Latest workflow states count even before their first check record registers.
+The publisher is excluded by its exact workflow path and associated suite, so
+its own execution cannot hold the aggregate pending.
 For reruns, it reads the current attempt's job check IDs and retains successful
 jobs from earlier attempts so failed-jobs-only reruns can recover. Checks from
 different apps remain distinct. Individual neutral/skipped checks and the existing

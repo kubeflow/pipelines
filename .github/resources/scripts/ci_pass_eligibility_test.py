@@ -121,11 +121,11 @@ jobs:
   if (method === methods.runs) {
     if (options.missing) return [];
     const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusions?.[cycle] || options.conclusion || 'success');
-    return [{path: `.github/workflows/${workflowName}`, id: 42, event: 'pull_request', head_sha: 'head', head_branch: 'feature',
+    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: 1, event: 'pull_request', head_sha: 'head', head_branch: 'feature',
       head_repository: {full_name: 'contributor/pipelines'},
       status: options.runStatus || 'completed', conclusion: options.runStatus && options.runStatus !== 'completed' ? null : conclusion,
       created_at: options.fresh ? '2026-09-07T12:01:00Z' : '2026-09-07T11:00:00Z',
-      run_started_at: '2026-09-07T12:02:00Z', pull_requests: []}];
+      run_started_at: '2026-09-07T12:02:00Z', pull_requests: [], ...options.runPatch}];
   }
   throw Error('Unexpected API request');
 }};
@@ -551,6 +551,16 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
         self.assertIn(['status', 'success', 'head'], result['calls'])
         self.assert_last_status(result, 'pending')
         self.assertEqual(result['calls'][-1], ['remove-label', 'ci-passed'])
+
+    def test_malformed_expected_workflow_metadata_cannot_publish_success(self):
+        for field, value in [('id', None), ('run_attempt', 0),
+                             ('created_at', 'invalid'),
+                             ('run_started_at', None)]:
+            with self.subTest(field=field):
+                result = exercise({'runPatch': {field: value}})
+                self.assert_last_status(result, 'failure')
+                self.assertNotIn(['status', 'success', 'head'], result['calls'])
+                self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
 
     def test_external_api_failure_cannot_publish_success(self):
         result = exercise({'checkApiFailure': True})
