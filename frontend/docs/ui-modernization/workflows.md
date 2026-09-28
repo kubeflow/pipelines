@@ -1,5 +1,7 @@
 # UI modernization: workflows and qualification
 
+Latest follow-up: [loading-layout stability](layout-stability.md) records the `e79f8d42` fixes, 141-case browser matrix and repeated matched measurements. The source-specific results below remain historical evidence.
+
 **Historical retirement checkpoint:** newer application source, repeated measurements and compatibility checks are recorded in [performance qualification](performance-qualification.md) and [browser/accessibility qualification](browser-accessibility-qualification.md). The results below remain tied to their original source and assets.
 
 This is the current implementation report for [issue #14572](https://github.com/kubeflow/pipelines/issues/14572), [KEP PR #14574](https://github.com/kubeflow/pipelines/pull/14574), and [implementation PR #14584](https://github.com/kubeflow/pipelines/pull/14584). It supersedes the implementation-status statements in the historical [foundation](foundation.md), [Runs](runs.md), and [inspection](inspection.md) checkpoints. Their screenshots and test totals remain evidence for those earlier slices.

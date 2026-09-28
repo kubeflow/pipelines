@@ -1,5 +1,7 @@
 # Performance qualification
 
+Latest follow-up: [loading-layout stability](layout-stability.md) records the `e79f8d42` fixes, 141-case browser matrix and repeated matched measurements. The source-specific results below remain historical evidence.
+
 This report supersedes the timing conclusions in the [retirement checkpoint](performance-comparison.md), while retaining that checkpoint as historical evidence. It compares original baseline source `02cbc725ac9ddcd950f4400d8355dd78bfcd6c57` with candidate `b358c3b4dc6bcf1b47c2ae399b5e85dfc3df0269` under a matched protocol. [Browser/accessibility qualification](browser-accessibility-qualification.md) records separate coverage and remaining release gates.
 
 ## Changes and diagnosis

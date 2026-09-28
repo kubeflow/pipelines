@@ -1,5 +1,7 @@
 # Browser and accessibility qualification
 
+Latest follow-up: [loading-layout stability](layout-stability.md) records the `e79f8d42` fixes, 141-case browser matrix and repeated matched measurements. The source-specific results below remain historical evidence.
+
 This report records the checks after the [legacy retirement checkpoint](workflows.md). The [retained production browser matrix](qualification/browser-matrix.json) passed 132 cases on application and harness source `b358c3b4dc6bcf1b47c2ae399b5e85dfc3df0269`, including toolbar-loading geometry, pointer resizing and task-log namespace readiness. The actual Firefox 128 evidence below uses the same application assets. The [performance qualification](performance-qualification.md) is reported separately.
 
 ## Accessibility qualification
