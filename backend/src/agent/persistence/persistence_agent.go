@@ -83,8 +83,10 @@ func NewPersistenceAgent(
 }
 
 // HasSynced returns true if both the workflow and scheduled workflow informer
-// caches have completed their initial sync. Used by the readiness probe to
-// gate traffic until the agent is ready to process events.
+// caches have completed their initial LIST from the API server. Used by the
+// readiness probe to prevent the agent from processing events before it has a
+// complete view of existing resources. This does not detect ongoing watch
+// staleness or API server connectivity loss after the initial sync.
 func (p *PersistenceAgent) HasSynced() bool {
 	return p.workflowClient.HasSynced()() && p.swfClient.HasSynced()()
 }
