@@ -434,6 +434,80 @@ describe('DynamicFlow', () => {
     });
   });
 
+  describe('executor retry republishing an output', () => {
+    // When the cache update fails after the outputs are published, the executor retries
+    // under the same execution and publishes a new artifact with the same name. The node
+    // must show the retry's artifact, not the stale first publication.
+    it('resolves a direct child output to the latest publication', () => {
+      const rootExecution = buildExecution(2, '');
+      const producer = buildExecution(3, 'preprocess', 2);
+      const firstPublication = new Artifact().setId(1).setState(Artifact.State.LIVE);
+      const retryPublication = new Artifact().setId(5).setState(Artifact.State.LIVE);
+      const events = [
+        buildOutputEvent(3, 1, 'output_dataset_one'),
+        buildOutputEvent(3, 5, 'output_dataset_one'),
+      ];
+      const executions = [rootExecution, producer];
+      const artifacts = [firstPublication, retryPublication];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        buildRootGraph(),
+        executions,
+        events,
+        artifacts,
+      );
+      const artifactNode = graph.find(
+        (element) => element.id === 'artifact.preprocess.output_dataset_one',
+      )!;
+
+      expect(artifactNode.data.mlmdId).toEqual(retryPublication.getId());
+      const nodeMlmdInfo = getNodeMlmdInfo(artifactNode, executions, events, artifacts);
+      expect(nodeMlmdInfo.execution).toEqual(producer);
+      expect(nodeMlmdInfo.linkedArtifact?.artifact).toEqual(retryPublication);
+    });
+
+    it('resolves a ParallelFor output to the latest publication of the lowest iteration', () => {
+      const rootExecution = buildExecution(1, '');
+      const loopExecution = buildExecution(10, 'for-loop-2', 1);
+      const firstIteration = buildIterationExecution(20, 'for-loop-2', 10, 0);
+      const secondIteration = buildIterationExecution(21, 'for-loop-2', 10, 1);
+      const firstIterationProducer = buildExecution(30, 'create_report', 20);
+      const secondIterationProducer = buildExecution(31, 'create_report', 21);
+      const firstPublication = new Artifact().setId(300).setState(Artifact.State.LIVE);
+      const secondIterationArtifact = new Artifact().setId(301).setState(Artifact.State.LIVE);
+      const retryPublication = new Artifact().setId(302).setState(Artifact.State.LIVE);
+      const events = [
+        buildOutputEvent(30, 300, 'report'),
+        buildOutputEvent(31, 301, 'report'),
+        buildOutputEvent(30, 302, 'report'),
+      ];
+      const executions = [
+        rootExecution,
+        loopExecution,
+        firstIteration,
+        secondIteration,
+        firstIterationProducer,
+        secondIterationProducer,
+      ];
+      const artifacts = [firstPublication, secondIterationArtifact, retryPublication];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        [buildSubDagOutputNode('for-loop-2', 'create_report', 'report')],
+        executions,
+        events,
+        artifacts,
+      );
+      const artifactNode = graph.find((element) => element.id === 'artifact.for-loop-2.report')!;
+
+      expect(artifactNode.data.mlmdId).toEqual(retryPublication.getId());
+      const nodeMlmdInfo = getNodeMlmdInfo(artifactNode, executions, events, artifacts);
+      expect(nodeMlmdInfo.execution).toEqual(firstIterationProducer);
+      expect(nodeMlmdInfo.linkedArtifact?.artifact).toEqual(retryPublication);
+    });
+  });
+
   describe('sub-DAG output artifacts', () => {
     // A sub-DAG output artifact is produced by an inner subtask one layer below the node.
     // Two sibling sub-DAG tasks of the same component share the inner (task, artifact)

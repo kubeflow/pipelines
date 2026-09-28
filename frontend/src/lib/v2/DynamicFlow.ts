@@ -452,7 +452,8 @@ function getArtifactIdToArtifact(artifacts: Artifact[]): Map<number, Artifact> {
 // pipelines that differ only by an input parameter), producing several executions with
 // the same task_name and the same output artifact name. Collecting every candidate here
 // lets callers disambiguate by the producing execution's DAG instead of silently keeping
-// whichever OUTPUT event happened to be processed last.
+// whichever OUTPUT event happened to be processed last. Candidates keep the order of the
+// OUTPUT events, so a later candidate is a later publication.
 function getArtifactNodeKeyToArtifacts(
   events: Event[],
   executionIdToExecution: Map<number, Execution>,
@@ -538,6 +539,10 @@ function resolveArtifactNodeInDag(
 // node stays unresolved. Being the only candidate is not evidence of ownership either: a
 // task whose own producer is still pending would otherwise borrow a namesake artifact from
 // elsewhere in the run.
+//
+// One producer can also publish the same output twice: when the cache update fails after
+// the outputs are published, the executor retries under the same execution and publishes
+// a new artifact. The latest publication is the one the retry completed with, so it wins.
 function selectLinkedArtifactUnderDag(
   candidateLinkedArtifacts: LinkedArtifact[] | undefined,
   executionIdToExecution: Map<number, Execution>,
@@ -546,13 +551,14 @@ function selectLinkedArtifactUnderDag(
   if (!candidateLinkedArtifacts || dagExecutionId === undefined) {
     return undefined;
   }
-  const artifactOfDirectChild = candidateLinkedArtifacts.find(
+  const artifactsOfDirectChild = candidateLinkedArtifacts.filter(
     (linkedArtifact) =>
       getParentDagId(getProducingExecution(linkedArtifact, executionIdToExecution)) ===
       dagExecutionId,
   );
+  const latestArtifactOfDirectChild = artifactsOfDirectChild[artifactsOfDirectChild.length - 1];
   return (
-    artifactOfDirectChild ??
+    latestArtifactOfDirectChild ??
     selectLinkedArtifactOfLowestIteration(
       candidateLinkedArtifacts,
       executionIdToExecution,
@@ -564,31 +570,38 @@ function selectLinkedArtifactUnderDag(
 type IterationArtifactCandidate = {
   linkedArtifact: LinkedArtifact;
   iterationIndex: number;
+  publicationOrder: number;
 };
 
 // A ParallelFor runs its tasks once per iteration, each under its own iteration execution,
 // so the artifact the loop collects is produced two layers below it. A single graph node
 // stands for the whole collection; resolving it to the lowest iteration keeps that choice
-// stable across renders.
+// stable across renders. Within that iteration the latest publication wins, as it does for
+// a direct child.
 function selectLinkedArtifactOfLowestIteration(
   candidateLinkedArtifacts: LinkedArtifact[],
   executionIdToExecution: Map<number, Execution>,
   loopExecutionId: number,
 ): LinkedArtifact | undefined {
   const iterationCandidates = candidateLinkedArtifacts
-    .map((linkedArtifact) => ({
+    .map((linkedArtifact, publicationOrder) => ({
       linkedArtifact,
       iterationIndex: getIterationIndexUnderLoop(
         linkedArtifact,
         executionIdToExecution,
         loopExecutionId,
       ),
+      publicationOrder,
     }))
     .filter(
       (candidate): candidate is IterationArtifactCandidate =>
         candidate.iterationIndex !== undefined,
     )
-    .sort((first, second) => first.iterationIndex - second.iterationIndex);
+    .sort(
+      (first, second) =>
+        first.iterationIndex - second.iterationIndex ||
+        second.publicationOrder - first.publicationOrder,
+    );
   return iterationCandidates[0]?.linkedArtifact;
 }
 
