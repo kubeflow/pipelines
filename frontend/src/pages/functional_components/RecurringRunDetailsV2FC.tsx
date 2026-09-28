@@ -16,18 +16,16 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CircularProgress } from '@mui/material';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { queryKeys } from 'src/hooks/queryKeys';
-import DetailsTable from 'src/components/DetailsTable';
+import { InspectionFields as DetailsTable } from 'src/components/modernization/InspectionFields';
+import 'src/components/modernization/ExperimentWorkflows.css';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { Breadcrumb, ToolbarProps } from 'src/components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from 'src/Css';
+import { Breadcrumb, ToolbarProps } from 'src/lib/PageChromeTypes';
 import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { formatDateString, enabledDisplayStringV2, errorToMessage } from 'src/lib/Utils';
 import { triggerDisplayString } from 'src/lib/TriggerUtils';
@@ -170,14 +168,18 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
   }, [getRecurringRunError, getExperimentError, recurringRunId, updateBanner]);
 
   if (isRecurringRunLoading) {
-    return <CircularProgress />;
+    return (
+      <div className='kfp-workflow-loading' role='progressbar' aria-label='Loading recurring run'>
+        Loading recurring run…
+      </div>
+    );
   }
 
   return (
-    <div className={classes(commonCss.page, padding(20, 'lr'))}>
+    <div className='kfp-workflow-page'>
       {recurringRun && (
-        <div className={commonCss.scrollContainer}>
-          <div className={padding(20)}>
+        <div className='kfp-workflow-details'>
+          <div>
             <DetailsTable
               title='Recurring run details'
               fields={getRecurringRunDetails(recurringRun)}

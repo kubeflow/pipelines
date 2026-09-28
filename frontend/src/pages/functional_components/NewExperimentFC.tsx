@@ -16,28 +16,16 @@
 
 import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { commonCss, fontsize, padding } from 'src/Css';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
-import BusyButton from 'src/atoms/BusyButton';
-import Input from 'src/atoms/Input';
+import { TextField } from 'src/components/ui/text-field';
+import { Button } from 'src/components/ui/button';
+import 'src/components/modernization/ExperimentWorkflows.css';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
 import { getLatestVersion } from 'src/pages/NewRunV2';
 import { PageProps } from 'src/pages/Page';
-import { classes, stylesheet } from 'typestyle';
-import { Button } from '@mui/material';
-
-const css = stylesheet({
-  errorMessage: {
-    color: 'red',
-  },
-  // TODO: move to Css.tsx and probably rename.
-  explanation: {
-    fontSize: fontsize.small,
-  },
-});
 
 interface ExperimentProps {
   namespace?: string;
@@ -117,48 +105,45 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     props.onCancel ? props.onCancel() : props.navigate(RoutePage.EXPERIMENTS);
 
   return (
-    <div className={classes(commonCss.page, padding(20, 'lr'))}>
-      <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
-        <div className={commonCss.header}>Experiment details</div>
-        <div className={css.explanation}>
+    <div className='kfp-workflow-page'>
+      <div className='kfp-workflow-form'>
+        <h2>Experiment details</h2>
+        <div className='kfp-workflow-description'>
           Think of an Experiment as a space that contains the history of all pipelines and their
           associated runs
         </div>
 
-        <Input
+        <TextField
           id='experimentName'
           label='Experiment name'
           required={true}
           onChange={(event) => setExperimentName(event.target.value)}
+          error={experimentName ? undefined : 'Experiment name is required'}
           value={experimentName}
           autoFocus={true}
-          variant='outlined'
         />
-        <Input
+        <TextField
           id='experimentDescription'
           label='Description'
           multiline={true}
           onChange={(event) => setDescription(event.target.value)}
           required={false}
           value={description}
-          variant='outlined'
         />
 
-        <div className={commonCss.flex}>
-          <BusyButton
+        <div className='kfp-workflow-actions'>
+          <Button
             id='createExperimentBtn'
-            disabled={!experimentName}
-            busy={isbeingCreated}
-            className={commonCss.buttonAction}
-            title={'Next'}
+            disabled={!experimentName || isbeingCreated}
+            aria-busy={isbeingCreated}
             onClick={createExperiment}
-          />
-          <Button id='cancelNewExperimentBtn' onClick={onCancel}>
+          >
+            Next
+          </Button>
+          {isbeingCreated && <span role='status'>Creating experiment…</span>}
+          <Button id='cancelNewExperimentBtn' variant='secondary' onClick={onCancel}>
             Cancel
           </Button>
-          <div className={css.errorMessage}>
-            {experimentName ? '' : 'Experiment name is required'}
-          </div>
         </div>
       </div>
     </div>

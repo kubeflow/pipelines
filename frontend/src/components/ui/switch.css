@@ -1,0 +1,38 @@
+.kfp-theme .kfp-switch {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--muted-foreground);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.kfp-theme .kfp-switch[data-checked] {
+  background: var(--status-succeeded);
+  border-color: var(--status-succeeded);
+}
+.kfp-theme .kfp-switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.kfp-theme .kfp-switch-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--card);
+  transform: translateX(0);
+  transition: transform 120ms ease;
+}
+.kfp-theme .kfp-switch-thumb[data-checked] {
+  transform: translateX(16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kfp-theme .kfp-switch,
+  .kfp-theme .kfp-switch-thumb {
+    transition: none;
+  }
+}

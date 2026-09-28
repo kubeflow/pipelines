@@ -1,9 +1,0 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-
-exports[`Hr > renders with the right styles 1`] = `
-<DocumentFragment>
-  <hr
-    style="border-width: 1px 0px 0px; border-style: solid none none; border-color: rgb(224, 224, 224) transparent transparent; border-image: none; margin: 24px 0px;"
-  />
-</DocumentFragment>
-`;

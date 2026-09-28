@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
-import { CircularProgress } from '@mui/material';
+import { LoaderCircle } from 'lucide-react';
+import './SecondaryPages.css';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
@@ -181,8 +182,12 @@ function NewRunSwitcher(props: PageProps) {
     experimentIsFetching
   ) {
     return (
-      <div style={{ textAlign: 'center', paddingTop: 40 }}>
-        <CircularProgress />
+      <div
+        className='kfp-page-loading'
+        role='progressbar'
+        aria-label='Loading pipeline information'
+      >
+        <LoaderCircle className='kfp-secondary-spinner' aria-hidden />
         <div>Currently loading pipeline information</div>
       </div>
     );

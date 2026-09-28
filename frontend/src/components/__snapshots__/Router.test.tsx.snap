@@ -606,24 +606,42 @@ exports[`Router > initial render 1`] = `
         id="_r_0_"
         tabindex="-1"
       >
-        <div
-          class="page_f1flacxk kfp-legacy-page"
+        <section
+          aria-label="Pipeline workspace"
+          class="kfp-modern-page"
         >
           <div
-            style="margin: 100px auto; text-align: center;"
+            class="kfp-modern-page-content"
           >
-            <div
-              style="color: rgb(170, 170, 170); font-size: 50px; font-weight: bold;"
+            <section
+              class="kfp-secondary-page kfp-not-found"
             >
-              404
-            </div>
-            <div
-              style="font-size: 16px;"
-            >
-              Page Not Found: /does-not-exist
-            </div>
+              <p
+                aria-hidden="true"
+                class="kfp-not-found-code"
+              >
+                404
+              </p>
+              <h1>
+                Page not found
+              </h1>
+              <p>
+                <code>
+                  /does-not-exist
+                </code>
+                 is not a Pipelines page.
+              </p>
+              <button
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-primary text-primary-foreground hover:brightness-95 h-[34px] px-3"
+                data-slot="button"
+                tabindex="0"
+                type="button"
+              >
+                Go to pipelines
+              </button>
+            </section>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   </div>

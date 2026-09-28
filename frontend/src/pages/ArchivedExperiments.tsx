@@ -19,9 +19,8 @@ import Buttons from '../lib/Buttons';
 import ExperimentListTable from '../components/ExperimentList';
 import { Page, PageProps } from './Page';
 import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
-import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
+import '../components/modernization/ExperimentWorkflows.css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchivedExperimentsProp {
@@ -44,7 +43,7 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-workflow-page'>
         <ExperimentListTable
           onError={this.showPageError.bind(this)}
           ref={this._experimentlistRef}

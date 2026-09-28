@@ -19,7 +19,7 @@ import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchivedRunsState {

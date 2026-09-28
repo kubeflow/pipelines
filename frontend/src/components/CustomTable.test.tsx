@@ -244,6 +244,73 @@ describe('CustomTable', () => {
     });
   });
 
+  it('restores next-page navigation when a direct refresh recovers a page token', async () => {
+    let nextToken = '';
+    const reload = vi.fn(async () => nextToken);
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(screen.getByTestId('next-page-btn')).toBeDisabled());
+    nextToken = 'after-retry';
+    await act(async () => {
+      await wrapper.instance().reload();
+    });
+    expect(screen.getByTestId('next-page-btn')).toBeEnabled();
+    nextToken = '';
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith(
+        expect.objectContaining({ pageToken: 'after-retry' }),
+      ),
+    );
+  });
+
+  it('refreshes paging tokens without losing the current page or previous-page token', async () => {
+    let nextToken = '';
+    const reload = vi.fn(async (request: Parameters<CustomTableProps['reload']>[0]) =>
+      request.pageToken ? nextToken : 'page-one',
+    );
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(wrapper.state('tokenList')).toEqual(['', 'page-one']));
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+    await waitFor(() => expect(wrapper.state('currentPage')).toBe(1));
+    expect(screen.getByTestId('next-page-btn')).toBeDisabled();
+    nextToken = 'new-page-two';
+    await act(async () => {
+      await wrapper.instance().reload();
+    });
+    expect(wrapper.state('currentPage')).toBe(1);
+    expect(wrapper.state('tokenList')).toEqual(['', 'page-one', 'new-page-two']);
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+    await waitFor(() =>
+      expect(reload).toHaveBeenLastCalledWith(
+        expect.objectContaining({ pageToken: 'new-page-two' }),
+      ),
+    );
+  });
+
+  it('does not let an older direct refresh overwrite a newer page token', async () => {
+    const reload = vi.fn<CustomTableProps['reload']>(async () => '');
+    const wrapper = renderTable({ rows, columns, reload });
+    await waitFor(() => expect(screen.getByTestId('next-page-btn')).toBeDisabled());
+    let finishOlder!: (token: string) => void;
+    const olderResult = new Promise<string>((resolve) => {
+      finishOlder = resolve;
+    });
+    reload.mockImplementationOnce(() => olderResult).mockResolvedValueOnce('latest-token');
+    let olderRefresh!: Promise<string>;
+    act(() => {
+      olderRefresh = wrapper.instance().reload();
+    });
+    await act(async () => {
+      await wrapper.instance().reload();
+    });
+    await act(async () => {
+      finishOlder('stale-token');
+      await olderRefresh;
+    });
+    expect(wrapper.state('tokenList')).toEqual(['', 'latest-token']);
+    expect(screen.getByTestId('next-page-btn')).toBeEnabled();
+  });
+
   it('calls reload function with sort key of clicked column, while keeping same page', async () => {
     const testColumns = [
       {

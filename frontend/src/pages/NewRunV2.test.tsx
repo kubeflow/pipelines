@@ -15,11 +15,12 @@
  */
 
 import { type ComponentProps } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import fs from 'node:fs';
 import * as JsYaml from 'js-yaml';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import { ThemeProvider } from 'src/components/modernization/ThemeProvider';
 import {
   V2beta1Experiment,
   V2beta1ExperimentStorageState,
@@ -237,7 +238,9 @@ describe('NewRunV2', () => {
     };
     return (
       <CommonTestWrapper>
-        <NewRunV2 {...props} />
+        <ThemeProvider>
+          <NewRunV2 {...props} />
+        </ThemeProvider>
       </CommonTestWrapper>
     );
   }
@@ -266,7 +269,9 @@ describe('NewRunV2', () => {
     };
     return (
       <CommonTestWrapper>
-        <NewRunV2 {...props} />
+        <ThemeProvider>
+          <NewRunV2 {...props} />
+        </ThemeProvider>
       </CommonTestWrapper>
     );
   }
@@ -331,9 +336,16 @@ describe('NewRunV2', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('matchMedia', (media: string) => ({
+      media,
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -376,7 +388,7 @@ describe('NewRunV2', () => {
 
     renderNewRunV2();
 
-    const startButton = await screen.findByText('Start');
+    const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
     expect(startButton.closest('button')?.disabled).toEqual(false);
   });
 
@@ -494,7 +506,7 @@ describe('NewRunV2', () => {
   it('disables start button when pipeline version is selected but template is unavailable', async () => {
     renderNewRunV2({ templateString: undefined });
 
-    const startButton = screen.getByText('Start');
+    const startButton = screen.getByRole('button', { name: 'Start', exact: true });
     expect(startButton.closest('button')?.disabled).toEqual(true);
   });
 
@@ -542,7 +554,7 @@ describe('NewRunV2', () => {
       );
       fireEvent.change(runNameInput, { target: { value: '' } });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       expect(startButton.closest('button')?.disabled).toEqual(true);
       expect(await screen.findByText('Run name cannot be empty.'));
     });
@@ -557,7 +569,7 @@ describe('NewRunV2', () => {
 
       renderNewRunV2();
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       fireEvent.click(startButton);
 
       await waitFor(() => {
@@ -587,7 +599,7 @@ describe('NewRunV2', () => {
       const messageInput = await screen.findByLabelText('message - string');
       fireEvent.change(messageInput, { target: { value: 'hello world' } });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
       });
@@ -769,6 +781,226 @@ describe('NewRunV2', () => {
     });
   });
 
+  describe('async selector lifecycle', () => {
+    function deferred<T>() {
+      let resolve!: (value: T) => void;
+      let reject!: (error: Error) => void;
+      const promise = new Promise<T>((done, fail) => {
+        resolve = done;
+        reject = fail;
+      });
+      return { promise, resolve, reject };
+    }
+
+    function mockVersionList() {
+      vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions').mockResolvedValue({
+        pipeline_versions: [ORIGINAL_TEST_PIPELINE_VERSION, OTHER_TEST_PIPELINE_VERSION],
+      });
+    }
+
+    function mockExperimentList() {
+      vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments').mockResolvedValue({
+        experiments: [DEFAULT_EXPERIMENT, NEW_EXPERIMENT],
+      });
+    }
+
+    it.each(['success', 'failure'])(
+      'keeps the latest version choice after an older %s',
+      async (result) => {
+        mockVersionList();
+        const old = deferred<V2beta1PipelineVersion>();
+        vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion')
+          .mockReturnValueOnce(old.promise)
+          .mockResolvedValueOnce(OTHER_TEST_PIPELINE_VERSION);
+        const changed = vi.fn();
+        renderNewRunV2({ handlePipelineVersionIdChange: changed });
+        fireEvent.click(document.getElementById('choosePipelineVersionBtn')!);
+        fireEvent.click(
+          await within(screen.getByRole('dialog')).findByText(ORIGINAL_TEST_PIPELINE_VERSION_NAME),
+        );
+        expect(screen.getByRole('button', { name: 'Use this pipeline version' })).toBeDisabled();
+        fireEvent.click(
+          within(screen.getByRole('dialog')).getByText(OTHER_TEST_PIPELINE_VERSION_NAME),
+        );
+        await waitFor(() =>
+          expect(screen.getByRole('button', { name: 'Use this pipeline version' })).toBeEnabled(),
+        );
+        await act(async () => {
+          if (result === 'success') old.resolve(ORIGINAL_TEST_PIPELINE_VERSION);
+          else old.reject(new Error('Stale version failure'));
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Use this pipeline version' }));
+        expect(changed).toHaveBeenLastCalledWith(OTHER_TEST_PIPELINE_VERSION_ID);
+        expect(updateDialogSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    it('discards a version choice when canceled and when its pipeline changes', async () => {
+      mockVersionList();
+      const old = deferred<V2beta1PipelineVersion>();
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion')
+        .mockResolvedValueOnce(OTHER_TEST_PIPELINE_VERSION)
+        .mockReturnValueOnce(old.promise);
+      const view = renderNewRunV2();
+      fireEvent.click(document.getElementById('choosePipelineVersionBtn')!);
+      fireEvent.click(
+        await within(screen.getByRole('dialog')).findByText(OTHER_TEST_PIPELINE_VERSION_NAME),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Use this pipeline version' })).toBeEnabled(),
+      );
+      fireEvent.click(document.getElementById('cancelPipelineVersionSelectionBtn')!);
+      fireEvent.click(document.getElementById('choosePipelineVersionBtn')!);
+      expect(screen.getByRole('button', { name: 'Use this pipeline version' })).toBeDisabled();
+      fireEvent.click(
+        await within(screen.getByRole('dialog')).findByText(ORIGINAL_TEST_PIPELINE_VERSION_NAME),
+      );
+      view.rerender(buildNewRunV2Element({ existingPipeline: NEW_TEST_PIPELINE }));
+      await act(async () => {
+        old.resolve(ORIGINAL_TEST_PIPELINE_VERSION);
+      });
+      fireEvent.click(document.getElementById('choosePipelineVersionBtn')!);
+      await within(screen.getByRole('dialog')).findByText(OTHER_TEST_PIPELINE_VERSION_NAME);
+      expect(screen.getByRole('button', { name: 'Use this pipeline version' })).toBeDisabled();
+    });
+
+    it('keeps the latest experiment choice when detail reads finish in reverse order', async () => {
+      mockExperimentList();
+      const old = deferred<V2beta1Experiment>();
+      vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment')
+        .mockReturnValueOnce(old.promise)
+        .mockResolvedValueOnce(NEW_EXPERIMENT);
+      renderNewRunV2();
+      fireEvent.click(document.getElementById('chooseExperimentBtn')!);
+      fireEvent.click(await within(screen.getByRole('dialog')).findByText('Default'));
+      fireEvent.click(within(screen.getByRole('dialog')).getByText('new-experiment'));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Use this experiment' })).toBeEnabled(),
+      );
+      await act(async () => {
+        old.resolve(DEFAULT_EXPERIMENT);
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Use this experiment' }));
+      expect(screen.getByRole('textbox', { name: 'Experiment' })).toHaveValue('new-experiment');
+    });
+
+    it('invalidates experiment reads on cancel/reopen and namespace change', async () => {
+      mockExperimentList();
+      const canceled = deferred<V2beta1Experiment>();
+      const oldScope = deferred<V2beta1Experiment>();
+      vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment')
+        .mockReturnValueOnce(canceled.promise)
+        .mockReturnValueOnce(oldScope.promise);
+      const view = renderNewRunV2({ namespace: 'team-a' });
+      fireEvent.click(document.getElementById('chooseExperimentBtn')!);
+      fireEvent.click(await within(screen.getByRole('dialog')).findByText('Default'));
+      fireEvent.click(document.getElementById('cancelExperimentSelectionBtn')!);
+      fireEvent.click(document.getElementById('chooseExperimentBtn')!);
+      await act(async () => {
+        canceled.resolve(DEFAULT_EXPERIMENT);
+      });
+      expect(screen.getByRole('button', { name: 'Use this experiment' })).toBeDisabled();
+      fireEvent.click(await within(screen.getByRole('dialog')).findByText('new-experiment'));
+      view.rerender(buildNewRunV2Element({ namespace: 'team-b' }));
+      await act(async () => {
+        oldScope.reject(new Error('Old namespace error'));
+      });
+      fireEvent.click(document.getElementById('chooseExperimentBtn')!);
+      await within(screen.getByRole('dialog')).findByText('Default');
+      expect(screen.getByRole('button', { name: 'Use this experiment' })).toBeDisabled();
+      expect(updateDialogSpy).not.toHaveBeenCalled();
+    });
+
+    it('reports a current detail error and keeps confirmation disabled until recovery', async () => {
+      mockExperimentList();
+      vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment')
+        .mockRejectedValueOnce(new Error('Current selection failure'))
+        .mockResolvedValueOnce(NEW_EXPERIMENT);
+      renderNewRunV2();
+      fireEvent.click(document.getElementById('chooseExperimentBtn')!);
+      fireEvent.click(await within(screen.getByRole('dialog')).findByText('Default'));
+      await waitFor(() =>
+        expect(updateDialogSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Unable to select experiment',
+            content: 'Current selection failure',
+          }),
+        ),
+      );
+      expect(screen.getByRole('button', { name: 'Use this experiment' })).toBeDisabled();
+      fireEvent.click(within(screen.getByRole('dialog')).getByText('new-experiment'));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Use this experiment' })).toBeEnabled(),
+      );
+    });
+
+    it('does not commit a slow pipeline lookup over a newer confirmed pipeline', async () => {
+      vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines').mockResolvedValue({
+        pipelines: [ORIGINAL_TEST_PIPELINE, NEW_TEST_PIPELINE],
+      });
+      vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockImplementation(async (id) =>
+        id === ORIGINAL_TEST_PIPELINE_ID ? ORIGINAL_TEST_PIPELINE : NEW_TEST_PIPELINE,
+      );
+      const old = deferred<V2beta1ListPipelineVersionsResponse>();
+      vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions')
+        .mockReturnValueOnce(old.promise)
+        .mockResolvedValueOnce({ pipeline_versions: [NEW_TEST_PIPELINE_VERSION] });
+      const changed = vi.fn();
+      renderNewRunV2({ handlePipelineIdChange: changed });
+      for (const name of [ORIGINAL_TEST_PIPELINE_NAME, NEW_TEST_PIPELINE_NAME]) {
+        fireEvent.click(document.getElementById('choosePipelineBtn')!);
+        fireEvent.click(await within(screen.getByRole('dialog')).findByText(name));
+        await waitFor(() =>
+          expect(screen.getByRole('button', { name: 'Use this pipeline' })).toBeEnabled(),
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Use this pipeline' }));
+      }
+      await waitFor(() => expect(changed).toHaveBeenCalledWith(NEW_TEST_PIPELINE_ID));
+      await act(async () => {
+        old.resolve({ pipeline_versions: [ORIGINAL_TEST_PIPELINE_VERSION] });
+      });
+      expect(changed).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('textbox', { name: 'Pipeline', exact: true })).toHaveValue(
+        NEW_TEST_PIPELINE_NAME,
+      );
+    });
+
+    it.each(['namespace change', 'unmount'])(
+      'ignores a pending latest-version read after %s',
+      async (reason) => {
+        vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines').mockResolvedValue({
+          pipelines: [NEW_TEST_PIPELINE],
+        });
+        vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue(NEW_TEST_PIPELINE);
+        const pending = deferred<V2beta1ListPipelineVersionsResponse>();
+        const versions = vi
+          .spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions')
+          .mockReturnValueOnce(pending.promise);
+        const changed = vi.fn();
+        const view = renderNewRunV2({ namespace: 'team-a', handlePipelineIdChange: changed });
+        fireEvent.click(document.getElementById('choosePipelineBtn')!);
+        fireEvent.click(
+          await within(screen.getByRole('dialog')).findByText(NEW_TEST_PIPELINE_NAME),
+        );
+        await waitFor(() =>
+          expect(screen.getByRole('button', { name: 'Use this pipeline' })).toBeEnabled(),
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Use this pipeline' }));
+        await waitFor(() => expect(versions).toHaveBeenCalled());
+        if (reason === 'unmount') view.unmount();
+        else
+          view.rerender(
+            buildNewRunV2Element({ namespace: 'team-b', handlePipelineIdChange: changed }),
+          );
+        await act(async () => {
+          pending.resolve({ pipeline_versions: [NEW_TEST_PIPELINE_VERSION] });
+        });
+        expect(changed).not.toHaveBeenCalled();
+        expect(navigateSpy).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   describe('creating a recurring run', () => {
     it('submits a new recurring run', async () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
@@ -780,7 +1012,7 @@ describe('NewRunV2', () => {
       fireEvent.click(recurringSwitcher);
       screen.getByText('Run trigger');
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       // Because start button is set false by default
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
@@ -824,17 +1056,11 @@ describe('NewRunV2', () => {
       const timeCountParam = screen.getByDisplayValue('1');
       fireEvent.change(timeCountParam, { target: { value: '5' } });
 
-      const timeUnitDropdown = screen
-        .getAllByRole('combobox')
-        .find((combobox) => combobox.textContent === 'Hours');
-      if (!timeUnitDropdown) {
-        throw new Error('Unable to find the interval unit dropdown');
-      }
-      fireEvent.mouseDown(timeUnitDropdown);
-      const minutesItem = await screen.findByRole('option', { name: 'Minutes' });
-      fireEvent.click(minutesItem);
+      fireEvent.change(screen.getByRole('combobox', { name: 'Interval unit' }), {
+        target: { value: 'Minute' },
+      });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       // Because start button is set false by default
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
@@ -865,7 +1091,7 @@ describe('NewRunV2', () => {
       const maxConcurrenyParam = screen.getByDisplayValue('10');
       fireEvent.change(maxConcurrenyParam, { target: { value: '10a' } });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(true);
       });
@@ -880,7 +1106,7 @@ describe('NewRunV2', () => {
       const maxConcurrenyParam = screen.getByDisplayValue('10');
       fireEvent.change(maxConcurrenyParam, { target: { value: '-10' } });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(true);
       });
@@ -905,7 +1131,7 @@ describe('NewRunV2', () => {
         existingRun: API_UI_CREATED_NEW_RUN_DETAILS,
       });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       // Because start button is set false by default
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
@@ -940,7 +1166,7 @@ describe('NewRunV2', () => {
         existingRun: API_SDK_CREATED_NEW_RUN_DETAILS,
       });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       // Because start button is set false by default
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
@@ -974,7 +1200,7 @@ describe('NewRunV2', () => {
         existingRecurringRun: API_UI_CREATED_NEW_RECURRING_RUN_DETAILS,
       });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       // Because start button is set false by default
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
@@ -1019,7 +1245,7 @@ describe('NewRunV2', () => {
         existingRecurringRun: API_SDK_CREATED_NEW_RECURRING_RUN_DETAILS,
       });
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       // Because start button is set false by default
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
@@ -1068,7 +1294,7 @@ describe('NewRunV2', () => {
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
 
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
       });
@@ -1102,8 +1328,12 @@ describe('NewRunV2', () => {
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
 
-      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
-      expect(checkbox.disabled).toBe(true);
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'Always use the latest pipeline version',
+      });
+      expect(checkbox).toHaveAttribute('aria-disabled', 'true');
+      fireEvent.click(checkbox);
+      expect(checkbox).not.toBeChecked();
     });
 
     it('should be hidden and version selector should be required in one-off run mode', async () => {
@@ -1128,8 +1358,10 @@ describe('NewRunV2', () => {
       fireEvent.click(recurringSwitcher);
 
       // make sure the checkbox is unchecked
-      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
-      expect(checkbox.checked).toBe(false);
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'Always use the latest pipeline version',
+      });
+      expect(checkbox).not.toBeChecked();
 
       // verify the version selector is enabled and required
       const chooseBtn = document.getElementById('choosePipelineVersionBtn');
@@ -1146,15 +1378,17 @@ describe('NewRunV2', () => {
       fireEvent.click(recurringSwitcher);
 
       // verify the checkbox is enabled in recurring run mode
-      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
-      expect(checkbox.disabled).toBe(false);
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'Always use the latest pipeline version',
+      });
+      expect(checkbox).not.toHaveAttribute('aria-disabled', 'true');
 
       // verify the checkbox is unchecked by default
-      expect(checkbox.checked).toBe(false);
+      expect(checkbox).not.toBeChecked();
 
       // verify the checkbox is checkable
       fireEvent.click(checkbox);
-      expect(checkbox.checked).toBe(true);
+      expect(checkbox).toBeChecked();
 
       // verify version selector is not required when checkbox is enabled
       await waitFor(() => {
@@ -1178,9 +1412,9 @@ describe('NewRunV2', () => {
       await screen.findByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME);
 
       // Find and check the "Always Use Latest" checkbox
-      const alwaysUseLatestCheckbox = screen.getByLabelText(
-        'Always use the latest pipeline version',
-      );
+      const alwaysUseLatestCheckbox = screen.getByRole('checkbox', {
+        name: 'Always use the latest pipeline version',
+      });
       fireEvent.click(alwaysUseLatestCheckbox);
 
       // Verify version selection is cleared
@@ -1199,7 +1433,9 @@ describe('NewRunV2', () => {
       const { rerender } = renderNewRunV2();
 
       fireEvent.click(screen.getByLabelText('Recurring'));
-      fireEvent.click(screen.getByLabelText('Always use the latest pipeline version'));
+      fireEvent.click(
+        screen.getByRole('checkbox', { name: 'Always use the latest pipeline version' }),
+      );
 
       await waitFor(() => {
         expect(screen.queryByDisplayValue(ORIGINAL_TEST_PIPELINE_VERSION_NAME)).toBeNull();
@@ -1231,11 +1467,13 @@ describe('NewRunV2', () => {
       fireEvent.click(recurringSwitcher);
 
       // Find and check the "Always Use Latest" checkbox
-      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'Always use the latest pipeline version',
+      });
       fireEvent.click(checkbox);
 
       // Click start button
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       fireEvent.click(startButton);
 
       // Verify API call contains only pipeline_id
@@ -1276,11 +1514,13 @@ describe('NewRunV2', () => {
       fireEvent.click(recurringSwitcher);
 
       // make sure the checkbox is unchecked
-      const checkbox = screen.getByLabelText('Always use the latest pipeline version');
-      expect(checkbox.checked).toBe(false);
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'Always use the latest pipeline version',
+      });
+      expect(checkbox).not.toBeChecked();
 
       // Click start button
-      const startButton = await screen.findByText('Start');
+      const startButton = await screen.findByRole('button', { name: 'Start', exact: true });
       await waitFor(() => {
         expect(startButton.closest('button')?.disabled).toEqual(false);
       });

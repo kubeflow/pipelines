@@ -20,7 +20,7 @@
   --radius-panel: var(--kfp-radius-xl);
 }
 
-/* Scoped while legacy pages migrate; see docs/ui-modernization/foundation.md. */
+/* Scope application tokens to the shell, portals, and independently rendered stories. */
 .kfp-theme {
   --background: #f5f6f9;
   --card: #ffffff;

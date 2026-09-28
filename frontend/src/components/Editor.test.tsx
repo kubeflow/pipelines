@@ -17,6 +17,9 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import Editor from './Editor';
+import { config } from 'ace-builds';
+import yamlWorkerUrl from 'ace-builds/src-noconflict/worker-yaml.js?url';
+import jsonWorkerUrl from 'ace-builds/src-noconflict/worker-json.js?url';
 
 /*
   These tests mimic https://github.com/securingsincity/react-ace/blob/master/tests/src/ace.spec.js
@@ -25,6 +28,11 @@ import Editor from './Editor';
 */
 
 describe('Editor', () => {
+  it('resolves YAML and JSON workers to bundled asset URLs', () => {
+    expect(config.moduleUrl('ace/mode/yaml_worker', 'worker')).toBe(yamlWorkerUrl);
+    expect(config.moduleUrl('ace/mode/json_worker', 'worker')).toBe(jsonWorkerUrl);
+  });
+
   // Ace renders a large, environment-dependent DOM tree. Snapshot tests are brittle
   // and create noisy diffs during dependency upgrades. Assert key behaviors instead.
   const getPlaceholderNode = (container: HTMLElement) =>
@@ -54,6 +62,24 @@ describe('Editor', () => {
     const placeholderNode = getPlaceholderNode(container);
     expect(placeholderNode).not.toBeNull();
     expect(placeholderNode?.innerHTML).toBe(placeholder);
+  });
+
+  it('keeps the same editor session and read-only value across palette changes', () => {
+    const ref = React.createRef<Editor>();
+    const renderEditor = (dark: boolean) => (
+      <div className={`kfp-theme${dark ? ' dark' : ''}`}>
+        <Editor ref={ref} value='name: example' mode='yaml' theme='github' readOnly={true} />
+      </div>
+    );
+    const { container, rerender } = render(renderEditor(false));
+    const editor = ref.current!.editor;
+    editor.selection.moveCursorTo(0, 5);
+    rerender(renderEditor(true));
+    expect(ref.current!.editor).toBe(editor);
+    expect(editor.getValue()).toBe('name: example');
+    expect(editor.getReadOnly()).toBe(true);
+    expect(editor.getCursorPosition()).toEqual({ row: 0, column: 5 });
+    expect(container.querySelector('.ace_editor')).toHaveClass('ace-github');
   });
 
   it('has its value set to the provided value', () => {

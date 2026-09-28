@@ -48,8 +48,7 @@ import { RunStatus } from 'src/components/modernization/RunStatus';
 import { Alert } from 'src/components/ui/alert';
 import { Button } from 'src/components/ui/button';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss } from 'src/Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { KeyValue } from 'src/lib/DetailsTableTypes';
@@ -712,7 +711,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           </div>
         )}
         {selectedTab === 2 && (
-          <div className={`kfp-inspection-legacy ${commonCss.codeEditor}`} data-testid='spec-ir'>
+          <div className='kfp-inspection-legacy kfp-inspection-spec' data-testid='spec-ir'>
             <PipelineSpecTabContent templateString={pipelineJobStr || ''} />
           </div>
         )}
@@ -747,9 +746,9 @@ function updateToolBar(
   const runMetadata = run;
   if (runMetadata) {
     const pageTitle = (
-      <div className={commonCss.flex}>
+      <div className='kfp-inspection-run-title'>
         <RunStatus state={runMetadata.state} />
-        <span style={{ marginLeft: 10 }}>{runMetadata.display_name || 'Run name unknown'}</span>
+        <span>{runMetadata.display_name || 'Run name unknown'}</span>
       </div>
     );
 

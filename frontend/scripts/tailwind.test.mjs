@@ -44,6 +44,8 @@ describe('generated Tailwind CSS in the test DOM', () => {
     expect(dom.window.document.styleSheets).toHaveLength(1);
   });
 
+  // Graph boxes now use Graph.css and shared dimensions, covered by node tests
+  // and the production graph harness; only active utilities belong in this gate.
   it.each([
     {
       name: 'navigation layout',
@@ -51,11 +53,18 @@ describe('generated Tailwind CSS in the test DOM', () => {
       expected: { display: 'flex', flexDirection: 'row', flexShrink: '0' },
     },
     {
-      name: 'artifact graph layout',
-      classes: 'flex flex-grow justify-center items-center',
-      expected: { display: 'flex', flexGrow: '1', justifyContent: 'center', alignItems: 'center' },
+      name: 'shared button layout',
+      classes: 'inline-flex shrink-0 items-center justify-center whitespace-nowrap h-[34px]',
+      expected: {
+        display: 'inline-flex',
+        flexShrink: '0',
+        justifyContent: 'center',
+        alignItems: 'center',
+        whiteSpace: 'nowrap',
+        height: '34px',
+      },
     },
-  ])('preserves the legacy $name utilities', ({ classes, expected }) => {
+  ])('preserves the active $name utilities', ({ classes, expected }) => {
     const element = dom.window.document.createElement('div');
     element.className = classes;
     dom.window.document.body.append(element);

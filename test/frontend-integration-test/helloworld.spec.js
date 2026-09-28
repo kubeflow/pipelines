@@ -234,6 +234,10 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('navigates to the runs page', async () => {
+    // On narrow screens the inspector is modal; close it before using background navigation.
+    const closeInspector = await $('button[aria-label="close"]');
+    await closeInspector.click();
+    await closeInspector.waitForDisplayed({ timeout: uiTimeout, reverse: true });
     await $('#runsBtn').click();
     await waitForHashPrefix('#/runs', { timeout: uiTimeout });
   });

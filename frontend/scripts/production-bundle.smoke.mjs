@@ -17,19 +17,22 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 
 // Vitest transforms imports differently from the production bundler. Load the
 // emitted bundle in a browser to catch startup failures such as Ace import order.
 test('production bundle renders the pipeline upload control', { timeout: 30000 }, async () => {
-  const browser = await chromium.launch({
-    channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+  const engineName = process.env.KFP_BROWSER || 'chromium';
+  const engine = { chromium, firefox, webkit }[engineName];
+  assert.ok(engine, `Unsupported KFP_BROWSER: ${engineName}`);
+  const browser = await engine.launch({
+    channel: engineName === 'chromium' ? process.env.PLAYWRIGHT_CHANNEL || undefined : undefined,
   });
   try {
     const page = await browser.newPage();
     const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
-    await page.route('**/*', async route => {
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.route('**/*', async (route) => {
       const url = new URL(route.request().url());
       if (url.origin !== 'http://kfp.test') {
         await route.abort();

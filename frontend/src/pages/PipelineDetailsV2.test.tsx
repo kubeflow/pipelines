@@ -123,7 +123,8 @@ describe('PipelineDetailsV2', () => {
     screen.getByText('test-pipeline-version-v2');
   });
 
-  it('shows updated selected version in summary card after switching to another v2 version', async () => {
+  it('requests version selection when switching to another v2 version', async () => {
+    const onVersionSelected = vi.fn().mockResolvedValue(undefined);
     render(
       <CommonTestWrapper>
         <PipelineDetailsV2
@@ -134,22 +135,21 @@ describe('PipelineDetailsV2', () => {
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
           versions={[testV2PipelineVersion, newTestV2PipelineVersion, thirdPipelineVersion]}
-          handleVersionSelected={function (versionId: string): Promise<void> {
-            return Promise.resolve();
-          }}
+          handleVersionSelected={onVersionSelected}
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
 
     await userEvent.click(screen.getByText('Show Summary'));
-    const selectedVersion = screen.getByText('test-pipeline-version-v2');
-    await userEvent.click(selectedVersion); // Open dropdown list
-    const anotherVersion = screen.getByText('new-test-pipeline-version-v2');
-    await userEvent.click(anotherVersion); // Selected another version
-    screen.getByText('new-test-pipeline-version-v2'); // Selected version change to another version
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Version' }),
+      newTestV2PipelineVersion.pipeline_version_id!,
+    );
+    expect(onVersionSelected).toHaveBeenCalledWith(newTestV2PipelineVersion.pipeline_version_id);
   });
 
-  it('shows updated selected version in summary card after switching to third version', async () => {
+  it('requests version selection when switching to third version', async () => {
+    const onVersionSelected = vi.fn().mockResolvedValue(undefined);
     render(
       <CommonTestWrapper>
         <PipelineDetailsV2
@@ -160,19 +160,17 @@ describe('PipelineDetailsV2', () => {
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
           versions={[testV2PipelineVersion, newTestV2PipelineVersion, thirdPipelineVersion]}
-          handleVersionSelected={function (versionId: string): Promise<void> {
-            return Promise.resolve();
-          }}
+          handleVersionSelected={onVersionSelected}
         ></PipelineDetailsV2>
       </CommonTestWrapper>,
     );
 
     await userEvent.click(screen.getByText('Show Summary'));
-    const selectedVersion = screen.getByText('test-pipeline-version-v2');
-    await userEvent.click(selectedVersion); // Open dropdown list
-    const thirdVersion = screen.getByText('test-pipeline-version-third');
-    await userEvent.click(thirdVersion); // Selected third version
-    screen.getByText('test-pipeline-version-third'); // Selected version change to third version
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Version' }),
+      thirdPipelineVersion.pipeline_version_id!,
+    );
+    expect(onVersionSelected).toHaveBeenCalledWith(thirdPipelineVersion.pipeline_version_id);
   });
 
   it('Render Execution node', async () => {

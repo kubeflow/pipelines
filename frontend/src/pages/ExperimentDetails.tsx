@@ -16,86 +16,24 @@
 
 import * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import PopOutIcon from '@mui/icons-material/Launch';
+import { ExternalLink } from 'lucide-react';
 import RecurringRunsManager from './RecurringRunsManager';
 import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
-import Toolbar, { ToolbarProps } from 'src/components/Toolbar';
+import type { ToolbarProps } from 'src/lib/PageChromeTypes';
+import { ModernToolbar as Toolbar } from 'src/components/modernization/ModernPageChrome';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, padding } from 'src/Css';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Navigate } from 'react-router';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
-import { Button, Dialog, DialogActions, DialogContent, Paper, Tooltip } from '@mui/material';
-
-const css = stylesheet({
-  card: {
-    border: '1px solid #ddd',
-    borderRadius: 8,
-    height: 70,
-    marginRight: 24,
-    padding: '12px 20px 13px 24px',
-  },
-  cardActive: {
-    border: `1px solid ${color.success}`,
-  },
-  cardBtn: {
-    $nest: {
-      '&:hover': {
-        backgroundColor: 'initial',
-      },
-    },
-    color: color.theme,
-    fontSize: 12,
-    minHeight: 16,
-    paddingLeft: 0,
-    marginRight: 0,
-  },
-  cardContent: {
-    color: color.secondaryText,
-    fontSize: 16,
-    lineHeight: '28px',
-  },
-  cardRow: {
-    borderBottom: `1px solid ${color.lightGrey}`,
-    display: 'flex',
-    flexFlow: 'row',
-    minHeight: 120,
-  },
-  cardTitle: {
-    color: color.strong,
-    display: 'flex',
-    fontSize: 12,
-    fontWeight: 'bold',
-    height: 20,
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  popOutIcon: {
-    color: color.secondaryText,
-    margin: -2,
-    minWidth: 0,
-    padding: 3,
-  },
-  recurringRunsActive: {
-    color: '#0d652d',
-  },
-  recurringRunsCard: {
-    width: 270,
-  },
-  recurringRunsDialog: {
-    minWidth: 600,
-  },
-  runStatsCard: {
-    width: 270,
-  },
-});
+import { Button } from 'src/components/ui/button';
+import { ModalDialog } from 'src/components/ui/dialog';
+import 'src/components/modernization/ExperimentWorkflows.css';
 
 interface ExperimentDetailsState {
   activeRecurringRunsCount: number;
@@ -153,79 +91,72 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     const description = experiment ? experiment.description || '' : '';
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lrt'))}>
+      <div className='kfp-workflow-page'>
         {experiment && (
-          <div className={commonCss.page}>
-            <div className={css.cardRow}>
-              <Paper
+          <div className='kfp-workflow-content'>
+            <div className='kfp-workflow-cards'>
+              <section
                 id='recurringRunsCard'
-                className={classes(
-                  css.card,
-                  css.recurringRunsCard,
-                  !!activeRecurringRunsCount && css.cardActive,
-                )}
-                elevation={0}
+                className='kfp-workflow-card'
+                aria-label='Recurring run configs'
               >
-                <div>
-                  <div className={css.cardTitle}>
-                    <span>Recurring run configs</span>
-                    <Button
-                      className={css.cardBtn}
-                      id='manageExperimentRecurringRunsBtn'
-                      disableRipple={true}
-                      onClick={() => this.setState({ recurringRunsManagerOpen: true })}
-                    >
-                      Manage
-                    </Button>
-                  </div>
-                  <div
-                    className={classes(
-                      css.cardContent,
-                      !!activeRecurringRunsCount && css.recurringRunsActive,
-                    )}
-                  >
-                    {activeRecurringRunsCount + ' active'}
-                  </div>
-                </div>
-              </Paper>
-              <Paper
-                id='experimentDescriptionCard'
-                className={classes(css.card, css.runStatsCard)}
-                elevation={0}
-              >
-                <div className={css.cardTitle}>
-                  <span>Experiment description</span>
+                <div className='kfp-workflow-card-heading'>
+                  <h2>Recurring run configs</h2>
                   <Button
+                    variant='ghost'
+                    size='sm'
+                    id='manageExperimentRecurringRunsBtn'
+                    onClick={() => this.setState({ recurringRunsManagerOpen: true })}
+                  >
+                    Manage
+                  </Button>
+                </div>
+                <div
+                  className='kfp-workflow-card-count'
+                  data-active={activeRecurringRunsCount > 0 ? '' : undefined}
+                >
+                  {activeRecurringRunsCount < 0
+                    ? 'Unavailable'
+                    : `${activeRecurringRunsCount} active`}
+                </div>
+              </section>
+              <section
+                id='experimentDescriptionCard'
+                className='kfp-workflow-card'
+                aria-label='Experiment description'
+              >
+                <div className='kfp-workflow-card-heading'>
+                  <h2>Experiment description</h2>
+                  <Button
+                    variant='ghost'
+                    size='icon'
                     id='expandExperimentDescriptionBtn'
+                    aria-label='Read more'
+                    title='Read more'
                     onClick={() =>
                       this.props.updateDialog({
                         content: description,
                         title: 'Experiment description',
                       })
                     }
-                    className={classes(css.popOutIcon, 'popOutButton')}
                   >
-                    <Tooltip title='Read more'>
-                      <PopOutIcon style={{ fontSize: 18 }} />
-                    </Tooltip>
+                    <ExternalLink aria-hidden='true' />
                   </Button>
                 </div>
                 {description
                   .split('\n')
                   .slice(0, 2)
                   .map((line, i) => (
-                    <div
-                      key={i}
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    >
+                    <div key={i} className='kfp-workflow-description-line'>
                       {line}
                     </div>
                   ))}
                 {description.split('\n').length > 2 ? '...' : ''}
-              </Paper>
+              </section>
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
             <RunListsRouter
+              presentation='modern'
               storageState={this.state.runStorageState}
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
@@ -236,28 +167,28 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               onTabSwitch={this._onRunTabSwitch}
               {...this.props}
             />
-
-            <Dialog
-              open={this.state.recurringRunsManagerOpen}
-              classes={{ paper: css.recurringRunsDialog }}
-              onClose={this._recurringRunsManagerClosed.bind(this)}
-            >
-              <DialogContent>
+            {this.state.recurringRunsManagerOpen && (
+              <ModalDialog
+                open
+                title='Recurring run configs'
+                size='lg'
+                onClose={this._recurringRunsManagerClosed.bind(this)}
+                actions={
+                  <Button
+                    variant='secondary'
+                    id='closeExperimentRecurringRunManagerBtn'
+                    onClick={this._recurringRunsManagerClosed.bind(this)}
+                  >
+                    Close
+                  </Button>
+                }
+              >
                 <RecurringRunsManager
                   {...this.props}
                   experimentId={this.props.params[RouteParams.experimentId] ?? ''}
                 />
-              </DialogContent>
-              <DialogActions>
-                <Button
-                  id='closeExperimentRecurringRunManagerBtn'
-                  onClick={this._recurringRunsManagerClosed.bind(this)}
-                  color='secondary'
-                >
-                  Close
-                </Button>
-              </DialogActions>
-            </Dialog>
+              </ModalDialog>
+            )}
           </div>
         )}
       </div>

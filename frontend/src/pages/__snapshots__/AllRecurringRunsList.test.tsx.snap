@@ -3,7 +3,7 @@
 exports[`AllRecurringRunsList > renders all recurring runs 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk f9qqjqd"
+    class="kfp-workflow-page"
   >
     <div
       data-testid="recurring-run-list"

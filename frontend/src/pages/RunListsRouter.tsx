@@ -16,9 +16,7 @@
 
 import * as React from 'react';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import MD2Tabs from 'src/atoms/MD2Tabs';
-import { commonCss, padding } from 'src/Css';
-import { classes } from 'typestyle';
+import { InspectionTabs } from 'src/components/modernization/InspectionTabs';
 import RunList, { RunListProps } from './RunList';
 
 export enum RunListsGroupTab {
@@ -63,26 +61,27 @@ class RunListsRouter extends React.PureComponent<RunListsRouterProps> {
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs
+      <div className='kfp-workflow-content'>
+        <InspectionTabs
           tabs={['Active', 'Archived']}
           selectedTab={this._getSelectedTab()}
           onSwitch={this.switchTab}
-        />
-
-        {
-          <RunList
-            hideExperimentColumn={true}
-            experimentIdMask={this.props.experimentIdMask}
-            ref={this._runlistRef}
-            onSelectionChange={this.props.onSelectionChange}
-            selectedIds={this.props.selectedIds}
-            noFilterBox={false}
-            disablePaging={false}
-            disableSorting={true}
-            {...this.props}
-          />
-        }
+          ariaLabel='Experiment runs'
+        >
+          {
+            <RunList
+              hideExperimentColumn={true}
+              experimentIdMask={this.props.experimentIdMask}
+              ref={this._runlistRef}
+              onSelectionChange={this.props.onSelectionChange}
+              selectedIds={this.props.selectedIds}
+              noFilterBox={false}
+              disablePaging={false}
+              disableSorting={true}
+              {...this.props}
+            />
+          }
+        </InspectionTabs>
       </div>
     );
   }

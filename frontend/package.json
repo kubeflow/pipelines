@@ -92,7 +92,7 @@
     "pretest:ui:coverage": "npm run build:tailwind",
     "test": "LC_ALL=\"en_US.UTF-8\" vitest run",
     "test:ui": "vitest run",
-    "test:bundle": "npm run build && node --test --test-concurrency=1 scripts/production-bundle.smoke.mjs scripts/ui-modernization-runs.smoke.mjs scripts/ui-modernization-run-details.smoke.mjs",
+    "test:bundle": "npm run build && node --test --test-concurrency=1 scripts/production-bundle.smoke.mjs scripts/ui-modernization-runs.smoke.mjs scripts/ui-modernization-run-details.smoke.mjs scripts/ui-modernization-pipelines.smoke.mjs scripts/ui-modernization-workflows.smoke.mjs scripts/ui-modernization-artifacts.smoke.mjs scripts/ui-modernization-comparison.smoke.mjs scripts/ui-modernization-graph.smoke.mjs",
     "test:ui:watch": "vitest",
     "test:ui:coverage": "vitest run --coverage",
     "test:ui:coverage:loop": "vitest run --coverage --maxWorkers 4",
@@ -177,7 +177,11 @@
   "homepage": "./",
   "browserslist": {
     "production": [
-      "supports es6-module"
+      "Chrome >= 111",
+      "Edge >= 111",
+      "Firefox >= 128",
+      "Safari >= 16.4",
+      "iOS >= 16.4"
     ],
     "development": [
       "last 1 chrome version",

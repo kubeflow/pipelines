@@ -26,7 +26,8 @@ import { errorToMessage } from 'src/lib/Utils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 
 import { PageProps } from './Page';
-import { CircularProgress } from '@mui/material';
+import { LoaderCircle } from 'lucide-react';
+import './SecondaryPages.css';
 import {
   RunDetailsV2,
   RunDetailsV2Params,
@@ -188,7 +189,12 @@ export default function RunDetailsRouter(props: PageProps & NavigationProps<RunD
   }
 
   if (runDetailsIsLoading) {
-    return <CircularProgress aria-label='Loading run details' />;
+    return (
+      <div className='kfp-page-loading' role='progressbar' aria-label='Loading run details'>
+        <LoaderCircle className='kfp-secondary-spinner' aria-hidden />
+        Loading run details…
+      </div>
+    );
   }
   if (loadError) {
     return <div role='alert'>Unable to load run details. Refresh this page to retry.</div>;

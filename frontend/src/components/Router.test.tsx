@@ -27,7 +27,7 @@ import { NavigationErrorBoundary } from 'src/atoms/NavigationErrorBoundary';
 import { useEffect, useState } from 'react';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage, RoutePageFactory } from './Router';
 import { Page, PageProps } from '../pages/Page';
-import { ToolbarProps } from './Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
 
@@ -68,9 +68,10 @@ describe('Router', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText('404')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Pipelines' })).toHaveAttribute('id', 'pipelinesBtn');
     expect(screen.getByRole('link', { name: 'Runs' })).toHaveAttribute('id', 'runsBtn');
-    expect(screen.getByText('Page Not Found: /does-not-exist')).toBeVisible();
+    expect(screen.getByText('/does-not-exist', { selector: 'code' })).toBeVisible();
     expect(renderResult.asFragment()).toMatchSnapshot();
   });
 
@@ -79,11 +80,11 @@ describe('Router', () => {
       initialEntries: ['/does-not-exist?view=graph'],
     });
     render(<RouterProvider router={router} />);
-    expect(screen.getByText('Page Not Found: /does-not-exist')).toBeVisible();
+    expect(screen.getByText('/does-not-exist', { selector: 'code' })).toBeVisible();
 
     await act(() => router.navigate('/another-missing-page'));
-    expect(screen.getByText('Page Not Found: /another-missing-page')).toBeVisible();
-    expect(screen.queryByText('Page Not Found: /does-not-exist')).not.toBeInTheDocument();
+    expect(screen.getByText('/another-missing-page', { selector: 'code' })).toBeVisible();
+    expect(screen.queryByText('/does-not-exist', { selector: 'code' })).not.toBeInTheDocument();
 
     await act(() => router.navigate('/runs'));
     expect(screen.getByText('Runs page')).toBeVisible();
@@ -124,7 +125,8 @@ describe('Router', () => {
     act(() => {
       router.navigate('/pear');
     });
-    await waitFor(() => expect(screen.getByTestId('page-title')).toHaveTextContent(''));
+    await waitFor(() => expect(screen.queryByTestId('page-title')).not.toBeInTheDocument());
+    expect(screen.getByText('pear')).toBeVisible();
   });
 
   it('preserves Run Details state when only the query changes', async () => {
@@ -182,6 +184,15 @@ describe('Router', () => {
   it('builds native task links without putting task IDs in the path', () => {
     expect(RoutePageFactory.runDetailsTask('run-1', 'task/iteration 1')).toBe(
       '/runs/details/run-1?task=task%2Fiteration+1',
+    );
+  });
+
+  it('encodes raw run IDs exactly once for direct and task links', () => {
+    expect(RoutePageFactory.runDetails('run/one%2F space')).toBe(
+      '/runs/details/run%2Fone%252F%20space',
+    );
+    expect(RoutePageFactory.runDetailsTask('run/one%2F space', 'task/iteration 1')).toBe(
+      '/runs/details/run%2Fone%252F%20space?task=task%2Fiteration+1',
     );
   });
 
@@ -483,11 +494,12 @@ describe('Router', () => {
     const view = render(shell(false));
     expect(screen.queryByText('Shared pipelines page')).not.toBeInTheDocument();
     expect(screen.getByText('404')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeVisible();
     view.rerender(shell(true));
     expect(screen.getByText('Shared pipelines page')).toBeVisible();
   });
 
-  it('preserves shell preferences through route changes and bounds unmigrated pages', async () => {
+  it('preserves shell preferences and page chrome through resource and secondary routes', async () => {
     const router = createMemoryRouter(
       [
         {
@@ -497,7 +509,11 @@ describe('Router', () => {
               configs={[
                 { path: RoutePage.RUNS, Component: () => <div>Modern runs content</div> },
                 { path: RoutePage.RUN_DETAILS, Component: () => <div>Modern run details</div> },
-                { path: RoutePage.PIPELINES, Component: () => <div>Legacy pipelines content</div> },
+                { path: RoutePage.PIPELINES, Component: () => <div>Modern pipelines content</div> },
+                {
+                  path: RoutePage.START,
+                  Component: () => <div>Modern getting started content</div>,
+                },
               ]}
             />
           ),
@@ -510,13 +526,16 @@ describe('Router', () => {
       target: { value: 'dark' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
-    expect(screen.getByText('Modern runs content').closest('.kfp-legacy-page')).toBeNull();
+    expect(screen.getByText('Modern runs content').closest('.kfp-modern-page')).not.toBeNull();
     await act(() => router.navigate('/runs/details/run-1?task=task-1'));
     expect(screen.getByText('Modern run details').closest('.kfp-modern-page')).not.toBeNull();
-    expect(screen.getByText('Modern run details').closest('.kfp-legacy-page')).toBeNull();
     expect(router.state.location.search).toBe('?task=task-1');
     await act(() => router.navigate(RoutePage.PIPELINES));
-    expect(screen.getByText('Legacy pipelines content').closest('.kfp-legacy-page')).not.toBeNull();
+    expect(screen.getByText('Modern pipelines content').closest('.kfp-modern-page')).not.toBeNull();
+    await act(() => router.navigate(RoutePage.START));
+    expect(
+      screen.getByText('Modern getting started content').closest('.kfp-modern-page'),
+    ).not.toBeNull();
     expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('dark');
     expect(screen.getByRole('complementary')).toHaveAttribute('data-collapsed', 'true');
   });

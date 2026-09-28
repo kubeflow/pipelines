@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 
 const origin = 'http://kfp.test';
 const build = new URL('../build/', import.meta.url);
@@ -56,7 +56,12 @@ const pipelineSpec = {
 };
 let browser;
 before(async () => {
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+  const engineName = process.env.KFP_BROWSER || 'chromium';
+  const engine = { chromium, firefox, webkit }[engineName];
+  assert.ok(engine, `Unsupported KFP_BROWSER: ${engineName}`);
+  browser = await engine.launch({
+    channel: engineName === 'chromium' ? process.env.PLAYWRIGHT_CHANNEL || undefined : undefined,
+  });
 });
 after(async () => browser?.close());
 
@@ -296,6 +301,43 @@ async function withFixture(options, exercise) {
     );
   } catch (error) {
     if (fixture.errors.length) console.error('Fixture errors:', fixture.errors);
+    // Keep timeout evidence small and failure-only; never alter graph timing or
+    // suppress browser errors to make a visibility assertion pass.
+    const graphDiagnostic = await page
+      .evaluate(() => {
+        const describe = (element) => {
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          return {
+            id: element.getAttribute('data-id'),
+            className: String(element.className),
+            inlineStyle: element.getAttribute('style'),
+            visibility: style.visibility,
+            display: style.display,
+            width: style.width,
+            height: style.height,
+            offsetWidth: element.offsetWidth,
+            offsetHeight: element.offsetHeight,
+            bounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+          };
+        };
+        const nodes = [...document.querySelectorAll('.react-flow__node')];
+        return {
+          url: location.href,
+          nodeCount: nodes.length,
+          edgeCount: document.querySelectorAll('.react-flow__edge').length,
+          nodes: nodes.slice(0, 20).map(describe),
+          containers: [
+            ...document.querySelectorAll(
+              '.kfp-graph-workspace,.kfp-graph-canvas,.react-flow__renderer,.react-flow__viewport',
+            ),
+          ]
+            .slice(0, 8)
+            .map(describe),
+        };
+      })
+      .catch((diagnosticError) => ({ unavailable: diagnosticError.message }));
+    console.error('Run Details failure diagnostics:', JSON.stringify(graphDiagnostic));
     throw error;
   } finally {
     fixture.runGate?.release();
@@ -350,6 +392,7 @@ async function graph(page) {
               y: matrix.m42,
               width: element.offsetWidth,
               height: element.offsetHeight,
+              visible: getComputedStyle(element).visibility === 'visible',
             };
           })
           .sort((a, b) => a.id.localeCompare(b.id)),
@@ -357,6 +400,7 @@ async function graph(page) {
           .map((element) => ({
             id: element.dataset.id,
             path: element.querySelector('.react-flow__edge-path')?.getAttribute('d') || '',
+            visible: getComputedStyle(element).visibility === 'visible',
           }))
           .sort((a, b) => a.id.localeCompare(b.id)),
       };
@@ -371,9 +415,9 @@ async function graph(page) {
       previous = key;
       if (
         current.nodes.length >= 2 &&
-        current.nodes.every((node) => node.width > 0 && node.height > 0) &&
+        current.nodes.every((node) => node.visible && node.width > 0 && node.height > 0) &&
         current.edges.length > 0 &&
-        current.edges.every((edge) => edge.path) &&
+        current.edges.every((edge) => edge.visible && edge.path) &&
         stable >= 3
       )
         return current;
@@ -435,8 +479,22 @@ test('Run Details preserves nested task links, history, copied URLs, and graph g
     await page.getByRole('button', { name: 'close', exact: true }).click();
     await page.waitForURL((url) => url.hash === `#/runs/details/${runId}?view=graph`);
     assert.equal(await page.locator('.react-flow__node.selected').count(), 0);
-    await screenshot(page, 'run-details-graph');
     sameGraph(original, await graph(page));
+    // Closing the inspector replaces controlled node objects. Actual measured
+    // dimensions and edge handles must survive each selection/close rerender.
+    for (const taskName of ['train', 'preprocess']) {
+      await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+      await node(page, taskName).getByRole('button').click();
+      await selected(page, taskName);
+      sameGraph(original, await graph(page));
+      const inspector = page.getByRole('dialog');
+      await inspector.getByRole('button', { name: 'close', exact: true }).click();
+      await inspector.waitFor({ state: 'hidden' });
+      await page.waitForURL((url) => url.hash === `#/runs/details/${runId}?view=graph`);
+      assert.equal(await page.locator('.react-flow__node.selected').count(), 0);
+      sameGraph(original, await graph(page));
+    }
+    await screenshot(page, 'run-details-graph');
   });
 });
 
@@ -675,21 +733,44 @@ test('Run Details inspector restores desktop focus and traps keyboard focus on n
     const group = node(page, 'group');
     await group.waitFor();
     const trigger = group.locator('button').first();
+    await page.evaluate(() => {
+      document.addEventListener('focusin', (event) => {
+        if (event.target.closest?.('.react-flow__node[data-id="task.group"]'))
+          window.kfpFixtureGraphFocusTarget = event.target;
+      });
+      // Safari pointer activation focuses the nearest focusable ancestor. Record
+      // that real target before React opens the inspector; keyboard activation
+      // still records and returns to the native node button below.
+      document.addEventListener(
+        'click',
+        (event) => {
+          if (event.target.closest?.('.react-flow__node[data-id="task.group"]'))
+            window.kfpFixturePointerFocusTarget = document.activeElement;
+        },
+        true,
+      );
+    });
     await trigger.focus();
     await trigger.click();
     const inspector = page.getByRole('dialog');
     await inspector.waitFor();
+    const desktopReturnTarget = await page.evaluateHandle(
+      () => window.kfpFixturePointerFocusTarget,
+    );
     assert.equal(await inspector.getAttribute('aria-modal'), null);
     const close = inspector.getByRole('button', { name: 'close', exact: true });
     await close.focus();
     await page.keyboard.press('Escape');
     await inspector.waitFor({ state: 'hidden' });
-    await page.waitForFunction(() =>
-      document.activeElement?.matches('.react-flow__node[data-id="task.group"] > button'),
-    );
+    await page.waitForFunction((target) => document.activeElement === target, desktopReturnTarget);
+    await desktopReturnTarget.dispose();
     await page.setViewportSize({ width: 600, height: 900 });
-    await trigger.click();
+    // Bring the task into the resized canvas before testing keyboard activation.
+    await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+    await trigger.focus();
+    await page.keyboard.press('Enter');
     await inspector.waitFor();
+    const narrowReturnTarget = await page.evaluateHandle(() => window.kfpFixtureGraphFocusTarget);
     assert.equal(await inspector.getAttribute('aria-modal'), 'true');
     await close.focus();
     await page.keyboard.press('Shift+Tab');
@@ -717,8 +798,38 @@ test('Run Details inspector restores desktop focus and traps keyboard focus on n
     await screenshot(page, 'run-details-narrow-inspector');
     await page.keyboard.press('Escape');
     await inspector.waitFor({ state: 'hidden' });
-    await page.waitForFunction(() =>
-      document.activeElement?.matches('.react-flow__node[data-id="task.group"] > button'),
+    await page.waitForFunction((target) => document.activeElement === target, narrowReturnTarget);
+    await narrowReturnTarget.dispose();
+  });
+});
+
+// Covers the detail selectors and modal dismissal used by the live Selenium smoke tests.
+test('Run Details exposes semantic values and restores navigation after closing narrow logs', async () => {
+  await withFixture({}, async (page) => {
+    await page.setViewportSize({ width: 780, height: 437 });
+    await page.goto(`${origin}/#/runs/details/${runId}`);
+    await tab(page, 'Detail').click();
+    const value = (label) =>
+      page.getByText(label, { exact: true }).and(page.locator('dt')).locator('..').locator('dd');
+    await value('Status').getByText('Succeeded', { exact: true }).waitFor();
+    assert.equal(await value('Description').innerText(), 'Run Details browser fixture');
+    assert.equal(await value('message').innerText(), 'fixture input');
+    assert.equal(
+      await value('Created at').evaluate((element) => Date.parse(element.textContent)),
+      Date.parse(createdAt),
     );
+    await tab(page, 'Graph').click();
+    await openTask(page, 'train');
+    const inspector = page.getByRole('dialog');
+    const narrowReturnTarget = await page.evaluateHandle(() => window.kfpFixtureGraphFocusTarget);
+    assert.equal(await inspector.getAttribute('aria-modal'), 'true');
+    await tab(page, 'Logs').click();
+    await page
+      .getByTestId('logs-view-window')
+      .getByText('executor attempt one', { exact: true })
+      .waitFor();
+    await inspector.getByRole('button', { name: 'close', exact: true }).click();
+    await inspector.waitFor({ state: 'hidden' });
+    await page.getByRole('link', { name: 'Runs', exact: true }).click({ trial: true });
   });
 });

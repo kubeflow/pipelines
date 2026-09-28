@@ -31,7 +31,6 @@ import { InspectionFields as DetailsTable } from '../modernization/InspectionFie
 import LogViewer from 'src/components/LogViewer';
 import { RuntimeInputOutputTab } from 'src/components/tabs/RuntimeInputOutputTab';
 import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
-import { commonCss, padding } from 'src/Css';
 import {
   KubernetesExecutorConfig,
   PvcMount,
@@ -228,14 +227,14 @@ function TaskNodeDetail({
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
 
   return (
-    <div className={commonCss.page}>
+    <div className='kfp-inspection-column'>
       <InspectionTabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
         onSwitch={setSelectedTab}
         ariaLabel='Task inspection'
       >
-        <div className={commonCss.page}>
+        <div className='kfp-inspection-column'>
           {selectedTab === 0 &&
             (task ? (
               <RuntimeInputOutputTab task={task} namespace={namespace} />
@@ -254,7 +253,7 @@ function TaskNodeDetail({
             </div>
           )}
           {selectedTab === 2 && (
-            <div className={commonCss.page}>
+            <div className='kfp-inspection-column'>
               {logsBannerMessage && (
                 <Banner
                   message={logsBannerMessage}
@@ -263,7 +262,7 @@ function TaskNodeDetail({
                 />
               )}
               {logsDetails && (
-                <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
+                <div className='kfp-inspection-log-window' data-testid='logs-view-window'>
                   <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
                 </div>
               )}
@@ -549,7 +548,7 @@ function ArtifactNodeDetail({
     return NODE_STATE_UNAVAILABLE;
   }
   return (
-    <div className={commonCss.page}>
+    <div className='kfp-inspection-column'>
       <InspectionTabs
         tabs={['Artifact Info', 'Visualization']}
         selectedTab={selectedTab}
@@ -631,8 +630,8 @@ function SubDAGNodeDetail({
   const [selectedTab, setSelectedTab] = useState(0);
   const taskKey = getTaskKeyFromNodeKey(element.id);
   return (
-    <div className={commonCss.page}>
-      <div className={padding(20, 'blr')}>
+    <div className='kfp-inspection-column'>
+      <div className='kfp-inspection-subdag-action'>
         <Button variant='secondary' onClick={() => onLayerChange([...layers, taskKey])}>
           Open Sub-DAG
         </Button>
@@ -643,7 +642,7 @@ function SubDAGNodeDetail({
         onSwitch={setSelectedTab}
         ariaLabel='Sub-DAG inspection'
       >
-        <div className={commonCss.page}>
+        <div className='kfp-inspection-column'>
           {selectedTab === 0 &&
             (task ? (
               <RuntimeInputOutputTab task={task} namespace={namespace} />

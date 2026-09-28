@@ -1,0 +1,117 @@
+.kfp-theme .kfp-run-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.kfp-theme .kfp-run-form-fields > legend {
+  padding: 0;
+  margin-bottom: 16px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.kfp-theme .kfp-native-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.kfp-theme .kfp-native-field select {
+  min-width: 0;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 400;
+}
+.kfp-theme .kfp-native-field select[aria-invalid='true'] {
+  border-color: var(--status-failed);
+}
+.kfp-theme .kfp-native-field select:disabled {
+  opacity: 0.5;
+}
+.kfp-theme .kfp-form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.kfp-theme .kfp-schedule-boundary {
+  min-width: 0;
+  margin: 0;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.kfp-theme .kfp-schedule-boundary legend {
+  padding: 0 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.kfp-theme .kfp-schedule-date-time,
+.kfp-theme .kfp-schedule-interval {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+.kfp-theme .kfp-schedule-weekdays {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.kfp-theme .kfp-form-help {
+  margin: 8px 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.kfp-theme .kfp-form-help summary {
+  cursor: pointer;
+}
+.kfp-theme .kfp-form-error {
+  color: var(--status-failed);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.kfp-theme .kfp-parameter-fields {
+  max-width: 760px;
+}
+.kfp-theme .kfp-parameter-fields h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.kfp-theme .kfp-parameter-fields a,
+.kfp-theme .kfp-trigger a {
+  color: var(--primary);
+}
+.kfp-theme .kfp-parameter-fields .kfp-native-field,
+.kfp-theme .kfp-parameter-fields .kfp-text-field {
+  margin-bottom: 16px;
+}
+.kfp-theme .kfp-parameter-editor {
+  margin: -4px 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  color: #222;
+  color-scheme: light;
+}
+@media (max-width: 500px) {
+  .kfp-theme .kfp-schedule-date-time {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

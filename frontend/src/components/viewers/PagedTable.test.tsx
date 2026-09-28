@@ -15,8 +15,6 @@
  */
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { forceRenderStyles } from 'typestyle';
-import { color } from '../../Css';
 import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';
 import { invokeAndFlush } from '../../TestUtils';
@@ -66,22 +64,22 @@ describe('PagedTable', () => {
           maxDimension={maxDimension}
         />,
       );
-      forceRenderStyles();
 
       for (const name of ['accuracy', 'rows']) {
         const row = screen.getByRole('cell', { name }).closest('tr')!;
         const cells = within(row).getAllByRole('cell');
-        expect(cells[0]).toHaveStyle({ borderLeft: `1px solid ${color.divider}` });
+        expect(cells[0]).toHaveStyle({ borderLeftWidth: '1px', borderLeftStyle: 'solid' });
         for (const cell of cells) {
-          expect(cell).toHaveStyle({ borderRight: `1px solid ${color.divider}` });
+          expect(cell).toHaveStyle({ borderRightWidth: '1px', borderRightStyle: 'solid' });
         }
-        expect(cells[1]).not.toHaveStyle({ borderLeft: `1px solid ${color.divider}` });
+        expect(cells[1]).not.toHaveStyle({ borderLeftWidth: '1px', borderLeftStyle: 'solid' });
       }
       for (const header of screen.getAllByRole('columnheader')) {
-        expect(header).not.toHaveStyle({ borderLeft: `1px solid ${color.divider}` });
+        expect(header).not.toHaveStyle({ borderLeftWidth: '1px', borderLeftStyle: 'solid' });
       }
       expect(screen.getByRole('cell', { name: '' })).not.toHaveStyle({
-        borderLeft: `1px solid ${color.divider}`,
+        borderLeftWidth: '1px',
+        borderLeftStyle: 'solid',
       });
     },
   );
@@ -99,15 +97,14 @@ describe('PagedTable', () => {
           maxDimension={maxDimension}
         />,
       );
-      forceRenderStyles();
 
       const expectRowTopBorder = (name: string, bordered: boolean) => {
         const row = screen.getByRole('cell', { name }).closest('tr')!;
         for (const cell of within(row).getAllByRole('cell')) {
           if (bordered) {
-            expect(cell).toHaveStyle({ borderTop: `1px solid ${color.divider}` });
+            expect(cell).toHaveStyle({ borderTopWidth: '1px', borderTopStyle: 'solid' });
           } else {
-            expect(cell).not.toHaveStyle({ borderTop: `1px solid ${color.divider}` });
+            expect(cell).not.toHaveStyle({ borderTopWidth: '1px', borderTopStyle: 'solid' });
           }
         }
       };
@@ -119,7 +116,8 @@ describe('PagedTable', () => {
       expectRowTopBorder('metric-10', true);
       expectRowTopBorder('metric-11', false);
       expect(screen.getByRole('cell', { name: '' })).not.toHaveStyle({
-        borderTop: `1px solid ${color.divider}`,
+        borderTopWidth: '1px',
+        borderTopStyle: 'solid',
       });
 
       rerender(
@@ -130,7 +128,7 @@ describe('PagedTable', () => {
       );
       expectRowTopBorder('metric-10', false);
       for (const header of screen.getAllByRole('columnheader')) {
-        expect(header).not.toHaveStyle({ borderTop: `1px solid ${color.divider}` });
+        expect(header).not.toHaveStyle({ borderTopWidth: '1px', borderTopStyle: 'solid' });
       }
 
       rerender(
@@ -140,7 +138,8 @@ describe('PagedTable', () => {
         />,
       );
       expect(screen.getByRole('cell', { name: '' })).not.toHaveStyle({
-        borderTop: `1px solid ${color.divider}`,
+        borderTopWidth: '1px',
+        borderTopStyle: 'solid',
       });
     },
   );
@@ -223,5 +222,30 @@ describe('PagedTable', () => {
 
   it('returns a user friendly display name', () => {
     expect(PagedTable.prototype.getDisplayName()).toBe('Table');
+  });
+  it('preserves stable sort order and returns to page one when the page size changes', () => {
+    const rows = Array.from({ length: 30 }, (_, index) => ['same', String(index)]);
+    render(
+      <PagedTable
+        configs={[{ data: rows, labels: ['group', 'sequence'], type: PlotType.TABLE }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+    expect(screen.getByText('11–20 of 30')).toBeVisible();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Rows per page' }), {
+      target: { value: '25' },
+    });
+    expect(screen.getByText('1–25 of 30')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Go to previous page' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'group' }));
+    expect(screen.getByRole('columnheader', { name: 'group' })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+    const dataRows = screen.getAllByRole('row').slice(1);
+    expect(dataRows.map((row) => within(row).getAllByRole('cell')[1].textContent)).toEqual(
+      rows.slice(0, 25).map((row) => row[1]),
+    );
+    expect(rows[0]).toEqual(['same', '0']);
   });
 });

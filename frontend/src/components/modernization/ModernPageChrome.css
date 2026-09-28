@@ -146,3 +146,13 @@
     margin-left: 16px;
   }
 }
+
+.kfp-theme .kfp-page-header[data-embedded='true'] {
+  padding: 16px 0;
+}
+.kfp-theme .kfp-page-title-row h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}

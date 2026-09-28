@@ -17,7 +17,6 @@ import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { InspectionNotice as Banner } from '../modernization/InspectionNotice';
 import { InspectionFields as DetailsTable } from '../modernization/InspectionFields';
 import { buildRuntimeArtifactRows, RuntimeArtifactValue } from 'src/components/RuntimeArtifactRows';
-import { commonCss } from 'src/Css';
 import { formatParameters } from 'src/lib/v2/RuntimeArtifactUtils';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
 
@@ -39,7 +38,7 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
 
   return (
     <ErrorBoundary>
-      <div className={commonCss.page}>
+      <div className='kfp-inspection-column'>
         <div className='kfp-inspection-scroll'>
           <h3>{getTaskDisplayName(task)}</h3>
           {isEmpty && (

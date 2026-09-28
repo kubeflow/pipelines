@@ -101,10 +101,8 @@ async function waitForRunPageReady({
   return runFormSelectors;
 }
 async function getValueFromDetailsTable(key) {
-  // Find the span that shows the key, get its parent div (the row), then
-  // get that row's inner text, and remove the key.
-  const rowText = await $(`span=${key}`).$('..').getText();
-  return rowText.substr(`${key}\n`.length);
+  // Inspection fields expose each exact label as a term and its value as a definition.
+  return $(`dt=${key}`).$('..').$('dd').getText();
 }
 
 async function clearDefaultInput() {

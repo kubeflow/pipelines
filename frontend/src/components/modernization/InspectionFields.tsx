@@ -15,8 +15,7 @@
  */
 
 import type { ComponentType } from 'react';
-import type { ValueComponentProps } from '../DetailsTable';
-import type { KeyValue } from 'src/lib/DetailsTableTypes';
+import type { KeyValue, ValueComponentProps } from 'src/lib/DetailsTableTypes';
 import './RunInspection.css';
 
 export interface InspectionFieldsProps<T> {

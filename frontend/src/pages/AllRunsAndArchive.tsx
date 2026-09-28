@@ -20,7 +20,7 @@ import { Link } from 'react-router';
 import '../components/modernization/RunsTable.css';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import ArchivedRunsPage from './ArchivedRuns';
 
 export enum AllRunsAndArchiveTab {

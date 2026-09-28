@@ -1,0 +1,105 @@
+.kfp-theme .kfp-artifact-list,
+.kfp-theme .kfp-artifact-detail {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 16px;
+  padding: 0 32px 32px;
+  overflow: auto;
+}
+.kfp-theme .kfp-artifact-type-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.kfp-theme .kfp-artifact-type-filters button {
+  border-radius: 999px;
+}
+.kfp-theme .kfp-artifact-type-filters [aria-pressed='true'] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.kfp-theme .kfp-artifact-link {
+  color: var(--primary);
+  text-decoration: none;
+}
+.kfp-theme .kfp-artifact-link:hover {
+  text-decoration: underline;
+}
+.kfp-theme .kfp-artifact-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.kfp-theme .kfp-artifact-type {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--foreground-2);
+  font-family: var(--kfp-font-mono);
+  font-size: 11px;
+}
+.kfp-theme .kfp-artifact-type::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 2px;
+  background: var(--muted-foreground);
+}
+.kfp-theme .kfp-artifact-type[data-kind='model']::before {
+  background: var(--primary);
+}
+.kfp-theme .kfp-artifact-type[data-kind='dataset']::before {
+  background: var(--status-succeeded);
+}
+.kfp-theme .kfp-artifact-type[data-kind='metric']::before {
+  background: var(--status-warning);
+}
+.kfp-theme .kfp-artifact-overview,
+.kfp-theme .kfp-artifact-relationships {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 20px;
+  padding-top: 20px;
+}
+.kfp-theme .kfp-artifact-relationships h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.kfp-theme .kfp-artifact-loading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 24px 0;
+  color: var(--muted-foreground);
+}
+@media (max-width: 700px) {
+  .kfp-theme .kfp-artifact-list,
+  .kfp-theme .kfp-artifact-detail {
+    padding: 0 16px 20px;
+  }
+}
+
+.kfp-theme .kfp-artifact-uri {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--kfp-font-mono);
+  font-size: 12px;
+  color: var(--primary);
+}
+.kfp-theme .kfp-artifact-uri a {
+  color: inherit;
+}
+.kfp-theme .kfp-artifact-list td:nth-child(2) a {
+  font-family: var(--kfp-font-mono);
+  font-size: 12px;
+}

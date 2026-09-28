@@ -16,15 +16,14 @@
 
 import type * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import DetailsTable from 'src/components/DetailsTable';
+import { InspectionFields as DetailsTable } from 'src/components/modernization/InspectionFields';
+import 'src/components/modernization/ExperimentWorkflows.css';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { Apis } from 'src/lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { Breadcrumb, ToolbarProps } from 'src/components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from 'src/Css';
+import { Breadcrumb, ToolbarProps } from 'src/lib/PageChromeTypes';
 import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { formatDateString, errorToMessage, enabledDisplayStringV2 } from 'src/lib/Utils';
 import { triggerDisplayString } from 'src/lib/TriggerUtils';
@@ -109,9 +108,9 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
     }
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-workflow-page'>
         {run && (
-          <div className={commonCss.page}>
+          <div className='kfp-workflow-details'>
             <DetailsTable title='Recurring run details' fields={runDetails} />
 
             {!!triggerDetails.length && (

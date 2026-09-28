@@ -23,6 +23,11 @@ import { getInitialParameterState } from 'src/lib/NewRunParametersUtils';
 
 testBestPractices();
 
+function chooseLiteralOption(name: string) {
+  const option = screen.getByRole('option', { name }) as HTMLOptionElement;
+  fireEvent.change(option.closest('select')!, { target: { value: option.value } });
+}
+
 // Spies on mount-time callbacks may run twice under RTL StrictMode (double mount).
 describe('NewRunParametersV2', () => {
   it('shows parameters', () => {
@@ -1098,9 +1103,8 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     const input = screen.getByDisplayValue('A');
     expect(input).toBeInTheDocument();
 
-    // Open the dropdown and verify all options are present
-    const selectButton = screen.getByText('A');
-    fireEvent.mouseDown(selectButton);
+    // Verify all native options are present
+    expect(screen.getByRole('combobox')).toHaveDisplayValue('A');
     screen.getByText('B');
     screen.getByText('C');
   });
@@ -1124,9 +1128,8 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     // Default value is shown
     screen.getByText('1');
 
-    // Open dropdown and verify all options
-    const selectButton = screen.getByText('1');
-    fireEvent.mouseDown(selectButton);
+    // Verify all native options
+    expect(screen.getByRole('combobox')).toHaveDisplayValue('1');
     screen.getByText('3');
     screen.getByText('5');
   });
@@ -1149,8 +1152,7 @@ describe('Literal Parameter Dropdown (#12603)', () => {
 
     screen.getByText('0.5');
 
-    const selectButton = screen.getByText('0.5');
-    fireEvent.mouseDown(selectButton);
+    expect(screen.getByRole('combobox')).toHaveDisplayValue('0.5');
     screen.getByText('0.1');
     screen.getByText('0.9');
   });
@@ -1169,7 +1171,7 @@ describe('Literal Parameter Dropdown (#12603)', () => {
       },
       clonedRuntimeConfig: {},
     };
-    const { container } = render(<NewRunParametersV2 {...props} />);
+    render(<NewRunParametersV2 {...props} />);
 
     // Should render a regular text field, not a select
     const textInput = screen.getByDisplayValue('hello');
@@ -1196,11 +1198,10 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    // Open dropdown and select a different value
-    const selectButton = screen.getByText('dev');
-    fireEvent.mouseDown(selectButton);
+    // Select a different native option
+    expect(screen.getByRole('combobox')).toHaveDisplayValue('dev');
     handleParameterChangeSpy.mockClear();
-    fireEvent.click(screen.getByText('staging'));
+    chooseLiteralOption('staging');
 
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenCalledWith({ env: 'staging' });
@@ -1248,13 +1249,9 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    // Open dropdown - MUI v5 Select renders with role="combobox"
-    const selectElement = screen.getByRole('combobox');
-    fireEvent.mouseDown(selectElement);
-
     // Select a value
     setIsValidInputSpy.mockClear();
-    fireEvent.click(screen.getByText('dev'));
+    chooseLiteralOption('dev');
 
     // Should now be valid
     expect(setIsValidInputSpy).toHaveBeenCalledWith(true);
@@ -1279,13 +1276,9 @@ describe('Literal Parameter Dropdown (#12603)', () => {
     };
     render(<NewRunParametersV2 {...props} />);
 
-    // Open dropdown - MUI v5 Select renders with role="combobox"
-    const selectElement = screen.getByRole('combobox');
-    fireEvent.mouseDown(selectElement);
-
     // Select 'true'
     setIsValidInputSpy.mockClear();
-    fireEvent.click(screen.getByText('true'));
+    chooseLiteralOption('true');
 
     // Should now be valid
     expect(setIsValidInputSpy).toHaveBeenCalledWith(true);
@@ -1315,5 +1308,60 @@ describe('Literal Parameter Dropdown (#12603)', () => {
 
     // The selected value should be rendered as '0'
     expect(screen.getByText('0')).toBeInTheDocument();
+  });
+
+  it('keeps false and zero literal defaults selected and emits typed values after changes', () => {
+    const onChange = vi.fn();
+    render(
+      <NewRunParametersV2
+        titleMessage='Parameters'
+        specParameters={{
+          count: {
+            parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+            defaultValue: 0,
+            literals: [0, 1],
+          },
+          flag: {
+            parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+            defaultValue: false,
+            literals: [false, true],
+          },
+        }}
+        handleParameterChange={onChange}
+      />,
+    );
+    expect(screen.getByRole('combobox', { name: 'count - integer' })).toHaveDisplayValue('0');
+    expect(screen.getByRole('combobox', { name: 'flag - boolean' })).toHaveDisplayValue('false');
+    chooseLiteralOption('true');
+    expect(onChange).toHaveBeenLastCalledWith({ count: 0, flag: true });
+    chooseLiteralOption('false');
+    expect(onChange).toHaveBeenLastCalledWith({ count: 0, flag: false });
+  });
+
+  it('distinguishes an empty-string literal from a missing selection', () => {
+    const onChange = vi.fn();
+    const validity = vi.fn();
+    render(
+      <NewRunParametersV2
+        titleMessage='Parameters'
+        specParameters={{
+          mode: {
+            parameterType: ParameterType_ParameterTypeEnum.STRING,
+            defaultValue: '',
+            literals: ['', 'train'],
+          },
+        }}
+        handleParameterChange={onChange}
+        setIsValidInput={validity}
+      />,
+    );
+    expect(screen.getByRole('combobox', { name: 'mode - string' })).toHaveDisplayValue(
+      'Empty string',
+    );
+    expect(screen.queryByText('Select a value')).not.toBeInTheDocument();
+    chooseLiteralOption('train');
+    chooseLiteralOption('Empty string');
+    expect(onChange).toHaveBeenLastCalledWith({ mode: '' });
+    expect(validity).toHaveBeenLastCalledWith(true);
   });
 });

@@ -1,8 +1,8 @@
 # Run inspection, comparison and search
 
-This development slice extends [shell and Runs](runs.md) toward the coordinated cutover in [KEP PR #14574](https://github.com/kubeflow/pipelines/pull/14574). It preserves the existing data clients, run/task polling, graph mapping and mutation contracts. Graph/editor and remaining artifact viewers still have explicit light boundaries; these surfaces and other workflows require migration before release.
+This historical checkpoint records the inspection, comparison and search slice after [shell and Runs](runs.md), toward the coordinated cutover in [KEP PR #14574](https://github.com/kubeflow/pipelines/pull/14574). It preserved existing data clients, run/task polling, graph mapping and mutations while graph/editor and some viewers still had temporary light boundaries. Those presentation boundaries have since been migrated; see [Workflows and qualification](workflows.md) for the current state and remaining release gates. Screenshots and test totals below describe this earlier checkpoint.
 
-## Implemented behavior
+## Implemented behavior at this checkpoint
 
 - Run Details uses the shared toolbar, confirmation and notification contracts. Metadata links preserve encoded pipeline/version IDs. The runtime-task summary uses the complete paginated task response and excludes structural root/DAG/loop records. Missing data is not reported as a global zero count.
 - The failure banner selects an actual failed runtime task and opens its Logs tab through the existing `task` query and nested graph mapping. It preserves other query parameters, URL state and browser history. No exit code or Kubernetes event feed is inferred.
@@ -17,9 +17,9 @@ This development slice extends [shell and Runs](runs.md) toward the coordinated 
 ![Run Details and task logs in dark mode](inspection/run-details-dark.png)
 ![Namespace-scoped command search in dark mode](inspection/command-palette-dark.png)
 
-These Chromium captures use synthetic local fixtures at 1440×900. The white graph is the explicit temporary boundary described above.
+These historical Chromium captures use synthetic fixtures at 1440×900. The white graph shows the temporary boundary at that checkpoint; the [current graph presentation and qualification](workflows.md#graph-editor-and-runtime-contracts) use light/dark tokens.
 
-## Verification
+## Historical verification
 
 Run with the repository-pinned toolchain from `frontend`:
 
@@ -28,10 +28,10 @@ npm run test:ci
 npm run test:bundle
 ```
 
-The frozen slice passes 141 UI files / 1,802 tests and 29 server files / 1,052 tests with coverage. Formatting, UI/server lint, app/mock TypeScript, React peer compatibility and the production build pass. Existing behavioral tests are retained; snapshot updates cover intended presentation changes.
+The frozen slice passed 141 UI files / 1,802 tests and 29 server files / 1,052 tests with coverage. Formatting, UI/server lint, app/mock TypeScript, React peer compatibility and the production build pass. Existing behavioral tests are retained; snapshot updates cover intended presentation changes.
 
-The production browser suite has 15 scenarios: startup, six Runs/search checks and eight Run Details checks. It covers nested task links, copied URLs, back/forward navigation, deleted-version read paths, initial/refresh failure recovery, exact-once retry, stale logs, source fallbacks, horizontal/follow-tail behavior, failed-task navigation, desktop/narrow focus, prefixed embedding and namespace changes. The new run-inspection harness is wired into the existing `test:bundle` CI entry point. Set `KFP_RUN_DETAILS_SCREENSHOT_DIR` and `KFP_RUNS_SCREENSHOT_DIR` to retain review captures.
+The production browser suite at this checkpoint had 15 scenarios: startup, six Runs/search checks and eight Run Details checks. It covers nested task links, copied URLs, back/forward navigation, deleted-version read paths, initial/refresh failure recovery, exact-once retry, stale logs, source fallbacks, horizontal/follow-tail behavior, failed-task navigation, desktop/narrow focus, prefixed embedding and namespace changes. The run-inspection harness was wired into the existing `test:bundle` CI entry point. Set `KFP_RUN_DETAILS_SCREENSHOT_DIR` and `KFP_RUNS_SCREENSHOT_DIR` to retain review captures.
 
 The original six run-inspection scenarios also passed against the prior production bundle. For the deterministic five-node/six-edge fixture, old/new graph identities match; maximum node-geometry change was 0.00101px and maximum edge-coordinate change was 0.000718px, within the existing 0.05px jitter tolerance. This is geometry/workflow evidence, not qualification of the future graph redesign or large-graph performance.
 
-Browser evidence uses local synthetic data and Chromium. Minimum browser versions, Firefox/WebKit, comparison browser interactions, large workloads, full accessibility review, measured performance budgets, live standalone/embedded authorization and immutable UI/backend rollback rehearsal remain release gates. No backend schema, API payload or Python `kfp.local` behavior changes in this slice.
+The evidence above uses local synthetic data and Chromium. Subsequent comparison, graph and workflow checks and all remaining qualification gates are tracked in [Workflows and qualification](workflows.md); this historical list must not be used as the current completion report. No backend schema, API payload or Python `kfp.local` behavior changes in this slice.

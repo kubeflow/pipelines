@@ -26,6 +26,7 @@ export function ModalDialog({
   actions,
   onClose,
   size = 'sm',
+  id,
 }: {
   open: boolean;
   title: ReactNode;
@@ -33,6 +34,7 @@ export function ModalDialog({
   actions?: ReactNode;
   onClose: () => void;
   size?: 'sm' | 'lg' | 'full';
+  id?: string;
 }) {
   const { resolvedTheme } = useTheme();
   return (
@@ -46,7 +48,7 @@ export function ModalDialog({
       <Dialog.Portal className={`kfp-theme ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
         <Dialog.Backdrop className='kfp-page-dialog-backdrop' />
         <Dialog.Viewport className='kfp-page-dialog-viewport'>
-          <Dialog.Popup className={`kfp-page-dialog kfp-dialog-${size}`}>
+          <Dialog.Popup id={id} className={`kfp-page-dialog kfp-dialog-${size}`}>
             <Dialog.Title className='kfp-page-dialog-title'>{title}</Dialog.Title>
             {children && (
               <Dialog.Description render={<div />} className='kfp-page-dialog-content'>

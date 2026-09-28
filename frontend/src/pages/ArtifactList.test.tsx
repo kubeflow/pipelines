@@ -77,7 +77,9 @@ describe('ArtifactList', () => {
     });
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
 
@@ -99,7 +101,9 @@ describe('ArtifactList', () => {
     });
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
 
@@ -125,16 +129,17 @@ describe('ArtifactList', () => {
     });
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
 
     const idLink = await screen.findByRole('link', { name: `Artifact ID ${id}` });
     expect(idLink).toHaveTextContent('12345678…9abc');
     expect(idLink).toHaveAttribute('href', `/artifacts/${id}`);
-    // Reserve enough of the row for the abbreviated ID instead of clipping its suffix again.
-    expect(idLink.parentElement).toHaveStyle({ width: '15%' });
-    expect(screen.getByText('kubeflow').parentElement).toHaveStyle({ width: '12%' });
+    expect(idLink.closest('td')).toHaveTextContent('12345678…9abc');
+    expect(screen.getByRole('table', { name: 'Artifacts' })).toContainElement(idLink);
     expect(screen.getByText('system.Dataset')).toHaveStyle({ whiteSpace: 'nowrap' });
     expect(screen.getByText('kubeflow')).toHaveStyle({ whiteSpace: 'normal' });
   });
@@ -155,7 +160,9 @@ describe('ArtifactList', () => {
     });
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
 
@@ -166,8 +173,7 @@ describe('ArtifactList', () => {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
     });
-    fireEvent.mouseOver(type);
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('system.ClassificationMetrics');
+    expect(type).toHaveAttribute('title', 'system.ClassificationMetrics');
 
     const date = screen.getByText(createdAt.toLocaleDateString());
     const time = screen.getByText(createdAt.toLocaleTimeString());
@@ -189,13 +195,16 @@ describe('ArtifactList', () => {
     const artifactsSpy = vi.mocked(Apis.artifactServiceApiV2.artifacts);
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
 
-    await screen.findByText('Rows per page:');
-    fireEvent.mouseDown(screen.getByRole('combobox'));
-    fireEvent.click(await screen.findByRole('option', { name: '20' }));
+    await screen.findByRole('combobox', { name: 'Rows per page' });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Rows per page' }), {
+      target: { value: '20' },
+    });
 
     await waitFor(() =>
       expect(artifactsSpy).toHaveBeenLastCalledWith(undefined, '', 20, 'created_at desc', ''),
@@ -206,7 +215,9 @@ describe('ArtifactList', () => {
     const artifactsSpy = vi.mocked(Apis.artifactServiceApiV2.artifacts);
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} namespace='team-a' />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} namespace='team-a' />
+        </div>
       </MemoryRouter>,
     );
 
@@ -218,7 +229,9 @@ describe('ArtifactList', () => {
     vi.mocked(Apis.artifactServiceApiV2.artifacts).mockResolvedValue({ artifacts: [] });
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
 
@@ -231,7 +244,9 @@ describe('ArtifactList', () => {
     );
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
 
@@ -251,7 +266,9 @@ describe('ArtifactList', () => {
     });
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
 
@@ -276,7 +293,9 @@ describe('ArtifactList', () => {
     });
     render(
       <MemoryRouter>
-        <ArtifactList ref={listRef} {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList ref={listRef} {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
     await screen.findByText('last known artifact');
@@ -301,7 +320,9 @@ describe('ArtifactList', () => {
     );
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
     await screen.findByText('first page');
@@ -329,7 +350,9 @@ describe('ArtifactList', () => {
 
     render(
       <MemoryRouter>
-        <ArtifactList {...generateProps()} />
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
       </MemoryRouter>,
     );
     await waitFor(() => expect(Apis.artifactServiceApiV2.artifacts).toHaveBeenCalledTimes(2));
@@ -339,5 +362,82 @@ describe('ArtifactList', () => {
     first.resolve({ artifacts: [{ ...generateArtifacts(1)[0], name: 'stale response' }] });
     await waitFor(() => expect(screen.queryByText('stale response')).toBeNull());
     screen.getByText('new response');
+  });
+  it('combines backend type and name filters, resets the token, and preserves sort when changing type', async () => {
+    const api = vi
+      .mocked(Apis.artifactServiceApiV2.artifacts)
+      .mockResolvedValue({ artifacts: generateArtifacts(2), next_page_token: 'next' });
+    render(
+      <MemoryRouter>
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} namespace='team-a' />
+        </div>
+      </MemoryRouter>,
+    );
+    await screen.findByRole('link', { name: 'test artifact 1' });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter artifacts by name' }), {
+      target: { value: 'test' },
+    });
+    await waitFor(() => expect(api.mock.lastCall?.[4]).toContain('test'));
+    fireEvent.click(screen.getByRole('button', { name: 'Name', exact: true }));
+    await waitFor(() => expect(api.mock.lastCall?.[3]).toBe('name'));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+    await waitFor(() => expect(api.mock.lastCall?.[1]).toBe('next'));
+    fireEvent.click(screen.getByRole('button', { name: 'Metrics', exact: true }));
+    await waitFor(() => expect(api.mock.lastCall?.[1]).toBeFalsy());
+    expect(api.mock.lastCall?.[0]).toBe('team-a');
+    expect(api.mock.lastCall?.[3]).toBe('name');
+    expect(JSON.parse(decodeURIComponent(api.mock.lastCall?.[4] || ''))).toEqual({
+      predicates: [
+        { key: 'name', operation: 'IS_SUBSTRING', string_value: 'test' },
+        { key: 'type', operation: 'IN', int_values: { values: [6, 7, 8] } },
+      ],
+    });
+    expect(screen.getByRole('searchbox')).toHaveValue('test');
+    expect(screen.getByRole('button', { name: 'Metrics', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'All', exact: true }));
+    await waitFor(() =>
+      expect(JSON.parse(decodeURIComponent(api.mock.lastCall?.[4] || '')).predicates).toHaveLength(
+        1,
+      ),
+    );
+  });
+
+  it('does not allow an old type response to replace the new type and encodes artifact IDs', async () => {
+    const old = deferred<{ artifacts: V2beta1Artifact[] }>();
+    const api = vi
+      .mocked(Apis.artifactServiceApiV2.artifacts)
+      .mockImplementation(async (_namespace, _token, _size, _sort, filter) =>
+        filter?.includes('int_values')
+          ? {
+              artifacts: [
+                {
+                  artifact_id: 'artifact/with space',
+                  name: 'Model result',
+                  type: ArtifactArtifactType.Model,
+                },
+              ],
+            }
+          : old.promise,
+      );
+    render(
+      <MemoryRouter>
+        <div className='kfp-theme'>
+          <ArtifactList {...generateProps()} />
+        </div>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByRole('button', { name: 'Model', exact: true }));
+    const result = await screen.findByRole('link', { name: 'Model result' });
+    expect(result).toHaveAttribute('href', '/artifacts/artifact%2Fwith%20space');
+    await act(async () => old.resolve({ artifacts: generateArtifacts(1) }));
+    expect(screen.queryByRole('link', { name: 'test artifact 1' })).not.toBeInTheDocument();
+    expect(result).toBeVisible();
+    fireEvent.click(result.closest('tr')!);
+    expect(navigateSpy).toHaveBeenCalledWith('/artifacts/artifact%2Fwith%20space');
   });
 });

@@ -581,6 +581,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     );
 
     const reloadGeneration = ++this._activeReloadGeneration;
+    const refreshedPage = this.state.currentPage;
     let result: string;
     try {
       this.setStateSafe({
@@ -596,6 +597,16 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       }
 
       result = await this.props.reload(request);
+      // A direct refresh keeps this page but must replace its next-page token.
+      // Filter, sort and page navigation requests reconcile paging in their callers.
+      if (!loadRequest && this._isMounted && reloadGeneration === this._activeReloadGeneration) {
+        const tokenList = this.state.tokenList.slice(0, refreshedPage + 1);
+        if (result) tokenList.push(result);
+        this.setStateSafe({
+          tokenList,
+          maxPageIndex: result ? Number.MAX_SAFE_INTEGER : refreshedPage,
+        });
+      }
     } finally {
       if (this._isMounted && reloadGeneration === this._activeReloadGeneration) {
         this.setStateSafe({ isBusy: false });

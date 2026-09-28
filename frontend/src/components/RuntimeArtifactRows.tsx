@@ -20,7 +20,7 @@ import ArtifactPreview, {
   ArtifactPreviewValue,
 } from 'src/components/ArtifactPreview';
 import { RoutePageFactory } from 'src/components/Router';
-import { commonCss } from 'src/Css';
+import './modernization/RunInspection.css';
 import {
   flattenArtifactGroups,
   getArtifactDisplayName,
@@ -37,7 +37,7 @@ export function RuntimeArtifactValue({
 }: Omit<ArtifactPreviewProps, 'value'> & { value?: RuntimeArtifactRowValue }) {
   if (value !== null && typeof value === 'object' && 'text' in value) {
     return value.artifactId ? (
-      <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(value.artifactId)}>
+      <Link className='kfp-inspection-link' to={RoutePageFactory.artifactDetails(value.artifactId)}>
         {value.text}
       </Link>
     ) : (
@@ -52,7 +52,10 @@ export function buildRuntimeArtifactRows(groups: InputOutputsIOArtifact[] | unde
   for (const { artifact, artifactKey, group, index } of flattenArtifactGroups(groups)) {
     const displayName = getArtifactDisplayName(artifact, artifactKey, index, group.artifacts);
     const label = artifact.artifact_id ? (
-      <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifact.artifact_id)}>
+      <Link
+        className='kfp-inspection-link'
+        to={RoutePageFactory.artifactDetails(artifact.artifact_id)}
+      >
         {displayName}
       </Link>
     ) : (

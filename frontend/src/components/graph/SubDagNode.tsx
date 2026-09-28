@@ -14,72 +14,58 @@
  * limitations under the License.
  */
 
-import CropFreeIcon from '@mui/icons-material/CropFree';
-import React from 'react';
-import { SubDagFlowElementData } from './Constants';
-import { getExecutionIcon, getIcon } from './ExecutionNode';
+import { ChevronRight } from 'lucide-react';
+import { SubDagFlowElementData, GRAPH_NODE_HEIGHT, GRAPH_NODE_WIDTH } from './Constants';
+import { getTaskStatus, TaskStateIndicator } from './ExecutionNode';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
-// import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-// import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import './Graph.css';
 
 interface SubDagNodeProps {
   id: string;
   data: SubDagFlowElementData;
-  // status: ExecutionNodeStatus;
-  // tooltip: string;
-  // isSelected: boolean;
 }
 
-function SubDagNode({ id, data }: SubDagNodeProps) {
-  let icon = getIcon(data.state);
-  let executionIcon = getExecutionIcon(data.state);
-
-  const handleClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    data.expand(id);
-  };
-
+export default function SubDagNode({ id, data }: SubDagNodeProps) {
+  const status = getTaskStatus(data.state);
   return (
     <>
-      <button
-        title={data.label}
-        className='group focus:border-blue-500 rounded-xl border-gray-300 border-2 border-dashed'
+      <div
+        className='kfp-graph-node kfp-graph-group'
+        style={{ width: GRAPH_NODE_WIDTH, height: GRAPH_NODE_HEIGHT }}
+        data-tone={status.tone}
       >
-        <div className='container items-stretch h-24 w-72 relative grid '>
-          <div className='flex justify-center place-self-center self-center relative h-14 w-72 '>
-            <div className='transition transform hover:scale-105'>
-              <div className=' flex justify-start flex-row h-14 relative overflow:hidden bg-white shadow-lg rounded-xl w-60 z-20'>
-                <div className='w-8 pl-2 h-full flex flex-col justify-center rounded-l-lg'>
-                  {executionIcon}
-                </div>
-                <div className='px-4 py-4 w-44 flex flex-col justify-center items-center '>
-                  <span className='w-full truncate' id={id} data-testid={id}>
-                    {data.label}
-                  </span>
-                </div>
-                {icon}
-              </div>
-              <div className='flex absolute top-0 overflow:hidden bg-white shadow-lg rounded-xl h-14 w-60 ml-1 mt-1 z-10'></div>
-            </div>
-          </div>
-
-          <div
-            data-testid='expand-button'
-            onClick={handleClick}
-            className='transition transform hover:shadow-inner hover:scale-110 flex flex-col absolute rounded-full h-9 w-9 z-30 group-focus:border-blue-500 hover:border-blue-500  border-2 bg-white -right-5 top-8 items-center justify-center justify-items-center'
-          >
-            <div className='group-focus:text-blue-500 hover:text-blue-500 text-gray-300'>
-              <CropFreeIcon style={{ fontSize: 15 }} />
-            </div>
-            {/* The following is alternative to the expand icon  */}
-            {/* <ExpandLessIcon style={{ fontSize: 14, color: '#3B82F6', opacity: 1 }}></ExpandLessIcon>
-            <ExpandMoreIcon style={{ fontSize: 14, color: '#3B82F6', opacity: 1 }}></ExpandMoreIcon> */}
-          </div>
-        </div>
-      </button>
+        <button
+          type='button'
+          className='kfp-graph-group-select'
+          title={data.label}
+          aria-label={data.label}
+          aria-describedby={`${id}-status`}
+        >
+          <TaskStateIndicator state={data.state} />
+          <span className='kfp-graph-node-copy'>
+            <span className='kfp-graph-node-name' id={id} data-testid={id}>
+              {data.label}
+            </span>
+            <span className='kfp-graph-node-meta' id={`${id}-status`}>
+              {data.state === undefined ? 'Nested pipeline' : status.label}
+            </span>
+          </span>
+        </button>
+        <button
+          type='button'
+          className='kfp-graph-expand nodrag'
+          aria-label={`Expand ${data.label}`}
+          title={`Expand ${data.label}`}
+          data-testid='expand-button'
+          onClick={(event) => {
+            event.stopPropagation();
+            data.expand(id);
+          }}
+        >
+          <ChevronRight size={16} aria-hidden='true' />
+        </button>
+      </div>
       <ReadOnlyNodeHandles />
     </>
   );
 }
-
-export default SubDagNode;

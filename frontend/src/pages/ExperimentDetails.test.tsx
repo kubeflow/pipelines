@@ -23,7 +23,8 @@ import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { ThemeProvider } from 'src/components/modernization/ThemeProvider';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { MemoryRouter } from 'react-router';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
@@ -87,7 +88,9 @@ describe('ExperimentDetails', () => {
   async function renderExperimentDetails(props?: PageProps) {
     const utils = render(
       <CommonTestWrapper>
-        <ExperimentDetails {...(props || generateProps())} />
+        <ThemeProvider>
+          <ExperimentDetails {...(props || generateProps())} />
+        </ThemeProvider>
       </CommonTestWrapper>,
     );
     await flushPromisesInAct();
@@ -100,6 +103,7 @@ describe('ExperimentDetails', () => {
 
   async function waitForTableRows(expectedCount?: number): Promise<HTMLElement[]> {
     await waitFor(() => {
+      expect(screen.getByRole('table', { name: 'Runs' })).toHaveAttribute('aria-busy', 'false');
       const rows = screen.queryAllByTestId('table-row');
       if (expectedCount !== undefined) {
         expect(rows).toHaveLength(expectedCount);
@@ -127,7 +131,13 @@ describe('ExperimentDetails', () => {
     expect(predicate?.operation).toBe(operation);
   }
 
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+    );
     consoleLogSpy.mockReset();
     consoleErrorSpy.mockReset();
     updateBannerSpy.mockReset();
@@ -219,7 +229,7 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    fireEvent.click(screen.getByTestId('LaunchIcon'));
+    fireEvent.click(screen.getByRole('button', { name: 'Read more' }));
     await flushPromisesInAct();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,
@@ -424,8 +434,8 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     const rows = await waitForTableRows(2);
 
-    fireEvent.click(rows[0]);
-    fireEvent.click(rows[1]);
+    fireEvent.click(within(rows[0]).getByRole('checkbox'));
+    fireEvent.click(within(rows[1]).getByRole('checkbox'));
 
     const compareButton = await screen.findByRole('button', { name: 'Compare runs' });
     await waitFor(() => expect(compareButton).toBeEnabled());
@@ -469,7 +479,7 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     const rows = await waitForTableRows(1);
 
-    fireEvent.click(rows[0]);
+    fireEvent.click(within(rows[0]).getByRole('checkbox'));
 
     const cloneButton = await screen.findByRole('button', { name: 'Clone run' });
     await waitFor(() => expect(cloneButton).toBeEnabled());
@@ -487,7 +497,7 @@ describe('ExperimentDetails', () => {
     const rows = await waitForTableRows(12);
 
     for (let i = 0; i < 12; i++) {
-      fireEvent.click(rows[i]);
+      fireEvent.click(within(rows[i]).getByRole('checkbox'));
       const selectedCount = i + 1;
       await waitFor(() => {
         const compareButton = screen.getByRole('button', { name: 'Compare runs' });
@@ -507,7 +517,7 @@ describe('ExperimentDetails', () => {
     const rows = await waitForTableRows(4);
 
     for (let i = 0; i < 4; i++) {
-      fireEvent.click(rows[i]);
+      fireEvent.click(within(rows[i]).getByRole('checkbox'));
       const selectedCount = i + 1;
       await waitFor(() => {
         const cloneButton = screen.getByRole('button', { name: 'Clone run' });
@@ -527,7 +537,7 @@ describe('ExperimentDetails', () => {
     const rows = await waitForTableRows(4);
 
     for (let i = 0; i < 4; i++) {
-      fireEvent.click(rows[i]);
+      fireEvent.click(within(rows[i]).getByRole('checkbox'));
       const selectedCount = i + 1;
       await waitFor(() => {
         const archiveButton = screen.getByRole('button', { name: 'Archive' });
@@ -546,12 +556,12 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForTableRows(4);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Archived' }));
     await waitForTableRows(4);
 
     const rows = screen.queryAllByTestId('table-row');
     for (let i = 0; i < 4; i++) {
-      fireEvent.click(rows[i]);
+      fireEvent.click(within(rows[i]).getByRole('checkbox'));
       const selectedCount = i + 1;
       await waitFor(() => {
         const restoreButton = screen.getByRole('button', { name: 'Restore' });
@@ -570,12 +580,12 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForTableRows(4);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Archived' }));
     await waitForTableRows(4);
     expect(screen.queryByRole('button', { name: 'Archive' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Restore' })).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Active' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Active' }));
     await waitForTableRows(4);
     expect(screen.getByRole('button', { name: 'Archive' })).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
@@ -587,7 +597,7 @@ describe('ExperimentDetails', () => {
     await waitForTableRows(4);
 
     await mockNRuns(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Archived' }));
     await waitForTableRows(2);
   });
 
@@ -597,12 +607,12 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForTableRows(4);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Archived' }));
     await waitForTableRows(4);
     expect(screen.queryByRole('button', { name: 'Archive' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Restore' })).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Active' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Active' }));
     await waitForTableRows(4);
     expect(screen.getByRole('button', { name: 'Archive' })).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();

@@ -96,7 +96,7 @@
 
 .kfp-theme .kfp-command-error p {
   margin: 0 0 8px;
-  color: var(--destructive);
+  color: var(--status-failed);
 }
 
 .kfp-theme .kfp-command-footer {

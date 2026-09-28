@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type { SnackbarProps, ToolbarProps, BannerProps } from 'src/lib/PageChromeTypes';
 import { useEffect, useEffectEvent, useId, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -39,9 +40,6 @@ import {
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { SnackbarProps } from '@mui/material/Snackbar';
-import type { ToolbarProps } from '../Toolbar';
-import type { BannerProps } from '../Banner';
 import type { DialogProps } from '../Router';
 import { Button } from '../ui/button';
 import { ModalDialog } from '../ui/dialog';
@@ -111,8 +109,17 @@ function PageToolbar({
   toolbar: ToolbarProps;
   showThemeControl?: boolean;
 }) {
+  if (
+    !Object.keys(toolbar.actions).length &&
+    !toolbar.breadcrumbs.length &&
+    !toolbar.pageTitle &&
+    !showThemeControl
+  ) {
+    return null;
+  }
+  const Heading = toolbar.topLevelToolbar === false ? 'h2' : 'h1';
   return (
-    <header className='kfp-page-header'>
+    <header className='kfp-page-header' data-embedded={toolbar.topLevelToolbar === false}>
       <div className='kfp-page-heading'>
         {toolbar.breadcrumbs.length > 0 && (
           <nav aria-label='Breadcrumbs' className='kfp-page-breadcrumbs'>
@@ -136,9 +143,11 @@ function PageToolbar({
               <ArrowLeft size={18} aria-hidden='true' />
             </Button>
           )}
-          <h1 data-testid='page-title' title={toolbar.pageTitleTooltip}>
-            {toolbar.pageTitle}
-          </h1>
+          {toolbar.pageTitle && (
+            <Heading data-testid='page-title' title={toolbar.pageTitleTooltip}>
+              {toolbar.pageTitle}
+            </Heading>
+          )}
         </div>
       </div>
       <div className='kfp-page-actions'>
@@ -170,6 +179,13 @@ function PageToolbar({
       </div>
     </header>
   );
+}
+
+export function ModernToolbar(props: ToolbarProps) {
+  if (!Object.keys(props.actions).length && !props.breadcrumbs.length && !props.pageTitle) {
+    return null;
+  }
+  return <PageToolbar toolbar={props} />;
 }
 
 function PageBanner({ banner }: { banner: BannerProps }) {

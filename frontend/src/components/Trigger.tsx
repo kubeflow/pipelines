@@ -15,12 +15,11 @@
  */
 
 import * as React from 'react';
-import { classes, stylesheet } from 'typestyle';
-import { HelpButton } from '../atoms/HelpButton';
 import { ExternalLink } from '../atoms/ExternalLink';
-import Input from '../atoms/Input';
-import Separator from '../atoms/Separator';
-import { color, commonCss, padding } from '../Css';
+import { TextField } from './ui/text-field';
+import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
+import './RunFormFields.css';
 import {
   buildCron,
   buildTrigger,
@@ -34,8 +33,6 @@ import {
   ParsedTrigger,
 } from '../lib/TriggerUtils';
 import { logger } from 'src/lib/Utils';
-
-import { Fab, Checkbox, FormControlLabel, MenuItem } from '@mui/material';
 
 type TriggerInitialProps = {
   maxConcurrentRuns?: string;
@@ -70,15 +67,6 @@ interface TriggerState {
   startTimeMessage: string;
   endTimeMessage: string;
 }
-
-const css = stylesheet({
-  noMargin: {
-    margin: 0,
-  },
-  alert: {
-    color: color.alert,
-  },
-});
 
 export default class Trigger extends React.Component<TriggerProps, TriggerState> {
   public state: TriggerState = (() => {
@@ -156,253 +144,229 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     } = this.state;
 
     return (
-      <div>
-        <Input
-          select={true}
-          label='Trigger type'
-          required={true}
-          onChange={this.handleChange('type')}
-          value={type}
-          variant='outlined'
-        >
-          {Array.from(triggers.entries()).map((trigger, i) => (
-            <MenuItem key={i} value={trigger[0]}>
-              {trigger[1].displayName}
-            </MenuItem>
-          ))}
-        </Input>
+      <fieldset className='kfp-run-form-fields kfp-trigger'>
+        <legend>Schedule timing</legend>
+        <label className='kfp-native-field'>
+          <span>
+            Trigger type<span aria-hidden='true'> *</span>
+          </span>
+          <select
+            aria-label='Trigger type'
+            value={type}
+            required
+            onChange={(event) =>
+              this.setState(
+                { type: Number(event.target.value) as TriggerType },
+                this._updateTrigger,
+              )
+            }
+          >
+            {Array.from(triggers.entries()).map(([value, trigger]) => (
+              <option key={value} value={value}>
+                {trigger.displayName}
+              </option>
+            ))}
+          </select>
+        </label>
+        <TextField
+          label='Maximum concurrent runs'
+          required
+          inputMode='numeric'
+          onChange={this.handleChange('maxConcurrentRuns')}
+          value={maxConcurrentRuns}
+          error={
+            Number.isInteger(Number(maxConcurrentRuns)) && Number(maxConcurrentRuns) > 0
+              ? undefined
+              : 'Invalid input. The maximum concurrent runs should be a positive integer.'
+          }
+        />
 
-        <div>
-          <Input
-            label='Maximum concurrent runs'
-            required={true}
-            onChange={this.handleChange('maxConcurrentRuns')}
-            value={maxConcurrentRuns}
-            variant='outlined'
-          />
-          {!(Number.isInteger(Number(maxConcurrentRuns)) && Number(maxConcurrentRuns) > 0) && (
-            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-              {'Invalid input. The maximum concurrent runs should be a positive integer.'}
-            </div>
-          )}
-
-          <div className={commonCss.flex}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={hasStartDate}
-                  color='primary'
-                  onClick={this.handleChange('hasStartDate')}
-                />
-              }
-              label='Has start date'
+        <fieldset className='kfp-schedule-boundary'>
+          <legend>Start</legend>
+          <label className='kfp-form-check'>
+            <Checkbox
+              checked={hasStartDate}
+              onCheckedChange={this._checkedChanged('hasStartDate')}
             />
-            <Input
+            Has start date
+          </label>
+          <div
+            className='kfp-schedule-date-time'
+            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+          >
+            <TextField
               label='Start date'
               type='date'
               onChange={this.handleChange('startDate')}
               value={startDate}
-              width={160}
-              variant='outlined'
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
-              style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
             />
-            <Separator />
-            <Input
+            <TextField
               label='Start time'
               type='time'
               onChange={this.handleChange('startTime')}
               value={startTime}
-              width={120}
-              variant='outlined'
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
-              style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
             />
           </div>
           <div
             data-testid='startTimeMessage'
-            className={css.alert}
+            className='kfp-form-error'
+            role={startTimeMessage ? 'alert' : undefined}
             style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
           >
             {startTimeMessage}
           </div>
-
-          <div className={commonCss.flex}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={hasEndDate}
-                  color='primary'
-                  onClick={this.handleChange('hasEndDate')}
-                />
-              }
-              label='Has end date'
-            />
-            <Input
+        </fieldset>
+        <fieldset className='kfp-schedule-boundary'>
+          <legend>End</legend>
+          <label className='kfp-form-check'>
+            <Checkbox checked={hasEndDate} onCheckedChange={this._checkedChanged('hasEndDate')} />
+            Has end date
+          </label>
+          <div
+            className='kfp-schedule-date-time'
+            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+          >
+            <TextField
               label='End date'
               type='date'
               onChange={this.handleChange('endDate')}
               value={endDate}
-              width={160}
-              style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
-              variant='outlined'
             />
-            <Separator />
-            <Input
+            <TextField
               label='End time'
               type='time'
               onChange={this.handleChange('endTime')}
               value={endTime}
-              width={120}
-              style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
-              variant='outlined'
             />
           </div>
           <div
             data-testid='endTimeMessage'
-            className={css.alert}
+            className='kfp-form-error'
+            role={endTimeMessage ? 'alert' : undefined}
             style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
           >
             {endTimeMessage}
           </div>
-          <span className={commonCss.flex}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={catchup}
-                  color='primary'
-                  onClick={this.handleChange('catchup')}
-                />
-              }
-              label='Catchup'
-            />
-            <HelpButton
-              helpText={
-                <div>
-                  <p>
-                    Whether the recurring run should catch up if behind schedule. Defaults to true.
-                  </p>
-                  <p>
-                    For example, if the recurring run is paused for a while and re-enabled
-                    afterwards. If catchup=true, the scheduler will catch up on (backfill) each
-                    missed interval. Otherwise, it only schedules the latest interval if more than
-                    one interval is ready to be scheduled.
-                  </p>
-                  <p>
-                    Usually, if your pipeline handles backfill internally, you should turn catchup
-                    off to avoid duplicate backfill.
-                  </p>
-                </div>
-              }
-            />
-          </span>
-
-          <span className={commonCss.flex}>
-            Run every
-            {type === TriggerType.INTERVALED && (
-              <div className={commonCss.flex}>
-                <Separator />
-                <Input
-                  required={true}
-                  type='number'
-                  inputProps={{ min: 1 }}
-                  onChange={this.handleChange('intervalValue')}
-                  value={intervalValue}
-                  height={30}
-                  width={65}
-                  error={intervalValue < 1}
-                  variant='outlined'
-                />
-              </div>
-            )}
-            <Separator />
-            <Input
-              required={true}
-              select={true}
-              onChange={this.handleChange('intervalCategory')}
-              value={intervalCategory}
-              height={30}
-              width={95}
-              variant='outlined'
-            >
-              {(Object.keys(PeriodicInterval) as Array<keyof typeof PeriodicInterval>).map(
-                (interval, i) => (
-                  <MenuItem key={i} value={PeriodicInterval[interval]}>
-                    {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
-                  </MenuItem>
-                ),
-              )}
-            </Input>
-          </span>
+        </fieldset>
+        <div>
+          <label className='kfp-form-check'>
+            <Checkbox checked={catchup} onCheckedChange={this._checkedChanged('catchup')} />
+            Catchup
+          </label>
+          <details className='kfp-form-help'>
+            <summary>About catchup</summary>
+            <p>Whether the recurring run should catch up if behind schedule. Defaults to true.</p>
+            <p>
+              For example, if the recurring run is paused for a while and re-enabled afterwards. If
+              catchup=true, the scheduler will catch up on (backfill) each missed interval.
+              Otherwise, it only schedules the latest interval if more than one interval is ready to
+              be scheduled.
+            </p>
+            <p>
+              Usually, if your pipeline handles backfill internally, you should turn catchup off to
+              avoid duplicate backfill.
+            </p>
+          </details>
         </div>
-
-        {type === TriggerType.CRON && (
-          <div>
-            {intervalCategory === PeriodicInterval.WEEK && (
-              <div>
-                <span>On:</span>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={this._isAllDaysChecked()}
-                      color='primary'
-                      onClick={this._toggleCheckAllDays.bind(this)}
-                    />
-                  }
-                  label='All'
-                />
-                <Separator />
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                  <Fab
-                    key={i}
-                    size='small'
-                    onClick={() => this._toggleDay(i)}
-                    color={selectedDays[i] ? 'primary' : 'secondary'}
-                  >
-                    {day}
-                  </Fab>
-                ))}
-              </div>
-            )}
-
-            <div className={commonCss.flex}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={editCron}
-                    color='primary'
-                    onClick={this.handleChange('editCron')}
-                  />
-                }
-                label={
-                  <span>
-                    Allow editing cron expression. (format is specified{' '}
-                    <ExternalLink href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
-                      here
-                    </ExternalLink>
-                    )
-                  </span>
-                }
+        <fieldset className='kfp-schedule-boundary'>
+          <legend>Run every</legend>
+          <div className='kfp-schedule-interval'>
+            {type === TriggerType.INTERVALED && (
+              <TextField
+                label='Interval'
+                required
+                type='number'
+                min={1}
+                onChange={this.handleChange('intervalValue')}
+                value={intervalValue}
+                error={intervalValue < 1 ? 'Interval must be at least 1.' : undefined}
               />
-            </div>
-
-            <Input
-              label='cron expression'
-              onChange={this.handleChange('cron')}
-              value={cron}
-              width={300}
-              disabled={!editCron}
-              variant='outlined'
-            />
-
-            <div>Note: Start and end dates/times are handled outside of cron.</div>
+            )}
+            <label className='kfp-native-field'>
+              <span>Interval unit</span>
+              <select
+                aria-label='Interval unit'
+                required
+                onChange={this.handleChange('intervalCategory')}
+                value={intervalCategory}
+              >
+                {Object.values(PeriodicInterval).map((interval) => (
+                  <option key={interval} value={interval}>
+                    {interval + (type === TriggerType.INTERVALED ? 's' : '')}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
+        </fieldset>
+        {type === TriggerType.CRON && (
+          <>
+            {intervalCategory === PeriodicInterval.WEEK && (
+              <fieldset className='kfp-schedule-boundary'>
+                <legend>On</legend>
+                <label className='kfp-form-check'>
+                  <Checkbox
+                    checked={this._isAllDaysChecked()}
+                    onCheckedChange={this._toggleCheckAllDays.bind(this)}
+                  />
+                  All
+                </label>
+                <div className='kfp-schedule-weekdays'>
+                  {[
+                    'Sunday',
+                    'Monday',
+                    'Tuesday',
+                    'Wednesday',
+                    'Thursday',
+                    'Friday',
+                    'Saturday',
+                  ].map((day, i) => (
+                    <Button
+                      key={day}
+                      size='icon'
+                      variant={selectedDays[i] ? 'default' : 'secondary'}
+                      aria-label={day}
+                      aria-pressed={selectedDays[i]}
+                      onClick={() => this._toggleDay(i)}
+                    >
+                      {day[0]}
+                    </Button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            <div>
+              <label className='kfp-form-check'>
+                <Checkbox checked={editCron} onCheckedChange={this._checkedChanged('editCron')} />
+                Allow editing cron expression.
+              </label>
+              <p className='kfp-form-help'>
+                Cron expression format is specified
+                <ExternalLink href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
+                  {' here'}
+                </ExternalLink>
+                .
+              </p>
+              <TextField
+                label='cron expression'
+                onChange={this.handleChange('cron')}
+                value={cron}
+                disabled={!editCron}
+              />
+              <p className='kfp-form-help'>
+                Note: Start and end dates/times are handled outside of cron.
+              </p>
+            </div>
+          </>
         )}
-      </div>
+      </fieldset>
     );
   }
+
+  private _checkedChanged =
+    (name: 'hasStartDate' | 'hasEndDate' | 'catchup' | 'editCron') => (checked: boolean) => {
+      this.setState((state) => ({ ...state, [name]: checked }), this._updateTrigger);
+    };
 
   public handleChange = (name: string) => (event: any) => {
     const target = event.target;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { SnackbarProps } from '@mui/material/Snackbar';
+import type { SnackbarProps, BannerProps, ToolbarProps } from 'src/lib/PageChromeTypes';
 import * as React from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, matchPath } from 'react-router';
 import { NavigationProps } from 'src/lib/Navigation';
@@ -22,9 +22,6 @@ import Page404 from 'src/pages/404';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
-import { classes, stylesheet } from 'typestyle';
-import Banner, { BannerProps } from 'src/components/Banner';
-import { commonCss } from 'src/Css';
 import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
 import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
@@ -57,18 +54,7 @@ import { ApplicationShell } from './modernization/ApplicationShell';
 import type { AppShellNavItem } from './modernization/AppShell';
 import { ModernPageChrome } from './modernization/ModernPageChrome';
 import { Button as ModernButton } from './ui/button';
-import Toolbar, { ToolbarProps } from './Toolbar';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
-
-import {
-  Alert,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Snackbar,
-} from '@mui/material';
 
 export type RouteConfig = {
   path: string;
@@ -76,12 +62,6 @@ export type RouteConfig = {
   view?: any;
   notExact?: boolean;
 };
-
-const css = stylesheet({
-  dialog: {
-    minWidth: 250,
-  },
-});
 
 export enum QUERY_PARAMS {
   cloneFromRun = 'cloneFromRun',
@@ -149,7 +129,7 @@ export const RoutePageFactory = {
     return RoutePage.ARTIFACT_DETAILS.replace(`:${RouteParams.ID}`, '' + artifactId);
   },
   runDetails: (runId: string) => {
-    return RoutePage.RUN_DETAILS.replace(`:${RouteParams.runId}`, runId);
+    return RoutePage.RUN_DETAILS.replace(`:${RouteParams.runId}`, encodeURIComponent(runId));
   },
   runDetailsTask: (runId: string, taskId: string) => {
     const search = new URLSearchParams({ [QUERY_PARAMS.taskId]: taskId });
@@ -209,7 +189,7 @@ const LegacyRunExecutionRoute = ({ location, params }: NavigationProps) => {
     <Navigate
       replace
       to={{
-        pathname: RoutePageFactory.runDetails(encodeURIComponent(params[RouteParams.runId]!)),
+        pathname: RoutePageFactory.runDetails(params[RouteParams.runId]!),
         search: `?${query}`,
         hash: location.hash,
       }}
@@ -218,7 +198,7 @@ const LegacyRunExecutionRoute = ({ location, params }: NavigationProps) => {
 };
 
 // Keep navigation guidance separate from page-owned loading and error banners.
-const ExecutionRedirectNotice = ({ modern = false }: { modern?: boolean }) => {
+const ExecutionRedirectNotice = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const query = new URLSearchParams(location.search);
@@ -239,21 +219,14 @@ const ExecutionRedirectNotice = ({ modern = false }: { modern?: boolean }) => {
         ' This legacy execution link cannot select the corresponding task automatically.'}
     </>
   );
-  if (modern) {
-    return (
-      <div role='alert' className='kfp-navigation-notice'>
-        <Info size={18} aria-hidden='true' />
-        <p>{message}</p>
-        <ModernButton variant='ghost' size='icon' aria-label='Close' onClick={closeNotice}>
-          <X size={16} aria-hidden='true' />
-        </ModernButton>
-      </div>
-    );
-  }
   return (
-    <Alert severity='info' onClose={closeNotice}>
-      {message}
-    </Alert>
+    <div role='alert' className='kfp-navigation-notice'>
+      <Info size={18} aria-hidden='true' />
+      <p>{message}</p>
+      <ModernButton variant='ghost' size='icon' aria-label='Close' onClick={closeNotice}>
+        <X size={16} aria-hidden='true' />
+      </ModernButton>
+    </div>
   );
 };
 
@@ -396,84 +369,23 @@ class RoutedPage extends React.Component<
     const navigation = { location, navigate, params };
     const navigationNotice =
       route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS ? (
-        <ExecutionRedirectNotice modern />
+        <ExecutionRedirectNotice />
       ) : undefined;
     const page = <Component {...navigation} {...this.childProps} view={route?.view} />;
 
-    if (
-      route?.path === RoutePage.RUNS ||
-      route?.path === RoutePage.ARCHIVED_RUNS ||
-      route?.path === RoutePage.RUN_DETAILS ||
-      route?.path === RoutePage.COMPARE
-    ) {
-      return (
-        <ModernPageChrome
-          toolbarProps={{ ...this.state.toolbarProps, navigate }}
-          bannerProps={this.state.bannerProps}
-          dialogProps={this.state.dialogProps}
-          snackbarProps={this.state.snackbarProps}
-          onDialogClose={this._handleDialogClosed}
-          onSnackbarClose={this._handleSnackbarClose}
-          navigationNotice={navigationNotice}
-          showThemeControl={KFP_FLAGS.HIDE_SIDENAV}
-        >
-          {page}
-        </ModernPageChrome>
-      );
-    }
-
     return (
-      <div className={classes(commonCss.page, 'kfp-legacy-page')}>
-        <Toolbar {...this.state.toolbarProps} navigate={navigate} />
-        {navigationNotice}
-        {this.state.bannerProps.message && (
-          <Banner
-            message={this.state.bannerProps.message}
-            mode={this.state.bannerProps.mode}
-            additionalInfo={this.state.bannerProps.additionalInfo}
-            refresh={this.state.bannerProps.refresh}
-            showTroubleshootingGuideLink={true}
-          />
-        )}
+      <ModernPageChrome
+        toolbarProps={{ ...this.state.toolbarProps, navigate }}
+        bannerProps={this.state.bannerProps}
+        dialogProps={this.state.dialogProps}
+        snackbarProps={this.state.snackbarProps}
+        onDialogClose={this._handleDialogClosed}
+        onSnackbarClose={this._handleSnackbarClose}
+        navigationNotice={navigationNotice}
+        showThemeControl={KFP_FLAGS.HIDE_SIDENAV}
+      >
         {page}
-
-        <Snackbar
-          autoHideDuration={this.state.snackbarProps.autoHideDuration}
-          message={this.state.snackbarProps.message}
-          open={this.state.snackbarProps.open}
-          onClose={this._handleSnackbarClose}
-        />
-
-        <Dialog
-          open={this.state.dialogProps.open !== false}
-          classes={{ paper: css.dialog }}
-          className='dialog'
-          onClose={() => this._handleDialogClosed()}
-        >
-          {this.state.dialogProps.title && (
-            <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
-          )}
-          {this.state.dialogProps.content && (
-            <DialogContent className={commonCss.prewrap}>
-              {this.state.dialogProps.content}
-            </DialogContent>
-          )}
-          {this.state.dialogProps.buttons && (
-            <DialogActions>
-              {this.state.dialogProps.buttons.map((b, i) => (
-                <Button
-                  key={i}
-                  onClick={() => this._handleDialogClosed(b.onClick)}
-                  className='dialogButton'
-                  color='secondary'
-                >
-                  {b.text}
-                </Button>
-              ))}
-            </DialogActions>
-          )}
-        </Dialog>
-      </div>
+      </ModernPageChrome>
     );
   }
 

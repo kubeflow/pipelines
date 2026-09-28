@@ -24,14 +24,14 @@
   padding: 8px 12px;
   resize: vertical;
   border: 1px solid var(--muted-foreground);
-  border-radius: var(--radius-control);
+  border-radius: var(--kfp-radius);
   background: var(--background);
   color: var(--foreground);
   font: inherit;
   line-height: 1.5;
 }
 .kfp-theme .kfp-text-field-textarea[aria-invalid='true'] {
-  border-color: var(--destructive);
+  border-color: var(--status-failed);
 }
 .kfp-theme .kfp-text-field-textarea:disabled {
   cursor: not-allowed;
@@ -42,6 +42,6 @@
   font-size: 12px;
 }
 .kfp-theme .kfp-text-field-error {
-  color: var(--destructive);
+  color: var(--status-failed);
   font-size: 12px;
 }

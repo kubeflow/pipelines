@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-import AddIcon from '@mui/icons-material/Add';
-import CollapseIcon from '@mui/icons-material/UnfoldLess';
-import ExpandIcon from '@mui/icons-material/UnfoldMore';
+import {
+  Plus as AddIcon,
+  ChevronsDownUp as CollapseIcon,
+  ChevronsUpDown as ExpandIcon,
+} from 'lucide-react';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { ToolbarActionMap } from 'src/components/Toolbar';
+import { ToolbarActionMap } from 'src/lib/PageChromeTypes';
 import { PageProps } from 'src/pages/Page';
 import { Apis } from './Apis';
 import { URLParser } from './URLParser';

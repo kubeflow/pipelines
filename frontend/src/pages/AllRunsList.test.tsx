@@ -22,7 +22,7 @@ import { ButtonKeys } from 'src/lib/Buttons';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 
 const refreshSpy = vi.fn();
 let lastRunListProps: any = null;

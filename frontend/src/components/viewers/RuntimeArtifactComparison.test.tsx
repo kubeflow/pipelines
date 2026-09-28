@@ -340,7 +340,8 @@ describe('RuntimeArtifactComparison', () => {
 
   it('pages through duplicate-label matches and announces an empty search', async () => {
     const user = userEvent.setup();
-    const artifacts = Array.from({ length: 150 }, (_, index) =>
+    // One item beyond the window exercises duplicate-label pagination without unused options.
+    const artifacts = Array.from({ length: 101 }, (_, index) =>
       classificationEntry('Same run', `opaque-${index}`, {
         confidenceMetrics: [
           { confidenceThreshold: 0.8, falsePositiveRate: index / 1_000, recall: 0.9 },
@@ -385,10 +386,10 @@ describe('RuntimeArtifactComparison', () => {
     const secondPage = await screen.findByRole('listbox', { name: 'ROC curves' });
     expect(secondPage).toBeVisible();
     const secondPageLabels = within(secondPage).getAllByText('Same run / Evaluate / evaluation');
-    expect(secondPageLabels).toHaveLength(50);
+    expect(secondPageLabels).toHaveLength(1);
     expect(secondPageLabels[0]).toBeVisible();
     expect(secondPageLabels.at(-1)).toBeVisible();
-    expect(screen.getByText(/Showing 101–150 of 150 matching curves/)).toBeVisible();
+    expect(screen.getByText(/Showing 101–101 of 101 matching curves/)).toBeVisible();
     await user.click(secondPageLabels.at(-1)!);
     expect(selector).toHaveTextContent('4 curves selected');
 
@@ -502,7 +503,11 @@ describe('RuntimeArtifactComparison', () => {
       providerInfo: undefined,
     });
     expect(await screen.findByText(/Unable to retrieve the selected visualization/)).toBeVisible();
-    expect(screen.getByTitle('HTML report')).toBeVisible();
+    expect(
+      screen.getByTitle(
+        (title, element) => title === 'HTML report' && element?.tagName === 'IFRAME',
+      ),
+    ).toBeVisible();
     expect(
       within(screen.getByRole('combobox', { name: 'Second comparison artifact' })).getByRole(
         'option',
@@ -574,7 +579,9 @@ describe('RuntimeArtifactComparison', () => {
       </CommonTestWrapper>,
     );
     await chooseArtifact('First comparison artifact', 'First run / Report / report');
-    await screen.findByTitle('HTML report');
+    await screen.findByTitle(
+      (title, element) => title === 'HTML report' && element?.tagName === 'IFRAME',
+    );
 
     rerender(
       <CommonTestWrapper>

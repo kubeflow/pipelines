@@ -19,7 +19,7 @@ import { act, render } from '@testing-library/react';
 import { vi } from 'vitest';
 import { ArchivedRuns } from './ArchivedRuns';
 import { PageProps } from './Page';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { Apis } from 'src/lib/Apis';

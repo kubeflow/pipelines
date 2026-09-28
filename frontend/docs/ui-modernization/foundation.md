@@ -1,8 +1,8 @@
 # UI modernization foundation
 
-This development slice supports [issue #14572](https://github.com/kubeflow/pipelines/issues/14572) and [KEP PR #14574](https://github.com/kubeflow/pipelines/pull/14574). It establishes the shared presentation foundation and an interactive shell in Storybook. The subsequent [shell and Runs slice](runs.md) connects that shell to the application and migrates Active/Archived Runs; other pages retain a temporary light presentation. The application-wide Tailwind pipeline does change in this branch; this is a draft migration step toward the coordinated cutover, not an independently qualified release.
+This historical checkpoint records the initial shared foundation and Storybook shell for [issue #14572](https://github.com/kubeflow/pipelines/issues/14572) and [KEP PR #14574](https://github.com/kubeflow/pipelines/pull/14574). Its screenshots and test totals describe that slice. See [Workflows and qualification](workflows.md) for the current application-wide implementation, browser configuration and remaining release gates. The migration remains one coordinated cutover.
 
-## Implemented
+## Implemented at this checkpoint
 
 - Tailwind 4.3.3 and its CLI, retaining `npm run build:tailwind` and the existing generated CSS import. Existing custom MUI colors/spacing, legacy grow/shrink names, focus rings and relevant preflight defaults are retained. Utilities remain unlayered while MUI/TypeStyle consumers coexist, preserving their previous precedence.
 - Local Public Sans 400/500/600 and JetBrains Mono 400/500 Latin font subsets through Fontsource 5.3.0. Vite resolves and hashes the font assets when the foundation is imported; no external font requests are needed. Font licenses ship in [Public Sans OFL](../../public/fonts/public-sans/OFL.txt) and [JetBrains Mono OFL](../../public/fonts/jetbrains-mono/OFL.txt).
@@ -11,7 +11,7 @@ This development slice supports [issue #14572](https://github.com/kubeflow/pipel
 - [ThemeProvider](../../src/components/modernization/ThemeProvider.tsx): system/light/dark, live system changes, cross-tab updates, and safe missing/invalid/unavailable storage behavior. The separate `kfp.theme` key does not migrate or remove legacy preferences. Theme classes are scoped to `.kfp-theme`; `ApplicationShell` owns the runtime provider and modal portals mirror its resolved palette.
 - [AppShell](../../src/components/modernization/AppShell.tsx): 236/64 px rail, namespace/build/cluster presentation, controlled navigation and secondary destinations, theme selection, persistent collapse using the existing `navbarCollapsed` key, skip-to-main focus, and a hidden-navigation mode. Below 1024 px it collapses automatically without overwriting the user's wide-screen preference.
 
-The shell accepts route destinations, active state and metadata from its caller. It does not import the production Router, fetch counts, create a namespace selector, or add duplicate backend requests. The application adapter passes existing deployment flags/context, preserves nested route matching, and retains the existing toolbar, error and mutation contracts; see the [Runs integration](runs.md). The [run inspection, comparison and search slice](inspection.md) adds bounded command search and additional shared controls. Remaining workflow pages are being migrated before the coordinated cutover.
+The shell accepts route destinations, active state and metadata from its caller. It does not import the production Router, fetch counts, create a namespace selector, or add duplicate backend requests. The application adapter passes existing deployment flags/context, preserves nested route matching, and retains the existing toolbar, error and mutation contracts; see the [Runs integration](runs.md). The [run inspection, comparison and search slice](inspection.md) adds bounded command search and additional shared controls. The remaining workflow migration at this checkpoint is now covered by the [current report](workflows.md).
 
 ## Review in Storybook
 
@@ -45,13 +45,13 @@ Focus uses a 2 px primary-colored outline with offset. Input boundaries use mute
 
 ## Browser and test compatibility
 
-Tailwind 4 requires at least Chrome 111, Safari 16.4 and Firefox 128 according to its [compatibility guide](https://tailwindcss.com/docs/compatibility#browser-support). This applies to the generated stylesheet imported by the existing app as well as to the new components. The repository's current `supports es6-module` browserslist and ES2015 target remain broader; the browser policy/configuration and minimum-version matrix must be agreed and aligned before this branch is merged or released independently. Component-scoped theme classes do not isolate that application-wide CSS compatibility change.
+Tailwind 4 requires at least Chrome 111, Safari 16.4 and Firefox 128 according to its [compatibility guide](https://tailwindcss.com/docs/compatibility#browser-support). This applies to the generated stylesheet imported by the existing app as well as to the new components. At this checkpoint the `supports es6-module` Browserslist and ES2015 target were broader. The [current report](workflows.md#browser-floor-and-accessibility) records the aligned configuration; maintainer policy acceptance and minimum-version qualification remain gates. Component-scoped theme classes do not isolate that application-wide CSS compatibility change.
 
 The test DOM uses jsdom 27.4.0, whose modern CSS parser supports the generated cascade layers. jsdom 24 discarded the Tailwind 4 stylesheet. The selected version supports the pinned Node 24.14 runtime; CSS processing remains enabled. Browser checks remain authoritative for layout, fonts and computed CSS variable values.
 
-Legacy raw unstyled inputs receive Tailwind 4's transparent background; production form controls use MUI styles. Retained compatibility rules are temporary and should be removed only with their final consumers. The existing visual/behavioral [baseline PR](https://github.com/kubeflow/pipelines/pull/14576) remains the comparison reference.
+At this checkpoint legacy raw inputs received Tailwind 4's transparent background and production forms still used MUI. Compatibility rules supported the temporary coexistence; this describes the historical slice, not the current control stack. The existing visual/behavioral [baseline PR](https://github.com/kubeflow/pipelines/pull/14576) remains the comparison reference.
 
-## Verification and remaining work
+## Historical verification and follow-up
 
 Run from `frontend`:
 
@@ -68,4 +68,4 @@ Initial foundation verification passed on the repository-pinned runtime: 132 fro
 
 The new focused checks cover theme/media/storage behavior, preference preservation, responsive restoration, active navigation and destinations, hidden navigation, keyboard focus, form submission/disabled actions, input labeling/errors, and token contrast. Browser review verifies local font loading, theme/collapse persistence across reloads, live system-theme changes, narrow/wide restoration, hidden-navigation layout, and primitive form feedback.
 
-The route/deployment adapter and Runs page chrome are now integrated; remaining workflows must preserve the existing namespace/auth context. Before release, finish workflow/state parity, keyboard and accessibility review, browser-floor qualification, performance comparison and live UI/backend upgrade/rollback rehearsal. This slice changes no backend schema, API payload or KFP Local behavior and performs no preference migration. Release qualification must identify and rehearse rollback to a compatible prior UI image as required by the KEP.
+The route/deployment adapter and Runs page chrome were integrated after this checkpoint; subsequent workflows and current qualification status are documented in [Workflows and qualification](workflows.md). Before release, finish workflow/state parity, keyboard and accessibility review, browser-floor qualification, performance comparison and live UI/backend upgrade/rollback rehearsal. This slice changes no backend schema, API payload or KFP Local behavior and performs no preference migration. Release qualification must identify and rehearse rollback to a compatible prior UI image as required by the KEP.

@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react';
-import { act, cleanup, render, screen, within, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { InspectionTabs } from './InspectionTabs';
 import { InspectionFields } from './InspectionFields';
@@ -76,6 +76,59 @@ it('associates the active panel and prevents disabled-tab activation with arrow 
   expect(screen.getByRole('tab', { name: 'Details' })).toHaveFocus();
   expect(screen.getByRole('tabpanel', { name: 'Details' })).toHaveTextContent('Details content');
   expect(screen.getByRole('tab', { name: 'Unavailable' })).toHaveAttribute('aria-disabled', 'true');
+});
+
+it('requests a pointer tab change once while the controlled parent is still on the old value', async () => {
+  const onSwitch = vi.fn();
+  const user = userEvent.setup();
+  render(
+    <InspectionTabs tabs={['Overview', 'Details']} selectedTab={0} onSwitch={onSwitch}>
+      Content
+    </InspectionTabs>,
+  );
+  const details = screen.getByRole('tab', { name: 'Details' });
+  await user.click(details);
+  expect(onSwitch).toHaveBeenCalledExactlyOnceWith(1);
+  // A parent may decline a change; a later explicit click must still request it.
+  await user.click(details);
+  expect(onSwitch.mock.calls).toEqual([[1], [1]]);
+});
+
+it('requests one change when touch compatibility mouse events focus a tab after pointerup', () => {
+  const onSwitch = vi.fn();
+  render(
+    <InspectionTabs tabs={['Overview', 'Details']} selectedTab={0} onSwitch={onSwitch}>
+      Content
+    </InspectionTabs>,
+  );
+  const details = screen.getByRole('tab', { name: 'Details' });
+  fireEvent.pointerDown(details, { button: 0, pointerType: 'touch' });
+  fireEvent.pointerUp(details, { button: 0, pointerType: 'touch' });
+  fireEvent.mouseDown(details, { button: 0 });
+  act(() => details.focus());
+  fireEvent.mouseUp(details, { button: 0 });
+  fireEvent.click(details);
+  expect(onSwitch).toHaveBeenCalledExactlyOnceWith(1);
+});
+
+it('accepts controlled Back and Forward selections without blocking a later tab gesture', async () => {
+  const onSwitch = vi.fn();
+  const user = userEvent.setup();
+  const content = (selectedTab: number) => (
+    <InspectionTabs tabs={['Overview', 'Details']} selectedTab={selectedTab} onSwitch={onSwitch}>
+      Content
+    </InspectionTabs>
+  );
+  const { rerender } = render(content(0));
+  await user.click(screen.getByRole('tab', { name: 'Details' }));
+  expect(onSwitch).toHaveBeenCalledExactlyOnceWith(1);
+  rerender(content(1));
+  expect(screen.getByRole('tab', { name: 'Details' })).toHaveAttribute('aria-selected', 'true');
+  rerender(content(0));
+  expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+  rerender(content(1));
+  await user.click(screen.getByRole('tab', { name: 'Overview' }));
+  expect(onSwitch.mock.calls).toEqual([[1], [0]]);
 });
 
 it('preserves falsy fields, structured values, and custom field content', () => {

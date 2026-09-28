@@ -16,44 +16,10 @@
 
 import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
-import { cssRaw } from 'typestyle';
 import { Markdown } from 'markdown-to-jsx/react';
-import Banner from '../Banner';
+import { Alert } from '../ui/alert';
+import './RichViewers.css';
 import { ExternalLink } from 'src/atoms/ExternalLink';
-
-cssRaw(`
-.markdown-viewer h1,
-.markdown-viewer h2,
-.markdown-viewer h3,
-.markdown-viewer h4,
-.markdown-viewer h5,
-.markdown-viewer h6 {
-position: relative;
-  margin-top: 1em;
-  margin-bottom: 16px;
-  font-size: initial;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.markdown-viewer h1,
-.markdown-viewer h2 {
-  padding-bottom: .3em;
-  border-bottom: 1px solid #eee;
-}
-
-.markdown-viewer code,
-.markdown-viewer pre {
-  background-color: #f8f8f8;
-  border-radius: 5px;
-}
-
-.markdown-viewer pre {
-  border: solid 1px #eee;
-  margin: 7px 0;
-  padding: 7px;
-}
-`);
 
 const MAX_MARKDOWN_STR_LENGTH = 50 * 1000 * 8; // 50KB
 
@@ -77,7 +43,7 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
       return null;
     }
     return (
-      <div className='markdown-viewer'>
+      <div className='markdown-viewer kfp-markdown-viewer'>
         <MarkdownAdvanced
           maxMarkdownStrLength={this.props.maxLength}
           content={this.props.configs[0].markdownContent}
@@ -119,7 +85,7 @@ const MarkdownAdvanced = ({
   return (
     <>
       {content.length > maxMarkdownStrLength && (
-        <Banner message='This markdown is too large to render completely.' mode={'warning'} />
+        <Alert variant='warning'>This markdown is too large to render completely.</Alert>
       )}
       <Markdown options={markdownOptions}>{truncatedContent}</Markdown>
     </>

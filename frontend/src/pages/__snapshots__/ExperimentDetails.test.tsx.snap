@@ -3,27 +3,32 @@
 exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk ft7h3sp"
+    class="kfp-theme"
+    data-theme="light"
   >
     <div
-      class="page_f1flacxk"
+      class="kfp-workflow-page"
     >
       <div
-        class="cardRow_ff0uehn"
+        class="kfp-workflow-content"
       >
         <div
-          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 recurringRunsCard_folh6x0 cardActive_fk7v9nw css-ee20y-MuiPaper-root"
-          id="recurringRunsCard"
+          class="kfp-workflow-cards"
         >
-          <div>
+          <section
+            aria-label="Recurring run configs"
+            class="kfp-workflow-card"
+            id="recurringRunsCard"
+          >
             <div
-              class="cardTitle_fhfhxfi"
+              class="kfp-workflow-card-heading"
             >
-              <span>
+              <h2>
                 Recurring run configs
-              </span>
+              </h2>
               <button
-                class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary cardBtn_fvbhv23 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground h-8 px-2.5"
+                data-slot="button"
                 id="manageExperimentRecurringRunsBtn"
                 tabindex="0"
                 type="button"
@@ -32,463 +37,563 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
               </button>
             </div>
             <div
-              class="cardContent_fscn48d recurringRunsActive_f1ek4ghs"
+              class="kfp-workflow-card-count"
+              data-active=""
             >
               1 active
             </div>
-          </div>
-        </div>
-        <div
-          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 runStatsCard_folh6x0 css-ee20y-MuiPaper-root"
-          id="experimentDescriptionCard"
-        >
-          <div
-            class="cardTitle_fhfhxfi"
+          </section>
+          <section
+            aria-label="Experiment description"
+            class="kfp-workflow-card"
+            id="experimentDescriptionCard"
           >
-            <span>
-              Experiment description
-            </span>
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutIcon_fr5sfkk popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-              id="expandExperimentDescriptionBtn"
-              tabindex="0"
-              type="button"
+            <div
+              class="kfp-workflow-card-heading"
             >
-              <svg
-                aria-hidden="true"
+              <h2>
+                Experiment description
+              </h2>
+              <button
                 aria-label="Read more"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                data-mui-internal-clone-element="true"
-                data-testid="LaunchIcon"
-                focusable="false"
-                style="font-size: 18px;"
-                viewBox="0 0 24 24"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                data-slot="button"
+                id="expandExperimentDescriptionBtn"
+                tabindex="0"
+                title="Read more"
+                type="button"
               >
-                <path
-                  d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
-                />
-              </svg>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-          >
-            mock experiment description
-          </div>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-external-link"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M15 3h6v6"
+                  />
+                  <path
+                    d="M10 14 21 3"
+                  />
+                  <path
+                    d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div
+              class="kfp-workflow-description-line"
+            >
+              mock experiment description
+            </div>
+          </section>
         </div>
-      </div>
-      <div
-        class="root_f1vld0bw"
-      >
-        <div
-          style="min-width: 100px;"
+        <header
+          class="kfp-page-header"
+          data-embedded="true"
         >
           <div
-            class="breadcrumbs_farqb1 flex_f16jawj4"
-          />
+            class="kfp-page-heading"
+          >
+            <div
+              class="kfp-page-title-row"
+            >
+              <h2
+                data-testid="page-title"
+              >
+                Runs
+              </h2>
+            </div>
+          </div>
           <div
-            class="flex_f16jawj4"
+            class="kfp-page-actions"
           >
             <span
-              class="pageName_fe4yf9p ellipsis_f15ay66x"
-              data-testid="page-title"
+              style="min-width: 130px;"
+              title="Create a new run"
             >
-              Runs
-            </span>
-          </div>
-        </div>
-        <div
-          class="actions_ffoeey"
-        >
-          <div
-            aria-label="Create a new run"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 130px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              id="createNewRunBtn"
-              tabindex="0"
-              type="button"
-            >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
-                data-testid="AddIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
+              <button
+                aria-description="Create a new run"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-primary text-primary-foreground hover:brightness-95 h-[34px] px-3"
+                data-slot="button"
+                id="createNewRunBtn"
+                tabindex="0"
+                type="button"
               >
-                <path
-                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
-                />
-              </svg>
-              <span>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-plus"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5 12h14"
+                  />
+                  <path
+                    d="M12 5v14"
+                  />
+                </svg>
                 Create run
-              </span>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            aria-label="Create a new recurring run"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 195px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-              id="createNewRecurringRunBtn"
-              tabindex="0"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 195px;"
+              title="Create a new recurring run"
             >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
-                data-testid="AddIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
+              <button
+                aria-description="Create a new recurring run"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-slot="button"
+                id="createNewRecurringRunBtn"
+                tabindex="0"
+                type="button"
               >
-                <path
-                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
-                />
-              </svg>
-              <span>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-repeat"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m17 2 4 4-4 4"
+                  />
+                  <path
+                    d="M3 11v-1a4 4 0 0 1 4-4h14"
+                  />
+                  <path
+                    d="m7 22-4-4 4-4"
+                  />
+                  <path
+                    d="M21 13v1a4 4 0 0 1-4 4H3"
+                  />
+                </svg>
                 Create recurring run
-              </span>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            aria-label="Select multiple runs to compare"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 125px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="compareBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 125px;"
+              title="Select multiple runs to compare"
             >
-              <span>
+              <button
+                aria-description="Select multiple runs to compare"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="compareBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-git-compare-arrows"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="5"
+                    cy="6"
+                    r="3"
+                  />
+                  <path
+                    d="M12 6h5a2 2 0 0 1 2 2v7"
+                  />
+                  <path
+                    d="m15 9-3-3 3-3"
+                  />
+                  <circle
+                    cx="19"
+                    cy="18"
+                    r="3"
+                  />
+                  <path
+                    d="M12 18H7a2 2 0 0 1-2-2V9"
+                  />
+                  <path
+                    d="m9 15 3 3-3 3"
+                  />
+                </svg>
                 Compare runs
-              </span>
-            </button>
-          </div>
-          <div
-            aria-label="Select a run to clone"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 100px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="cloneBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 100px;"
+              title="Select a run to clone"
             >
-              <span>
+              <button
+                aria-description="Select a run to clone"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="cloneBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-copy"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    height="14"
+                    rx="2"
+                    ry="2"
+                    width="14"
+                    x="8"
+                    y="8"
+                  />
+                  <path
+                    d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                  />
+                </svg>
                 Clone run
-              </span>
-            </button>
-          </div>
-          <div
-            aria-label="Select at least one resource to archive"
-            class=""
-            data-mui-internal-clone-element="true"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="archiveBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              title="Select at least one resource to archive"
             >
-              <span>
+              <button
+                aria-description="Select at least one resource to archive"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="archiveBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-archive"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    height="5"
+                    rx="1"
+                    width="20"
+                    x="2"
+                    y="3"
+                  />
+                  <path
+                    d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"
+                  />
+                  <path
+                    d="M10 12h4"
+                  />
+                </svg>
                 Archive
-              </span>
-            </button>
+              </button>
+            </span>
           </div>
-        </div>
-      </div>
-      <div
-        class="page_f1flacxk f1h5lfj6"
-      >
+        </header>
         <div
-          class="tabs_ff8rz57"
+          class="kfp-workflow-content"
         >
           <div
-            class="indicator_fp4eggn"
-            style="left: -5px; width: 5px; display: block;"
-          />
-          <span
-            style="display: inline-block; min-width: 20px; width: 20px;"
-          />
-          <button
-            aria-label=""
-            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-            data-mui-internal-clone-element="true"
-            tabindex="0"
-            type="button"
+            class="kfp-inspection-tabs"
+            data-activation-direction="none"
+            data-orientation="horizontal"
           >
-            <span>
-              Active
-            </span>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
-          </button>
-          <button
-            aria-label=""
-            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-            data-mui-internal-clone-element="true"
-            tabindex="0"
-            type="button"
-          >
-            <span>
-              Archived
-            </span>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
-          </button>
-        </div>
-        <div>
-          <div
-            class="pageOverflowHidden_f15djeb2"
-          >
-            <div>
-              <div
-                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
-                spellcheck="false"
-                style="height: 48px; max-width: 100%; width: 100%;"
+            <div
+              aria-label="Experiment runs"
+              class="kfp-inspection-tab-list"
+              data-activation-direction="none"
+              data-orientation="horizontal"
+              role="tablist"
+            >
+              <button
+                aria-controls="base-ui-_r_2j_"
+                aria-disabled="false"
+                aria-selected="true"
+                class="kfp-inspection-tab"
+                data-activation-direction="none"
+                data-active=""
+                data-composite-item-active=""
+                data-orientation="horizontal"
+                id="base-ui-_r_2h_"
+                role="tab"
+                tabindex="0"
+                type="button"
               >
-                <label
-                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
-                  data-shrink="true"
-                  for="tableFilterBox"
-                  id="tableFilterBox-label"
-                >
-                  Filter runs
-                </label>
+                Active
+              </button>
+              <button
+                aria-disabled="false"
+                aria-selected="false"
+                class="kfp-inspection-tab"
+                data-activation-direction="none"
+                data-orientation="horizontal"
+                id="base-ui-_r_2i_"
+                role="tab"
+                tabindex="-1"
+                type="button"
+              >
+                Archived
+              </button>
+            </div>
+            <div
+              aria-labelledby="base-ui-_r_2h_"
+              class="kfp-inspection-tab-panel"
+              data-activation-direction="none"
+              data-index="0"
+              data-orientation="horizontal"
+              id="base-ui-_r_2j_"
+              role="tabpanel"
+              tabindex="0"
+            >
+              <div
+                class="kfp-runs-table-view"
+              >
                 <div
-                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
+                  class="kfp-runs-table-view"
                 >
                   <div
-                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
+                    class="kfp-runs-filter-row"
                   >
-                    <svg
-                      aria-hidden="true"
-                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                      data-testid="FilterListIcon"
-                      focusable="false"
-                      style="color: rgb(128, 134, 139); padding-right: 16px;"
-                      viewBox="0 0 24 24"
+                    <label
+                      for="react-use-id-0"
                     >
-                      <path
-                        d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
+                      Filter runs by name
+                    </label>
+                    <input
+                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                      data-slot="input"
+                      id="react-use-id-0"
+                      placeholder="Filter runs by name"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="kfp-runs-table-card"
+                  >
+                    <div
+                      aria-label="Runs table"
+                      class="kfp-runs-table-scroll"
+                      role="region"
+                      tabindex="0"
+                    >
+                      <table
+                        aria-busy="false"
+                        aria-label="Runs"
+                        class="kfp-runs-table"
+                        style="min-width: 1000px;"
+                      >
+                        <thead>
+                          <tr>
+                            <th
+                              class="kfp-runs-selection"
+                              scope="col"
+                            >
+                              <span
+                                aria-checked="false"
+                                aria-disabled="true"
+                                aria-label="Select all runs on this page"
+                                class="kfp-checkbox"
+                                data-disabled=""
+                                data-unchecked=""
+                                id="base-ui-_r_2n_"
+                                role="checkbox"
+                                tabindex="-1"
+                              />
+                              <input
+                                aria-hidden="true"
+                                disabled=""
+                                id="base-ui-_r_2o_"
+                                style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
+                                tabindex="-1"
+                                type="checkbox"
+                              />
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Run
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Status
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Pipeline version
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Duration
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Recurring Run
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Started
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td
+                              class="kfp-runs-empty"
+                              colspan="7"
+                            >
+                              No available runs found for this experiment.
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div
+                      class="kfp-runs-table-footer"
+                    >
+                      <span
+                        aria-live="polite"
+                        role="status"
                       />
-                    </svg>
+                      <div
+                        class="kfp-runs-pagination"
+                      >
+                        <label
+                          for="react-use-id-1"
+                        >
+                          Rows per page
+                        </label>
+                        <select
+                          id="react-use-id-1"
+                        >
+                          <option
+                            value="10"
+                          >
+                            10
+                          </option>
+                          <option
+                            value="20"
+                          >
+                            20
+                          </option>
+                          <option
+                            value="50"
+                          >
+                            50
+                          </option>
+                          <option
+                            value="100"
+                          >
+                            100
+                          </option>
+                        </select>
+                        <button
+                          aria-label="Previous page"
+                          class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                          data-disabled=""
+                          data-slot="button"
+                          data-testid="prev-page-btn"
+                          disabled=""
+                          tabindex="0"
+                          type="button"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            class="lucide lucide-chevron-left"
+                            fill="none"
+                            height="24"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                            width="24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="m15 18-6-6 6-6"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          aria-label="Next page"
+                          class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                          data-disabled=""
+                          data-slot="button"
+                          data-testid="next-page-btn"
+                          disabled=""
+                          tabindex="0"
+                          type="button"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            class="lucide lucide-chevron-right"
+                            fill="none"
+                            height="24"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                            width="24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="m9 18 6-6-6-6"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <input
-                    aria-invalid="false"
-                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
-                    id="tableFilterBox"
-                    type="text"
-                    value=""
-                  />
-                  <fieldset
-                    aria-hidden="true"
-                    class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
-                  >
-                    <legend
-                      class="css-sl37lx-MuiNotchedOutlined-root"
-                    >
-                      <span>
-                        Filter runs
-                      </span>
-                    </legend>
-                  </fieldset>
                 </div>
               </div>
-            </div>
-            <div
-              class="header_f15jqnss"
-            >
-              <div
-                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
-              >
-                <span
-                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-                  data-testid="select-all-checkbox"
-                >
-                  <input
-                    class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
-                    data-indeterminate="false"
-                    type="checkbox"
-                  />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                    data-testid="CheckBoxOutlineBlankIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                    />
-                  </svg>
-                  <span
-                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-                  />
-                </span>
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 30%;"
-                title="Run name"
-              >
-                Run name
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Status"
-              >
-                Status
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Duration"
-              >
-                Duration
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 20%;"
-                title="Pipeline Version"
-              >
-                Pipeline Version
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Recurring Run"
-              >
-                Recurring Run
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 20%;"
-                title="Start time"
-              >
-                Start time
-              </div>
-            </div>
-            <div
-              class="scrollContainer_fea2b5v"
-              style="min-height: 60px;"
-            >
-              <div
-                class="emptyMessage_f1v5g0b7"
-              >
-                No available runs found for this experiment.
-              </div>
-            </div>
-            <div
-              class="footer_f1fl9hjk"
-            >
-              <span
-                class="fzbgmju"
-              >
-                Rows per page:
-              </span>
-              <div
-                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
-              >
-                <div
-                  class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
-                >
-                  <div
-                    aria-controls="react-use-id-1"
-                    aria-expanded="false"
-                    aria-haspopup="listbox"
-                    aria-labelledby="react-use-id-0"
-                    class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                    id="react-use-id-0"
-                    role="combobox"
-                    tabindex="0"
-                  >
-                    10
-                  </div>
-                  <input
-                    aria-hidden="true"
-                    aria-invalid="false"
-                    class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-                    tabindex="-1"
-                    value="10"
-                  />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-                    data-testid="ArrowDropDownIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M7 10l5 5 5-5z"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <button
-                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
-                data-testid="prev-page-btn"
-                disabled=""
-                tabindex="-1"
-                type="button"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="ChevronLeftIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                  />
-                </svg>
-              </button>
-              <button
-                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
-                data-testid="next-page-btn"
-                disabled=""
-                tabindex="-1"
-                type="button"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="ChevronRightIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                  />
-                </svg>
-              </button>
             </div>
           </div>
         </div>
@@ -501,27 +606,32 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
 exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk ft7h3sp"
+    class="kfp-theme"
+    data-theme="light"
   >
     <div
-      class="page_f1flacxk"
+      class="kfp-workflow-page"
     >
       <div
-        class="cardRow_ff0uehn"
+        class="kfp-workflow-content"
       >
         <div
-          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 recurringRunsCard_folh6x0 css-ee20y-MuiPaper-root"
-          id="recurringRunsCard"
+          class="kfp-workflow-cards"
         >
-          <div>
+          <section
+            aria-label="Recurring run configs"
+            class="kfp-workflow-card"
+            id="recurringRunsCard"
+          >
             <div
-              class="cardTitle_fhfhxfi"
+              class="kfp-workflow-card-heading"
             >
-              <span>
+              <h2>
                 Recurring run configs
-              </span>
+              </h2>
               <button
-                class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary cardBtn_fvbhv23 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground h-8 px-2.5"
+                data-slot="button"
                 id="manageExperimentRecurringRunsBtn"
                 tabindex="0"
                 type="button"
@@ -530,463 +640,562 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
               </button>
             </div>
             <div
-              class="cardContent_fscn48d"
+              class="kfp-workflow-card-count"
             >
               0 active
             </div>
-          </div>
-        </div>
-        <div
-          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 runStatsCard_folh6x0 css-ee20y-MuiPaper-root"
-          id="experimentDescriptionCard"
-        >
-          <div
-            class="cardTitle_fhfhxfi"
+          </section>
+          <section
+            aria-label="Experiment description"
+            class="kfp-workflow-card"
+            id="experimentDescriptionCard"
           >
-            <span>
-              Experiment description
-            </span>
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutIcon_fr5sfkk popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-              id="expandExperimentDescriptionBtn"
-              tabindex="0"
-              type="button"
+            <div
+              class="kfp-workflow-card-heading"
             >
-              <svg
-                aria-hidden="true"
+              <h2>
+                Experiment description
+              </h2>
+              <button
                 aria-label="Read more"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                data-mui-internal-clone-element="true"
-                data-testid="LaunchIcon"
-                focusable="false"
-                style="font-size: 18px;"
-                viewBox="0 0 24 24"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                data-slot="button"
+                id="expandExperimentDescriptionBtn"
+                tabindex="0"
+                title="Read more"
+                type="button"
               >
-                <path
-                  d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
-                />
-              </svg>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-          >
-            mock experiment description
-          </div>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-external-link"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M15 3h6v6"
+                  />
+                  <path
+                    d="M10 14 21 3"
+                  />
+                  <path
+                    d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div
+              class="kfp-workflow-description-line"
+            >
+              mock experiment description
+            </div>
+          </section>
         </div>
-      </div>
-      <div
-        class="root_f1vld0bw"
-      >
-        <div
-          style="min-width: 100px;"
+        <header
+          class="kfp-page-header"
+          data-embedded="true"
         >
           <div
-            class="breadcrumbs_farqb1 flex_f16jawj4"
-          />
+            class="kfp-page-heading"
+          >
+            <div
+              class="kfp-page-title-row"
+            >
+              <h2
+                data-testid="page-title"
+              >
+                Runs
+              </h2>
+            </div>
+          </div>
           <div
-            class="flex_f16jawj4"
+            class="kfp-page-actions"
           >
             <span
-              class="pageName_fe4yf9p ellipsis_f15ay66x"
-              data-testid="page-title"
+              style="min-width: 130px;"
+              title="Create a new run"
             >
-              Runs
-            </span>
-          </div>
-        </div>
-        <div
-          class="actions_ffoeey"
-        >
-          <div
-            aria-label="Create a new run"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 130px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              id="createNewRunBtn"
-              tabindex="0"
-              type="button"
-            >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
-                data-testid="AddIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
+              <button
+                aria-description="Create a new run"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-primary text-primary-foreground hover:brightness-95 h-[34px] px-3"
+                data-slot="button"
+                id="createNewRunBtn"
+                tabindex="0"
+                type="button"
               >
-                <path
-                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
-                />
-              </svg>
-              <span>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-plus"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5 12h14"
+                  />
+                  <path
+                    d="M12 5v14"
+                  />
+                </svg>
                 Create run
-              </span>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            aria-label="Create a new recurring run"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 195px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-              id="createNewRecurringRunBtn"
-              tabindex="0"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 195px;"
+              title="Create a new recurring run"
             >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
-                data-testid="AddIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
+              <button
+                aria-description="Create a new recurring run"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-slot="button"
+                id="createNewRecurringRunBtn"
+                tabindex="0"
+                type="button"
               >
-                <path
-                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
-                />
-              </svg>
-              <span>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-repeat"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m17 2 4 4-4 4"
+                  />
+                  <path
+                    d="M3 11v-1a4 4 0 0 1 4-4h14"
+                  />
+                  <path
+                    d="m7 22-4-4 4-4"
+                  />
+                  <path
+                    d="M21 13v1a4 4 0 0 1-4 4H3"
+                  />
+                </svg>
                 Create recurring run
-              </span>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            aria-label="Select multiple runs to compare"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 125px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="compareBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 125px;"
+              title="Select multiple runs to compare"
             >
-              <span>
+              <button
+                aria-description="Select multiple runs to compare"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="compareBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-git-compare-arrows"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="5"
+                    cy="6"
+                    r="3"
+                  />
+                  <path
+                    d="M12 6h5a2 2 0 0 1 2 2v7"
+                  />
+                  <path
+                    d="m15 9-3-3 3-3"
+                  />
+                  <circle
+                    cx="19"
+                    cy="18"
+                    r="3"
+                  />
+                  <path
+                    d="M12 18H7a2 2 0 0 1-2-2V9"
+                  />
+                  <path
+                    d="m9 15 3 3-3 3"
+                  />
+                </svg>
                 Compare runs
-              </span>
-            </button>
-          </div>
-          <div
-            aria-label="Select a run to clone"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 100px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="cloneBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 100px;"
+              title="Select a run to clone"
             >
-              <span>
+              <button
+                aria-description="Select a run to clone"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="cloneBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-copy"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    height="14"
+                    rx="2"
+                    ry="2"
+                    width="14"
+                    x="8"
+                    y="8"
+                  />
+                  <path
+                    d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                  />
+                </svg>
                 Clone run
-              </span>
-            </button>
-          </div>
-          <div
-            aria-label="Select at least one resource to archive"
-            class=""
-            data-mui-internal-clone-element="true"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="archiveBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              title="Select at least one resource to archive"
             >
-              <span>
+              <button
+                aria-description="Select at least one resource to archive"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="archiveBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-archive"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    height="5"
+                    rx="1"
+                    width="20"
+                    x="2"
+                    y="3"
+                  />
+                  <path
+                    d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"
+                  />
+                  <path
+                    d="M10 12h4"
+                  />
+                </svg>
                 Archive
-              </span>
-            </button>
+              </button>
+            </span>
           </div>
-        </div>
-      </div>
-      <div
-        class="page_f1flacxk f1h5lfj6"
-      >
+        </header>
         <div
-          class="tabs_ff8rz57"
+          class="kfp-workflow-content"
         >
           <div
-            class="indicator_fp4eggn"
-            style="left: -5px; width: 5px; display: block;"
-          />
-          <span
-            style="display: inline-block; min-width: 20px; width: 20px;"
-          />
-          <button
-            aria-label=""
-            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-            data-mui-internal-clone-element="true"
-            tabindex="0"
-            type="button"
+            class="kfp-inspection-tabs"
+            data-activation-direction="none"
+            data-orientation="horizontal"
           >
-            <span>
-              Active
-            </span>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
-          </button>
-          <button
-            aria-label=""
-            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-            data-mui-internal-clone-element="true"
-            tabindex="0"
-            type="button"
-          >
-            <span>
-              Archived
-            </span>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
-          </button>
-        </div>
-        <div>
-          <div
-            class="pageOverflowHidden_f15djeb2"
-          >
-            <div>
-              <div
-                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
-                spellcheck="false"
-                style="height: 48px; max-width: 100%; width: 100%;"
+            <div
+              aria-label="Experiment runs"
+              class="kfp-inspection-tab-list"
+              data-activation-direction="none"
+              data-orientation="horizontal"
+              role="tablist"
+            >
+              <button
+                aria-controls="base-ui-_r_2_"
+                aria-disabled="false"
+                aria-selected="true"
+                class="kfp-inspection-tab"
+                data-activation-direction="none"
+                data-active=""
+                data-composite-item-active=""
+                data-orientation="horizontal"
+                id="base-ui-_r_0_"
+                role="tab"
+                tabindex="0"
+                type="button"
               >
-                <label
-                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
-                  data-shrink="true"
-                  for="tableFilterBox"
-                  id="tableFilterBox-label"
-                >
-                  Filter runs
-                </label>
+                Active
+              </button>
+              <button
+                aria-disabled="false"
+                aria-selected="false"
+                class="kfp-inspection-tab"
+                data-activation-direction="none"
+                data-orientation="horizontal"
+                id="base-ui-_r_1_"
+                role="tab"
+                tabindex="-1"
+                type="button"
+              >
+                Archived
+              </button>
+            </div>
+            <div
+              aria-labelledby="base-ui-_r_0_"
+              class="kfp-inspection-tab-panel"
+              data-activation-direction="none"
+              data-index="0"
+              data-orientation="horizontal"
+              id="base-ui-_r_2_"
+              role="tabpanel"
+              tabindex="0"
+            >
+              <div
+                class="kfp-runs-table-view"
+              >
                 <div
-                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
+                  class="kfp-runs-table-view"
                 >
                   <div
-                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
+                    class="kfp-runs-filter-row"
                   >
-                    <svg
-                      aria-hidden="true"
-                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                      data-testid="FilterListIcon"
-                      focusable="false"
-                      style="color: rgb(128, 134, 139); padding-right: 16px;"
-                      viewBox="0 0 24 24"
+                    <label
+                      for="react-use-id-0"
                     >
-                      <path
-                        d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
+                      Filter runs by name
+                    </label>
+                    <input
+                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                      data-slot="input"
+                      id="react-use-id-0"
+                      placeholder="Filter runs by name"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="kfp-runs-table-card"
+                  >
+                    <div
+                      aria-label="Runs table"
+                      class="kfp-runs-table-scroll"
+                      role="region"
+                      tabindex="0"
+                    >
+                      <table
+                        aria-busy="false"
+                        aria-label="Runs"
+                        class="kfp-runs-table"
+                        style="min-width: 1000px;"
+                      >
+                        <thead>
+                          <tr>
+                            <th
+                              class="kfp-runs-selection"
+                              scope="col"
+                            >
+                              <span
+                                aria-checked="false"
+                                aria-disabled="true"
+                                aria-label="Select all runs on this page"
+                                class="kfp-checkbox"
+                                data-disabled=""
+                                data-unchecked=""
+                                id="base-ui-_r_6_"
+                                role="checkbox"
+                                tabindex="-1"
+                              />
+                              <input
+                                aria-hidden="true"
+                                disabled=""
+                                id="base-ui-_r_7_"
+                                style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
+                                tabindex="-1"
+                                type="checkbox"
+                              />
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Run
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Status
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Pipeline version
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Duration
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Recurring Run
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Started
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td
+                              class="kfp-runs-empty"
+                              colspan="7"
+                            >
+                              No available runs found for this experiment.
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div
+                      class="kfp-runs-table-footer"
+                    >
+                      <span
+                        aria-live="polite"
+                        role="status"
                       />
-                    </svg>
+                      <div
+                        class="kfp-runs-pagination"
+                      >
+                        <label
+                          for="react-use-id-1"
+                        >
+                          Rows per page
+                        </label>
+                        <select
+                          id="react-use-id-1"
+                        >
+                          <option
+                            value="10"
+                          >
+                            10
+                          </option>
+                          <option
+                            value="20"
+                          >
+                            20
+                          </option>
+                          <option
+                            value="50"
+                          >
+                            50
+                          </option>
+                          <option
+                            value="100"
+                          >
+                            100
+                          </option>
+                        </select>
+                        <button
+                          aria-label="Previous page"
+                          class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                          data-disabled=""
+                          data-slot="button"
+                          data-testid="prev-page-btn"
+                          disabled=""
+                          tabindex="0"
+                          type="button"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            class="lucide lucide-chevron-left"
+                            fill="none"
+                            height="24"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                            width="24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="m15 18-6-6 6-6"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          aria-label="Next page"
+                          class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                          data-disabled=""
+                          data-slot="button"
+                          data-testid="next-page-btn"
+                          disabled=""
+                          tabindex="0"
+                          type="button"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            class="lucide lucide-chevron-right"
+                            fill="none"
+                            height="24"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                            width="24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="m9 18 6-6-6-6"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <input
-                    aria-invalid="false"
-                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
-                    id="tableFilterBox"
-                    type="text"
-                    value=""
-                  />
-                  <fieldset
-                    aria-hidden="true"
-                    class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
-                  >
-                    <legend
-                      class="css-sl37lx-MuiNotchedOutlined-root"
-                    >
-                      <span>
-                        Filter runs
-                      </span>
-                    </legend>
-                  </fieldset>
                 </div>
               </div>
-            </div>
-            <div
-              class="header_f15jqnss"
-            >
-              <div
-                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
-              >
-                <span
-                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-                  data-testid="select-all-checkbox"
-                >
-                  <input
-                    class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
-                    data-indeterminate="false"
-                    type="checkbox"
-                  />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                    data-testid="CheckBoxOutlineBlankIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                    />
-                  </svg>
-                  <span
-                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-                  />
-                </span>
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 30%;"
-                title="Run name"
-              >
-                Run name
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Status"
-              >
-                Status
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Duration"
-              >
-                Duration
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 20%;"
-                title="Pipeline Version"
-              >
-                Pipeline Version
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Recurring Run"
-              >
-                Recurring Run
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 20%;"
-                title="Start time"
-              >
-                Start time
-              </div>
-            </div>
-            <div
-              class="scrollContainer_fea2b5v"
-              style="min-height: 60px;"
-            >
-              <div
-                class="emptyMessage_f1v5g0b7"
-              >
-                No available runs found for this experiment.
-              </div>
-            </div>
-            <div
-              class="footer_f1fl9hjk"
-            >
-              <span
-                class="fzbgmju"
-              >
-                Rows per page:
-              </span>
-              <div
-                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
-              >
-                <div
-                  class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
-                >
-                  <div
-                    aria-controls="react-use-id-1"
-                    aria-expanded="false"
-                    aria-haspopup="listbox"
-                    aria-labelledby="react-use-id-0"
-                    class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                    id="react-use-id-0"
-                    role="combobox"
-                    tabindex="0"
-                  >
-                    10
-                  </div>
-                  <input
-                    aria-hidden="true"
-                    aria-invalid="false"
-                    class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-                    tabindex="-1"
-                    value="10"
-                  />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-                    data-testid="ArrowDropDownIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M7 10l5 5 5-5z"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <button
-                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
-                data-testid="prev-page-btn"
-                disabled=""
-                tabindex="-1"
-                type="button"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="ChevronLeftIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                  />
-                </svg>
-              </button>
-              <button
-                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
-                data-testid="next-page-btn"
-                disabled=""
-                tabindex="-1"
-                type="button"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="ChevronRightIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                  />
-                </svg>
-              </button>
             </div>
           </div>
         </div>
@@ -999,27 +1208,32 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
 exports[`ExperimentDetails > uses an empty string if the experiment has no description 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk ft7h3sp"
+    class="kfp-theme"
+    data-theme="light"
   >
     <div
-      class="page_f1flacxk"
+      class="kfp-workflow-page"
     >
       <div
-        class="cardRow_ff0uehn"
+        class="kfp-workflow-content"
       >
         <div
-          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 recurringRunsCard_folh6x0 css-ee20y-MuiPaper-root"
-          id="recurringRunsCard"
+          class="kfp-workflow-cards"
         >
-          <div>
+          <section
+            aria-label="Recurring run configs"
+            class="kfp-workflow-card"
+            id="recurringRunsCard"
+          >
             <div
-              class="cardTitle_fhfhxfi"
+              class="kfp-workflow-card-heading"
             >
-              <span>
+              <h2>
                 Recurring run configs
-              </span>
+              </h2>
               <button
-                class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary cardBtn_fvbhv23 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground h-8 px-2.5"
+                data-slot="button"
                 id="manageExperimentRecurringRunsBtn"
                 tabindex="0"
                 type="button"
@@ -1028,461 +1242,560 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
               </button>
             </div>
             <div
-              class="cardContent_fscn48d"
+              class="kfp-workflow-card-count"
             >
               0 active
             </div>
-          </div>
-        </div>
-        <div
-          class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 card_f5jobr4 runStatsCard_folh6x0 css-ee20y-MuiPaper-root"
-          id="experimentDescriptionCard"
-        >
-          <div
-            class="cardTitle_fhfhxfi"
+          </section>
+          <section
+            aria-label="Experiment description"
+            class="kfp-workflow-card"
+            id="experimentDescriptionCard"
           >
-            <span>
-              Experiment description
-            </span>
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary popOutIcon_fr5sfkk popOutButton css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-              id="expandExperimentDescriptionBtn"
-              tabindex="0"
-              type="button"
+            <div
+              class="kfp-workflow-card-heading"
             >
-              <svg
-                aria-hidden="true"
+              <h2>
+                Experiment description
+              </h2>
+              <button
                 aria-label="Read more"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                data-mui-internal-clone-element="true"
-                data-testid="LaunchIcon"
-                focusable="false"
-                style="font-size: 18px;"
-                viewBox="0 0 24 24"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                data-slot="button"
+                id="expandExperimentDescriptionBtn"
+                tabindex="0"
+                title="Read more"
+                type="button"
               >
-                <path
-                  d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
-                />
-              </svg>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-          />
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-external-link"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M15 3h6v6"
+                  />
+                  <path
+                    d="M10 14 21 3"
+                  />
+                  <path
+                    d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div
+              class="kfp-workflow-description-line"
+            />
+          </section>
         </div>
-      </div>
-      <div
-        class="root_f1vld0bw"
-      >
-        <div
-          style="min-width: 100px;"
+        <header
+          class="kfp-page-header"
+          data-embedded="true"
         >
           <div
-            class="breadcrumbs_farqb1 flex_f16jawj4"
-          />
+            class="kfp-page-heading"
+          >
+            <div
+              class="kfp-page-title-row"
+            >
+              <h2
+                data-testid="page-title"
+              >
+                Runs
+              </h2>
+            </div>
+          </div>
           <div
-            class="flex_f16jawj4"
+            class="kfp-page-actions"
           >
             <span
-              class="pageName_fe4yf9p ellipsis_f15ay66x"
-              data-testid="page-title"
+              style="min-width: 130px;"
+              title="Create a new run"
             >
-              Runs
-            </span>
-          </div>
-        </div>
-        <div
-          class="actions_ffoeey"
-        >
-          <div
-            aria-label="Create a new run"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 130px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              id="createNewRunBtn"
-              tabindex="0"
-              type="button"
-            >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
-                data-testid="AddIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
+              <button
+                aria-description="Create a new run"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-primary text-primary-foreground hover:brightness-95 h-[34px] px-3"
+                data-slot="button"
+                id="createNewRunBtn"
+                tabindex="0"
+                type="button"
               >
-                <path
-                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
-                />
-              </svg>
-              <span>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-plus"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5 12h14"
+                  />
+                  <path
+                    d="M12 5v14"
+                  />
+                </svg>
                 Create run
-              </span>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            aria-label="Create a new recurring run"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 195px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-              id="createNewRecurringRunBtn"
-              tabindex="0"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 195px;"
+              title="Create a new recurring run"
             >
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
-                data-testid="AddIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
+              <button
+                aria-description="Create a new recurring run"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-slot="button"
+                id="createNewRecurringRunBtn"
+                tabindex="0"
+                type="button"
               >
-                <path
-                  d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
-                />
-              </svg>
-              <span>
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-repeat"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m17 2 4 4-4 4"
+                  />
+                  <path
+                    d="M3 11v-1a4 4 0 0 1 4-4h14"
+                  />
+                  <path
+                    d="m7 22-4-4 4-4"
+                  />
+                  <path
+                    d="M21 13v1a4 4 0 0 1-4 4H3"
+                  />
+                </svg>
                 Create recurring run
-              </span>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </div>
-          <div
-            aria-label="Select multiple runs to compare"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 125px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="compareBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 125px;"
+              title="Select multiple runs to compare"
             >
-              <span>
+              <button
+                aria-description="Select multiple runs to compare"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="compareBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-git-compare-arrows"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="5"
+                    cy="6"
+                    r="3"
+                  />
+                  <path
+                    d="M12 6h5a2 2 0 0 1 2 2v7"
+                  />
+                  <path
+                    d="m15 9-3-3 3-3"
+                  />
+                  <circle
+                    cx="19"
+                    cy="18"
+                    r="3"
+                  />
+                  <path
+                    d="M12 18H7a2 2 0 0 1-2-2V9"
+                  />
+                  <path
+                    d="m9 15 3 3-3 3"
+                  />
+                </svg>
                 Compare runs
-              </span>
-            </button>
-          </div>
-          <div
-            aria-label="Select a run to clone"
-            class=""
-            data-mui-internal-clone-element="true"
-            style="min-width: 100px;"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="cloneBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              style="min-width: 100px;"
+              title="Select a run to clone"
             >
-              <span>
+              <button
+                aria-description="Select a run to clone"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="cloneBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-copy"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    height="14"
+                    rx="2"
+                    ry="2"
+                    width="14"
+                    x="8"
+                    y="8"
+                  />
+                  <path
+                    d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                  />
+                </svg>
                 Clone run
-              </span>
-            </button>
-          </div>
-          <div
-            aria-label="Select at least one resource to archive"
-            class=""
-            data-mui-internal-clone-element="true"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
-              disabled=""
-              id="archiveBtn"
-              tabindex="-1"
-              type="button"
+              </button>
+            </span>
+            <span
+              title="Select at least one resource to archive"
             >
-              <span>
+              <button
+                aria-description="Select at least one resource to archive"
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-border-strong bg-card text-foreground hover:bg-muted h-[34px] px-3"
+                data-disabled=""
+                data-slot="button"
+                disabled=""
+                id="archiveBtn"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-archive"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    height="5"
+                    rx="1"
+                    width="20"
+                    x="2"
+                    y="3"
+                  />
+                  <path
+                    d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"
+                  />
+                  <path
+                    d="M10 12h4"
+                  />
+                </svg>
                 Archive
-              </span>
-            </button>
+              </button>
+            </span>
           </div>
-        </div>
-      </div>
-      <div
-        class="page_f1flacxk f1h5lfj6"
-      >
+        </header>
         <div
-          class="tabs_ff8rz57"
+          class="kfp-workflow-content"
         >
           <div
-            class="indicator_fp4eggn"
-            style="left: -5px; width: 5px; display: block;"
-          />
-          <span
-            style="display: inline-block; min-width: 20px; width: 20px;"
-          />
-          <button
-            aria-label=""
-            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-            data-mui-internal-clone-element="true"
-            tabindex="0"
-            type="button"
+            class="kfp-inspection-tabs"
+            data-activation-direction="none"
+            data-orientation="horizontal"
           >
-            <span>
-              Active
-            </span>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
-          </button>
-          <button
-            aria-label=""
-            class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
-            data-mui-internal-clone-element="true"
-            tabindex="0"
-            type="button"
-          >
-            <span>
-              Archived
-            </span>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
-          </button>
-        </div>
-        <div>
-          <div
-            class="pageOverflowHidden_f15djeb2"
-          >
-            <div>
-              <div
-                class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
-                spellcheck="false"
-                style="height: 48px; max-width: 100%; width: 100%;"
+            <div
+              aria-label="Experiment runs"
+              class="kfp-inspection-tab-list"
+              data-activation-direction="none"
+              data-orientation="horizontal"
+              role="tablist"
+            >
+              <button
+                aria-controls="base-ui-_r_t_"
+                aria-disabled="false"
+                aria-selected="true"
+                class="kfp-inspection-tab"
+                data-activation-direction="none"
+                data-active=""
+                data-composite-item-active=""
+                data-orientation="horizontal"
+                id="base-ui-_r_r_"
+                role="tab"
+                tabindex="0"
+                type="button"
               >
-                <label
-                  class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
-                  data-shrink="true"
-                  for="tableFilterBox"
-                  id="tableFilterBox-label"
-                >
-                  Filter runs
-                </label>
+                Active
+              </button>
+              <button
+                aria-disabled="false"
+                aria-selected="false"
+                class="kfp-inspection-tab"
+                data-activation-direction="none"
+                data-orientation="horizontal"
+                id="base-ui-_r_s_"
+                role="tab"
+                tabindex="-1"
+                type="button"
+              >
+                Archived
+              </button>
+            </div>
+            <div
+              aria-labelledby="base-ui-_r_r_"
+              class="kfp-inspection-tab-panel"
+              data-activation-direction="none"
+              data-index="0"
+              data-orientation="horizontal"
+              id="base-ui-_r_t_"
+              role="tabpanel"
+              tabindex="0"
+            >
+              <div
+                class="kfp-runs-table-view"
+              >
                 <div
-                  class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
+                  class="kfp-runs-table-view"
                 >
                   <div
-                    class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
+                    class="kfp-runs-filter-row"
                   >
-                    <svg
-                      aria-hidden="true"
-                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                      data-testid="FilterListIcon"
-                      focusable="false"
-                      style="color: rgb(128, 134, 139); padding-right: 16px;"
-                      viewBox="0 0 24 24"
+                    <label
+                      for="react-use-id-0"
                     >
-                      <path
-                        d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
+                      Filter runs by name
+                    </label>
+                    <input
+                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                      data-slot="input"
+                      id="react-use-id-0"
+                      placeholder="Filter runs by name"
+                      type="search"
+                      value=""
+                    />
+                  </div>
+                  <div
+                    class="kfp-runs-table-card"
+                  >
+                    <div
+                      aria-label="Runs table"
+                      class="kfp-runs-table-scroll"
+                      role="region"
+                      tabindex="0"
+                    >
+                      <table
+                        aria-busy="false"
+                        aria-label="Runs"
+                        class="kfp-runs-table"
+                        style="min-width: 1000px;"
+                      >
+                        <thead>
+                          <tr>
+                            <th
+                              class="kfp-runs-selection"
+                              scope="col"
+                            >
+                              <span
+                                aria-checked="false"
+                                aria-disabled="true"
+                                aria-label="Select all runs on this page"
+                                class="kfp-checkbox"
+                                data-disabled=""
+                                data-unchecked=""
+                                id="base-ui-_r_11_"
+                                role="checkbox"
+                                tabindex="-1"
+                              />
+                              <input
+                                aria-hidden="true"
+                                disabled=""
+                                id="base-ui-_r_12_"
+                                style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
+                                tabindex="-1"
+                                type="checkbox"
+                              />
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Run
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Status
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Pipeline version
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Duration
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Recurring Run
+                            </th>
+                            <th
+                              scope="col"
+                            >
+                              Started
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td
+                              class="kfp-runs-empty"
+                              colspan="7"
+                            >
+                              No available runs found for this experiment.
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div
+                      class="kfp-runs-table-footer"
+                    >
+                      <span
+                        aria-live="polite"
+                        role="status"
                       />
-                    </svg>
+                      <div
+                        class="kfp-runs-pagination"
+                      >
+                        <label
+                          for="react-use-id-1"
+                        >
+                          Rows per page
+                        </label>
+                        <select
+                          id="react-use-id-1"
+                        >
+                          <option
+                            value="10"
+                          >
+                            10
+                          </option>
+                          <option
+                            value="20"
+                          >
+                            20
+                          </option>
+                          <option
+                            value="50"
+                          >
+                            50
+                          </option>
+                          <option
+                            value="100"
+                          >
+                            100
+                          </option>
+                        </select>
+                        <button
+                          aria-label="Previous page"
+                          class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                          data-disabled=""
+                          data-slot="button"
+                          data-testid="prev-page-btn"
+                          disabled=""
+                          tabindex="0"
+                          type="button"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            class="lucide lucide-chevron-left"
+                            fill="none"
+                            height="24"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                            width="24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="m15 18-6-6 6-6"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          aria-label="Next page"
+                          class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+                          data-disabled=""
+                          data-slot="button"
+                          data-testid="next-page-btn"
+                          disabled=""
+                          tabindex="0"
+                          type="button"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            class="lucide lucide-chevron-right"
+                            fill="none"
+                            height="24"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                            width="24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="m9 18 6-6-6-6"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <input
-                    aria-invalid="false"
-                    class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
-                    id="tableFilterBox"
-                    type="text"
-                    value=""
-                  />
-                  <fieldset
-                    aria-hidden="true"
-                    class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
-                  >
-                    <legend
-                      class="css-sl37lx-MuiNotchedOutlined-root"
-                    >
-                      <span>
-                        Filter runs
-                      </span>
-                    </legend>
-                  </fieldset>
                 </div>
               </div>
-            </div>
-            <div
-              class="header_f15jqnss"
-            >
-              <div
-                class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
-              >
-                <span
-                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
-                  data-testid="select-all-checkbox"
-                >
-                  <input
-                    class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
-                    data-indeterminate="false"
-                    type="checkbox"
-                  />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                    data-testid="CheckBoxOutlineBlankIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
-                    />
-                  </svg>
-                  <span
-                    class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-                  />
-                </span>
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 30%;"
-                title="Run name"
-              >
-                Run name
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Status"
-              >
-                Status
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Duration"
-              >
-                Duration
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 20%;"
-                title="Pipeline Version"
-              >
-                Pipeline Version
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 10%;"
-                title="Recurring Run"
-              >
-                Recurring Run
-              </div>
-              <div
-                class="columnName_f1kdqshe"
-                style="width: 20%;"
-                title="Start time"
-              >
-                Start time
-              </div>
-            </div>
-            <div
-              class="scrollContainer_fea2b5v"
-              style="min-height: 60px;"
-            >
-              <div
-                class="emptyMessage_f1v5g0b7"
-              >
-                No available runs found for this experiment.
-              </div>
-            </div>
-            <div
-              class="footer_f1fl9hjk"
-            >
-              <span
-                class="fzbgmju"
-              >
-                Rows per page:
-              </span>
-              <div
-                class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
-              >
-                <div
-                  class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
-                >
-                  <div
-                    aria-controls="react-use-id-1"
-                    aria-expanded="false"
-                    aria-haspopup="listbox"
-                    aria-labelledby="react-use-id-0"
-                    class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                    id="react-use-id-0"
-                    role="combobox"
-                    tabindex="0"
-                  >
-                    10
-                  </div>
-                  <input
-                    aria-hidden="true"
-                    aria-invalid="false"
-                    class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-                    tabindex="-1"
-                    value="10"
-                  />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-                    data-testid="ArrowDropDownIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M7 10l5 5 5-5z"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <button
-                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
-                data-testid="prev-page-btn"
-                disabled=""
-                tabindex="-1"
-                type="button"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="ChevronLeftIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                  />
-                </svg>
-              </button>
-              <button
-                class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
-                data-testid="next-page-btn"
-                disabled=""
-                tabindex="-1"
-                type="button"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="ChevronRightIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
-                  />
-                </svg>
-              </button>
             </div>
           </div>
         </div>

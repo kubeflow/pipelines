@@ -292,3 +292,39 @@
 .kfp-theme .kfp-run-summary a {
   color: var(--primary);
 }
+
+/* Keep flex and overflow behavior explicit for the task inspector and virtualized logs. */
+.kfp-theme .kfp-inspection-column {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.kfp-theme .kfp-inspection-log-window {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.kfp-theme .kfp-inspection-subdag-action {
+  padding: 0 20px 20px;
+}
+.kfp-theme .kfp-inspection-spec {
+  height: 100%;
+}
+.kfp-theme .kfp-inspection-run-title {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
+}
+.kfp-theme .kfp-inspection-link {
+  color: var(--primary);
+  text-decoration: none;
+}
+.kfp-theme .kfp-inspection-link:hover {
+  text-decoration: underline;
+}

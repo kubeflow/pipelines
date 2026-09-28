@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { act, render as renderDOM, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import userEvent from '@testing-library/user-event';
+import { ThemeProvider } from './modernization/ThemeProvider';
 import { SpyInstance } from 'vitest';
 import PipelinesDialogV2, { PipelinesDialogV2Props } from './PipelinesDialogV2';
 import { PageProps } from 'src/pages/Page';
@@ -23,6 +26,10 @@ import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/p
 import { flushPromisesInAct } from 'src/TestUtils';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+
+function render(element: ReactNode) {
+  return renderDOM(<ThemeProvider>{element}</ThemeProvider>);
+}
 
 function generateProps(): PipelinesDialogV2Props {
   return {
@@ -74,6 +81,12 @@ describe('PipelinesDialog', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('matchMedia', (media: string) => ({
+      media,
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
     listPipelineSpy = vi
       .spyOn(Apis.pipelineServiceApiV2, 'listPipelines')
       .mockImplementation((...args) => {
@@ -87,6 +100,7 @@ describe('PipelinesDialog', () => {
 
   afterEach(async () => {
     vi.resetAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('it renders correctly in multi user mode', async () => {
@@ -115,5 +129,60 @@ describe('PipelinesDialog', () => {
     // Verify the display names are shown instead of the names
     screen.getByText('old mock pipeline name');
     screen.getByText('new mock pipeline name');
+  });
+  it('keeps the latest pipeline choice when detail reads finish out of order', async () => {
+    let finishOld!: (pipeline: V2beta1Pipeline) => void;
+    vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline')
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishOld = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(newPipeline);
+    const props = generateProps();
+    render(<PipelinesDialogV2 {...props} />);
+    await userEvent.click(
+      await screen.findByRole('radio', { name: 'Select resource old mock pipeline name' }),
+    );
+    await userEvent.click(
+      screen.getByRole('radio', { name: 'Select resource new mock pipeline name' }),
+    );
+    const useButton = screen.getByRole('button', { name: 'Use this pipeline' });
+    await waitFor(() => expect(useButton).toBeEnabled());
+    await act(async () => {
+      finishOld(oldPipeline);
+    });
+    await userEvent.click(useButton);
+    expect(props.onClose).toHaveBeenCalledWith(true, newPipeline);
+  });
+
+  it('invalidates pending detail reads when switching from private to shared pipelines', async () => {
+    let finish!: (pipeline: V2beta1Pipeline) => void;
+    vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(
+      <BuildInfoContext.Provider value={{ apiServerMultiUser: true }}>
+        <PipelinesDialogV2 {...generateProps()} />
+      </BuildInfoContext.Provider>,
+    );
+    await userEvent.click(
+      await screen.findByRole('radio', { name: 'Select resource old mock pipeline name' }),
+    );
+    await userEvent.click(screen.getByRole('tab', { name: 'Shared' }));
+    await waitFor(() =>
+      expect(listPipelineSpy).toHaveBeenLastCalledWith(undefined, '', 10, 'created_at desc', ''),
+    );
+    await act(async () => {
+      finish(oldPipeline);
+    });
+    expect(screen.getByRole('button', { name: 'Use this pipeline' })).toBeDisabled();
+    expect(
+      screen.getByRole('radio', { name: 'Select resource old mock pipeline name' }),
+    ).not.toBeChecked();
   });
 });

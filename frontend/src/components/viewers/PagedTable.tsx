@@ -16,19 +16,9 @@
 
 import * as React from 'react';
 import Viewer, { ViewerConfig, PlotType } from './Viewer';
-import { color, fontsize, commonCss } from '../../Css';
-import { classes, stylesheet } from 'typestyle';
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TableSortLabel,
-  Tooltip,
-} from '@mui/material';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '../ui/button';
+import './RichViewers.css';
 
 enum SortOrder {
   ASC = 'asc',
@@ -57,35 +47,7 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   private _shrinkThreshold = 600;
   private _rowHeight = 30;
 
-  private _css = stylesheet({
-    cell: {
-      borderRight: 'solid 1px ' + color.divider,
-      $nest: {
-        '&:first-child': {
-          borderLeft: 'solid 1px ' + color.divider,
-        },
-      },
-      color: color.foreground,
-      fontSize: this._isSmall() ? fontsize.small : fontsize.base,
-      paddingLeft: this._isSmall() ? 5 : 'invalid',
-      paddingRight: 5,
-      pointerEvents: this._isSmall() ? 'none' : 'initial',
-    },
-    columnName: {
-      fontSize: this._isSmall() ? fontsize.base : fontsize.medium,
-      fontWeight: 'bold',
-      paddingLeft: this._isSmall() ? 5 : 'invalid',
-    },
-    topBorder: {
-      borderTop: 'solid 1px ' + color.divider,
-    },
-    row: {
-      borderBottom: '1px solid #ddd',
-      height: this._isSmall() ? 25 : this._rowHeight,
-    },
-  });
-
-  constructor(props: any) {
+  constructor(props: PagedTableProps) {
     super(props);
     this.state = {
       order: SortOrder.ASC,
@@ -112,71 +74,104 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, data.length - page * rowsPerPage);
 
     return (
-      <div style={{ width: '100%' }} className={commonCss.page}>
-        <Table style={{ display: 'block', overflow: 'auto' }}>
-          {/* An empty header clips the body's collapsed top border in the scrollable table. */}
-          {labels.length > 0 && (
-            <TableHead>
-              <TableRow>
-                {labels.map((label, i) => {
-                  return (
-                    <TableCell
-                      className={this._css.columnName}
+      <div className={`kfp-viewer-table ${this._isSmall() ? 'kfp-viewer-table-compact' : ''}`}>
+        <div
+          className='kfp-viewer-table-scroll'
+          role='region'
+          aria-label='Table output'
+          tabIndex={0}
+        >
+          <table aria-label='Table output'>
+            {labels.length > 0 && (
+              <thead>
+                <tr>
+                  {labels.map((label, i) => (
+                    <th
                       key={i}
-                      sortDirection={orderBy === i ? order : false}
+                      scope='col'
+                      aria-sort={
+                        orderBy === i
+                          ? order === SortOrder.ASC
+                            ? 'ascending'
+                            : 'descending'
+                          : 'none'
+                      }
                     >
-                      <Tooltip title='Sort' enterDelay={300}>
-                        <TableSortLabel
-                          active={orderBy === i}
-                          direction={order}
-                          onClick={this._handleSort(i)}
-                        >
-                          {label}
-                        </TableSortLabel>
-                      </Tooltip>
-                    </TableCell>
-                  );
-                }, this)}
-              </TableRow>
-            </TableHead>
-          )}
-
-          <TableBody>
-            {this._stableSort(data)
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((row, index) => {
-                return (
-                  <TableRow hover={true} tabIndex={-1} key={index} className={this._css.row}>
-                    {row.map((cell, i) => (
-                      <TableCell
-                        key={i}
-                        className={classes(
-                          this._css.cell,
-                          labels.length === 0 && index === 0 ? this._css.topBorder : '',
-                        )}
+                      <button
+                        className='kfp-viewer-table-sort'
+                        onClick={this._handleSort(i)}
+                        aria-label={label || `Column ${i + 1}`}
                       >
-                        {cell}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })}
-            {emptyRows > 0 && (
-              <TableRow style={{ height: this._rowHeight * emptyRows }}>
-                <TableCell colSpan={6} />
-              </TableRow>
+                        {label}
+                        {orderBy !== i ? (
+                          <ArrowUpDown aria-hidden />
+                        ) : order === SortOrder.ASC ? (
+                          <ArrowUp aria-hidden />
+                        ) : (
+                          <ArrowDown aria-hidden />
+                        )}
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
             )}
-          </TableBody>
-        </Table>
-
-        <TablePagination
-          component='div'
-          count={data.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={this._handleChangePage}
-          onRowsPerPageChange={this._handleChangeRowsPerPage}
-        />
+            <tbody className={labels.length === 0 ? 'kfp-viewer-table-unlabelled' : undefined}>
+              {this._stableSort(data)
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((row, index) => (
+                  <tr key={index} className='kfp-viewer-table-data'>
+                    {row.map((cell, i) => (
+                      <td key={i}>{cell}</td>
+                    ))}
+                  </tr>
+                ))}
+              {emptyRows > 0 && (
+                <tr style={{ height: this._rowHeight * emptyRows }}>
+                  <td colSpan={Math.max(labels.length, data[0]?.length || 0, 1)} />
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className='kfp-viewer-table-pagination'>
+          <label>
+            Rows per page
+            <select
+              className='kfp-viewer-select'
+              value={rowsPerPage}
+              onChange={this._handleChangeRowsPerPage}
+            >
+              {[10, 25, 50, 100].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span aria-live='polite'>
+            {data.length === 0 ? 0 : page * rowsPerPage + 1}–
+            {Math.min((page + 1) * rowsPerPage, data.length)} of {data.length}
+          </span>
+          <Button
+            variant='ghost'
+            size='icon'
+            aria-label='Go to previous page'
+            disabled={page === 0}
+            onClick={() => this.setState({ page: page - 1 })}
+          >
+            <ChevronLeft aria-hidden />
+          </Button>
+          <Button
+            variant='ghost'
+            size='icon'
+            aria-label='Go to next page'
+            disabled={page >= lastPage}
+            onClick={() => this.setState({ page: page + 1 })}
+          >
+            <ChevronRight aria-hidden />
+          </Button>
+        </div>
       </div>
     );
   }
@@ -192,11 +187,7 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     this.setState({ order, orderBy });
   };
 
-  private _handleChangePage = (_event: any, page: number) => {
-    this.setState({ page });
-  };
-
-  private _handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  private _handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLSelectElement>) => {
     this.setState({ rowsPerPage: Number(event.target.value), page: 0 });
   };
 
@@ -232,10 +223,10 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     return 0;
   }
 
-  private _getSorting(order: SortOrder, orderBy: number): (a: any, b: any) => number {
+  private _getSorting(order: SortOrder, orderBy: number): (a: string[], b: string[]) => number {
     return order === SortOrder.DESC
-      ? (a: any, b: any) => this._desc(a, b, orderBy)
-      : (a: any, b: any) => -this._desc(a, b, orderBy);
+      ? (a: string[], b: string[]) => this._desc(a, b, orderBy)
+      : (a: string[], b: string[]) => -this._desc(a, b, orderBy);
   }
 }
 

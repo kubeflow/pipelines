@@ -19,7 +19,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { after, before, test } from 'node:test';
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 
 const origin = 'http://kfp.test';
 const build = new URL('../build/', import.meta.url);
@@ -40,7 +40,12 @@ const runId = (index) => `run-${String(index).padStart(2, '0')}`;
 const runName = (index) => `Training ${String(index).padStart(2, '0')}`;
 let browser;
 before(async () => {
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+  const engineName = process.env.KFP_BROWSER || 'chromium';
+  const engine = { chromium, firefox, webkit }[engineName];
+  assert.ok(engine, `Unsupported KFP_BROWSER: ${engineName}`);
+  browser = await engine.launch({
+    channel: engineName === 'chromium' ? process.env.PLAYWRIGHT_CHANNEL || undefined : undefined,
+  });
 });
 after(async () => browser?.close());
 
@@ -604,7 +609,11 @@ test('Command palette searches the active namespace and preserves keyboard navig
     );
     await page.keyboard.press('ArrowDown');
     await focused(page, dialog.getByRole('link', { name: 'Training 01', exact: true }));
-    await page.keyboard.press('Tab');
+    // Safari's default macOS keyboard policy includes links with Option-Tab.
+    // https://support.apple.com/guide/safari/cpsh003/mac
+    await page.keyboard.press(
+      process.env.KFP_BROWSER === 'webkit' && process.platform === 'darwin' ? 'Alt+Tab' : 'Tab',
+    );
     await focused(page, dialog.getByRole('link', { name: 'Training 02', exact: true }));
     await input.focus();
     await page.keyboard.press('Shift+Tab');
