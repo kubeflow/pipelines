@@ -294,3 +294,34 @@ it('keeps error details readable in a themed dismissible dialog', async () => {
   await user.click(within(dialog).getByRole('button', { name: 'Dismiss' }));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
+
+it('retains the final measured pointer width when the last resize notification trails the DOM', async () => {
+  const user = userEvent.setup();
+  const view = render(
+    <InspectionPanel isOpen title='Train model' onClose={vi.fn()}>
+      Task
+    </InspectionPanel>,
+  );
+  const handle = screen.getByRole('separator', { name: 'Resize node details' });
+  const panel = document.querySelector('.kfp-inspector-panel')!;
+  let measuredWidth = 380;
+  Object.defineProperty(panel, 'offsetWidth', { configurable: true, get: () => measuredWidth });
+  await waitFor(() => expect(screen.getByRole('button', { name: 'close' })).toHaveFocus());
+  fireEvent.mouseDown(handle, { clientX: 100, clientY: 20 });
+  measuredWidth = 410;
+  fireEvent.mouseMove(window, { clientX: 60, clientY: 20 });
+  expect(handle).toHaveAttribute('aria-valuenow', '410');
+  measuredWidth = 420;
+  fireEvent.mouseUp(window, { clientX: 60, clientY: 20 });
+  expect(handle).toHaveAttribute('aria-valuenow', '420');
+  expect(panel).toHaveStyle({ width: '420px' });
+  view.rerender(
+    <InspectionPanel isOpen title='Updated task' onClose={vi.fn()}>
+      Updated task
+    </InspectionPanel>,
+  );
+  expect(handle).toHaveAttribute('aria-valuenow', '420');
+  handle.focus();
+  await user.keyboard('{ArrowRight}');
+  expect(handle).toHaveAttribute('aria-valuenow', '400');
+});

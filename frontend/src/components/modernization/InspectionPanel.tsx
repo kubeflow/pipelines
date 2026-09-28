@@ -117,6 +117,7 @@ export function InspectionPanel({ isOpen, title, onClose, children }: Inspection
               maxWidth={maxWidth}
               enable={{ left: !narrow }}
               onResize={(_event, _direction, element) => setPreferredWidth(element.offsetWidth)}
+              onResizeStop={(_event, _direction, element) => setPreferredWidth(element.offsetWidth)}
               handleComponent={{
                 left: (
                   <div

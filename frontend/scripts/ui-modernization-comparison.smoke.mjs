@@ -122,7 +122,7 @@ before(async () => {
 });
 after(async () => browser?.close());
 
-async function withFixture(exercise) {
+async function withFixture(exercise, { checkHeaderLayout = false } = {}) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     locale: 'en-US',
@@ -135,6 +135,24 @@ async function withFixture(exercise) {
     // Sandboxed report frames intentionally have no storage access.
     if (window === window.top) localStorage.setItem('kfp.theme', 'light');
   });
+  let releaseRuns;
+  const runsReady = checkHeaderLayout
+    ? new Promise((resolve) => {
+        releaseRuns = resolve;
+      })
+    : Promise.resolve();
+  if (checkHeaderLayout) {
+    await context.addInitScript(() => {
+      window.__kfpComparisonContentY = [];
+      new MutationObserver(() => {
+        const content = document.querySelector('.kfp-modern-page-content');
+        if (!content) return;
+        const top = content.getBoundingClientRect().top;
+        const tops = window.__kfpComparisonContentY;
+        if (tops.length < 100 && tops[tops.length - 1] !== top) tops.push(top);
+      }).observe(document, { childList: true, subtree: true });
+    });
+  }
   const fixture = { requests: [], errors: [] };
   page.on('pageerror', (error) => fixture.errors.push(error.message));
   await context.route('**/*', async (route) => {
@@ -176,6 +194,7 @@ async function withFixture(exercise) {
           assert.equal(query.page_token, undefined);
           return json({ tasks: tasksFor(id) });
         }
+        await runsReady;
         return json(runs.find((run) => run.run_id === id));
       }
       if (path === '/artifacts/get') {
@@ -197,13 +216,44 @@ async function withFixture(exercise) {
   try {
     fixture.navigationStartedAt = performance.now();
     await page.goto(`${origin}/${comparisonHash}`);
+    let loadingContentTop;
+    if (checkHeaderLayout) {
+      await page.getByRole('heading', { name: 'Compare 2 runs', exact: true }).waitFor();
+      loadingContentTop = await page
+        .locator('.kfp-modern-page-content')
+        .evaluate((content) => content.getBoundingClientRect().top);
+      assert.equal(
+        loadingContentTop,
+        108,
+        'comparison reserves the desktop breadcrumb header before run data resolves',
+      );
+      assert.deepEqual(await page.locator('.kfp-page-breadcrumbs a').allTextContents(), ['Runs']);
+      releaseRuns();
+    }
     await page.getByRole('table', { name: 'parameters comparison', exact: true }).waitFor();
+    if (checkHeaderLayout) {
+      const readyTop = await page
+        .locator('.kfp-modern-page-content')
+        .evaluate((content) => content.getBoundingClientRect().top);
+      assert.equal(
+        readyTop,
+        loadingContentTop,
+        'comparison data arrival must not shift the content wrapper',
+      );
+      const observedTops = await page.evaluate(() => window.__kfpComparisonContentY);
+      assert.ok(observedTops.length > 0);
+      assert.ok(
+        observedTops.every((top) => top === 108),
+        `comparison mount must reserve the header from its first DOM commit: ${observedTops}`,
+      );
+    }
     await exercise(page, fixture);
     assert.deepEqual(fixture.errors, [], 'comparison bundle and HTTP contracts must remain valid');
   } catch (error) {
     if (fixture.errors.length) console.error('Fixture errors:', fixture.errors);
     throw error;
   } finally {
+    releaseRuns?.();
     await context.close();
   }
 }
@@ -249,68 +299,76 @@ async function matrixContent(container) {
 }
 
 test('Comparison preserves selected URL order, encoded links, and absent versus zero, false, and empty values', async () => {
-  await withFixture(async (page, fixture) => {
-    const parameters = page.getByRole('table', { name: 'parameters comparison', exact: true });
-    assert.deepEqual(await parameters.locator('thead a').allTextContents(), [
-      'Beta run',
-      'Alpha run',
-    ]);
-    assert.deepEqual(
-      await parameters
-        .locator('thead a')
-        .evaluateAll((links) => links.map((link) => link.getAttribute('href'))),
-      [
-        `#/runs/details/${encodeURIComponent(betaId)}`,
-        `#/runs/details/${encodeURIComponent(alphaId)}`,
-      ],
-    );
-    const epochs = parameters.getByRole('row').filter({
-      has: page.getByRole('rowheader', { name: 'epochs (values differ)', exact: true }),
-    });
-    assert.deepEqual(await epochs.getByRole('cell').allTextContents(), ['—', '0']);
-    assert.equal(await epochs.getByLabel('Not provided', { exact: true }).count(), 1);
-    assert.deepEqual(
-      await parameters
-        .getByRole('row')
-        .filter({ hasText: 'enabled' })
-        .getByRole('cell')
-        .allTextContents(),
-      ['—', 'false'],
-    );
-    assert.equal(await parameters.getByLabel('Empty string', { exact: true }).count(), 1);
-    const metrics = page.getByRole('table', {
-      name: 'scalar metrics artifacts comparison',
-      exact: true,
-    });
-    await metrics.waitFor();
-    assert.deepEqual(
-      await metrics
-        .getByRole('row')
-        .filter({ hasText: 'Evaluate / accuracy' })
-        .getByRole('cell')
-        .allTextContents(),
-      ['—', '0'],
-    );
-    assert.ok(fixture.requests.filter((item) => item.path.endsWith('/tasks')).length === 2);
-    await screenshot(page, 'comparison-light');
-    const alphaCheckbox = page.getByRole('checkbox', { name: 'Select run Alpha run', exact: true });
-    await alphaCheckbox.uncheck();
-    await page.waitForFunction(
-      () =>
-        document.querySelectorAll('table[aria-label="parameters comparison"] thead a').length === 1,
-    );
-    assert.deepEqual(await parameters.locator('thead a').allTextContents(), ['Beta run']);
-    await alphaCheckbox.check();
-    await page.waitForFunction(
-      () =>
-        document.querySelectorAll('table[aria-label="parameters comparison"] thead a').length === 2,
-    );
-    assert.deepEqual(await parameters.locator('thead a').allTextContents(), [
-      'Beta run',
-      'Alpha run',
-    ]);
-    assert.equal(new URL(page.url()).hash, comparisonHash);
-  });
+  await withFixture(
+    async (page, fixture) => {
+      const parameters = page.getByRole('table', { name: 'parameters comparison', exact: true });
+      assert.deepEqual(await parameters.locator('thead a').allTextContents(), [
+        'Beta run',
+        'Alpha run',
+      ]);
+      assert.deepEqual(
+        await parameters
+          .locator('thead a')
+          .evaluateAll((links) => links.map((link) => link.getAttribute('href'))),
+        [
+          `#/runs/details/${encodeURIComponent(betaId)}`,
+          `#/runs/details/${encodeURIComponent(alphaId)}`,
+        ],
+      );
+      const epochs = parameters.getByRole('row').filter({
+        has: page.getByRole('rowheader', { name: 'epochs (values differ)', exact: true }),
+      });
+      assert.deepEqual(await epochs.getByRole('cell').allTextContents(), ['—', '0']);
+      assert.equal(await epochs.getByLabel('Not provided', { exact: true }).count(), 1);
+      assert.deepEqual(
+        await parameters
+          .getByRole('row')
+          .filter({ hasText: 'enabled' })
+          .getByRole('cell')
+          .allTextContents(),
+        ['—', 'false'],
+      );
+      assert.equal(await parameters.getByLabel('Empty string', { exact: true }).count(), 1);
+      const metrics = page.getByRole('table', {
+        name: 'scalar metrics artifacts comparison',
+        exact: true,
+      });
+      await metrics.waitFor();
+      assert.deepEqual(
+        await metrics
+          .getByRole('row')
+          .filter({ hasText: 'Evaluate / accuracy' })
+          .getByRole('cell')
+          .allTextContents(),
+        ['—', '0'],
+      );
+      assert.ok(fixture.requests.filter((item) => item.path.endsWith('/tasks')).length === 2);
+      await screenshot(page, 'comparison-light');
+      const alphaCheckbox = page.getByRole('checkbox', {
+        name: 'Select run Alpha run',
+        exact: true,
+      });
+      await alphaCheckbox.uncheck();
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll('table[aria-label="parameters comparison"] thead a').length ===
+          1,
+      );
+      assert.deepEqual(await parameters.locator('thead a').allTextContents(), ['Beta run']);
+      await alphaCheckbox.check();
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll('table[aria-label="parameters comparison"] thead a').length ===
+          2,
+      );
+      assert.deepEqual(await parameters.locator('thead a').allTextContents(), [
+        'Beta run',
+        'Alpha run',
+      ]);
+      assert.equal(new URL(page.url()).hash, comparisonHash);
+    },
+    { checkHeaderLayout: true },
+  );
 });
 
 test('Comparison ROC pagination preserves off-page selection, provenance, search, and explicit deselection', async () => {

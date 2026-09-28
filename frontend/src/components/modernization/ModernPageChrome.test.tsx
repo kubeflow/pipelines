@@ -18,7 +18,7 @@ import { act, fireEvent, render, screen, within, waitFor } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { useState } from 'react';
-import { ModernPageChrome } from './ModernPageChrome';
+import { ModernPageChrome, ModernToolbar } from './ModernPageChrome';
 import type { ModernPageChromeProps } from './ModernPageChrome';
 import { ThemeProvider } from './ThemeProvider';
 
@@ -61,6 +61,50 @@ afterEach(() => {
 });
 
 describe('ModernPageChrome', () => {
+  it('reserves an inert top-level header while breadcrumb metadata loads', () => {
+    const emptyToolbar = { actions: {}, breadcrumbs: [], pageTitle: '' };
+    const view = render(element({ toolbarProps: emptyToolbar, reserveBreadcrumbHeader: true }));
+    const header = view.container.querySelector('.kfp-page-header');
+    expect(header).toHaveAttribute('data-reserve-breadcrumb-header', 'true');
+    expect(header).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumbs' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    view.rerender(
+      element({
+        reserveBreadcrumbHeader: true,
+        toolbarProps: {
+          ...emptyToolbar,
+          pageTitle: 'Run details',
+          breadcrumbs: [{ displayName: 'Runs', href: '/runs' }],
+        },
+      }),
+    );
+    expect(view.container.querySelector('.kfp-page-header')).toBe(header);
+    expect(header).not.toHaveAttribute('aria-hidden');
+    expect(screen.getByRole('link', { name: 'Runs' })).toHaveAttribute('href', '/runs');
+    expect(screen.getByRole('heading', { name: 'Run details' })).toBeVisible();
+  });
+
+  it('does not reserve empty ordinary or embedded toolbars', () => {
+    const toolbarProps = { actions: {}, breadcrumbs: [], pageTitle: '' };
+    const view = render(element({ toolbarProps }));
+    expect(view.container.querySelector('.kfp-page-header')).toBeNull();
+    view.rerender(
+      element({
+        reserveBreadcrumbHeader: true,
+        toolbarProps: { ...toolbarProps, topLevelToolbar: false },
+      }),
+    );
+    expect(view.container.querySelector('.kfp-page-header')).toBeNull();
+    view.rerender(
+      <MemoryRouter>
+        <ModernToolbar {...toolbarProps} topLevelToolbar={false} />
+      </MemoryRouter>,
+    );
+    expect(view.container.querySelector('.kfp-page-header')).toBeNull();
+  });
+
   it('retains action order, IDs, eligibility, busy state and callbacks', async () => {
     const refresh = vi.fn();
     render(

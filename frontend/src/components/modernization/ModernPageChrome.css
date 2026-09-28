@@ -17,6 +17,10 @@
   gap: 16px;
   padding: 28px 32px 20px;
 }
+/* Match a loaded breadcrumb row (26px), title/actions (34px), and vertical padding. */
+.kfp-theme .kfp-page-header[data-reserve-breadcrumb-header='true'] {
+  min-height: 108px;
+}
 .kfp-theme .kfp-page-heading {
   min-width: 0;
 }
@@ -142,6 +146,9 @@
 @media (max-width: 767px) {
   .kfp-theme .kfp-page-header {
     padding: 20px 16px 16px;
+  }
+  .kfp-theme .kfp-page-header[data-reserve-breadcrumb-header='true'] {
+    min-height: 96px;
   }
   .kfp-theme .kfp-page-banner {
     margin-right: 16px;

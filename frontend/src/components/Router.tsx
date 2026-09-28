@@ -383,6 +383,9 @@ class RoutedPage extends React.Component<
         onSnackbarClose={this._handleSnackbarClose}
         navigationNotice={navigationNotice}
         showThemeControl={KFP_FLAGS.HIDE_SIDENAV}
+        reserveBreadcrumbHeader={
+          route?.path === RoutePage.RUN_DETAILS || route?.path === RoutePage.COMPARE
+        }
       >
         {page}
       </ModernPageChrome>

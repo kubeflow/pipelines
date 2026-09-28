@@ -453,8 +453,25 @@ function sameGraph(before, after) {
 }
 
 test('Run Details preserves nested task links, history, copied URLs, and graph geometry', async () => {
-  await withFixture({}, async (page) => {
-    await openTask(page, 'train', '&view=graph');
+  await withFixture({}, async (page, fixture) => {
+    const pendingRun = gate();
+    fixture.runGate = pendingRun;
+    const requested = page.waitForRequest(
+      (request) => new URL(request.url()).pathname === `/apis/v2beta1/runs/${runId}`,
+    );
+    await page.goto(`${origin}/#/runs/details/${runId}?task=task-train&view=graph`);
+    await requested;
+    const content = page.locator('.kfp-modern-page-content');
+    await content.waitFor();
+    const pendingY = await content.evaluate((element) => element.getBoundingClientRect().y);
+    pendingRun.release();
+    await selected(page, 'train');
+    await page.getByTestId('page-title').getByText('Nested browser run', { exact: true }).waitFor();
+    const loadedY = await content.evaluate((element) => element.getBoundingClientRect().y);
+    assert.ok(
+      Math.abs(loadedY - pendingY) < 1,
+      `Run Details content shifted from ${pendingY} to ${loadedY}`,
+    );
     await tab(page, 'Task Details').click();
     await page.getByText('task-train', { exact: true }).waitFor();
     const original = await graph(page);
@@ -759,6 +776,62 @@ test('Run Details inspector restores desktop focus and traps keyboard focus on n
     );
     assert.equal(await inspector.getAttribute('aria-modal'), null);
     const close = inspector.getByRole('button', { name: 'close', exact: true });
+    const resize = inspector.getByRole('separator', { name: 'Resize node details', exact: true });
+    const assertWidth = (expected) =>
+      page.waitForFunction((width) => {
+        const panel = document.querySelector('.kfp-inspector-panel');
+        const handle = document.querySelector(
+          '[role="separator"][aria-label="Resize node details"]',
+        );
+        return (
+          panel &&
+          handle &&
+          Number(handle.getAttribute('aria-valuenow')) === width &&
+          Math.abs(panel.getBoundingClientRect().width - width) < 1
+        );
+      }, expected);
+    await assertWidth(380);
+    await resize.focus();
+    await page.keyboard.press('ArrowLeft');
+    await assertWidth(400);
+    await page.keyboard.press('ArrowRight');
+    await assertWidth(380);
+    await page.keyboard.press('End');
+    await assertWidth(Number(await resize.getAttribute('aria-valuemax')));
+    await page.keyboard.press('Home');
+    await assertWidth(Number(await resize.getAttribute('aria-valuemin')));
+    await page.keyboard.press('ArrowLeft');
+    await assertWidth(320);
+    const handleBox = await resize.boundingBox();
+    assert.ok(handleBox);
+    const handleX = handleBox.x + handleBox.width / 2;
+    const handleY = handleBox.y + handleBox.height / 2;
+    await page.mouse.move(handleX, handleY);
+    await page.mouse.down();
+    await page.mouse.move(handleX - 40, handleY, { steps: 4 });
+    await page.mouse.up();
+    await assertWidth(360);
+    await tab(page, 'Task Details').click();
+    await assertWidth(360);
+    await resize.focus();
+    await page.setViewportSize({ width: 600, height: 900 });
+    await page.waitForFunction(
+      () =>
+        !document.querySelector('[role="separator"][aria-label="Resize node details"]') &&
+        document.activeElement?.getAttribute('aria-label') === 'close',
+    );
+    assert.equal(await inspector.getAttribute('aria-modal'), 'true');
+    assert.equal(
+      await page
+        .locator('.kfp-inspector-panel')
+        .evaluate((element) => Math.abs(element.getBoundingClientRect().width - innerWidth) < 1),
+      true,
+    );
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await assertWidth(360);
+    await page.waitForFunction(
+      () => document.querySelector('[role="dialog"]')?.getAttribute('aria-modal') !== 'true',
+    );
     await close.focus();
     await page.keyboard.press('Escape');
     await inspector.waitFor({ state: 'hidden' });

@@ -56,6 +56,7 @@ export interface ModernPageChromeProps {
   onSnackbarClose: () => void;
   navigationNotice?: ReactNode;
   showThemeControl?: boolean;
+  reserveBreadcrumbHeader?: boolean;
 }
 
 const actionIcons: Record<string, LucideIcon> = {
@@ -105,21 +106,27 @@ function ThemeControl() {
 function PageToolbar({
   toolbar,
   showThemeControl,
+  reserveBreadcrumbHeader = false,
 }: {
   toolbar: ToolbarProps;
   showThemeControl?: boolean;
+  reserveBreadcrumbHeader?: boolean;
 }) {
-  if (
+  const empty =
     !Object.keys(toolbar.actions).length &&
     !toolbar.breadcrumbs.length &&
     !toolbar.pageTitle &&
-    !showThemeControl
-  ) {
-    return null;
-  }
+    !showThemeControl;
+  const reserveSpace = reserveBreadcrumbHeader && toolbar.topLevelToolbar !== false;
+  if (empty && !reserveSpace) return null;
   const Heading = toolbar.topLevelToolbar === false ? 'h2' : 'h1';
   return (
-    <header className='kfp-page-header' data-embedded={toolbar.topLevelToolbar === false}>
+    <header
+      className='kfp-page-header'
+      data-embedded={toolbar.topLevelToolbar === false}
+      data-reserve-breadcrumb-header={reserveSpace || undefined}
+      aria-hidden={empty || undefined}
+    >
       <div className='kfp-page-heading'>
         {toolbar.breadcrumbs.length > 0 && (
           <nav aria-label='Breadcrumbs' className='kfp-page-breadcrumbs'>
@@ -293,10 +300,15 @@ export function ModernPageChrome({
   onSnackbarClose,
   navigationNotice,
   showThemeControl,
+  reserveBreadcrumbHeader,
 }: ModernPageChromeProps) {
   return (
     <section className='kfp-modern-page' aria-label='Pipeline workspace'>
-      <PageToolbar toolbar={toolbarProps} showThemeControl={showThemeControl} />
+      <PageToolbar
+        toolbar={toolbarProps}
+        showThemeControl={showThemeControl}
+        reserveBreadcrumbHeader={reserveBreadcrumbHeader}
+      />
       {navigationNotice}
       {bannerProps.message && (
         <PageBanner
