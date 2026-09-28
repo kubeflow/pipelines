@@ -376,9 +376,15 @@ accessibility does not establish accessibility of the assembled application.
 
 Run `npm run analyze-bundle` on base and candidate. Record production JS/CSS/font
 sizes and representative list, graph, logs, and command-palette measurements with
-the same data, browser, and hardware. Agree measured budgets before qualification;
-explain increases and resolve unaccepted regressions. Retain virtualization and
-bounded requests; reject per-row fetch growth and unbounded history scans.
+the same data, browser, and hardware. Record the largest-painted element and
+matched content-readiness endpoints as well as Web Vitals: a redesign can change
+which element qualifies as LCP without delaying the requested data. Repeat
+representative large-graph and populated-comparison workloads in fresh browser
+contexts, retain individual samples and asset/fixture identities, and separate
+automation readiness timings from field INP. Agree measured budgets before
+qualification; explain increases and resolve unaccepted regressions. Retain
+virtualization and bounded requests; reject per-row fetch growth and unbounded
+history scans.
 
 The implementation PR must include the completed parity matrix, exact tested
 commits/images, passing checks, functional deployment results, visual review,
@@ -431,6 +437,16 @@ requires an explicit browser compatibility decision.
 ## Implementation History
 
 - 2026-09-26: Initial KEP and design reference; implementation tracked in #14572.
+- 2026-09-28: Implementation PR #14584 records legacy presentation retirement,
+  [repeated performance qualification](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/ui-modernization/performance-qualification.md)
+  and [browser/accessibility qualification](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/ui-modernization/browser-accessibility-qualification.md).
+  Reports retain exact source/asset identities and separate automated checks from
+  minimum-version, actual-device and assistive-technology acceptance. Actual
+  Firefox 128 exposed and now covers a native input activation compatibility fix;
+  other declared minimum browsers remain open. Measured budgets, deployment
+  authorization and the compatible same-backend rollback rehearsal still require
+  acceptance. These implementation results do not complete the coordinated
+  release or introduce a KFP Local migration.
 
 ## References
 
