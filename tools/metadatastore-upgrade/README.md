@@ -38,4 +38,3 @@ The tool using the K8's [client-go](https://github.com/kubernetes/client-go) lib
 3. Uses  [client-go's](https://github.com/kubernetes/client-go) `RetryOnConflict` API to update the Deployment.
 4. If the update is successful, `metadata-grpc-deployment` deployment is updated again to remove the `--enable_database_upgrade=true` argument. If this update fails, the tool logs the failure message to `stdout` with error details.
 5. If update in Step-3 fails, the tool errors out by logging the failure message to `stdout` with error details. In this state, the user is expected to fix the MetadataStore deployment in the cluster.
-
