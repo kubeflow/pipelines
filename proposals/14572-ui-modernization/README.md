@@ -149,6 +149,16 @@ omit a statistic or show it as unavailable when its scope cannot be represented
 accurately. Do not scan every run, add a request per row, or introduce a new backend
 API to reproduce fixture values. Any required backend enhancement is separate work.
 
+Implementation and qualification evidence are tracked in [PR #14584](https://github.com/kubeflow/pipelines/pull/14584).
+The Runs status selector has a compatibility dependency: generic `state` filtering
+uses stored `State` before the API normalizes the displayed state or falls back to
+historical `Conditions`. It can therefore omit historical runs whose displayed
+status matches a selection. The legacy `status` predicate is not equivalent: it
+collapses Paused into Pending and Canceled into Failed. Prove effective-state list
+filtering parity before exposing that selector; any necessary backend enhancement
+remains separate work under the API boundary above. This implementation reference
+does not establish release qualification or change the completion criteria.
+
 ## Design Details
 
 ### Frontend Considerations and compatibility criteria
