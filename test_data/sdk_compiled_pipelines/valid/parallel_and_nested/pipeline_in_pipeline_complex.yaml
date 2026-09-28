@@ -148,7 +148,7 @@ deploymentSpec:
         command:
         - echo
         - '{{$.inputs.parameters[''msg'']}}'
-        image: alpine
+        image: docker.io/alpine:3.23
     exec-print-op1:
       container:
         args:
@@ -177,7 +177,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
           \n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-print-op1-2:
       container:
         args:
@@ -206,13 +206,13 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_op1(msg: str) -> str:\n    print(msg)\n    return msg\n\
           \n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-print-op2:
       container:
         command:
         - echo
         - '{{$.inputs.parameters[''msg'']}}'
-        image: alpine
+        image: docker.io/alpine:3.23
 pipelineInfo:
   name: pipeline-in-pipeline-complex
 root:
