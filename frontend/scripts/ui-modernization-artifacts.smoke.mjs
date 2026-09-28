@@ -167,6 +167,9 @@ async function withFixture(options, exercise) {
     failTensorboardStop: false,
     tensorboardReady: false,
   };
+  const tensorboardCheck = new Promise((resolve) => {
+    fixture.releaseTensorboardCheck = resolve;
+  });
   await context.addInitScript(({ namespace }) => {
     if (location.protocol === 'about:') return;
     localStorage.setItem('kfp.theme', 'light');
@@ -377,7 +380,10 @@ async function withFixture(options, exercise) {
           query.logdir,
           options.tensorboardMutations ? tensorboardLogdir : 's3://artifact-bucket/tensorboard',
         );
-        if (request.method() === 'GET') return json({ proxyPath: '', image: '' });
+        if (request.method() === 'GET') {
+          if (options.holdTensorboardCheck) await tensorboardCheck;
+          return json({ proxyPath: '', image: '' });
+        }
         assert.ok(options.tensorboardMutations);
         if (request.method() === 'POST') {
           assert.equal(query.image, tensorboardImage);
@@ -409,6 +415,7 @@ async function withFixture(options, exercise) {
     if (fixture.errors.length) console.error('Fixture errors:', fixture.errors);
     throw error;
   } finally {
+    fixture.releaseTensorboardCheck();
     await context.close();
   }
 }
@@ -626,9 +633,26 @@ test('Artifact lineage bounds neighborhoods, preserves directed identity and his
 });
 
 test('Legacy artifact metadata retains its namespace-scoped TensorBoard viewer', async () => {
-  await withFixture({}, async (page, fixture) => {
+  await withFixture({ holdTensorboardCheck: true }, async (page, fixture) => {
+    const isTensorboardCheck = (request) =>
+      new URL(request.url()).pathname === '/apps/tensorboard' && request.method() === 'GET';
+    const checkRequested = page.waitForRequest(isTensorboardCheck);
+    const checkCompleted = page.waitForResponse((response) =>
+      isTensorboardCheck(response.request()),
+    );
     await page.goto(`${origin}/#/artifacts/legacy`);
-    await page.getByRole('button', { name: 'Start Tensorboard', exact: true }).waitFor();
+    const start = page.getByRole('button', { name: 'Start Tensorboard', exact: true });
+    await start.waitFor();
+    await checkRequested;
+    // Visibility precedes the app lookup; a held response must keep Start unavailable.
+    assert.equal(await start.isEnabled(), false);
+    assert.equal(await start.getAttribute('aria-busy'), 'true');
+    fixture.releaseTensorboardCheck();
+    assert.equal((await checkCompleted).status(), 200);
+    await page
+      .getByRole('button', { name: 'Start Tensorboard', exact: true, disabled: false })
+      .waitFor();
+    assert.equal(await start.getAttribute('aria-busy'), null);
     assert.equal(fixture.requests.filter((item) => item.path === '/apps/tensorboard').length, 1);
     assert.equal(
       fixture.requests.filter((item) => item.path === '/apps/tensorboard')[0].query.namespace,
