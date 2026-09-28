@@ -295,7 +295,7 @@ it('keeps error details readable in a themed dismissible dialog', async () => {
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
-it('retains the final measured pointer width when the last resize notification trails the DOM', async () => {
+it('retains pointer deltas when DOM measurements lag and starts each drag from the current width', async () => {
   const user = userEvent.setup();
   const view = render(
     <InspectionPanel isOpen title='Train model' onClose={vi.fn()}>
@@ -308,10 +308,9 @@ it('retains the final measured pointer width when the last resize notification t
   Object.defineProperty(panel, 'offsetWidth', { configurable: true, get: () => measuredWidth });
   await waitFor(() => expect(screen.getByRole('button', { name: 'close' })).toHaveFocus());
   fireEvent.mouseDown(handle, { clientX: 100, clientY: 20 });
-  measuredWidth = 410;
+  // The real browser can still report the prior width after the final pointer move.
   fireEvent.mouseMove(window, { clientX: 60, clientY: 20 });
-  expect(handle).toHaveAttribute('aria-valuenow', '410');
-  measuredWidth = 420;
+  expect(handle).toHaveAttribute('aria-valuenow', '420');
   fireEvent.mouseUp(window, { clientX: 60, clientY: 20 });
   expect(handle).toHaveAttribute('aria-valuenow', '420');
   expect(panel).toHaveStyle({ width: '420px' });
@@ -324,4 +323,16 @@ it('retains the final measured pointer width when the last resize notification t
   handle.focus();
   await user.keyboard('{ArrowRight}');
   expect(handle).toHaveAttribute('aria-valuenow', '400');
+  measuredWidth = 400;
+  fireEvent.mouseDown(handle, { clientX: 100, clientY: 20 });
+  fireEvent.mouseMove(window, { clientX: 120, clientY: 20 });
+  fireEvent.mouseUp(window, { clientX: 120, clientY: 20 });
+  expect(handle).toHaveAttribute('aria-valuenow', '380');
+  expect(panel).toHaveStyle({ width: '380px' });
+  measuredWidth = 380;
+  // re-resizable retains its previous delta when a later gesture does not move.
+  fireEvent.mouseDown(handle, { clientX: 100, clientY: 20 });
+  fireEvent.mouseUp(window, { clientX: 100, clientY: 20 });
+  expect(handle).toHaveAttribute('aria-valuenow', '380');
+  expect(panel).toHaveStyle({ width: '380px' });
 });

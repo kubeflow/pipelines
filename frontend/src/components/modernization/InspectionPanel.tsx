@@ -65,6 +65,7 @@ export function InspectionPanel({ isOpen, title, onClose, children }: Inspection
   );
   const panelId = useId();
   const [preferredWidth, setPreferredWidth] = useState(380);
+  const resizeStartWidth = useRef(380);
   const minWidth = 300;
   const maxWidth = Math.max(minWidth, Math.floor(viewportWidth * 0.9));
   const width = Math.min(preferredWidth, maxWidth);
@@ -116,8 +117,13 @@ export function InspectionPanel({ isOpen, title, onClose, children }: Inspection
               minWidth={minWidth}
               maxWidth={maxWidth}
               enable={{ left: !narrow }}
-              onResize={(_event, _direction, element) => setPreferredWidth(element.offsetWidth)}
-              onResizeStop={(_event, _direction, element) => setPreferredWidth(element.offsetWidth)}
+              onResizeStart={(_event, _direction, element) => {
+                resizeStartWidth.current = element.offsetWidth;
+              }}
+              onResize={(_event, _direction, _element, delta) => {
+                // DOM geometry can lag the resizer's controlled size during a drag.
+                setPreferredWidth(resizeStartWidth.current + delta.width);
+              }}
               handleComponent={{
                 left: (
                   <div
