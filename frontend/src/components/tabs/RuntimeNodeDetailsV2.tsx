@@ -80,6 +80,7 @@ interface RuntimeNodeDetailsV2Props {
   element?: PipelineFlowElement | null;
   elementRuntimeInfo?: NodeRuntimeInfo | null;
   namespace?: string;
+  namespacePending?: boolean;
   sourceFinished?: boolean;
   selectedTaskTab?: number;
   onTaskTabChange?: (tab: number) => void;
@@ -93,6 +94,7 @@ export function RuntimeNodeDetailsV2({
   element,
   elementRuntimeInfo,
   namespace,
+  namespacePending = false,
   sourceFinished,
   selectedTaskTab,
   onTaskTabChange,
@@ -109,6 +111,7 @@ export function RuntimeNodeDetailsV2({
         task={elementRuntimeInfo?.task}
         layers={layers}
         namespace={namespace}
+        namespacePending={namespacePending}
         sourceFinished={sourceFinished}
         selectedTaskTab={selectedTaskTab}
         onTaskTabChange={onTaskTabChange}
@@ -148,6 +151,7 @@ interface TaskNodeDetailProps {
   task?: V2beta1PipelineTask;
   layers: string[];
   namespace?: string;
+  namespacePending?: boolean;
   sourceFinished?: boolean;
 }
 
@@ -171,6 +175,7 @@ function TaskNodeDetail({
   task,
   layers,
   namespace,
+  namespacePending = false,
   sourceFinished,
   selectedTaskTab,
   onTaskTabChange,
@@ -207,7 +212,8 @@ function TaskNodeDetail({
       }
       return getLogsInfo(task, runId, namespace);
     },
-    enabled: !!task && selectedTab === 2,
+    // Experiment metadata may still be resolving the namespace used by pod and artifact reads.
+    enabled: !!task && selectedTab === 2 && !namespacePending,
     // Pod/artifact identity changes identify a new attempt or a newly available log source. Keep
     // the last readable output visible while that source is fetched instead of blanking the tab.
     placeholderData: (previousLogs, previousQuery) => {
@@ -254,6 +260,11 @@ function TaskNodeDetail({
           )}
           {selectedTab === 2 && (
             <div className='kfp-inspection-column'>
+              {namespacePending && (
+                <p className='kfp-inspection-empty' role='status'>
+                  Loading experiment namespace…
+                </p>
+              )}
               {logsBannerMessage && (
                 <Banner
                   message={logsBannerMessage}

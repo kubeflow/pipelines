@@ -114,6 +114,53 @@ describe('RuntimeNodeDetailsV2', () => {
     await screen.findByTestId(TEST_LOG_VIEW_ID);
   });
 
+  it('defers both pod and artifact fallback reads while the namespace is pending', async () => {
+    const getPodLogsSpy = vi
+      .spyOn(Apis, 'getPodLogs')
+      .mockRejectedValue(new Error('Pod collected'));
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('artifact logs');
+    const task = createTask({
+      outputs: {
+        artifacts: [
+          {
+            artifact_key: 'executor-logs',
+            artifacts: [{ name: 'executor-logs', uri: 's3://pipeline-root/logs.txt' }],
+          },
+        ],
+      },
+    });
+    const content = (namespacePending: boolean) => (
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          runId={TEST_RUN_ID}
+          element={executionElement}
+          elementRuntimeInfo={{ task }}
+          namespace={namespacePending ? undefined : TEST_NAMESPACE}
+          namespacePending={namespacePending}
+          selectedTaskTab={2}
+        />
+      </CommonTestWrapper>
+    );
+    const view = render(content(true));
+    expect(await screen.findByText('Loading experiment namespace…')).toBeVisible();
+    expect(getPodLogsSpy).not.toHaveBeenCalled();
+    expect(readFileSpy).not.toHaveBeenCalled();
+    view.rerender(content(false));
+    expect(await screen.findByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+    expect(getPodLogsSpy).toHaveBeenCalledExactlyOnceWith(
+      TEST_RUN_ID,
+      TEST_POD_NAME,
+      TEST_NAMESPACE,
+      '2026-08-11',
+    );
+    expect(readFileSpy).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ namespace: TEST_NAMESPACE }),
+    );
+    expect(screen.queryByText('Loading experiment namespace…')).not.toBeInTheDocument();
+  });
+
   it('retrieves pod logs without an experiment namespace', async () => {
     const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('test-logs-details');
 

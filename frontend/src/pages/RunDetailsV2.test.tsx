@@ -661,6 +661,92 @@ describe('RunDetailsV2', () => {
     );
   });
 
+  it('waits for the experiment namespace before reading logs while task details remain available', async () => {
+    const pendingExperiment = deferred<V2beta1Experiment>();
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockReturnValue(
+      pendingExperiment.promise,
+    );
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({
+      tasks: TEST_TASKS.map((task) =>
+        task.name === 'preprocess'
+          ? { ...task, pods: [{ name: 'preprocess-pod', type: PipelineTaskTaskPodType.EXECUTOR }] }
+          : task,
+      ),
+    });
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('resolved namespace logs');
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(await screen.findByText('preprocess'));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Task Details', exact: true }));
+    expect(await screen.findByText('preprocess-task')).toBeVisible();
+    fireEvent.click(screen.getByRole('tab', { name: 'Logs', exact: true }));
+    expect(await screen.findByText('Loading experiment namespace…')).toBeVisible();
+    expect(getPodLogsSpy).not.toHaveBeenCalled();
+
+    await act(async () => pendingExperiment.resolve({ ...TEST_EXPERIMENT, namespace: 'team-a' }));
+    expect(await screen.findByText('resolved namespace logs')).toBeVisible();
+    expect(getPodLogsSpy).toHaveBeenCalledExactlyOnceWith(
+      RUN_ID,
+      'preprocess-pod',
+      'team-a',
+      expect.any(String),
+    );
+    expect(screen.queryByText('Loading experiment namespace…')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    'selected namespace',
+    'no experiment',
+    'empty experiment namespace',
+    'failed experiment',
+  ])('preserves log fallback for %s', async (scenario) => {
+    const pendingExperiment = deferred<V2beta1Experiment>();
+    const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+    if (scenario === 'selected namespace')
+      getExperimentSpy.mockReturnValue(pendingExperiment.promise);
+    else if (scenario === 'failed experiment')
+      getExperimentSpy.mockRejectedValue(new Error('Experiment unavailable'));
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({
+      tasks: TEST_TASKS.map((task) =>
+        task.name === 'preprocess'
+          ? { ...task, pods: [{ name: 'preprocess-pod', type: PipelineTaskTaskPodType.EXECUTOR }] }
+          : task,
+      ),
+    });
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('fallback logs');
+    render(
+      <NamespaceContext.Provider value={scenario === 'selected namespace' ? 'team-a' : undefined}>
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={
+              scenario === 'no experiment' ? { ...TEST_RUN, experiment_id: undefined } : TEST_RUN
+            }
+            {...generateProps()}
+          />
+        </CommonTestWrapper>
+      </NamespaceContext.Provider>,
+    );
+    fireEvent.click(await screen.findByText('preprocess'));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Logs', exact: true }));
+    expect(await screen.findByText('fallback logs')).toBeVisible();
+    expect(getPodLogsSpy).toHaveBeenCalledExactlyOnceWith(
+      RUN_ID,
+      'preprocess-pod',
+      scenario === 'selected namespace' ? 'team-a' : '',
+      expect.any(String),
+    );
+    expect(screen.queryByText('Loading experiment namespace…')).not.toBeInTheDocument();
+    if (scenario === 'no experiment') expect(getExperimentSpy).not.toHaveBeenCalled();
+    if (scenario === 'selected namespace') {
+      await act(async () => pendingExperiment.resolve({ ...TEST_EXPERIMENT, namespace: 'team-a' }));
+      expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+    }
+  });
+
   it('uses the selected namespace for pod logs when experiment lookup fails', async () => {
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
       new Error('Experiment not found'),

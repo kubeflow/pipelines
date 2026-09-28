@@ -305,6 +305,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const experimentId = run.experiment_id || null;
   const {
     data: experiment,
+    isPending: experimentIsPending,
     isError: experimentIsError,
     error: experimentError,
   } = useQuery<V2beta1Experiment, Error>({
@@ -312,6 +313,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     queryFn: () => getExperiment(experimentId),
   });
   const namespace = experiment?.namespace || selectedNamespace;
+  const namespacePending = !!experimentId && experimentIsPending && !namespace;
   const linkedTaskId = new URLParser(props).get(QUERY_PARAMS.taskId);
   const { location, navigate } = props;
   const clearLinkedTaskQuery = useCallback(() => {
@@ -687,6 +689,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                 element={activeSelectedNode}
                 elementRuntimeInfo={selectedNodeRuntimeInfo}
                 namespace={namespace}
+                namespacePending={namespacePending}
                 sourceFinished={runIsTerminal}
                 selectedTaskTab={selectedTaskTab}
                 onTaskTabChange={setSelectedTaskTab}

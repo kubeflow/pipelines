@@ -132,6 +132,7 @@ async function withFixture(options, exercise) {
     failRunReads: !!options.failRunReads,
     retryCount: 0,
     runGate: undefined,
+    experimentGate: undefined,
     logGates: new Map(),
   };
   fixture.tasks[1].pods = [{ name: 'prepare-driver', type: 'DRIVER' }];
@@ -256,12 +257,14 @@ async function withFixture(options, exercise) {
         );
         return json({});
       }
-      if (path === '/apis/v2beta1/experiments/experiment-a')
+      if (path === '/apis/v2beta1/experiments/experiment-a') {
+        if (fixture.experimentGate) await fixture.experimentGate.promise;
         return json({
           experiment_id: 'experiment-a',
           display_name: 'Browser experiment',
           namespace: options.namespace || 'team-a',
         });
+      }
       if (path === '/k8s/pod/logs') {
         assert.equal(request.method(), 'GET');
         assert.equal(url.searchParams.get('runid'), runId);
@@ -341,6 +344,7 @@ async function withFixture(options, exercise) {
     throw error;
   } finally {
     fixture.runGate?.release();
+    fixture.experimentGate?.release();
     for (const pending of fixture.logGates.values()) pending.release();
     await context.close();
   }
@@ -517,8 +521,32 @@ test('Run Details preserves nested task links, history, copied URLs, and graph g
 
 test('Run Details distinguishes executor, artifact, and driver log sources', async () => {
   await withFixture({}, async (page, fixture) => {
+    const pendingExperiment = gate();
+    fixture.experimentGate = pendingExperiment;
     await openTask(page);
-    await logs(page, 'executor attempt one');
+    await tab(page, 'Task Details').click();
+    await page.getByText('task-train', { exact: true }).waitFor();
+    await tab(page, 'Logs').click();
+    await page.getByText('Loading experiment namespace…', { exact: true }).waitFor();
+    assert.equal(
+      fixture.requests.filter((request) =>
+        ['/k8s/pod/logs', '/artifacts/get'].includes(request.path),
+      ).length,
+      0,
+      'pod and artifact logs must wait for the experiment namespace',
+    );
+    pendingExperiment.release();
+    await page
+      .getByTestId('logs-view-window')
+      .getByText('executor attempt one', { exact: true })
+      .waitFor();
+    assert.deepEqual(
+      fixture.requests
+        .filter((request) => request.path === '/k8s/pod/logs')
+        .map((request) => request.query.podnamespace),
+      ['team-a'],
+      'resolving the experiment starts exactly one namespaced log request',
+    );
     await changeTask(page, 'preprocess');
     await logs(page, 'artifact executor output');
     assert.equal(
