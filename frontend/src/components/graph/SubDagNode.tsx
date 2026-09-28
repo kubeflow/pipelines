@@ -46,7 +46,7 @@ export default function SubDagNode({ id, data }: SubDagNodeProps) {
             <span className='kfp-graph-node-name' id={id} data-testid={id}>
               {data.label}
             </span>
-            <span className='kfp-graph-node-meta' id={`${id}-status`}>
+            <span className='kfp-graph-node-meta' id={`${id}-status`} aria-hidden='true'>
               {data.state === undefined ? 'Nested pipeline' : status.label}
             </span>
           </span>

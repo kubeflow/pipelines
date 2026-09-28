@@ -215,6 +215,9 @@
 }
 
 .kfp-theme .kfp-shell-metadata a {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
   color: inherit;
   text-decoration: none;
 }

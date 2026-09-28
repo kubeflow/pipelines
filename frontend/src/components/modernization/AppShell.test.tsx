@@ -240,7 +240,10 @@ describe('AppShell', () => {
   it('keeps Search available with both expanded and collapsed navigation', async () => {
     const onSearch = vi.fn();
     renderShell({ onSearch });
-    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+    const search = screen.getByRole('button', { name: 'Search', exact: true });
+    expect(search).toHaveAttribute('aria-keyshortcuts', 'Control+k Meta+k');
+    expect(search).toHaveAccessibleDescription('Search (Ctrl/Cmd+K)');
+    await userEvent.click(search);
     await userEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
     await userEvent.click(screen.getByRole('button', { name: 'Search' }));
     expect(onSearch).toHaveBeenCalledTimes(2);

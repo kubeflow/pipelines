@@ -189,7 +189,7 @@ export function AppShell({
                 {!collapsed && (
                   <>
                     <span>Search</span>
-                    <kbd>Ctrl / ⌘ K</kbd>
+                    <kbd aria-hidden='true'>Ctrl / ⌘ K</kbd>
                   </>
                 )}
               </Button>

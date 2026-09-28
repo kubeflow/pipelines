@@ -44,7 +44,9 @@ describe('SubDagNode', () => {
 
   it('sets accessible label on the button', () => {
     renderWithProvider(<SubDagNode id='subdag-1' data={defaultData} />);
-    expect(screen.getByRole('button', { name: 'sub-pipeline' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'sub-pipeline', exact: true }),
+    ).toHaveAccessibleDescription('Nested pipeline');
   });
 
   it('renders SUCCEEDED state icon', () => {

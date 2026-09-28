@@ -41,7 +41,7 @@ export default function ArtifactNode({ id, data }: ArtifactNodeProps) {
           <span className='kfp-graph-node-name' id={id} data-testid={id}>
             {data.label}
           </span>
-          <span className='kfp-graph-node-meta' id={`${id}-status`}>
+          <span className='kfp-graph-node-meta' id={`${id}-status`} aria-hidden='true'>
             {data.hasArtifact ? 'Artifact available' : 'Artifact'}
           </span>
         </span>

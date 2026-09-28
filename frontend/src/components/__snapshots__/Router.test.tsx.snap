@@ -177,7 +177,9 @@ exports[`Router > initial render 1`] = `
             <span>
               Search
             </span>
-            <kbd>
+            <kbd
+              aria-hidden="true"
+            >
               Ctrl / ⌘ K
             </kbd>
           </button>

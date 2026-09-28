@@ -66,7 +66,7 @@ export default function ExecutionNode({ id, data }: ExecutionNodeProps) {
           <span className='kfp-graph-node-name' id={id}>
             {data.label}
           </span>
-          <span className='kfp-graph-node-meta' id={`${id}-status`}>
+          <span className='kfp-graph-node-meta' id={`${id}-status`} aria-hidden='true'>
             {status.label}
           </span>
         </span>

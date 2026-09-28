@@ -341,7 +341,7 @@ class RoutedPage extends React.Component<
 > {
   private childProps = {
     toolbarProps: {
-      breadcrumbs: [{ displayName: '', href: '' }],
+      breadcrumbs: [],
       actions: {},
       pageTitle: '',
     } as ToolbarProps,
@@ -358,7 +358,7 @@ class RoutedPage extends React.Component<
       bannerProps: {},
       dialogProps: { open: false },
       snackbarProps: { autoHideDuration: 5000, open: false },
-      toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: [], ...props },
+      toolbarProps: { breadcrumbs: [], actions: [], ...props },
     };
   }
 

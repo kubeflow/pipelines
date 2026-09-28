@@ -91,6 +91,17 @@ describe('Router', () => {
     expect(screen.queryByText('404')).not.toBeInTheDocument();
   });
 
+  it('does not create an empty breadcrumb before a page supplies navigation metadata', () => {
+    render(
+      <MemoryRouter initialEntries={['/unconfigured']}>
+        <Router configs={[{ path: '/unconfigured', Component: () => <p>Choose a pipeline</p> }]} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Choose a pipeline')).toBeVisible();
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumbs' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back', exact: true })).not.toBeInTheDocument();
+  });
+
   it('does not share state between pages', async () => {
     class ApplePage extends Page<{}, {}> {
       public getInitialToolbarState(): ToolbarProps {
