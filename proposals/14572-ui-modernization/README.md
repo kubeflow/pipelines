@@ -448,6 +448,12 @@ requires an explicit browser compatibility decision.
   acceptance. These implementation results do not complete the coordinated
   release or introduce a KFP Local migration.
 
+- 2026-09-28: The [loading-layout follow-up](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/ui-modernization/layout-stability.md)
+  records stable loading geometry, short-viewport scrolling, 141 current-engine
+  cases and fresh matched measurements on `e79f8d42`. All nine candidate load
+  samples have zero observed CLS; filtering retains the documented result-row
+  movement. Budget acceptance and the remaining release gates stay open.
+
 ## References
 
 - [Design handoff and prototype instructions](design/README.md)
