@@ -121,7 +121,7 @@ deploymentSpec:
           Shutting down Ray connection...\")\n    ray.shutdown()\n\n    print(\"Cleaning\
           \ up Ray cluster...\")\n    cluster.down()\n    print(\"Ray cluster cleanup\
           \ completed\")\n\n    return result\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
 pipelineInfo:
   description: Ray Integration Test
   name: ray-integration-test

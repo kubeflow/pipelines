@@ -19,7 +19,7 @@ from kfp import dsl
 @dsl.container_component
 def print_text(text: str):
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=['sh', '-c', 'set -e -x\necho "$0"\n', text],
     )
 

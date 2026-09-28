@@ -396,7 +396,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 				Skip("SQL DB backend only: k8s metadata.name is lowercase-only, cannot test case-insensitive filtering on name field")
 			}
 			// Mixed-case name is valid in SQL DB; used to verify case-insensitive filtering.
-			name := "Filter-Test-" + randomName[:17]
+			name := "Filter-Test-" + randomName
 			pipeline := createPipelineWithDisplayName(name, name)
 
 			// 1. EQUALS exact match (baseline)
@@ -431,7 +431,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			}
 			// k8s requires metadata.name to be lowercase (DNS label format), so we only
 			// verify basic filtering functionality here, not case-insensitive behavior.
-			name := "filter-test-" + strings.ToLower(randomName[:17])
+			name := "filter-test-" + strings.ToLower(randomName)
 			pipeline := createPipelineWithDisplayName(name, name)
 
 			// EQUALS exact match
@@ -453,7 +453,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 				Skip("SQL DB backend only: display_name case-insensitive filtering is a DB-layer feature")
 			}
 			// name must be lowercase for k8s compatibility; displayName can be mixed-case.
-			displayName := "Filter-Test-" + randomName[:17]
+			displayName := "Filter-Test-" + randomName
 			pipeline := createPipelineWithDisplayName(strings.ToLower(displayName), displayName)
 
 			// 1. EQUALS exact case (baseline)
@@ -2409,7 +2409,7 @@ var _ = Describe("Update Pipeline - Positive Tests >", Label(constants.POSITIVE,
 			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, toUploadModel(createdPipeline))
 
 			// Add tags via UpdatePipeline
-			newTags := map[string]string{"team": "ut-" + randomName[:17]}
+			newTags := map[string]string{"team": "ut-" + randomName}
 			_, err = pipelineClient.UpdatePipeline(&pipeline_params.PipelineServiceUpdatePipelineParams{
 				PipelinePipelineID: createdPipeline.PipelineID,
 				Pipeline: pipeline_params.PipelineServiceUpdatePipelineBody{
@@ -2668,7 +2668,7 @@ var _ = Describe("Update Pipeline - Negative Tests >", Label(constants.NEGATIVE,
 		It("Deleted pipeline tags should not appear in list filter results", func() {
 			pipelineDir := "valid"
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
-			uniqueTagValue := "dt-" + randomName[:17]
+			uniqueTagValue := "dt-" + randomName
 			tags := map[string]string{"team": uniqueTagValue}
 			var err error
 			testContext.Pipeline.UploadParams.Tags, err = utils.TagsMapToJSONStringPtr(tags)

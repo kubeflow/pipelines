@@ -236,7 +236,7 @@ deploymentSpec:
         - sh
         - -c
         - mkdir --parents $(dirname "$1") && echo "$0" > "$1"
-        image: alpine
+        image: docker.io/alpine:3.23
 pipelineInfo:
   name: pipeline-in-pipeline
 root:
