@@ -27,7 +27,7 @@ def print_env_op():
 @dsl.container_component
 def print_env():
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=[
             'sh', '-c', 'set -e -x\necho "$ENV1"\necho "$ENV2"\necho "$ENV3"\n'
         ],

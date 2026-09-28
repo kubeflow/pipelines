@@ -25,7 +25,7 @@ def print_op1(msg: str) -> str:
 @dsl.container_component
 def print_op2(msg: str):
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=['echo', msg],
     )
 
@@ -33,7 +33,7 @@ def print_op2(msg: str):
 @dsl.container_component
 def print_op(msg: str):
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=['echo', msg],
     )
 

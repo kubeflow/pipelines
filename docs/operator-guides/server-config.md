@@ -105,6 +105,12 @@ in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/bl
 
 ### Artifact storage endpoint allowlist
 
+For S3-compatible storage, `ALLOWED_ARTIFACT_ENDPOINTS` lists additional exact
+trusted origins; a permissive domain regex alone does not authorize a custom
+storage origin. See the [custom S3 upgrade example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
+for ConfigMap, profile-proxy rollout, alias, and archived-log credential guidance.
+HTTP artifact bases use the separate setting described below.
+
 You can configure `ALLOWED_ARTIFACT_DOMAIN_REGEX` to allowlist object storage endpoint
 that your frontend server will fetch artifacts from. If the domain that frontend server
 tries to fetch does not match the regular expression defined in
@@ -124,6 +130,74 @@ To configure the `ALLOWED_ARTIFACT_DOMAIN_REGEX` value for user namespace, add a
 just like this example in [sync.py](https://github.com/kubeflow/pipelines/blob/b630d5c8ae7559be0011e67f01e3aec1946ef765/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py#L304-L310) for `ALLOWED_ARTIFACT_DOMAIN_REGEX` environment variable,
 the entry is identical to the environment variable instruction in Standalone Kubeflow Pipelines
 deployment.
+
+### HTTP artifact migration for 2.18
+
+For a standalone deployment with an existing artifact URI such as
+`https://files.example:9443/reports/result.json`, configure a fully qualified
+approved base on the frontend server:
+
+```yaml
+# Merge into the existing ConfigMap; preserve its other keys.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pipeline-install-config
+  namespace: kubeflow
+data:
+  HTTP_BASE_URL: "https://files.example:9443/reports/"
+```
+
+The server retrieves the original URI without appending the hostname or
+`reports/` a second time. Existing artifact URIs do not need rewriting. In this
+form, the request's scheme, host, and effective port must match the configured
+origin, and its path must stay within the configured path boundary. For example,
+`/reports-other/file` and `/private/file` are outside `/reports/`. Redirects must
+remain in the same approved origin/path and also pass
+`ALLOWED_ARTIFACT_DOMAIN_REGEX`. Use a common approved path prefix if your storage
+server redirects into a different download directory. Do not widen the boundary
+to destinations that should not receive artifact requests or configured HTTP
+credentials.
+
+A fully qualified base cannot contain credentials, a query, or a fragment.
+Configure supported HTTP authentication through `HTTP_AUTHORIZATION_KEY` and
+`HTTP_AUTHORIZATION_DEFAULT_VALUE` on the serving process, rather than embedding
+credentials in the URL. The installation configuration propagates the base URL,
+not authentication credentials. Query-bearing signed URLs are not a replacement
+for the supported artifact path/authentication configuration.
+
+The existing **scheme-less gateway form remains supported**:
+`HTTP_BASE_URL=gateway.example/artifacts/`, with an HTTP artifact request for
+logical bucket `dataset` and key `result.json`, still fetches
+`http://gateway.example/artifacts/dataset/result.json` (or HTTPS when requested).
+Keep that form if you intentionally use gateway bucket/path mapping. Adding a
+scheme selects the original-URI behavior above; it is not a cosmetic change to a
+gateway setting. Neither form permits fetching an arbitrary request-selected
+host with an unset base.
+
+The base is read at process startup. After applying the ConfigMap, restart
+`ml-pipeline-ui`. Authenticated multi-user HTTP requests are fetched by the shared
+UI even when namespace artifact proxies are enabled. Configure any HTTP
+authentication on the shared UI as well. Both the configured base boundary and
+the namespace ownership policy apply: artifact keys and redirects must stay under
+`private-artifacts/<namespace>/` (or the configured namespace prefix). For example,
+use `https://files.example:9443/private-artifacts/` as the base for namespace-scoped
+URIs; the `/reports/` example above applies to standalone deployments.
+
+The installation also propagates the base to profile proxies for their direct
+HTTP serving configuration. To update those processes, restart
+`kubeflow-pipelines-profile-controller`, wait for profile reconciliation, and
+verify the generated `ml-pipeline-ui-artifact` Deployments complete their rollouts.
+This propagation does not change the shared UI's authenticated HTTP serving path.
+Preserve the setting in your installation manifests for later upgrades.
+
+Test an existing artifact preview and download after rollout. A missing base
+returns HTTP 400 naming `HTTP_BASE_URL`; an invalid base, mismatched origin/path,
+or out-of-base redirect also returns HTTP 400 without fetching the disallowed
+destination. Domain-regex rejection remains an additional restriction. Endpoint
+configuration does not bypass namespace authorization or artifact ownership
+checks. Artifact responses remain attachments, and HTTP archive bytes remain
+unextracted.
 
 ### TensorBoard proxy signing secret
 
@@ -285,3 +359,58 @@ spec:
         - name: NO_PROXY
           value: localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,metadata-grpc-service,0,1,2,3,4,5,6,7,8,9
 ```
+
+### Pipeline size limits
+
+The API server enforces three independent byte ceilings. Configure these environment
+variables on the `ml-pipeline` deployment and roll out all replicas consistently:
+
+| Environment variable | What it bounds | Default | Supported range |
+| --- | --- | --- | --- |
+| `MAX_PIPELINE_UPLOAD_BYTES` | Pipeline file/package bytes from multipart uploads, URL imports, and bootstrap files | 33554432 (32 MiB) | 1–134217728 bytes (128 MiB) |
+| `MAX_PIPELINE_SPEC_BYTES` | Extracted YAML/JSON, uncompressed pipeline files, and object-store pipeline-spec reads | 33554432 (32 MiB) | 1–134217728 bytes (128 MiB) |
+| `MAX_PIPELINE_UPDATE_BODY_BYTES` | Entire HTTP PUT/PATCH body on pipeline and pipeline-version update routes | 33554432 (32 MiB) | 1–134217728 bytes (128 MiB) |
+
+Values are decimal integers in bytes; `64MiB`, zero, negative, and out-of-range
+values are invalid. Unset or empty values use the default. Invalid settings prevent
+API-server startup; there is no unlimited or audit mode. The upper bound limits
+administrator overrides because these paths buffer content in memory; it is not
+a guarantee that every deployment can safely accept concurrent requests that large.
+Raise limits only after sizing memory for concurrent uploads, decompression, parsing,
+and request processing. Prefer moving large embedded artifacts, notebooks, and code
+to container images or object storage.
+
+For example, to permit 64 MiB pipeline files and extracted specifications:
+
+```sh
+kubectl set env deployment/ml-pipeline -n kubeflow \
+  MAX_PIPELINE_UPLOAD_BYTES=67108864 MAX_PIPELINE_SPEC_BYTES=67108864
+kubectl rollout status deployment/ml-pipeline -n kubeflow
+```
+
+Persist overrides in your deployment/GitOps configuration. The upload ceiling applies
+to the selected file, not total multipart framing. Raw YAML/JSON must fit both input
+and spec ceilings. Compressed packages must fit the input ceiling and their extracted
+specification must fit the spec ceiling. Tar scanning remains bounded by the spec
+ceiling plus 1 MiB for headers, metadata, padding, and other entries encountered during
+scanning; this derived budget cannot be disabled independently. Remove unnecessary
+archive entries if traversal is rejected even though the selected YAML is small.
+
+These settings do not raise ingress/proxy, gRPC, Kubernetes object, or database limits.
+Configure and validate the complete request path; raising the KFP limit alone does not
+ensure a large pipeline can execute. Processes using the Kubernetes pipeline-upload
+client or bootstrap helpers read these same environment variables locally; keep their
+configuration consistent where those paths are used.
+
+Multipart upload and update-body size rejections return HTTP 413 with the applicable
+ceiling and setting. Other pipeline APIs preserve their existing InvalidArgument error
+mapping. API-server logs include `size_limit_exceeded`, the control, limit in bytes,
+and configuration name, without logging the rejected payload. Bounded reads do not
+measure the full rejected file, so errors report that it exceeds the ceiling rather
+than claiming an exact total size. Non-size parsing and transport failures retain
+sanitized upload responses.
+
+To return to defaults, remove the overrides and roll out the deployment. Before
+lowering `MAX_PIPELINE_SPEC_BYTES`, check stored pipelines accepted under the higher
+limit: object-store specifications may no longer be readable for subsequent execution. This
+setting does not add a new size check to the existing direct database-spec read path.

@@ -41,10 +41,18 @@ jobs:
       sha: ${{ steps.commit.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.src_branch }}
+          path: release-source
+      - name: Validate release line and source version
+        env:
+          TARGET_TAG: ${{ inputs.target_tag }}
+        run: |
+          python3 .github/resources/scripts/release_image_validation.py source \
+            --target-tag "$TARGET_TAG" --version-file release-source/VERSION
       - id: commit
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git -C release-source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build-images-for-release:
     needs: resolve-source
@@ -128,3 +136,61 @@ jobs:
       source_sha: ${{ needs.resolve-source.outputs.sha }}
       expected_platforms: ${{ matrix.component.image == 'kfp-inverse-proxy-agent' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
       set_latest: ${{ inputs.set_latest }}
+
+  validate-release-images:
+    needs: [resolve-source, create-manifests]
+    if: ${{ !inputs.dry_run }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: amd64
+            runner: ubuntu-latest
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-source.outputs.sha }}
+      - name: Download this release attempt's verified index references
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: published-index-*-${{ github.run_attempt }}
+          path: published-indexes
+          merge-multiple: 'true'
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+      - name: Verify native shared-tag selection
+        env:
+          SOURCE_SHA: ${{ needs.resolve-source.outputs.sha }}
+          TARGET_TAG: ${{ inputs.target_tag }}
+          ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          python3 .github/resources/scripts/release_image_validation.py native \
+            --records published-indexes --source-sha "$SOURCE_SHA" \
+            --target-tag "$TARGET_TAG" --architecture "$ARCHITECTURE" \
+            --output "$RUNNER_TEMP/release-image-validation/images.json"
+      - name: Validate published release on native ARM64
+        if: matrix.architecture == 'arm64'
+        uses: ./.github/actions/arm64-smoke
+        with:
+          image_records: published-indexes
+          source_sha: ${{ needs.resolve-source.outputs.sha }}
+      - name: Upload native release image evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-image-validation-${{ matrix.architecture }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-image-validation

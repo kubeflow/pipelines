@@ -40,6 +40,10 @@ updates:
       go-minor-and-patch:
         patterns:
           - "*"
+        # Argo also needs runtime, manifest, and CI synchronization. Complete
+        # its separate PR using third_party/argo/UPGRADE.md.
+        exclude-patterns:
+          - "github.com/argoproj/argo-workflows/*"
         update-types:
           - "minor"
           - "patch"

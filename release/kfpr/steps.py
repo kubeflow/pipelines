@@ -43,6 +43,17 @@ class Step:
 
 def manual_checklist(step_id: str, metadata) -> str:
     """Return manual checkpoint text for status output."""
+    if step_id == 'create-backend-release' and metadata.major >= 3:
+        return underline_links(
+            f'''Architecture validation checkpoint for KFP {metadata.tag}:
+1. Confirm image-builds-release.yml succeeded on {metadata.release_branch} for target tag
+   {metadata.tag} and the intended source commit, including both native shared-tag checks
+   (Linux AMD64 and ARM64) and the native ARM64 installation/pipeline smoke.
+2. Retain the successful run URL and its same-run published-index, native image-validation, and
+   smoke artifacts as release evidence. A master run or an index-only check does not replace it.
+3. Review the architecture support policy before publishing the backend GitHub release:
+   https://github.com/kubeflow/pipelines/blob/{metadata.release_branch}/docs/operator-guides/supported-platforms.md'''
+        )
     if step_id == 'confirm-rtd':
         return underline_links(f'''ReadTheDocs manual checkpoint:
 1. Open https://app.readthedocs.org/projects/kubeflow-pipelines/
@@ -65,6 +76,13 @@ def manual_checklist(step_id: str, metadata) -> str:
    change and close https://github.com/kubeflow/pipelines/issues/14139 only after every migration and
    documentation item is complete.'''
             slack_step = 6
+        if metadata.major >= 3:
+            compatibility_steps += f'''
+{slack_step}. Link the architecture support policy in release communications: Linux AMD64 and ARM64
+   are supported starting with KFP 3.0; use the shared image tags and architecture-compatible
+   pipeline component images.
+   https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md'''
+            slack_step += 1
         return underline_links(f'''Manual final checkpoint:
 1. Open https://github.com/kubeflow/website/edit/master/layouts/shortcodes/pipelines/latest-version.html
 2. Write the version without a trailing newline:
@@ -970,10 +988,18 @@ def step_create_backend_release(context: ReleaseContext) -> None:
       context: Release context with runner, metadata, and state.
     """
     metadata = context.metadata
+    checklist = manual_checklist('create-backend-release', metadata)
+    if checklist:
+        print(checklist)
 
     if context.runner.dry_run:
         print(f'[dry-run] would create backend GitHub release: {metadata.tag}')
         return
+
+    if checklist:
+        confirm(
+            'Have the release-image architecture checks succeeded and their evidence been reviewed?'
+        )
 
     last_release = prompt_required(
         'Last backend release tag for changelog comparison')
@@ -985,6 +1011,14 @@ def step_create_backend_release(context: ReleaseContext) -> None:
 {changed}
 
 **Full Changelog**: https://github.com/kubeflow/pipelines/compare/{last_release}...{metadata.tag}
+'''
+    if metadata.major >= 3:
+        notes += f'''
+## Supported architectures
+
+Linux AMD64 and ARM64 are supported starting with KFP 3.0. Standard manifests use shared image tags;
+the container runtime selects the matching architecture. Pipeline component images must support
+the architecture of their execution nodes. See the [supported-platforms policy](https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md).
 '''
 
     context.runner.run([

@@ -13,11 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from fnmatch import fnmatchcase
 from pathlib import Path
 from pathlib import PurePosixPath
 import re
 import subprocess
 import unittest
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEPENDABOT_PATH = REPOSITORY_ROOT / '.github/dependabot.yml'
@@ -145,6 +148,30 @@ class DependabotConfigTest(unittest.TestCase):
                     self.configured_labels(ecosystem),
                     ['dependencies', ecosystem_label, 'do-not-merge/hold'],
                 )
+
+    def test_argo_updates_remain_visible_outside_bulk_go_group(self):
+        config = yaml.safe_load(self.config)
+        gomod = next(update for update in config['updates']
+                     if update['package-ecosystem'] == 'gomod')
+        bulk = gomod['groups']['go-minor-and-patch']
+
+        def grouped(dependency):
+            return (any(
+                fnmatchcase(dependency, pattern)
+                for pattern in bulk['patterns']) and not any(
+                    fnmatchcase(dependency, pattern)
+                    for pattern in bulk.get('exclude-patterns', [])))
+
+        for dependency in ('github.com/argoproj/argo-workflows/v3',
+                           'github.com/argoproj/argo-workflows/v4'):
+            with self.subTest(dependency=dependency):
+                self.assertFalse(grouped(dependency))
+                self.assertFalse(
+                    any(
+                        fnmatchcase(dependency, rule['dependency-name'])
+                        for rule in gomod.get('ignore', [])))
+        self.assertNotIn('allow', gomod)
+        self.assertTrue(grouped('github.com/stretchr/testify'))
 
     def test_all_go_modules_are_covered(self):
         module_directories = {
