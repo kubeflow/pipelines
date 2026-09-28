@@ -1,5 +1,7 @@
 # UI modernization performance comparison
 
+**Historical retirement checkpoint:** newer application source, repeated measurements and compatibility checks are recorded in [performance qualification](performance-qualification.md) and [browser/accessibility qualification](browser-accessibility-qualification.md). The results below remain tied to their original source and assets.
+
 Retiring the unused presentation code reduces the initial compressed payload below the original UI baseline and improves the measured load medians relative to the [pre-retirement candidate](https://github.com/kubeflow/pipelines/blob/5008b24d93387dba1a2c71d79f3756ad67fee10f/frontend/docs/ui-modernization/performance-comparison.md). It does **not** establish overall performance parity: Runs and Run Details LCP remain slower than baseline, filtering readiness remains slower, and layout shifts remain higher. Performance acceptance and workload-specific budgets remain open.
 
 Application source: `2e52a3fa634fa0805511a37c982f8d13f690b868`. The [browser matrix](workflows/browser-matrix.json), reviewed screenshots and measurements identify the same entry assets: `index-CsUTqcBF.js` and `index-8lXTuxuW.css`. [Machine-readable measurements](workflows/performance-evidence.json) retain hashes, individual trials, browser performance entries, readiness assertions and DevTools summary excerpts. [Bundle inventory](workflows/bundle-sizes.json) and [measurement functions](workflows/performance-protocol.json) accompany the results.

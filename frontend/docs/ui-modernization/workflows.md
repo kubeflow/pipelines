@@ -1,5 +1,7 @@
 # UI modernization: workflows and qualification
 
+**Historical retirement checkpoint:** newer application source, repeated measurements and compatibility checks are recorded in [performance qualification](performance-qualification.md) and [browser/accessibility qualification](browser-accessibility-qualification.md). The results below remain tied to their original source and assets.
+
 This is the current implementation report for [issue #14572](https://github.com/kubeflow/pipelines/issues/14572), [KEP PR #14574](https://github.com/kubeflow/pipelines/pull/14574), and [implementation PR #14584](https://github.com/kubeflow/pipelines/pull/14584). It supersedes the implementation-status statements in the historical [foundation](foundation.md), [Runs](runs.md), and [inspection](inspection.md) checkpoints. Their screenshots and test totals remain evidence for those earlier slices.
 
 Workflow presentation now covers the shell, Runs and inspection, Pipelines and versions, Experiments, recurring runs, creation forms, Artifacts and lineage, comparison and rich viewers, and secondary pages. This remains one coordinated UI cutover. Final source verification, performance results, supported-browser qualification and live deployment/rollback evidence are tracked separately below; implementation coverage does not close those gates.
