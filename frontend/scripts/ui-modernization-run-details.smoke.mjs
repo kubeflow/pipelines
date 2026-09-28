@@ -998,12 +998,31 @@ test('Run Details exposes semantic values and restores navigation after closing 
     const value = (label) =>
       page.getByText(label, { exact: true }).and(page.locator('dt')).locator('..').locator('dd');
     await value('Status').getByText('Succeeded', { exact: true }).waitFor();
-    assert.equal(await value('Description').innerText(), 'Run Details browser fixture');
-    assert.equal(await value('message').innerText(), 'fixture input');
-    assert.equal(
-      await value('Created at').evaluate((element) => Date.parse(element.textContent)),
-      Date.parse(createdAt),
-    );
+    const detailsPanel = page.getByRole('tabpanel', { name: 'Detail', exact: true });
+    for (const width of [780, 375]) {
+      await page.setViewportSize({ width, height: 437 });
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        await new Promise(requestAnimationFrame);
+        await new Promise(requestAnimationFrame);
+      });
+      assert.ok((await detailsPanel.boundingBox()).height > 0, 'Detail panel must not collapse');
+      // Native scrolling and hit testing prove the values can actually be read,
+      // including when the summary is taller than the available viewport.
+      await value('Description').click({ trial: true });
+      assert.equal(await value('Description').innerText(), 'Run Details browser fixture');
+      await value('message').click({ trial: true });
+      assert.equal(await value('message').innerText(), 'fixture input');
+      await value('Created at').click({ trial: true });
+      assert.equal(
+        await value('Created at').evaluate((element) => Date.parse(element.textContent)),
+        Date.parse(createdAt),
+      );
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+    }
     await tab(page, 'Graph').click();
     await openTask(page, 'train');
     const inspector = page.getByRole('dialog');

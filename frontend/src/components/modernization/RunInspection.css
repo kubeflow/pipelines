@@ -10,6 +10,8 @@
   min-height: 0;
 }
 .kfp-theme .kfp-run-inspection {
+  /* Let the page scroll when the summary and tabs exceed the available height. */
+  min-height: min-content;
   padding: 0 32px 32px;
   gap: 16px;
 }

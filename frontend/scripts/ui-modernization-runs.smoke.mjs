@@ -776,6 +776,7 @@ test('Runs keeps columns, pagination and sidebar controls stable across held loa
         .filter((entry) => /\.woff2$/.test(entry.name))
         .map((entry) => entry.name),
     );
-    assert.equal(new Set(fontRequests).size, 4, 'four critical font faces load once');
+    assert.equal(new Set(fontRequests).size, 4, 'four critical font faces are loaded');
+    assert.equal(fontRequests.length, 4, 'each critical font face loads once');
   });
 });
