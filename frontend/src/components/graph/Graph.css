@@ -205,6 +205,10 @@
   border-radius: 8px;
   box-shadow: var(--shadow-card);
 }
+/* Keep the bottom controls clear of the attribution's accessible target. */
+.kfp-graph-canvas .react-flow__controls.bottom {
+  bottom: 24px;
+}
 .kfp-graph-canvas .react-flow__controls-button {
   width: 30px;
   height: 30px;

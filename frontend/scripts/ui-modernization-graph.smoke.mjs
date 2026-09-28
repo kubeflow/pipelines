@@ -337,6 +337,31 @@ function sameGeometry(a, b) {
     );
   }
 }
+async function graphControlTargets(page) {
+  const targets = await page.evaluate(() => ({
+    attribution: document
+      .querySelector('.react-flow__attribution a')
+      .getBoundingClientRect()
+      .toJSON(),
+    controls: [...document.querySelectorAll('.react-flow__controls-button')].map((button) => ({
+      label: button.getAttribute('aria-label'),
+      box: button.getBoundingClientRect().toJSON(),
+    })),
+  }));
+  assert.ok(targets.attribution.height >= 24 && targets.attribution.width >= 24);
+  assert.equal(targets.controls.length, 4);
+  for (const { label, box } of targets.controls) {
+    assert.ok(box.height >= 30 && box.width >= 30, `${label} retains its 30px target`);
+    assert.ok(
+      box.right <= targets.attribution.left ||
+        box.left >= targets.attribution.right ||
+        box.bottom <= targets.attribution.top ||
+        box.top >= targets.attribution.bottom,
+      `${label} and attribution targets must not overlap`,
+    );
+  }
+}
+
 async function capture(page, name, graph, timings) {
   if (process.env.KFP_GRAPH_REFERENCE_DIR) {
     const reference = JSON.parse(
@@ -443,6 +468,7 @@ test('200-task graph preserves full paginated data, geometry and zoom/pan/select
       ['', 'remaining-tasks'],
     );
     sameGeometry(original, await geometry(page, 201));
+    await graphControlTargets(page);
     await capture(page, 'large-graph-initial', original, timings);
     for (const i of [199, 101, 0]) {
       const start = performance.now();
@@ -518,6 +544,7 @@ test('200-task graph preserves full paginated data, geometry and zoom/pan/select
       'rgb(22, 25, 33)',
     );
     sameGeometry(original, await geometry(page, 201));
+    await graphControlTargets(page);
     await capture(page, 'large-graph-dark', original, timings);
     await page.reload();
     sameGeometry(original, await geometry(page, 201));
