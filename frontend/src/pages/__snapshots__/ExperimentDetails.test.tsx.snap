@@ -390,7 +390,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                 class="kfp-runs-table-view"
               >
                 <div
-                  class="kfp-runs-table-view"
+                  class="kfp-runs-table-view kfp-runs-data-table"
                 >
                   <div
                     class="kfp-runs-filter-row"
@@ -422,8 +422,29 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                         aria-busy="false"
                         aria-label="Runs"
                         class="kfp-runs-table"
-                        style="min-width: 1000px;"
+                        style="min-width: 1100px; table-layout: fixed;"
                       >
+                        <colgroup>
+                          <col
+                            style="width: 46px;"
+                          />
+                          <col />
+                          <col
+                            style="width: 116px;"
+                          />
+                          <col
+                            style="width: 160px;"
+                          />
+                          <col
+                            style="width: 100px;"
+                          />
+                          <col
+                            style="width: 140px;"
+                          />
+                          <col
+                            style="width: 170px;"
+                          />
+                        </colgroup>
                         <thead>
                           <tr>
                             <th
@@ -992,7 +1013,7 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                 class="kfp-runs-table-view"
               >
                 <div
-                  class="kfp-runs-table-view"
+                  class="kfp-runs-table-view kfp-runs-data-table"
                 >
                   <div
                     class="kfp-runs-filter-row"
@@ -1024,8 +1045,29 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                         aria-busy="false"
                         aria-label="Runs"
                         class="kfp-runs-table"
-                        style="min-width: 1000px;"
+                        style="min-width: 1100px; table-layout: fixed;"
                       >
+                        <colgroup>
+                          <col
+                            style="width: 46px;"
+                          />
+                          <col />
+                          <col
+                            style="width: 116px;"
+                          />
+                          <col
+                            style="width: 160px;"
+                          />
+                          <col
+                            style="width: 100px;"
+                          />
+                          <col
+                            style="width: 140px;"
+                          />
+                          <col
+                            style="width: 170px;"
+                          />
+                        </colgroup>
                         <thead>
                           <tr>
                             <th
@@ -1592,7 +1634,7 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                 class="kfp-runs-table-view"
               >
                 <div
-                  class="kfp-runs-table-view"
+                  class="kfp-runs-table-view kfp-runs-data-table"
                 >
                   <div
                     class="kfp-runs-filter-row"
@@ -1624,8 +1666,29 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                         aria-busy="false"
                         aria-label="Runs"
                         class="kfp-runs-table"
-                        style="min-width: 1000px;"
+                        style="min-width: 1100px; table-layout: fixed;"
                       >
+                        <colgroup>
+                          <col
+                            style="width: 46px;"
+                          />
+                          <col />
+                          <col
+                            style="width: 116px;"
+                          />
+                          <col
+                            style="width: 160px;"
+                          />
+                          <col
+                            style="width: 100px;"
+                          />
+                          <col
+                            style="width: 140px;"
+                          />
+                          <col
+                            style="width: 170px;"
+                          />
+                        </colgroup>
                         <thead>
                           <tr>
                             <th

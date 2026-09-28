@@ -594,6 +594,7 @@ exports[`Router > initial render 1`] = `
             title="unknown · unknown"
           >
             <a
+              class="kfp-shell-metadata-version"
               href="https://github.com/kubeflow/pipelines"
               rel="noopener noreferrer"
               target="_blank"

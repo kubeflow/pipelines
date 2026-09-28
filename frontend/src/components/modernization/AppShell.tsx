@@ -267,28 +267,42 @@ export function AppShell({
                 </a>
               ))}
             </div>
-            {!collapsed && (version || metadata) && (
+            {!collapsed && (
               <div
                 className='kfp-shell-metadata'
                 title={[metadata?.buildDate, metadata?.commitHash].filter(Boolean).join(' · ')}
               >
                 {version &&
                   (versionHref ? (
-                    <a href={versionHref} target='_blank' rel='noopener noreferrer'>
+                    <a
+                      className='kfp-shell-metadata-version'
+                      href={versionHref}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
                       {version}
                     </a>
                   ) : (
-                    <span>{version}</span>
+                    <span className='kfp-shell-metadata-version'>{version}</span>
                   ))}
                 {metadata?.clusterName &&
                   (metadata.clusterHref ? (
-                    <a href={metadata.clusterHref} target='_blank' rel='noopener noreferrer'>
+                    <a
+                      className='kfp-shell-metadata-cluster'
+                      href={metadata.clusterHref}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
                       Cluster: {metadata.clusterName}
                     </a>
                   ) : (
-                    <span>Cluster: {metadata.clusterName}</span>
+                    <span className='kfp-shell-metadata-cluster'>
+                      Cluster: {metadata.clusterName}
+                    </span>
                   ))}
-                {metadata?.projectId && <span>Project: {metadata.projectId}</span>}
+                {metadata?.projectId && (
+                  <span className='kfp-shell-metadata-project'>Project: {metadata.projectId}</span>
+                )}
               </div>
             )}
           </footer>

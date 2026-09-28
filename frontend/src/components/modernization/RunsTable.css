@@ -251,3 +251,33 @@
   width: 18px;
   height: 18px;
 }
+
+/* Keep page controls in place while the visible result count changes. */
+.kfp-theme .kfp-runs-page .kfp-runs-table-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.kfp-theme .kfp-runs-page .kfp-runs-table-scroll {
+  flex: 1;
+  min-height: 120px;
+}
+.kfp-theme .kfp-runs-table-footer {
+  flex: none;
+}
+.kfp-theme .kfp-runs-table-footer > [role='status'] {
+  min-height: 18px;
+}
+.kfp-theme .kfp-runs-data-table .kfp-runs-table thead tr {
+  height: 40px;
+}
+.kfp-theme .kfp-runs-data-table .kfp-runs-table tbody tr[data-row-id] {
+  height: 64px;
+}
+.kfp-theme .kfp-runs-data-table .kfp-runs-name {
+  min-width: 0;
+}
+.kfp-theme .kfp-runs-data-table .kfp-runs-resource-link {
+  max-width: 100%;
+}

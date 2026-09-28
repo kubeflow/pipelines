@@ -227,6 +227,73 @@ describe('AppShell', () => {
     expect(screen.getByText('Project: project-a')).toBeInTheDocument();
   });
 
+  it('reserves the expanded metadata container without fabricating unavailable values or links', () => {
+    const { container } = renderShell();
+    const metadata = container.querySelector('.kfp-shell-metadata');
+    expect(metadata).toBeEmptyDOMElement();
+    expect(metadata).not.toHaveAttribute('role');
+    expect(container.querySelector('a:not([href]), a[href=""]')).not.toBeInTheDocument();
+  });
+
+  it('preserves metadata slots as optional deployment values arrive and disappear', () => {
+    function Fixture({ metadata }: Pick<AppShellProps, 'metadata'>) {
+      return (
+        <MemoryRouter>
+          <ThemeProvider defaultTheme='light'>
+            <AppShell
+              items={items}
+              currentPath='/runs'
+              version='v2.19.0'
+              versionHref='https://example.test/version'
+              metadata={metadata}
+            >
+              <h1>Runs</h1>
+            </AppShell>
+          </ThemeProvider>
+        </MemoryRouter>
+      );
+    }
+    const { container, rerender } = render(<Fixture />);
+    const metadata = container.querySelector('.kfp-shell-metadata');
+    const version = screen.getByRole('link', { name: 'v2.19.0' });
+    expect(version).toHaveClass('kfp-shell-metadata-version');
+    expect(metadata?.children).toHaveLength(1);
+    rerender(
+      <Fixture
+        metadata={{
+          clusterName: 'cluster-a',
+          clusterHref: 'https://example.test/cluster-a',
+          projectId: 'project-a',
+        }}
+      />,
+    );
+    expect(container.querySelector('.kfp-shell-metadata')).toBe(metadata);
+    expect(screen.getByRole('link', { name: 'v2.19.0' })).toBe(version);
+    expect(screen.getByRole('link', { name: 'Cluster: cluster-a' })).toHaveClass(
+      'kfp-shell-metadata-cluster',
+    );
+    expect(screen.getByText('Project: project-a')).toHaveClass('kfp-shell-metadata-project');
+    rerender(<Fixture />);
+    expect(metadata?.children).toHaveLength(1);
+    expect(screen.queryByText('Project: project-a')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Cluster: cluster-a' })).not.toBeInTheDocument();
+  });
+
+  it('omits metadata reservations from manually and responsively collapsed navigation', async () => {
+    const { container } = renderShell({
+      version: 'v2.19.0',
+      metadata: { projectId: 'project-a' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+    expect(container.querySelector('.kfp-shell-metadata')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Expand navigation' }));
+    expect(screen.getByText('Project: project-a')).toBeInTheDocument();
+    resize(600);
+    expect(container.querySelector('.kfp-shell-metadata')).not.toBeInTheDocument();
+    resize(1280);
+    expect(screen.getByText('Project: project-a')).toBeInTheDocument();
+  });
+
   it('removes each viewport subscription when unmounted', () => {
     const add = vi.spyOn(window, 'addEventListener');
     const remove = vi.spyOn(window, 'removeEventListener');

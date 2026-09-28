@@ -156,6 +156,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           renderTable={(table) => (
             <RunsTable
               table={table}
+              reservedRowCount={this.props.runIdListMask?.length}
               onOpenRun={(id) =>
                 this.props.navigate(
                   RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, encodeURIComponent(id)),

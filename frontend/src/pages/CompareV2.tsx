@@ -194,13 +194,17 @@ function CompareTableSection({
 }) {
   if (isLoading) {
     return (
-      <p className='kfp-comparison-loading' role='status'>
+      <p className='kfp-comparison-placeholder' role='status'>
         Loading {dataTypeName}…
       </p>
     );
   }
   if (!compareTableProps) {
-    return <p>There are no {dataTypeName} available on the selected runs.</p>;
+    return (
+      <p className='kfp-comparison-placeholder'>
+        There are no {dataTypeName} available on the selected runs.
+      </p>
+    );
   }
   return <CompareTable {...compareTableProps} label={`${dataTypeName} comparison`} />;
 }

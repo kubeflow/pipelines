@@ -34,14 +34,15 @@
 .kfp-comparison-overview {
   min-width: 0;
 }
-.kfp-comparison-loading {
-  padding: 36px 16px;
-  color: var(--muted-foreground);
-  text-align: center;
-}
-.kfp-comparison-card > p {
+.kfp-comparison-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 96px;
   margin: 0;
   padding: 24px 16px;
+  color: var(--muted-foreground);
+  text-align: center;
 }
 @media (max-width: 600px) {
   .kfp-comparison-page {

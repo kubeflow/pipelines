@@ -132,6 +132,7 @@ async function withFixture(options, exercise) {
     failRunReads: !!options.failRunReads,
     retryCount: 0,
     runGate: undefined,
+    tasksGate: undefined,
     experimentGate: undefined,
     logGates: new Map(),
   };
@@ -233,6 +234,7 @@ async function withFixture(options, exercise) {
         assert.equal(request.method(), 'GET');
         assert.equal(url.searchParams.get('page_size'), '200');
         assert.equal(url.searchParams.get('order_by'), 'create_time asc');
+        if (fixture.tasksGate) await fixture.tasksGate.promise;
         return json({ tasks: fixture.tasks });
       }
       if (path === `/apis/v2beta1/runs/${runId}:retry`) {
@@ -344,6 +346,7 @@ async function withFixture(options, exercise) {
     throw error;
   } finally {
     fixture.runGate?.release();
+    fixture.tasksGate?.release();
     fixture.experimentGate?.release();
     for (const pending of fixture.logGates.values()) pending.release();
     await context.close();
@@ -455,6 +458,88 @@ function sameGraph(before, after) {
     );
   }
 }
+
+test('Run Details keeps summary geometry stable when runtime task counts arrive', async () => {
+  await withFixture({}, async (page, fixture) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const pendingTasks = gate();
+    fixture.tasksGate = pendingTasks;
+    const tasksPath = `/apis/v2beta1/runs/${runId}/tasks`;
+    const requested = page.waitForRequest(
+      (request) => new URL(request.url()).pathname === tasksPath,
+    );
+    await page.goto(`${origin}/#/runs/details/${runId}`);
+    await requested;
+    await page.getByTestId('page-title').getByText('Nested browser run', { exact: true }).waitFor();
+    const summary = page.locator('.kfp-run-summary');
+    await summary.getByText('Loading…', { exact: true }).waitFor();
+    assert.equal(await summary.getByText(runId, { exact: true }).count(), 1);
+    const measure = () =>
+      summary.evaluate(async (element) => {
+        await document.fonts.ready;
+        await new Promise(requestAnimationFrame);
+        await new Promise(requestAnimationFrame);
+        const bounds = (node) => {
+          const { x, y, width, height } = node.getBoundingClientRect();
+          return { x, y, width, height };
+        };
+        return {
+          summary: bounds(element),
+          fields: [...element.children].map((field) => ({
+            label: field.querySelector('dt').textContent,
+            bounds: bounds(field),
+          })),
+        };
+      });
+    const loading = await measure();
+    assert.deepEqual(
+      loading.fields.map((field) => field.label),
+      ['Pipeline', 'Started', 'Elapsed', 'Runtime tasks', 'Run ID'],
+    );
+    pendingTasks.release();
+    await summary.getByText('3 done · 0 failed · 0 running · 0 skipped', { exact: true }).waitFor();
+    await graph(page);
+    const loaded = await measure();
+    const unchanged = (label, before, after) => {
+      for (const field of ['x', 'y', 'width', 'height'])
+        assert.ok(
+          Math.abs(after[field] - before[field]) <= 1,
+          `${label} ${field} shifted from ${before[field]} to ${after[field]}`,
+        );
+    };
+    unchanged('Run summary', loading.summary, loaded.summary);
+    assert.deepEqual(
+      loaded.fields.map((field) => field.label),
+      loading.fields.map((field) => field.label),
+    );
+    loaded.fields.forEach((field, index) =>
+      unchanged(field.label, loading.fields[index].bounds, field.bounds),
+    );
+    assert.equal(fixture.requests.filter((request) => request.path === tasksPath).length, 1);
+
+    for (const width of [1200, 375]) {
+      await page.setViewportSize({ width, height: 650 });
+      if (width === 375) await page.locator('.kfp-shell-sidebar[data-collapsed="true"]').waitFor();
+      const narrow = await measure();
+      assert.ok(narrow.summary.x >= 0 && narrow.summary.x + narrow.summary.width <= width);
+      for (const field of narrow.fields) {
+        assert.ok(
+          field.bounds.x >= narrow.summary.x &&
+            field.bounds.x + field.bounds.width <= narrow.summary.x + narrow.summary.width + 1,
+          `${field.label} must fit inside the narrow summary`,
+        );
+      }
+      assert.equal(
+        await summary.evaluate((element) => element.scrollWidth <= element.clientWidth),
+        true,
+      );
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        true,
+      );
+    }
+  });
+});
 
 test('Run Details preserves nested task links, history, copied URLs, and graph geometry', async () => {
   await withFixture({}, async (page, fixture) => {

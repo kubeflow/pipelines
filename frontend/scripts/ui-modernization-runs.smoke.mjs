@@ -72,6 +72,17 @@ function decodeFilter(value) {
   return JSON.parse(value.startsWith('%') ? decodeURIComponent(value) : value);
 }
 
+function gate() {
+  let release, enter;
+  const promise = new Promise((resolve) => {
+    release = resolve;
+  });
+  const entered = new Promise((resolve) => {
+    enter = resolve;
+  });
+  return { promise, release, entered, enter };
+}
+
 async function withFixture(options, exercise) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
@@ -143,8 +154,19 @@ async function withFixture(options, exercise) {
         return route.fulfill({ body, contentType });
       }
       if (path === '/apis/v2beta1/healthz') return json({ apiServerTagName: 'fixture' });
-      if (path === '/system/cluster-name' || path === '/system/project-id')
-        return route.fulfill({ body: '' });
+      if (path === '/system/cluster-name' || path === '/system/project-id') {
+        if (fixture.metadataGate) {
+          fixture.metadataGate.enter();
+          await fixture.metadataGate.promise;
+        }
+        return route.fulfill({
+          body: options.metadata
+            ? path.endsWith('cluster-name')
+              ? 'test-cluster'
+              : 'test-project'
+            : '',
+        });
+      }
       if (
         ['/apis/v2beta1/runs', '/apis/v2beta1/pipelines', '/apis/v2beta1/experiments'].includes(
           path,
@@ -203,6 +225,10 @@ async function withFixture(options, exercise) {
           'only name and storage filters are expected',
         );
         fixture.lists.push({ ...query, predicates });
+        if (fixture.listGate) {
+          fixture.listGate.enter();
+          await fixture.listGate.promise;
+        }
         if (fixture.failNextList) {
           fixture.failNextList = false;
           return json({ code: 14, message: 'Fixture list temporarily unavailable' }, 503);
@@ -291,6 +317,8 @@ async function withFixture(options, exercise) {
     if (fixture.errors.length) console.error('Fixture errors:', fixture.errors);
     throw error;
   } finally {
+    fixture.listGate?.release();
+    fixture.metadataGate?.release();
     await context.close();
   }
 }
@@ -649,5 +677,105 @@ test('Command palette searches the active namespace and preserves keyboard navig
     await dialog.getByRole('link', { name: 'Runs', exact: true }).click();
     await page.waitForURL((url) => url.hash === '#/runs');
     await ready(page, 2);
+  });
+});
+
+test('Runs keeps columns, pagination and sidebar controls stable across held loading and filtering', async () => {
+  await withFixture({ metadata: true }, async (page, fixture) => {
+    fixture.listGate = gate();
+    fixture.metadataGate = gate();
+    await page.goto(`${origin}/#/runs`);
+    await fixture.listGate.entered;
+    await page.getByRole('status').filter({ hasText: 'Loading runs…' }).waitFor();
+    const geometry = async () => {
+      await page.evaluate(() =>
+        document.fonts.ready.then(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        ),
+      );
+      return page.evaluate(() => {
+        const rect = (element) => {
+          const { x, y, width, height } = element.getBoundingClientRect();
+          return { x, y, width, height };
+        };
+        return {
+          footer: rect(document.querySelector('.kfp-runs-table-footer')),
+          filter: rect(document.querySelector('input[type="search"]')),
+          sidebar: rect(document.querySelector('.kfp-shell-footer')),
+          theme: rect(document.querySelector('.kfp-shell-theme-control')),
+          columns: [...document.querySelectorAll('table[aria-label="Runs"] th')].map(rect),
+        };
+      });
+    };
+    const same = (before, after) => {
+      for (const key of ['footer', 'filter', 'sidebar', 'theme'])
+        for (const dimension of ['x', 'y', 'width', 'height'])
+          assert.ok(
+            Math.abs(before[key][dimension] - after[key][dimension]) <= 1,
+            `${key}.${dimension}: ${before[key][dimension]} -> ${after[key][dimension]}`,
+          );
+      assert.equal(before.columns.length, after.columns.length);
+      before.columns.forEach((column, index) => {
+        for (const dimension of ['x', 'width'])
+          assert.ok(
+            Math.abs(column[dimension] - after.columns[index][dimension]) <= 1,
+            `column${index}.${dimension} moved`,
+          );
+      });
+    };
+    const initial = await geometry();
+    fixture.listGate.release();
+    await ready(page, 10);
+    same(initial, await geometry());
+    fixture.metadataGate.release();
+    await page.getByText('Cluster: test-cluster', { exact: true }).waitFor();
+    await page.getByText('Project: test-project', { exact: true }).waitFor();
+    same(initial, await geometry());
+    for (const [filter, expected] of [
+      ['Training 15', 1],
+      ['no-such-run', 0],
+      ['', 10],
+    ]) {
+      fixture.listGate = gate();
+      await page.getByRole('searchbox', { name: 'Filter runs by name' }).fill(filter);
+      await fixture.listGate.entered;
+      same(initial, await geometry());
+      fixture.listGate.release();
+      await ready(page, expected);
+      same(initial, await geometry());
+      const ids = await page
+        .locator('[data-testid="run-name-link"]')
+        .evaluateAll((links) => links.map((link) => link.getAttribute('data-run-id')));
+      assert.deepEqual(
+        ids,
+        expected === 1
+          ? [runId(15)]
+          : expected === 0
+            ? []
+            : Array.from({ length: 10 }, (_, index) => runId(index + 1)),
+      );
+      if (expected === 0) await page.getByText('No runs match', { exact: true }).waitFor();
+      assert.equal(fixture.lists.at(-1).page_token || '', '');
+    }
+    await page.getByRole('button', { name: 'Collapse navigation', exact: true }).click();
+    assert.equal(await page.locator('.kfp-shell-metadata').count(), 0);
+    await page.setViewportSize({ width: 375, height: 812 });
+    assert.equal(await page.locator('.kfp-shell-metadata').count(), 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    const scroll = page.getByRole('region', { name: 'Runs table', exact: true });
+    await scroll.focus();
+    await page.keyboard.press('End');
+    assert.equal(
+      await page.getByRole('button', { name: 'Next page', exact: true }).isEnabled(),
+      true,
+    );
+    const fontRequests = await page.evaluate(() =>
+      performance
+        .getEntriesByType('resource')
+        .filter((entry) => /\.woff2$/.test(entry.name))
+        .map((entry) => entry.name),
+    );
+    assert.equal(new Set(fontRequests).size, 4, 'four critical font faces load once');
   });
 });

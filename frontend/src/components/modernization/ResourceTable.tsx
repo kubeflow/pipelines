@@ -39,6 +39,9 @@ interface ResourceTableProps {
   plural?: string;
   filterLabel?: string;
   minWidth?: CSSProperties['minWidth'];
+  columnWidths?: CSSProperties['width'][];
+  minScrollHeight?: CSSProperties['minHeight'];
+  className?: string;
   getRowLabel?: (row: Row) => string;
 }
 
@@ -55,6 +58,9 @@ export function ResourceTable({
   plural = 'resources',
   filterLabel = table.filterLabel,
   minWidth = 640,
+  columnWidths,
+  minScrollHeight,
+  className = '',
   getRowLabel = defaultRowLabel,
 }: ResourceTableProps) {
   const filterId = useId();
@@ -66,7 +72,7 @@ export function ResourceTable({
     table.columns.length + (table.disableSelection ? 0 : 1) + (table.getExpandedContent ? 1 : 0);
 
   return (
-    <div className='kfp-runs-table-view'>
+    <div className={className ? `kfp-runs-table-view ${className}` : 'kfp-runs-table-view'}>
       {!table.noFilterBox && (
         <div className='kfp-runs-filter-row'>
           <label htmlFor={filterId}>{filterLabel}</label>
@@ -87,6 +93,7 @@ export function ResourceTable({
       <div className='kfp-runs-table-card'>
         <div
           className='kfp-runs-table-scroll'
+          style={{ minHeight: minScrollHeight }}
           role='region'
           aria-label={`${label} table`}
           tabIndex={0}
@@ -95,8 +102,17 @@ export function ResourceTable({
             className='kfp-runs-table'
             aria-label={label}
             aria-busy={table.isBusy}
-            style={{ minWidth }}
+            style={{ minWidth, tableLayout: columnWidths ? 'fixed' : undefined }}
           >
+            {columnWidths && (
+              <colgroup>
+                {!table.disableSelection && <col style={{ width: 46 }} />}
+                {table.getExpandedContent && <col style={{ width: 36 }} />}
+                {table.columns.map((column, index) => (
+                  <col key={column.label} style={{ width: columnWidths[index] }} />
+                ))}
+              </colgroup>
+            )}
             <thead>
               <tr>
                 {!table.disableSelection && (

@@ -122,7 +122,7 @@ before(async () => {
 });
 after(async () => browser?.close());
 
-async function withFixture(exercise, { checkHeaderLayout = false } = {}) {
+async function withFixture(exercise, { checkHeaderLayout = false, checkEmptyLayout = false } = {}) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     locale: 'en-US',
@@ -136,11 +136,12 @@ async function withFixture(exercise, { checkHeaderLayout = false } = {}) {
     if (window === window.top) localStorage.setItem('kfp.theme', 'light');
   });
   let releaseRuns;
-  const runsReady = checkHeaderLayout
-    ? new Promise((resolve) => {
-        releaseRuns = resolve;
-      })
-    : Promise.resolve();
+  const runsReady =
+    checkHeaderLayout || checkEmptyLayout
+      ? new Promise((resolve) => {
+          releaseRuns = resolve;
+        })
+      : Promise.resolve();
   if (checkHeaderLayout) {
     await context.addInitScript(() => {
       window.__kfpComparisonContentY = [];
@@ -153,7 +154,14 @@ async function withFixture(exercise, { checkHeaderLayout = false } = {}) {
       }).observe(document, { childList: true, subtree: true });
     });
   }
-  const fixture = { requests: [], errors: [] };
+  const fixture = {
+    requests: [],
+    errors: [],
+    runs: structuredClone(runs).map((run) =>
+      checkEmptyLayout ? { ...run, runtime_config: { parameters: {} } } : run,
+    ),
+    runGate: undefined,
+  };
   page.on('pageerror', (error) => fixture.errors.push(error.message));
   await context.route('**/*', async (route) => {
     const request = route.request();
@@ -192,10 +200,12 @@ async function withFixture(exercise, { checkHeaderLayout = false } = {}) {
           assert.equal(query.page_size, '200');
           assert.equal(query.order_by, 'create_time asc');
           assert.equal(query.page_token, undefined);
-          return json({ tasks: tasksFor(id) });
+          return json({ tasks: checkEmptyLayout ? [] : tasksFor(id) });
         }
+        const snapshot = structuredClone(fixture.runs.find((run) => run.run_id === id));
         await runsReady;
-        return json(runs.find((run) => run.run_id === id));
+        if (fixture.runGate) await fixture.runGate.promise;
+        return json(snapshot);
       }
       if (path === '/artifacts/get') {
         assert.equal(query.source, 's3');
@@ -217,6 +227,15 @@ async function withFixture(exercise, { checkHeaderLayout = false } = {}) {
     fixture.navigationStartedAt = performance.now();
     await page.goto(`${origin}/${comparisonHash}`);
     let loadingContentTop;
+    let loadingGeometry;
+    if (checkEmptyLayout) {
+      await page.getByText('Loading parameters…', { exact: true }).waitFor();
+      await page.getByText('Loading scalar metrics artifacts…', { exact: true }).waitFor();
+      await page.getByRole('table', { name: 'Runs', exact: true }).waitFor();
+      await page.evaluate(() => document.fonts.ready);
+      loadingGeometry = await comparisonGeometry(page);
+      releaseRuns();
+    }
     if (checkHeaderLayout) {
       await page.getByRole('heading', { name: 'Compare 2 runs', exact: true }).waitFor();
       loadingContentTop = await page
@@ -230,7 +249,12 @@ async function withFixture(exercise, { checkHeaderLayout = false } = {}) {
       assert.deepEqual(await page.locator('.kfp-page-breadcrumbs a').allTextContents(), ['Runs']);
       releaseRuns();
     }
-    await page.getByRole('table', { name: 'parameters comparison', exact: true }).waitFor();
+    if (checkEmptyLayout) {
+      await emptyComparisonReady(page);
+      sameComparisonGeometry(loadingGeometry, await comparisonGeometry(page), 'initial empty data');
+    } else {
+      await page.getByRole('table', { name: 'parameters comparison', exact: true }).waitFor();
+    }
     if (checkHeaderLayout) {
       const readyTop = await page
         .locator('.kfp-modern-page-content')
@@ -254,9 +278,65 @@ async function withFixture(exercise, { checkHeaderLayout = false } = {}) {
     throw error;
   } finally {
     releaseRuns?.();
+    fixture.runGate?.release();
     await context.close();
   }
 }
+async function emptyComparisonReady(page) {
+  await page
+    .getByText('There are no parameters available on the selected runs.', { exact: true })
+    .waitFor();
+  await page
+    .getByText('There are no scalar metrics artifacts available on the selected runs.', {
+      exact: true,
+    })
+    .waitFor();
+  await page.waitForFunction(() => {
+    const table = document.querySelector('table[aria-label="Runs"]');
+    return (
+      table?.getAttribute('aria-busy') === 'false' &&
+      table.querySelectorAll('[data-testid="run-name-link"]').length === 2
+    );
+  });
+}
+async function comparisonGeometry(page) {
+  return page.evaluate(() => {
+    const bounds = (element) => {
+      const { x, y, width, height } = element.getBoundingClientRect();
+      return { x, y, width, height };
+    };
+    const selectors = {
+      overview: '.kfp-comparison-overview',
+      footer: '.kfp-comparison-overview .kfp-runs-table-footer',
+      metricTabs: '[role="tablist"][aria-label="Metric types"]',
+    };
+    const geometry = Object.fromEntries(
+      Object.entries(selectors).map(([name, selector]) => [
+        name,
+        bounds(document.querySelector(selector)),
+      ]),
+    );
+    for (const [index, element] of [
+      ...document.querySelectorAll('.kfp-comparison-section-heading'),
+    ].entries())
+      geometry[`heading${index}`] = bounds(element);
+    for (const [index, element] of [...document.querySelectorAll('.kfp-comparison-card')].entries())
+      geometry[`card${index}`] = bounds(element);
+    return geometry;
+  });
+}
+function sameComparisonGeometry(before, after, phase) {
+  assert.deepEqual(Object.keys(after), Object.keys(before));
+  for (const name of Object.keys(before)) {
+    for (const dimension of ['x', 'y', 'width', 'height']) {
+      assert.ok(
+        Math.abs(after[name][dimension] - before[name][dimension]) < 1,
+        `${phase}: ${name}.${dimension} shifted from ${before[name][dimension]} to ${after[name][dimension]}`,
+      );
+    }
+  }
+}
+
 async function screenshot(page, name) {
   if (!process.env.KFP_COMPARISON_SCREENSHOT_DIR) return;
   await mkdir(process.env.KFP_COMPARISON_SCREENSHOT_DIR, { recursive: true });
@@ -368,6 +448,71 @@ test('Comparison preserves selected URL order, encoded links, and absent versus 
       assert.equal(new URL(page.url()).hash, comparisonHash);
     },
     { checkHeaderLayout: true },
+  );
+});
+
+test('Comparison keeps empty section geometry stable during slow initial data and refresh', async () => {
+  await withFixture(
+    async (page, fixture) => {
+      const before = await comparisonGeometry(page);
+      let release;
+      fixture.runGate = {
+        promise: new Promise((resolve) => {
+          release = resolve;
+        }),
+        release: () => release(),
+      };
+      fixture.runs = fixture.runs.map((run) => ({
+        ...run,
+        display_name: `${run.display_name} updated`,
+      }));
+      const requested = page.waitForRequest((request) =>
+        /\/apis\/v2beta1\/runs\/[^/]+$/.test(new URL(request.url()).pathname),
+      );
+      await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+      await requested;
+      await page.getByText('Refreshing runs…', { exact: true }).waitFor();
+      assert.equal(
+        await page.getByRole('table', { name: 'Runs', exact: true }).getAttribute('aria-busy'),
+        'true',
+      );
+      assert.equal(await page.getByText('Loading parameters…', { exact: true }).count(), 0);
+      assert.equal(
+        await page.getByText('Loading scalar metrics artifacts…', { exact: true }).count(),
+        0,
+      );
+      assert.ok(
+        await page
+          .getByText('There are no parameters available on the selected runs.', { exact: true })
+          .isVisible(),
+      );
+      assert.ok(
+        await page
+          .getByText('There are no scalar metrics artifacts available on the selected runs.', {
+            exact: true,
+          })
+          .isVisible(),
+      );
+      sameComparisonGeometry(before, await comparisonGeometry(page), 'pending refresh');
+      fixture.runGate.release();
+      await emptyComparisonReady(page);
+      const table = page.getByRole('table', { name: 'Runs', exact: true });
+      await table.getByRole('link', { name: 'Alpha run updated', exact: true }).waitFor();
+      await table.getByRole('link', { name: 'Beta run updated', exact: true }).waitFor();
+      assert.equal(await table.getByRole('link', { name: 'Alpha run', exact: true }).count(), 0);
+      assert.equal(await table.getByRole('link', { name: 'Beta run', exact: true }).count(), 0);
+      assert.deepEqual(
+        await table
+          .locator('[data-testid="run-name-link"]')
+          .evaluateAll((links) => links.map((link) => link.dataset.runId)),
+        [betaId, alphaId],
+      );
+      assert.equal(await table.locator('[data-row-id][data-selected="true"]').count(), 2);
+      sameComparisonGeometry(before, await comparisonGeometry(page), 'completed refresh');
+      assert.equal(fixture.requests.filter((request) => request.path.endsWith('/tasks')).length, 4);
+      assert.equal(new URL(page.url()).hash, comparisonHash);
+    },
+    { checkEmptyLayout: true },
   );
 });
 

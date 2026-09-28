@@ -207,11 +207,27 @@
 
 .kfp-theme .kfp-shell-metadata {
   display: grid;
+  /* Reserve optional metadata rows while allowing long values to wrap and grow. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(24px, auto) minmax(24px, auto) minmax(1.5em, auto);
+  align-content: start;
   gap: 3px;
   overflow-wrap: anywhere;
   padding: 8px 9px 0;
   color: var(--muted-foreground);
   font-size: 11px;
+}
+
+.kfp-theme .kfp-shell-metadata-version {
+  grid-row: 1;
+}
+
+.kfp-theme .kfp-shell-metadata-cluster {
+  grid-row: 2;
+}
+
+.kfp-theme .kfp-shell-metadata-project {
+  grid-row: 3;
 }
 
 .kfp-theme .kfp-shell-metadata a {

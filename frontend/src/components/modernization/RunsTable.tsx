@@ -17,11 +17,22 @@
 import type { CustomTableRenderModel } from '../CustomTable';
 import { ResourceTable } from './ResourceTable';
 
+const columnWidths: Record<string, number> = {
+  Status: 116,
+  'Pipeline version': 160,
+  Experiment: 140,
+  Duration: 100,
+  'Recurring Run': 140,
+  Started: 170,
+};
+
 export function RunsTable({
   table,
   onOpenRun,
+  reservedRowCount,
 }: {
   table: CustomTableRenderModel;
+  reservedRowCount?: number;
   onOpenRun: (id: string) => void;
 }) {
   return (
@@ -32,7 +43,12 @@ export function RunsTable({
       singular='run'
       plural='runs'
       filterLabel='Filter runs by name'
-      minWidth={1000}
+      minWidth={1100}
+      className='kfp-runs-data-table'
+      columnWidths={table.columns.map((column) => columnWidths[column.label])}
+      minScrollHeight={
+        reservedRowCount === undefined ? undefined : 40 + Math.max(0, reservedRowCount) * 64
+      }
     />
   );
 }
