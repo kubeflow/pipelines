@@ -600,7 +600,10 @@ describe('/artifacts authorization', () => {
       await requests(app.app)
         .get(httpArtifactRequest)
         .set('kubeflow-userid', 'user@example.com')
-        .expect(400, 'HTTP artifact base URL is not configured');
+        .expect(
+          400,
+          'HTTP artifact base URL is not configured. Set HTTP_BASE_URL to an approved artifact base.',
+        );
 
       expect(mockedFetch).toHaveBeenCalledTimes(1);
     });
