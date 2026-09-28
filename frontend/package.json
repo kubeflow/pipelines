@@ -112,7 +112,7 @@
     "@types/dagre": "^0.7.54",
     "@types/express": "^5.0.6",
     "@types/js-yaml": "^3.12.3",
-    "@types/lodash": ">=4.14.117",
+    "@types/lodash": ">=4.17.25",
     "@types/node": "^20.19.28",
     "@types/react": "^19",
     "@types/react-dom": "^19",
