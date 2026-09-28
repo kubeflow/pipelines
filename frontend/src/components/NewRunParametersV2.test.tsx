@@ -16,7 +16,7 @@
 
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 import { getInitialParameterState } from 'src/lib/NewRunParametersUtils';
@@ -30,6 +30,33 @@ function chooseLiteralOption(name: string) {
 
 // Spies on mount-time callbacks may run twice under RTL StrictMode (double mount).
 describe('NewRunParametersV2', () => {
+  it('names the editable JSON control for its parameter', async () => {
+    render(
+      <NewRunParametersV2
+        titleMessage='Specify parameters'
+        specParameters={{
+          settings: {
+            parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+            defaultValue: { enabled: true },
+          },
+        }}
+        clonedRuntimeConfig={{}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Open Json Editor' }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('textbox', { name: /settings - dict JSON editor/ }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByLabelText('settings - dict')).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Close Json Editor' }));
+    expect(
+      screen.queryByRole('textbox', { name: /settings - dict JSON editor/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('settings - dict')).toBeEnabled();
+  });
+
   it('shows parameters', () => {
     const props = {
       titleMessage: 'Specify parameters required by the pipeline',

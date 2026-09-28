@@ -50,11 +50,16 @@ export function ModalDialog({
         <Dialog.Viewport className='kfp-page-dialog-viewport'>
           <Dialog.Popup id={id} className={`kfp-page-dialog kfp-dialog-${size}`}>
             <Dialog.Title className='kfp-page-dialog-title'>{title}</Dialog.Title>
-            {children && (
-              <Dialog.Description render={<div />} className='kfp-page-dialog-content'>
-                {children}
-              </Dialog.Description>
-            )}
+            {children &&
+              (typeof children === 'string' ? (
+                <Dialog.Description render={<div />} className='kfp-page-dialog-content'>
+                  {children}
+                </Dialog.Description>
+              ) : (
+                // Tables, forms, and lists must retain their structure instead of becoming
+                // one long accessible description announced when the dialog opens.
+                <div className='kfp-page-dialog-content'>{children}</div>
+              ))}
             {actions && <div className='kfp-page-dialog-actions'>{actions}</div>}
           </Dialog.Popup>
         </Dialog.Viewport>

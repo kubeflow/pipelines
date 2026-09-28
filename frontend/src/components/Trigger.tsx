@@ -68,6 +68,61 @@ interface TriggerState {
   endTimeMessage: string;
 }
 
+function ScheduleDateTimeFields({
+  boundary,
+  date,
+  time,
+  visible,
+  message,
+  onDateChange,
+  onTimeChange,
+}: {
+  boundary: 'start' | 'end';
+  date: string;
+  time: string;
+  visible: boolean;
+  message: string;
+  onDateChange: React.ChangeEventHandler<HTMLInputElement>;
+  onTimeChange: React.ChangeEventHandler<HTMLInputElement>;
+}) {
+  const messageId = React.useId();
+  const label = boundary === 'start' ? 'Start' : 'End';
+  return (
+    <>
+      <div
+        className='kfp-schedule-date-time'
+        style={{ visibility: visible ? 'visible' : 'hidden' }}
+      >
+        <TextField
+          label={`${label} date`}
+          type='date'
+          onChange={onDateChange}
+          value={date}
+          aria-invalid={!!message}
+          aria-describedby={message ? messageId : undefined}
+        />
+        <TextField
+          label={`${label} time`}
+          type='time'
+          onChange={onTimeChange}
+          value={time}
+          aria-invalid={!!message}
+          aria-describedby={message ? messageId : undefined}
+        />
+      </div>
+      <div
+        id={messageId}
+        data-testid={`${boundary}TimeMessage`}
+        className='kfp-form-error'
+        role={message ? 'alert' : undefined}
+        style={{ visibility: visible ? 'visible' : 'hidden' }}
+      >
+        {message}
+      </div>
+    </>
+  );
+}
+
 export default class Trigger extends React.Component<TriggerProps, TriggerState> {
   public state: TriggerState = (() => {
     const { maxConcurrentRuns, catchup, trigger } =
@@ -190,31 +245,15 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             />
             Has start date
           </label>
-          <div
-            className='kfp-schedule-date-time'
-            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
-          >
-            <TextField
-              label='Start date'
-              type='date'
-              onChange={this.handleChange('startDate')}
-              value={startDate}
-            />
-            <TextField
-              label='Start time'
-              type='time'
-              onChange={this.handleChange('startTime')}
-              value={startTime}
-            />
-          </div>
-          <div
-            data-testid='startTimeMessage'
-            className='kfp-form-error'
-            role={startTimeMessage ? 'alert' : undefined}
-            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
-          >
-            {startTimeMessage}
-          </div>
+          <ScheduleDateTimeFields
+            boundary='start'
+            date={startDate}
+            time={startTime}
+            visible={hasStartDate}
+            message={startTimeMessage}
+            onDateChange={this.handleChange('startDate')}
+            onTimeChange={this.handleChange('startTime')}
+          />
         </fieldset>
         <fieldset className='kfp-schedule-boundary'>
           <legend>End</legend>
@@ -222,31 +261,15 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             <Checkbox checked={hasEndDate} onCheckedChange={this._checkedChanged('hasEndDate')} />
             Has end date
           </label>
-          <div
-            className='kfp-schedule-date-time'
-            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-          >
-            <TextField
-              label='End date'
-              type='date'
-              onChange={this.handleChange('endDate')}
-              value={endDate}
-            />
-            <TextField
-              label='End time'
-              type='time'
-              onChange={this.handleChange('endTime')}
-              value={endTime}
-            />
-          </div>
-          <div
-            data-testid='endTimeMessage'
-            className='kfp-form-error'
-            role={endTimeMessage ? 'alert' : undefined}
-            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-          >
-            {endTimeMessage}
-          </div>
+          <ScheduleDateTimeFields
+            boundary='end'
+            date={endDate}
+            time={endTime}
+            visible={hasEndDate}
+            message={endTimeMessage}
+            onDateChange={this.handleChange('endDate')}
+            onTimeChange={this.handleChange('endTime')}
+          />
         </fieldset>
         <div>
           <label className='kfp-form-check'>

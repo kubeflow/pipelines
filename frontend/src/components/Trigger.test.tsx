@@ -125,6 +125,29 @@ describe('Trigger', () => {
     });
   });
 
+  it.each(['Start', 'End'])(
+    'associates %s date/time errors with both fields and clears them after recovery',
+    (boundary) => {
+      render(<Trigger />);
+      fireEvent.click(screen.getByRole('checkbox', { name: `Has ${boundary.toLowerCase()} date` }));
+      const date = screen.getByLabelText(`${boundary} date`);
+      const time = screen.getByLabelText(`${boundary} time`) as HTMLInputElement;
+      // Native time inputs sanitize malformed values; use the existing invalid-format fixture.
+      time.type = 'text';
+      fireEvent.change(time, { target: { value: 'invalid-time' } });
+      const message = `Invalid ${boundary.toLowerCase()} date or time, ${boundary.toLowerCase()} time won't be set`;
+      expect(date).toBeInvalid();
+      expect(time).toBeInvalid();
+      expect(date).toHaveAccessibleDescription(message);
+      expect(time).toHaveAccessibleDescription(message);
+      fireEvent.change(time, { target: { value: '08:35' } });
+      expect(date).toBeValid();
+      expect(time).toBeValid();
+      expect(date).not.toHaveAttribute('aria-describedby');
+      expect(time).not.toHaveAttribute('aria-describedby');
+    },
+  );
+
   describe('interval trigger', () => {
     it('builds an every-hour trigger by default', () => {
       const spy = vi.fn();

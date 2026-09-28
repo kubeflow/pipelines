@@ -206,6 +206,75 @@ it('uses a modal inspector on narrow screens and keeps task content on resize', 
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
+it('resizes the desktop inspector with a named keyboard separator and preserves width on rerender', async () => {
+  vi.stubGlobal('innerWidth', 1200);
+  const close = vi.fn();
+  const content = (title: string) => (
+    <InspectionPanel isOpen title={title} onClose={close}>
+      <button>Task action</button>
+    </InspectionPanel>
+  );
+  const user = userEvent.setup();
+  const view = render(content('Train model'));
+  const handle = screen.getByRole('separator', { name: 'Resize node details' });
+  const dialog = document.getElementById(handle.getAttribute('aria-controls')!)!;
+  expect(dialog).toHaveAttribute('role', 'dialog');
+  const panel = dialog.querySelector('.kfp-inspector-panel')!;
+  expect(handle).toHaveAttribute('aria-orientation', 'vertical');
+  expect(handle).toHaveAttribute('aria-valuenow', '380');
+  expect(handle).toHaveAttribute('aria-valuemin', '300');
+  expect(handle).toHaveAttribute('aria-valuemax', '1080');
+  await waitFor(() => expect(screen.getByRole('button', { name: 'close' })).toHaveFocus());
+  handle.focus();
+  await user.keyboard('{ArrowLeft}');
+  expect(handle).toHaveAttribute('aria-valuenow', '400');
+  expect(panel).toHaveStyle({ width: '400px' });
+  await user.keyboard('{ArrowRight}');
+  expect(handle).toHaveAttribute('aria-valuenow', '380');
+  await user.keyboard('{Home}{ArrowRight}');
+  expect(handle).toHaveAttribute('aria-valuenow', '300');
+  await user.keyboard('{End}{ArrowLeft}');
+  expect(handle).toHaveAttribute('aria-valuenow', '1080');
+  expect(handle).toHaveAttribute('aria-valuetext', '1080 pixels');
+  expect(panel).toHaveStyle({ width: '1080px' });
+  view.rerender(content('Updated task'));
+  expect(handle).toHaveFocus();
+  expect(handle).toHaveAttribute('aria-valuenow', '1080');
+  expect(panel).toHaveStyle({ width: '1080px' });
+  await user.keyboard('{Escape}');
+  expect(close).toHaveBeenCalledOnce();
+});
+
+it('bounds inspector width to the viewport without discarding the chosen desktop width', async () => {
+  vi.stubGlobal('innerWidth', 1200);
+  const user = userEvent.setup();
+  render(<PanelExample />);
+  await user.click(screen.getByRole('button', { name: 'Inspect task' }));
+  const handle = screen.getByRole('separator', { name: 'Resize node details' });
+  await waitFor(() => expect(screen.getByRole('button', { name: 'close' })).toHaveFocus());
+  handle.focus();
+  await user.keyboard('{End}');
+  act(() => {
+    vi.stubGlobal('innerWidth', 1000);
+    window.dispatchEvent(new Event('resize'));
+  });
+  expect(handle).toHaveAttribute('aria-valuemax', '900');
+  expect(handle).toHaveAttribute('aria-valuenow', '900');
+  act(() => viewport.setNarrow(true));
+  expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+  expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true');
+  await waitFor(() => expect(screen.getByRole('button', { name: 'close' })).toHaveFocus());
+  act(() => {
+    vi.stubGlobal('innerWidth', 1200);
+    window.dispatchEvent(new Event('resize'));
+    viewport.setNarrow(false);
+  });
+  expect(screen.getByRole('separator', { name: 'Resize node details' })).toHaveAttribute(
+    'aria-valuenow',
+    '1080',
+  );
+});
+
 it('keeps error details readable in a themed dismissible dialog', async () => {
   const user = userEvent.setup();
   render(

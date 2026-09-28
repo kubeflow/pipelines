@@ -188,9 +188,11 @@ function PaletteSession({
     groups?.flatMap((group, index) =>
       group.status === 'rejected' ? [resourceTypes[index].label] : [],
     ) || [];
-  const hasResults = groups?.some(
-    (group) => group.status === 'fulfilled' && group.value.length > 0,
-  );
+  const resultCount =
+    groups?.reduce(
+      (count, group) => count + (group.status === 'fulfilled' ? group.value.length : 0),
+      0,
+    ) || 0;
 
   return (
     <div className='kfp-command-palette' ref={containerRef} onKeyDown={moveFocus}>
@@ -230,7 +232,11 @@ function PaletteSession({
           {canSearch && !groups && 'Searching…'}
           {canSearch &&
             groups &&
-            !hasResults &&
+            resultCount > 0 &&
+            `${resultCount} matching ${resultCount === 1 ? 'resource' : 'resources'} shown.`}
+          {canSearch &&
+            groups &&
+            resultCount === 0 &&
             failedTypes.length === 0 &&
             'No matching resources.'}
         </div>

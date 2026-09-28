@@ -188,6 +188,24 @@ describe('CommandPalette', () => {
       '/experiments/details/experiment%2Fid',
     );
     expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('status')).toHaveTextContent('7 matching resources shown.');
+  });
+
+  it('announces completed asynchronous results without moving focus from the query', async () => {
+    const response = deferred<V2beta1ListRunsResponse>();
+    vi.mocked(Apis.runServiceApiV2.listRuns).mockReturnValue(response.promise);
+    render(<Fixture />);
+    const input = screen.getByRole('searchbox');
+    await waitFor(() => expect(input).toHaveFocus());
+    search('train');
+    expect(screen.getByRole('status')).toHaveTextContent('Searching…');
+    await waitFor(() => expect(Apis.runServiceApiV2.listRuns).toHaveBeenCalledOnce());
+    await act(async () =>
+      response.resolve({ runs: [{ run_id: 'run-one', display_name: 'Training run' }] }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('1 matching resource shown.');
+    expect(screen.getByRole('link', { name: 'Training run' })).toBeVisible();
+    expect(input).toHaveFocus();
   });
 
   it('keeps successful matches on partial failure and retries without retaining stale error UI', async () => {

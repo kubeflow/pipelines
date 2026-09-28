@@ -328,3 +328,14 @@
 .kfp-theme .kfp-inspection-link:hover {
   text-decoration: underline;
 }
+
+.kfp-theme .kfp-inspector-resize-handle {
+  width: 100%;
+  height: 100%;
+  cursor: col-resize;
+}
+.kfp-theme .kfp-inspector-resize-handle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -3px;
+  background: var(--primary-soft);
+}

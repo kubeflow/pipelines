@@ -36,3 +36,20 @@
     transition: none;
   }
 }
+
+@media (forced-colors: active) {
+  .kfp-theme .kfp-switch {
+    border-color: ButtonText;
+    background: ButtonFace;
+  }
+  .kfp-theme .kfp-switch-thumb {
+    background: ButtonText;
+  }
+  .kfp-theme .kfp-switch[data-disabled] {
+    border-color: GrayText;
+    opacity: 1;
+  }
+  .kfp-theme .kfp-switch[data-disabled] .kfp-switch-thumb {
+    background: GrayText;
+  }
+}

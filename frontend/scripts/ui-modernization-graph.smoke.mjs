@@ -17,6 +17,8 @@
 // npm run build && node --test scripts/ui-modernization-graph.smoke.mjs
 // KFP_GRAPH_CAPTURE_DIR retains geometry, screenshots and timing samples for same-machine review.
 // KFP_GRAPH_REFERENCE_DIR compares identities/connectivity to an earlier capture, not intentional sizing.
+// Optional candidate-only timings: KFP_SCALING_SAMPLES=3 KFP_SCALING_OUTPUT_DIR=/tmp/...
+// KFP_SOURCE_COMMIT=<built source SHA> node --test --test-name-pattern="candidate-only scaling" <this file>
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -572,3 +574,134 @@ test('nested loop task links preserve iteration identities and hierarchy navigat
     assert.equal(requests.filter(({ path }) => path.endsWith('/tasks')).length, 1);
   });
 });
+
+// These repeated laboratory samples are automation readiness timings, not field INP or a baseline comparison.
+if (process.env.KFP_SCALING_SAMPLES) {
+  test('candidate-only scaling: 200 tasks and 363 edges in fresh contexts', async () => {
+    const count = Number(process.env.KFP_SCALING_SAMPLES);
+    assert.ok(Number.isInteger(count) && count >= 3 && count <= 20, 'use 3–20 scaling samples');
+    assert.match(
+      process.env.KFP_SOURCE_COMMIT || '',
+      /^[a-f0-9]{40}$/,
+      'identify the built source',
+    );
+    assert.ok(process.env.KFP_SCALING_OUTPUT_DIR, 'provide a directory for retained raw samples');
+    const data = largeFixture();
+    assert.equal(data.tasks.length, 201, '200 executable tasks plus the structural root');
+    assert.equal(data.expectedNodes.length, 201, '200 task nodes plus one artifact');
+    assert.equal(data.expectedEdges.length, 363);
+    const samples = [];
+    const assetPaths = new Set();
+    for (let sample = 1; sample <= count; sample++) {
+      await withFixture(data, async (page, requests) => {
+        const started = performance.now();
+        await page.goto(`${origin}/#/runs/details/${runId}`);
+        const initial = await geometry(page, 201);
+        assert.deepEqual(
+          initial.nodes.map(({ id }) => id),
+          data.expectedNodes,
+        );
+        assert.deepEqual(
+          initial.edges.map(({ id, connection }) => ({ id, connection })),
+          data.expectedEdges,
+        );
+        assert.ok(initial.nodes.every(({ width, height }) => width === 200 && height === 56));
+        const graphReadyMs = performance.now() - started;
+        assert.deepEqual(
+          requests
+            .filter(({ path }) => path.endsWith('/tasks'))
+            .map(({ query }) => query.page_token || ''),
+          ['', 'remaining-tasks'],
+        );
+
+        // Native keyboard activation exercises the actual rendered task button and inspector.
+        const task = page.getByRole('button', { name: 'step-000', exact: true });
+        await task.focus();
+        const selectStarted = performance.now();
+        await task.press('Enter');
+        await page.locator('.react-flow__node[data-id="task.step-000"].selected').waitFor();
+        await page.getByRole('dialog', { name: 'step-000', exact: true }).waitFor();
+        await page.getByRole('tab', { name: 'Task Details', exact: true }).waitFor();
+        await page.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        );
+        const selectInspectorReadyMs = performance.now() - selectStarted;
+        await page.getByRole('button', { name: 'close', exact: true }).click();
+        await page.getByRole('dialog').waitFor({ state: 'hidden' });
+        sameGeometry(initial, await geometry(page, 201));
+
+        // Change zoom first so Fit View must perform a real viewport update.
+        const beforeZoom = await viewport(page);
+        await page.getByRole('button', { name: 'Zoom Out', exact: true }).click();
+        await changedViewport(page, beforeZoom);
+        await settledViewport(page);
+        const beforeFit = await viewport(page);
+        const fitStarted = performance.now();
+        await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+        await changedViewport(page, beforeFit);
+        await settledViewport(page);
+        const fitSettledMs = performance.now() - fitStarted;
+        sameGeometry(initial, await geometry(page, 201));
+        samples.push({ sample, graphReadyMs, selectInspectorReadyMs, fitSettledMs });
+        for (const { path } of requests) if (path.startsWith('/static/')) assetPaths.add(path);
+      });
+    }
+    const assets = await Promise.all(
+      [...assetPaths].sort().map(async (path) => {
+        const bytes = await readFile(new URL(path.slice(1), build));
+        return {
+          path,
+          bytes: bytes.length,
+          sha256: createHash('sha256').update(bytes).digest('hex'),
+        };
+      }),
+    );
+    const report = {
+      applicationSource: process.env.KFP_SOURCE_COMMIT,
+      harnessSha256: createHash('sha256')
+        .update(await readFile(new URL(import.meta.url)))
+        .digest('hex'),
+      indexSha256: createHash('sha256')
+        .update(await readFile(new URL('index.html', build)))
+        .digest('hex'),
+      fixtureSha256: createHash('sha256').update(JSON.stringify(data)).digest('hex'),
+      browser: {
+        engine: process.env.KFP_BROWSER || 'chromium',
+        version: browser.version(),
+        channel: process.env.PLAYWRIGHT_CHANNEL || null,
+      },
+      runtime: { node: process.version, platform: process.platform, arch: process.arch },
+      settings: {
+        viewport: { width: 1440, height: 900 },
+        deviceScaleFactor: 1,
+        locale: 'en-US',
+        timezoneId: 'UTC',
+        theme: 'light',
+        reducedMotion: 'reduce',
+        cpuThrottle: 'none',
+        networkThrottle: 'none',
+      },
+      method:
+        'Fresh context per sample in one warm browser process; local route fixtures and file/OS caches stay warm. Automation timings include Playwright overhead. Graph readiness includes complete paginated data and stable geometry/fonts; selection ends at the real inspector controls plus two frames; Fit View ends at a changed viewport stable for three frames. No field INP, backend load, or baseline speedup claim.',
+      fixture: {
+        executableTasks: 200,
+        runtimeRecords: 201,
+        renderedNodes: 201,
+        edges: 363,
+        nodeWidth: 200,
+        nodeHeight: 56,
+      },
+      assets,
+      samples,
+    };
+    await mkdir(process.env.KFP_SCALING_OUTPUT_DIR, { recursive: true });
+    await writeFile(
+      join(
+        process.env.KFP_SCALING_OUTPUT_DIR,
+        `graph-${process.env.KFP_BROWSER || 'chromium'}.json`,
+      ),
+      `${JSON.stringify(report, null, 2)}\n`,
+    );
+  });
+}

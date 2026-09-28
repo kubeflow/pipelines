@@ -15,8 +15,11 @@
  */
 
 // Run after npm run build. Fixtures exercise real native-run comparison and viewers.
+// Optional candidate-only timings: KFP_SCALING_SAMPLES=3 KFP_SCALING_OUTPUT_DIR=/tmp/...
+// KFP_SOURCE_COMMIT=<built source SHA> node --test --test-name-pattern="candidate-only scaling" <this file>
 import assert from 'node:assert/strict';
-import { mkdir, readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { before, after, test } from 'node:test';
 import { chromium, firefox, webkit } from 'playwright';
@@ -192,6 +195,7 @@ async function withFixture(exercise) {
     }
   });
   try {
+    fixture.navigationStartedAt = performance.now();
     await page.goto(`${origin}/${comparisonHash}`);
     await page.getByRole('table', { name: 'parameters comparison', exact: true }).waitFor();
     await exercise(page, fixture);
@@ -415,3 +419,172 @@ test('Comparison selected viewers preserve provenance and fullscreen keyboard fo
     );
   });
 });
+
+// These repeated laboratory samples are automation readiness timings, not field INP or a baseline comparison.
+if (process.env.KFP_SCALING_SAMPLES) {
+  test('candidate-only scaling: populated two-run comparison with 111 classifications', async () => {
+    const count = Number(process.env.KFP_SCALING_SAMPLES);
+    assert.ok(Number.isInteger(count) && count >= 3 && count <= 20, 'use 3–20 scaling samples');
+    assert.match(
+      process.env.KFP_SOURCE_COMMIT || '',
+      /^[a-f0-9]{40}$/,
+      'identify the built source',
+    );
+    assert.ok(process.env.KFP_SCALING_OUTPUT_DIR, 'provide a directory for retained raw samples');
+    const data = { runs, tasks: runs.map(({ run_id }) => tasksFor(run_id)) };
+    const classificationCount = data.tasks
+      .flat()
+      .flatMap((task) => task.outputs.artifacts)
+      .filter((output) => output.artifact_key === 'classification')
+      .reduce((count, output) => count + output.artifacts.length, 0);
+    assert.equal(classificationCount, 111);
+    const samples = [];
+    const assetPaths = new Set();
+    for (let sample = 1; sample <= count; sample++) {
+      await withFixture(async (page, fixture) => {
+        const parameters = page.getByRole('table', { name: 'parameters comparison', exact: true });
+        const metrics = page.getByRole('table', {
+          name: 'scalar metrics artifacts comparison',
+          exact: true,
+        });
+        await metrics.waitFor();
+        assert.deepEqual(await parameters.locator('thead a').allTextContents(), [
+          'Beta run',
+          'Alpha run',
+        ]);
+        assert.deepEqual(
+          await metrics
+            .getByRole('row')
+            .filter({ hasText: 'Evaluate / accuracy' })
+            .getByRole('cell')
+            .allTextContents(),
+          ['—', '0'],
+        );
+        assert.equal(fixture.requests.filter(({ path }) => path.endsWith('/tasks')).length, 2);
+        await page.evaluate(() =>
+          document.fonts.ready.then(
+            () =>
+              new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+          ),
+        );
+        const contentReadyMs = performance.now() - fixture.navigationStartedAt;
+
+        const chartStarted = performance.now();
+        await page.getByRole('tab', { name: 'Classification Metrics', exact: true }).click();
+        const trigger = page.getByRole('combobox', { name: 'ROC curves', exact: true });
+        await renderedCurves(page, 3);
+        const provenance = page.getByRole('list', {
+          name: 'Selected ROC curve provenance',
+          exact: true,
+        });
+        const original = await provenance.getByRole('listitem').allTextContents();
+        assert.equal(original.length, 3);
+        await page.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        );
+        const chartReadyMs = performance.now() - chartStarted;
+        await trigger.click();
+        const options = page.getByRole('listbox', { name: 'ROC curves', exact: true });
+        await options.waitFor();
+        assert.equal(await options.getByRole('option').count(), 100);
+        await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: 'Next ROC curves', exact: true }).click();
+        await trigger.click();
+        await options.waitFor();
+        assert.equal(await options.getByRole('option').count(), 11);
+        const last = options.getByRole('option').last();
+        const lastName = (await last.textContent()).trim();
+        const selectStarted = performance.now();
+        await last.click();
+        await renderedCurves(page, 4);
+        const selected = await provenance.getByRole('listitem').allTextContents();
+        assert.ok(original.every((name) => selected.includes(name)));
+        assert.ok(selected.some((name) => name.trim() === lastName));
+        await page.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        );
+        const addCurveReadyMs = performance.now() - selectStarted;
+        await page.keyboard.press('Escape');
+        const chart = page.locator('.kfp-roc-section .recharts-wrapper');
+        const compactHeight = await chart.evaluate(
+          (element) => element.getBoundingClientRect().height,
+        );
+        const expandStarted = performance.now();
+        await page.getByRole('button', { name: 'Expand ROC chart', exact: true }).click();
+        await page.getByRole('button', { name: 'Compact ROC chart', exact: true }).waitFor();
+        await page.waitForFunction(
+          (before) =>
+            document.querySelector('.kfp-roc-section .recharts-wrapper').getBoundingClientRect()
+              .height > before,
+          compactHeight,
+        );
+        await renderedCurves(page, 4);
+        await page.evaluate(
+          () =>
+            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+        );
+        const expandChartReadyMs = performance.now() - expandStarted;
+        samples.push({ sample, contentReadyMs, chartReadyMs, addCurveReadyMs, expandChartReadyMs });
+        for (const { path } of fixture.requests)
+          if (path.startsWith('/static/')) assetPaths.add(path);
+      });
+    }
+    const assets = await Promise.all(
+      [...assetPaths].sort().map(async (path) => {
+        const bytes = await readFile(new URL(path.slice(1), build));
+        return {
+          path,
+          bytes: bytes.length,
+          sha256: createHash('sha256').update(bytes).digest('hex'),
+        };
+      }),
+    );
+    const report = {
+      applicationSource: process.env.KFP_SOURCE_COMMIT,
+      harnessSha256: createHash('sha256')
+        .update(await readFile(new URL(import.meta.url)))
+        .digest('hex'),
+      indexSha256: createHash('sha256')
+        .update(await readFile(new URL('index.html', build)))
+        .digest('hex'),
+      fixtureSha256: createHash('sha256').update(JSON.stringify(data)).digest('hex'),
+      browser: {
+        engine: process.env.KFP_BROWSER || 'chromium',
+        version: browser.version(),
+        channel: process.env.PLAYWRIGHT_CHANNEL || null,
+      },
+      runtime: { node: process.version, platform: process.platform, arch: process.arch },
+      settings: {
+        viewport: { width: 1440, height: 1000 },
+        deviceScaleFactor: 1,
+        locale: 'en-US',
+        timezoneId: 'UTC',
+        theme: 'light',
+        reducedMotion: 'reduce',
+        cpuThrottle: 'none',
+        networkThrottle: 'none',
+      },
+      method:
+        'Fresh context per sample in one warm browser process; local route fixtures and file/OS caches stay warm. Automation timings include Playwright overhead. Initial readiness requires populated parameter/scalar tables and fonts; chart and selection readiness require actual curve paths/provenance; expansion requires increased rendered chart height. Each endpoint also waits two frames. No field INP, backend load, or baseline speedup claim.',
+      fixture: {
+        runs: 2,
+        classificationArtifacts: 111,
+        initialVisibleCurves: 3,
+        selectedVisibleCurves: 4,
+        pageSizes: [100, 11],
+      },
+      assets,
+      samples,
+    };
+    await mkdir(process.env.KFP_SCALING_OUTPUT_DIR, { recursive: true });
+    await writeFile(
+      join(
+        process.env.KFP_SCALING_OUTPUT_DIR,
+        `comparison-${process.env.KFP_BROWSER || 'chromium'}.json`,
+      ),
+      `${JSON.stringify(report, null, 2)}\n`,
+    );
+  });
+}

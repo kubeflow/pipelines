@@ -18,6 +18,7 @@ import { Checkbox as CheckboxPrimitive } from '@base-ui/react/checkbox';
 import { Check, Minus } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { cn } from './utils';
+import { useInputActivation } from './useInputActivation';
 import './checkbox.css';
 
 type CheckboxProps = Omit<ComponentProps<typeof CheckboxPrimitive.Root>, 'className'> & {
@@ -25,11 +26,13 @@ type CheckboxProps = Omit<ComponentProps<typeof CheckboxPrimitive.Root>, 'classN
 };
 
 export function Checkbox({ className, indeterminate, ...props }: CheckboxProps) {
+  const activation = useInputActivation(props);
   return (
     <CheckboxPrimitive.Root
       className={cn('kfp-checkbox', className)}
       indeterminate={indeterminate}
       {...props}
+      {...activation}
     >
       <CheckboxPrimitive.Indicator className='kfp-checkbox-indicator'>
         {indeterminate ? (

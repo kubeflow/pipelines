@@ -544,6 +544,36 @@ test('Experiments: bounded recent-run samples, expansion, archive navigation, na
   });
 });
 
+async function assertForcedColorSwitch(control) {
+  const styles = await control.evaluate((element) => {
+    const thumb = element.querySelector('.kfp-switch-thumb');
+    if (!thumb) throw new Error('Switch thumb missing');
+    return {
+      track: getComputedStyle(element).backgroundColor,
+      thumb: getComputedStyle(thumb).backgroundColor,
+      transition: getComputedStyle(thumb).transitionDuration,
+      transform: getComputedStyle(thumb).transform,
+    };
+  });
+  const luminance = (color) => {
+    const rgb = color
+      .match(/[\d.]+/g)
+      ?.slice(0, 3)
+      .map(Number);
+    assert.equal(rgb?.length, 3, `Expected an RGB system color, got ${color}`);
+    const linear = rgb.map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const light = Math.max(luminance(styles.track), luminance(styles.thumb));
+  const dark = Math.min(luminance(styles.track), luminance(styles.thumb));
+  assert.ok((light + 0.05) / (dark + 0.05) >= 3, JSON.stringify(styles));
+  assert.ok(styles.transition.split(',').every((value) => parseFloat(value) <= 0.001));
+  return styles.transform;
+}
+
 test('Recurring workflows: keyboard toggle failure/recovery, detail navigation and manager mutation', async () => {
   await withFixture({ namespace: 'team-a' }, async (page, fixture) => {
     await page.goto(`${origin}/#/recurringruns`);
@@ -553,6 +583,9 @@ test('Recurring workflows: keyboard toggle failure/recovery, detail navigation a
     fixture.held.set(`POST ${action}`, held);
     fixture.failNext.add(`POST ${action}`);
     const control = page.getByRole('switch', { name: 'Enable schedule Nightly training' });
+    await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
+    assert.equal(await page.evaluate(() => matchMedia('(forced-colors: active)').matches), true);
+    const checkedThumbPosition = await assertForcedColorSwitch(control);
     const firstToggle = waitMutation(page, action);
     await control.focus();
     await page.keyboard.press('Space');
@@ -575,6 +608,9 @@ test('Recurring workflows: keyboard toggle failure/recovery, detail navigation a
       await page.getByRole('alert').filter({ hasText: 'Unable to update schedule' }).count(),
       0,
     );
+    const uncheckedThumbPosition = await assertForcedColorSwitch(control);
+    assert.notEqual(uncheckedThumbPosition, checkedThumbPosition);
+    await page.emulateMedia({ forcedColors: 'none', reducedMotion: 'no-preference' });
     await theme(page, 'dark');
     await screenshot(page, 'recurring-dark');
     await page.getByRole('link', { name: 'Nightly training', exact: true }).click();

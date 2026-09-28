@@ -39,7 +39,7 @@ exports[`Trigger > enables a single day on click 1`] = `
       class="kfp-text-field"
     >
       <label
-        for="_r_39_"
+        for="_r_3h_"
       >
         Maximum concurrent runs
         <span
@@ -54,7 +54,7 @@ exports[`Trigger > enables a single day on click 1`] = `
         <input
           class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
-          id="_r_39_"
+          id="_r_3h_"
           inputmode="numeric"
           required=""
           value="10"
@@ -69,20 +69,20 @@ exports[`Trigger > enables a single day on click 1`] = `
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_3c_-label"
+        id="base-ui-_r_3k_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_3c_-label"
+          aria-labelledby="base-ui-_r_3k_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_3b_"
+          id="base-ui-_r_3j_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_3c_"
+          id="base-ui-_r_3k_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -97,7 +97,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_3e_"
+            for="_r_3n_"
           >
             Start date
           </label>
@@ -105,9 +105,10 @@ exports[`Trigger > enables a single day on click 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_3e_"
+              id="_r_3n_"
               type="date"
               value="2018-12-21"
             />
@@ -117,7 +118,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_3g_"
+            for="_r_3p_"
           >
             Start time
           </label>
@@ -125,9 +126,10 @@ exports[`Trigger > enables a single day on click 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_3g_"
+              id="_r_3p_"
               type="time"
               value="07:53"
             />
@@ -137,6 +139,7 @@ exports[`Trigger > enables a single day on click 1`] = `
       <div
         class="kfp-form-error"
         data-testid="startTimeMessage"
+        id="_r_3m_"
         style="visibility: hidden;"
       />
     </fieldset>
@@ -148,20 +151,20 @@ exports[`Trigger > enables a single day on click 1`] = `
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_3j_-label"
+        id="base-ui-_r_3s_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_3j_-label"
+          aria-labelledby="base-ui-_r_3s_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_3i_"
+          id="base-ui-_r_3r_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_3j_"
+          id="base-ui-_r_3s_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -176,7 +179,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_3l_"
+            for="_r_3v_"
           >
             End date
           </label>
@@ -184,9 +187,10 @@ exports[`Trigger > enables a single day on click 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_3l_"
+              id="_r_3v_"
               type="date"
               value="2018-12-28"
             />
@@ -196,7 +200,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_3n_"
+            for="_r_41_"
           >
             End time
           </label>
@@ -204,9 +208,10 @@ exports[`Trigger > enables a single day on click 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_3n_"
+              id="_r_41_"
               type="time"
               value="07:53"
             />
@@ -216,20 +221,21 @@ exports[`Trigger > enables a single day on click 1`] = `
       <div
         class="kfp-form-error"
         data-testid="endTimeMessage"
+        id="_r_3u_"
         style="visibility: hidden;"
       />
     </fieldset>
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_3q_-label"
+        id="base-ui-_r_44_-label"
       >
         <span
           aria-checked="true"
-          aria-labelledby="base-ui-_r_3q_-label"
+          aria-labelledby="base-ui-_r_44_-label"
           class="kfp-checkbox"
           data-checked=""
-          id="base-ui-_r_3p_"
+          id="base-ui-_r_43_"
           role="checkbox"
           tabindex="0"
         >
@@ -259,7 +265,7 @@ exports[`Trigger > enables a single day on click 1`] = `
         <input
           aria-hidden="true"
           checked=""
-          id="base-ui-_r_3q_"
+          id="base-ui-_r_44_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -339,21 +345,21 @@ exports[`Trigger > enables a single day on click 1`] = `
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_44_-label"
+        id="base-ui-_r_4e_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_44_-label"
+          aria-labelledby="base-ui-_r_4e_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_43_"
+          id="base-ui-_r_4d_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
           checked=""
-          id="base-ui-_r_44_"
+          id="base-ui-_r_4e_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -438,20 +444,20 @@ exports[`Trigger > enables a single day on click 1`] = `
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_3v_-label"
+        id="base-ui-_r_49_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_3v_-label"
+          aria-labelledby="base-ui-_r_49_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_3u_"
+          id="base-ui-_r_48_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_3v_"
+          id="base-ui-_r_49_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -476,7 +482,7 @@ exports[`Trigger > enables a single day on click 1`] = `
         class="kfp-text-field"
       >
         <label
-          for="_r_41_"
+          for="_r_4b_"
         >
           cron expression
         </label>
@@ -488,7 +494,7 @@ exports[`Trigger > enables a single day on click 1`] = `
             data-disabled=""
             data-slot="input"
             disabled=""
-            id="_r_41_"
+            id="_r_4b_"
             value="0 0 0 ? * 0,2,4,5,6"
           />
         </div>
@@ -542,7 +548,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
       class="kfp-text-field"
     >
       <label
-        for="_r_2c_"
+        for="_r_2i_"
       >
         Maximum concurrent runs
         <span
@@ -557,7 +563,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
         <input
           class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
-          id="_r_2c_"
+          id="_r_2i_"
           inputmode="numeric"
           required=""
           value="10"
@@ -572,20 +578,20 @@ exports[`Trigger > renders all week days enabled 1`] = `
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_2f_-label"
+        id="base-ui-_r_2l_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_2f_-label"
+          aria-labelledby="base-ui-_r_2l_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_2e_"
+          id="base-ui-_r_2k_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_2f_"
+          id="base-ui-_r_2l_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -600,7 +606,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_2h_"
+            for="_r_2o_"
           >
             Start date
           </label>
@@ -608,9 +614,10 @@ exports[`Trigger > renders all week days enabled 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_2h_"
+              id="_r_2o_"
               type="date"
               value="2018-12-21"
             />
@@ -620,7 +627,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_2j_"
+            for="_r_2q_"
           >
             Start time
           </label>
@@ -628,9 +635,10 @@ exports[`Trigger > renders all week days enabled 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_2j_"
+              id="_r_2q_"
               type="time"
               value="07:53"
             />
@@ -640,6 +648,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
       <div
         class="kfp-form-error"
         data-testid="startTimeMessage"
+        id="_r_2n_"
         style="visibility: hidden;"
       />
     </fieldset>
@@ -651,20 +660,20 @@ exports[`Trigger > renders all week days enabled 1`] = `
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_2m_-label"
+        id="base-ui-_r_2t_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_2m_-label"
+          aria-labelledby="base-ui-_r_2t_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_2l_"
+          id="base-ui-_r_2s_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_2m_"
+          id="base-ui-_r_2t_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -679,7 +688,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_2o_"
+            for="_r_30_"
           >
             End date
           </label>
@@ -687,9 +696,10 @@ exports[`Trigger > renders all week days enabled 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_2o_"
+              id="_r_30_"
               type="date"
               value="2018-12-28"
             />
@@ -699,7 +709,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_2q_"
+            for="_r_32_"
           >
             End time
           </label>
@@ -707,9 +717,10 @@ exports[`Trigger > renders all week days enabled 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_2q_"
+              id="_r_32_"
               type="time"
               value="07:53"
             />
@@ -719,20 +730,21 @@ exports[`Trigger > renders all week days enabled 1`] = `
       <div
         class="kfp-form-error"
         data-testid="endTimeMessage"
+        id="_r_2v_"
         style="visibility: hidden;"
       />
     </fieldset>
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_2t_-label"
+        id="base-ui-_r_35_-label"
       >
         <span
           aria-checked="true"
-          aria-labelledby="base-ui-_r_2t_-label"
+          aria-labelledby="base-ui-_r_35_-label"
           class="kfp-checkbox"
           data-checked=""
-          id="base-ui-_r_2s_"
+          id="base-ui-_r_34_"
           role="checkbox"
           tabindex="0"
         >
@@ -762,7 +774,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
         <input
           aria-hidden="true"
           checked=""
-          id="base-ui-_r_2t_"
+          id="base-ui-_r_35_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -842,21 +854,21 @@ exports[`Trigger > renders all week days enabled 1`] = `
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_37_-label"
+        id="base-ui-_r_3f_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_37_-label"
+          aria-labelledby="base-ui-_r_3f_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_36_"
+          id="base-ui-_r_3e_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
           checked=""
-          id="base-ui-_r_37_"
+          id="base-ui-_r_3f_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -941,20 +953,20 @@ exports[`Trigger > renders all week days enabled 1`] = `
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_32_-label"
+        id="base-ui-_r_3a_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_32_-label"
+          aria-labelledby="base-ui-_r_3a_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_31_"
+          id="base-ui-_r_39_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_32_"
+          id="base-ui-_r_3a_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -979,7 +991,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
         class="kfp-text-field"
       >
         <label
-          for="_r_34_"
+          for="_r_3c_"
         >
           cron expression
         </label>
@@ -991,7 +1003,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
             data-disabled=""
             data-slot="input"
             disabled=""
-            id="_r_34_"
+            id="_r_3c_"
             value="0 0 0 ? *"
           />
         </div>
@@ -1103,7 +1115,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_5_"
+            for="_r_6_"
           >
             Start date
           </label>
@@ -1111,9 +1123,10 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_5_"
+              id="_r_6_"
               type="date"
               value="2018-12-21"
             />
@@ -1123,7 +1136,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_7_"
+            for="_r_8_"
           >
             Start time
           </label>
@@ -1131,9 +1144,10 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_7_"
+              id="_r_8_"
               type="time"
               value="07:53"
             />
@@ -1143,6 +1157,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
       <div
         class="kfp-form-error"
         data-testid="startTimeMessage"
+        id="_r_5_"
         style="visibility: hidden;"
       />
     </fieldset>
@@ -1154,20 +1169,20 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_a_-label"
+        id="base-ui-_r_b_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_a_-label"
+          aria-labelledby="base-ui-_r_b_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_9_"
+          id="base-ui-_r_a_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_a_"
+          id="base-ui-_r_b_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -1182,7 +1197,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_c_"
+            for="_r_e_"
           >
             End date
           </label>
@@ -1190,9 +1205,10 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_c_"
+              id="_r_e_"
               type="date"
               value="2018-12-28"
             />
@@ -1202,7 +1218,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_e_"
+            for="_r_g_"
           >
             End time
           </label>
@@ -1210,9 +1226,10 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_e_"
+              id="_r_g_"
               type="time"
               value="07:53"
             />
@@ -1222,20 +1239,21 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
       <div
         class="kfp-form-error"
         data-testid="endTimeMessage"
+        id="_r_d_"
         style="visibility: hidden;"
       />
     </fieldset>
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_h_-label"
+        id="base-ui-_r_j_-label"
       >
         <span
           aria-checked="true"
-          aria-labelledby="base-ui-_r_h_-label"
+          aria-labelledby="base-ui-_r_j_-label"
           class="kfp-checkbox"
           data-checked=""
-          id="base-ui-_r_g_"
+          id="base-ui-_r_i_"
           role="checkbox"
           tabindex="0"
         >
@@ -1265,7 +1283,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
         <input
           aria-hidden="true"
           checked=""
-          id="base-ui-_r_h_"
+          id="base-ui-_r_j_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -1302,7 +1320,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           class="kfp-text-field"
         >
           <label
-            for="_r_j_"
+            for="_r_l_"
           >
             Interval
             <span
@@ -1317,7 +1335,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             <input
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_j_"
+              id="_r_l_"
               min="1"
               required=""
               type="number"
@@ -1407,7 +1425,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
       class="kfp-text-field"
     >
       <label
-        for="_r_l_"
+        for="_r_n_"
       >
         Maximum concurrent runs
         <span
@@ -1422,7 +1440,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         <input
           class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
-          id="_r_l_"
+          id="_r_n_"
           inputmode="numeric"
           required=""
           value="10"
@@ -1437,20 +1455,20 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_o_-label"
+        id="base-ui-_r_q_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_o_-label"
+          aria-labelledby="base-ui-_r_q_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_n_"
+          id="base-ui-_r_p_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_o_"
+          id="base-ui-_r_q_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -1465,7 +1483,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           class="kfp-text-field"
         >
           <label
-            for="_r_q_"
+            for="_r_t_"
           >
             Start date
           </label>
@@ -1473,9 +1491,10 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_q_"
+              id="_r_t_"
               type="date"
               value="2018-12-21"
             />
@@ -1485,7 +1504,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           class="kfp-text-field"
         >
           <label
-            for="_r_s_"
+            for="_r_v_"
           >
             Start time
           </label>
@@ -1493,9 +1512,10 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_s_"
+              id="_r_v_"
               type="time"
               value="07:53"
             />
@@ -1505,6 +1525,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
       <div
         class="kfp-form-error"
         data-testid="startTimeMessage"
+        id="_r_s_"
         style="visibility: hidden;"
       />
     </fieldset>
@@ -1516,20 +1537,20 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_v_-label"
+        id="base-ui-_r_12_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_v_-label"
+          aria-labelledby="base-ui-_r_12_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_u_"
+          id="base-ui-_r_11_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_v_"
+          id="base-ui-_r_12_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -1544,7 +1565,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           class="kfp-text-field"
         >
           <label
-            for="_r_11_"
+            for="_r_15_"
           >
             End date
           </label>
@@ -1552,9 +1573,10 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_11_"
+              id="_r_15_"
               type="date"
               value="2018-12-28"
             />
@@ -1564,7 +1586,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           class="kfp-text-field"
         >
           <label
-            for="_r_13_"
+            for="_r_17_"
           >
             End time
           </label>
@@ -1572,9 +1594,10 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_13_"
+              id="_r_17_"
               type="time"
               value="07:53"
             />
@@ -1584,20 +1607,21 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
       <div
         class="kfp-form-error"
         data-testid="endTimeMessage"
+        id="_r_14_"
         style="visibility: hidden;"
       />
     </fieldset>
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_16_-label"
+        id="base-ui-_r_1a_-label"
       >
         <span
           aria-checked="true"
-          aria-labelledby="base-ui-_r_16_-label"
+          aria-labelledby="base-ui-_r_1a_-label"
           class="kfp-checkbox"
           data-checked=""
-          id="base-ui-_r_15_"
+          id="base-ui-_r_19_"
           role="checkbox"
           tabindex="0"
         >
@@ -1627,7 +1651,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         <input
           aria-hidden="true"
           checked=""
-          id="base-ui-_r_16_"
+          id="base-ui-_r_1a_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -1702,20 +1726,20 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_1b_-label"
+        id="base-ui-_r_1f_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_1b_-label"
+          aria-labelledby="base-ui-_r_1f_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_1a_"
+          id="base-ui-_r_1e_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_1b_"
+          id="base-ui-_r_1f_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -1740,7 +1764,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         class="kfp-text-field"
       >
         <label
-          for="_r_1d_"
+          for="_r_1h_"
         >
           cron expression
         </label>
@@ -1752,7 +1776,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
             data-disabled=""
             data-slot="input"
             disabled=""
-            id="_r_1d_"
+            id="_r_1h_"
             value="0 0 * * * ?"
           />
         </div>
@@ -1806,7 +1830,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
       class="kfp-text-field"
     >
       <label
-        for="_r_1f_"
+        for="_r_1j_"
       >
         Maximum concurrent runs
         <span
@@ -1821,7 +1845,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         <input
           class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
-          id="_r_1f_"
+          id="_r_1j_"
           inputmode="numeric"
           required=""
           value="10"
@@ -1836,20 +1860,20 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_1i_-label"
+        id="base-ui-_r_1m_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_1i_-label"
+          aria-labelledby="base-ui-_r_1m_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_1h_"
+          id="base-ui-_r_1l_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_1i_"
+          id="base-ui-_r_1m_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -1864,7 +1888,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           class="kfp-text-field"
         >
           <label
-            for="_r_1k_"
+            for="_r_1p_"
           >
             Start date
           </label>
@@ -1872,9 +1896,10 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_1k_"
+              id="_r_1p_"
               type="date"
               value="2018-12-21"
             />
@@ -1884,7 +1909,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           class="kfp-text-field"
         >
           <label
-            for="_r_1m_"
+            for="_r_1r_"
           >
             Start time
           </label>
@@ -1892,9 +1917,10 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_1m_"
+              id="_r_1r_"
               type="time"
               value="07:53"
             />
@@ -1904,6 +1930,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
       <div
         class="kfp-form-error"
         data-testid="startTimeMessage"
+        id="_r_1o_"
         style="visibility: hidden;"
       />
     </fieldset>
@@ -1915,20 +1942,20 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_1p_-label"
+        id="base-ui-_r_1u_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_1p_-label"
+          aria-labelledby="base-ui-_r_1u_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_1o_"
+          id="base-ui-_r_1t_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_1p_"
+          id="base-ui-_r_1u_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -1943,7 +1970,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           class="kfp-text-field"
         >
           <label
-            for="_r_1r_"
+            for="_r_21_"
           >
             End date
           </label>
@@ -1951,9 +1978,10 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_1r_"
+              id="_r_21_"
               type="date"
               value="2018-12-28"
             />
@@ -1963,7 +1991,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           class="kfp-text-field"
         >
           <label
-            for="_r_1t_"
+            for="_r_23_"
           >
             End time
           </label>
@@ -1971,9 +1999,10 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             class="kfp-text-field-control"
           >
             <input
+              aria-invalid="false"
               class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
-              id="_r_1t_"
+              id="_r_23_"
               type="time"
               value="07:53"
             />
@@ -1983,20 +2012,21 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
       <div
         class="kfp-form-error"
         data-testid="endTimeMessage"
+        id="_r_20_"
         style="visibility: hidden;"
       />
     </fieldset>
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_20_-label"
+        id="base-ui-_r_26_-label"
       >
         <span
           aria-checked="true"
-          aria-labelledby="base-ui-_r_20_-label"
+          aria-labelledby="base-ui-_r_26_-label"
           class="kfp-checkbox"
           data-checked=""
-          id="base-ui-_r_1v_"
+          id="base-ui-_r_25_"
           role="checkbox"
           tabindex="0"
         >
@@ -2026,7 +2056,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         <input
           aria-hidden="true"
           checked=""
-          id="base-ui-_r_20_"
+          id="base-ui-_r_26_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -2106,14 +2136,14 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
       </legend>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_2a_-label"
+        id="base-ui-_r_2g_-label"
       >
         <span
           aria-checked="true"
-          aria-labelledby="base-ui-_r_2a_-label"
+          aria-labelledby="base-ui-_r_2g_-label"
           class="kfp-checkbox"
           data-checked=""
-          id="base-ui-_r_29_"
+          id="base-ui-_r_2f_"
           role="checkbox"
           tabindex="0"
         >
@@ -2143,7 +2173,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         <input
           aria-hidden="true"
           checked=""
-          id="base-ui-_r_2a_"
+          id="base-ui-_r_2g_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -2228,20 +2258,20 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
     <div>
       <label
         class="kfp-form-check"
-        id="base-ui-_r_25_-label"
+        id="base-ui-_r_2b_-label"
       >
         <span
           aria-checked="false"
-          aria-labelledby="base-ui-_r_25_-label"
+          aria-labelledby="base-ui-_r_2b_-label"
           class="kfp-checkbox"
           data-unchecked=""
-          id="base-ui-_r_24_"
+          id="base-ui-_r_2a_"
           role="checkbox"
           tabindex="0"
         />
         <input
           aria-hidden="true"
-          id="base-ui-_r_25_"
+          id="base-ui-_r_2b_"
           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: -1px; position: fixed; top: 0px; left: 0px;"
           tabindex="-1"
           type="checkbox"
@@ -2266,7 +2296,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         class="kfp-text-field"
       >
         <label
-          for="_r_27_"
+          for="_r_2d_"
         >
           cron expression
         </label>
@@ -2278,7 +2308,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
             data-disabled=""
             data-slot="input"
             disabled=""
-            id="_r_27_"
+            id="_r_2d_"
             value="0 0 0 ? * *"
           />
         </div>

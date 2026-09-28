@@ -17,6 +17,7 @@
 import { Switch as SwitchPrimitive } from '@base-ui/react/switch';
 import type { ComponentProps } from 'react';
 import { cn } from './utils';
+import { useInputActivation } from './useInputActivation';
 import './switch.css';
 
 export type SwitchProps = Omit<ComponentProps<typeof SwitchPrimitive.Root>, 'className'> & {
@@ -24,8 +25,9 @@ export type SwitchProps = Omit<ComponentProps<typeof SwitchPrimitive.Root>, 'cla
 };
 
 export function Switch({ className, ...props }: SwitchProps) {
+  const activation = useInputActivation(props);
   return (
-    <SwitchPrimitive.Root className={cn('kfp-switch', className)} {...props}>
+    <SwitchPrimitive.Root className={cn('kfp-switch', className)} {...props} {...activation}>
       <SwitchPrimitive.Thumb className='kfp-switch-thumb' />
     </SwitchPrimitive.Root>
   );

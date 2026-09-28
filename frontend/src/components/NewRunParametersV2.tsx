@@ -325,6 +325,10 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               mode='json'
               theme='github'
               editorProps={{ $blockScrolling: Infinity }}
+              setOptions={{
+                textInputAriaLabel: `${param.key} JSON editor`,
+                enableKeyboardAccessibility: true,
+              }}
               highlightActiveLine={true}
               showGutter={true}
               readOnly={false}
