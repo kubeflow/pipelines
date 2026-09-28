@@ -1300,3 +1300,78 @@ func TestAddToSelect_StringIN_NoCaseInsensitive(t *testing.T) {
 	assert.Equal(t, `SELECT mycolumn WHERE ("status" IN (?,?))`, gotSQL)
 	assert.Equal(t, []interface{}{"Running", "Stopped"}, gotArgs)
 }
+
+func TestSetCaseInsensitiveFields_RestoresServerSemantics(t *testing.T) {
+	// The token tries to make an identifier case-insensitive while omitting the
+	// model's case-insensitive name field. Restoring it must correct both.
+	const tokenFilter = `{
+		"EQ":{"pipelines.Name":["MixedCase"],"pipelines.UUID":["ExactID"]},
+		"NEQ":{"pipelines.Description":["Excluded"]},
+		"GT":{"pipelines.CreatedAtInSec":[1]},
+		"GTE":{"pipelines.CreatedAtInSec":[2]},
+		"LT":{"pipelines.CreatedAtInSec":[10]},
+		"LTE":{"pipelines.CreatedAtInSec":[9]},
+		"IN":{"pipelines.Name":[["First","Second"]]},
+		"SUBSTRING":{"pipelines.Description":["Part"]},
+		"CaseInsensitiveKeys":{"pipelines.UUID":{},"stale.Name":{}}
+	}`
+	var f Filter
+	if !assert.NoError(t, json.Unmarshal([]byte(tokenFilter), &f)) {
+		return
+	}
+	before, err := json.Marshal(&f)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	f.SetCaseInsensitiveFields(
+		map[string]string{"name": "Name", "id": "UUID"},
+		"pipelines", map[string]struct{}{"name": {}},
+	)
+
+	sql, args, err := f.AddToSelect(squirrel.Select("UUID"), testQuote).ToSql()
+	assert.NoError(t, err)
+	assert.Contains(t, sql, `LOWER("pipelines"."Name") = LOWER(?)`)
+	assert.Contains(t, sql, `LOWER("pipelines"."Name") IN (LOWER(?), LOWER(?))`)
+	assert.Contains(t, sql, `"pipelines"."UUID" = ?`)
+	assert.NotContains(t, sql, `LOWER("pipelines"."UUID")`)
+	assert.Contains(t, args, "MixedCase")
+	assert.Contains(t, args, "ExactID")
+	assert.NotContains(t, f.caseInsensitiveKeys, "stale.Name")
+
+	// Every operator, qualified key, and predicate value must survive unchanged.
+	after, err := json.Marshal(&f)
+	if !assert.NoError(t, err) {
+		return
+	}
+	var beforeFields, afterFields map[string]json.RawMessage
+	assert.NoError(t, json.Unmarshal(before, &beforeFields))
+	assert.NoError(t, json.Unmarshal(after, &afterFields))
+	delete(beforeFields, "CaseInsensitiveKeys")
+	delete(afterFields, "CaseInsensitiveKeys")
+	assert.Equal(t, beforeFields, afterFields)
+}
+
+func TestSetCaseInsensitiveFields_ClearsStaleMetadata(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		fields map[string]struct{}
+	}{
+		{name: "nil fields"},
+		{name: "empty fields", fields: map[string]struct{}{}},
+		{name: "unmapped fields", fields: map[string]struct{}{"unknown": {}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			f := &Filter{
+				eq:                  map[string][]interface{}{"UUID": {"ExactID"}},
+				caseInsensitiveKeys: map[string]struct{}{"UUID": {}},
+			}
+			f.SetCaseInsensitiveFields(map[string]string{"id": "UUID"}, "", test.fields)
+			sql, args, err := f.AddToSelect(squirrel.Select("UUID"), testQuote).ToSql()
+			assert.NoError(t, err)
+			assert.Equal(t, `SELECT UUID WHERE ("UUID" = ?)`, sql)
+			assert.Equal(t, []interface{}{"ExactID"}, args)
+			assert.Empty(t, f.caseInsensitiveKeys)
+		})
+	}
+}
