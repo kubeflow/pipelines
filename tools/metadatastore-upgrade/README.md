@@ -22,7 +22,7 @@ go run main.go --new_image_tag=<image-tag> --kubeconfig=<kubeconfig-path> --name
 
 Arguments:
 * `--new_image_tag`(Required) - The image tag for the gRPC server version to upgrade to. The list of available images can be found [here](https://gcr.io/tfx-oss-public/ml_metadata_store_server)
-* `--kubeconfig`(Optional) - Absolute path to a kubeconfig file. If this argument is not specified `.kubeconfig` in user's home directory is used.
+* `--kubeconfig`(Optional) - Absolute path to a kubeconfig file. If this argument is not specified `~/.kube/config` in user's home directory is used.
 * `--namespace`(Optional) - Namespace where `metadata-deployment` is deployed in the KFP cluster. Defaults to `kubeflow`.
 
 **Note:**
