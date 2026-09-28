@@ -16,52 +16,8 @@
 
 import * as React from 'react';
 import { List, AutoSizer, ListRowProps } from 'react-virtualized';
-import { fontsize, fonts } from '../Css';
-import { stylesheet } from 'typestyle';
+import './LogViewer.css';
 import { OverscanIndicesGetter } from 'react-virtualized/dist/es/Grid';
-
-const css = stylesheet({
-  a: {
-    $nest: {
-      '&:hover': {
-        color: '#bcdeff',
-      },
-      '&:visited': {
-        color: '#bc9fff',
-      },
-    },
-    color: '#96cbfe',
-  },
-  line: {
-    $nest: {
-      '&:hover': {
-        backgroundColor: '#333',
-      },
-    },
-    display: 'flex',
-  },
-  number: {
-    color: '#999',
-    flex: '40px 0 0',
-    paddingRight: 10,
-    textAlign: 'right',
-    userSelect: 'none',
-  },
-  root: {
-    // We cannot easily add padding here without breaking react-virtualized size calculation, for
-    // details: https://github.com/bvaughn/react-virtualized/issues/992
-    // Specifically, a complex solution was proposed in https://github.com/bvaughn/react-virtualized/issues/992#issuecomment-371145943.
-    // We may consider that later.
-    backgroundColor: '#222',
-    color: '#fff',
-    fontFamily: fonts.code,
-    fontSize: fontsize.small,
-    // This override and listContainerStyleOverride workarounds to allow horizontal scroll.
-    // Reference: https://github.com/bvaughn/react-virtualized/issues/1248
-    overflow: 'auto !important',
-    whiteSpace: 'pre',
-  },
-});
 
 const listContainerStyleOverride = {
   overflow: 'visible',
@@ -131,7 +87,8 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
             height={height}
             rowCount={this.props.logLines.length}
             rowHeight={15}
-            className={css.root}
+            className='kfp-log-viewer'
+            aria-label='Task logs'
             ref={this._rootRef}
             overscanIndicesGetter={overscanOnBothDirections}
             overscanRowCount={
@@ -171,7 +128,7 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
     const { style, key, index } = props;
     const line = this.props.logLines[index];
     return (
-      <div key={key} className={css.line} style={style}>
+      <div key={key} className='kfp-log-line' data-level={getLineLevel(line)} style={style}>
         <MemoedLogLine index={index} line={line} />
       </div>
     );
@@ -180,10 +137,8 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
 
 const LogLine: React.FC<{ index: number; line: string }> = ({ index, line }) => (
   <>
-    <span className={css.number} style={getLineStyle(line)}>
-      {index + 1}
-    </span>
-    <span className={css.line} style={getLineStyle(line)}>
+    <span className='kfp-log-number'>{index + 1}</span>
+    <span className='kfp-log-text'>
       {parseLine(line).map((piece, p) => (
         <span key={p}>{piece}</span>
       ))}
@@ -193,21 +148,11 @@ const LogLine: React.FC<{ index: number; line: string }> = ({ index, line }) => 
 // improve performance when rerendering, because we render a lot of logs
 const MemoedLogLine = React.memo(LogLine);
 
-function getLineStyle(line: string): React.CSSProperties {
-  const lineLowerCase = line.toLowerCase();
-  if (lineLowerCase.indexOf('error') > -1 || lineLowerCase.indexOf('fail') > -1) {
-    return {
-      backgroundColor: '#700000',
-      color: 'white',
-    };
-  } else if (lineLowerCase.indexOf('warn') > -1) {
-    return {
-      backgroundColor: '#545400',
-      color: 'white',
-    };
-  } else {
-    return {};
-  }
+function getLineLevel(line: string): 'error' | 'warning' | undefined {
+  const lower = line.toLowerCase();
+  if (lower.includes('error') || lower.includes('fail')) return 'error';
+  if (lower.includes('warn')) return 'warning';
+  return undefined;
 }
 
 function parseLine(line: string): React.ReactNode[] {
@@ -222,7 +167,7 @@ function parseLine(line: string): React.ReactNode[] {
     nodes.push(<span>{line.substr(lastMatch, match.index)}</span>);
     // Append URL via an anchor element
     nodes.push(
-      <a href={match[0]} target='_blank' rel='noopener noreferrer' className={css.a}>
+      <a href={match[0]} target='_blank' rel='noopener noreferrer' className='kfp-log-link'>
         {match[0]}
       </a>,
     );

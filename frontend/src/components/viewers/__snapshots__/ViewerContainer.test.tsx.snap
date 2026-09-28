@@ -3,13 +3,13 @@
 exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
 <DocumentFragment>
   <div
-    class="flex_f16jawj4 root_fpvit0b"
+    class="kfp-confusion-matrix"
   >
     <table>
       <tbody>
         <tr>
           <td
-            class="yAxisLabel_fnlll25"
+            class="kfp-confusion-y-axis-label"
           >
             y
           </td>
@@ -17,18 +17,18 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
         <tr>
           <td>
             <div
-              class="ylabel_f1bjr6qr"
+              class="kfp-confusion-ylabel "
               style="line-height: 79px; min-width: 79px;"
             >
               label
             </div>
           </td>
           <td
-            class="cell_fkzbx8g"
-            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            class="kfp-confusion-cell"
+            style="background-color: color-mix(in srgb, var(--primary, #2563d9) 25%, var(--card, #fff)); color: var(--foreground, #15171e); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
           >
             <div
-              class="overlay_fecblze"
+              class="kfp-confusion-overlay"
               style="opacity: 0;"
             />
             1
@@ -37,7 +37,7 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
         <tr>
           <th />
           <th
-            class="xlabel_f1fd2jjv"
+            class="kfp-confusion-xlabel"
             scope="col"
           >
             <div
@@ -51,7 +51,7 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
         <tr>
           <td />
           <td
-            class="xAxisLabel_f1kt7c7r"
+            class="kfp-confusion-x-axis-label"
             colspan="1"
           >
             x
@@ -60,65 +60,65 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
       </tbody>
     </table>
     <div
-      class="legend_f1s6jfx9"
+      class="kfp-confusion-legend"
       style="height: 59.25px;"
     >
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 0px;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           1
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 100%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 80%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 60%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 40%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
       </div>
       <div
-        class="legendNotch_f12km7yd"
+        class="kfp-confusion-legend-notch"
         style="top: 20%;"
       >
         <span
-          class="legendLabel_fvqtnr3"
+          class="kfp-confusion-legend-label"
         >
           0
         </span>
@@ -602,7 +602,7 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
               class="recharts-reference-line-line"
               fill="none"
               fill-opacity="1"
-              stroke="#ddd"
+              stroke="var(--border-strong, #d3d6df)"
               stroke-dasharray="4 4"
               stroke-width="1"
               x1="92"
@@ -1282,8 +1282,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1306,8 +1306,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1330,8 +1330,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1354,8 +1354,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1378,8 +1378,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1402,8 +1402,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1426,8 +1426,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1450,8 +1450,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1474,8 +1474,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1498,8 +1498,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1522,8 +1522,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1546,8 +1546,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1570,8 +1570,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1594,8 +1594,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1618,8 +1618,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1642,8 +1642,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1666,8 +1666,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1690,8 +1690,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1714,8 +1714,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1738,8 +1738,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="30"
                 orientation="bottom"
@@ -1760,8 +1760,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#202124"
-            font-size="13"
+            fill="var(--foreground, #15171e)"
+            font-size="12"
             font-weight="500"
             offset="0"
             text-anchor="middle"
@@ -1783,8 +1783,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1807,8 +1807,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1831,8 +1831,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1855,8 +1855,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1879,8 +1879,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1903,8 +1903,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1927,8 +1927,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1951,8 +1951,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1975,8 +1975,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -1999,8 +1999,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
             >
               <text
                 class="recharts-text recharts-cartesian-axis-tick-value"
-                fill="#5f6368"
-                font-size="12"
+                fill="var(--muted-foreground, #626979)"
+                font-size="11"
                 font-weight="400"
                 height="465"
                 orientation="left"
@@ -2021,8 +2021,8 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
           </g>
           <text
             class="recharts-text recharts-label"
-            fill="#202124"
-            font-size="13"
+            fill="var(--foreground, #15171e)"
+            font-size="12"
             font-weight="500"
             offset="14"
             text-anchor="start"
@@ -2041,7 +2041,7 @@ exports[`ViewerContainer > renders a viewer of type ROC 1`] = `
       </svg>
     </div>
     <div
-      class="flex_f16jawj4"
+      class="kfp-roc-flex"
     />
   </div>
 </DocumentFragment>

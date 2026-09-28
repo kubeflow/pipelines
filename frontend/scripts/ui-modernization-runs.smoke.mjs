@@ -74,6 +74,7 @@ async function withFixture(options, exercise) {
   const fixture = {
     runs: makeRuns(),
     lists: [],
+    searches: [],
     mutations: [],
     versionReads: [],
     errors: [],
@@ -139,6 +140,45 @@ async function withFixture(options, exercise) {
       if (path === '/apis/v2beta1/healthz') return json({ apiServerTagName: 'fixture' });
       if (path === '/system/cluster-name' || path === '/system/project-id')
         return route.fulfill({ body: '' });
+      if (
+        ['/apis/v2beta1/runs', '/apis/v2beta1/pipelines', '/apis/v2beta1/experiments'].includes(
+          path,
+        ) &&
+        url.searchParams.get('page_size') === '5'
+      ) {
+        assert.equal(request.method(), 'GET');
+        const query = Object.fromEntries(url.searchParams);
+        assert.equal(query.sort_by, 'created_at desc');
+        assert.equal(
+          query.page_token,
+          undefined,
+          'palette searches must not scan subsequent pages',
+        );
+        if (path.endsWith('/runs')) assert.equal(query.skip_count, 'true');
+        const predicates = decodeFilter(query.filter).predicates;
+        assert.equal(predicates.length, 1);
+        assert.equal(predicates[0].key, 'name');
+        assert.equal(predicates[0].operation, 'IS_SUBSTRING');
+        assert.ok(predicates[0].string_value.length >= 2);
+        fixture.searches.push({ path, ...query });
+        const matches = (item) =>
+          item.display_name.toLowerCase().includes(predicates[0].string_value.toLowerCase());
+        if (path.endsWith('/runs')) {
+          const runs = query.namespace === 'team-b' ? fixture.runs.slice(0, 2) : fixture.runs;
+          return json({ runs: runs.filter(matches).slice(0, 5), next_page_token: 'do-not-follow' });
+        }
+        if (path.endsWith('/pipelines'))
+          return json({
+            pipelines: [{ pipeline_id: 'pipeline-a', display_name: 'Training pipeline' }].filter(
+              matches,
+            ),
+          });
+        return json({
+          experiments: [
+            { experiment_id: 'experiment-a', display_name: 'Training experiment' },
+          ].filter(matches),
+        });
+      }
       if (path === '/apis/v2beta1/runs' && request.method() === 'GET') {
         assert.equal(url.pathname, `${options.embedded ? '/pipelines' : ''}/apis/v2beta1/runs`);
         const query = Object.fromEntries(url.searchParams);
@@ -541,5 +581,64 @@ test('Embedded Runs preserves its URL prefix and clears selection when the dashb
     assert.equal(fixture.lists.at(-1).page_token || '', '');
     assert.equal(await checkbox(app, 1).isChecked(), false);
     assert.equal(new URL(app.url()).pathname, '/pipelines/');
+  });
+});
+
+test('Command palette searches the active namespace and preserves keyboard navigation and focus', async () => {
+  await withFixture({ namespace: 'team-a' }, async (page, fixture) => {
+    await openRuns(page);
+    const trigger = page.getByRole('button', { name: 'Search', exact: true });
+    await trigger.focus();
+    await page.keyboard.press('Control+k');
+    const dialog = page.getByRole('dialog', { name: 'Search and navigate' });
+    const input = dialog.getByRole('searchbox');
+    await focused(page, input);
+    await input.fill('Training');
+    await dialog.getByRole('link', { name: 'Training experiment', exact: true }).waitFor();
+    await screenshot(page, 'command-palette-light');
+    assert.equal(fixture.searches.length, 3);
+    assert.ok(fixture.searches.every((request) => request.namespace === 'team-a'));
+    assert.equal(
+      await dialog.getByRole('region', { name: 'Runs', exact: true }).getByRole('link').count(),
+      5,
+    );
+    await page.keyboard.press('ArrowDown');
+    await focused(page, dialog.getByRole('link', { name: 'Training 01', exact: true }));
+    await page.keyboard.press('Tab');
+    await focused(page, dialog.getByRole('link', { name: 'Training 02', exact: true }));
+    await input.focus();
+    await page.keyboard.press('Shift+Tab');
+    await focused(page, dialog.getByRole('button', { name: 'Close', exact: true }));
+    await page.keyboard.press('Tab');
+    await focused(page, input);
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden' });
+    await focused(page, trigger);
+    await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('dark');
+    await trigger.click();
+    await focused(page, input);
+    await input.fill('Training');
+    await dialog.getByRole('link', { name: 'Training experiment', exact: true }).waitFor();
+    await page.evaluate(() => window.selectFixtureNamespace('team-b'));
+    await dialog.getByText('Namespace: team-b', { exact: true }).waitFor();
+    await dialog.getByRole('link', { name: 'Training experiment', exact: true }).waitFor();
+    assert.equal(
+      await dialog.evaluate((element) => element.closest('.kfp-theme')?.classList.contains('dark')),
+      true,
+    );
+    await screenshot(page, 'command-palette-dark');
+    assert.equal(fixture.searches.length, 9);
+    assert.ok(fixture.searches.slice(-3).every((request) => request.namespace === 'team-b'));
+    assert.equal(
+      await dialog.getByRole('region', { name: 'Runs', exact: true }).getByRole('link').count(),
+      2,
+    );
+    await dialog.getByRole('link', { name: 'Training 01', exact: true }).click();
+    await page.waitForURL((url) => url.hash === '#/runs/details/run-01');
+    await dialog.waitFor({ state: 'hidden' });
+    await trigger.click();
+    await dialog.getByRole('link', { name: 'Runs', exact: true }).click();
+    await page.waitForURL((url) => url.hash === '#/runs');
+    await ready(page, 2);
   });
 });

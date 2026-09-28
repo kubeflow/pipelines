@@ -112,51 +112,6 @@
   text-decoration: underline;
   font-size: 12px;
 }
-.kfp-theme .kfp-page-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1300;
-  background: rgb(0 0 0 / 45%);
-}
-.kfp-theme .kfp-page-dialog-viewport {
-  position: fixed;
-  inset: 0;
-  z-index: 1301;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-  padding: 24px;
-}
-.kfp-theme .kfp-page-dialog {
-  width: min(480px, 100%);
-  max-height: calc(100dvh - 48px);
-  overflow: auto;
-  padding: 24px;
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  background: var(--card);
-  color: var(--foreground);
-  box-shadow: var(--shadow-card);
-}
-.kfp-theme .kfp-page-dialog-title {
-  margin: 0 0 12px;
-  font-size: 18px;
-  font-weight: 600;
-}
-.kfp-theme .kfp-page-dialog-content {
-  margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--foreground-2);
-}
-.kfp-theme .kfp-page-dialog-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 24px;
-}
 .kfp-theme .kfp-page-notification {
   position: fixed;
   bottom: 24px;

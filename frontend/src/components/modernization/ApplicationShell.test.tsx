@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useContext, useState } from 'react';
 import { MemoryRouter } from 'react-router';
@@ -83,6 +83,7 @@ beforeEach(() => {
 
 afterEach(() => {
   KFP_FLAGS.HIDE_SIDENAV = originalHideSideNav;
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   localStorage.clear();
 });
@@ -166,5 +167,44 @@ describe('ApplicationShell', () => {
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Page namespace')).toHaveTextContent('embedded-team');
     expect(screen.getByRole('main')).toContainElement(screen.getByRole('textbox'));
+  });
+  it.each(['ctrlKey', 'metaKey'] as const)(
+    'opens with %s+K and restores keyboard focus after Escape',
+    async (modifier) => {
+      render(<ShellFixture />);
+      const draft = screen.getByRole('textbox', { name: 'Draft name' });
+      draft.focus();
+      fireEvent.keyDown(document, { key: 'k', [modifier]: true });
+      const input = await screen.findByRole('searchbox');
+      await waitFor(() => expect(input).toHaveFocus());
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      await waitFor(() => expect(draft).toHaveFocus());
+    },
+  );
+
+  it('keeps Search discoverable with hidden navigation and restores its trigger focus', async () => {
+    KFP_FLAGS.HIDE_SIDENAV = true;
+    render(<ShellFixture />);
+    const trigger = screen.getByRole('button', { name: 'Search' });
+    await userEvent.click(trigger);
+    await waitFor(() => expect(screen.getByRole('searchbox')).toHaveFocus());
+    expect(screen.getByText('Namespace: team-one')).toBeVisible();
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it('removes its shortcut listener on unmount', () => {
+    const view = render(<ShellFixture />);
+    const shortcut = () =>
+      new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, cancelable: true });
+    const before = shortcut();
+    fireEvent(document, before);
+    expect(before.defaultPrevented).toBe(true);
+    view.unmount();
+    const after = shortcut();
+    fireEvent(document, after);
+    expect(after.defaultPrevented).toBe(false);
   });
 });

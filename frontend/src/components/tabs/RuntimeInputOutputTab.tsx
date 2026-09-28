@@ -14,10 +14,10 @@
 
 import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
-import Banner from 'src/components/Banner';
-import DetailsTable from 'src/components/DetailsTable';
+import { InspectionNotice as Banner } from '../modernization/InspectionNotice';
+import { InspectionFields as DetailsTable } from '../modernization/InspectionFields';
 import { buildRuntimeArtifactRows, RuntimeArtifactValue } from 'src/components/RuntimeArtifactRows';
-import { commonCss, padding } from 'src/Css';
+import { commonCss } from 'src/Css';
 import { formatParameters } from 'src/lib/v2/RuntimeArtifactUtils';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
 
@@ -40,7 +40,7 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
   return (
     <ErrorBoundary>
       <div className={commonCss.page}>
-        <div className={padding(20)}>
+        <div className='kfp-inspection-scroll'>
           <h3>{getTaskDisplayName(task)}</h3>
           {isEmpty && (
             <Banner message='There is no input/output parameter or artifact.' mode='info' />

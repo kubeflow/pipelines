@@ -25,6 +25,7 @@ import {
   MessageSquare,
   Monitor,
   Moon,
+  Search,
   Sun,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -50,6 +51,7 @@ export interface AppShellProps {
   secondaryItems?: readonly AppShellNavItem[];
   hideSideNav?: boolean;
   namespace?: string;
+  onSearch?: () => void;
   version?: string;
   versionHref?: string;
   metadata?: {
@@ -99,6 +101,7 @@ export function AppShell({
   secondaryItems = [],
   hideSideNav = false,
   namespace,
+  onSearch,
   version,
   versionHref,
   metadata,
@@ -172,6 +175,26 @@ export function AppShell({
             </div>
           </div>
 
+          {onSearch && (
+            <div className='kfp-shell-search-container'>
+              <Button
+                variant='ghost'
+                className='kfp-shell-search'
+                aria-label='Search'
+                aria-keyshortcuts='Control+k Meta+k'
+                title='Search (Ctrl/Cmd+K)'
+                onClick={onSearch}
+              >
+                <Search size={18} strokeWidth={1.6} aria-hidden='true' />
+                {!collapsed && (
+                  <>
+                    <span>Search</span>
+                    <kbd>Ctrl / ⌘ K</kbd>
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
           <nav aria-label='Pipeline navigation' className='kfp-shell-navigation'>
             <ul className='kfp-shell-nav-list'>{items.map(renderNavigationItem)}</ul>
             {secondaryItems.length > 0 && (
@@ -272,6 +295,19 @@ export function AppShell({
         </aside>
       )}
       <main id={mainId} ref={mainRef} className='kfp-shell-main' tabIndex={-1}>
+        {hideSideNav && onSearch && (
+          <div className='kfp-shell-embedded-search'>
+            <Button
+              variant='ghost'
+              size='sm'
+              aria-label='Search'
+              aria-keyshortcuts='Control+k Meta+k'
+              onClick={onSearch}
+            >
+              <Search size={16} aria-hidden='true' /> Search
+            </Button>
+          </div>
+        )}
         {children}
       </main>
     </div>

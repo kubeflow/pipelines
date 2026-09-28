@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-import { CircularProgress } from '@mui/material';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from 'src/components/ui/button';
+import { InspectionTabs } from 'src/components/modernization/InspectionTabs';
+import './CompareV2.css';
 import { useQueries, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import {
   useCallback,
@@ -28,11 +31,8 @@ import {
 import type { Dispatch, SetStateAction } from 'react';
 import { Navigate } from 'react-router';
 import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
-import MD2Tabs from 'src/atoms/MD2Tabs';
-import Separator from 'src/atoms/Separator';
-import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
-import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import {
   createRuntimeArtifactComparisonSelectionState,
   RuntimeArtifactComparison,
@@ -40,7 +40,6 @@ import {
   RuntimeArtifactComparisonSelectionState,
   RuntimeComparisonArtifact,
 } from 'src/components/viewers/RuntimeArtifactComparison';
-import { commonCss, padding, zIndex } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { useKeyedState } from 'src/hooks/useKeyedState';
 import { Apis } from 'src/lib/Apis';
@@ -60,16 +59,9 @@ import {
   type RuntimeArtifactEntry,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { getRunDisplayName, getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
-import { classes, stylesheet } from 'typestyle';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { PageProps } from './Page';
 import RunList from './RunList';
-
-const css = stylesheet({
-  outputsRow: { marginLeft: 15 },
-  outputsOverflow: { overflowX: 'auto' },
-  relativeContainer: { height: '12rem', position: 'relative' },
-});
 
 export enum NativeMetricsTab {
   SCALAR,
@@ -164,6 +156,33 @@ function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
 }
 
+function ComparisonSectionHeading({
+  sectionName,
+  collapseSection,
+  collapseSectionUpdate,
+}: {
+  sectionName: string;
+  collapseSection: boolean;
+  collapseSectionUpdate: (collapsed: boolean) => void;
+}) {
+  return (
+    <h2 className='kfp-comparison-section-heading'>
+      <Button
+        variant='ghost'
+        aria-expanded={!collapseSection}
+        onClick={() => collapseSectionUpdate(!collapseSection)}
+      >
+        {collapseSection ? (
+          <ChevronRight size={16} aria-hidden='true' />
+        ) : (
+          <ChevronDown size={16} aria-hidden='true' />
+        )}
+        {sectionName}
+      </Button>
+    </h2>
+  );
+}
+
 function CompareTableSection({
   isLoading,
   compareTableProps,
@@ -175,20 +194,15 @@ function CompareTableSection({
 }) {
   if (isLoading) {
     return (
-      <div className={css.relativeContainer}>
-        <CircularProgress
-          size={25}
-          className={commonCss.absoluteCenter}
-          style={{ zIndex: zIndex.BUSY_OVERLAY }}
-          role='circularprogress'
-        />
-      </div>
+      <p className='kfp-comparison-loading' role='status'>
+        Loading {dataTypeName}…
+      </p>
     );
   }
   if (!compareTableProps) {
     return <p>There are no {dataTypeName} available on the selected runs.</p>;
   }
-  return <CompareTable {...compareTableProps} />;
+  return <CompareTable {...compareTableProps} label={`${dataTypeName} comparison`} />;
 }
 
 export function CompareV2(props: CompareV2Props) {
@@ -272,11 +286,37 @@ export function CompareV2(props: CompareV2Props) {
     return comparisonData.filter(({ run }) => selectedIdSet.has(run.run_id || ''));
   }, [comparisonData, selectedIds]);
 
-  const paramsTableProps = useMemo(() => buildParamsTableProps(selectedData), [selectedData]);
-  const scalarMetricsTableProps = useMemo(
-    () => buildScalarMetricsTableProps(selectedData),
-    [selectedData],
-  );
+  const paramsTableProps = useMemo(() => {
+    const table = buildParamsTableProps(selectedData);
+    return (
+      table && {
+        ...table,
+        xLinks: selectedData.map(({ run }) =>
+          RoutePage.RUN_DETAILS.replace(
+            ':' + RouteParams.runId,
+            encodeURIComponent(run.run_id || ''),
+          ),
+        ),
+        missingCells: table.yLabels.map((name) =>
+          selectedData.map(({ run }) => run.runtime_config?.parameters?.[name] === undefined),
+        ),
+      }
+    );
+  }, [selectedData]);
+  const scalarMetricsTableProps = useMemo(() => {
+    const table = buildScalarMetricsTableProps(selectedData);
+    return (
+      table && {
+        ...table,
+        xLinks: selectedData.map(({ run }) =>
+          RoutePage.RUN_DETAILS.replace(
+            ':' + RouteParams.runId,
+            encodeURIComponent(run.run_id || ''),
+          ),
+        ),
+      }
+    );
+  }, [selectedData]);
 
   const selectedIdSet = new Set(selectedIds);
   const selectedFailures = failures.filter(({ runId }) => selectedIdSet.has(runId));
@@ -336,8 +376,8 @@ export function CompareV2(props: CompareV2Props) {
         })
         .refresh(refresh)
         .getToolbarActionMap(),
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'Compare runs',
+      breadcrumbs: [{ displayName: 'Runs', href: RoutePage.RUNS }],
+      pageTitle: `Compare ${runIds.length} runs`,
     });
   });
 
@@ -354,15 +394,19 @@ export function CompareV2(props: CompareV2Props) {
   };
 
   return (
-    <div className={classes(commonCss.page, padding(20, 'lrt'))}>
-      <CollapseButtonSingle
+    <div className='kfp-comparison-page'>
+      <p className='kfp-comparison-intro'>
+        Parameters and metrics side by side. Differences are highlighted.
+      </p>
+      <ComparisonSectionHeading
         sectionName={OVERVIEW_SECTION_NAME}
         collapseSection={isOverviewCollapsed}
         collapseSectionUpdate={setIsOverviewCollapsed}
       />
       {!isOverviewCollapsed && (
-        <div className={commonCss.noShrink}>
+        <div className='kfp-comparison-overview'>
           <RunList
+            presentation='modern'
             onError={showPageError}
             {...props}
             selectedIds={selectedIds}
@@ -374,16 +418,13 @@ export function CompareV2(props: CompareV2Props) {
         </div>
       )}
 
-      <Separator orientation='vertical' />
-
-      <CollapseButtonSingle
+      <ComparisonSectionHeading
         sectionName={PARAMS_SECTION_NAME}
         collapseSection={isParamsCollapsed}
         collapseSectionUpdate={setIsParamsCollapsed}
       />
       {!isParamsCollapsed && (
-        <div className={classes(commonCss.noShrink, css.outputsRow, css.outputsOverflow)}>
-          <Separator orientation='vertical' />
+        <div className='kfp-comparison-card'>
           <CompareTableSection
             isLoading={isLoading}
             compareTableProps={paramsTableProps}
@@ -392,7 +433,7 @@ export function CompareV2(props: CompareV2Props) {
         </div>
       )}
 
-      <CollapseButtonSingle
+      <ComparisonSectionHeading
         sectionName={METRICS_SECTION_NAME}
         collapseSection={isMetricsCollapsed}
         collapseSectionUpdate={setIsMetricsCollapsed}
@@ -406,8 +447,6 @@ export function CompareV2(props: CompareV2Props) {
         scalarMetricsTableProps={scalarMetricsTableProps}
         setMetricsTab={setMetricsTab}
       />
-
-      <Separator orientation='vertical' />
     </div>
   );
 }
@@ -436,25 +475,25 @@ function NativeMetricsSection({
     return null;
   }
   return (
-    <div className={classes(commonCss.noShrink, css.outputsRow)}>
-      <Separator orientation='vertical' />
-      <MD2Tabs tabs={METRICS_TAB_NAMES} selectedTab={metricsTab} onSwitch={setMetricsTab} />
-      <div
-        className={classes(
-          padding(20, metricsTab === NativeMetricsTab.CLASSIFICATION ? 'lr' : 'lrt'),
-          css.outputsOverflow,
-        )}
+    <div className='kfp-comparison-card'>
+      <InspectionTabs
+        tabs={METRICS_TAB_NAMES}
+        selectedTab={metricsTab}
+        onSwitch={setMetricsTab}
+        ariaLabel='Metric types'
       >
-        <NativeMetricsContent
-          comparisonData={comparisonData}
-          isLoading={isLoading}
-          metricsTab={metricsTab}
-          namespace={namespace}
-          selectionState={selectionState}
-          setSelectionState={setSelectionState}
-          scalarMetricsTableProps={scalarMetricsTableProps}
-        />
-      </div>
+        <div className='kfp-comparison-metrics'>
+          <NativeMetricsContent
+            comparisonData={comparisonData}
+            isLoading={isLoading}
+            metricsTab={metricsTab}
+            namespace={namespace}
+            selectionState={selectionState}
+            setSelectionState={setSelectionState}
+            scalarMetricsTableProps={scalarMetricsTableProps}
+          />
+        </div>
+      </InspectionTabs>
     </div>
   );
 }

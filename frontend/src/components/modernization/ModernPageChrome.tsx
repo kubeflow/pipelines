@@ -17,18 +17,25 @@
 import { useEffect, useEffectEvent, useId, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { Dialog } from '@base-ui/react/dialog';
 import {
   Archive,
   ArrowLeft,
   ArrowUpFromLine,
   ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
   Copy,
   GitCompareArrows,
   LoaderCircle,
   Plus,
+  Pause,
+  Play,
+  Repeat,
   RefreshCw,
+  RotateCcw,
+  Square,
   Trash2,
+  Upload,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -37,6 +44,7 @@ import type { ToolbarProps } from '../Toolbar';
 import type { BannerProps } from '../Banner';
 import type { DialogProps } from '../Router';
 import { Button } from '../ui/button';
+import { ModalDialog } from '../ui/dialog';
 import { useTheme } from './ThemeProvider';
 import './ModernPageChrome.css';
 
@@ -55,11 +63,23 @@ export interface ModernPageChromeProps {
 const actionIcons: Record<string, LucideIcon> = {
   archive: Archive,
   cloneRun: Copy,
+  cloneRecurringRun: Copy,
+  collapse: ChevronsDownUp,
+  expand: ChevronsUpDown,
+  disableRecurringRun: Pause,
+  enableRecurringRun: Play,
+  newExperiment: Plus,
+  newPipelineVersion: Upload,
+  newRecurringRun: Repeat,
+  newRunFromPipelineVersion: Plus,
+  uploadPipeline: Upload,
   compare: GitCompareArrows,
   deleteRun: Trash2,
   newRun: Plus,
   refresh: RefreshCw,
   restore: ArrowUpFromLine,
+  retry: RotateCcw,
+  terminateRun: Square,
 };
 
 function ThemeControl() {
@@ -152,46 +172,6 @@ function PageToolbar({
   );
 }
 
-function PageDialog({
-  open,
-  title,
-  children,
-  actions,
-  onClose,
-}: {
-  open: boolean;
-  title: ReactNode;
-  children?: ReactNode;
-  actions: ReactNode;
-  onClose: () => void;
-}) {
-  const { resolvedTheme } = useTheme();
-  return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
-      }}
-    >
-      {/* Portals are outside the application theme element, so inherit the resolved palette explicitly. */}
-      <Dialog.Portal className={`kfp-theme ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
-        <Dialog.Backdrop className='kfp-page-dialog-backdrop' />
-        <Dialog.Viewport className='kfp-page-dialog-viewport'>
-          <Dialog.Popup className='kfp-page-dialog'>
-            <Dialog.Title className='kfp-page-dialog-title'>{title}</Dialog.Title>
-            {children && (
-              <Dialog.Description className='kfp-page-dialog-content'>
-                {children}
-              </Dialog.Description>
-            )}
-            <div className='kfp-page-dialog-actions'>{actions}</div>
-          </Dialog.Popup>
-        </Dialog.Viewport>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
 function PageBanner({ banner }: { banner: BannerProps }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const mode = banner.mode || 'error';
@@ -217,14 +197,14 @@ function PageBanner({ banner }: { banner: BannerProps }) {
           )}
         </div>
       </div>
-      <PageDialog
+      <ModalDialog
         open={detailsOpen}
         title={mode === 'error' ? 'An error occurred' : mode === 'warning' ? 'Warning' : 'Info'}
         onClose={() => setDetailsOpen(false)}
         actions={<Button onClick={() => setDetailsOpen(false)}>Dismiss</Button>}
       >
         {banner.additionalInfo}
-      </PageDialog>
+      </ModalDialog>
     </>
   );
 }
@@ -299,7 +279,7 @@ export function ModernPageChrome({
   showThemeControl,
 }: ModernPageChromeProps) {
   return (
-    <section className='kfp-modern-page' aria-label='Runs workspace'>
+    <section className='kfp-modern-page' aria-label='Pipeline workspace'>
       <PageToolbar toolbar={toolbarProps} showThemeControl={showThemeControl} />
       {navigationNotice}
       {bannerProps.message && (
@@ -309,7 +289,7 @@ export function ModernPageChrome({
         />
       )}
       <div className='kfp-modern-page-content'>{children}</div>
-      <PageDialog
+      <ModalDialog
         open={dialogProps.open !== false}
         title={dialogProps.title || 'Confirm action'}
         onClose={() => onDialogClose()}
@@ -324,7 +304,7 @@ export function ModernPageChrome({
         ))}
       >
         {dialogProps.content}
-      </PageDialog>
+      </ModalDialog>
       {snackbarProps.open && (
         <PageNotification
           key={typeof snackbarProps.message === 'string' ? snackbarProps.message : undefined}

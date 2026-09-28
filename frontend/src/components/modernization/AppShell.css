@@ -272,3 +272,37 @@
     transition: none;
   }
 }
+
+.kfp-theme .kfp-shell-search-container {
+  padding: 6px 10px 0;
+}
+
+.kfp-theme .kfp-shell-search {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 0 9px;
+  color: var(--foreground-2);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.kfp-theme .kfp-shell-search kbd {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-family: var(--kfp-font-sans);
+  font-size: 10px;
+}
+
+.kfp-theme .kfp-shell-sidebar[data-collapsed='true'] .kfp-shell-search {
+  justify-content: center;
+}
+
+.kfp-theme .kfp-shell-embedded-search {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}

@@ -237,4 +237,12 @@ describe('AppShell', () => {
     expect(registrations.length).toBeGreaterThan(0);
     expect(removals).toEqual(registrations);
   });
+  it('keeps Search available with both expanded and collapsed navigation', async () => {
+    const onSearch = vi.fn();
+    renderShell({ onSearch });
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(onSearch).toHaveBeenCalledTimes(2);
+  });
 });

@@ -69,7 +69,8 @@ it('loads native runs once without a version-routing preflight', async () => {
 it('shows loading indicators while native comparison data is pending', () => {
   vi.spyOn(Apis.runServiceApiV2, 'getRun').mockReturnValue(new Promise(() => {}));
   render(page());
-  expect(screen.getAllByRole('circularprogress').length).toBeGreaterThan(0);
+  expect(screen.getByText('Loading parameters…')).toHaveAttribute('role', 'status');
+  expect(screen.getByText('Loading scalar metrics artifacts…')).toHaveAttribute('role', 'status');
 });
 
 it('retains successful cached runs while retrying only a failed native query', async () => {
@@ -98,7 +99,8 @@ it('reports failed native queries once even if the page shell rerenders', async 
   await waitFor(() =>
     expect(props.updateBanner).toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' })),
   );
-  expect(screen.queryAllByRole('circularprogress')).toHaveLength(0);
+  expect(screen.queryByText('Loading parameters…')).not.toBeInTheDocument();
+  expect(screen.queryByText('Loading scalar metrics artifacts…')).not.toBeInTheDocument();
   const calls = vi.mocked(props.updateBanner).mock.calls.length;
   view.rerender(page());
   expect(props.updateBanner).toHaveBeenCalledTimes(calls);

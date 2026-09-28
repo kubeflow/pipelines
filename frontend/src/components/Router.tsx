@@ -396,11 +396,16 @@ class RoutedPage extends React.Component<
     const navigation = { location, navigate, params };
     const navigationNotice =
       route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS ? (
-        <ExecutionRedirectNotice modern={route?.path === RoutePage.RUNS} />
+        <ExecutionRedirectNotice modern />
       ) : undefined;
     const page = <Component {...navigation} {...this.childProps} view={route?.view} />;
 
-    if (route?.path === RoutePage.RUNS || route?.path === RoutePage.ARCHIVED_RUNS) {
+    if (
+      route?.path === RoutePage.RUNS ||
+      route?.path === RoutePage.ARCHIVED_RUNS ||
+      route?.path === RoutePage.RUN_DETAILS ||
+      route?.path === RoutePage.COMPARE
+    ) {
       return (
         <ModernPageChrome
           toolbarProps={{ ...this.state.toolbarProps, navigate }}

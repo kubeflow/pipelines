@@ -39,8 +39,8 @@ describe('CompareTable', () => {
   });
 
   it('renders no data', () => {
-    const { asFragment } = render(<CompareTable rows={[]} xLabels={[]} yLabels={[]} />);
-    expect(asFragment()).toMatchSnapshot();
+    render(<CompareTable rows={[]} xLabels={[]} yLabels={[]} />);
+    expect(screen.queryByRole('table')).toBeNull();
   });
 
   it('logs error if ylabels and rows have different lengths', () => {
@@ -51,8 +51,10 @@ describe('CompareTable', () => {
   });
 
   it('renders one row with three columns', () => {
-    const { asFragment } = render(<CompareTable rows={rows} xLabels={xLabels} yLabels={yLabels} />);
-    expect(asFragment()).toMatchSnapshot();
+    render(<CompareTable rows={rows} xLabels={xLabels} yLabels={yLabels} />);
+    expect(screen.getByRole('table', { name: 'Run comparison' })).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(4);
+    expect(screen.getAllByRole('rowheader')).toHaveLength(3);
   });
 });
 
@@ -98,4 +100,30 @@ describe('CompareTable xParentLabels', () => {
     screen.getByText(xParentLabels[0].label);
     screen.getByText(xParentLabels[1].label);
   });
+});
+
+it('distinguishes missing values, zero, and empty strings while announcing differences', () => {
+  render(
+    <CompareTable
+      xLabels={['First', 'Second', 'Third']}
+      yLabels={['value', 'same']}
+      rows={[
+        ['0', '', ''],
+        ['3', '3', '3'],
+      ]}
+      missingCells={[
+        [false, true, false],
+        [false, false, false],
+      ]}
+    />,
+  );
+  expect(screen.getByRole('cell', { name: '0' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Not provided')).toHaveTextContent('—');
+  expect(screen.getByLabelText('Empty string')).toHaveTextContent('“”');
+  expect(
+    screen.getByRole('rowheader', { name: 'value (values differ)' }).closest('tr'),
+  ).toHaveAttribute('data-different', 'true');
+  expect(screen.getByRole('rowheader', { name: 'same' }).closest('tr')).not.toHaveAttribute(
+    'data-different',
+  );
 });

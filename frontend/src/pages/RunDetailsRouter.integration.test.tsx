@@ -76,7 +76,7 @@ it.each([
       </MemoryRouter>,
     );
     try {
-      expect(await screen.findByRole('button', { name: 'Pipeline Spec' })).toBeInTheDocument();
+      expect(await screen.findByRole('tab', { name: 'Pipeline Spec' })).toBeInTheDocument();
       const fullRequests = requests.filter((url) => url.searchParams.get('view') === 'FULL');
       expect(fullRequests).toHaveLength(1);
       expect(fullRequests[0].searchParams.has('experiment_id')).toBe(false);

@@ -140,6 +140,48 @@ exports[`Router > initial render 1`] = `
             </span>
           </div>
         </div>
+        <div
+          class="kfp-shell-search-container"
+        >
+          <button
+            aria-keyshortcuts="Control+k Meta+k"
+            aria-label="Search"
+            class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground h-[34px] px-3 kfp-shell-search"
+            data-slot="button"
+            tabindex="0"
+            title="Search (Ctrl/Cmd+K)"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-search"
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m21 21-4.34-4.34"
+              />
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+            </svg>
+            <span>
+              Search
+            </span>
+            <kbd>
+              Ctrl / ⌘ K
+            </kbd>
+          </button>
+        </div>
         <nav
           aria-label="Pipeline navigation"
           class="kfp-shell-navigation"

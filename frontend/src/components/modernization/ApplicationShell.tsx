@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { GkeMetadataContext } from 'src/lib/GkeMetadata';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { KFP_FLAGS } from 'src/lib/Flags';
+import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
 import { AppShell } from './AppShell';
+import { CommandPalette } from './CommandPalette';
 import type { AppShellProps } from './AppShell';
 import { ThemeProvider } from './ThemeProvider';
 import './ApplicationShell.css';
@@ -30,6 +31,24 @@ type ApplicationShellProps = Pick<
 >;
 
 export function ApplicationShell(props: ApplicationShellProps) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  // External sync: one document shortcut shared by the normal and embedded shell.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === 'k' &&
+        !event.altKey &&
+        !event.repeat &&
+        !event.isComposing
+      ) {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
   const buildInfo = useContext(BuildInfoContext);
   const gkeMetadata = useContext(GkeMetadataContext);
   const namespace = useContext(NamespaceContext);
@@ -53,6 +72,7 @@ export function ApplicationShell(props: ApplicationShellProps) {
         {...props}
         hideSideNav={KFP_FLAGS.HIDE_SIDENAV}
         namespace={namespace}
+        onSearch={() => setSearchOpen(true)}
         version={version}
         versionHref={versionHref}
         metadata={{
@@ -64,6 +84,15 @@ export function ApplicationShell(props: ApplicationShellProps) {
             : 'unknown',
           commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
         }}
+      />
+      <CommandPalette
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        namespace={namespace}
+        requireNamespace={
+          buildInfo?.apiServerMultiUser || KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW
+        }
+        items={[...props.items, ...(props.secondaryItems || [])]}
       />
     </ThemeProvider>
   );

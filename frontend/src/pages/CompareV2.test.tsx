@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { forwardRef, useImperativeHandle } from 'react';
 import { BrowserRouter } from 'react-router';
@@ -645,6 +645,33 @@ describe('CompareV2', () => {
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
     expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+  });
+
+  it('preserves URL column order, encoded run links, and missing versus empty parameters', async () => {
+    const specialRunId = 'run/one%value';
+    const specialRun: V2beta1Run = {
+      run_id: specialRunId,
+      display_name: 'Special run',
+      runtime_config: { parameters: { optional: '', zero: 0 } },
+    };
+    vi.mocked(Apis.runServiceApiV2.getRun).mockImplementation(async (id) =>
+      id === specialRunId ? specialRun : runs[1],
+    );
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-2', encodeURIComponent(specialRunId)])} />
+      </CommonTestWrapper>,
+    );
+    const table = await screen.findByRole('table', { name: 'parameters comparison' });
+    const links = within(table).getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual(['Second run', 'Special run']);
+    expect(links[1]).toHaveAttribute('href', `/runs/details/${encodeURIComponent(specialRunId)}`);
+    const optionalRow = within(table)
+      .getByRole('rowheader', { name: 'optional (values differ)' })
+      .closest('tr')!;
+    expect(within(optionalRow).getByLabelText('Not provided')).toBeVisible();
+    expect(within(optionalRow).getByLabelText('Empty string')).toBeVisible();
+    expect(within(table).getByText('0')).toBeVisible();
   });
 
   it('loads comparison data for a paused run', async () => {

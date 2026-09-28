@@ -496,6 +496,7 @@ describe('Router', () => {
             <Router
               configs={[
                 { path: RoutePage.RUNS, Component: () => <div>Modern runs content</div> },
+                { path: RoutePage.RUN_DETAILS, Component: () => <div>Modern run details</div> },
                 { path: RoutePage.PIPELINES, Component: () => <div>Legacy pipelines content</div> },
               ]}
             />
@@ -510,40 +511,49 @@ describe('Router', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Collapse navigation' }));
     expect(screen.getByText('Modern runs content').closest('.kfp-legacy-page')).toBeNull();
+    await act(() => router.navigate('/runs/details/run-1?task=task-1'));
+    expect(screen.getByText('Modern run details').closest('.kfp-modern-page')).not.toBeNull();
+    expect(screen.getByText('Modern run details').closest('.kfp-legacy-page')).toBeNull();
+    expect(router.state.location.search).toBe('?task=task-1');
     await act(() => router.navigate(RoutePage.PIPELINES));
     expect(screen.getByText('Legacy pipelines content').closest('.kfp-legacy-page')).not.toBeNull();
     expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('dark');
     expect(screen.getByRole('complementary')).toHaveAttribute('data-collapsed', 'true');
   });
 
-  it('keeps Runs confirmation actions and close callbacks under the existing page owner', async () => {
-    const action = vi.fn();
-    const onClose = vi.fn();
-    const PromptPage = ({ updateDialog }: PageProps) => (
-      <button
-        onClick={() =>
-          updateDialog({
-            title: 'Confirm selection',
-            content: 'Apply this action to the selected runs?',
-            buttons: [{ text: 'Confirm action', onClick: action }],
-            onClose,
-          })
-        }
-      >
-        Open confirmation
-      </button>
-    );
-    render(
-      <MemoryRouter initialEntries={[RoutePage.RUNS]}>
-        <Router configs={[{ path: RoutePage.RUNS, Component: PromptPage }]} />
-      </MemoryRouter>,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Open confirmation' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirm action' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(action).toHaveBeenCalledTimes(1);
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
+  it.each([RoutePage.RUNS, RoutePage.RUN_DETAILS])(
+    'keeps confirmation actions and close callbacks under the owner of %s',
+    async (path) => {
+      const action = vi.fn();
+      const onClose = vi.fn();
+      const PromptPage = ({ updateDialog }: PageProps) => (
+        <button
+          onClick={() =>
+            updateDialog({
+              title: 'Confirm selection',
+              content: 'Apply this action to the selected runs?',
+              buttons: [{ text: 'Confirm action', onClick: action }],
+              onClose,
+            })
+          }
+        >
+          Open confirmation
+        </button>
+      );
+      render(
+        <MemoryRouter
+          initialEntries={[path === RoutePage.RUN_DETAILS ? '/runs/details/run-1' : path]}
+        >
+          <Router configs={[{ path, Component: PromptPage }]} />
+        </MemoryRouter>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Open confirmation' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirm action' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(action).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('keeps embedded Runs content and theme selection when the host hides the rail', () => {
     KFP_FLAGS.DEPLOYMENT = Deployments.KUBEFLOW;

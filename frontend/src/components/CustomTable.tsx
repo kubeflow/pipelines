@@ -207,6 +207,10 @@ export interface CustomTableRenderModel {
   disableSelection?: boolean;
   disableSorting?: boolean;
   noFilterBox?: boolean;
+  useRadioButtons?: boolean;
+  disableAdditionalSelection?: boolean;
+  getExpandedContent?: (index: number) => React.ReactNode;
+  onToggleExpansion?: (index: number) => void;
 }
 
 interface CustomTableProps {
@@ -363,6 +367,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             disableSelection: this.props.disableSelection,
             disableSorting: this.props.disableSorting,
             noFilterBox: this.props.noFilterBox,
+            useRadioButtons: this.props.useRadioButtons,
+            disableAdditionalSelection: this.props.disableAdditionalSelection,
+            getExpandedContent: this.props.getExpandComponent,
+            onToggleExpansion: this.props.toggleExpansion,
           })}
         </>
       );

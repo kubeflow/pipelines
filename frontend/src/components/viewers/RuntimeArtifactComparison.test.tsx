@@ -27,6 +27,11 @@ import {
   TEST_ONLY,
 } from './RuntimeArtifactComparison';
 
+async function chooseArtifact(label: string, optionName: string | RegExp) {
+  const select = screen.getByRole('combobox', { name: label });
+  await userEvent.selectOptions(select, within(select).getByRole('option', { name: optionName }));
+}
+
 function StatefulRuntimeArtifactComparison(
   props: Omit<
     ComponentProps<typeof RuntimeArtifactComparison>,
@@ -204,8 +209,8 @@ describe('RuntimeArtifactComparison', () => {
       .getByTestId('shared-roc-curve')
       .getAttribute('data-colors')!
       .split(',');
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
-    fireEvent.click(await screen.findByRole('option', { name: /First run/ }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'ROC curves' }));
+    await userEvent.click(await screen.findByRole('option', { name: /First run/ }));
 
     await waitFor(() =>
       expect(screen.getByTestId('shared-roc-curve')).toHaveAttribute('data-config-count', '2'),
@@ -216,7 +221,7 @@ describe('RuntimeArtifactComparison', () => {
       .split(',');
     expect(remainingColors).toEqual(initialColors.slice(1));
 
-    fireEvent.click(await screen.findByRole('option', { name: /First run/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /First run/ }));
     const reselectedColors = screen
       .getByTestId('shared-roc-curve')
       .getAttribute('data-colors')!
@@ -287,11 +292,11 @@ describe('RuntimeArtifactComparison', () => {
         <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
       </CommonTestWrapper>,
     );
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'ROC curves' }));
     const option = await screen.findByRole('option', { name: /Run 3/ });
     const swatchColor = option.querySelector<HTMLElement>('span[style]')!.style.backgroundColor;
 
-    fireEvent.click(option);
+    await userEvent.click(option);
     await waitFor(() =>
       expect(screen.getByTestId('shared-roc-curve')).toHaveAttribute('data-config-count', '4'),
     );
@@ -303,7 +308,7 @@ describe('RuntimeArtifactComparison', () => {
     expect(swatchColor).toBe(`rgb(${getRenderedRocColor(selectedColor).replaceAll(',', ', ')})`);
   });
 
-  it('keeps checkboxes out of the tab order and searches beyond the first option window', async () => {
+  it('keeps option indicators out of the tab order and searches beyond the first option window', async () => {
     const artifacts = Array.from({ length: 400 }, (_, index) =>
       classificationEntry(`Run ${index}`, `roc-${index}`, {
         confidenceMetrics: [
@@ -317,15 +322,11 @@ describe('RuntimeArtifactComparison', () => {
         <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
       </CommonTestWrapper>,
     );
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'ROC curves' }));
 
-    expect(
-      (await screen.findAllByRole('option')).filter((option) => option.dataset.value),
-    ).toHaveLength(100);
-    document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((checkbox) => {
-      expect(checkbox.tabIndex).toBe(-1);
-      expect(checkbox).toHaveAttribute('aria-hidden', 'true');
-    });
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(100);
+    expect(options.every((option) => !option.querySelector('input, button'))).toBe(true);
     expect(screen.getByText(/Showing 1–100 of 400 curves/)).toBeVisible();
 
     fireEvent.keyDown(screen.getByRole('listbox', { name: 'ROC curves' }), { key: 'Escape' });
@@ -333,7 +334,7 @@ describe('RuntimeArtifactComparison', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Search ROC curves' }), {
       target: { value: 'Run 399' },
     });
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'ROC curves' }));
     expect(await screen.findByRole('option', { name: /Run 399/ })).toBeVisible();
   });
 
@@ -357,7 +358,7 @@ describe('RuntimeArtifactComparison', () => {
     fireEvent.change(searchInput, {
       target: { value: 'Same run / Evaluate / evaluation' },
     });
-    fireEvent.mouseDown(selector);
+    await userEvent.click(selector);
     const firstPage = await screen.findByRole('listbox', { name: 'ROC curves' });
     expect(firstPage).toBeVisible();
     // Count labels within the visible popup without repeating whole-document accessibility scans.
@@ -365,14 +366,22 @@ describe('RuntimeArtifactComparison', () => {
     expect(firstPageLabels).toHaveLength(100);
     expect(firstPageLabels[0]).toBeVisible();
     expect(firstPageLabels.at(-1)).toBeVisible();
+    await waitFor(() => expect(firstPage).toContainElement(document.activeElement as HTMLElement));
+    expect(selector).toHaveTextContent('3 curves selected');
     await user.keyboard('{Escape}');
-    await waitFor(() => expect(firstPage).not.toBeInTheDocument());
+    expect(selector).toHaveTextContent('3 curves selected');
+    await waitFor(() => expect(selector).toHaveAttribute('aria-expanded', 'false'));
+    expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull();
     const nextPage = screen.getByRole('button', { name: 'Next ROC curves' });
     expect(nextPage.closest('[role="listbox"]')).toBeNull();
+    await waitFor(() => expect(selector).toHaveFocus());
     await user.tab();
+    expect(selector).toHaveTextContent('3 curves selected');
     expect(nextPage).toHaveFocus();
     await user.keyboard('{Enter}');
-    fireEvent.mouseDown(selector);
+    expect(selector).toHaveTextContent('3 curves selected');
+    await user.click(selector);
+    expect(selector).toHaveTextContent('3 curves selected');
     const secondPage = await screen.findByRole('listbox', { name: 'ROC curves' });
     expect(secondPage).toBeVisible();
     const secondPageLabels = within(secondPage).getAllByText('Same run / Evaluate / evaluation');
@@ -380,11 +389,12 @@ describe('RuntimeArtifactComparison', () => {
     expect(secondPageLabels[0]).toBeVisible();
     expect(secondPageLabels.at(-1)).toBeVisible();
     expect(screen.getByText(/Showing 101–150 of 150 matching curves/)).toBeVisible();
-    fireEvent.click(secondPageLabels.at(-1)!);
+    await user.click(secondPageLabels.at(-1)!);
     expect(selector).toHaveTextContent('4 curves selected');
 
     fireEvent.keyDown(secondPage, { key: 'Escape' });
-    await waitFor(() => expect(secondPage).not.toBeInTheDocument());
+    await waitFor(() => expect(selector).toHaveAttribute('aria-expanded', 'false'));
+    expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull();
     fireEvent.change(searchInput, {
       target: { value: 'not present' },
     });
@@ -419,22 +429,13 @@ describe('RuntimeArtifactComparison', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expand ROC chart' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Confusion matrix' }));
     expect(rocChart).not.toBeVisible();
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'First comparison artifact' }));
-    fireEvent.click(
-      await screen.findByRole('option', { name: 'First run / Evaluate / evaluation' }),
-    );
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Second comparison artifact' }));
-    fireEvent.click(
-      await screen.findByRole('option', { name: 'Second run / Evaluate / evaluation' }),
-    );
+    await chooseArtifact('First comparison artifact', 'First run / Evaluate / evaluation');
+    await chooseArtifact('Second comparison artifact', 'Second run / Evaluate / evaluation');
 
     expect(screen.getByTitle('First run / Evaluate / evaluation')).toBeVisible();
     expect(screen.getByTitle('Second run / Evaluate / evaluation')).toBeVisible();
 
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'First comparison artifact' }));
-    fireEvent.click(
-      await screen.findByRole('option', { name: 'Second run / Evaluate / evaluation' }),
-    );
+    await chooseArtifact('First comparison artifact', 'Second run / Evaluate / evaluation');
 
     expect(screen.getAllByText('12')).toHaveLength(2);
     fireEvent.click(screen.getByRole('tab', { name: 'ROC curves' }));
@@ -486,14 +487,8 @@ describe('RuntimeArtifactComparison', () => {
     expect(readFileSpy).not.toHaveBeenCalled();
     expect(screen.getByRole('region', { name: 'Side-by-side html comparison' })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Side-by-side html comparison' })).toBeNull();
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'First comparison artifact' }));
-    fireEvent.click(
-      await screen.findByRole('option', { name: 'First run / Report / first report' }),
-    );
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Second comparison artifact' }));
-    fireEvent.click(
-      await screen.findByRole('option', { name: 'Second run / Report / second report' }),
-    );
+    await chooseArtifact('First comparison artifact', 'First run / Report / first report');
+    await chooseArtifact('Second comparison artifact', 'Second run / Report / second report');
 
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
     expect(readFileSpy).toHaveBeenCalledWith({
@@ -508,9 +503,12 @@ describe('RuntimeArtifactComparison', () => {
     });
     expect(await screen.findByText(/Unable to retrieve the selected visualization/)).toBeVisible();
     expect(screen.getByTitle('HTML report')).toBeVisible();
-    expect(screen.getByRole('combobox', { name: 'Second comparison artifact' })).toHaveTextContent(
-      'Second run / Report / second report',
-    );
+    expect(
+      within(screen.getByRole('combobox', { name: 'Second comparison artifact' })).getByRole(
+        'option',
+        { name: 'Second run / Report / second report', selected: true },
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByTitle('Second run / Report / second report')).toBeNull();
   });
 
@@ -536,8 +534,7 @@ describe('RuntimeArtifactComparison', () => {
     );
 
     const { rerender } = render(view(artifact));
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'First comparison artifact' }));
-    fireEvent.click(await screen.findByRole('option', { name: artifact.label }));
+    await chooseArtifact('First comparison artifact', artifact.label);
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
 
     rerender(view({ ...artifact, sourceFinished: true }));
@@ -576,8 +573,7 @@ describe('RuntimeArtifactComparison', () => {
         <StatefulRuntimeArtifactComparison artifacts={[htmlEntry, markdownEntry]} kind='html' />
       </CommonTestWrapper>,
     );
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'First comparison artifact' }));
-    fireEvent.click(await screen.findByRole('option', { name: 'First run / Report / report' }));
+    await chooseArtifact('First comparison artifact', 'First run / Report / report');
     await screen.findByTitle('HTML report');
 
     rerender(
@@ -591,9 +587,12 @@ describe('RuntimeArtifactComparison', () => {
       </CommonTestWrapper>,
     );
 
-    expect(screen.getByRole('combobox', { name: 'First comparison artifact' })).toHaveTextContent(
-      'First run / Report / report',
-    );
+    expect(
+      within(screen.getByRole('combobox', { name: 'First comparison artifact' })).getByRole(
+        'option',
+        { name: 'First run / Report / report', selected: true },
+      ),
+    ).toBeInTheDocument();
   });
 
   it('keeps a maximum of ten selected ROC curves', () => {

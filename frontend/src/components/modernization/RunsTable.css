@@ -234,3 +234,20 @@
     flex-wrap: wrap;
   }
 }
+
+.kfp-theme .kfp-resource-expansion {
+  width: 36px;
+  padding: 4px;
+}
+.kfp-theme .kfp-resource-expanded {
+  transform: rotate(90deg);
+}
+.kfp-theme .kfp-resource-details > td {
+  padding: 16px 24px;
+  background: var(--background);
+}
+.kfp-theme .kfp-runs-selection input[type='radio'] {
+  accent-color: var(--primary);
+  width: 18px;
+  height: 18px;
+}
