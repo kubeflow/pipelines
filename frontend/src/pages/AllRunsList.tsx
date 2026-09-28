@@ -61,7 +61,6 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
     return (
       <div className='kfp-runs-view'>
         <RunList
-          presentation='modern'
           onLoadSuccess={this.clearBanner.bind(this)}
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}

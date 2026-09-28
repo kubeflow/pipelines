@@ -43,9 +43,6 @@ export default defineConfig(({ mode }) => ({
     port: 3000,
     proxy,
   },
-  optimizeDeps: {
-    exclude: ['@mui/material/colors'],
-  },
   build: {
     // Match the Tailwind 4 CSS floor and the production browserslist.
     target: ['chrome111', 'edge111', 'firefox128', 'safari16.4'],

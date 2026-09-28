@@ -41,7 +41,6 @@ const latest: V2beta1Run = { run_id: 'latest', display_name: 'Latest run', state
 function renderList(overrides: Partial<RunListProps> = {}) {
   const ref = createRef<TestRunList>();
   const props: RunListProps = {
-    presentation: 'modern',
     navigate: vi.fn(),
     params: {},
     onError: vi.fn(),

@@ -96,7 +96,6 @@ describe('ArchivedRuns', () => {
   it('renders archived runs', () => {
     renderArchivedRuns();
     expect(lastRunListProps).toBeTruthy();
-    expect(lastRunListProps.presentation).toBe('modern');
     expect(renderResult!.container.querySelector('[data-testid="run-list"]')).not.toBeNull();
   });
 

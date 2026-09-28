@@ -279,7 +279,6 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
     const experiment = this.state.displayExperiments[experimentIndex];
     return (
       <RunList
-        presentation='modern'
         hideExperimentColumn={true}
         experimentIdMask={experiment.experiment_id}
         onError={() => null}

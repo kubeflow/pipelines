@@ -48,9 +48,9 @@ describe('generated Tailwind CSS in the test DOM', () => {
   // and the production graph harness; only active utilities belong in this gate.
   it.each([
     {
-      name: 'navigation layout',
-      classes: 'flex flex-row flex-shrink-0',
-      expected: { display: 'flex', flexDirection: 'row', flexShrink: '0' },
+      name: 'run form label layout',
+      classes: 'flex items-center gap-2',
+      expected: { display: 'flex', alignItems: 'center' },
     },
     {
       name: 'shared button layout',

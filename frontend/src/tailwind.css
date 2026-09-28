@@ -2,7 +2,7 @@
 
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/preflight.css' layer(base);
-/* Keep utilities unlayered while they coexist with MUI and TypeStyle rules. */
+/* Keep utility precedence above the existing unlayered component styles. */
 @import 'tailwindcss/utilities.css' source(none);
 @import './styles/modernization.css';
 
@@ -10,7 +10,7 @@
 @source '../index.html';
 @source './';
 
-/* Preserve the legacy palette and focus treatment until those screens migrate. */
+/* Preserve shared utility colors and focus treatment. */
 @theme {
   --color-gray-100: #f3f4f6;
   --color-gray-200: #e5e7eb;
@@ -44,13 +44,4 @@
   :disabled {
     cursor: default;
   }
-}
-
-/* These names remain in the existing navigation and graph components. */
-@utility flex-shrink-0 {
-  flex-shrink: 0;
-}
-
-@utility flex-grow {
-  flex-grow: 1;
 }

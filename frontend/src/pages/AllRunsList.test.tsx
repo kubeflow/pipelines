@@ -86,7 +86,6 @@ describe('AllRunsList', () => {
   it('renders all runs', () => {
     renderAllRunsList();
     expect(lastRunListProps).toBeTruthy();
-    expect(lastRunListProps.presentation).toBe('modern');
     expect(renderResult!.container.querySelector('[data-testid="run-list"]')).not.toBeNull();
   });
 

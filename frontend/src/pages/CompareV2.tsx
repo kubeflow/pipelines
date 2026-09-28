@@ -406,7 +406,6 @@ export function CompareV2(props: CompareV2Props) {
       {!isOverviewCollapsed && (
         <div className='kfp-comparison-overview'>
           <RunList
-            presentation='modern'
             onError={showPageError}
             {...props}
             selectedIds={selectedIds}

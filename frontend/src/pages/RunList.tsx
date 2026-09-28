@@ -26,10 +26,7 @@ import { Link } from 'react-router';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { URLParser } from 'src/lib/URLParser';
-import { commonCss } from 'src/Css';
 import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
-import { statusToIcon } from './StatusV2';
-import { Tooltip } from '@mui/material';
 import { RunsTable } from 'src/components/modernization/RunsTable';
 import { RunStatus } from 'src/components/modernization/RunStatus';
 
@@ -64,7 +61,6 @@ type MaskProps = Exclude<
 
 export type RunListProps = MaskProps &
   NavigationProps & {
-    presentation?: 'modern';
     disablePaging?: boolean;
     disableSelection?: boolean;
     disableSorting?: boolean;
@@ -143,45 +139,36 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       return row;
     });
 
-    if (this.props.presentation === 'modern') {
-      // Keep one data model while presenting the primary identifiers before timing details.
-      const order = this.props.hideExperimentColumn ? [0, 1, 3, 2, 4, 5] : [0, 1, 4, 3, 2, 5, 6];
-      columns = order.map((index) => columns[index]);
-      rows = rows.map((row) => ({
-        ...row,
-        otherFields: order.map((index) => row.otherFields[index]),
-      }));
-      columns[0] = { ...columns[0], label: 'Run' };
-      columns[2] = { ...columns[2], label: 'Pipeline version' };
-      columns[columns.length - 1] = { ...columns[columns.length - 1], label: 'Started' };
-    }
+    // Keep one data model while presenting the primary identifiers before timing details.
+    const order = this.props.hideExperimentColumn ? [0, 1, 3, 2, 4, 5] : [0, 1, 4, 3, 2, 5, 6];
+    columns = order.map((index) => columns[index]);
+    rows = rows.map((row) => ({
+      ...row,
+      otherFields: order.map((index) => row.otherFields[index]),
+    }));
+    columns[0] = { ...columns[0], label: 'Run' };
+    columns[2] = { ...columns[2], label: 'Pipeline version' };
+    columns[columns.length - 1] = { ...columns[columns.length - 1], label: 'Started' };
 
     return (
-      <div className={this.props.presentation === 'modern' ? 'kfp-runs-table-view' : undefined}>
+      <div className='kfp-runs-table-view'>
         <CustomTable
-          renderTable={
-            this.props.presentation === 'modern'
-              ? (table) => (
-                  <RunsTable
-                    table={table}
-                    onOpenRun={(id) =>
-                      this.props.navigate(
-                        RoutePage.RUN_DETAILS.replace(
-                          ':' + RouteParams.runId,
-                          encodeURIComponent(id),
-                        ),
-                      )
-                    }
-                  />
+          renderTable={(table) => (
+            <RunsTable
+              table={table}
+              onOpenRun={(id) =>
+                this.props.navigate(
+                  RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, encodeURIComponent(id)),
                 )
-              : undefined
-          }
+              }
+            />
+          )}
           columns={columns}
           rows={rows}
           selectedIds={this.props.selectedIds}
           initialSortColumn={RunSortKeys.CREATED_AT}
           ref={this._tableRef}
-          filterLabel={this.props.presentation === 'modern' ? 'Filter runs by name' : 'Filter runs'}
+          filterLabel='Filter runs by name'
           updateSelection={this.props.onSelectionChange}
           reload={this._loadRuns.bind(this)}
           disablePaging={this.props.disablePaging}
@@ -189,9 +176,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           disableSelection={this.props.disableSelection}
           noFilterBox={this.props.noFilterBox}
           errorMessage={
-            this.props.presentation === 'modern' && this.state.loadError
-              ? 'Runs could not be loaded. Use Refresh to try again.'
-              : undefined
+            this.state.loadError ? 'Runs could not be loaded. Use Refresh to try again.' : undefined
           }
           emptyMessage={
             `No` +
@@ -232,41 +217,22 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
     props: CustomRendererProps<string>,
   ) => {
-    if (this.props.presentation === 'modern') {
-      return (
-        <div className='kfp-runs-name'>
-          <Link
-            data-testid='run-name-link'
-            data-run-id={props.id}
-            data-run-name={props.value || ''}
-            title={props.value || props.id}
-            onClick={(event) => event.stopPropagation()}
-            to={RoutePage.RUN_DETAILS.replace(
-              ':' + RouteParams.runId,
-              encodeURIComponent(props.id),
-            )}
-          >
-            {props.value || props.id}
-          </Link>
-          <span className='kfp-runs-id' title={props.id}>
-            {props.id}
-          </span>
-        </div>
-      );
-    }
     return (
-      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+      <div className='kfp-runs-name'>
         <Link
-          className={commonCss.link}
           data-testid='run-name-link'
           data-run-id={props.id}
           data-run-name={props.value || ''}
-          onClick={(e) => e.stopPropagation()}
-          to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+          title={props.value || props.id}
+          onClick={(event) => event.stopPropagation()}
+          to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, encodeURIComponent(props.id))}
         >
-          {props.value}
+          {props.value || props.id}
         </Link>
-      </Tooltip>
+        <span className='kfp-runs-id' title={props.id}>
+          {props.id}
+        </span>
+      </div>
     );
   };
 
@@ -298,36 +264,20 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           );
     if (props.value.usePlaceholder) {
       return (
-        <Link
-          className={
-            this.props.presentation === 'modern' ? 'kfp-runs-resource-link' : commonCss.link
-          }
-          onClick={(e) => e.stopPropagation()}
-          to={url}
-        >
+        <Link className='kfp-runs-resource-link' onClick={(e) => e.stopPropagation()} to={url}>
           [View pipeline]
         </Link>
       );
     } else {
-      if (this.props.presentation === 'modern') {
-        return (
-          <Link
-            className='kfp-runs-resource-link'
-            title={props.value.displayName || ''}
-            onClick={(event) => event.stopPropagation()}
-            to={url}
-          >
-            {props.value.displayName}
-          </Link>
-        );
-      }
-      // Display name could be too long, so we show the full content in tooltip on hover.
       return (
-        <Tooltip title={props.value.displayName || ''} enterDelay={300} placement='top-start'>
-          <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
-            {props.value.displayName}
-          </Link>
-        </Tooltip>
+        <Link
+          className='kfp-runs-resource-link'
+          title={props.value.displayName || ''}
+          onClick={(event) => event.stopPropagation()}
+          to={url}
+        >
+          {props.value.displayName}
+        </Link>
       );
     }
   };
@@ -344,11 +294,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       props.value.id || '',
     );
     return (
-      <Link
-        className={this.props.presentation === 'modern' ? 'kfp-runs-resource-link' : commonCss.link}
-        onClick={(e) => e.stopPropagation()}
-        to={url}
-      >
+      <Link className='kfp-runs-resource-link' onClick={(e) => e.stopPropagation()} to={url}>
         {props.value.displayName || '[View config]'}
       </Link>
     );
@@ -363,7 +309,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
     return (
       <Link
-        className={this.props.presentation === 'modern' ? 'kfp-runs-resource-link' : commonCss.link}
+        className='kfp-runs-resource-link'
         onClick={(e) => e.stopPropagation()}
         to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}
       >
@@ -375,11 +321,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RuntimeState>> = (
     props: CustomRendererProps<V2beta1RuntimeState>,
   ) => {
-    return this.props.presentation === 'modern' ? (
-      <RunStatus state={props.value} />
-    ) : (
-      statusToIcon(props.value)
-    );
+    return <RunStatus state={props.value} />;
   };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {

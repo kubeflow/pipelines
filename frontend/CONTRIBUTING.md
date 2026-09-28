@@ -65,7 +65,7 @@ You will see a lot of `npm run xxx` commands in the instructions below. The actu
 ## Frontend stack
 
 - React 19 with TypeScript
-- MUI v5 with Emotion
+- Tailwind CSS 4 with Base UI
 - TanStack Query v5
 - React Router v8 (declarative hash routing)
 - Vitest with Testing Library v16 for UI tests

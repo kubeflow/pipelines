@@ -156,7 +156,6 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
             <RunListsRouter
-              presentation='modern'
               storageState={this.state.runStorageState}
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}

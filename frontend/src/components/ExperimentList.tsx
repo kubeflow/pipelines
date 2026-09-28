@@ -200,7 +200,6 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     const parentProps = { ...this.props, onError: () => null };
     return (
       <RunList
-        presentation='modern'
         hideExperimentColumn={true}
         experimentIdMask={experiment.experiment_id}
         {...parentProps}

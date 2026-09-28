@@ -18,19 +18,19 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';
 import { invokeAndFlush } from '../../TestUtils';
-import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
+import { stableSnapshotFragment } from 'src/testUtils/snapshot';
 
 describe('PagedTable', () => {
   it('does not break on no config', () => {
     const { asFragment } = render(<PagedTable configs={[]} />);
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('does not break on empty data', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data: [], labels: [], type: PlotType.TABLE }]} />,
     );
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   const data = [
@@ -43,7 +43,7 @@ describe('PagedTable', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />,
     );
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it.each([undefined, 400])(
@@ -178,7 +178,7 @@ describe('PagedTable', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels: [], type: PlotType.TABLE }]} />,
     );
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('sorts on first column descending', async () => {
@@ -188,7 +188,7 @@ describe('PagedTable', () => {
     await invokeAndFlush(() => {
       fireEvent.click(screen.getByText(labels[0]));
     });
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('sorts on first column ascending', async () => {
@@ -203,7 +203,7 @@ describe('PagedTable', () => {
     await invokeAndFlush(() => {
       fireEvent.click(screen.getByText(labels[0]));
     });
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('does not emit DOM nesting warnings when rendering pagination', () => {

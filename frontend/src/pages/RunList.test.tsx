@@ -767,7 +767,7 @@ describe('RunList', () => {
     expect(link).toHaveTextContent('');
   });
 
-  it('renders status as icon', () => {
+  it('renders status by name', () => {
     const instance = createRunListInstance();
     renderRenderer(
       instance._statusCustomRenderer({
@@ -775,7 +775,7 @@ describe('RunList', () => {
         id: 'run-id',
       }),
     );
-    expect(screen.getByTestId('node-status-sign')).toBeInTheDocument();
+    expect(screen.getByText('Succeeded')).toBeVisible();
   });
 
   it('renders pipeline version name as link to its details page', () => {

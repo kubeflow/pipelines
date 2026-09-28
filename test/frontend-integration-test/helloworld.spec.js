@@ -15,11 +15,11 @@
 const assert = require('assert');
 const URL = require('url').URL;
 const {
-  buildTableRowSelector,
   clearDefaultInput,
   getValueFromDetailsTable,
   runPhase,
   saveDebugScreenshot,
+  selectPipelineCard,
   selectPipelineForRun,
   waitForCondition,
   waitForGraphNodeCount,
@@ -322,9 +322,9 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('filters the experiment list', async () => {
-    await $('#tableFilterBox').click();
-    await clearDefaultInput();
-    await browser.keys(experimentName);
+    const filterSelector = 'input[type="search"][placeholder="Filter experiments"]';
+    await waitForSelectorDisplayed(filterSelector, { timeout: uiTimeout });
+    await $(filterSelector).setValue(experimentName);
 
     const experimentLinkSelector =
       `[data-testid="experiment-name-link"][data-experiment-name="${experimentName}"]`;
@@ -350,34 +350,8 @@ describe('deploy helloworld sample run', () => {
     await runPhase('open pipelines list for cleanup', async () => {
       await $('#pipelinesBtn').click();
       await waitForHashPrefix('#/pipelines', { timeout: pageReadyTimeout });
-      await waitForCondition(
-        async () =>
-          browser.execute(
-            () =>
-              document.querySelector('label[for="tableFilterBox"]')?.textContent?.trim() ===
-              'Filter pipelines',
-          ),
-        {
-          timeout: pageReadyTimeout,
-          timeoutMsg: 'expected the Pipelines list filter to load after navigation',
-        },
-      );
-      await waitForSelectorDisplayed('#tableFilterBox', { timeout: pageReadyTimeout });
+      await selectPipelineCard(pipelineName, { timeout: pageReadyTimeout });
     });
-
-    await $('#tableFilterBox').click();
-    await clearDefaultInput();
-    await browser.keys(pipelineName);
-
-    const pipelineRowSelector = buildTableRowSelector(pipelineName);
-    await waitForCondition(
-      async () => (await $(pipelineRowSelector).isExisting()),
-      {
-        timeout: uiTimeout,
-        timeoutMsg: `expected pipeline row for ${pipelineName} after filtering`,
-      },
-    );
-    await $(pipelineRowSelector).click();
 
     await $('#deletePipelinesAndPipelineVersionsBtn').click();
     await $('[role="dialog"]').waitForDisplayed({ timeout: uiTimeout });

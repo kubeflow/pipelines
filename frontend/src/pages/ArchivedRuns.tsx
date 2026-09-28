@@ -59,7 +59,6 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
     return (
       <div className='kfp-runs-view'>
         <RunList
-          presentation='modern'
           onLoadSuccess={this.clearBanner.bind(this)}
           namespaceMask={this.props.namespace}
           onError={this.showPageError.bind(this)}
