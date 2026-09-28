@@ -278,18 +278,16 @@ jobs:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
+        db_type: ["mysql", "pgx"]
         test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
+        exclude:
+          # PostgreSQL has no cache-disabled multi-user overlay.
+          - db_type: "pgx"
+            cache_enabled: "false"
         include:
-          # PostgreSQL lane — cache_enabled=true, artifact_proxy disabled
-          # (no pgx overlay for cache-disabled or artifact-proxy).
-          # TODO: expand when multiuser/postgresql/cache-disabled and
-          # multiuser/postgresql/artifact-proxy overlays exist.
-          - k8s_version: "v1.36.1"
-            cache_enabled: "true"
-            multi_user: "true"
-            db_type: "pgx"
+          # Keep both PostgreSQL shards on the supported non-proxy overlay.
+          - db_type: "pgx"
             artifact_proxy: "false"
-            test_label: "E2ECritical"
       fail-fast: false
     name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy || matrix.cache_enabled }} dbType=${{ matrix.db_type }}
     steps:
@@ -379,7 +377,7 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2EMultiUser${{ matrix.test_label }}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+          report_name: "E2EMultiUser${{ matrix.test_label }}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_dbType=${{ matrix.db_type }}"
 
 
   end-to-end-critical-mlflow-tests:
