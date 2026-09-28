@@ -19,12 +19,14 @@ import (
 	"errors"
 	"testing"
 
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	util "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -117,6 +119,90 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_BlockV1AllowsV2(t *testing.T) {
 			assert.Equal(t, tt.expectCreated, executionClient.createdWorkflow != nil)
 		})
 	}
+}
+
+func TestSubmitNewWorkflowIfNotAlreadySubmitted_PipelineVersionReference(t *testing.T) {
+	executionClient := &fakeExecutionClient{}
+	runClient := &fakeRunClient{}
+	controller := &Controller{
+		workflowClient: client.NewWorkflowClient(executionClient, &fakeExecutionInformer{}),
+		runClient:      runClient,
+	}
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "kubeflow.org/v2beta1",
+			Kind:       "ScheduledWorkflow",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "scheduled-workflow",
+			Namespace: "ns1",
+			UID:       "scheduled-workflow-uid",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			ExperimentId:      "experiment-id",
+			PipelineId:        "pipeline-id",
+			PipelineVersionId: "pipeline-version-id",
+			ServiceAccount:    "service-account",
+			// The ScheduledWorkflow references a pipeline version instead of embedding
+			// a compiled workflow, so the runtime inputs are all it carries.
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "text", Value: `"world"`},
+					{Name: "macros", Value: `"run-[[Index]]-scheduled-[[ScheduledTime]]-now-[[CurrentTime]]-uuid-[[RunUUID]]"`},
+					{Name: "number", Value: `42`},
+				},
+				PipelineRoot: "gs://my-bucket/root",
+			},
+		},
+	})
+
+	submitted, workflowName, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+		context.Background(), swf, 100, 200)
+
+	require.NoError(t, err)
+	assert.True(t, submitted)
+	// No Argo workflow may be created directly; the run must go through the CreateRun
+	// API so the referenced pipeline is resolved and compiled at trigger time.
+	assert.Nil(t, executionClient.createdWorkflow)
+	require.NotNil(t, runClient.createRunRequest)
+	request := runClient.createRunRequest
+	assert.Equal(t, "experiment-id", request.Run.ExperimentId)
+	assert.Equal(t, string(swf.UID), request.Run.RecurringRunId)
+	assert.Equal(t, workflowName, request.Run.DisplayName)
+	assert.Equal(t, "service-account", request.Run.ServiceAccount)
+	reference := request.Run.GetPipelineVersionReference()
+	require.NotNil(t, reference)
+	assert.Equal(t, "pipeline-id", reference.PipelineId)
+	assert.Equal(t, "pipeline-version-id", reference.PipelineVersionId)
+	require.NotNil(t, request.Run.RuntimeConfig)
+	assert.Equal(t, "gs://my-bucket/root", request.Run.RuntimeConfig.PipelineRoot)
+	assert.Equal(t, "world", request.Run.RuntimeConfig.Parameters["text"].GetStringValue())
+	// Recurring-run macros are expanded with the trigger's scheduled epoch (100), the
+	// current epoch (200) and the next index (1), matching the embedded-workflow path.
+	// [[RunUUID]] is left intact for the API server, which knows the run ID.
+	assert.Equal(t,
+		"run-1-scheduled-19700101000140-now-19700101000320-uuid-[[RunUUID]]",
+		request.Run.RuntimeConfig.Parameters["macros"].GetStringValue())
+	// Non-string parameters pass through unchanged.
+	assert.Equal(t, float64(42), request.Run.RuntimeConfig.Parameters["number"].GetNumberValue())
+	// The trigger's scheduled time is recorded on the run.
+	require.NotNil(t, request.Run.ScheduledAt)
+	assert.Equal(t, int64(100), request.Run.ScheduledAt.GetSeconds())
+}
+
+// fakeRunClient captures the CreateRun request the controller sends. The
+// embedded interface satisfies the rest of RunServiceClient, so a method the
+// controller is not expected to call panics instead of silently succeeding.
+type fakeRunClient struct {
+	api.RunServiceClient
+	createRunRequest *api.CreateRunRequest
+}
+
+func (f *fakeRunClient) CreateRun(ctx context.Context, in *api.CreateRunRequest,
+	opts ...grpc.CallOption,
+) (*api.Run, error) {
+	f.createRunRequest = in
+	return &api.Run{DisplayName: in.GetRun().GetDisplayName()}, nil
 }
 
 type fakeExecutionClient struct {
