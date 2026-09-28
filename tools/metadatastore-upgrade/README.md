@@ -25,9 +25,9 @@ Arguments:
 * `--kubeconfig`(Optional) - Absolute path to a kubeconfig file. If this argument is not specified `.kubeconfig` in user's home directory is used.
 * `--namespace`(Optional) - Namespace where `metadata-deployment` is deployed in the KFP cluster. Defaults to `kubeflow`.
 
-**Note:** 
+**Note:**
 1. Upgrade is supported from version [ml-metadata v0.21.0](https://github.com/google/ml-metadata/releases/tag/v0.21.0) onwards.
-2. The ML Metadata Store Server image version used in the `metadata-grpc-deployment` deployment of a KFP cluster can be found  in the `Active revisions` section of the deployment details page. 
+2. The ML Metadata Store Server image version used in the `metadata-grpc-deployment` deployment of a KFP cluster can be found  in the `Active revisions` section of the deployment details page.
 
 ## Execution Flow
 
