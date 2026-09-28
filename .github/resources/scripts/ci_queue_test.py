@@ -97,6 +97,11 @@ const entries = () => ({repository: {nameWithOwner: 'kubeflow/pipelines',
         pullRequest: {number: 7, headRefOid: prHead}}] : [])],
       pageInfo: {hasNextPage: false, endCursor: null}}}}});
 const calls = [];
+if (options.initialFences) statusHistory.set(sha,
+  options.initialFences.map(([runId, attempt]) => ({
+    context: 'ci-passed-release', state: 'pending',
+    description: `queue-fence:1.1:${runId}:${attempt}`,
+  })));
 let currentAttempt = options.currentAttempt || 1;
 let currentState = options.currentState || 'completed';
 let currentConclusion = options.currentConclusion || 'success';
@@ -209,12 +214,15 @@ const github = {
         }
         return {data};
       },
-      getWorkflowRunAttempt: async request => ({data: runData(request.run_id,
+      getWorkflowRunAttempt: async request => {
+        calls.push(['exact-attempt', request.run_id, request.attempt_number]);
+        return {data: runData(request.run_id,
         request.run_id > 10 ? priorSha : sha,
         request.attempt_number,
         request.attempt_number > currentAttempt ? 'in_progress' : 'completed',
         request.attempt_number > currentAttempt ? null :
-          request.attempt_number === 2 && options.attemptTwoFailed ? 'failure' : 'success')}),
+          request.attempt_number === 2 && options.attemptTwoFailed ? 'failure' : 'success')};
+      },
     },
   },
   paginate: async (method, request) => {
@@ -400,6 +408,22 @@ class QueueCITest(unittest.TestCase):
         self.assertEqual(
             len([call for call in result['calls'] if call[0] == 'current-run']),
             3)
+
+    def test_green_queue_budget_counts_both_rerun_fence_passes(self):
+        for fences, attempt in [([[1, 1], [2, 1], [3, 1]], 1),
+                                ([[1, 1], [1, 2], [2, 1], [3, 1]], 2)]:
+            with self.subTest(fences=fences):
+                result = exercise({
+                    'initialFences': fences,
+                    'currentAttempt': attempt,
+                    'listedAttempt': attempt,
+                })
+                self.assertEqual(result['status'], 'success', result)
+                lookups = [
+                    call for call in result['calls']
+                    if call[0] in ('current-run', 'exact-attempt')
+                ]
+                self.assertEqual(len(lookups), 3 + 4 * len(fences))
 
     def test_missing_or_running_workflow_keeps_group_pending(self):
         for options in [{

@@ -28,7 +28,9 @@ def exercise(options=None):
 const gate = require(process.argv[1]);
 const options = JSON.parse(process.argv[2]);
 const root = process.argv[3];
-const calls = [], outputs = {}, descriptions = [], statusContexts = [];
+const calls = [], outputs = {}, descriptions = [], statusContexts = [], targetUrls = [];
+const workflowName = options.workflowName || 'frontend.yml';
+let cycle = 0;
 let pr = {
   number: 7, state: 'open', changed_files: 1,
   head: {sha: 'head', ref: 'feature', repo: {full_name: 'contributor/pipelines',
@@ -51,6 +53,8 @@ const statuses = new Map();
 const initialContext = options.initialStatusContext ||
   (pr.base.ref === 'release-2.18' ? 'ci-passed-release' : 'ci-passed');
 if (options.initialStatus) statuses.set(initialContext, options.initialStatus);
+const statusDescriptions = new Map();
+if (options.initialDescription) statusDescriptions.set(initialContext, options.initialDescription);
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
 const methods = {files: {}, runs: {}, timeline: {}, pulls: {}};
 const github = {graphql: async (query, variables) => {
@@ -78,7 +82,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
 `;
-  const definitions = [{name: 'frontend.yml', content}];
+  const definitions = [{name: workflowName, content}];
   if (options.upgradePolicy) definitions.push({name: 'upgrade-test.yml', content:
     content + (options.upgradePolicy === 'paused' ? '    if: false\n' : '')});
   return {repository: {nameWithOwner: 'kubeflow/pipelines', object: {__typename: 'Tree',
@@ -91,7 +95,10 @@ jobs:
   actions: {listWorkflowRunsForRepo: methods.runs},
   issues: {listEventsForTimeline: methods.timeline,
     addLabels: async request => {calls.push(['add-label', request.labels]);},
-    removeLabel: async request => {calls.push(['remove-label', request.name]);}},
+    removeLabel: async request => {
+      calls.push(['remove-label', request.name]);
+      if (options.removeLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
+    }},
   repos: {getCombinedStatusForRef: {},
     compareCommitsWithBasehead: async request => {
       calls.push(['compare', request.basehead]);
@@ -119,6 +126,8 @@ jobs:
         pr.base.ref === 'release-2.18') throw Error('Legacy status write unavailable');
     statuses.set(request.context, request.state);
     descriptions.push(request.description);
+    statusDescriptions.set(request.context, request.description);
+    targetUrls.push(request.target_url);
     statusContexts.push(request.context);
     calls.push(['status', request.state, request.sha]);
     if (request.state === 'success') {
@@ -139,8 +148,8 @@ jobs:
   }
   if (method === methods.runs) {
     if (options.missing) return [];
-    const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusion || 'success');
-    return [{path: '.github/workflows/frontend.yml', id: 42, event: 'pull_request', head_sha: pr.head.sha, head_branch: 'feature',
+    const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusions?.[cycle] || options.conclusion || 'success');
+    return [{path: `.github/workflows/${workflowName}`, id: 42, event: 'pull_request', head_sha: pr.head.sha, head_branch: 'feature',
       head_repository: {full_name: pr.head.repo.full_name},
       status: options.runStatus || 'completed', conclusion,
       created_at: options.fresh ? '2026-09-07T12:01:00Z' : '2026-09-07T11:00:00Z',
@@ -150,13 +159,15 @@ jobs:
 }};
 github.paginate.iterator = async function* () {
   if (options.statusReadFailure) throw Error('Status read unavailable');
-  yield {data: {statuses: [...statuses].map(([name, state]) => ({context: name, state}))}};
+  yield {data: {statuses: [...statuses].map(([name, state]) => ({context: name, state, description: statusDescriptions.get(name)}))}};
 };
 (async () => {
   let error;
-  for (let cycle = 0; cycle < (options.cycles || 1); cycle++) {
+  for (cycle = 0; cycle < (options.cycles || 1); cycle++) {
+  context.runId = 99 + cycle;
   try {await gate.prepare({github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
+  if (options.recoverBeforeFinal) options.conclusion = 'success';
   try {
     await gate.finalize({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
@@ -165,7 +176,7 @@ github.paginate.iterator = async function* () {
   }
   console.log(JSON.stringify({calls, outputs, error,
     status: statuses.get(pr.base.ref === 'release-2.18' ? 'ci-passed-release' : 'ci-passed'),
-    descriptions, statusContexts}));
+    descriptions, statusContexts, targetUrls}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run([
@@ -607,7 +618,11 @@ console.log(JSON.stringify(result));
         self.assertEqual(result['statusContexts'], ['ci-passed', 'ci-passed'])
 
     def test_failed_poll_blocks_otherwise_complete_workflows(self):
-        self.assert_last_status(exercise({'pollPassed': False}), 'failure')
+        result = exercise({'pollPassed': False})
+        self.assert_last_status(result, 'failure')
+        self.assertEqual(
+            result['descriptions'][-1],
+            'CI did not pass; complete current-head CI and retry.')
 
     def test_missing_workflows_never_reach_poller(self):
         result = exercise({'missing': True})
@@ -782,10 +797,12 @@ github.paginate.iterator = async function* () {yield {data: {statuses: github.vi
         self.assertIn('Status read unavailable', result['error'])
 
     def test_repeated_failing_sweeps_do_not_exhaust_status_history(self):
+        description = 'CI did not pass; complete current-head CI and retry.'
         result = exercise({
             'schedule': True,
             'pollPassed': False,
             'initialStatus': 'failure',
+            'initialDescription': description,
             'cycles': 6
         })
         self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
@@ -794,11 +811,124 @@ github.paginate.iterator = async function* () {yield {data: {statuses: github.vi
             'schedule': True,
             'pollPassed': False,
             'initialStatus': 'failure',
+            'initialDescription': description,
             'cycles': 6,
             'recoverLast': True
         })
         self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
                          [['status', 'success', 'head']])
+
+    def test_recovery_refreshes_legacy_failure_with_current_workflow_reason(
+            self):
+        legacy_reason = 'Cannot verify CI evidence; inspect CI Check and retry.'
+        for options, expected in [
+            ({
+                'conclusion': 'skipped'
+            },
+             '.github/workflows/frontend.yml: latest run is completed/skipped'),
+            ({
+                'missing': True
+            },
+             '.github/workflows/frontend.yml: expected workflow has not registered'
+            ),
+        ]:
+            with self.subTest(options=options):
+                result = exercise({
+                    'schedule': True,
+                    'initialStatus': 'failure',
+                    'initialDescription': legacy_reason,
+                    'cycles': 6,
+                    **options,
+                })
+                self.assertEqual(
+                    [c for c in result['calls'] if c[0] == 'status'],
+                    [['status', 'failure', 'head']])
+                self.assertEqual(result['descriptions'], [expected])
+                self.assertEqual(
+                    result['targetUrls'],
+                    ['https://github.com/kubeflow/pipelines/actions/runs/99'])
+
+    def test_release_failure_reason_refreshes_both_contexts_without_churn(self):
+        result = exercise({
+            'schedule': True,
+            'conclusion': 'skipped',
+            'cycles': 6,
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    },
+                },
+            },
+        })
+        reason = '.github/workflows/frontend.yml: latest run is completed/skipped'
+        self.assertEqual(result['statusContexts'],
+                         ['ci-passed-release', 'ci-passed'] * 2)
+        self.assertEqual(result['descriptions'][-2:], [reason, reason])
+        self.assertEqual(result['status'], 'failure')
+
+    def test_repeated_label_failure_preserves_workflow_reason_without_churn(
+            self):
+        result = exercise({
+            'schedule': True,
+            'initialStatus': 'failure',
+            'initialDescription': 'Legacy failure',
+            'conclusion': 'skipped',
+            'removeLabelFailure': True,
+            'cycles': 6,
+        })
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'failure', 'head']])
+        self.assertEqual(
+            result['descriptions'],
+            ['.github/workflows/frontend.yml: latest run is completed/skipped'])
+        self.assertEqual(result['status'], 'failure')
+        self.assertIn('Label write unavailable', result['error'])
+
+    def test_recovery_publishes_each_changed_reason_once_then_success(self):
+        reason = '.github/workflows/frontend.yml: latest run is completed/'
+        result = exercise({
+            'schedule': True,
+            'initialStatus': 'failure',
+            'initialDescription': reason + 'skipped',
+            'conclusions': ['skipped', 'failure', 'failure', 'success'],
+            'cycles': 4,
+        })
+        self.assertEqual(
+            [c for c in result['calls'] if c[0] == 'status'],
+            [['status', 'failure', 'head'], ['status', 'success', 'head']])
+        self.assertEqual(result['descriptions'][0], reason + 'failure')
+        self.assertEqual(result['targetUrls'], [
+            'https://github.com/kubeflow/pipelines/actions/runs/100',
+            'https://github.com/kubeflow/pipelines/actions/runs/102',
+        ])
+
+    def test_repeated_long_failure_descriptions_compare_published_length(self):
+        workflow_name = 'frontend-' + 'x' * 120 + '.yml'
+        reason = (f'.github/workflows/{workflow_name}: '
+                  'latest run is completed/skipped')
+        result = exercise({
+            'schedule': True,
+            'initialStatus': 'failure',
+            'initialDescription': 'Legacy failure',
+            'workflowName': workflow_name,
+            'conclusions': ['skipped', 'failure', 'failure'],
+            'cycles': 3,
+        })
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'failure', 'head']])
+        self.assertEqual(result['descriptions'], [reason[:140]])
+        self.assertEqual(len(result['descriptions'][0]), 140)
+
+    def test_evidence_recovery_cannot_succeed_when_poller_was_skipped(self):
+        result = exercise({'conclusion': 'skipped', 'recoverBeforeFinal': True})
+        self.assertEqual(result['outputs']['ready'], 'false')
+        self.assert_last_status(result, 'failure')
+        self.assertEqual(
+            result['descriptions'][-1],
+            'CI did not pass; complete current-head CI and retry.')
 
     def test_queued_recovery_invalidates_success_when_checks_change(self):
         result = exercise({
