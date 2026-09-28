@@ -18,7 +18,7 @@ import { useMemo } from 'react';
 import { dump } from 'js-yaml';
 import { loadYaml } from 'src/lib/YamlLoad';
 import { isSafari } from 'src/lib/Utils';
-import Editor from './Editor';
+import Editor from './LazyEditor';
 
 interface PipelineSpecTabContentProps {
   templateString: string;

@@ -32,6 +32,8 @@
   font-weight: 600;
 }
 .kfp-theme .kfp-page-breadcrumbs {
+  /* Keep the route breadcrumb slot stable while its metadata is loading. */
+  min-height: 18px;
   display: flex;
   gap: 6px;
   margin-bottom: 8px;

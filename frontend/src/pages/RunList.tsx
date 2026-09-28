@@ -326,6 +326,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
     const generation = ++this._loadGeneration;
+    // Experiment metadata is independent of the run response. Start both reads together.
+    const experiments = this._loadExperiments();
     let displayRuns: DisplayRun[];
     let nextPageToken = '';
 
@@ -400,7 +402,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
 
     if (!this._isMounted || generation !== this._loadGeneration) return '';
-    await this._setColumns(displayRuns);
+    await this._setColumns(displayRuns, experiments);
 
     if (this._isMounted && generation === this._loadGeneration) {
       this.setStateSafe({ runs: displayRuns, loadError: false });
@@ -415,29 +417,35 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
   }
 
-  private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
-    let experimentsResponse: V2beta1ListExperimentsResponse;
-    let experimentsGetError: string;
+  private async _loadExperiments(): Promise<{
+    response?: V2beta1ListExperimentsResponse;
+    error?: string;
+  }> {
+    if (this.props.hideExperimentColumn) return {};
     try {
-      if (!this.props.namespaceMask) {
-        // Single-user mode.
-        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments();
-      } else {
-        // Multi-user mode.
-        experimentsResponse = await Apis.experimentServiceApiV2.listExperiments(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          this.props.namespaceMask,
-        );
-      }
+      const response = !this.props.namespaceMask
+        ? await Apis.experimentServiceApiV2.listExperiments()
+        : await Apis.experimentServiceApiV2.listExperiments(
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            this.props.namespaceMask,
+          );
+      return { response };
     } catch (error) {
-      experimentsGetError = 'Failed to get associated experiment: ' + (await errorToMessage(error));
+      // Resolve failures here even if the concurrent run request fails or becomes stale.
+      return { error: 'Failed to get associated experiment: ' + (await errorToMessage(error)) };
     }
+  }
 
-    const { pipelineVersionsByKey, errorsByKey } =
-      await this._getReferencedPipelineVersions(displayRuns);
+  private async _setColumns(
+    displayRuns: DisplayRun[],
+    experiments: ReturnType<RunList['_loadExperiments']>,
+  ): Promise<DisplayRun[]> {
+    const [{ response: experimentsResponse, error: experimentsGetError }, versions] =
+      await Promise.all([experiments, this._getReferencedPipelineVersions(displayRuns)]);
+    const { pipelineVersionsByKey, errorsByKey } = versions;
 
     return Promise.all(
       displayRuns.map(async (displayRun) => {

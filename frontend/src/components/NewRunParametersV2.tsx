@@ -33,7 +33,7 @@ import {
   type RuntimeParameters,
   type SpecParameters,
 } from 'src/lib/NewRunParametersUtils';
-import Editor from './Editor';
+import Editor from './LazyEditor';
 
 interface NewRunParametersProps {
   titleMessage: string;

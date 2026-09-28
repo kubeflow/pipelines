@@ -184,6 +184,49 @@ describe('RunList', () => {
     vi.resetAllMocks();
   });
 
+  it('loads experiment metadata while the run response is pending', async () => {
+    await renderRunList();
+    listExperimentsSpy.mockClear();
+    let finishRuns!: (value: { runs: V2beta1Run[] }) => void;
+    listRunsSpy.mockImplementationOnce(() => new Promise((resolve) => (finishRuns = resolve)));
+    let pending!: Promise<string>;
+    act(() => {
+      pending = getRunListInstance()._loadRuns({});
+    });
+    expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('link', { name: 'Concurrent run' })).not.toBeInTheDocument();
+    await act(async () => {
+      finishRuns({ runs: [{ run_id: 'concurrent', display_name: 'Concurrent run' }] });
+      await pending;
+    });
+    expect(await screen.findByRole('link', { name: 'Concurrent run' })).toBeInTheDocument();
+  });
+
+  it('ignores stale metadata when a newer run load completes first', async () => {
+    await renderRunList();
+    let finishExperiments!: (value: { experiments: [] }) => void;
+    listExperimentsSpy.mockImplementationOnce(
+      () => new Promise((resolve) => (finishExperiments = resolve)),
+    );
+    listRunsSpy.mockResolvedValueOnce({
+      runs: [{ run_id: 'old', display_name: 'Old response' }],
+    });
+    let pending!: Promise<string>;
+    act(() => {
+      pending = getRunListInstance()._loadRuns({});
+    });
+    listRunsSpy.mockResolvedValueOnce({
+      runs: [{ run_id: 'new', display_name: 'New response' }],
+    });
+    await callLoadRuns({});
+    await act(async () => {
+      finishExperiments({ experiments: [] });
+      await pending;
+    });
+    expect(screen.getByRole('link', { name: 'New response' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Old response' })).not.toBeInTheDocument();
+  });
+
   it('renders the empty experience', async () => {
     await renderRunList();
     await waitForRunListLoad();
@@ -368,7 +411,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const props = generateProps();
 
     await renderRunList(props);
@@ -669,7 +712,7 @@ describe('RunList', () => {
     await renderRunList(props);
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-      expect(listExperimentsSpy).toHaveBeenCalled();
+      expect(listExperimentsSpy).not.toHaveBeenCalled();
     });
 
     expect(screen.queryByText('test experiment')).toBeNull();
