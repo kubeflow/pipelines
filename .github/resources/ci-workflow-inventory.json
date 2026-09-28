@@ -618,13 +618,14 @@
     {
       "path": ".github/workflows/runtime-base-images.yml",
       "name": "Runtime Base Images",
-      "header_sha256": "ca0534edd4c0b236646a5cf5e6690c3eb3b36278aebdb049d887379df0cac193",
+      "header_sha256": "c5007f2a38ed6d560497dd78d9c5dfff59677aa808f75d85340f5665567fb1c3",
       "pull_request": {
         "paths": [
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/image-builds.yml",
           ".github/resources/runtime-base-images.txt",
           ".github/resources/scripts/helper-functions.sh",
+          ".github/resources/scripts/build-runtime-base-images.sh",
           ".github/resources/scripts/configure-docker-hub-mirror.sh",
           ".github/resources/scripts/configure_docker_registry_mirror.py",
           ".github/resources/scripts/prune_runtime_base_image_caches.py",
