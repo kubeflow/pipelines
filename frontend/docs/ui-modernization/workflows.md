@@ -88,25 +88,30 @@ The frontend image includes both the browser application and its Express server.
 
 The [baseline deployment contract](https://github.com/kubeflow/pipelines/blob/339670f5e/frontend/docs/ui-modernization/deployment-baseline.md) requires immutable previous/candidate UI identities against the same unchanged compatible backend, followed by an actual return to the previous UI. The planned rehearsal builds the previous UI and Express server from baseline source `02cbc725ac9ddcd950f4400d8355dd78bfcd6c57`; a release tag alone is not assumed compatible with the current task APIs. Rollback must preserve backend data, browser preferences and the shared TensorBoard signing key, then repeat representative list/create/task/log/artifact/viewer checks. This live rehearsal remains pending.
 
+## Legacy presentation retirement
+
+The unused legacy `CustomTable` and `RunList` presentation branches are removed. Every production table caller supplies an explicit modern renderer; `CustomTable.renderTable` is required. The controller retains the same filter, sort, page-token, storage, selection and stale-request handling, and RunList retains the existing requests and enrichment. The retired `CustomTableRow`, `StatusV2`, CSS helpers and unused input/separator components are deleted, together with their renderer-specific tests and snapshots. MUI, Emotion and typestyle dependencies are removed.
+
+Controller tests now exercise the active ResourceTable controls, and RunList tests exercise the active RunsTable presentation. The retirement-focused checks pass 242 tests across 15 suites. The lower full-suite total reflects removal of tests for the deleted presentation paths; it does not remove request, mutation, selection, paging or recovery assertions from the retained components.
+
 ## Verification checkpoint
 
-Application source `82254620daec619083d2e8128ec1692638a15a5d` includes the graph measurement fix and the merge of current master dependencies. With Node 24.14.0 / npm 11.17.0, the full CI constituent checks pass: formatting, UI/server lint, application/mock TypeScript, React peer checks, 136 UI files / **1,757 tests**, and 29 server files / **1,052 tests**, both with coverage. Coverage suites ran with one worker. Production and Storybook builds pass. The subsequent application change is a scoped CSS fix for WebKit radio activation: block layout on the run-type fieldset prevents labels shrinking between pointerdown and pointerup. Existing semantic fieldset/legend and single-click assertions remain intact. Both builds and all 132 browser cases were rerun after this CSS change; the TypeScript implementation and dependencies are unchanged. The matrix records the final source commit, including fixture corrections.
+Application and harness source `2e52a3fa634fa0805511a37c982f8d13f690b868` includes legacy retirement, the graph measurement fix, current master dependencies, and the WebKit run-type fieldset fix. With Node 24.14.0 / npm 11.17.0, the full CI constituent checks pass: formatting, UI/server lint, application/mock TypeScript, React peer checks, 131 UI files / **1,721 tests**, and 29 server files / **1,052 tests**, both with coverage. Repository commit hooks, production build and Storybook build pass. All 132 browser cases were rerun on the retirement build and passed in the three recorded engines.
 
-The qualified entry JavaScript is `index-ybJg2BvL.js` (SHA-256 `63ddb2da968486ecc48f96faa1158171f869e2917f6a05c0a5bccee61fe0cb81`); CSS is `index-EXijewuy.css` (SHA-256 `f2a3997f09c1db7bcbdd364495e68ed832e32adc6f5b8d4fc479397ee0bc4965`). Asset hashes were verified before and after browser qualification.
+The qualified entry JavaScript is `index-CsUTqcBF.js` (SHA-256 `408fa52d300a3bf2c76ea7d77f99037b5dff38d8701a2811a9bf949430d21e26`); CSS is `index-8lXTuxuW.css` (SHA-256 `f3dfd462464d4418f97f9d8719880c943ed52e17e2152168b3c16c51c79323c1`). The published matrix and four screenshots correspond to these emitted assets.
 
-UI coverage is 52.36% lines (6,241/11,919), 46.72% branches (4,873/10,430), 60.17% functions (1,718/2,855), and 52.81% statements (6,454/12,220). Corresponding baseline percentages are 50.96%, 43.50%, 58.14%, and 51.28%. Inclusion/exclusion rules are unchanged. Behavioral coverage and removal of obsolete presentation components change the denominator; coverage percentages alone do not establish workflow parity. Server coverage is 81.32% lines, 78.72% branches, 73.90% functions and 81.03% statements.
+UI coverage is 51.84% lines (6,099/11,765), 46.01% branches (4,720/10,258), 59.75% functions (1,682/2,815), and 52.28% statements (6,305/12,059). Corresponding baseline percentages are 50.96%, 43.50%, 58.14%, and 51.28%. Inclusion/exclusion rules are unchanged. Behavioral coverage and removal of obsolete presentation components change the denominator; coverage percentages alone do not establish workflow parity. Server coverage is 81.32% lines, 78.72% branches, 73.90% functions and 81.03% statements.
 
-See the [candidate performance comparison](performance-comparison.md) for repeated native-fixture measurements, bundle deltas and qualification limits. Hosted CI remains a separate check on the published head; earlier passing heads do not qualify later source changes.
+The [performance comparison](performance-comparison.md) records repeated measurements on the retired application assets. Initial JS/CSS gzip is 4.0% below baseline; Runs/Run Details LCP remains 6.4%/14.5% slower, filtering readiness 4.6% slower, and layout shifts remain higher. The report links the pre-retirement checkpoint and retains individual trials and limits. Hosted checks are recorded against their source commits below.
 
 ## Final qualification checklist
 
-- [ ] Retire the unused legacy table/run-list presentation branches and their MUI/Emotion/typestyle dependencies. Every production caller already selects a modern renderer, but the compatibility code remains in this draft.
-
+- [x] Retire the unused legacy table/run-list presentation branches and their MUI/Emotion/typestyle dependencies; rerun source checks, builds and the complete browser matrix.
 - [x] Record the application source commit and fresh production/Storybook build identities.
 - [x] Run full formatting, lint, application/mock type checks, React peer checks, and UI/server coverage on that source; record exact totals.
 - [x] Run all 44 production browser scenarios in three engines on the recorded emitted assets; retain the browser/version matrix and reviewed screenshots.
 - [ ] Complete supported-browser policy acceptance, minimum-version checks and accessibility review.
-- [x] Record nine native-fixture loads, three filtering trials and three run/task navigation trials against the [performance baseline](https://github.com/kubeflow/pipelines/blob/339670f5e/frontend/docs/ui-modernization/performance-baseline.md); report the measured regressions and scope limits.
+- [x] Repeat nine native-fixture loads, three filtering trials and three run/task navigation trials on the retirement build against the [performance baseline](https://github.com/kubeflow/pipelines/blob/339670f5e/frontend/docs/ui-modernization/performance-baseline.md); retain the pre-retirement results and report measured regressions and scope limits.
 - [ ] Resolve or explicitly accept measured regressions with agreed budgets, and extend repeated measurements to representative large-graph and populated-comparison workloads.
 - [ ] Reconfirm hosted real-cluster frontend integration results for the final source and record any independent backend failures separately.
 - [ ] Rehearse previous UI → candidate UI → previous UI against the same backend with immutable image identities and retained state; qualify the additional real deployment modes above.
@@ -126,4 +131,8 @@ KFP_BROWSER=firefox node --test --test-concurrency=1 scripts/production-bundle.s
 KFP_BROWSER=webkit node --test --test-concurrency=1 scripts/production-bundle.smoke.mjs scripts/ui-modernization-*.smoke.mjs
 ```
 
-These commands do not establish minimum-version support on their own. Hosted checks, representative performance budgets, supported-browser/accessibility qualification and live deployment/rollback evidence remain release gates. Retiring the remaining presentation dependencies will change the bundle and requires fresh affected verification and measurements.
+These commands do not establish minimum-version support on their own. Hosted checks, agreed performance budgets, supported-browser/accessibility qualification and live deployment/rollback evidence remain release gates.
+
+### Hosted and harness follow-up
+
+All four [real-cluster frontend integration lanes](https://github.com/kubeflow/pipelines/actions/runs/36437408457) pass at retirement source `2e52a3fa6` (Kubernetes 1.33/1.36, TLS on/off). The same source passes hosted UI/server coverage; its production artifact test exposed a readiness race: a visible TensorBoard Start control precedes the initial lookup response. Harness-only follow-up `409aa8a7a` awaits that response and usable control, and holds the response to verify disabled/loading behavior. All 24 affected checks pass across the three engines, with unchanged application asset hashes and exact request-count/namespace assertions. [Hosted frontend qualification](https://github.com/kubeflow/pipelines/actions/runs/36439321567) passes at that follow-up: 1,721 UI tests, 1,052 server tests, full frontend checks and 44/44 Chromium production scenarios.

@@ -1,17 +1,17 @@
 {
-  "recordedAt": "2026-09-28T13:42:37.813Z",
+  "recordedAt": "2026-09-28T14:36:35.837Z",
   "status": "passed",
-  "qualificationStage": "post-merge candidate with WebKit fieldset fix",
+  "qualificationStage": "legacy-retirement candidate",
   "build": {
-    "indexHtmlSha256": "5c62d3cb6d5704ffdf4fbca91bec2dfab0cc1cfa907d62330128030245a0e2d7",
+    "indexHtmlSha256": "9c8dc2850826a7ae1529b5103717bbd1cb61e2b4bdd77d646fa65ff4c62f70d0",
     "assets": [
       {
-        "path": "static/index-ybJg2BvL.js",
-        "sha256": "63ddb2da968486ecc48f96faa1158171f869e2917f6a05c0a5bccee61fe0cb81"
+        "path": "static/index-CsUTqcBF.js",
+        "sha256": "408fa52d300a3bf2c76ea7d77f99037b5dff38d8701a2811a9bf949430d21e26"
       },
       {
-        "path": "static/index-EXijewuy.css",
-        "sha256": "f2a3997f09c1db7bcbdd364495e68ed832e32adc6f5b8d4fc479397ee0bc4965"
+        "path": "static/index-8lXTuxuW.css",
+        "sha256": "f3dfd462464d4418f97f9d8719880c943ed52e17e2152168b3c16c51c79323c1"
       }
     ]
   },
@@ -34,8 +34,9 @@
     "scenario assertions"
   ],
   "totalCases": 132,
-  "applicationSourceCommit": "b3f82500fea54d00b65a314f9507ceebe98a0f25",
-  "harnessSourceCommit": "b3f82500fea54d00b65a314f9507ceebe98a0f25",
+  "applicationSourceCommit": "2e52a3fa634fa0805511a37c982f8d13f690b868",
+  "harnessSourceCommit": "2e52a3fa634fa0805511a37c982f8d13f690b868",
+  "scope": "Current Playwright engines, deterministic bounded HTTP fixtures and production assets. Does not establish browser-floor, actual Safari/iOS, assistive-technology or live deployment qualification.",
   "results": [
     {
       "engine": "chromium",
@@ -45,7 +46,12 @@
       "passed": 1,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1280, 720]]
+      "viewports": [
+        [
+          1280,
+          720
+        ]
+      ]
     },
     {
       "engine": "chromium",
@@ -56,8 +62,14 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [375, 812]
+        [
+          1440,
+          900
+        ],
+        [
+          375,
+          812
+        ]
       ]
     },
     {
@@ -69,9 +81,18 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [600, 900],
-        [780, 437]
+        [
+          1440,
+          900
+        ],
+        [
+          600,
+          900
+        ],
+        [
+          780,
+          437
+        ]
       ]
     },
     {
@@ -83,8 +104,14 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [600, 900]
+        [
+          1440,
+          900
+        ],
+        [
+          600,
+          900
+        ]
       ]
     },
     {
@@ -95,7 +122,12 @@
       "passed": 3,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 1000]]
+      "viewports": [
+        [
+          1440,
+          1000
+        ]
+      ]
     },
     {
       "engine": "chromium",
@@ -105,7 +137,12 @@
       "passed": 8,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 900]]
+      "viewports": [
+        [
+          1440,
+          900
+        ]
+      ]
     },
     {
       "engine": "chromium",
@@ -115,7 +152,12 @@
       "passed": 2,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 900]]
+      "viewports": [
+        [
+          1440,
+          900
+        ]
+      ]
     },
     {
       "engine": "chromium",
@@ -126,9 +168,18 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 960],
-        [390, 844],
-        [600, 900]
+        [
+          1440,
+          960
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          600,
+          900
+        ]
       ]
     },
     {
@@ -139,7 +190,12 @@
       "passed": 1,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1280, 720]]
+      "viewports": [
+        [
+          1280,
+          720
+        ]
+      ]
     },
     {
       "engine": "firefox",
@@ -150,8 +206,14 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [375, 812]
+        [
+          1440,
+          900
+        ],
+        [
+          375,
+          812
+        ]
       ]
     },
     {
@@ -163,9 +225,18 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [600, 900],
-        [780, 437]
+        [
+          1440,
+          900
+        ],
+        [
+          600,
+          900
+        ],
+        [
+          780,
+          437
+        ]
       ]
     },
     {
@@ -177,8 +248,14 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [600, 900]
+        [
+          1440,
+          900
+        ],
+        [
+          600,
+          900
+        ]
       ]
     },
     {
@@ -189,7 +266,12 @@
       "passed": 3,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 1000]]
+      "viewports": [
+        [
+          1440,
+          1000
+        ]
+      ]
     },
     {
       "engine": "firefox",
@@ -199,7 +281,12 @@
       "passed": 8,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 900]]
+      "viewports": [
+        [
+          1440,
+          900
+        ]
+      ]
     },
     {
       "engine": "firefox",
@@ -209,7 +296,12 @@
       "passed": 2,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 900]]
+      "viewports": [
+        [
+          1440,
+          900
+        ]
+      ]
     },
     {
       "engine": "firefox",
@@ -220,9 +312,18 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 960],
-        [390, 844],
-        [600, 900]
+        [
+          1440,
+          960
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          600,
+          900
+        ]
       ]
     },
     {
@@ -233,7 +334,12 @@
       "passed": 1,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1280, 720]]
+      "viewports": [
+        [
+          1280,
+          720
+        ]
+      ]
     },
     {
       "engine": "webkit",
@@ -244,8 +350,14 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [375, 812]
+        [
+          1440,
+          900
+        ],
+        [
+          375,
+          812
+        ]
       ]
     },
     {
@@ -257,9 +369,18 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [600, 900],
-        [780, 437]
+        [
+          1440,
+          900
+        ],
+        [
+          600,
+          900
+        ],
+        [
+          780,
+          437
+        ]
       ]
     },
     {
@@ -271,8 +392,14 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 900],
-        [600, 900]
+        [
+          1440,
+          900
+        ],
+        [
+          600,
+          900
+        ]
       ]
     },
     {
@@ -283,7 +410,12 @@
       "passed": 3,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 1000]]
+      "viewports": [
+        [
+          1440,
+          1000
+        ]
+      ]
     },
     {
       "engine": "webkit",
@@ -293,7 +425,12 @@
       "passed": 8,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 900]]
+      "viewports": [
+        [
+          1440,
+          900
+        ]
+      ]
     },
     {
       "engine": "webkit",
@@ -303,7 +440,12 @@
       "passed": 2,
       "failed": 0,
       "result": "pass",
-      "viewports": [[1440, 900]]
+      "viewports": [
+        [
+          1440,
+          900
+        ]
+      ]
     },
     {
       "engine": "webkit",
@@ -314,13 +456,21 @@
       "failed": 0,
       "result": "pass",
       "viewports": [
-        [1440, 960],
-        [390, 844],
-        [600, 900]
+        [
+          1440,
+          960
+        ],
+        [
+          390,
+          844
+        ],
+        [
+          600,
+          900
+        ]
       ]
     }
   ],
-  "scope": "Current Playwright engines, deterministic bounded HTTP fixtures and production assets. Does not establish browser-floor, actual Safari/iOS, assistive-technology or live deployment qualification.",
   "screenshots": [
     {
       "path": "artifact-lineage-dark.png",
@@ -329,7 +479,7 @@
     },
     {
       "path": "large-graph-dark.png",
-      "sha256": "5b7a48cc59b54d7d47191d5fd46cfdc123017e0435ec74a92a2955b75490d254",
+      "sha256": "b2f8fd2dcd69073c102baba25f340d307a726db4f7853813423ebcb42d8b4b43",
       "engine": "chromium"
     },
     {
@@ -342,5 +492,37 @@
       "sha256": "8a932bbf2651684389bff357577aa3d469fa0385244554a4aabb70bb9a69c686",
       "engine": "chromium"
     }
-  ]
+  ],
+  "followUpQualification": {
+    "harnessSourceCommit": "409aa8a7a66007b0efe6af9303e947e4800df168",
+    "applicationSourceCommit": "2e52a3fa634fa0805511a37c982f8d13f690b868",
+    "reason": "Await initial TensorBoard lookup completion; hold response to verify disabled/loading behavior before preserving exact request count and namespace assertions.",
+    "unchangedApplicationAssets": true,
+    "results": [
+      {
+        "engine": "chromium",
+        "harness": "artifacts",
+        "tests": 8,
+        "passed": 8,
+        "failed": 0,
+        "result": "pass"
+      },
+      {
+        "engine": "firefox",
+        "harness": "artifacts",
+        "tests": 8,
+        "passed": 8,
+        "failed": 0,
+        "result": "pass"
+      },
+      {
+        "engine": "webkit",
+        "harness": "artifacts",
+        "tests": 8,
+        "passed": 8,
+        "failed": 0,
+        "result": "pass"
+      }
+    ]
+  }
 }
