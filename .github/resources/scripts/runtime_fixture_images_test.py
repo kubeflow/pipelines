@@ -280,6 +280,19 @@ class RuntimeFixtureImagesTest(unittest.TestCase):
                 self.assertEqual(
                     source_coverage_errors(path, images, inventory), [])
 
+    def test_legacy_cache_fixture_images_are_preloaded(self):
+        inventory = (ROOT / '.github/resources/runtime-base-images.txt'
+                    ).read_text().splitlines()
+        fixture = (
+            ROOT / 'backend/test/v2/resources/'
+            'hello-world-with-returning-component.yaml')
+        self.assertEqual(coverage_errors(yaml_images(fixture), inventory), [])
+        source = (
+            ROOT / 'test_data/sdk_uncompiled_pipelines/'
+            'hello-world-with-returning-component.py')
+        self.assertEqual(
+            python_images(source), [image for image, _ in yaml_images(fixture)])
+
     def test_proxy_fixture_copy_uses_the_same_preloaded_images(self):
         self.assertEqual(
             yaml_images(ROOT / 'backend/test/v2/resources/env-var.yaml'),
