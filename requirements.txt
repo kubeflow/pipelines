@@ -40,7 +40,7 @@ google-api-core==2.29.0
     #   google-cloud-core
     #   google-cloud-storage
     #   kfp
-google-auth==2.48.0
+google-auth==2.58.1
     # via
     #   google-api-core
     #   google-cloud-core
