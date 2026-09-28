@@ -26,11 +26,27 @@ concurrency:
 
 jobs:
   build-tools:
-    name: Build tools images
-    runs-on: ubuntu-latest
+    name: Build tools images (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      ARCH: ${{ matrix.arch }}
+      PLATFORM: linux/${{ matrix.arch }}
+      SOURCE_SHA: ${{ github.sha }}
+      RUN_TAG: run-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
 
       - name: Read frontend Node version
         id: frontend_node
@@ -40,6 +56,11 @@ jobs:
         shell: bash
         run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
+      - uses: docker/setup-buildx-action@v4
+        with:
+          # The release image must inherit the generator loaded in this daemon.
+          driver: docker
+
       - name: Log in to the Container registry
         uses: docker/login-action@v4
         if: github.event_name != 'pull_request'
@@ -48,32 +69,115 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push api-generator
-        id: build_api
+      - name: Build api-generator
         shell: bash
-        env:
-          SHOULD_PUSH: ${{ github.event_name != 'pull_request' }}
         run: |
           source ./.github/resources/scripts/helper-functions.sh
-          IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}"
-          retry 3 20 env DOCKER_BUILDKIT=1 docker build --file backend/api/Dockerfile --tag "$IMAGE" .
-          if [ "$SHOULD_PUSH" = "true" ]; then
-            retry 3 20 docker push "$IMAGE"
-          fi
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build --platform "$PLATFORM" \
+            --file backend/api/Dockerfile --tag kfp-api-generator:ci .
 
-      - name: Build and push release tools
+      - name: Build release tools from this generator
         shell: bash
         env:
-          SHOULD_PUSH: ${{ github.event_name != 'pull_request' }}
+          NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
         run: |
           source ./.github/resources/scripts/helper-functions.sh
-          IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-release:${{ env.IMAGE_TAG }}"
-          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build --platform "$PLATFORM" \
             --file release/Dockerfile.release \
-            --build-arg "BASE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}" \
-            --build-arg "NODE_VERSION=${{ steps.frontend_node.outputs.version }}" \
-            --tag "$IMAGE" \
-            .
-          if [ "$SHOULD_PUSH" = "true" ]; then
-            retry 3 20 docker push "$IMAGE"
-          fi
+            --build-arg BASE_IMAGE=kfp-api-generator:ci \
+            --build-arg "NODE_VERSION=$NODE_VERSION" --tag kfp-release:ci .
+
+      - name: Execute tools and generate sources natively
+        run: bash .github/resources/scripts/maintainer_tools_smoke.sh "$ARCH" "$RUNNER_TEMP/tool-output"
+
+      - name: Upload generated-source evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: tool-output-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tool-output
+          if-no-files-found: error
+
+      - name: Stage tested images without changing shared tags
+        if: github.event_name != 'pull_request'
+        run: |
+          source ./.github/resources/scripts/helper-functions.sh
+          for image in kfp-api-generator kfp-release; do
+            repository="${IMAGE_REGISTRY}/${IMAGE_ORG}/${image}"
+            uploaded="${repository}:${RUN_TAG}-${ARCH}-image"
+            docker tag "${image}:ci" "$uploaded"
+            retry 3 20 docker push "$uploaded"
+            # Wrap the single native image in an index for the shared publisher.
+            metadata="$RUNNER_TEMP/${image}-index.json"
+            retry 3 20 docker buildx imagetools create --prefer-index=true \
+              --metadata-file "$metadata" --tag "${repository}:${RUN_TAG}-${ARCH}" "$uploaded"
+            digest=$(jq -er '."containerimage.descriptor".digest' "$metadata")
+            mkdir -p "$RUNNER_TEMP/tool-digests/$image"
+            jq -n --arg digest "$digest" --arg source_sha "$SOURCE_SHA" --arg platform "$PLATFORM" \
+              '{digest: $digest, source_sha: $source_sha, platform: $platform}' \
+              > "$RUNNER_TEMP/tool-digests/$image/$ARCH.json"
+          done
+
+      - name: Upload staged image references
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tool-digests-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tool-digests
+          if-no-files-found: error
+
+  compare-generated:
+    name: Compare AMD64 and ARM64 generated sources
+    needs: build-tools
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: tool-output-*-${{ github.run_attempt }}
+          path: tool-output
+      - name: Require architecture-independent generated output
+        env:
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: diff -ru "tool-output/tool-output-amd64-$RUN_ATTEMPT" "tool-output/tool-output-arm64-$RUN_ATTEMPT"
+
+  publish-tools:
+    name: Publish verified tooling indexes
+    needs: [build-tools, compare-generated]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: tool-digests-*-${{ github.run_attempt }}
+          path: tool-digests
+          merge-multiple: 'true'
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+      - name: Verify both platforms before shared-tag promotion
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_TAG: run-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          for image in kfp-api-generator kfp-release; do
+            python3 .github/resources/scripts/publish_image_index.py \
+              --image "${IMAGE_REGISTRY}/${IMAGE_ORG}/${image}" --source-sha "$SOURCE_SHA" \
+              --platforms linux/amd64,linux/arm64 --digests "tool-digests/$image" \
+              --run-tag "$RUN_TAG" --target-tag "$IMAGE_TAG" --set-latest false \
+              --output "published-tool-indexes/$image.json"
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: published-tool-indexes-${{ github.run_attempt }}
+          path: published-tool-indexes
+          if-no-files-found: error
