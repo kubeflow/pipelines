@@ -40,21 +40,31 @@ The deterministic [large-graph harness](../../scripts/ui-modernization-graph.smo
 
 The production harnesses load emitted assets with deterministic local responses. They bound requests, fail unexpected endpoints and exercise real UI controls; mutation assertions validate payloads and exactly-once behavior. Fixture namespace/iframe tests verify client contracts, not live authentication or authorization.
 
-| Harness                                                                                        | Existing scenarios | Added scenario | Status before final candidate build                                                                  |
-| ---------------------------------------------------------------------------------------------- | -----------------: | -------------: | ---------------------------------------------------------------------------------------------------- |
-| [Startup](../../scripts/production-bundle.smoke.mjs)                                           |                  1 |              0 | Existing production startup coverage.                                                                |
-| [Runs and command search](../../scripts/ui-modernization-runs.smoke.mjs)                       |                  6 |              0 | Qualified on earlier implementation builds.                                                          |
-| [Run Details](../../scripts/ui-modernization-run-details.smoke.mjs)                            |                  9 |              0 | Qualified on earlier implementation builds.                                                          |
-| [Pipelines](../../scripts/ui-modernization-pipelines.smoke.mjs)                                |                  8 |              0 | Qualified on earlier implementation builds.                                                          |
-| [Experiments, recurring runs and creation](../../scripts/ui-modernization-workflows.smoke.mjs) |                  6 |              1 | Six workflow scenarios passed; the secondary-route addition passed individually on an interim build. |
-| [Artifacts and rich viewers](../../scripts/ui-modernization-artifacts.smoke.mjs)               |                  8 |              0 | Qualified on earlier implementation builds.                                                          |
-| [Comparison](../../scripts/ui-modernization-comparison.smoke.mjs)                              |                  3 |              0 | Qualified on earlier implementation builds.                                                          |
-| [Graph](../../scripts/ui-modernization-graph.smoke.mjs)                                        |                  2 |              0 | Fixture identity and interaction checks qualified on an earlier implementation build.                |
-| **Total**                                                                                      |             **43** |          **1** | **44-case final candidate matrix pending.**                                                          |
+| Harness                                                                                        | Cases per engine | Chromium  | Firefox   | WebKit    |
+| ---------------------------------------------------------------------------------------------- | ---------------: | --------- | --------- | --------- |
+| [Startup](../../scripts/production-bundle.smoke.mjs)                                           |                1 | Pass      | Pass      | Pass      |
+| [Runs and command search](../../scripts/ui-modernization-runs.smoke.mjs)                       |                6 | Pass      | Pass      | Pass      |
+| [Run Details](../../scripts/ui-modernization-run-details.smoke.mjs)                            |                9 | Pass      | Pass      | Pass      |
+| [Pipelines](../../scripts/ui-modernization-pipelines.smoke.mjs)                                |                8 | Pass      | Pass      | Pass      |
+| [Experiments, recurring runs and creation](../../scripts/ui-modernization-workflows.smoke.mjs) |                7 | Pass      | Pass      | Pass      |
+| [Artifacts and rich viewers](../../scripts/ui-modernization-artifacts.smoke.mjs)               |                8 | Pass      | Pass      | Pass      |
+| [Comparison](../../scripts/ui-modernization-comparison.smoke.mjs)                              |                3 | Pass      | Pass      | Pass      |
+| [Graph](../../scripts/ui-modernization-graph.smoke.mjs)                                        |                2 | Pass      | Pass      | Pass      |
+| **Total**                                                                                      |           **44** | **44/44** | **44/44** | **44/44** |
 
-The new secondary-route scenario covers tutorial lookup/fallback and keyboard navigation, draft/Save/Reset/reload behavior without changing deployment flags, dark presentation and narrow 404 recovery. Its individual interim pass does not substitute for running all 44 cases against the final candidate.
+The [132-case matrix](workflows/browser-matrix.json) records source commits, exact asset SHA-256 hashes, viewport coverage and the current Playwright engines: Chromium 145.0.7632.6, Firefox 146.0.1 and WebKit 26.0, using Playwright 1.58.0 and Node 24.14.0. The graph scenarios validate visible nodes and nonempty visible edges after repeated inspector open/close and history navigation. Secondary-route coverage includes tutorial lookup/fallback, keyboard navigation, draft/Save/Reset/reload behavior, dark presentation and narrow 404 recovery.
 
-[`test:bundle`](../../package.json) includes all eight harnesses and runs them serially after building. They support `KFP_BROWSER`; Chromium remains the default. Record the actual browser version, source commit, emitted-asset hashes and viewport with final results. Do not combine screenshots or timings from different builds into a single final qualification claim. No final candidate screenshots or performance totals are attached yet.
+Native multipart uploads reach a bounded same-origin loopback collector that validates the actual filename, MIME type and exact selected bytes before mutating the fixture. Native Blob workers are allowed only within the fixture origin/request bound; imported HTTP assets and unexpected endpoints remain checked. These transport details avoid treating Playwright WebKit interception limitations as application behavior.
+
+[`test:bundle`](../../package.json) includes all eight harnesses serially after building; `KFP_BROWSER` selects another installed engine. Screenshots below were captured from the same qualified production assets in Chromium and reviewed for layout; they are not historical images or minimum-browser evidence.
+
+| Pipelines and expanded versions                                                      | Run creation, dark theme                                              |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| ![Pipeline cards and expanded version table](workflows/pipelines-expanded-light.png) | ![New run form and summary in dark theme](workflows/new-run-dark.png) |
+
+| Artifact lineage, dark theme                                                | Large graph, zoomed/panned dark view                                 |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| ![Artifact lineage with related tasks](workflows/artifact-lineage-dark.png) | ![200-task graph after zoom and pan](workflows/large-graph-dark.png) |
 
 ## Runs status-filter compatibility dependency
 
@@ -80,19 +90,24 @@ The [baseline deployment contract](https://github.com/kubeflow/pipelines/blob/33
 
 ## Verification checkpoint
 
-The pinned toolchain passes `npm run test:ci`: 136 UI files / 1,753 tests and 29 server files / 1,052 tests, including formatting, UI/server lint, application/mock TypeScript and React peer checks. The final 404 wording change subsequently passes its 41 route/page checks. Production and Storybook builds and repository hooks pass. The strict Chromium bundle run passes all 44 scenarios on `index-Ddny7_E6.js` / `index-DHq3wLUW.css`; the current Firefox/WebKit matrix and performance comparison are being recorded.
+Application source `82254620daec619083d2e8128ec1692638a15a5d` includes the graph measurement fix and the merge of current master dependencies. With Node 24.14.0 / npm 11.17.0, the full CI constituent checks pass: formatting, UI/server lint, application/mock TypeScript, React peer checks, 136 UI files / **1,757 tests**, and 29 server files / **1,052 tests**, both with coverage. Coverage suites ran with one worker. Production and Storybook builds pass. The subsequent application change is a scoped CSS fix for WebKit radio activation: block layout on the run-type fieldset prevents labels shrinking between pointerdown and pointerup. Existing semantic fieldset/legend and single-click assertions remain intact. Both builds and all 132 browser cases were rerun after this CSS change; the TypeScript implementation and dependencies are unchanged. The matrix records the final source commit, including fixture corrections.
 
-UI coverage is 52.26% lines (6,217/11,895), 46.59% branches (4,847/10,403), 60.09% functions (1,712/2,849), and 52.71% statements (6,427/12,192). The corresponding baseline percentages are 50.96%, 43.50%, 58.14%, and 51.28%. Inclusion/exclusion rules are unchanged. Added behavioral coverage and removal of obsolete presentation components both change the denominator; these totals do not establish workflow parity by themselves.
+The qualified entry JavaScript is `index-ybJg2BvL.js` (SHA-256 `63ddb2da968486ecc48f96faa1158171f869e2917f6a05c0a5bccee61fe0cb81`); CSS is `index-EXijewuy.css` (SHA-256 `f2a3997f09c1db7bcbdd364495e68ed832e32adc6f5b8d4fc479397ee0bc4965`). Asset hashes were verified before and after browser qualification.
+
+UI coverage is 52.36% lines (6,241/11,919), 46.72% branches (4,873/10,430), 60.17% functions (1,718/2,855), and 52.81% statements (6,454/12,220). Corresponding baseline percentages are 50.96%, 43.50%, 58.14%, and 51.28%. Inclusion/exclusion rules are unchanged. Behavioral coverage and removal of obsolete presentation components change the denominator; coverage percentages alone do not establish workflow parity. Server coverage is 81.32% lines, 78.72% branches, 73.90% functions and 81.03% statements.
+
+See the [candidate performance comparison](performance-comparison.md) for repeated native-fixture measurements, bundle deltas and qualification limits. Hosted CI remains a separate check on the published head; earlier passing heads do not qualify later source changes.
 
 ## Final qualification checklist
 
 - [ ] Retire the unused legacy table/run-list presentation branches and their MUI/Emotion/typestyle dependencies. Every production caller already selects a modern renderer, but the compatibility code remains in this draft.
 
-- [ ] Record the final source commit and fresh production/Storybook build identities.
-- [ ] Run full formatting, lint, application/mock type checks, React peer checks, and UI/server coverage on that source; replace historical counts with exact final totals.
-- [ ] Run all 44 production browser scenarios on the final emitted assets and retain the browser/version matrix and review screenshots.
+- [x] Record the application source commit and fresh production/Storybook build identities.
+- [x] Run full formatting, lint, application/mock type checks, React peer checks, and UI/server coverage on that source; record exact totals.
+- [x] Run all 44 production browser scenarios in three engines on the recorded emitted assets; retain the browser/version matrix and reviewed screenshots.
 - [ ] Complete supported-browser policy acceptance, minimum-version checks and accessibility review.
-- [ ] Compare representative load/interaction/large-graph measurements against the [performance baseline](https://github.com/kubeflow/pipelines/blob/339670f5e/frontend/docs/ui-modernization/performance-baseline.md); report regressions and measured improvements without assuming framework speedups.
+- [x] Record nine native-fixture loads, three filtering trials and three run/task navigation trials against the [performance baseline](https://github.com/kubeflow/pipelines/blob/339670f5e/frontend/docs/ui-modernization/performance-baseline.md); report the measured regressions and scope limits.
+- [ ] Resolve or explicitly accept measured regressions with agreed budgets, and extend repeated measurements to representative large-graph and populated-comparison workloads.
 - [ ] Reconfirm hosted real-cluster frontend integration results for the final source and record any independent backend failures separately.
 - [ ] Rehearse previous UI → candidate UI → previous UI against the same backend with immutable image identities and retained state; qualify the additional real deployment modes above.
 
@@ -111,4 +126,4 @@ KFP_BROWSER=firefox node --test --test-concurrency=1 scripts/production-bundle.s
 KFP_BROWSER=webkit node --test --test-concurrency=1 scripts/production-bundle.smoke.mjs scripts/ui-modernization-*.smoke.mjs
 ```
 
-These commands do not establish minimum-version support on their own. Final CI totals, performance measurements and deployment/rollback results are pending and must be filled from their actual evidence before cutover.
+These commands do not establish minimum-version support on their own. Hosted checks, representative performance budgets, supported-browser/accessibility qualification and live deployment/rollback evidence remain release gates. Retiring the remaining presentation dependencies will change the bundle and requires fresh affected verification and measurements.

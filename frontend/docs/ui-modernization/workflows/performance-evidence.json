@@ -1,0 +1,3266 @@
+{
+  "applicationSourceCommit": "b3f82500fea54d00b65a314f9507ceebe98a0f25",
+  "entryAssets": [
+    {
+      "path": "static/index-EXijewuy.css",
+      "bytes": 96508,
+      "gzipBytes": 16752,
+      "brotliBytes": 14667,
+      "sha256": "f2a3997f09c1db7bcbdd364495e68ed832e32adc6f5b8d4fc479397ee0bc4965"
+    },
+    {
+      "path": "static/index-ybJg2BvL.js",
+      "bytes": 2883416,
+      "gzipBytes": 815796,
+      "brotliBytes": 662163,
+      "sha256": "63ddb2da968486ecc48f96faa1158171f869e2917f6a05c0a5bccee61fe0cb81"
+    }
+  ],
+  "baseline": {
+    "baselineSourceCommit": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+    "baselineHarnessCommit": "4699581fa9b4e2951105200724aa56e92c841791",
+    "settings": {
+      "browser": "Chrome 154.0.0.0 (HeadlessChrome, reported by user agent)",
+      "chromeDevToolsMcp": "1.10.1",
+      "node": "24.14.0",
+      "npm": "11.17.0",
+      "vite": "8.0.16",
+      "viewport": {
+        "width": 1280,
+        "height": 720,
+        "deviceScaleFactor": 1,
+        "isMobile": false,
+        "hasTouch": false,
+        "isLandscape": false
+      },
+      "cpuSlowdownMultiplier": 4,
+      "networkPreset": "Fast 4G",
+      "colorScheme": "light",
+      "language": "en-US",
+      "timezone": "America/New_York",
+      "serving": "Production build via Vite preview, native mock API, HTTP/1.1 loopback origin.",
+      "cacheMethod": "Unique isolated browser context at about:blank for each sample; start trace without automatic reload/stop, then first navigation to the target. Browser process, operating-system caches and mock server remain warm. No claim of a cold browser process or backend.",
+      "workload": "Four succeeded available runs, four pipelines and four experiments; three native tasks for one run, one Dataset artifact and comparison without runtime parameters/scalar metrics."
+    },
+    "loadSummaries": [
+      {
+        "routeName": "runs",
+        "sampleCount": 3,
+        "fcpMs": {
+          "median": 1836,
+          "min": 1808,
+          "max": 1856
+        },
+        "lcpReportedMs": {
+          "median": 2002,
+          "min": 1972,
+          "max": 2053
+        },
+        "clsReported": {
+          "median": 0.01,
+          "min": 0.01,
+          "max": 0.01
+        },
+        "entryCountIncludingDocument": {
+          "median": 10,
+          "min": 10,
+          "max": 10
+        },
+        "transferSizeBytes": {
+          "median": 962495,
+          "min": 962495,
+          "max": 962495
+        },
+        "encodedBodySizeBytes": {
+          "median": 959495,
+          "min": 959495,
+          "max": 959495
+        },
+        "decodedBodySizeBytes": {
+          "median": 3004420,
+          "min": 3004420,
+          "max": 3004420
+        }
+      },
+      {
+        "routeName": "run-details",
+        "sampleCount": 3,
+        "fcpMs": {
+          "median": 1736,
+          "min": 1732,
+          "max": 1748
+        },
+        "lcpReportedMs": {
+          "median": 1912,
+          "min": 1910,
+          "max": 1919
+        },
+        "clsReported": {
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "entryCountIncludingDocument": {
+          "median": 11,
+          "min": 11,
+          "max": 11
+        },
+        "transferSizeBytes": {
+          "median": 855865,
+          "min": 855865,
+          "max": 855865
+        },
+        "encodedBodySizeBytes": {
+          "median": 852565,
+          "min": 852565,
+          "max": 852565
+        },
+        "decodedBodySizeBytes": {
+          "median": 2897490,
+          "min": 2897490,
+          "max": 2897490
+        }
+      },
+      {
+        "routeName": "compare",
+        "sampleCount": 3,
+        "fcpMs": {
+          "median": 1936,
+          "min": 1888,
+          "max": 1968
+        },
+        "lcpReportedMs": {
+          "median": 2329,
+          "min": 2300,
+          "max": 2364
+        },
+        "clsReported": {
+          "median": 0.04,
+          "min": 0.04,
+          "max": 0.04
+        },
+        "entryCountIncludingDocument": {
+          "median": 15,
+          "min": 15,
+          "max": 15
+        },
+        "transferSizeBytes": {
+          "median": 898575,
+          "min": 898575,
+          "max": 898575
+        },
+        "encodedBodySizeBytes": {
+          "median": 985277,
+          "min": 985277,
+          "max": 985277
+        },
+        "decodedBodySizeBytes": {
+          "median": 3030202,
+          "min": 3030202,
+          "max": 3030202
+        }
+      }
+    ],
+    "filterAggregate": {
+      "sampleCount": 3,
+      "filterResultsReportedMs": {
+        "median": 693.7999999523163,
+        "min": 693.6999998092651,
+        "max": 695.5999999046326
+      },
+      "filterResultsTraceMs": {
+        "median": 693.811,
+        "min": 693.307,
+        "max": 695.445
+      },
+      "observedInpReportedMs": {
+        "median": 45,
+        "min": 42,
+        "max": 45
+      },
+      "observedInpTraceDurationMs": {
+        "median": 44.773,
+        "min": 41.593,
+        "max": 45.33
+      },
+      "clsReported": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "navigation": {
+      "sampleCount": 1,
+      "measures": [
+        {
+          "name": "run-open",
+          "browserMeasure": {
+            "name": "run-open",
+            "entryType": "measure",
+            "startTime": 91270.90000009537,
+            "duration": 589.3999998569489,
+            "navigationId": 2282
+          },
+          "browserDurationRoundedMs": 589.4,
+          "traceStartTsUs": 1277932435935,
+          "traceEndTsUs": 1277933025321,
+          "traceDurationMs": 589.386
+        },
+        {
+          "name": "task-open",
+          "browserMeasure": {
+            "name": "task-open",
+            "entryType": "measure",
+            "startTime": 129353.5,
+            "duration": 121.29999995231628,
+            "navigationId": 2282
+          },
+          "browserDurationRoundedMs": 121.3,
+          "traceStartTsUs": 1277970518513,
+          "traceEndTsUs": 1277970639830,
+          "traceDurationMs": 121.317
+        }
+      ],
+      "inpReportedMs": 135
+    },
+    "candidateRecordingLimit": "Tool trace summaries and browser entries retained; raw trace export unavailable, so there is no complete recording or trace event extract."
+  },
+  "settings": {
+    "browser": "Chrome 154.0.0.0 (HeadlessChrome, reported by user agent)",
+    "chromeDevToolsMcp": "1.10.1",
+    "node": "24.14.0",
+    "npm": "11.17.0",
+    "vite": "8.0.16",
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "deviceScaleFactor": 1,
+      "isMobile": false,
+      "hasTouch": false,
+      "isLandscape": false
+    },
+    "cpuSlowdownMultiplier": 4,
+    "networkPreset": "Fast 4G",
+    "colorScheme": "light",
+    "language": "en-US",
+    "timezone": "America/New_York",
+    "serving": "Production build via Vite preview, native mock API, HTTP/1.1 loopback origin.",
+    "cacheMethod": "Unique isolated browser context at about:blank for each sample; start trace without automatic reload/stop, then first navigation to the target. Browser process, operating-system caches and mock server remain warm. No claim of a cold browser process or backend.",
+    "workload": "Four succeeded available runs, four pipelines and four experiments; three native tasks for one run, one Dataset artifact and comparison without runtime parameters/scalar metrics."
+  },
+  "observedEnvironment": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+    "language": "en-US",
+    "timezone": "America/New_York",
+    "width": 1280,
+    "height": 720,
+    "dpr": 1,
+    "colorScheme": "light"
+  },
+  "recordingLimit": "DevTools tool summaries and browser entries retained; no raw trace export or raw-event metric reconciliation. No concurrent task-owned test/build/browser runs during sampling.",
+  "loadSummary": [
+    {
+      "route": "runs",
+      "sampleCount": 3,
+      "fcpMs": {
+        "median": 1748,
+        "min": 1744,
+        "max": 1752
+      },
+      "lcpReportedMs": {
+        "median": 2266.0,
+        "min": 2263.0,
+        "max": 2270.0
+      },
+      "clsReported": {
+        "median": 0.02,
+        "min": 0.02,
+        "max": 0.02
+      },
+      "entryCountIncludingDocument": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "transferSizeBytes": {
+        "median": 1071152,
+        "min": 1071152,
+        "max": 1071152
+      },
+      "encodedBodySizeBytes": {
+        "median": 1067252,
+        "min": 1067252,
+        "max": 1067252
+      },
+      "decodedBodySizeBytes": {
+        "median": 3213068,
+        "min": 3213068,
+        "max": 3213068
+      }
+    },
+    {
+      "route": "run-details",
+      "sampleCount": 3,
+      "fcpMs": {
+        "median": 1676,
+        "min": 1668,
+        "max": 1680
+      },
+      "lcpReportedMs": {
+        "median": 2323.0,
+        "min": 2299.0,
+        "max": 2606.0
+      },
+      "clsReported": {
+        "median": 0.01,
+        "min": 0.01,
+        "max": 0.01
+      },
+      "entryCountIncludingDocument": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "transferSizeBytes": {
+        "median": 964522,
+        "min": 964522,
+        "max": 964522
+      },
+      "encodedBodySizeBytes": {
+        "median": 960322,
+        "min": 960322,
+        "max": 960322
+      },
+      "decodedBodySizeBytes": {
+        "median": 3106138,
+        "min": 3106138,
+        "max": 3106138
+      }
+    },
+    {
+      "route": "compare",
+      "sampleCount": 3,
+      "fcpMs": {
+        "median": 1848,
+        "min": 1812,
+        "max": 1868
+      },
+      "lcpReportedMs": {
+        "median": 1847.0,
+        "min": 1809.0,
+        "max": 1867.0
+      },
+      "clsReported": {
+        "median": 0.06,
+        "min": 0.06,
+        "max": 0.06
+      },
+      "entryCountIncludingDocument": {
+        "median": 18,
+        "min": 18,
+        "max": 18
+      },
+      "transferSizeBytes": {
+        "median": 1007232,
+        "min": 1007232,
+        "max": 1007232
+      },
+      "encodedBodySizeBytes": {
+        "median": 1093034,
+        "min": 1093034,
+        "max": 1093034
+      },
+      "decodedBodySizeBytes": {
+        "median": 3238850,
+        "min": 3238850,
+        "max": 3238850
+      }
+    }
+  ],
+  "filterSummary": {
+    "sampleCount": 3,
+    "filterResultsMs": {
+      "median": 728.2,
+      "min": 726.1,
+      "max": 728.4
+    },
+    "inpReportedMs": {
+      "median": 37.0,
+      "min": 24.0,
+      "max": 67.0
+    },
+    "clsReported": {
+      "median": 0.03,
+      "min": 0.03,
+      "max": 0.03
+    }
+  },
+  "navigationSummary": {
+    "sampleCount": 3,
+    "runOpenMs": {
+      "median": 573.8,
+      "min": 571.5,
+      "max": 589.9
+    },
+    "taskOpenMs": {
+      "median": 79.3,
+      "min": 79,
+      "max": 83.9
+    },
+    "maximumInpReportedMs": {
+      "median": 93.0,
+      "min": 90.0,
+      "max": 96.0
+    }
+  },
+  "loads": [
+    {
+      "route": "runs",
+      "trial": 1,
+      "fcpMs": 1748,
+      "lcpReportedMs": 2270.0,
+      "clsReported": 0.02,
+      "browser": {
+        "routeName": "runs",
+        "hash": "#/runs",
+        "readiness": {
+          "links": [
+            {
+              "text": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "text": "Loops and conditions",
+              "href": "#/runs/details/mock-run-1"
+            },
+            {
+              "text": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            },
+            {
+              "text": "Various IO types",
+              "href": "#/runs/details/mock-run-3"
+            }
+          ],
+          "node": null,
+          "emptyParameters": false,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 424,
+            "duration": 0,
+            "navigationId": 9317,
+            "paintTime": 409.40000009536743,
+            "presentationTime": 424
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1748,
+            "duration": 0,
+            "navigationId": 9317,
+            "paintTime": 1721.4000000953674,
+            "presentationTime": 1748
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1571.2000000476837,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1571,
+            "loadEventEnd": 1571.2000000476837
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 210.39999985694885,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 1002.8999998569489,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 173.59999990463257,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 172.90000009536743,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 173.29999995231628,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140,
+            "duration": 377.7000000476837,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 244.89999985694885,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 238.20000004768372,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 327.7999999523163,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 281.7999999523163,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 176.60000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 206.09999990463257,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:47:08.234Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/runs\nBounds: {min: 1370933105562\u00b5s, max: 1370946628168\u00b5s}\nMetrics (lab / observed):\n  - LCP: 2270 ms, event: (eventKey: r-14649, ts: 1370935375805), nodeId: 83\n  - LCP breakdown:\n    - TTFB: 4\u00a0ms, bounds: {min: 1370933105562\u00b5s, max: 1370933109675\u00b5s}\n    - Render delay: 2,266\u00a0ms, bounds: {min: 1370933109675\u00b5s, max: 1370935375805\u00b5s}\n  - CLS: 0.02, event: (eventKey: s-14520, ts: 1370934994881)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 13,
+      "transferSizeBytes": 1071152,
+      "encodedBodySizeBytes": 1067252,
+      "decodedBodySizeBytes": 3213068
+    },
+    {
+      "route": "runs",
+      "trial": 2,
+      "fcpMs": 1752,
+      "lcpReportedMs": 2266.0,
+      "clsReported": 0.02,
+      "browser": {
+        "routeName": "runs",
+        "hash": "#/runs",
+        "readiness": {
+          "links": [
+            {
+              "text": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "text": "Loops and conditions",
+              "href": "#/runs/details/mock-run-1"
+            },
+            {
+              "text": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            },
+            {
+              "text": "Various IO types",
+              "href": "#/runs/details/mock-run-3"
+            }
+          ],
+          "node": null,
+          "emptyParameters": false,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 404,
+            "duration": 0,
+            "navigationId": 7130,
+            "paintTime": 402.80000019073486,
+            "presentationTime": 404
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1752,
+            "duration": 0,
+            "navigationId": 7130,
+            "paintTime": 1722.8000001907349,
+            "presentationTime": 1752
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1568.6000001430511,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1568.6000001430511,
+            "loadEventEnd": 1568.6000001430511
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 1001.3999998569489,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 208.30000019073486,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 175.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 173.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 173.79999995231628,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140,
+            "duration": 376.2999999523163,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 246.70000004768372,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 239.10000014305115,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 329.2000000476837,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 282.90000009536743,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 174.60000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 205.60000014305115,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:48:02.560Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/runs\nBounds: {min: 1370989260109\u00b5s, max: 1371002943525\u00b5s}\nMetrics (lab / observed):\n  - LCP: 2266 ms, event: (eventKey: r-14688, ts: 1370991525815), nodeId: 83\n  - LCP breakdown:\n    - TTFB: 4\u00a0ms, bounds: {min: 1370989260109\u00b5s, max: 1370989263647.0002\u00b5s}\n    - Render delay: 2,262\u00a0ms, bounds: {min: 1370989263647.0002\u00b5s, max: 1370991525815\u00b5s}\n  - CLS: 0.02, event: (eventKey: s-14563, ts: 1370991149072)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 13,
+      "transferSizeBytes": 1071152,
+      "encodedBodySizeBytes": 1067252,
+      "decodedBodySizeBytes": 3213068
+    },
+    {
+      "route": "runs",
+      "trial": 3,
+      "fcpMs": 1744,
+      "lcpReportedMs": 2263.0,
+      "clsReported": 0.02,
+      "browser": {
+        "routeName": "runs",
+        "hash": "#/runs",
+        "readiness": {
+          "links": [
+            {
+              "text": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "text": "Loops and conditions",
+              "href": "#/runs/details/mock-run-1"
+            },
+            {
+              "text": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            },
+            {
+              "text": "Various IO types",
+              "href": "#/runs/details/mock-run-3"
+            }
+          ],
+          "node": null,
+          "emptyParameters": false,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 408,
+            "duration": 0,
+            "navigationId": 9949,
+            "paintTime": 402.10000014305115,
+            "presentationTime": 408
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1744,
+            "duration": 0,
+            "navigationId": 9949,
+            "paintTime": 1717.8000001907349,
+            "presentationTime": 1744
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1565.7000000476837,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1565.7000000476837,
+            "loadEventEnd": 1565.7000000476837
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 1003.7000000476837,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 211,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 173.59999990463257,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 171.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 172.90000009536743,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140,
+            "duration": 376.7000000476837,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 244.09999990463257,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 237.69999980926514,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 327.2999999523163,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 281.2999999523163,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 172.70000004768372,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 207.5,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:48:36.972Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/runs\nBounds: {min: 1371021844190\u00b5s, max: 1371034682675\u00b5s}\nMetrics (lab / observed):\n  - LCP: 2263 ms, event: (eventKey: r-14666, ts: 1371024106884), nodeId: 83\n  - LCP breakdown:\n    - TTFB: 3\u00a0ms, bounds: {min: 1371021844190\u00b5s, max: 1371021846759\u00b5s}\n    - Render delay: 2,260\u00a0ms, bounds: {min: 1371021846759\u00b5s, max: 1371024106884\u00b5s}\n  - CLS: 0.02, event: (eventKey: s-14528, ts: 1371023726024)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 13,
+      "transferSizeBytes": 1071152,
+      "encodedBodySizeBytes": 1067252,
+      "decodedBodySizeBytes": 3213068
+    },
+    {
+      "route": "run-details",
+      "trial": 1,
+      "fcpMs": 1676,
+      "lcpReportedMs": 2606.0,
+      "clsReported": 0.01,
+      "browser": {
+        "routeName": "run-details",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "readiness": {
+          "links": [],
+          "node": {
+            "id": "task.chicago-taxi-trips-dataset",
+            "visible": "visible",
+            "offsetWidth": 200,
+            "offsetHeight": 56
+          },
+          "emptyParameters": false,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 396,
+            "duration": 0,
+            "navigationId": 6417,
+            "paintTime": 393.5,
+            "presentationTime": 396
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1676,
+            "duration": 0,
+            "navigationId": 6417,
+            "paintTime": 1659.5,
+            "presentationTime": 1676
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1550.2000000476837,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1549.7000000476837,
+            "loadEventEnd": 1550.2000000476837
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 997.5,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 205,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 174.30000019073486,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 243.59999990463257,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 236.40000009536743,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 238.29999995231628,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 170.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 171.59999990463257,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 334.09999990463257,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 338.09999990463257,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 278,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 182.20000004768372,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200,
+            "transferSize": 422,
+            "encodedBodySize": 122,
+            "decodedBodySize": 122,
+            "duration": 175.10000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:49:12.275Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371055313574\u00b5s, max: 1371069622686\u00b5s}\nMetrics (lab / observed):\n  - LCP: 2606 ms, event: (eventKey: r-17731, ts: 1371057919708), nodeId: 40\n  - LCP breakdown:\n    - TTFB: 2\u00a0ms, bounds: {min: 1371055313574\u00b5s, max: 1371055315351\u00b5s}\n    - Render delay: 2,604\u00a0ms, bounds: {min: 1371055315351\u00b5s, max: 1371057919708\u00b5s}\n  - CLS: 0.01, event: (eventKey: s-16018, ts: 1371057169434)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 14,
+      "transferSizeBytes": 964522,
+      "encodedBodySizeBytes": 960322,
+      "decodedBodySizeBytes": 3106138
+    },
+    {
+      "route": "run-details",
+      "trial": 2,
+      "fcpMs": 1668,
+      "lcpReportedMs": 2299.0,
+      "clsReported": 0.01,
+      "browser": {
+        "routeName": "run-details",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "readiness": {
+          "links": [],
+          "node": {
+            "id": "task.chicago-taxi-trips-dataset",
+            "visible": "visible",
+            "offsetWidth": 200,
+            "offsetHeight": 56
+          },
+          "emptyParameters": false,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 392,
+            "duration": 0,
+            "navigationId": 1216,
+            "paintTime": 386.90000009536743,
+            "presentationTime": 392
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1668,
+            "duration": 0,
+            "navigationId": 1216,
+            "paintTime": 1650.4000000953674,
+            "presentationTime": 1668
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1540.2000000476837,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1540.1000001430511,
+            "loadEventEnd": 1540.2000000476837
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 995.7000000476837,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 202.59999990463257,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 171.10000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 234.09999990463257,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 228.89999985694885,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 230.09999990463257,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 171.29999995231628,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 171.40000009536743,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 333.10000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 338.19999980926514,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 279.10000014305115,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 183.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200,
+            "transferSize": 422,
+            "encodedBodySize": 122,
+            "decodedBodySize": 122,
+            "duration": 177.39999985694885,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:49:40.544Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371086470084\u00b5s, max: 1371098999646\u00b5s}\nMetrics (lab / observed):\n  - LCP: 2299 ms, event: (eventKey: r-16480, ts: 1371088768998), nodeId: 40\n  - LCP breakdown:\n    - TTFB: 3\u00a0ms, bounds: {min: 1371086470084\u00b5s, max: 1371086473273\u00b5s}\n    - Render delay: 2,296\u00a0ms, bounds: {min: 1371086473273\u00b5s, max: 1371088768998\u00b5s}\n  - CLS: 0.01, event: (eventKey: s-15964, ts: 1371088320132)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 14,
+      "transferSizeBytes": 964522,
+      "encodedBodySizeBytes": 960322,
+      "decodedBodySizeBytes": 3106138
+    },
+    {
+      "route": "run-details",
+      "trial": 3,
+      "fcpMs": 1680,
+      "lcpReportedMs": 2323.0,
+      "clsReported": 0.01,
+      "browser": {
+        "routeName": "run-details",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "readiness": {
+          "links": [],
+          "node": {
+            "id": "task.chicago-taxi-trips-dataset",
+            "visible": "visible",
+            "offsetWidth": 200,
+            "offsetHeight": 56
+          },
+          "emptyParameters": false,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 404,
+            "duration": 0,
+            "navigationId": 5268,
+            "paintTime": 399.5,
+            "presentationTime": 404
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1680,
+            "duration": 0,
+            "navigationId": 5268,
+            "paintTime": 1662.7000000476837,
+            "presentationTime": 1680
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1552.5,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1551.5,
+            "loadEventEnd": 1552.5
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 1001.5999999046326,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 209.40000009536743,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 166.90000009536743,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 241.89999985694885,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 237.20000004768372,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 238.10000014305115,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 170.59999990463257,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 172.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 331.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 339.7000000476837,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 282.7000000476837,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 183.79999995231628,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200,
+            "transferSize": 422,
+            "encodedBodySize": 122,
+            "decodedBodySize": 122,
+            "duration": 177.10000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:50:12.245Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371116961993\u00b5s, max: 1371130988965\u00b5s}\nMetrics (lab / observed):\n  - LCP: 2323 ms, event: (eventKey: r-16442, ts: 1371119285170), nodeId: 39\n  - LCP breakdown:\n    - TTFB: 2\u00a0ms, bounds: {min: 1371116961993\u00b5s, max: 1371116964152\u00b5s}\n    - Render delay: 2,321\u00a0ms, bounds: {min: 1371116964152\u00b5s, max: 1371119285170\u00b5s}\n  - CLS: 0.01, event: (eventKey: s-15898, ts: 1371118820195)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 14,
+      "transferSizeBytes": 964522,
+      "encodedBodySizeBytes": 960322,
+      "decodedBodySizeBytes": 3106138
+    },
+    {
+      "route": "compare",
+      "trial": 1,
+      "fcpMs": 1812,
+      "lcpReportedMs": 1809.0,
+      "clsReported": 0.06,
+      "browser": {
+        "routeName": "compare",
+        "hash": "#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "readiness": {
+          "links": [
+            {
+              "text": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "text": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            }
+          ],
+          "node": null,
+          "emptyParameters": true,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 400,
+            "duration": 0,
+            "navigationId": 6178,
+            "paintTime": 394,
+            "presentationTime": 400
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1812,
+            "duration": 0,
+            "navigationId": 6178,
+            "paintTime": 1768.1000001430511,
+            "presentationTime": 1812
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1567.1000001430511,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1567.1000001430511,
+            "loadEventEnd": 1567.1000001430511
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 998.4000000953674,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 205.60000014305115,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 390.39999985694885,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 409,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 408.80000019073486,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 168.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 169.10000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 169.29999995231628,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "status": 200,
+            "transferSize": 41305,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 248.39999985694885,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 258,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 423.69999980926514,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": ""
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 170,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 489.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": ""
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 347.30000019073486,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 390.2999999523163,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 255.20000004768372,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 214,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:50:46.187Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371151596375\u00b5s, max: 1371164089823\u00b5s}\nMetrics (lab / observed):\n  - LCP: 1809 ms, event: (eventKey: r-12485, ts: 1371153405207), nodeId: 27\n  - LCP breakdown:\n    - TTFB: 3\u00a0ms, bounds: {min: 1371151596375\u00b5s, max: 1371151599610\u00b5s}\n    - Render delay: 1,806\u00a0ms, bounds: {min: 1371151599610\u00b5s, max: 1371153405207\u00b5s}\n  - CLS: 0.06, event: (eventKey: s-15491, ts: 1371153545703)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 18,
+      "transferSizeBytes": 1007232,
+      "encodedBodySizeBytes": 1093034,
+      "decodedBodySizeBytes": 3238850
+    },
+    {
+      "route": "compare",
+      "trial": 2,
+      "fcpMs": 1848,
+      "lcpReportedMs": 1847.0,
+      "clsReported": 0.06,
+      "browser": {
+        "routeName": "compare",
+        "hash": "#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "readiness": {
+          "links": [
+            {
+              "text": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "text": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            }
+          ],
+          "node": null,
+          "emptyParameters": true,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 396,
+            "duration": 0,
+            "navigationId": 4657,
+            "paintTime": 391,
+            "presentationTime": 396
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1848,
+            "duration": 0,
+            "navigationId": 4657,
+            "paintTime": 1806,
+            "presentationTime": 1848
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1577.8000001907349,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1577.7000000476837,
+            "loadEventEnd": 1577.8000001907349
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 997.5999999046326,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 204.29999995231628,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 401.89999985694885,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 414.2999999523163,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 415.40000009536743,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 171.90000009536743,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 168.89999985694885,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 170,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "status": 200,
+            "transferSize": 41305,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 250.39999985694885,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 258.7999999523163,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 492.19999980926514,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": ""
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 169.29999995231628,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 425.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": ""
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 345.7000000476837,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 386.90000009536743,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 256.10000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 207.59999990463257,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:51:18.943Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371183125068\u00b5s, max: 1371198028841\u00b5s}\nMetrics (lab / observed):\n  - LCP: 1847 ms, event: (eventKey: r-12608, ts: 1371184972188), nodeId: 27\n  - LCP breakdown:\n    - TTFB: 3\u00a0ms, bounds: {min: 1371183125068\u00b5s, max: 1371183127872\u00b5s}\n    - Render delay: 1,844\u00a0ms, bounds: {min: 1371183127872\u00b5s, max: 1371184972188\u00b5s}\n  - CLS: 0.06, event: (eventKey: s-15599, ts: 1371185103776)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 18,
+      "transferSizeBytes": 1007232,
+      "encodedBodySizeBytes": 1093034,
+      "decodedBodySizeBytes": 3238850
+    },
+    {
+      "route": "compare",
+      "trial": 3,
+      "fcpMs": 1868,
+      "lcpReportedMs": 1867.0,
+      "clsReported": 0.06,
+      "browser": {
+        "routeName": "compare",
+        "hash": "#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "readiness": {
+          "links": [
+            {
+              "text": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "text": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            }
+          ],
+          "node": null,
+          "emptyParameters": true,
+          "apis": [
+            {
+              "url": "/apis/v2beta1/healthz",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+              "status": 200
+            },
+            {
+              "url": "/apis/v2beta1/experiments",
+              "status": 200
+            }
+          ]
+        },
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+          "language": "en-US",
+          "timezone": "America/New_York",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1,
+          "colorScheme": "light"
+        },
+        "paint": [
+          {
+            "name": "first-paint",
+            "entryType": "paint",
+            "startTime": 408,
+            "duration": 0,
+            "navigationId": 7193,
+            "paintTime": 404.60000014305115,
+            "presentationTime": 408
+          },
+          {
+            "name": "first-contentful-paint",
+            "entryType": "paint",
+            "startTime": 1868,
+            "duration": 0,
+            "navigationId": 7193,
+            "paintTime": 1833.2000000476837,
+            "presentationTime": 1868
+          }
+        ],
+        "navigation": [
+          {
+            "type": "navigate",
+            "startTime": 0,
+            "duration": 1603.2999999523163,
+            "responseStatus": 200,
+            "transferSize": 1076,
+            "encodedBodySize": 776,
+            "decodedBodySize": 1388,
+            "domContentLoadedEventEnd": 1603.1000001430511,
+            "loadEventEnd": 1603.2999999523163
+          }
+        ],
+        "resources": [
+          {
+            "url": "/static/index-ybJg2BvL.js",
+            "status": 200,
+            "transferSize": 818161,
+            "encodedBodySize": 817861,
+            "decodedBodySize": 2883416,
+            "duration": 999,
+            "initiatorType": "script",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/index-EXijewuy.css",
+            "status": 200,
+            "transferSize": 17159,
+            "encodedBodySize": 16859,
+            "decodedBodySize": 96508,
+            "duration": 206.20000004768372,
+            "initiatorType": "link",
+            "contentEncoding": "gzip",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+            "status": 200,
+            "transferSize": 14932,
+            "encodedBodySize": 14632,
+            "decodedBodySize": 14632,
+            "duration": 414.19999980926514,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+            "status": 200,
+            "transferSize": 14892,
+            "encodedBodySize": 14592,
+            "decodedBodySize": 14592,
+            "duration": 418.39999985694885,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+            "status": 200,
+            "transferSize": 14956,
+            "encodedBodySize": 14656,
+            "decodedBodySize": 14656,
+            "duration": 419.5,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273,
+            "duration": 169.40000009536743,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/cluster-name",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 166.60000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/system/project-id",
+            "status": 200,
+            "transferSize": 315,
+            "encodedBodySize": 15,
+            "decodedBodySize": 15,
+            "duration": 167.29999995231628,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "status": 200,
+            "transferSize": 41305,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 250.09999990463257,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 50497,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 260.2000000476837,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 41005,
+            "decodedBodySize": 41005,
+            "duration": 427.10000014305115,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": ""
+          },
+          {
+            "url": "/apis/v2beta1/runs/mock-run-0/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 317,
+            "encodedBodySize": 17,
+            "decodedBodySize": 17,
+            "duration": 170.09999990463257,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 50197,
+            "decodedBodySize": 50197,
+            "duration": 506.2000000476837,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": ""
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200,
+            "transferSize": 3801,
+            "encodedBodySize": 3501,
+            "decodedBodySize": 3501,
+            "duration": 348.90000009536743,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/favicon.ico",
+            "status": 200,
+            "transferSize": 5953,
+            "encodedBodySize": 5653,
+            "decodedBodySize": 5653,
+            "duration": 393,
+            "initiatorType": "other",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610,
+            "duration": 255.5,
+            "initiatorType": "fetch",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          },
+          {
+            "url": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+            "status": 200,
+            "transferSize": 21468,
+            "encodedBodySize": 21168,
+            "decodedBodySize": 21168,
+            "duration": 216.40000009536743,
+            "initiatorType": "css",
+            "contentEncoding": "",
+            "nextHopProtocol": "http/1.1"
+          }
+        ],
+        "capturedAt": "2026-09-28T13:51:51.358Z"
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NAVIGATION_0\n\nURL: /#/compare?runlist=mock-run-0,e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371216452334\u00b5s, max: 1371230811523\u00b5s}\nMetrics (lab / observed):\n  - LCP: 1867 ms, event: (eventKey: r-12609, ts: 1371218319167), nodeId: 27\n  - LCP breakdown:\n    - TTFB: 4\u00a0ms, bounds: {min: 1371216452334\u00b5s, max: 1371216456610\u00b5s}\n    - Render delay: 1,863\u00a0ms, bounds: {min: 1371216456610\u00b5s, max: 1371218319167\u00b5s}\n  - CLS: 0.06, event: (eventKey: s-15249, ts: 1371218521202)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ],
+      "entryCountIncludingDocument": 18,
+      "transferSizeBytes": 1007232,
+      "encodedBodySizeBytes": 1093034,
+      "decodedBodySizeBytes": 3238850
+    }
+  ],
+  "filters": [
+    {
+      "trial": 1,
+      "filterResultsMs": 728.4000000953674,
+      "inpReportedMs": 37.0,
+      "clsReported": 0.03,
+      "measurement": {
+        "before": {
+          "value": "",
+          "rows": [
+            {
+              "name": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "name": "Loops and conditions",
+              "href": "#/runs/details/mock-run-1"
+            },
+            {
+              "name": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            },
+            {
+              "name": "Various IO types",
+              "href": "#/runs/details/mock-run-3"
+            }
+          ]
+        },
+        "after": {
+          "value": "xgboost",
+          "rows": [
+            {
+              "name": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            }
+          ]
+        },
+        "measures": [
+          {
+            "name": "filter-results",
+            "entryType": "measure",
+            "startTime": 24061,
+            "duration": 728.4000000953674,
+            "navigationId": 4650
+          }
+        ],
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522name%2522%252C%2522operation%2522%253A%2522IS_SUBSTRING%2522%252C%2522string_value%2522%253A%2522xgboost%2522%257D%252C%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 53809,
+            "encodedBodySize": 53509,
+            "decodedBodySize": 53509
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610
+          }
+        ]
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1371298998466\u00b5s, max: 1371314140591\u00b5s}\nMetrics (lab / observed):\n  - INP: 37 ms, event: (eventKey: s-7503, ts: 1371306789338)\n  - CLS: 0.03, event: (eventKey: s-4451, ts: 1371307671503)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ]
+    },
+    {
+      "trial": 2,
+      "filterResultsMs": 726.0999999046326,
+      "inpReportedMs": 67.0,
+      "clsReported": 0.03,
+      "measurement": {
+        "before": {
+          "value": "",
+          "rows": [
+            {
+              "name": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "name": "Loops and conditions",
+              "href": "#/runs/details/mock-run-1"
+            },
+            {
+              "name": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            },
+            {
+              "name": "Various IO types",
+              "href": "#/runs/details/mock-run-3"
+            }
+          ]
+        },
+        "after": {
+          "value": "xgboost",
+          "rows": [
+            {
+              "name": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            }
+          ]
+        },
+        "measures": [
+          {
+            "name": "filter-results",
+            "entryType": "measure",
+            "startTime": 27334.5,
+            "duration": 726.0999999046326,
+            "navigationId": 430
+          }
+        ],
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522name%2522%252C%2522operation%2522%253A%2522IS_SUBSTRING%2522%252C%2522string_value%2522%253A%2522xgboost%2522%257D%252C%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 53809,
+            "encodedBodySize": 53509,
+            "decodedBodySize": 53509
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610
+          }
+        ]
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1371349608939\u00b5s, max: 1371367517817\u00b5s}\nMetrics (lab / observed):\n  - INP: 67 ms, event: (eventKey: s-7194, ts: 1371358803731)\n  - CLS: 0.03, event: (eventKey: s-4149, ts: 1371359730217)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ]
+    },
+    {
+      "trial": 3,
+      "filterResultsMs": 728.2000000476837,
+      "inpReportedMs": 24.0,
+      "clsReported": 0.03,
+      "measurement": {
+        "before": {
+          "value": "",
+          "rows": [
+            {
+              "name": "Python two steps",
+              "href": "#/runs/details/mock-run-0"
+            },
+            {
+              "name": "Loops and conditions",
+              "href": "#/runs/details/mock-run-1"
+            },
+            {
+              "name": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            },
+            {
+              "name": "Various IO types",
+              "href": "#/runs/details/mock-run-3"
+            }
+          ]
+        },
+        "after": {
+          "value": "xgboost",
+          "rows": [
+            {
+              "name": "v2-xgboost-ilbo",
+              "href": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b"
+            }
+          ]
+        },
+        "measures": [
+          {
+            "name": "filter-results",
+            "entryType": "measure",
+            "startTime": 26057.700000047684,
+            "duration": 728.2000000476837,
+            "navigationId": 7675
+          }
+        ],
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200,
+            "transferSize": 573,
+            "encodedBodySize": 273,
+            "decodedBodySize": 273
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 160440,
+            "encodedBodySize": 160140,
+            "decodedBodySize": 160140
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 910,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522name%2522%252C%2522operation%2522%253A%2522IS_SUBSTRING%2522%252C%2522string_value%2522%253A%2522xgboost%2522%257D%252C%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200,
+            "transferSize": 53809,
+            "encodedBodySize": 53509,
+            "decodedBodySize": 53509
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200,
+            "transferSize": 300,
+            "encodedBodySize": 610,
+            "decodedBodySize": 610
+          }
+        ]
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1371404150964\u00b5s, max: 1371419079240\u00b5s}\nMetrics (lab / observed):\n  - INP: 24 ms, event: (eventKey: s-7000, ts: 1371411236137)\n  - CLS: 0.03, event: (eventKey: s-4507, ts: 1371412016430)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "trial": 1,
+      "runOpenMs": 589.8999998569489,
+      "taskOpenMs": 83.90000009536743,
+      "inpReportedByInsightMs": [20.0, 96.0],
+      "maximumInpReportedMs": 96.0,
+      "clsReportedByInsight": [0.0, 0.0],
+      "runMeasurement": {
+        "kind": "run-open",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "measure": [
+          {
+            "name": "run-open",
+            "entryType": "measure",
+            "startTime": 31121.799999952316,
+            "duration": 589.8999998569489,
+            "navigationId": 1253
+          }
+        ],
+        "taskNodePresent": true,
+        "taskDetailsVisible": false,
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200
+          }
+        ]
+      },
+      "taskMeasurement": {
+        "kind": "task-open",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "measure": [
+          {
+            "name": "task-open",
+            "entryType": "measure",
+            "startTime": 67083.89999985695,
+            "duration": 83.90000009536743,
+            "navigationId": 1253
+          }
+        ],
+        "taskNodePresent": true,
+        "taskDetailsVisible": true,
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200
+          },
+          {
+            "url": "/artifacts/get?source=s3&peek=256&bucket=mlpipeline&key=private-artifacts%2Fkubeflow-user-example-com%2Fmock-run%2Fmock-dataset&keyEncoding=storage",
+            "status": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1371475460270\u00b5s, max: 1371483948394\u00b5s}\nMetrics (lab / observed):\n  - INP: 20 ms, event: (eventKey: s-14477, ts: 1371483948250)\n  - CLS: 0.00\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX",
+        "## insight set id: NAVIGATION_1\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371483948395\u00b5s, max: 1371530032369\u00b5s}\nMetrics (lab / observed):\n  - LCP: 598 ms, event: (eventKey: r-6628, ts: 1371484546167), nodeId: 431\n  - INP: 96 ms, event: (eventKey: s-15828, ts: 1371519912853)\n  - CLS: 0.00, event: (eventKey: s-8264, ts: 1371484725254)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ]
+    },
+    {
+      "trial": 2,
+      "runOpenMs": 573.7999999523163,
+      "taskOpenMs": 79,
+      "inpReportedByInsightMs": [20.0, 90.0],
+      "maximumInpReportedMs": 90.0,
+      "clsReportedByInsight": [0.0, 0.0],
+      "runMeasurement": {
+        "kind": "run-open",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "measure": [
+          {
+            "name": "run-open",
+            "entryType": "measure",
+            "startTime": 32146.700000047684,
+            "duration": 573.7999999523163,
+            "navigationId": 7865
+          }
+        ],
+        "taskNodePresent": true,
+        "taskDetailsVisible": false,
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200
+          }
+        ]
+      },
+      "taskMeasurement": {
+        "kind": "task-open",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "measure": [
+          {
+            "name": "task-open",
+            "entryType": "measure",
+            "startTime": 53176.700000047684,
+            "duration": 79,
+            "navigationId": 7865
+          }
+        ],
+        "taskNodePresent": true,
+        "taskDetailsVisible": true,
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200
+          },
+          {
+            "url": "/artifacts/get?source=s3&peek=256&bucket=mlpipeline&key=private-artifacts%2Fkubeflow-user-example-com%2Fmock-run%2Fmock-dataset&keyEncoding=storage",
+            "status": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1371604453805\u00b5s, max: 1371613385401\u00b5s}\nMetrics (lab / observed):\n  - INP: 20 ms, event: (eventKey: s-12525, ts: 1371613385322)\n  - CLS: 0.00\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX",
+        "## insight set id: NAVIGATION_1\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371613385402\u00b5s, max: 1371645491861\u00b5s}\nMetrics (lab / observed):\n  - LCP: 579 ms, event: (eventKey: r-5677, ts: 1371613964900), nodeId: 431\n  - INP: 90 ms, event: (eventKey: s-13858, ts: 1371634417093)\n  - CLS: 0.00, event: (eventKey: s-6627, ts: 1371614139964)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ]
+    },
+    {
+      "trial": 3,
+      "runOpenMs": 571.5,
+      "taskOpenMs": 79.29999995231628,
+      "inpReportedByInsightMs": [20.0, 93.0],
+      "maximumInpReportedMs": 93.0,
+      "clsReportedByInsight": [0.0, 0.0],
+      "runMeasurement": {
+        "kind": "run-open",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "measure": [
+          {
+            "name": "run-open",
+            "entryType": "measure",
+            "startTime": 35279.59999990463,
+            "duration": 571.5,
+            "navigationId": 5625
+          }
+        ],
+        "taskNodePresent": true,
+        "taskDetailsVisible": false,
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200
+          }
+        ]
+      },
+      "taskMeasurement": {
+        "kind": "task-open",
+        "hash": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "measure": [
+          {
+            "name": "task-open",
+            "entryType": "measure",
+            "startTime": 58412.799999952316,
+            "duration": 79.29999995231628,
+            "navigationId": 5625
+          }
+        ],
+        "taskNodePresent": true,
+        "taskDetailsVisible": true,
+        "api": [
+          {
+            "url": "/apis/v2beta1/healthz",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs?page_token=&page_size=10&sort_by=created_at%20desc&filter=%257B%2522predicates%2522%253A%255B%257B%2522key%2522%253A%2522storage_state%2522%252C%2522operation%2522%253A%2522NOT_EQUALS%2522%252C%2522string_value%2522%253A%2522ARCHIVED%2522%257D%255D%257D&skip_count=true",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+            "status": 200
+          },
+          {
+            "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+            "status": 200
+          },
+          {
+            "url": "/artifacts/get?source=s3&peek=256&bucket=mlpipeline&key=private-artifacts%2Fkubeflow-user-example-com%2Fmock-run%2Fmock-dataset&keyEncoding=storage",
+            "status": 200
+          }
+        ]
+      },
+      "devToolsSummaryExcerpts": [
+        "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1371684474927\u00b5s, max: 1371697863710\u00b5s}\nMetrics (lab / observed):\n  - INP: 20 ms, event: (eventKey: s-12578, ts: 1371697863617)\n  - CLS: 0.00\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX",
+        "## insight set id: NAVIGATION_1\n\nURL: /#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b\nBounds: {min: 1371697863711\u00b5s, max: 1371732653212\u00b5s}\nMetrics (lab / observed):\n  - LCP: 575 ms, event: (eventKey: r-5848, ts: 1371698439079), nodeId: 431\n  - INP: 93 ms, event: (eventKey: s-13895, ts: 1371720995992)\n  - CLS: 0.00, event: (eventKey: s-7285, ts: 1371698636293)\nMetrics (field / real users): n/a \u2013 no data for this page in CrUX"
+      ]
+    }
+  ]
+}
