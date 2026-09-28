@@ -41,7 +41,7 @@ dependencies = [
   "PyYAML>=5.3,<7",
   "requests==2.33.0",
   "requests-toolbelt>=0.8.0,<2",
-  "tabulate>=0.8.6,<1",
+  "tabulate>=0.10.0,<1",
   "urllib3==2.7.0",
 ]
 
