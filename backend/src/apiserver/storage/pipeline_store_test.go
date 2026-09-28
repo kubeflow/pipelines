@@ -621,6 +621,73 @@ func TestGetPipelineByNameAndNamespaceV1_NotFound(t *testing.T) {
 		"Failed to get pipeline by name and namespace")
 }
 
+func TestGetPipelineByNameAndNamespace_Isolation(t *testing.T) {
+	for _, apiVersion := range []string{"v1", "v2"} {
+		t.Run(apiVersion, func(t *testing.T) {
+			db, testDialect := NewFakeDBOrFatal()
+			defer db.Close()
+			store := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewUUIDGenerator(), testDialect)
+
+			seed := func(name, namespace string) (*model.Pipeline, *model.PipelineVersion) {
+				t.Helper()
+				pipeline, err := store.CreatePipeline(createPipeline(name, "", namespace))
+				require.NoError(t, err)
+				version, err := store.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v1", "", "", "", ""))
+				require.NoError(t, err)
+				return pipeline, version
+			}
+			// The fake clock advances on each creation, so the private pipeline and
+			// its version would win an unscoped lookup over the shared pipeline.
+			shared, sharedVersion := seed("Same-Name", "")
+			tenantA, tenantAVersion := seed("Same-Name", "tenant-a")
+			tenantB, tenantBVersion := seed("Same-Name", "tenant-b")
+			dash, dashVersion := seed("dash-name", model.NoNamespace)
+			seed("private-only", "tenant-a")
+
+			for _, tc := range []struct {
+				name         string
+				pipelineName string
+				namespace    string
+				wantPipeline *model.Pipeline
+				wantVersion  *model.PipelineVersion
+			}{
+				{name: "omitted namespace excludes private-only pipeline", pipelineName: "private-only"},
+				{name: "shared wins over newer private namesakes", pipelineName: "same-name", wantPipeline: shared, wantVersion: sharedVersion},
+				{name: "explicit tenant a", pipelineName: "same-name", namespace: "tenant-a", wantPipeline: tenantA, wantVersion: tenantAVersion},
+				{name: "explicit tenant b", pipelineName: "same-name", namespace: "tenant-b", wantPipeline: tenantB, wantVersion: tenantBVersion},
+				{name: "unknown namespace has no fallback", pipelineName: "same-name", namespace: "missing"},
+				{name: "explicit dash namespace", pipelineName: "dash-name", namespace: model.NoNamespace, wantPipeline: dash, wantVersion: dashVersion},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					var pipeline *model.Pipeline
+					var version *model.PipelineVersion
+					var err error
+					if apiVersion == "v1" {
+						pipeline, version, err = store.GetPipelineByNameAndNamespaceV1(tc.pipelineName, tc.namespace)
+					} else {
+						pipeline, err = store.GetPipelineByNameAndNamespace(tc.pipelineName, tc.namespace)
+					}
+					if tc.wantPipeline == nil {
+						require.Error(t, err)
+						assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "%v", err)
+						assert.Nil(t, pipeline)
+						assert.Nil(t, version)
+						return
+					}
+					require.NoError(t, err)
+					require.NotNil(t, pipeline)
+					assert.Equal(t, tc.wantPipeline.UUID, pipeline.UUID)
+					assert.Equal(t, tc.wantPipeline.Namespace, pipeline.Namespace)
+					if apiVersion == "v1" {
+						require.NotNil(t, version)
+						assert.Equal(t, tc.wantVersion.UUID, version.UUID)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestPipelineStore_CreatePipelineAndPipelineVersion(t *testing.T) {
 	tests := []struct {
 		name                string
