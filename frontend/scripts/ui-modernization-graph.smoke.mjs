@@ -658,9 +658,9 @@ if (process.env.KFP_SCALING_SAMPLES) {
         await page.getByRole('dialog').waitFor({ state: 'hidden' });
         sameGeometry(initial, await geometry(page, 201));
 
-        // Change zoom first so Fit View must perform a real viewport update.
+        // The large graph starts at minimum zoom; zoom in so Fit View must update it.
         const beforeZoom = await viewport(page);
-        await page.getByRole('button', { name: 'Zoom Out', exact: true }).click();
+        await page.getByRole('button', { name: 'Zoom In', exact: true }).click();
         await changedViewport(page, beforeZoom);
         await settledViewport(page);
         const beforeFit = await viewport(page);
