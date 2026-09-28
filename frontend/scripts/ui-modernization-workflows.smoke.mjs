@@ -192,6 +192,8 @@ async function withFixture(options, exercise) {
       assert.equal(url.origin, origin, 'requests must stay within the fixture origin');
       assert.ok(fixture.requests.length < 250, 'request count must remain bounded');
       fixture.requests.push({ method, path, query });
+      // WebKit routes native Blob workers; their imported HTTP assets remain fixture-bound.
+      if (url.protocol === 'blob:') return await route.continue();
       if (path === '/' || path.startsWith('/static/')) {
         const name = path === '/' ? 'index.html' : path.slice(1);
         let body = await readFile(new URL(name, build));

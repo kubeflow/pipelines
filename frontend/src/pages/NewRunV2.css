@@ -83,9 +83,8 @@
   gap: 16px;
 }
 .kfp-theme .kfp-new-run-mode {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  /* Native fieldset layout keeps WebKit radio bounds stable during pointer activation. */
+  display: block;
   padding: 0;
   margin: 8px 0 0;
   border: 0;

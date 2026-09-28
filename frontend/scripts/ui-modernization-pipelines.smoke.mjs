@@ -19,10 +19,10 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createServer } from 'node:http';
 import { before, after, test } from 'node:test';
 import { chromium, firefox, webkit } from 'playwright';
 
-const origin = 'http://kfp.test';
 const build = new URL('../build/', import.meta.url);
 const specialPipelineId = 'pipeline/01%fixture';
 const specialVersionId = 'version/01%fixture';
@@ -132,9 +132,79 @@ async function withFixture(options, exercise) {
     errors: [],
     requests: 0,
     workers: [],
+    origin: undefined,
   };
   for (const pipeline of fixture.pipelines)
     fixture.versionMap.set(pipeline.pipeline_id, versions(pipeline.pipeline_id));
+
+  // WebKit's request.postData() omits file bytes. Let native uploads reach this
+  // same-origin loopback server, then validate their bytes before mutating the fixture.
+  const uploadResponses = new Map();
+  let receivedUploads = 0;
+  const uploadServer = createServer(async (request, response) => {
+    const json = (value, status = 200) => {
+      response.writeHead(status, { 'content-type': 'application/json' });
+      response.end(JSON.stringify(value));
+    };
+    try {
+      assert.ok(++receivedUploads <= 2, 'fixture uploads must remain bounded');
+      assert.equal(request.method, 'POST');
+      const createResource = uploadResponses.get(request.url);
+      assert.ok(createResource, 'only the exact routed upload path and query may reach the server');
+      uploadResponses.delete(request.url);
+      const contentType = request.headers['content-type'] || '';
+      const boundary = contentType.match(/multipart\/form-data; boundary=(?:"([^"]+)"|([^;]+))/);
+      assert.ok(boundary, 'native upload must retain its multipart boundary');
+      const chunks = [];
+      let size = 0;
+      for await (const chunk of request) {
+        size += chunk.length;
+        assert.ok(size <= 1024 * 1024, 'fixture upload body must remain below 1 MiB');
+        chunks.push(chunk);
+      }
+      const body = Buffer.concat(chunks);
+      const marker = boundary[1] || boundary[2];
+      const start = Buffer.from(`--${marker}\r\n`);
+      const end = Buffer.from(`\r\n--${marker}--\r\n`);
+      assert.ok(body.subarray(0, start.length).equals(start));
+      assert.ok(body.subarray(-end.length).equals(end));
+      const headerEnd = body.indexOf('\r\n\r\n');
+      assert.ok(headerEnd > start.length);
+      const headers = body.subarray(start.length, headerEnd).toString();
+      assert.match(
+        headers,
+        /Content-Disposition: form-data; name="uploadfile"; filename="fixture\.yaml"/i,
+      );
+      assert.match(headers, /Content-Type: application\/yaml/i);
+      assert.deepEqual(
+        body.subarray(headerEnd + 4, -end.length),
+        Buffer.from(JSON.stringify(pipelineSpec)),
+        'the actual upload must contain the exact selected package bytes',
+      );
+      json(createResource());
+    } catch (error) {
+      fixture.errors.push(error.message);
+      json({ message: error.message }, 500);
+    }
+  });
+  await new Promise((resolve, reject) => {
+    uploadServer.once('error', reject);
+    uploadServer.listen(0, '127.0.0.1', resolve);
+  });
+  fixture.origin = `http://127.0.0.1:${uploadServer.address().port}`;
+
+  async function uploadResponse(route, createResource) {
+    const original = new URL(route.request().url());
+    assert.ok(
+      ['/apis/v2beta1/pipelines/upload', '/apis/v2beta1/pipelines/upload_version'].includes(
+        original.pathname,
+      ),
+    );
+    const key = `${original.pathname}${original.search}`;
+    assert.equal(uploadResponses.has(key), false, 'each upload may be routed only once');
+    uploadResponses.set(key, createResource);
+    await route.continue();
+  }
   page.on('pageerror', (error) => fixture.errors.push(error.message));
   await context.addInitScript(({ namespace }) => {
     localStorage.setItem('kfp.theme', 'light');
@@ -159,8 +229,10 @@ async function withFixture(options, exercise) {
     const json = (value, status = 200) =>
       route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(value) });
     try {
-      assert.equal(url.origin, origin, 'fixture must not contact an external service');
+      assert.equal(url.origin, fixture.origin, 'fixture must not contact an external service');
       assert.ok(++fixture.requests <= 250, 'requests must remain bounded');
+      // WebKit exposes native Blob workers to routing; their imported HTTP assets remain mocked.
+      if (url.protocol === 'blob:') return route.continue();
       if (path === '/' || path.startsWith('/static/')) {
         const name = path === '/' ? 'index.html' : path.slice(1);
         if (/worker-(yaml|json).*\.js$/.test(name)) fixture.workers.push(name);
@@ -205,36 +277,34 @@ async function withFixture(options, exercise) {
       ) {
         const upload = path.endsWith('/upload');
         const data = upload ? query : request.postDataJSON();
-        if (upload) {
-          assert.match(request.headers()['content-type'], /multipart\/form-data; boundary=/);
-          assert.match(request.postData(), /filename="fixture.yaml"/);
-          assert.match(request.postData(), /pipelineInfo/);
-        }
-        fixture.mutations.push({ kind: upload ? 'upload-pipeline' : 'create-pipeline', data });
-        const pipeline = {
-          ...data,
-          pipeline_id: 'created-pipeline',
-          created_at: '2026-09-27T12:00:00Z',
+        const createPipeline = () => {
+          fixture.mutations.push({ kind: upload ? 'upload-pipeline' : 'create-pipeline', data });
+          const pipeline = {
+            ...data,
+            pipeline_id: 'created-pipeline',
+            created_at: '2026-09-27T12:00:00Z',
+          };
+          fixture.pipelines.push(pipeline);
+          fixture.versionMap.set(
+            pipeline.pipeline_id,
+            upload ? versions(pipeline.pipeline_id).slice(0, 1) : [],
+          );
+          return pipeline;
         };
-        fixture.pipelines.push(pipeline);
-        fixture.versionMap.set(
-          pipeline.pipeline_id,
-          upload ? versions(pipeline.pipeline_id).slice(0, 1) : [],
-        );
-        return json(pipeline);
+        return upload ? await uploadResponse(route, createPipeline) : json(createPipeline());
       }
       if (path === '/apis/v2beta1/pipelines/upload_version' && method === 'POST') {
-        assert.match(request.headers()['content-type'], /multipart\/form-data; boundary=/);
-        assert.match(request.postData(), /filename="fixture.yaml"/);
-        const version = {
-          ...versions(query.pipelineid)[0],
-          name: query.name,
-          display_name: query.display_name || query.name,
-          pipeline_version_id: 'created-version',
-        };
-        fixture.mutations.push({ kind: 'upload-version', data: query });
-        fixture.versionMap.get(query.pipelineid).unshift(version);
-        return json(version);
+        return await uploadResponse(route, () => {
+          const version = {
+            ...versions(query.pipelineid)[0],
+            name: query.name,
+            display_name: query.display_name || query.name,
+            pipeline_version_id: 'created-version',
+          };
+          fixture.mutations.push({ kind: 'upload-version', data: query });
+          fixture.versionMap.get(query.pipelineid).unshift(version);
+          return version;
+        });
       }
       const versionList = path.match(/^\/apis\/v2beta1\/pipelines\/([^/]+)\/versions$/);
       if (versionList) {
@@ -282,6 +352,7 @@ async function withFixture(options, exercise) {
   });
   try {
     await exercise(page, fixture);
+    assert.equal(uploadResponses.size, 0, 'every routed upload must reach the native collector');
     assert.deepEqual(
       fixture.errors,
       [],
@@ -301,7 +372,11 @@ async function withFixture(options, exercise) {
     );
     throw error;
   } finally {
-    await context.close();
+    try {
+      await context.close();
+    } finally {
+      await new Promise((resolve) => uploadServer.close(resolve));
+    }
   }
 }
 
@@ -336,8 +411,8 @@ const card = (page, name) =>
   cards(page)
     .getByRole('listitem')
     .filter({ has: page.getByRole('link', { name, exact: true }) });
-async function openList(page) {
-  await page.goto(`${origin}/#/pipelines`);
+async function openList(page, fixture) {
+  await page.goto(`${fixture.origin}/#/pipelines`);
   await page.getByRole('link', { name: 'Pipeline 01', exact: true }).waitFor();
   await waitForCards(page, 10);
 }
@@ -351,7 +426,7 @@ async function waitForCards(page, count) {
 // The card controls intentionally keep all server-backed capabilities from CustomTable.
 test('pipeline cards retain filtering, sorting, paging, selection and lazy version expansion', async () => {
   await withFixture({}, async (page, fixture) => {
-    await openList(page);
+    await openList(page, fixture);
     await waitForCards(page, 10);
     await screenshot(page, 'pipelines-light');
     assert.equal(
@@ -418,7 +493,7 @@ test('pipeline cards retain filtering, sorting, paging, selection and lazy versi
 
 test('private/shared tabs and namespace changes preserve scoped pipeline lists', async () => {
   await withFixture({ namespace: 'team-a' }, async (page, fixture) => {
-    await openList(page);
+    await openList(page, fixture);
     assert.equal(fixture.lists.at(-1).namespace, 'team-a');
     await page.getByRole('tab', { name: 'Shared', exact: true }).click();
     await page.waitForURL('**/#/shared/pipelines');
@@ -441,7 +516,7 @@ test('private/shared tabs and namespace changes preserve scoped pipeline lists',
 
 test('pipeline details preserve encoded IDs, rendered IR, version switching and browser reload', async () => {
   await withFixture({}, async (page, fixture) => {
-    await page.goto(`${origin}/#${pipelinePath(specialPipelineId, specialVersionId)}`);
+    await page.goto(`${fixture.origin}/#${pipelinePath(specialPipelineId, specialVersionId)}`);
     await page.getByTestId('DagCanvas').waitFor();
     await page.locator('.react-flow__node').first().waitFor();
     await page.getByRole('button', { name: 'Show Summary', exact: true }).click();
@@ -505,7 +580,7 @@ for (const visibility of ['standalone', 'private', 'shared']) {
     await withFixture(
       { namespace: visibility === 'standalone' ? undefined : 'team-a' },
       async (page, fixture) => {
-        await page.goto(`${origin}/#/pipeline_versions/new`);
+        await page.goto(`${fixture.origin}/#/pipeline_versions/new`);
         await page
           .getByRole('textbox', { name: 'Pipeline Name', exact: true })
           .fill('browser-created');
@@ -546,7 +621,7 @@ for (const visibility of ['standalone', 'private', 'shared']) {
 test('file upload validates the package and preserves the existing pipeline/version relationship', async () => {
   await withFixture({}, async (page, fixture) => {
     await page.goto(
-      `${origin}/#/pipeline_versions/new?pipelineId=${encodeURIComponent(specialPipelineId)}`,
+      `${fixture.origin}/#/pipeline_versions/new?pipelineId=${encodeURIComponent(specialPipelineId)}`,
     );
     await page.getByRole('radio', { name: 'Upload a file', exact: true }).check();
     const input = page.locator('input[type="file"]');
@@ -587,7 +662,7 @@ test('file upload validates the package and preserves the existing pipeline/vers
 
 test('local file upload creates a private pipeline using its namespace and package body', async () => {
   await withFixture({ namespace: 'team-a' }, async (page, fixture) => {
-    await page.goto(`${origin}/#/pipeline_versions/new`);
+    await page.goto(`${fixture.origin}/#/pipeline_versions/new`);
     await page.getByRole('radio', { name: 'Private', exact: true }).check();
     await page.getByRole('radio', { name: 'Upload a file', exact: true }).check();
     await page.locator('input[type="file"]').setInputFiles({
