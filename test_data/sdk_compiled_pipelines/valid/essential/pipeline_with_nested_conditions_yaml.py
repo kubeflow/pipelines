@@ -19,7 +19,7 @@ from kfp import dsl
 @dsl.container_component
 def generate_random_number(low: int, high: int, output: dsl.OutputPath(int)):
     return dsl.ContainerSpec(
-        image='python:alpine3.9',
+        image='python:3.11',
         command=['sh', '-c'],
         args=[
             'mkdir -p "$(dirname $2)" && python -c "import random; print(random.randint($0, $1), end=\'\')" | tee $2',
@@ -31,7 +31,7 @@ def generate_random_number(low: int, high: int, output: dsl.OutputPath(int)):
 @dsl.container_component
 def flip_coin(output: dsl.OutputPath(str)):
     return dsl.ContainerSpec(
-        image='python:alpine3.9',
+        image='python:3.11',
         command=['sh', '-c'],
         args=[
             'mkdir -p "$(dirname $0)" && python -c "import random; print(\'heads\' if random.randint(0,1) == 0 else \'tails\', end=\'\')" | tee $0',
@@ -42,7 +42,7 @@ def flip_coin(output: dsl.OutputPath(str)):
 
 @dsl.container_component
 def print_op(msg: str):
-    return dsl.ContainerSpec(image='python:alpine3.9', command=['echo', msg])
+    return dsl.ContainerSpec(image='python:3.11', command=['echo', msg])
 
 
 @dsl.pipeline(
