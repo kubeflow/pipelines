@@ -56,6 +56,8 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 
 ## Common CI failures
 
+- Legacy v2 cache tests collect bounded workflow status/YAML, pod state/events, and init/main/wait container logs on failure before the next test or suite cleanup deletes runs. Collection is best-effort with a one-minute total budget, ten-second command deadlines, and bounded output; it does not replace the test failure or extend its polling deadline. The legacy API workflow retains `go-test-output.log` in its failure artifact, including these diagnostics.
+
 - Parallel API specs use a worker-prefixed UUID for resource names. Keep the full per-spec suffix in pipeline, experiment, filter, and tag names; wall-clock timestamps and truncated suffixes do not provide isolation between concurrent specs.
 - Distributed SDK tests retain pytest's default output capture. Do not add `-s` to `test/presubmit-tests-sdk.sh`: pytest-xdist does not forward uncaptured worker stdout, so failures lose the subprocess stderr that the local runner prints. The regression probe runs the actual presubmit command with a failing child and checks that its diagnostic is retained.
 

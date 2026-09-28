@@ -16,6 +16,7 @@ import (
 	apiServer "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 	"github.com/kubeflow/pipelines/backend/test/v2"
 
 	"github.com/golang/glog"
@@ -386,6 +387,23 @@ func (s *CacheTestSuite) preparePipeline() *pipeline_upload_model.V2beta1Pipelin
 	require.NoError(s.T(), err)
 
 	return pipelineVersion
+}
+
+func (s *CacheTestSuite) TearDownTest() {
+	if !*runIntegrationTests || !s.T().Failed() {
+		return
+	}
+	namespace := s.resourceNamespace
+	if namespace == "" {
+		namespace = s.namespace
+	}
+	if namespace == "" {
+		s.T().Log("Cannot collect cache failure diagnostics: test namespace is unset")
+		return
+	}
+	// SetupTest deletes all runs before each serial test. Snapshot its workflow
+	// pods now, before the next SetupTest or TearDownSuite removes the evidence.
+	s.T().Logf("Cache failure diagnostics:\n%s", testutil.CollectWorkflowDiagnostics(namespace))
 }
 
 func (s *CacheTestSuite) TearDownSuite() {
