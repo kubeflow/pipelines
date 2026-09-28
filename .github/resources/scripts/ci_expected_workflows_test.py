@@ -39,13 +39,18 @@ def verify(runs=None,
            files=None,
            changed_files=1,
            trigger=None,
-           fresh_after=None):
+           fresh_after=None,
+           workflow_paths=None,
+           registration_started_at=None,
+           now=0):
     if runs is None:
         runs = [good_run()]
     if files is None:
         files = [{'filename': 'frontend/package.json'}]
     if trigger is None:
         trigger = {'branches': ['master'], 'paths': ['frontend/**']}
+    if workflow_paths is None:
+        workflow_paths = ['.github/workflows/frontend.yml']
     fixture = {
         'runs': runs,
         'files': files,
@@ -68,16 +73,18 @@ def verify(runs=None,
             'version':
                 1,
             'workflows': [{
-                'path': '.github/workflows/frontend.yml',
+                'path': path,
                 'header_sha256': 'header',
                 'pull_request': trigger,
-            }]
+            } for path in workflow_paths]
         },
         'workflowFiles': [{
-            'path': '.github/workflows/frontend.yml',
+            'path': path,
             'header_sha256': 'header',
-        }],
+        } for path in workflow_paths],
         'freshAfter': fresh_after,
+        'registrationStartedAt': registration_started_at,
+        'now': now,
     }
     return node(f'''
 const fixture = {json.dumps(fixture)};
@@ -166,7 +173,78 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
     def test_missing_workflow_cannot_be_green(self):
         result = verify(runs=[])
         self.assertFalse(result['passed'])
+        self.assertEqual(result['state'], 'pending')
+        self.assertEqual(result['missing'], ['.github/workflows/frontend.yml'])
         self.assertIn('has not registered', result['reasons'][0])
+
+    def test_missing_workflow_registration_grace_expires(self):
+        for now, expected in [(15 * 60 * 1000 - 1, 'pending'),
+                              (15 * 60 * 1000, 'failure')]:
+            with self.subTest(now=now):
+                result = verify(
+                    runs=[],
+                    registration_started_at='1970-01-01T00:00:00Z',
+                    now=now)
+                self.assertEqual(result['state'], expected)
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['missing'],
+                                 ['.github/workflows/frontend.yml'])
+                if expected == 'failure':
+                    self.assertIn('after 15 minutes', result['reasons'][0])
+        result = verify(
+            registration_started_at='1970-01-01T00:00:00Z', now=15 * 60 * 1000)
+        self.assertEqual(result['state'], 'success')
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['missing'], [])
+
+    def test_invalid_registration_timestamps_fail_closed(self):
+        for timestamp in ['', 'invalid', 0, [], {}]:
+            with self.subTest(timestamp=timestamp):
+                self.assertIn('error',
+                              verify(registration_started_at=timestamp))
+        for now in [None, 'invalid']:
+            with self.subTest(now=now):
+                self.assertIn('error', verify(now=now))
+
+    def test_active_workflows_are_pending(self):
+        for status in [
+                'queued', 'requested', 'waiting', 'in_progress', 'pending'
+        ]:
+            with self.subTest(status=status):
+                result = verify(runs=[good_run(status=status, conclusion=None)])
+                self.assertEqual(result['state'], 'pending')
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['missing'], [])
+
+    def test_malformed_or_unsuccessful_runs_fail_closed(self):
+        for status, conclusion in [
+            ('completed', 'cancelled'), ('completed', 'failure'),
+            ('completed', 'timed_out'), ('completed', 'action_required'),
+            ('completed', 'stale'), ('completed', 'skipped'),
+            ('completed', 'neutral'), ('completed', None),
+            ('completed', 'unknown'), ('completed', ['success']),
+            ('in_progress', 'success'), ('unknown', None), (None, None)
+        ]:
+            with self.subTest(status=status, conclusion=conclusion):
+                result = verify(
+                    runs=[good_run(status=status, conclusion=conclusion)])
+                self.assertEqual(result['state'], 'failure')
+                self.assertFalse(result['passed'])
+
+    def test_failure_takes_precedence_over_pending_workflow(self):
+        paths = [
+            '.github/workflows/frontend.yml', '.github/workflows/backend.yml'
+        ]
+        result = verify(
+            workflow_paths=paths,
+            runs=[
+                good_run(status='in_progress', conclusion=None),
+                good_run(path=paths[1], conclusion='failure')
+            ])
+        self.assertEqual(result['state'], 'failure')
+        self.assertFalse(result['passed'])
+        self.assertIn('completed/failure', result['reasons'][0])
+        self.assertIn('in_progress', result['reasons'][1])
 
     def test_only_latest_execution_counts(self):
         for status, conclusion in [('queued', None), ('in_progress', None),
@@ -182,12 +260,14 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                 self.assertFalse(result['passed'])
         result = verify(runs=[good_run(conclusion='failure'), good_run(id=101)])
         self.assertTrue(result['passed'])
+        self.assertEqual(result['state'], 'success')
 
     def test_current_attempt_cannot_reuse_earlier_success(self):
         result = verify(runs=[
             good_run(run_attempt=2, status='in_progress', conclusion=None)
         ])
         self.assertFalse(result['passed'])
+        self.assertEqual(result['state'], 'pending')
         result = verify(runs=[
             good_run(id=101),
             good_run(
@@ -198,6 +278,7 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                 run_started_at='2026-09-07T14:00:00Z')
         ])
         self.assertFalse(result['passed'])
+        self.assertEqual(result['state'], 'failure')
 
     def test_retargeted_base_needs_new_execution_not_old_run_rerun(self):
         cutoff = '2026-09-07T13:00:00Z'
@@ -235,6 +316,35 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         }):
             with self.subTest(overrides=overrides):
                 self.assertFalse(verify(runs=[good_run(**overrides)])['passed'])
+
+    def test_active_workflow_cannot_hide_stale_base_evidence(self):
+        for options in [
+            {
+                'fresh_after': '2026-09-07T13:00:00Z'
+            },
+            {
+                'runs': [
+                    good_run(
+                        status='in_progress',
+                        conclusion=None,
+                        pull_requests=[{
+                            'number': 7,
+                            'base': {
+                                'ref': 'release'
+                            }
+                        }])
+                ]
+            },
+        ]:
+            with self.subTest(options=options):
+                result = verify(
+                    **{
+                        'runs':
+                            [good_run(status='in_progress', conclusion=None)],
+                        **options,
+                    })
+                self.assertEqual(result['state'], 'failure')
+                self.assertFalse(result['passed'])
 
     def test_renamed_source_still_requires_its_workflow(self):
         result = verify(files=[{
@@ -280,6 +390,7 @@ gate.verifyExpectedWorkflows({{github, owner: 'owner', repo: 'repo', ...inventor
     def test_no_expected_workflow_is_not_vacuous_success(self):
         result = verify(files=[{'filename': 'README.md'}])
         self.assertFalse(result['passed'])
+        self.assertEqual(result['state'], 'failure')
 
     def test_real_inventory_uses_current_frontend_coverage(self):
         result = node('''
