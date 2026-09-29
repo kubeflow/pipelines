@@ -71,8 +71,20 @@ before(async () => {
   const engine = { chromium, firefox, webkit }[engineName];
   assert.ok(engine, `Unsupported KFP_BROWSER: ${engineName}`);
   browser = await engine.launch({
-    channel: engineName === 'chromium' ? process.env.PLAYWRIGHT_CHANNEL || undefined : undefined,
+    ...(process.env.KFP_BROWSER_EXECUTABLE_PATH
+      ? { executablePath: process.env.KFP_BROWSER_EXECUTABLE_PATH }
+      : {
+          channel:
+            engineName === 'chromium' ? process.env.PLAYWRIGHT_CHANNEL || undefined : undefined,
+        }),
   });
+  if (process.env.KFP_EXPECTED_BROWSER_VERSION) {
+    assert.equal(
+      browser.version(),
+      process.env.KFP_EXPECTED_BROWSER_VERSION,
+      'Browser version must match KFP_EXPECTED_BROWSER_VERSION; select the intended browser binary',
+    );
+  }
 });
 after(async () => browser?.close());
 

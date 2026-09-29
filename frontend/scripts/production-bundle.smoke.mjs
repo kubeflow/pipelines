@@ -26,9 +26,21 @@ test('production bundle renders the pipeline upload control', { timeout: 30000 }
   const engine = { chromium, firefox, webkit }[engineName];
   assert.ok(engine, `Unsupported KFP_BROWSER: ${engineName}`);
   const browser = await engine.launch({
-    channel: engineName === 'chromium' ? process.env.PLAYWRIGHT_CHANNEL || undefined : undefined,
+    ...(process.env.KFP_BROWSER_EXECUTABLE_PATH
+      ? { executablePath: process.env.KFP_BROWSER_EXECUTABLE_PATH }
+      : {
+          channel:
+            engineName === 'chromium' ? process.env.PLAYWRIGHT_CHANNEL || undefined : undefined,
+        }),
   });
   try {
+    if (process.env.KFP_EXPECTED_BROWSER_VERSION) {
+      assert.equal(
+        browser.version(),
+        process.env.KFP_EXPECTED_BROWSER_VERSION,
+        'Browser version must match KFP_EXPECTED_BROWSER_VERSION; select the intended browser binary',
+      );
+    }
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
