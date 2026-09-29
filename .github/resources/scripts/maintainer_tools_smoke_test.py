@@ -58,7 +58,8 @@ class SnapshotTests(unittest.TestCase):
         return result.stdout.splitlines()
 
     def test_api_inventory_tracks_sdk_client_and_documentation(self) -> None:
-        """Changes to either relocated modules or retained docs affect hashes."""
+        """Changes to either relocated modules or retained docs affect
+        hashes."""
         directories = self.api_source_directories()
         self.assertIn('sdk/python/kfp/server_api', directories)
         self.assertIn('backend/api/v2beta1/python_http_client', directories)
