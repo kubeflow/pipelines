@@ -99,6 +99,18 @@ test(
       const runs = await (await fetch(`${origin}/apis/v2beta1/runs`)).json();
       assert.equal(runs.runs.length, 4);
       assert.ok(runs.runs.some((run) => run.run_id === 'e0115ac1-0479-4194-a22d-01e65e09a32b'));
+      const taskPath = `${origin}/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks`;
+      const taskList = await (await fetch(taskPath)).json();
+      for (const task of taskList.tasks) {
+        const detail = await fetch(`${taskPath}/${task.task_id}`);
+        assert.equal(detail.status, 200);
+        assert.deepEqual(await detail.json(), task, 'detail and list must share fixture identity');
+      }
+      assert.equal((await fetch(`${taskPath}/missing-task`)).status, 404);
+      assert.equal(
+        (await fetch(`${origin}/apis/v2beta1/runs/missing-run/tasks/mock-task-producer`)).status,
+        404,
+      );
       const artifacts = await (await fetch(`${origin}/apis/v2beta1/artifacts`)).json();
       assert.equal(artifacts.artifacts[0].artifact_id, 'mock-artifact-1');
       assert.equal(

@@ -434,12 +434,25 @@ try {
     await fillLabel('Pipeline Name', 'native-browser-draft');
     await fillLabel('Package Url', 'https://example.test/fixture.yaml');
     assert.equal(await valueLabel('Pipeline Name'), 'native-browser-draft');
+    assert.equal(await valueLabel('Package Url'), 'https://example.test/fixture.yaml');
+    // Import modes retain their drafts. Clear the URL before asserting that no package exists.
+    await fillLabel('Package Url', '');
+    await wait(
+      () =>
+        document.querySelector('#createNewPipelineOrVersionBtn')?.disabled &&
+        document
+          .querySelector('.kfp-pipeline-form-error')
+          ?.textContent.includes('Must specify either package url'),
+      'empty URL and file disable creation',
+    );
     await clickText('label', 'Upload a file');
     await wait(
       () =>
         !!document.querySelector('input[type="file"]') &&
-        !document.querySelector('input[type="file"]').disabled,
-      'file upload enabled',
+        !document.querySelector('input[type="file"]').disabled &&
+        document.querySelector('input[type="file"]').files.length === 0 &&
+        document.querySelector('#createNewPipelineOrVersionBtn')?.disabled,
+      'empty file upload enabled while creation remains disabled',
     );
     const create = await textElement('button', 'Create');
     assert.equal(
@@ -510,9 +523,9 @@ try {
     await wait(
       () =>
         !!document.querySelector('[aria-label="Lineage history"]') &&
-        !!document.querySelector('[aria-label^="Producer "]') &&
-        !!document.querySelector('[aria-label^="Consumer "]'),
-      'producer and consumer lineage',
+        !!document.querySelector('[aria-label="Producer Chicago taxi trips dataset"] a') &&
+        !!document.querySelector('[aria-label="Consumer Convert CSV to Apache Parquet"] a'),
+      'resolved producer and consumer lineage',
     );
     await screenshot('artifact-lineage-light');
     await theme('dark');

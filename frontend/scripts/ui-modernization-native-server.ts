@@ -50,6 +50,25 @@ const server = createServer(async (request, response) => {
       response.end(JSON.stringify({ fixture: 'native-fixed-data', mutations, missingAssets }));
       return;
     }
+    // The development fixture exposes task lists. Derive detail responses from that same
+    // source for lineage; missing run/task identities remain 404 rather than fabricated data.
+    const taskDetail = pathname.match(/^\/apis\/v2beta1\/runs\/([^/]+)\/tasks\/([^/]+)$/);
+    if (taskDetail) {
+      const list = await fetch(
+        `http://127.0.0.1:${port}/apis/v2beta1/runs/${taskDetail[1]}/tasks`,
+        {
+          signal: AbortSignal.timeout(5000),
+        },
+      );
+      assert.ok(list.ok, 'Native task-list fixture must be available');
+      const data = await list.json();
+      const task = data.tasks.find(
+        (candidate: { task_id: string }) => candidate.task_id === decodeURIComponent(taskDetail[2]),
+      );
+      response.writeHead(task ? 200 : 404, { 'content-type': 'application/json' });
+      response.end(JSON.stringify(task || { error: 'Native task not found' }));
+      return;
+    }
     if (/^\/(api|apis|apps|artifacts|hub|k8s|system)(?:\/|$)/.test(pathname)) {
       api(request, response);
       return;

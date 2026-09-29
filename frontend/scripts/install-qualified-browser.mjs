@@ -134,7 +134,8 @@ async function extractApp(browser, archive, directory) {
     command('pkgutil', ['--expand-full', archive, expanded]);
   } else if (browser.kind === 'zip') {
     await mkdir(expanded);
-    command('ditto', ['-x', '-k', archive, expanded]);
+    // Match the archive extraction used by Google's recommended Puppeteer installer.
+    command('unzip', ['-q', archive, '-d', expanded]);
   } else throw new Error(`Unsupported archive format: ${browser.kind}`);
   const apps = await findApps(expanded, browser.appName);
   if (apps.length !== 1) throw new Error(`Expected one ${browser.appName}, found ${apps.length}.`);
@@ -177,17 +178,23 @@ export async function installBrowser(id, env = process.env) {
   try {
     const archive = join(directory, `browser.${browser.kind}`);
     provenance.download = await download(browser.url, archive, browser.sha256);
+    if (browser.kind === 'zip') {
+      provenance.archiveSignatureEntries = command('unzip', ['-Z', '-1', archive])
+        .split('\n')
+        .filter((entry) => /(?:^|\/)(_CodeSignature|CodeResources)(?:\/|$)/.test(entry));
+    }
     const app = await extractApp(browser, archive, directory);
-    command('codesign', ['--verify', '--deep', '--strict', app]);
     const signature = command('codesign', ['--display', '--verbose=4', app]);
+    provenance.signature = signature;
     const version = command('/usr/libexec/PlistBuddy', [
       '-c',
       'Print :CFBundleShortVersionString',
       join(app, 'Contents', 'Info.plist'),
     ]).trim();
-    assertAppIdentity(browser, version, signature);
     provenance.actualVersion = version;
-    provenance.signature = signature;
+    // Keep signature diagnostics even when resource-seal verification fails.
+    command('codesign', ['--verify', '--deep', '--strict', app]);
+    assertAppIdentity(browser, version, signature);
     const binary = join(app, 'Contents', 'MacOS', browser.executable);
     let driver = '';
     if (browser.browser === 'firefox') {
