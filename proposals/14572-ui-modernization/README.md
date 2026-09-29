@@ -213,7 +213,7 @@ reachable content before release, and document other limitations.
 
 The [implementation policy and qualification checklist](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/browser-support.md)
 records remaining stable, Extended Stable, ESR and annual Safari/device checks.
-Policy acceptance does not close these tests, assistive-technology acceptance,
+Policy acceptance does not close these tests, automated accessibility acceptance,
 deployment qualification or rollback rehearsal. See also
 [Tailwind's technical browser requirements](https://tailwindcss.com/docs/compatibility)
 and [Firefox ESR transitions](https://support.mozilla.org/en-US/kb/firefox-esr-release-cycle).
@@ -311,7 +311,8 @@ version in `frontend/package.json`, and the documented server test prerequisites
 - Give screenshot routes content-ready selectors and inspect capture manifests.
   A loaded `#root` alone does not prove the intended page rendered.
 - Add Storybook states for the shared primitives and automated accessibility checks
-  for critical pages/overlays. Keep manual keyboard and screen-reader checks.
+  for critical pages/overlays. Automate keyboard/focus, accessible names and
+  live-region assertions; document untested screen-reader/speech-control limits.
 
 #### Unit and integration tests
 
@@ -392,10 +393,12 @@ comparison supplements functional E2E and is expected to differ during a redesig
 
 Critical flows must be operable by keyboard with visible focus, correct focus
 trapping/restoration, accessible names and validation, and usable zoom/reflow.
-Check contrast in both themes, screen-reader announcements, and reduced motion.
-Require no unresolved serious/critical automated accessibility findings on covered
-flows and no blocking manual keyboard/screen-reader defects. Primitive-library
-accessibility does not establish accessibility of the assembled application.
+Automate contrast in both themes, accessible names/live-region semantics, keyboard
+operation and reduced motion. Require no unresolved serious/critical automated
+accessibility findings on covered flows. Manual testing is not part of the delivery
+plan. Document untested screen-reader/speech-control behavior and device gaps;
+automated checks and primitive-library accessibility do not establish blanket
+WCAG conformance or accessibility of every assembled workflow.
 
 #### Performance and release evidence
 
@@ -432,8 +435,9 @@ same backend without data repair. Merging this KEP alone does not meet those cri
 - **Browser/CSS regressions:** qualify both themes and the declared stable,
   enterprise and annual Safari releases; keep exact-version evidence separate
   from compiler settings and historical engine checks.
-- **Accessibility regressions:** test composed workflows and focus behavior,
-  supplementing automated checks with manual checks.
+- **Accessibility regressions:** automate composed workflows, focus behavior,
+  semantics and accessibility audits; retain untested assistive-technology limits
+  explicitly without a blanket conformance claim.
 - **Expensive or misleading summaries:** document scope and query bounds, and omit
   unsupported statistics rather than scan all records or mislabel a page sample.
 - **Downstream forks:** document replaced component/style extension points;
@@ -493,6 +497,13 @@ requires ongoing stable, enterprise-channel and Safari/device qualification.
   All runs use macOS and unchanged measured application assets. These results
   do not complete Firefox workflow parity, remaining enterprise builds,
   Safari/mobile, other operating systems or the broader release gates.
+
+- 2026-09-29: Qualification proceeds through automated testing only. Expand the
+  production CI suite across Chromium/Firefox/WebKit and Linux/Windows/macOS;
+  require per-lane identity, bundle hashes and retained failure evidence. Native
+  Safari/device automation remains separate from Playwright WebKit coverage.
+  Track investigation of BrowserStack open-source eligibility and exact automated
+  version/device coverage for future gaps; no account or service is assumed.
 
 ## References
 
