@@ -487,6 +487,13 @@ requires ongoing stable, enterprise-channel and Safari/device qualification.
   historical results are unchanged. Exact supported-browser/device qualification
   remains open before cutover.
 
+- 2026-09-28: The [supported-browser checkpoint](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/ui-modernization/supported-browser-qualification.md)
+  records 47/47 production cases each on actual Chrome 154 and Edge 154/153,
+  plus seven native smoke checks each on Firefox 156/155 and ESR 153/140.
+  All runs use macOS and unchanged measured application assets. These results
+  do not complete Firefox workflow parity, remaining enterprise builds,
+  Safari/mobile, other operating systems or the broader release gates.
+
 ## References
 
 - [Design handoff and prototype instructions](design/README.md)
