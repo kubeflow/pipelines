@@ -13,8 +13,11 @@ import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
 import {
+  clickNativeSafariLink,
+  nativeSafariLinkSelector,
   prepareNativeSafariTap,
   safariKeyboardDoneSelector,
+  safariStartPageCloseSelector,
 } from './ui-modernization-native-safari.mjs';
 import { JSDOM } from 'jsdom';
 import { join } from 'node:path';
@@ -193,6 +196,7 @@ test('WebDriver transport honors command deadlines for delayed headers and bodie
 
 function safariPreparationFixture({
   tip = false,
+  startPageTip = false,
   closeCount = 1,
   keyboard = false,
   toolbarDoneCount = 0,
@@ -215,14 +219,20 @@ function safariPreparationFixture({
       return Array.from({ length: toolbarDoneCount }, (_, i) => element(`done-${i}`));
     if (path.endsWith('/elements') && body.using === 'xpath')
       return Array.from({ length: closeCount }, (_, i) => element(`close-${i}`));
-    if (path.endsWith('/elements')) return tip ? [element('tip')] : [];
+    if (path.endsWith('/elements')) {
+      const visible = body.value.includes('onboardingButton-CustomizeStartPage')
+        ? startPageTip
+        : tip;
+      return visible ? [element('tip')] : [];
+    }
     if (path.endsWith('/element/done-0/click')) {
       keyboard = false;
       return null;
     }
     if (path.endsWith('/click')) {
       assert.match(path, /element\/close-0\/click$/);
-      tip = false;
+      if (tip) tip = false;
+      else startPageTip = false;
       return null;
     }
     if (body?.script === 'mobile: isKeyboardShown') return keyboard;
@@ -261,7 +271,7 @@ test('native Safari preparation scopes dismissal to the known tip and hides the 
   const lookup = fixture.calls.find(({ body }) => body?.using === 'xpath');
   assert.match(lookup.body.value, /ancestor-or-self/);
   assert.equal(fixture.evidence[0].actions.length, 2);
-  assert.equal(fixture.snapshots[0].label, 'safari-tip');
+  assert.equal(fixture.snapshots[0].label, 'safari-bookmarks-tip');
   assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
 });
 
@@ -373,4 +383,144 @@ test('Safari Done selector matches captured native hierarchy and excludes page-o
   } finally {
     dom.window.close();
   }
+});
+
+test('native Safari dismisses the identified Start Page onboarding without tapping Customize', async () => {
+  const fixture = safariPreparationFixture({ startPageTip: true });
+  await fixture.run();
+  assert.equal(
+    fixture.calls.some(({ body }) => body?.value === safariStartPageCloseSelector),
+    true,
+  );
+  assert.deepEqual(fixture.evidence[0].actions, [
+    'dismissed Safari Start Page tip through native accessibility',
+  ]);
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('Start Page close selector matches captured native card and excludes unrelated close buttons', () => {
+  // Native onboarding card captured by hosted iPad qualification.
+  const card = `<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="56" y="120" width="707" height="181" index="1" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="85" y="145" width="301" height="131" index="0" traits="">
+<XCUIElementTypeImage type="XCUIElementTypeImage" name="SafariOnboardingCustomizeStartPage" enabled="true" visible="true" accessible="false" x="85" y="145" width="301" height="131" index="0" traits="Image" />
+</XCUIElementTypeOther>
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="397" y="140" width="301" height="141" index="1" traits="">
+<XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Start Page" name="Start Page" label="Start Page" enabled="true" visible="true" accessible="true" x="397" y="140" width="84" height="21" index="0" traits="StaticText" />
+<XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Customize your wallpaper and sections that appear when creating new tabs." name="Customize your wallpaper and sections that appear when creating new tabs." label="Customize your wallpaper and sections that appear when creating new tabs." enabled="true" visible="true" accessible="true" x="397" y="184" width="301" height="39" index="1" traits="StaticText" />
+<XCUIElementTypeButton type="XCUIElementTypeButton" name="onboardingButton-CustomizeStartPage" label="Customize Start Page" enabled="true" visible="true" accessible="true" x="397" y="246" width="197" height="35" index="2" traits="Button">
+<XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Customize Start Page" name="Customize Start Page" label="Customize Start Page" enabled="true" visible="true" accessible="false" x="409" y="253" width="173" height="21" index="0" traits="StaticText" />
+</XCUIElementTypeButton>
+</XCUIElementTypeOther>
+<XCUIElementTypeButton type="XCUIElementTypeButton" name="close" label="close" enabled="true" visible="true" accessible="true" x="723" y="136" width="24" height="23" index="2" traits="Button" />
+</XCUIElementTypeOther>`;
+  const dom = new JSDOM(
+    `<AppiumAUT><XCUIElementTypeApplication name="Safari">
+    ${card}
+    <XCUIElementTypeWebView>${card}</XCUIElementTypeWebView>
+    <XCUIElementTypeButton name="close" label="close" enabled="true" visible="true" />
+  </XCUIElementTypeApplication></AppiumAUT>`,
+    { contentType: 'text/xml' },
+  );
+  try {
+    const { document, XPathResult } = dom.window;
+    const matches = document.evaluate(
+      safariStartPageCloseSelector,
+      document,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null,
+    );
+    assert.equal(matches.snapshotLength, 1);
+    assert.equal(matches.snapshotItem(0).getAttribute('x'), '723');
+    assert.equal(matches.snapshotItem(0).getAttribute('y'), '136');
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('native Safari retains separate evidence for multiple onboarding tips', async () => {
+  const fixture = safariPreparationFixture({ tip: true, startPageTip: true });
+  await fixture.run();
+  assert.deepEqual(
+    fixture.snapshots.map(({ label }) => label),
+    ['safari-bookmarks-tip', 'safari-start-page-tip'],
+  );
+  assert.equal(fixture.evidence[0].actions.length, 2);
+});
+
+test('native link selector resolves captured Link without its identical StaticText or browser chrome', () => {
+  // Actual iPhone Safari subtree after the hosted Appium coordinate mis-tap.
+  const link = `<XCUIElementTypeLink type="XCUIElementTypeLink" name="v2-xgboost-ilbo" label="v2-xgboost-ilbo" enabled="true" visible="true" accessible="false" x="106" y="424" width="120" height="22" index="0" traits="Link">
+    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="v2-xgboost-ilbo" name="v2-xgboost-ilbo" label="v2-xgboost-ilbo" enabled="true" visible="true" accessible="true" x="106" y="424" width="120" height="22" index="0" traits="Link, StaticText" />
+  </XCUIElementTypeLink>`;
+  const dom = new JSDOM(
+    `<AppiumAUT><XCUIElementTypeApplication>${link}<XCUIElementTypeWebView>${link}
+    <XCUIElementTypeLink name="v2-xgboost-ilbo" visible="false" enabled="true" />
+    <XCUIElementTypeLink name="v2-xgboost-ilbo" visible="true" enabled="false" />
+    <XCUIElementTypeLink name="A &quot;quoted&quot; link's name" visible="true" enabled="true" />
+    </XCUIElementTypeWebView></XCUIElementTypeApplication></AppiumAUT>`,
+    { contentType: 'text/xml' },
+  );
+  try {
+    const { document, XPathResult } = dom.window;
+    for (const name of ['v2-xgboost-ilbo', 'A "quoted" link\'s name']) {
+      const matches = document.evaluate(
+        nativeSafariLinkSelector(name),
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null,
+      );
+      assert.equal(matches.snapshotLength, 1);
+      assert.equal(matches.snapshotItem(0).tagName, 'XCUIElementTypeLink');
+      assert.equal(matches.snapshotItem(0).getAttribute('name'), name);
+    }
+  } finally {
+    dom.window.close();
+  }
+});
+
+for (const count of [0, 1, 2]) {
+  test(`native link click requires one typed match and restores context (${count} matches)`, async () => {
+    const calls = [];
+    const evidence = [];
+    const command = async (method, path, body) => {
+      calls.push({ method, path, body });
+      if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_7';
+      if (path.endsWith('/elements'))
+        return Array.from({ length: count }, (_, i) => ({
+          'element-6066-11e4-a52e-4f735466cecf': `native-link-${i}`,
+        }));
+      return null;
+    };
+    const exercise = clickNativeSafariLink(command, 'fixture', 'v2-xgboost-ilbo', evidence);
+    if (count === 1) await exercise;
+    else await assert.rejects(exercise, /exactly one visible matching Link/);
+    assert.deepEqual(
+      calls.filter(({ path }) => path.endsWith('/click')).map(({ path }) => path),
+      count === 1 ? ['/session/fixture/element/native-link-0/click'] : [],
+    );
+    assert.deepEqual(calls.at(-1).body, { name: 'WEBVIEW_7' });
+    assert.equal(evidence[0].status, count === 1 ? 'passed' : 'failed');
+    assert.ok(!calls.some(({ path }) => path.endsWith('/execute/sync')));
+  });
+}
+
+test('native link failure retains the original error when web context restoration also fails', async () => {
+  const error = new Error('native touch rejected');
+  const evidence = [];
+  const command = async (method, path, body) => {
+    if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_7';
+    if (path.endsWith('/elements'))
+      return [{ 'element-6066-11e4-a52e-4f735466cecf': 'native-link' }];
+    if (path.endsWith('/click')) throw error;
+    if (body?.name === 'WEBVIEW_7') throw new Error('context unavailable');
+    return null;
+  };
+  await assert.rejects(
+    clickNativeSafariLink(command, 'fixture', 'v2-xgboost-ilbo', evidence),
+    (observed) => observed === error,
+  );
+  assert.equal(evidence[0].status, 'failed');
+  assert.match(evidence[0].restoreError, /context unavailable/);
 });

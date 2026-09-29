@@ -125,13 +125,21 @@ value reset. Prediction, autocorrection and IME behavior remain unqualified.
 
 Both mobile simulator lanes remain open. In this run, iPad completed simulator
 boot and driver installation but Appium became ready about five seconds after its
-60-second startup deadline. The follow-up limits a longer startup allowance to
-Appium; fixture and desktop Safari deadlines remain unchanged. iPhone dismissed
-Safari's onboarding tip, then exposed a keyboard-dismissal mismatch: the native
-Done control belongs to Safari's input-accessory toolbar, outside the keyboard
-Appium attempted to dismiss. The follow-up uses that identified native control
-and still requires the keyboard to close. The complete selected matrix is not
-yet qualified.
+60-second startup deadline. iPhone needed Safari's native form-toolbar Done
+control, outside the keyboard subtree searched by generic dismissal.
+
+The follow-up [run 36597138873](https://github.com/kubeflow/pipelines/actions/runs/36597138873)
+at `06ddaffdf2eb31a1bbe1dff163f14219df744765` repeated all ten desktop passes.
+iPhone's first attempt timed out during simulator inventory; its same-commit retry
+verified native Done dismissal, then exposed an Appium tap-coordinate defect under
+Safari input zoom. The driver found both the link and its text child, fell back to
+[coordinate conversion](https://github.com/appium/appium-xcuitest-driver/blob/v12.13.3/lib/commands/web-native-bridge.ts#L376),
+and dropped fitted zoom ratios, tapping the filter instead of the run link. The correction uses the uniquely identified native link and
+retains route/task assertions. iPad's first page command stalled while browser
+chrome showed a separate Start Page prompt and address keyboard. Native preparation
+now precedes initial page readiness and handles both observed prompts. These
+corrections still require hosted verification; failed or partial lanes are not
+counted as qualified.
 
 The earlier [run 36591191778](https://github.com/kubeflow/pipelines/actions/runs/36591191778)
 at `a1285d25be576afab18e65893ddecea989e5c1a2` established that both ARM simulators

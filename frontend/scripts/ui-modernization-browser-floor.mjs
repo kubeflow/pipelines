@@ -15,7 +15,10 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
-import { prepareNativeSafariTap } from './ui-modernization-native-safari.mjs';
+import {
+  clickNativeSafariLink,
+  prepareNativeSafariTap,
+} from './ui-modernization-native-safari.mjs';
 
 const driver = new URL(process.env.KFP_WEBDRIVER_URL || 'http://127.0.0.1:4444');
 const base = new URL(process.env.KFP_BROWSER_FLOOR_URL || 'http://127.0.0.1:4174/');
@@ -296,6 +299,8 @@ try {
   });
   if (!mobile)
     await command('POST', `/session/${session}/window/rect`, { width: 1440, height: 900 });
+  // Browser-owned onboarding and address editing can obstruct the first page query.
+  await prepareMobileTap();
   await command('POST', `/session/${session}/url`, { url: new URL('#/runs', base).href });
   await wait(
     () => document.querySelectorAll('[data-testid="run-name-link"]').length === 4,
@@ -386,7 +391,23 @@ try {
     return { initialNames: names, filteredName: 'v2-xgboost-ilbo' };
   });
   await check('Run Details graph and task inspection', async () => {
-    await click(`[data-testid="run-name-link"][data-run-id="${runId}"]`);
+    const runSelector = `[data-testid="run-name-link"][data-run-id="${runId}"]`;
+    if (mobile) {
+      await prepareMobileTap();
+      assert.equal(
+        await execute((selector) => document.querySelector(selector)?.textContent, runSelector),
+        'v2-xgboost-ilbo',
+      );
+      report.nativeSafariLinkClicks ??= [];
+      await clickNativeSafariLink(
+        command,
+        session,
+        'v2-xgboost-ilbo',
+        report.nativeSafariLinkClicks,
+      );
+    } else {
+      await click(runSelector);
+    }
     await wait(visibleNode, 'visible native task node', nodeSelector);
     const geometry = await execute((selector) => {
       const box = document.querySelector(selector).getBoundingClientRect();
