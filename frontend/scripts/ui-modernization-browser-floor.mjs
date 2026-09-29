@@ -210,9 +210,8 @@ async function fillLabel(label, text) {
     await command('POST', `/session/${session}/element/${element[elementKey]}/clear`, {});
   }
   if (text && browserName === 'safari' && !mobile) {
-    // Pace native key actions so Safari's controlled fields can commit each edit
-    // before the next character, instead of sending one bulk typing command;
-    // the caller still verifies the complete, exact value without correcting it.
+    // Pace individual native keyboard events; exact-value assertions below still
+    // verify the complete field content without correcting it.
     await command('POST', `/session/${session}/actions`, {
       actions: [
         {

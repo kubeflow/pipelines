@@ -4,10 +4,10 @@ Browser qualification runs in GitHub Actions. It requires no workstation browser
 installation, local Safari/Xcode setup, or manual test execution.
 
 The existing [Frontend Tests workflow](../../../.github/workflows/frontend.yml)
-passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36587751318)
+passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36594507403)
 across Chromium, Firefox and WebKit on Linux, Windows and macOS: 48 cases per lane,
-with no skipped cases. At PR head `fde6d1c8764b332f189153f1c49aceb78fdd56ea`
-(tested merge `a61199a83dd77f4db9946b1979fd1d8e71f19bda`), audited TAP/JUnit and
+with no skipped cases. At PR head `6bf2852e62d57cc080a30fe846bc870f1b3c54ac`
+(tested merge `c37456c9f2190a892ed42d8b864f313a7ca327de`), audited TAP/JUnit and
 workflow reports agree on source identity and identical hashes for all 22 shared
 build files. This is engine coverage, separate from exact-version qualification.
 The same hosted source passes 1,760 UI tests and 1,103 server tests, formatting,
@@ -104,33 +104,42 @@ they do not by themselves establish visual equivalence.
 
 ## Hosted results
 
-[Run 36587751193](https://github.com/kubeflow/pipelines/actions/runs/36587751193)
-verified all nine vendor/supplementary lanes at PR head
-`fde6d1c8764b332f189153f1c49aceb78fdd56ea`, tested merge
-`a61199a83dd77f4db9946b1979fd1d8e71f19bda`:
+[Run 36594507275](https://github.com/kubeflow/pipelines/actions/runs/36594507275)
+verified all nine vendor/supplementary lanes and desktop Safari at PR head
+`6bf2852e62d57cc080a30fe846bc870f1b3c54ac`, tested merge
+`c37456c9f2190a892ed42d8b864f313a7ca327de`:
 
 | Verified lanes                                      | Passing checks           |
 | --------------------------------------------------- | ------------------------ |
 | Actual Chrome stable and Edge stable/previous       | 144/144 production cases |
 | Supplementary Chrome for Testing current/previous   | 96/96 production cases   |
 | Firefox stable/previous and both supported ESR rows | 48/48 native checks      |
+| Desktop Safari with recorded CI text preferences   | 12/12 native checks      |
 
 The audit verified source identity, all 22 shared build-file hashes, exact browser
-and downloaded-distribution identity, 56 Firefox screenshot hashes, and both Edge
-post-suite identities and volume cleanup. These 288 passing checks qualify those
-nine rows only.
+and downloaded-distribution identity, 70 native screenshot hashes, and both Edge
+post-suite identities and volume cleanup. These 300 passing checks qualify those
+ten rows only. Desktop Safari retained exact experiment name and description
+values; its bounded input trace recorded no composition deletion or application
+value reset. Prediction, autocorrection and IME behavior remain unqualified.
 
-All three Apple lanes remain unqualified at that checkpoint. Desktop Safari lost
-characters during native experiment-form typing; iPad timed out enumerating
-simulators, and iPhone booted but timed out installing its automation driver.
-The follow-up [run 36591191778](https://github.com/kubeflow/pipelines/actions/runs/36591191778)
-at `a1285d25be576afab18e65893ddecea989e5c1a2` returned mobile lanes to ARM and
-retained bounded native input-event diagnostics. Both simulators booted, created
-Safari sessions and passed platform and Runs-filter checks, then failed native tap
-calibration while browser-owned chrome obscured the page. Desktop traces identified
-trusted native composition deletions after React had retained the typed text.
-Corrections target browser setup and interaction preparation; the complete
-selected matrix is not yet qualified.
+Both mobile simulator lanes remain open. In this run, iPad completed simulator
+boot and driver installation but Appium became ready about five seconds after its
+60-second startup deadline. The follow-up limits a longer startup allowance to
+Appium; fixture and desktop Safari deadlines remain unchanged. iPhone dismissed
+Safari's onboarding tip, then exposed a keyboard-dismissal mismatch: the native
+Done control belongs to Safari's input-accessory toolbar, outside the keyboard
+Appium attempted to dismiss. The follow-up uses that identified native control
+and still requires the keyboard to close. The complete selected matrix is not
+yet qualified.
+
+The earlier [run 36591191778](https://github.com/kubeflow/pipelines/actions/runs/36591191778)
+at `a1285d25be576afab18e65893ddecea989e5c1a2` established that both ARM simulators
+could boot and create Safari sessions. Native tap calibration then failed while
+browser-owned chrome obscured the page. Desktop traces identified trusted native
+composition deletions after React had retained typed text. Subsequent corrections
+targeted browser setup and interaction preparation without weakening application
+assertions.
 
 Earlier attempts retained evidence of vendor-version drift, native input timing
 and simulator startup failures. Exact-version checks caught Edge updating during

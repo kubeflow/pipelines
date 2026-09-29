@@ -12,7 +12,11 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
-import { prepareNativeSafariTap } from './ui-modernization-native-safari.mjs';
+import {
+  prepareNativeSafariTap,
+  safariKeyboardDoneSelector,
+} from './ui-modernization-native-safari.mjs';
+import { JSDOM } from 'jsdom';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -191,6 +195,7 @@ function safariPreparationFixture({
   tip = false,
   closeCount = 1,
   keyboard = false,
+  toolbarDoneCount = 0,
   dismissError,
   restoreError,
 } = {}) {
@@ -206,9 +211,15 @@ function safariPreparationFixture({
       return null;
     }
     if (path.endsWith('/source')) return '<native-source />';
+    if (path.endsWith('/elements') && body.value === safariKeyboardDoneSelector)
+      return Array.from({ length: toolbarDoneCount }, (_, i) => element(`done-${i}`));
     if (path.endsWith('/elements') && body.using === 'xpath')
       return Array.from({ length: closeCount }, (_, i) => element(`close-${i}`));
     if (path.endsWith('/elements')) return tip ? [element('tip')] : [];
+    if (path.endsWith('/element/done-0/click')) {
+      keyboard = false;
+      return null;
+    }
     if (path.endsWith('/click')) {
       assert.match(path, /element\/close-0\/click$/);
       tip = false;
@@ -276,4 +287,90 @@ test('native Safari keyboard failure restores web context and preserves the orig
   assert.equal(fixture.evidence[0].status, 'failed');
   assert.match(fixture.evidence[0].restoreError, /restore failed/);
   assert.equal(fixture.snapshots.at(-1).label, 'safari-preparation-failed');
+});
+
+test('native Safari uses its form-toolbar Done without calling keyboard-only dismissal', async () => {
+  const fixture = safariPreparationFixture({ keyboard: true, toolbarDoneCount: 1 });
+  await fixture.run();
+  assert.equal(
+    fixture.calls.some(({ path }) => path.endsWith('/element/done-0/click')),
+    true,
+  );
+  assert.equal(
+    fixture.calls.some(({ body }) => body?.script === 'mobile: hideKeyboard'),
+    false,
+  );
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('native Safari refuses ambiguous form-toolbar Done controls', async () => {
+  const fixture = safariPreparationFixture({ keyboard: true, toolbarDoneCount: 2 });
+  await assert.rejects(fixture.run(), /ambiguous Done controls/);
+  assert.equal(
+    fixture.calls.some(({ path }) => path.endsWith('/click')),
+    false,
+  );
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('Safari Done selector matches captured native hierarchy and excludes page-owned and unrelated Done buttons', () => {
+  // Native form accessory subtree captured by hosted iPhone qualification.
+  const toolbar = `<XCUIElementTypeToolbar type="XCUIElementTypeToolbar" name="Toolbar" label="Toolbar" enabled="true" visible="true" accessible="false" x="0" y="508" width="402" height="48" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="508" width="402" height="48" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="16" y="508" width="370" height="48" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="16" y="508" width="370" height="48" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="508" width="0" height="0" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="16" y="508" width="370" height="48" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="16" y="508" width="51" height="48" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="21" y="513" width="41" height="38" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="21" y="513" width="41" height="38" index="0" traits="">
+<XCUIElementTypeButton type="XCUIElementTypeButton" name="Previous" label="Previous" enabled="true" visible="true" accessible="true" x="21" y="513" width="41" height="38" index="0" traits="Button" />
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="70" y="508" width="51" height="48" index="1" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="75" y="513" width="41" height="38" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="75" y="513" width="41" height="38" index="0" traits="">
+<XCUIElementTypeButton type="XCUIElementTypeButton" name="Next" label="Next" enabled="true" visible="true" accessible="true" x="75" y="513" width="41" height="38" index="0" traits="Button" />
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="336" y="508" width="50" height="48" index="2" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="341" y="513" width="40" height="38" index="0" traits="">
+<XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="341" y="513" width="40" height="38" index="0" traits="">
+<XCUIElementTypeButton type="XCUIElementTypeButton" name="Done" label="Done" enabled="true" visible="true" accessible="true" x="341" y="513" width="40" height="38" index="0" traits="Button" />
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeOther>
+</XCUIElementTypeToolbar>`;
+  const dom = new JSDOM(
+    `<AppiumAUT><XCUIElementTypeApplication name="Safari">
+    ${toolbar}
+    <XCUIElementTypeWebView>${toolbar}</XCUIElementTypeWebView>
+    <XCUIElementTypeToolbar visible="true"><XCUIElementTypeButton name="Done" visible="true" enabled="true" /></XCUIElementTypeToolbar>
+    <XCUIElementTypeButton name="Done" visible="true" enabled="true" />
+  </XCUIElementTypeApplication></AppiumAUT>`,
+    { contentType: 'text/xml' },
+  );
+  try {
+    const { document, XPathResult } = dom.window;
+    const matches = document.evaluate(
+      safariKeyboardDoneSelector,
+      document,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null,
+    );
+    assert.equal(matches.snapshotLength, 1);
+    assert.equal(matches.snapshotItem(0).getAttribute('name'), 'Done');
+    assert.equal(matches.snapshotItem(0).getAttribute('x'), '341');
+    assert.equal(matches.snapshotItem(0).getAttribute('y'), '513');
+  } finally {
+    dom.window.close();
+  }
 });

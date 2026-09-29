@@ -13,6 +13,11 @@ const tipPredicate =
 const closeButton =
   'XCUIElementTypeButton[@visible="true" and (@name="Close" or @label="Close" or @name="Dismiss" or @label="Dismiss")]';
 
+export const safariKeyboardDoneSelector =
+  '//XCUIElementTypeToolbar[@visible="true" and not(ancestor::XCUIElementTypeWebView)]' +
+  '[.//XCUIElementTypeButton[@name="Previous"] and .//XCUIElementTypeButton[@name="Next"]]' +
+  '//XCUIElementTypeButton[@name="Done" and @visible="true" and @enabled="true"]';
+
 // Safari's first-launch tip and keyboard are outside the web context. They can
 // intercept Appium's native calibration taps even when the page DOM is ready.
 export async function prepareNativeSafariTap(command, session, evidence, snapshot) {
@@ -47,7 +52,19 @@ export async function prepareNativeSafariTap(command, session, evidence, snapsho
       entry.actions.push('dismissed Safari bookmarks/share/tabs tip through native accessibility');
     }
     if (await mobile('isKeyboardShown')) {
-      await mobile('hideKeyboard', { keys: ['Done', 'Hide keyboard'] });
+      // iPhone Safari exposes Done in its form accessory toolbar, outside the
+      // keyboard subtree searched by WDA's generic keyboard dismissal.
+      const doneButtons = await command('POST', `${path}/elements`, {
+        using: 'xpath',
+        value: safariKeyboardDoneSelector,
+      });
+      assert.ok(doneButtons.length <= 1, 'Safari form toolbar has ambiguous Done controls');
+      if (doneButtons.length) {
+        await command('POST', `${path}/element/${doneButtons[0][elementKey]}/click`, {});
+        entry.actions.push('used Safari native form-toolbar Done');
+      } else {
+        await mobile('hideKeyboard', { keys: ['Done', 'Hide keyboard'] });
+      }
       assert.equal(
         await mobile('isKeyboardShown'),
         false,

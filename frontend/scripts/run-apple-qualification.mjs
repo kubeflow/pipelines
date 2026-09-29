@@ -403,7 +403,8 @@ async function main() {
         [appium, '--address', '127.0.0.1', '--port', '4444', '--log-timestamp'],
         'appium',
       );
-      await ready('http://127.0.0.1:4444/status', driver);
+      // Loading XCUITest on a cold hosted runner can exceed the other services' startup budget.
+      await ready('http://127.0.0.1:4444/status', driver, 120_000);
       capabilities = {
         platformName: 'iOS',
         'appium:automationName': 'XCUITest',
