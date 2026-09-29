@@ -33,7 +33,7 @@ func TestGetCacheSecurityMode(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		env     map[string]string
-		want    string
+		want    cacheSecurityMode
 		invalid bool
 	}{
 		{name: "default", want: "enforce"},

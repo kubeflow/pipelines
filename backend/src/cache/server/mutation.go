@@ -163,7 +163,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	var cachedExecution *model.ExecutionCache
 	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(req.Namespace, executionHashKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
 	if errors.Is(err, storage.ErrExecutionCacheNotFound) {
-		if mode == "audit" {
+		if mode == cacheSecurityModeAudit {
 			legacyKey, keyErr := generateLegacyCacheKeyFromTemplate(template)
 			if keyErr != nil {
 				return nil, keyErr
@@ -179,6 +179,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	}
 	// Found cached execution, add cached output and cache_id and replace container images.
 	if cachedExecution != nil {
+		log.Printf("cache hit namespace=%q pod=%q cache_entry_id=%d", req.Namespace, pod.Name, cachedExecution.ID)
 
 		annotations[ArgoWorkflowOutputs] = getValueFromSerializedMap(cachedExecution.ExecutionOutput, ArgoWorkflowOutputs)
 		labels[CacheIDLabelKey] = strconv.FormatInt(cachedExecution.ID, 10)

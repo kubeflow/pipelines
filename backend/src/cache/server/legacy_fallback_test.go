@@ -64,6 +64,7 @@ func TestLegacyCacheFallbackAdmission(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		setting      string
+		unset        bool
 		namespace    string
 		podTTL       string
 		defaultTTL   string
@@ -72,7 +73,8 @@ func TestLegacyCacheFallbackAdmission(t *testing.T) {
 		wantHit      bool
 		wantRowCount int64
 	}{
-		{name: "unset by default", wantRowCount: 1},
+		{name: "unset by default", unset: true, wantRowCount: 1},
+		{name: "empty defaults to enforce", wantRowCount: 1},
 		{name: "explicitly disabled", setting: "enforce", wantRowCount: 1},
 		{name: "legacy hit", setting: "audit", wantHit: true, wantRowCount: 1},
 		{name: "another namespace excluded", setting: "audit", namespace: "other", wantRowCount: 1},
@@ -85,7 +87,7 @@ func TestLegacyCacheFallbackAdmission(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv(cacheSecurityModeEnv, tc.setting)
-			if tc.setting == "" {
+			if tc.unset {
 				require.NoError(t, os.Unsetenv(cacheSecurityModeEnv))
 			}
 			t.Setenv("DEFAULT_CACHE_STALENESS", tc.defaultTTL)
@@ -93,6 +95,8 @@ func TestLegacyCacheFallbackAdmission(t *testing.T) {
 			// The fallback setting must be independent of this existing boolean option.
 			t.Setenv("CACHE_NODE_RESTRICTIONS", "true")
 			m := legacyCacheManager(t)
+			store := &legacyLookupTrackingStore{ExecutionCacheStoreInterface: m.CacheStore()}
+			m.cacheStore = store
 			row := legacyCacheRow(t)
 			row.Namespace = tc.namespace
 			if tc.rowExpired {
@@ -104,6 +108,9 @@ func TestLegacyCacheFallbackAdmission(t *testing.T) {
 				p.Annotations[MaxCacheStalenessKey] = tc.podTTL
 			}
 			require.Equal(t, tc.wantHit, admitCachePod(t, p, m))
+			if tc.setting != "audit" {
+				require.Zero(t, store.legacyReads, "enforce must never query legacy cache entries")
+			}
 			if tc.wantHit {
 				require.Equal(t, getValueFromSerializedMap(row.ExecutionOutput, ArgoWorkflowOutputs), p.Annotations[ArgoWorkflowOutputs])
 				// A legacy hit is not promoted or given a fresh age by the watcher.
@@ -156,17 +163,20 @@ func TestLegacyCacheFallbackInvalidConfiguration(t *testing.T) {
 	require.Empty(t, patches)
 }
 
-type scopedLookupErrorStore struct {
+type legacyLookupTrackingStore struct {
 	storage.ExecutionCacheStoreInterface
 	lookupErr   error
 	legacyReads int
 }
 
-func (s *scopedLookupErrorStore) GetExecutionCache(string, string, int64, int64) (*model.ExecutionCache, error) {
-	return nil, s.lookupErr
+func (s *legacyLookupTrackingStore) GetExecutionCache(namespace, key string, staleness, maximumStaleness int64) (*model.ExecutionCache, error) {
+	if s.lookupErr != nil {
+		return nil, s.lookupErr
+	}
+	return s.ExecutionCacheStoreInterface.GetExecutionCache(namespace, key, staleness, maximumStaleness)
 }
 
-func (s *scopedLookupErrorStore) GetLegacyExecutionCache(key string, staleness, maximumStaleness int64) (*model.ExecutionCache, error) {
+func (s *legacyLookupTrackingStore) GetLegacyExecutionCache(key string, staleness, maximumStaleness int64) (*model.ExecutionCache, error) {
 	s.legacyReads++
 	return s.ExecutionCacheStoreInterface.GetLegacyExecutionCache(key, staleness, maximumStaleness)
 }
@@ -186,7 +196,7 @@ func TestLegacyCacheFallbackOnlyAfterCacheMiss(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			m := legacyCacheManager(t)
 			require.NoError(t, m.DB().Create(legacyCacheRow(t)).Error)
-			s := &scopedLookupErrorStore{ExecutionCacheStoreInterface: m.CacheStore(), lookupErr: tc.err}
+			s := &legacyLookupTrackingStore{ExecutionCacheStoreInterface: m.CacheStore(), lookupErr: tc.err}
 			m.cacheStore = s
 			require.Equal(t, tc.wantHit, admitCachePod(t, cachePod("tenant"), m))
 			if tc.wantHit {
@@ -221,4 +231,31 @@ func TestCacheAuditTransitionToEnforcement(t *testing.T) {
 	var rows []model.ExecutionCache
 	require.NoError(t, m.DB().Find(&rows).Error)
 	require.Equal(t, []model.ExecutionCache{*row}, rows)
+}
+
+func TestScopedCacheHitLogsWithoutOutputs(t *testing.T) {
+	for _, mode := range []string{"enforce", "audit"} {
+		t.Run(mode, func(t *testing.T) {
+			unsetCacheSecurityEnv(t)
+			t.Setenv(cacheSecurityModeEnv, mode)
+			m := legacyCacheManager(t)
+			pod := cachePod("tenant")
+			row := legacyCacheRow(t)
+			row.Namespace = pod.Namespace
+			key, err := generateCacheKeyFromTemplate(row.ExecutionTemplate, pod.Namespace)
+			require.NoError(t, err)
+			row.ExecutionCacheKey = key
+			require.NoError(t, m.DB().Create(row).Error)
+
+			var logs bytes.Buffer
+			original := log.Writer()
+			log.SetOutput(&logs)
+			t.Cleanup(func() { log.SetOutput(original) })
+			require.True(t, admitCachePod(t, pod, m))
+			require.Contains(t, logs.String(), fmt.Sprintf("cache hit namespace=%q pod=%q cache_entry_id=%d", pod.Namespace, pod.Name, row.ID))
+			require.NotContains(t, logs.String(), row.ExecutionOutput)
+			require.NotContains(t, logs.String(), "tenant-output")
+			require.NotContains(t, logs.String(), "ownership_unknown")
+		})
+	}
 }

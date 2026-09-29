@@ -23,12 +23,19 @@ import (
 
 const cacheSecurityModeEnv = "KFP_SECURITY_LEGACY_CACHE_MODE"
 
-func getCacheSecurityMode() (string, error) {
-	mode := os.Getenv(cacheSecurityModeEnv)
+type cacheSecurityMode string
+
+const (
+	cacheSecurityModeEnforce cacheSecurityMode = "enforce"
+	cacheSecurityModeAudit   cacheSecurityMode = "audit"
+)
+
+func getCacheSecurityMode() (cacheSecurityMode, error) {
+	mode := cacheSecurityMode(os.Getenv(cacheSecurityModeEnv))
 	switch mode {
 	case "":
-		mode = "enforce"
-	case "enforce", "audit":
+		mode = cacheSecurityModeEnforce
+	case cacheSecurityModeEnforce, cacheSecurityModeAudit:
 	default:
 		return "", fmt.Errorf("%s must be enforce or audit", cacheSecurityModeEnv)
 	}
@@ -41,7 +48,7 @@ func InitializeCacheSecurityMode() error {
 	if err != nil {
 		return err
 	}
-	if mode == "audit" {
+	if mode == cacheSecurityModeAudit {
 		log.Printf("WARNING: %s=audit permits reuse of legacy cache entries with unknown ownership, weakening namespace isolation; audit mode is planned for removal in 3.0.0 (https://github.com/kubeflow/pipelines/issues/14367)", cacheSecurityModeEnv)
 	}
 	return nil
