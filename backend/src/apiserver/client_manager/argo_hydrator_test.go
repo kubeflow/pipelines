@@ -92,6 +92,70 @@ func TestLoadArgoPersistConfig_MissingPersistenceKey(t *testing.T) {
 	assert.Nil(t, persist)
 }
 
+func TestLoadArgoPersistConfig_FromDataConfig(t *testing.T) {
+	t.Cleanup(viper.Reset)
+	viper.Reset()
+	viper.Set(common.PodNamespace, "kubeflow-pipelines")
+	viper.Set(common.ArgoWorkflowControllerConfigMap, "workflow-controller-configmap")
+	viper.AutomaticEnv()
+
+	kube := k8sfake.NewClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "workflow-controller-configmap",
+			Namespace: "kubeflow-pipelines",
+		},
+		Data: map[string]string{
+			"config": `persistence:
+  archive: true
+  nodeStatusOffLoad: true
+  clusterName: default
+  postgresql:
+    host: postgres.example.invalid
+    port: 5432
+    database: argo
+    tableName: argo_workflows
+    userNameSecret:
+      name: argo-postgres-config
+      key: username
+    passwordSecret:
+      name: argo-postgres-config
+      key: password
+`,
+		},
+	})
+
+	persist, namespace, err := loadArgoPersistConfig(context.Background(), kube)
+	require.NoError(t, err)
+	assert.Equal(t, "kubeflow-pipelines", namespace)
+	require.NotNil(t, persist)
+	assert.True(t, persist.NodeStatusOffload)
+	require.NotNil(t, persist.PostgreSQL)
+	assert.Equal(t, "argo_workflows", persist.PostgreSQL.TableName)
+}
+
+func TestLoadArgoPersistConfig_MalformedConfigWithExtraKeys(t *testing.T) {
+	t.Cleanup(viper.Reset)
+	viper.Reset()
+	viper.Set(common.PodNamespace, "kubeflow-pipelines")
+	viper.Set(common.ArgoWorkflowControllerConfigMap, "workflow-controller-configmap")
+	viper.AutomaticEnv()
+
+	kube := k8sfake.NewClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "workflow-controller-configmap",
+			Namespace: "kubeflow-pipelines",
+		},
+		Data: map[string]string{
+			"config":  "persistence: {}",
+			"extraKey": "value",
+		},
+	})
+
+	_, _, err := loadArgoPersistConfig(context.Background(), kube)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "must only have one item")
+}
+
 func TestLoadArgoPersistConfig_MissingConfigMap(t *testing.T) {
 	t.Cleanup(viper.Reset)
 	viper.Reset()
