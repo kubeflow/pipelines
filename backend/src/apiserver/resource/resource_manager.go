@@ -987,12 +987,17 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			continue
 		}
 
-		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
-		if err != nil {
-			return failedToReconcileSwfCrsError(err)
+		var newScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
+		if common.IsMultiUserMode() {
+			// Preserve API routing across restarts instead of restoring an embedded workflow.
+			newScheduledWorkflow, err = template.NewGenericScheduledWorkflow(jobs[i])
+		} else {
+			tmpl, _, templateErr := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
+			if templateErr != nil {
+				return failedToReconcileSwfCrsError(templateErr)
+			}
+			newScheduledWorkflow, err = tmpl.ScheduledWorkflow(jobs[i])
 		}
-
-		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
@@ -1833,8 +1838,9 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		if err != nil {
 			return nil, err
 		}
-		// Plugins execute per run, so omit the embedded workflow after validating it.
-		if r.pluginDispatcher.PluginsRegistered() {
+		// Multi-user authorization and plugins execute per run through the API.
+		// Retain the rendered workflow only for validation, not controller execution.
+		if common.IsMultiUserMode() || r.pluginDispatcher.PluginsRegistered() {
 			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to create a recurring run")

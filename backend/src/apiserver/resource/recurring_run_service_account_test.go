@@ -239,3 +239,61 @@ func TestAuthorizeStoredRunServiceAccount(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateJobPinnedWorkflowRouting(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		multiUser bool
+		plugins   bool
+	}{
+		{name: "multi-user", multiUser: true},
+		{name: "multi-user with plugins", multiUser: true, plugins: true},
+		{name: "single-user"},
+		{name: "single-user with plugins", plugins: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			configureRecurringRunAccountTest(t)
+			viper.Set(common.MultiUserMode, tc.multiUser)
+			store, _, experiment := initWithExperiment(t)
+			defer store.Close()
+			store.SubjectAccessReviewClientFake = &recurringRunAccountReview{allowedAccount: "override-runner"}
+			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+			if tc.plugins {
+				manager.pluginDispatcher = recurringRunPluginDispatcher{}
+			}
+			job, err := manager.CreateJob(multiUserContext(), &model.Job{
+				DisplayName: "pinned-schedule", Namespace: "ns1", ExperimentId: experiment.UUID,
+				Enabled: true, ServiceAccount: "override-runner",
+				PipelineSpec: model.PipelineSpec{
+					PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+					RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`, PipelineRoot: "schedule-root"},
+				},
+			})
+			require.NoError(t, err)
+			stored, err := manager.GetJob(job.UUID)
+			require.NoError(t, err)
+			require.Equal(t, job.PipelineSpec, stored.PipelineSpec)
+			require.Equal(t, "override-runner", stored.ServiceAccount)
+			swfClient := store.SwfClient().ScheduledWorkflow(job.Namespace)
+			swf, err := swfClient.Get(context.Background(), job.K8SName, metav1.GetOptions{})
+			require.NoError(t, err)
+			require.Equal(t, "override-runner", swf.Spec.ServiceAccount)
+			if tc.multiUser || tc.plugins {
+				require.Nil(t, swf.Spec.Workflow, "API-routed schedules must not embed a compiled workflow")
+			} else {
+				require.NotNil(t, swf.Spec.Workflow)
+				require.NotNil(t, swf.Spec.Workflow.Spec, "single-user schedules retain direct execution")
+			}
+			if tc.multiUser {
+				require.NoError(t, manager.ReconcileSwfCrs(context.Background()))
+				swf, err = swfClient.Get(context.Background(), job.K8SName, metav1.GetOptions{})
+				require.NoError(t, err)
+				require.Nil(t, swf.Spec.Workflow, "startup reconciliation must preserve API routing")
+				run := &model.Run{DisplayName: "scheduled-tick", RecurringRunId: job.UUID}
+				require.NoError(t, manager.PrepareRecurringRun(multiUserContext(), run))
+				require.Equal(t, stored.PipelineSpec, run.PipelineSpec)
+				require.Equal(t, stored.ServiceAccount, run.ServiceAccount)
+			}
+		})
+	}
+}

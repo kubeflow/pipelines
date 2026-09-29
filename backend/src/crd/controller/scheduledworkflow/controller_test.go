@@ -429,3 +429,23 @@ func TestMultiUserSubmissionRejectsMissingOrInvalidAPIScheduledTime(t *testing.T
 		})
 	}
 }
+
+func TestSubmitGenericScheduleWithoutMultiUserFlagUsesAPI(t *testing.T) {
+	executionClient := &fakeExecutionClient{}
+	runClient := &fakeRunClient{}
+	controller := &Controller{
+		workflowClient: client.NewWorkflowClient(executionClient, &fakeExecutionInformer{}),
+		runClient:      runClient,
+	}
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "api-schedule", Namespace: "ns1", UID: "schedule-uid"},
+		Spec:       swfapi.ScheduledWorkflowSpec{Enabled: true, ExperimentId: "experiment-id", ServiceAccount: "runner"},
+	})
+	submitted, _, scheduledEpoch, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
+	require.NoError(t, err)
+	require.True(t, submitted)
+	require.Equal(t, int64(100), scheduledEpoch)
+	require.Nil(t, executionClient.createdWorkflow)
+	require.NotNil(t, runClient.createRunRequest)
+	require.Equal(t, "schedule-uid", runClient.createRunRequest.Run.RecurringRunId)
+}

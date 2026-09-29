@@ -26,6 +26,15 @@ which pipeline, parameters, account, or plugin inputs the API executes. Controll
 reports update status only in multi-user mode. To change a recurring run's
 specification, recreate it through the API; use the API to enable or disable it.
 
+The API creates generic ScheduledWorkflows without embedded execution templates in
+multi-user mode, even when plugins are disabled. Startup reconciliation also
+preserves generic routing for schedules it processes; it does not convert every
+existing tenant CR. This routes unmodified API-created schedules through
+the API on older controllers. It is defense in depth, not a substitute for the
+upgraded multi-user controller: editable CR content must never select a direct
+execution path. The multi-user controller role no longer grants `workflows/create`;
+retain this restriction in custom manifests.
+
 The API also owns durable scheduling state, initialized when a recurring run is
 created through the API. It computes the actual scheduled time from the stored
 trigger and catch-up policy, ignoring the timestamp supplied by the controller,
@@ -53,7 +62,8 @@ Single-user controller behavior remains unchanged. In a custom multi-user
 installation, explicitly set `--multiUser=true`; authentication headers or bearer
 tokens alone do not enable this execution mode.
 Set the same `CRON_SCHEDULE_TIMEZONE` on the API server and controller; the supplied
-manifests use `pipeline-install-config.cronScheduleTimezone` for both.
+manifests use `pipeline-install-config.cronScheduleTimezone` for both. Both binaries
+embed Go timezone data, so non-UTC schedules do not depend on an OS tzdata package.
 
 ## Grant access to an approved custom account
 
@@ -120,9 +130,70 @@ Schedules created before service-account authorization, or whose inputs were
 previously changed through Kubernetes, must be reviewed and recreated through the
 API to establish authorized inputs. Multi-user schedules created only as Kubernetes
 CRs, without a corresponding API job, must also be recreated through the API.
-Existing schedules that predate API-owned scheduling state must be recreated as
-well; the API does not initialize trusted counters from an existing CR's status.
+**Every pre-existing multi-user schedule without API-owned scheduling state must
+be reviewed and recreated before its next execution.** It will otherwise stop
+submitting runs, including when the UI still shows it enabled. Audit mode does not
+bypass this requirement. Disabled schedules also require recreation before use.
+The API does not initialize trusted counters from an existing CR's status.
+
+An old `jobs` row is not sufficient evidence of authorized inputs: earlier
+controller reports could overwrite its parameters, trigger, catch-up policy and
+concurrency settings from the CR. Automatically seeding an index and timestamp
+would trust those settings without reviewing them. Preserve the original pipeline
+and parameters from an independently reviewed source when recreating a schedule;
+do not blindly copy its current CR or database row.
 Unresolvable namespaces or missing/replaced Kubernetes objects fail closed.
+
+### Inventory before completing the upgrade
+
+Each multi-user API replica logs `recurring_run_migration action=recreate` at
+startup for every job missing trusted scheduling state, including disabled jobs.
+The messages contain its ID, namespace, ScheduledWorkflow name and enabled state;
+they omit execution inputs. A final `affected_jobs` count summarizes the inventory.
+An `inventory_failed` error means the inventory is incomplete, not that no jobs
+need migration. Rerun the read-only inventory below after database recovery.
+
+Inspect the API startup logs and Kubernetes schedule identities:
+
+```bash
+kubectl -n kubeflow logs deployment/ml-pipeline --all-pods=true --all-containers=true --prefix | grep recurring_run_migration
+kubectl get scheduledworkflows.kubeflow.org --all-namespaces \
+  -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name,UID:.metadata.uid,ENABLED:.spec.enabled'
+```
+
+Use a read-only database connection after the upgraded API has created the
+`recurring_run_states` table. For MySQL:
+
+```sql
+SELECT j.`UUID`, j.`Namespace`, j.`Name`, j.`Enabled`
+FROM `jobs` AS j
+LEFT JOIN `recurring_run_states` AS s ON s.`JobUUID` = j.`UUID`
+WHERE s.`JobUUID` IS NULL
+ORDER BY j.`UUID`;
+```
+
+For PostgreSQL:
+
+```sql
+SELECT j."UUID", j."Namespace", j."Name", j."Enabled"
+FROM jobs AS j
+LEFT JOIN recurring_run_states AS s ON s."JobUUID" = j."UUID"
+WHERE s."JobUUID" IS NULL
+ORDER BY j."UUID";
+```
+
+Match database IDs to Kubernetes UIDs. A CR without a matching API job also
+requires recreation. The SQL result alone cannot inventory CR-only schedules.
+Before the first upgraded API startup, all existing jobs require review; the new
+state table does not exist yet.
+
+Disable the old schedule through the API, review its intended inputs and account,
+and recreate it through the API using native IR. Keep the replacement disabled
+until the old controller pods have stopped and existing executions have been
+accounted for. Disabling a schedule does not terminate its runs. Do not insert
+scheduling-state rows or reset counters directly in the database to bypass review.
+Repeat the inventory after recreation and remove obsolete disabled schedules
+through the API when their history is no longer needed.
 
 A follow-latest schedule intentionally executes future versions of its referenced
 pipeline. Trust publishers of that pipeline to supply code running under the
@@ -137,6 +208,40 @@ executions. Removing the controller's account-specific `use` grant, or removing
 the account from the allowlist, also prevents subsequent API submissions under
 that custom account. Already-created runs continue; terminate them separately if
 required. Retain the normal permission checks when troubleshooting a denied tick.
+
+## Recovery limits and follow-up validation
+
+The concurrency limit counts non-terminal API run records. A missing Workflow or
+an interrupted persistence report can leave a record consuming a slot. Archiving
+a run only changes its storage visibility; it does not prove that execution has
+stopped. Old or archived records therefore still count. Investigate the execution
+and persistence-agent health, and reconcile its lifecycle through supported run
+operations before restarting a blocked schedule. Never free capacity solely from
+an age cutoff or by hiding records. Automatic stale-record reconciliation remains
+a follow-up.
+
+A pending tick retains its original request key until its run is persisted. If
+that key changes before completion, the API rejects a new tick. The persistence
+agent can recover a Workflow that was already created, but interruption before
+creation can require operator intervention. Disable the schedule, establish
+whether the pending execution exists, and recover persistence or recreate the
+reviewed schedule after accounting for existing runs. Do not delete a pending
+claim or edit its counters: that can lose the identity needed for deduplication.
+Automatic resumption of the trusted pending claim is a follow-up.
+
+The Workflow identity checks support retry and response-loss recovery; they do
+not authenticate a creator against someone who can directly create or edit
+Workflows. A concurrent API request does not persist an existing Workflow as a
+new run; it waits for the creator or persistence agent. Editable creator or
+plugin-parent annotations would not establish trusted provenance. Restrict direct
+Workflow/Pod permissions and apply admission policy where that boundary is
+required. Stronger execution provenance is a separate follow-up.
+
+The unit concurrency tests use SQLite with a single connection. General MySQL and
+PostgreSQL integration success does not prove competing-claim locking. Dedicated
+multi-connection races on both production databases remain required follow-up
+validation, including identical and competing request keys and visibility of the
+preceding committed run when enforcing maximum concurrency.
 
 ## Scheduling regression test
 
