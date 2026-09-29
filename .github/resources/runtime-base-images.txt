@@ -1,6 +1,10 @@
 docker.io/alpine:3.23
 python:3.11
+docker.io/library/python:3.12@sha256:4d1caded1f729ae443eb803f26ffde7b61e696aeaef62f099abb6dd6b14257c7
+ghcr.io/containerd/busybox:1.36@sha256:7b3ccabffc97de872a30dfd234fd972a66d247c8cfc69b0550f276481852627c
+docker.io/jetbrainsinfra/jq:latest@sha256:bf917fad410a1f44759400299e0557513c7f1f51ca00e719c6607a81f2e5308d
 registry.access.redhat.com/ubi9/python-311:latest
+registry.access.redhat.com/ubi9/python-311:1-1779945715@sha256:a0bdb55576fc5b8d6704279307817828ef027e1065533ceba133fe9516003a6c
 docker.io/library/mysql:8.4
 quay.io/argoproj/workflow-controller:v3.7.18
 quay.io/argoproj/argoexec:v3.7.18

@@ -27,7 +27,7 @@ deploymentSpec:
           "Else": ["--arg2", "default value"]}}'
         command:
         - echo
-        image: ghcr.io/containerd/busybox
+        image: ghcr.io/containerd/busybox:1.36
 pipelineInfo:
   name: pipeline-with-if-placeholder-supply-none
 root:

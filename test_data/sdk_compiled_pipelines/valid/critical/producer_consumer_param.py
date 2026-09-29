@@ -24,7 +24,7 @@ def producer(input_text: str, output_value: dsl.OutputPath(str)):
         input_text: Represents an input parameter.
         output_value: Represents an output paramter."""
     return dsl.ContainerSpec(
-        image='registry.access.redhat.com/ubi9/python-311:latest',
+        image='registry.access.redhat.com/ubi9/python-311:1-1779945715',
         command=[
             'sh', '-c',
             'set -e -x\nmkdir -p "$(dirname "$1")"\necho "$0, this is an output parameter" > "$1"\n',
@@ -42,7 +42,7 @@ def consumer(input_value: str):
     Args:
         input_value: Represents an input parameter. It connects to an upstream output parameter."""
     return dsl.ContainerSpec(
-        image='registry.access.redhat.com/ubi9/python-311:latest',
+        image='registry.access.redhat.com/ubi9/python-311:1-1779945715',
         command=[
             'sh', '-c',
             'set -e -x\necho "Read from an input parameter: " && echo "$0"\n',
