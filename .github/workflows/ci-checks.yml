@@ -227,6 +227,7 @@ jobs:
           CI_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
           CI_PR_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
           CI_POLL_PASSED: ${{ steps.poll.outcome == 'success' }}
+          CI_POLL_SKIPPED: ${{ steps.poll.outcome == 'skipped' && steps.prepare.outcome == 'success' && steps.prepare.outputs.ready == 'false' }}
         with:
           script: |
             const {finalize} = require('./.github/resources/scripts/ci_passed.js');
@@ -234,7 +235,8 @@ jobs:
               number: process.env.CI_PR_NUMBER,
               head: process.env.CI_HEAD_SHA,
               before: process.env.CI_PR_SNAPSHOT,
-              pollPassed: process.env.CI_POLL_PASSED === 'true'});
+              pollPassed: process.env.CI_POLL_PASSED === 'true',
+              pollSkipped: process.env.CI_POLL_SKIPPED === 'true'});
 
   invalidate_queue_status:
     name: invalidate_queue_status

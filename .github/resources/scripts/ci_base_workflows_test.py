@@ -104,11 +104,11 @@ const github = {
   rest: {pulls: {listFiles: 'files'}, actions: {listWorkflowRunsForRepo: 'runs'}},
   paginate: async route => route === 'files' ? [{filename: 'manifests/ui.yaml'}] :
     fixture.response.repository.object.entries.filter(entry => !fixture.missing.includes(entry.name))
-      .map(entry => ({id: 1, path: '.github/workflows/' + entry.name,
+      .map((entry, index) => ({id: index + 1, run_attempt: 1, path: '.github/workflows/' + entry.name,
         event: 'pull_request', head_sha: pr.head.sha, head_branch: pr.head.ref,
         head_repository: pr.head.repo, status: 'completed',
         conclusion: fixture.skipped.includes(entry.name) ? 'skipped' : 'success',
-        created_at: '2026-09-26T00:00:00Z', pull_requests: []})),
+        created_at: '2026-09-26T00:00:00Z', run_started_at: '2026-09-26T00:01:00Z', pull_requests: []})),
 };
 (async () => {
   try {
