@@ -19,7 +19,7 @@ from kfp import dsl
 @dsl.container_component
 def hello_world_container():
     return dsl.ContainerSpec(
-        image='registry.access.redhat.com/ubi9/python-311:latest',
+        image='registry.access.redhat.com/ubi9/python-311:1-1779945715',
         command=['echo', 'hello world'],
         args=[],
     )

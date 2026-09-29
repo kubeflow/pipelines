@@ -99,10 +99,10 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	}
 	defer file.Close()
 
-	pipelineFile, err := ReadPipelineFile(header.Filename, file, common.MaxFileLength)
+	pipelineFile, err := ReadPipelineFileWithConfiguredLimits(header.Filename, file)
 	if err != nil {
 		glog.Errorf("Failed to read a pipeline spec file: %v", err)
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to read a pipeline spec file"))
+		s.writePipelineReadError(w, err, "Failed to read a pipeline spec file")
 		return
 	}
 
@@ -124,7 +124,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	err = s.canUploadVersionedPipeline(r, "", resourceAttributes)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline due to authorization error: %v", err)
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, pipelineUploadAuthorizationError(err, resourceAttributes.Namespace, s.resourceManager.IsEmptyNamespace(pipelineNamespace)))
 		return
 	}
 
@@ -233,10 +233,10 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 	}
 	defer file.Close()
 
-	pipelineFile, err := ReadPipelineFile(header.Filename, file, common.MaxFileLength)
+	pipelineFile, err := ReadPipelineFileWithConfiguredLimits(header.Filename, file)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Error reading pipeline spec file: %v", err)
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		s.writePipelineReadError(w, err, "Failed to create a pipeline version")
 		return
 	}
 	pipelineID := r.URL.Query().Get(PipelineKey)
@@ -281,7 +281,7 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 	err = s.canUploadVersionedPipeline(r, pipelineID, resourceAttributes)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Authorization error: %v", err)
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, pipelineUploadAuthorizationError(err, resourceAttributes.Namespace, s.resourceManager.IsEmptyNamespace(namespace)))
 		return
 	}
 
@@ -384,6 +384,33 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 		return util.Wrap(err, "Authorization Failure")
 	}
 	return nil
+}
+
+// Keep authentication and authorization infrastructure details in the server logs.
+// The upload endpoints retain their existing HTTP status while providing a safe
+// description of the permission or client configuration that needs attention.
+func pipelineUploadAuthorizationError(err error, namespace string, shared bool) error {
+	if util.IsUserErrorCodeMatch(err, codes.Unauthenticated) {
+		return errors.New("Pipeline upload authentication failed. Authenticate the client and retry; ask your administrator to verify the authentication configuration if the problem persists")
+	}
+	if !util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
+		return errors.New("Pipeline upload authorization could not be completed. Retry later; ask your administrator to check the API server authorization logs if the problem persists")
+	}
+	if shared {
+		return fmt.Errorf("shared pipeline upload denied: permission to create pipelines.pipelines.kubeflow.org in namespace %q is required. For a private pipeline, specify your user namespace when uploading a new pipeline; version uploads inherit their parent pipeline's namespace", namespace)
+	}
+	return fmt.Errorf("pipeline upload denied: permission to create pipelines.pipelines.kubeflow.org in namespace %q is required. For a new pipeline, check the upload namespace; version uploads inherit their parent pipeline's namespace. Ask your administrator for permission in the applicable namespace", namespace)
+}
+
+// writePipelineReadError exposes only known size-limit details, never arbitrary
+// parser, filesystem, or transport errors.
+func (s *PipelineUploadServer) writePipelineReadError(w http.ResponseWriter, err error, fallback string) {
+	var limitErr *common.SizeLimitError
+	if errors.As(err, &limitErr) {
+		s.writeErrorToResponse(w, http.StatusRequestEntityTooLarge, limitErr)
+		return
+	}
+	s.writeErrorToResponse(w, http.StatusBadRequest, errors.New(fallback))
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {

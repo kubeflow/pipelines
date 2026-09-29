@@ -125,7 +125,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bc31e48ec9321281766d03b29eca5637b85a3e5534ef078e632856d8b3e8ab72",
+      "header_sha256": "b0ff1829b2fa57f442e8788dd333f60b40bae8b8ba6cf9d5de609bcbad5c0ad4",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -184,6 +184,10 @@
           "backend/src/v2/Makefile",
           "release/kfpr/core.py",
           "test_data/sdk_compiled_pipelines/valid/**",
+          "backend/test/end2end/pipeline_e2e_test.go",
+          "backend/test/v2/resources/env-var.yaml",
+          "backend/test/v2/resources/hello-world-with-returning-component.yaml",
+          "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
@@ -349,7 +353,7 @@
     {
       "path": ".github/workflows/gh-workflow-approve.yml",
       "name": "Approve Workflow Runs",
-      "header_sha256": "faa44e7c1eb63cb382c7b666747887ae31f48dd68b8e91b79b41b63f89482eb6",
+      "header_sha256": "a33f86d80ac847b03bcbd24568aa42b65103d5dd193d8c5660dc524240f7704e",
       "pull_request": null
     },
     {
