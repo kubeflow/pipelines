@@ -76,7 +76,7 @@ func TestUpdateStatuses_FailsParentBeforeAllChildrenExist(t *testing.T) {
 	require.Equal(t, rootTask.GetTaskId(), api.updatedTasks[0].GetTaskId())
 }
 
-func TestUpdateStatuses_PropagatesFailedDespiteRunningSibling(t *testing.T) {
+func TestUpdateStatuses_DefersFailureWhileSiblingRuns(t *testing.T) {
 	pipelineSpec := &pipelinespec.PipelineSpec{
 		Root: &pipelinespec.ComponentSpec{
 			Implementation: &pipelinespec.ComponentSpec_Dag{
@@ -131,9 +131,7 @@ func TestUpdateStatuses_PropagatesFailedDespiteRunningSibling(t *testing.T) {
 				require.NoError(t, err)
 			}
 			require.NoError(t, updateStatuses(context.Background(), run, api, pipelineSpecStruct, failedChild))
-			require.Len(t, api.updatedTasks, 1)
-			require.Equal(t, rootTask.GetTaskId(), api.updatedTasks[0].GetTaskId())
-			require.Equal(t, gc.PipelineTask_FAILED, api.updatedTasks[0].GetState())
+			require.Empty(t, api.updatedTasks, "Expected no parent task update while a sibling is still RUNNING")
 		})
 	}
 }
