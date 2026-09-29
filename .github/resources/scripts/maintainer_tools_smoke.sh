@@ -9,7 +9,15 @@
 
 set -euo pipefail
 
-# Compare source bytes, not tarballs (whose packaging timestamps can differ).
+API_SOURCE_DIRECTORIES=(
+  backend/api/v2beta1/go_client
+  backend/api/v2beta1/go_http_client
+  backend/api/v2beta1/swagger
+  backend/api/v2beta1/python_http_client
+  sdk/python/kfp/server_api
+)
+
+# Compare source bytes, not archives (whose packaging metadata can differ).
 # Keep generator metadata in the comparison; exclude only build products.
 snapshot_sources() {
   python3 - "$@" <<'PY'
@@ -88,12 +96,11 @@ backend/api/hack/generator.sh
 backend/api/build_kfp_server_api_python_package.sh
 test -s backend/api/v2beta1/go_client/run.pb.go
 test -s backend/api/v2beta1/swagger/kfp_api_single_file.swagger.json
-test -s backend/api/v2beta1/python_http_client/kfp_server_api/api_client.py
-compgen -G 'backend/api/v2beta1/python_http_client/dist/*.tar.gz' >/dev/null
+test -s sdk/python/kfp/server_api/api_client.py
+python3 -m pip wheel --no-deps ./sdk/python --wheel-dir /tmp/kfp-smoke-dist
+compgen -G '/tmp/kfp-smoke-dist/kfp-*.whl' >/dev/null
 CONTAINER
-    snapshot_sources "$source_dir" \
-      backend/api/v2beta1/go_client backend/api/v2beta1/go_http_client \
-      backend/api/v2beta1/swagger backend/api/v2beta1/python_http_client \
+    snapshot_sources "$source_dir" "${API_SOURCE_DIRECTORIES[@]}" \
       > "$output/$name.sha256"
   done
   diff -u "$output/kfp-api-generator.sha256" "$output/kfp-release.sha256"
