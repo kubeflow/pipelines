@@ -118,4 +118,29 @@ describe('resolveS3ProviderInfo conformance (shared with the Go side)', () => {
       }
     });
   }
+
+  it('exempts the built-in MinIO fallback from SSRF guardrails', () => {
+    const builtinFallback: S3ProviderInfo = {
+      Provider: 'minio',
+      Params: {
+        fromEnv: 'false',
+        endpoint: 'seaweedfs.kubeflow:9000',
+        disableSSL: 'true',
+        secretName: 'mlpipeline-minio-artifact',
+        accessKeyKey: 'accesskey',
+        secretKeyKey: 'secretkey',
+      },
+    };
+
+    const decision = resolveS3ProviderInfo(
+      null, // no admin config
+      'minio',
+      'mlpipeline',
+      '',
+      builtinFallback,
+    );
+
+    expect(decision.allowed).toBe(true);
+    expect(decision.effectiveProviderInfo).toEqual(builtinFallback);
+  });
 });

@@ -157,16 +157,31 @@ export function resolveS3ProviderInfo(
     };
   }
 
-  const guardrailError = validateUnmanagedProviderQuery(queryProviderInfo);
-  if (guardrailError) {
-    return {
-      allowed: false,
-      rejectionReason: `artifact provider query for bucket "${bucketName}" rejected: ${guardrailError}`,
-      effectiveProviderInfo: null,
-    };
+  // Exempt the platform's own built-in MinIO fallback from SSRF guardrails
+  // designed for untrusted external URIs.
+  if (!isBuiltInMinioFallback(provider, queryProviderInfo)) {
+    const guardrailError = validateUnmanagedProviderQuery(queryProviderInfo);
+    if (guardrailError) {
+      return {
+        allowed: false,
+        rejectionReason: `artifact provider query for bucket "${bucketName}" rejected: ${guardrailError}`,
+        effectiveProviderInfo: null,
+      };
+    }
   }
 
   return { allowed: true, effectiveProviderInfo: queryProviderInfo };
+}
+
+function isBuiltInMinioFallback(provider: 's3' | 'minio', providerInfo: S3ProviderInfo): boolean {
+  return (
+    provider === 'minio' &&
+    providerInfo.Provider === 'minio' &&
+    providerInfo.Params.fromEnv === 'false' &&
+    providerInfo.Params.secretName === 'mlpipeline-minio-artifact' &&
+    providerInfo.Params.accessKeyKey === 'accesskey' &&
+    providerInfo.Params.secretKeyKey === 'secretkey'
+  );
 }
 
 /**

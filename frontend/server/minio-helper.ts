@@ -34,25 +34,24 @@ const LAUNCHER_CONFIGMAP_NAME = 'kfp-launcher';
  * absent -- that's a normal, unconfigured deployment.
  */
 async function loadBucketProviders(namespace: string): Promise<BucketProviders | null> {
-  let configMap;
-  let error;
-  try {
-    [configMap, error] = await getConfigMap(LAUNCHER_CONFIGMAP_NAME, namespace);
-  } catch (e) {
-    console.warn(
-      `Failed to load ${LAUNCHER_CONFIGMAP_NAME} config, treating as unconfigured: ${e}`,
+  const [configMap, error] = await getConfigMap(LAUNCHER_CONFIGMAP_NAME, namespace);
+
+  if (error) {
+    if (error.statusCode === 404) {
+      return null; // Legitimate unconfigured state
+    }
+    // Fail closed on transient/auth errors
+    throw new Error(
+      `Failed to load ${LAUNCHER_CONFIGMAP_NAME} provider policy: ${error.message}`,
     );
+  }
+
+  if (!configMap?.data?.providers) {
     return null;
   }
-  if (error || !configMap?.data?.providers) {
-    return null;
-  }
-  try {
-    return (jsYamlLoad(configMap.data.providers) as BucketProviders) ?? null;
-  } catch (e) {
-    console.warn(`Ignoring malformed ${LAUNCHER_CONFIGMAP_NAME} providers config: ${e}`);
-    return null;
-  }
+
+  // Let YAML parse errors propagate — malformed admin config must not be silently ignored.
+  return (jsYamlLoad(configMap.data.providers) as BucketProviders) ?? null;
 }
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {

@@ -1000,4 +1000,48 @@ s3:
 		assert.NoError(t, err)
 		assert.Len(t, buckets, 1)
 	})
+
+	t.Run("prefix-specific overrides keep clients distinct in the map", func(t *testing.T) {
+		providersYAML := `
+s3:
+  default:
+    endpoint: s3.company.example
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: shared-bucket
+      keyPrefix: team-a
+      endpoint: team-a-endpoint.example
+      credentials:
+        fromEnv: true
+    - bucketName: shared-bucket
+      keyPrefix: team-b
+      endpoint: team-b-endpoint.example
+      credentials:
+        fromEnv: true
+`
+		clientset := fake.NewClientset(&k8score.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "kfp-launcher", Namespace: "my-namespace"},
+			Data:       map[string]string{"providers": providersYAML},
+		})
+
+		artifacts := map[string]*pipelinespec.ArtifactList{
+			"input1": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{Uri: "s3://shared-bucket/team-a/model"},
+				},
+			},
+			"input2": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{Uri: "s3://shared-bucket/team-b/model"},
+				},
+			},
+		}
+
+		buckets, err := fetchNonDefaultBuckets(context.Background(), artifacts, defaultBucketConfig, "my-namespace", clientset)
+		assert.NoError(t, err)
+		assert.Len(t, buckets, 2)
+		assert.Contains(t, buckets, "s3://shared-bucket/team-a/model")
+		assert.Contains(t, buckets, "s3://shared-bucket/team-b/model")
+	})
 }

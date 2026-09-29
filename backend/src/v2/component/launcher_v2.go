@@ -982,11 +982,11 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 			if !strings.HasPrefix(inputArtifact.Uri, defaultBucketConfig.PrefixedBucket()) {
 				nonDefaultBucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(inputArtifact.Uri)
 				if err != nil {
-					return fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, inputArtifact.GetUri(), err)
+					return fmt.Errorf("failed to parse bucketConfig for input artifact %q with uri %q: %w", name, inputArtifact.GetUri(), err)
 				}
-				nonDefaultBucket, ok := nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()]
+				nonDefaultBucket, ok := nonDefaultBuckets[inputArtifact.GetUri()]
 				if !ok {
-					return fmt.Errorf("failed to get bucket when downloading input artifact %s with bucket key %s: %w", name, nonDefaultBucketConfig.PrefixedBucket(), err)
+					return fmt.Errorf("failed to get bucket when downloading input artifact %s with bucket key %s: %w", name, inputArtifact.GetUri(), err)
 				}
 				bucket = nonDefaultBucket
 				bucketConfig = nonDefaultBucketConfig
@@ -1050,7 +1050,7 @@ func fetchNonDefaultBuckets(
 		if !strings.HasPrefix(artifact.Uri, defaultBucketConfig.PrefixedBucket()) {
 			nonDefaultBucketConfig, parseErr := objectstore.ParseBucketConfigForArtifactURI(artifact.Uri)
 			if parseErr != nil {
-				return nonDefaultBuckets, fmt.Errorf("failed to parse bucketConfig for output artifact %q with uri %q: %w", name, artifact.GetUri(), parseErr)
+				return nonDefaultBuckets, fmt.Errorf("failed to parse bucketConfig for input artifact %q with uri %q: %w", name, artifact.GetUri(), parseErr)
 			}
 			// check if it's same bucket but under a different path, re-use the default bucket session in this case.
 			if (nonDefaultBucketConfig.Scheme == defaultBucketConfig.Scheme) && (nonDefaultBucketConfig.BucketName == defaultBucketConfig.BucketName) {
@@ -1064,9 +1064,9 @@ func fetchNonDefaultBuckets(
 			}
 			nonDefaultBucket, bucketErr := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
 			if bucketErr != nil {
-				return nonDefaultBuckets, fmt.Errorf("failed to open bucket for output artifact %q with uri %q: %w", name, artifact.GetUri(), bucketErr)
+				return nonDefaultBuckets, fmt.Errorf("failed to open bucket for input artifact %q with uri %q: %w", name, artifact.GetUri(), bucketErr)
 			}
-			nonDefaultBuckets[nonDefaultBucketConfig.PrefixedBucket()] = nonDefaultBucket
+			nonDefaultBuckets[artifact.GetUri()] = nonDefaultBucket
 		}
 
 	}

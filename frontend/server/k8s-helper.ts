@@ -299,6 +299,7 @@ export function getPodLogs(
 
 export interface K8sError {
   message: string;
+  statusCode?: number;
   additionalInfo?: any;
 }
 export async function getPod(
@@ -332,12 +333,13 @@ export async function getConfigMap(
       namespace: configMapNamespace,
     });
     return [configMap, undefined];
-  } catch (error) {
+  } catch (error: any) {
     let userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}`;
     if (!isAllowedResourceName(configMapName) || !isAllowedResourceName(configMapNamespace)) {
       userMessage = `Invalid resource name`;
     }
-    return [undefined, { message: userMessage }];
+    const statusCode = error?.statusCode || error?.response?.statusCode || error?.response?.status;
+    return [undefined, { message: userMessage, statusCode }];
   }
 }
 
