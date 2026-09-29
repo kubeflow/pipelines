@@ -42,9 +42,11 @@ func (c *ClientManager) initWorkflowHydrator(ctx context.Context) {
 		glog.Info("Argo node status offload is disabled; using no-op workflow hydrator")
 		return
 	}
-	if err := util.InitWorkflowHydrator(ctx, kube, persist, secretsNamespace); err != nil {
+	lazy := util.NewLazyOffloadHydrator(kube, persist, secretsNamespace)
+	util.SetWorkflowHydrator(lazy)
+	if err := util.TryInitLazyOffloadHydrator(lazy, ctx); err != nil {
 		secretNames := util.ArgoPersistSecretNames(persist)
-		glog.Warningf("Failed to initialize Argo offload hydrator: %v. Grant get on Secret(s) %v in namespace %s. Retry of offloaded workflows will fail.", err, secretNames, secretsNamespace)
+		glog.Warningf("Failed to initialize Argo offload hydrator: %v. Grant get on Secret(s) %v in namespace %s. Hydrator will retry on demand.", err, secretNames, secretsNamespace)
 		return
 	}
 	glog.Info("Argo offload hydrator initialized")
@@ -56,6 +58,16 @@ func loadArgoPersistConfig(ctx context.Context, kube kubernetes.Interface) (*arg
 	configMap, err := kube.CoreV1().ConfigMaps(namespace).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
 		return nil, "", err
+	}
+	if _, ok := configMap.Data["config"]; ok {
+		cfg, err := argoconfig.NewController(namespace, configMapName, kube).Parse(configMap)
+		if err != nil {
+			return nil, "", err
+		}
+		if cfg.Persistence == nil {
+			return nil, namespace, nil
+		}
+		return cfg.Persistence, namespace, nil
 	}
 	raw, ok := configMap.Data["persistence"]
 	if !ok || strings.TrimSpace(raw) == "" {
