@@ -84,7 +84,7 @@ export async function requestDebugPauseResume(
       custom_properties: {
         ...existingProperties,
         [CUSTOM_PROP_DEBUG_PAUSE_RESUME_REQUESTED]: 'true',
-      } as { [key: string]: object },
+      } as unknown as { [key: string]: object },
     },
   });
 }
