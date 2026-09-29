@@ -36,10 +36,11 @@ Starting with 3.0, their shared release tags must contain both supported Linux
 architectures. Optional `-amd64` and `-arm64` aliases do not replace the shared tag.
 
 Distribution-specific add-ons and external services retain their own platform
-requirements. The legacy GCP inverse-proxy image remains AMD64-only and is not
-part of the standard multi-architecture image set. This policy does not change
-that integration. Upgrade and migration requirements likewise follow the
-release's upgrade guidance, independently of architecture.
+requirements. Starting with 3.0, KFP no longer bundles or publishes the GCP
+inverse-proxy agent on either architecture; see the
+[removal and migration guidance](gcp-inverse-proxy-removal.md). Upgrade and
+migration requirements follow the release's upgrade guidance, independently of
+architecture.
 
 See the [installation guide](installation.md) for deployment options. The policy
 describes deployed KFP services and runtime images, not the architecture of
