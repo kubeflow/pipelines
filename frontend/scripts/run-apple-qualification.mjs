@@ -8,6 +8,7 @@
 // Apple automation is deliberately restricted to disposable GitHub-hosted runners.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
@@ -337,6 +338,26 @@ async function main() {
     report.error = error.stack;
     process.exitCode = 1;
     console.error(error);
+    if (simulator && !interrupted) {
+      try {
+        const path = 'failure-simulator.png';
+        await run(
+          '/usr/bin/xcrun',
+          ['simctl', 'io', simulator, 'screenshot', '--type=png', join(out, path)],
+          'failure-simulator-screenshot',
+          15_000,
+        );
+        const png = await readFile(join(out, path));
+        assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+        report.failureScreenshot = {
+          path,
+          sha256: createHash('sha256').update(png).digest('hex'),
+        };
+      } catch (diagnosticError) {
+        // Diagnostics must never replace the qualification failure or prevent cleanup.
+        report.diagnosticErrors = [diagnosticError.message];
+      }
+    }
   } finally {
     process.off('SIGTERM', interrupt);
     process.off('SIGINT', interrupt);
