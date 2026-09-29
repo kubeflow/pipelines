@@ -404,14 +404,19 @@ try {
       await wait(
         () =>
           !!document.querySelector('.ace_editor .ace_content') &&
-          document.querySelector('[data-testid="spec-ir"]')?.textContent.includes('pipelineInfo'),
+          document
+            .querySelector('[data-testid="spec-ir"]')
+            ?.textContent.includes('comp-preprocess'),
         'rendered pipeline spec',
       );
       const before = await execute(
         () => document.querySelector('.ace_editor .ace_content').textContent,
       );
       if (!mobile) {
-        await type('.ace_text-input', 'read-only-check');
+        // Ace's read-only textarea rejects Element Send Keys in some native drivers.
+        // Focus it, then exercise the same keyboard action a user would send.
+        await execute(() => document.querySelector('.ace_text-input').focus());
+        await key('x');
         assert.equal(
           await execute(() => document.querySelector('.ace_editor .ace_content').textContent),
           before,
