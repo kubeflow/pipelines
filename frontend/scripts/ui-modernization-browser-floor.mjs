@@ -499,12 +499,89 @@ try {
   });
   await check('New experiment draft preserves name and description', async () => {
     await navigate('#/experiments/new');
-    await fillLabel('Experiment name', 'Native browser experiment');
-    await fillLabel('Description', 'Unsubmitted automated qualification draft');
-    assert.equal(await valueLabel('Experiment name'), 'Native browser experiment');
-    assert.equal(await valueLabel('Description'), 'Unsubmitted automated qualification draft');
-    await screenshot('experiment-draft');
-    return { submitted: false };
+    // Observe native event delivery and controlled-field commits without changing
+    // values or input behavior. This distinguishes driver/OS edits from UI resets.
+    await execute(() => {
+      const ids = new Set(['experimentName', 'experimentDescription']);
+      const trace = { events: [], dropped: 0 };
+      window.floorInputTrace = trace;
+      const record = (event, phase) => {
+        const target = event.target;
+        if (!ids.has(target?.id)) return;
+        if (trace.events.length >= 800) {
+          trace.dropped++;
+          return;
+        }
+        trace.events.push({
+          time: performance.now(),
+          phase,
+          type: event.type,
+          id: target.id,
+          key: event.key ?? null,
+          data: event.data ?? null,
+          inputType: event.inputType ?? null,
+          composing: event.isComposing ?? null,
+          trusted: event.isTrusted,
+          prevented: event.defaultPrevented,
+          modifiers: {
+            meta: event.metaKey ?? false,
+            control: event.ctrlKey ?? false,
+            alt: event.altKey ?? false,
+            shift: event.shiftKey ?? false,
+          },
+          active: document.activeElement?.id || null,
+          value: target.value,
+          selectionStart: target.selectionStart,
+          selectionEnd: target.selectionEnd,
+        });
+      };
+      for (const type of [
+        'keydown',
+        'keyup',
+        'beforeinput',
+        'input',
+        'change',
+        'compositionstart',
+        'compositionupdate',
+        'compositionend',
+        'focus',
+        'blur',
+      ]) {
+        document.addEventListener(
+          type,
+          (event) => {
+            record(event, 'capture');
+            if (event.type === 'input') {
+              queueMicrotask(() => record(event, 'after event'));
+              requestAnimationFrame(() => record(event, 'next animation frame'));
+            }
+          },
+          true,
+        );
+      }
+    });
+    try {
+      await fillLabel('Experiment name', 'Native browser experiment');
+      report.experimentDraftValues = { nameBeforeBlur: await valueLabel('Experiment name') };
+      await fillLabel('Description', 'Unsubmitted automated qualification draft');
+      Object.assign(report.experimentDraftValues, {
+        nameAfterBlur: await valueLabel('Experiment name'),
+        descriptionBeforeBlur: await valueLabel('Description'),
+      });
+      assert.equal(report.experimentDraftValues.nameAfterBlur, 'Native browser experiment');
+      assert.equal(
+        report.experimentDraftValues.descriptionBeforeBlur,
+        'Unsubmitted automated qualification draft',
+      );
+      await screenshot('experiment-draft');
+      return { submitted: false };
+    } finally {
+      try {
+        report.inputDiagnostics = await execute(() => window.floorInputTrace);
+      } catch (error) {
+        report.inputDiagnosticError = String(error);
+      }
+    }
   });
   await check(
     'One-off and recurring creation retain pipeline and editable form state',
