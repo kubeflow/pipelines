@@ -13,12 +13,7 @@
 // limitations under the License.
 
 import express from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import mockApiMiddleware from './mock-api-middleware';
-
-export const HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS = {
-  Connection: 'keep-alive',
-};
 
 export function createMockApiApp(): express.Application {
   const app = express();
@@ -33,39 +28,6 @@ export function createMockApiApp(): express.Application {
     next();
   });
 
-  // To enable porting MLMD to mock backend, run following command:
-  //    kubectl port-forward svc/metadata-envoy-service 9090:9090
-  /** Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server */
-  app.all(
-    /^\/ml_metadata\./i,
-    createProxyMiddleware({
-      changeOrigin: true,
-      on: {
-        proxyReq: (proxyReq) => {
-          console.log('Metadata proxied request: ', proxyReq.path);
-        },
-      },
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      target: getAddress({ host: 'localhost', port: '9090' }),
-    }) as any,
-  );
-
   mockApiMiddleware(app as any);
   return app;
-}
-
-export function getAddress({
-  host,
-  port,
-  namespace,
-  schema = 'http',
-}: {
-  host: string;
-  port?: string | number;
-  namespace?: string;
-  schema?: string;
-}) {
-  namespace = namespace ? `.${namespace}` : '';
-  port = port ? `:${port}` : '';
-  return `${schema}://${host}${namespace}${port}`;
 }

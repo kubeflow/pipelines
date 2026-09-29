@@ -47,6 +47,9 @@ const (
 	// It captures whether the name of the owning ScheduledWorkflow.
 	LabelKeyWorkflowScheduledWorkflowName = constants.FullName + "/scheduledWorkflowName"
 
+	// V2ComponentKey marks IR-compiled workflow pod metadata in labels and annotations.
+	V2ComponentKey = "pipelines.kubeflow.org/v2_component"
+
 	LabelKeyWorkflowRunId               = "pipeline/runid"
 	LabelKeyWorkflowPersistedFinalState = "pipeline/persistedFinalState"
 
@@ -68,11 +71,6 @@ const (
 	// identify the logical role of the pod (driver, launcher, etc.).  It is
 	// used by UpsertRuntimeEnvVars to target the right containers.
 	AnnotationKeyRuntimeRole = "pipelines.kubeflow.org/runtime-role"
-
-	// LabelKeyCacheEnabled is a workflow label key.
-	// It captures whether this step will be selected by cache service.
-	// To disable/enable cache for a single run, this label needs to be added in every step under a run.
-	LabelKeyCacheEnabled = "pipelines.kubeflow.org/cache_enabled"
 )
 
 // GetMaxParameterBytes returns the maximum byte size of parameters.

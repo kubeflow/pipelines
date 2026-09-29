@@ -151,7 +151,8 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
 			// Read the admin configured driver pod metadata here, at the API server layer,
 			// so the compiler itself stays free of any dependency on API server state.
-			DriverPodConfig: common.GetDriverPodConfig(),
+			DriverPodConfig:     common.GetDriverPodConfig(),
+			TokenReviewAudience: common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -344,7 +345,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 
-	// Format parameters to expand macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] (V1 forward compatibility).
+	// Format parameters to expand macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]].
 	// Uses NewSWFParameterFormatter to support all macros. For standalone runs, [[ScheduledTime]] and [[Index]] remain unformatted
 
 	if job.RuntimeConfig != nil && len(job.RuntimeConfig.GetParameterValues()) > 0 {
@@ -397,7 +398,8 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
 			// Read the admin configured driver pod metadata here, at the API server layer,
 			// so the compiler itself stays free of any dependency on API server state.
-			DriverPodConfig: common.GetDriverPodConfig(),
+			DriverPodConfig:     common.GetDriverPodConfig(),
+			TokenReviewAudience: common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}

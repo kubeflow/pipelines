@@ -480,6 +480,8 @@ message TaskConfigPassthroughType {
     // This is useful when the task prepares a shared volume for the external workload or defines output artifact
     // (e.g. dsl.Model) that is created by the external workload.
     KUBERNETES_VOLUMES = 6;
+    // Indicates that DRA resource claims should be passed through to the external workload.
+    KUBERNETES_RESOURCE_CLAIMS = 7;
   }
 }
 
@@ -598,6 +600,19 @@ message PipelineTaskSpec {
     // The maximum duration during which the task will be retried according to
     // the backoff strategy. If unspecified, will set to 1 hour.
     google.protobuf.Duration backoff_max_duration = 4;
+
+    // The retry policy controls which failure types trigger a retry attempt.
+    // Maps directly to Argo Workflows retryStrategy.retryPolicy.
+    // POLICY_UNSPECIFIED omits the field, so the deployment's Argo
+    // configuration decides; KFP's bundled manifests set OnError.
+    enum Policy {
+      POLICY_UNSPECIFIED = 0;
+      POLICY_ALWAYS = 1;
+      POLICY_ON_FAILURE = 2;
+      POLICY_ON_ERROR = 3;
+      POLICY_ON_TRANSIENT_ERROR = 4;
+    }
+    Policy policy = 5;
   }
 
   // User-configured task-level retry.
@@ -981,6 +996,9 @@ message RuntimeArtifact {
 
   // Custom path for output artifact.
   optional string custom_path = 7;
+
+  // The unique server generated id of the artifact.
+  string artifact_id = 8;
 }
 
 // Message that represents a list of artifacts.

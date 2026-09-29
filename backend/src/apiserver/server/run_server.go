@@ -17,12 +17,12 @@ package server
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/golang/glog"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -30,7 +30,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"google.golang.org/grpc/codes"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
@@ -67,16 +66,6 @@ var (
 		Help: "The total number of UnarchiveRun requests",
 	})
 
-	reportRunMetricsRequests = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "run_server_report_metrics_requests",
-		Help: "The total number of ReportRunMetrics requests",
-	})
-
-	readArtifactRequests = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "run_server_read_artifact_requests",
-		Help: "The total number of ReadArtifact requests",
-	})
-
 	terminateRunRequests = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "run_server_terminate_requests",
 		Help: "The total number of TerminateRun requests",
@@ -93,13 +82,12 @@ var (
 	})
 )
 
+const defaultListRunsFullViewMaxPageSize = 100
+
 type RunServerOptions struct {
 	CollectMetrics bool `json:"collect_metrics,omitempty"`
 }
 
-// BaseRunServer wraps RunServer and RunServerV1
-// to enable method sharing. It can be removed once RunServerV1
-// is removed.
 type BaseRunServer struct {
 	resourceManager *resource.ResourceManager
 	options         *RunServerOptions
@@ -108,11 +96,6 @@ type BaseRunServer struct {
 type RunServer struct {
 	*BaseRunServer
 	apiv2beta1.UnimplementedRunServiceServer
-}
-
-type RunServerV1 struct {
-	*BaseRunServer
-	apiv1beta1.UnimplementedRunServiceServer
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerOptions) *RunServer {
@@ -124,17 +107,7 @@ func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerO
 	}
 }
 
-func NewRunServerV1(resourceManager *resource.ResourceManager, options *RunServerOptions) *RunServerV1 {
-	return &RunServerV1{
-		BaseRunServer: &BaseRunServer{
-			resourceManager: resourceManager,
-			options:         options,
-		},
-	}
-}
-
 // Creates a run.
-// Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.Run, error) {
 	// Validate user inputs
 	if run.DisplayName == "" {
@@ -157,69 +130,61 @@ func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.R
 	if err := s.canAccessRun(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
 	}
+	if err := validateRecurringRunNamespace(s.resourceManager, run); err != nil {
+		return nil, util.Wrap(err, "Failed to create a run for the referenced recurring run")
+	}
+	if err := canAccessReferencedPipeline(ctx, s.resourceManager, &run.PipelineSpec, run.Namespace); err != nil {
+		return nil, util.Wrap(err, "Failed to create a run due to authorization error on the referenced pipeline")
+	}
 	return s.resourceManager.CreateRun(ctx, run)
 }
 
-// Creates a run.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) CreateRunV1(ctx context.Context, request *apiv1beta1.CreateRunRequest) (*apiv1beta1.RunDetail, error) {
-	if s.options.CollectMetrics {
-		createRunRequests.Inc()
+func validateRecurringRunNamespace(resourceManager *resource.ResourceManager, run *model.Run) error {
+	if !common.IsMultiUserMode() || run.RecurringRunId == "" {
+		return nil
 	}
-
-	modelRun, err := toModelRun(request.GetRun())
+	job, err := resourceManager.GetJob(run.RecurringRunId)
 	if err != nil {
-		return nil, util.Wrap(err, "CreateJob(job.ToV2())Failed to create a v1beta1 run due to conversion error")
+		return util.Wrapf(err, "Failed to retrieve recurring run %s", run.RecurringRunId)
 	}
-
-	run, err := s.createRun(ctx, modelRun)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a new v1beta1 run")
+	jobNamespace := job.Namespace
+	if resourceManager.IsEmptyNamespace(jobNamespace) {
+		jobNamespace, err = resourceManager.GetNamespaceFromExperimentId(job.ExperimentId)
+		if err != nil {
+			return util.Wrapf(err, "Failed to determine the namespace of recurring run %s", run.RecurringRunId)
+		}
 	}
-
-	if s.options.CollectMetrics {
-		runCount.Inc()
+	if resourceManager.IsEmptyNamespace(jobNamespace) || jobNamespace != run.Namespace {
+		if resourceManager.IsEmptyNamespace(jobNamespace) {
+			return util.NewPermissionDeniedError(
+				fmt.Errorf("recurring run %q has no resolvable namespace", run.RecurringRunId),
+				"The recurring run has no resolvable namespace; recreate it in a namespaced experiment before triggering runs",
+			)
+		}
+		return util.NewPermissionDeniedError(
+			fmt.Errorf("recurring run namespace %q does not match destination namespace %q", jobNamespace, run.Namespace),
+			"A recurring run can only create runs in its own namespace",
+		)
 	}
-	return toApiRunDetailV1(run), nil
+	return nil
 }
 
 // Fetches a run.
-// Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) getRun(ctx context.Context, runId string) (*model.Run, error) {
-	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
-	}
-	run, err := s.resourceManager.GetRun(runId)
-	if err != nil {
-		return nil, err
-	}
-	return run, nil
-}
-
-// Fetches a run.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) GetRunV1(ctx context.Context, request *apiv1beta1.GetRunRequest) (*apiv1beta1.RunDetail, error) {
-	if s.options.CollectMetrics {
-		getRunRequests.Inc()
-	}
-
-	run, err := s.getRun(ctx, request.RunId)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to get a v1beta1 run")
-	}
-
-	return toApiRunDetailV1(run), nil
+	return s.getRunWithHydration(ctx, runId, false)
 }
 
 // Fetches all runs that conform to the specified filter and listing options.
-// Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) listRuns(ctx context.Context, pageToken string, pageSize int, sortBy string, opts *list.Options, namespace string, experimentId string) ([]*model.Run, int, string, error) {
+	return s.listRunsWithHydration(ctx, pageToken, pageSize, sortBy, opts, namespace, experimentId, true)
+}
+
+func (s *BaseRunServer) listRunsWithHydration(ctx context.Context, pageToken string, pageSize int, sortBy string, opts *list.Options, namespace string, experimentID string, hydrateTasks bool) ([]*model.Run, int, string, error) {
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
-	if experimentId != "" {
-		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentId)
+	if experimentID != "" {
+		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentID)
 		if err != nil {
-			return nil, 0, "", util.Wrapf(err, "Failed to list runs due to error fetching namespace for experiment %s. Try filtering based on namespace", experimentId)
+			return nil, 0, "", util.Wrapf(err, "Failed to list runs due to error fetching namespace for experiment %s. Try filtering based on namespace", experimentID)
 		}
 		namespace = ns
 	}
@@ -235,66 +200,22 @@ func (s *BaseRunServer) listRuns(ctx context.Context, pageToken string, pageSize
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
 	}
-	if experimentId != "" {
-		if err := s.resourceManager.CheckExperimentBelongsToNamespace(experimentId, namespace); err != nil {
+	if experimentID != "" {
+		if err := s.resourceManager.CheckExperimentBelongsToNamespace(experimentID, namespace); err != nil {
 			return nil, 0, "", util.Wrap(err, "Failed to list runs due to namespace mismatch")
 		}
 		filterContext = &model.FilterContext{
-			ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: experimentId},
+			ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: experimentID},
 		}
 	}
-	runs, totalSize, token, err := s.resourceManager.ListRuns(filterContext, opts)
+	runs, totalSize, token, err := s.resourceManager.ListRunsWithHydration(filterContext, opts, hydrateTasks)
 	if err != nil {
 		return nil, 0, "", err
 	}
 	return runs, totalSize, token, nil
 }
 
-// Fetches runs given query parameters.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) ListRunsV1(ctx context.Context, r *apiv1beta1.ListRunsRequest) (*apiv1beta1.ListRunsResponse, error) {
-	if s.options.CollectMetrics {
-		listRunRequests.Inc()
-	}
-
-	filterContext, err := validateFilterV1(r.GetResourceReferenceKey())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to list v1beta1 runs: validating filter failed")
-	}
-	namespace := ""
-	experimentId := ""
-
-	if filterContext.ReferenceKey != nil {
-		switch filterContext.ReferenceKey.Type {
-		case model.NamespaceResourceType:
-			namespace = filterContext.ReferenceKey.ID
-		case model.ExperimentResourceType:
-			experimentId = filterContext.ReferenceKey.ID
-		}
-	}
-
-	opts, err := validatedListOptions(&model.Run{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), "v1beta1")
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create list options")
-	}
-
-	runs, runsCount, nextPageToken, err := s.listRuns(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, namespace, experimentId)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to list v1beta1 runs")
-	}
-	apiRuns := toApiRunsV1(runs)
-	if apiRuns == nil {
-		return nil, util.NewInternalServerError(util.NewInvalidInputError("Failed to convert internal run representations to their v1beta1 API counterparts"), "Failed to list v1beta1 runs")
-	}
-	return &apiv1beta1.ListRunsResponse{
-		Runs:          apiRuns,
-		TotalSize:     int32(runsCount),
-		NextPageToken: nextPageToken,
-	}, nil
-}
-
 // Archives a run.
-// Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) archiveRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
@@ -303,21 +224,7 @@ func (s *BaseRunServer) archiveRun(ctx context.Context, runId string) error {
 	return s.resourceManager.ArchiveRun(runId)
 }
 
-// Archives a run.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) ArchiveRunV1(ctx context.Context, request *apiv1beta1.ArchiveRunRequest) (*emptypb.Empty, error) {
-	if s.options.CollectMetrics {
-		archiveRunRequests.Inc()
-	}
-	err := s.archiveRun(ctx, request.GetId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to archive a v1beta1 run")
-	}
-	return &emptypb.Empty{}, nil
-}
-
 // Un-archives a run.
-// Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) unarchiveRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
@@ -326,21 +233,7 @@ func (s *BaseRunServer) unarchiveRun(ctx context.Context, runId string) error {
 	return s.resourceManager.UnarchiveRun(runId)
 }
 
-// Un-archives a run.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) UnarchiveRunV1(ctx context.Context, request *apiv1beta1.UnarchiveRunRequest) (*emptypb.Empty, error) {
-	if s.options.CollectMetrics {
-		unarchiveRunRequests.Inc()
-	}
-	err := s.unarchiveRun(ctx, request.GetId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to unarchive a v1beta1 run")
-	}
-	return &emptypb.Empty{}, nil
-}
-
 // Deletes a run.
-// Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) deleteRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
@@ -349,120 +242,7 @@ func (s *BaseRunServer) deleteRun(ctx context.Context, runId string) error {
 	return s.resourceManager.DeleteRun(ctx, runId)
 }
 
-// Deletes a run.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) DeleteRunV1(ctx context.Context, request *apiv1beta1.DeleteRunRequest) (*emptypb.Empty, error) {
-	if s.options.CollectMetrics {
-		deleteRunRequests.Inc()
-	}
-	if err := s.deleteRun(ctx, request.GetId()); err != nil {
-		return nil, util.Wrap(err, "Failed to delete a v1beta1 run")
-	}
-	if s.options.CollectMetrics {
-		if util.GetMetricValue(runCount) > 0 {
-			runCount.Dec()
-		}
-	}
-	return &emptypb.Empty{}, nil
-}
-
-// Reports run metrics.
-// Applies common logic on v1beta1 and v2beta1 API.
-func (s *BaseRunServer) reportRunMetrics(ctx context.Context, metrics []*model.RunMetric, runId string) ([]map[string]string, error) {
-	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReportMetrics})
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
-	}
-	// Verify that the run exists for single user mode.
-	// Multi-user model will verify this when checking authorization above.
-	if !common.IsMultiUserMode() {
-		if _, err := s.resourceManager.GetRun(runId); err != nil {
-			return nil, util.Wrap(err, "Failed to fetch the requested run")
-		}
-	}
-	results := make([]map[string]string, 0)
-	for _, metric := range metrics {
-		temp := map[string]string{"Name": metric.Name, "NodeId": metric.NodeID, "ErrorCode": "", "ErrorMessage": ""}
-		if err := validateRunMetric(metric); err != nil {
-			temp["ErrorCode"] = "invalid"
-			results = append(results, temp)
-			continue
-		}
-		err = s.resourceManager.ReportMetric(metric)
-		if err == nil {
-			temp["ErrorCode"] = "ok"
-			results = append(results, temp)
-			continue
-		}
-		err, ok := err.(*util.UserError)
-		if !ok {
-			temp["ErrorCode"] = "internal"
-			results = append(results, temp)
-			continue
-		}
-		temp["ErrorMessage"] = err.ExternalMessage()
-		switch err.ExternalStatusCode() {
-		case codes.AlreadyExists:
-			temp["ErrorCode"] = "duplicate"
-		case codes.InvalidArgument:
-			temp["ErrorCode"] = "invalid"
-		default:
-			temp["ErrorCode"] = "internal"
-		}
-		if temp["ErrorCode"] == "internal" {
-			glog.Errorf("Internal error '%v' when reporting metric '%s/%s'", err, metric.NodeID, metric.Name)
-		}
-		results = append(results, temp)
-	}
-	return results, nil
-}
-
-// Reports run metrics.
-// Supports v1beta1 API.
-func (s *RunServerV1) ReportRunMetricsV1(ctx context.Context, request *apiv1beta1.ReportRunMetricsRequest) (*apiv1beta1.ReportRunMetricsResponse, error) {
-	if s.options.CollectMetrics {
-		reportRunMetricsRequests.Inc()
-	}
-
-	if _, err := s.resourceManager.GetRun(request.GetRunId()); err != nil {
-		// Use the standard ResourceNotFoundError so that AssertUserError
-		// sees codes.NotFound and the right error message.
-		return nil, util.NewResourceNotFoundError(
-			"Run %s not found", request.GetRunId(),
-		)
-	}
-
-	// Convert, validate, and report each metric in input order.
-	var apiResults []*apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult
-	for _, m := range request.GetMetrics() {
-		modelMetric, err := toModelRunMetric(m, request.GetRunId())
-		if err != nil {
-			// Conversion error: record as INVALID_ARGUMENT
-			msg := err.Error()
-			if userErr, ok := err.(*util.UserError); ok {
-				msg = userErr.ExternalMessage()
-			}
-			apiResults = append(apiResults, toApiReportMetricsResultV1(
-				m.Name, m.NodeId, "invalid", msg,
-			))
-			continue
-		}
-		// Report this metric
-		results, err := s.reportRunMetrics(ctx, []*model.RunMetric{modelMetric}, request.GetRunId())
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to report v1beta1 run metrics")
-		}
-		// results slice will have exactly one entry
-		r := results[0]
-		apiResults = append(apiResults, toApiReportMetricsResultV1(
-			r["Name"], r["NodeId"], r["ErrorCode"], r["ErrorMessage"],
-		))
-	}
-	return &apiv1beta1.ReportRunMetricsResponse{Results: apiResults}, nil
-}
-
 // Terminates a run.
-// Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) terminateRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbTerminate})
 	if err != nil {
@@ -472,41 +252,12 @@ func (s *BaseRunServer) terminateRun(ctx context.Context, runId string) error {
 }
 
 // Retries a run.
-// Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) retryRun(ctx context.Context, runId string) error {
 	err := s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
 	return s.resourceManager.RetryRun(ctx, runId)
-}
-
-// Terminates a run.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) TerminateRunV1(ctx context.Context, request *apiv1beta1.TerminateRunRequest) (*emptypb.Empty, error) {
-	if s.options.CollectMetrics {
-		terminateRunRequests.Inc()
-	}
-	err := s.terminateRun(ctx, request.GetRunId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to terminate a v1beta1 run")
-	}
-	return &emptypb.Empty{}, nil
-}
-
-// Retries a run.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) RetryRunV1(ctx context.Context, request *apiv1beta1.RetryRunRequest) (*emptypb.Empty, error) {
-	if s.options.CollectMetrics {
-		retryRunRequests.Inc()
-	}
-
-	err := s.retryRun(ctx, request.GetRunId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to retry a run")
-	}
-
-	return &emptypb.Empty{}, nil
 }
 
 // Creates a run.
@@ -547,12 +298,32 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunReques
 		getRunRequests.Inc()
 	}
 
-	run, err := s.getRun(ctx, request.RunId)
+	// Determine if we should hydrate tasks based on view parameter
+	// Default view (or unspecified) means no task hydration, only task count
+	// FULL view means full task hydration
+	hydrateTasks := request.View != nil && *request.View == apiv2beta1.GetRunRequest_FULL
+
+	run, err := s.getRunWithHydration(ctx, request.RunId, hydrateTasks)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get a run")
 	}
 
-	return toApiRun(run), nil
+	// FULL view is used by runtime driver/launcher pods. Prefer an embedded
+	// pipeline_spec when the run stores a manifest so run-scoped tokens do not
+	// need a follow-up GetPipelineVersion call.
+	return toApiRunWithPipelineSourcePreference(run, hydrateTasks), nil
+}
+
+func (s *BaseRunServer) getRunWithHydration(ctx context.Context, runID string, hydrateTasks bool) (*model.Run, error) {
+	err := s.canAccessRun(ctx, runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	run, err := s.resourceManager.GetRunWithHydration(runID, hydrateTasks)
+	if err != nil {
+		return nil, err
+	}
+	return run, nil
 }
 
 // Fetches runs given query parameters.
@@ -561,16 +332,47 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 	if s.options.CollectMetrics {
 		listRunRequests.Inc()
 	}
-	opts, err := validatedListOptions(&model.Run{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter(), "v2beta1")
+	pageSize := listRunsPageSizeForView(int(r.GetPageSize()), r.View)
+	opts, err := validatedListOptions(&model.Run{}, r.GetPageToken(), pageSize, r.GetSortBy(), r.GetFilter())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 	opts.SkipCount = r.GetSkipCount()
-	runs, runsCount, nextPageToken, err := s.listRuns(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, r.GetNamespace(), r.GetExperimentId())
+
+	// Determine if we should hydrate tasks based on view parameter
+	// Default view (or unspecified) means no task hydration, only task count
+	// FULL view means full task hydration
+	hydrateTasks := r.View != nil && *r.View == apiv2beta1.ListRunsRequest_FULL
+
+	runs, runsCount, nextPageToken, err := s.listRunsWithHydration(ctx, r.GetPageToken(), pageSize, r.GetSortBy(), opts, r.GetNamespace(), r.GetExperimentId(), hydrateTasks)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs")
 	}
 	return &apiv2beta1.ListRunsResponse{Runs: toApiRuns(runs), TotalSize: int32(runsCount), NextPageToken: nextPageToken}, nil
+}
+
+func listRunsPageSizeForView(pageSize int, view *apiv2beta1.ListRunsRequest_ViewMode) int {
+	if pageSize == 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize < 0 {
+		return pageSize
+	}
+	if view == nil || *view != apiv2beta1.ListRunsRequest_FULL {
+		return pageSize
+	}
+
+	fullViewMaxPageSize := common.GetIntConfigWithDefault(
+		common.ListRunsFullViewMaxPageSize,
+		defaultListRunsFullViewMaxPageSize,
+	)
+	if fullViewMaxPageSize <= 0 {
+		fullViewMaxPageSize = defaultListRunsFullViewMaxPageSize
+	}
+	if pageSize > fullViewMaxPageSize {
+		return fullViewMaxPageSize
+	}
+	return pageSize
 }
 
 // Archives a run.
@@ -642,9 +444,390 @@ func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRe
 	return &emptypb.Empty{}, nil
 }
 
-// Checks if a user can access a run.
-// Adds namespace of the parent experiment of a run id,
-// API group, version, and resource type.
+// CreateTask Creates an API Task
+func (s *RunServer) CreateTask(ctx context.Context, request *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	runID := request.GetRunId()
+	if runID == "" {
+		return nil, util.NewInvalidInputError("Run ID is required")
+	}
+	task := request.GetTask()
+	if task == nil {
+		return nil, util.NewInvalidInputError("Task is required")
+	}
+	if err := validateTaskRunIDInRequest(task.GetRunId(), runID); err != nil {
+		return nil, err
+	}
+
+	// Check authorization - Tasks inherit permissions from their parent run
+	err := s.canAccessRun(ctx, runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize task creation")
+	}
+
+	modelTask, err := toModelTask(task)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert task to model")
+	}
+	modelTask.RunUUID = runID
+	if err := s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID); err != nil {
+		return nil, util.Wrap(err, "Failed to validate parent task")
+	}
+	createdTask, err := s.resourceManager.CreateTask(modelTask)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create task")
+	}
+
+	// A newly created task has no children
+	var noChildTasks []*model.Task
+
+	return toAPITask(createdTask, noChildTasks)
+}
+
+// UpdateTask updates an existing task with the specified task ID and details provided in the request.
+// It validates input, ensures authorization, and returns the updated task details or an error if the update fails.
+func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	runID := request.GetRunId()
+	taskID := request.GetTaskId()
+	task := request.GetTask()
+	if runID == "" {
+		return nil, util.NewInvalidInputError("Run ID is required")
+	}
+	if taskID == "" {
+		return nil, util.NewInvalidInputError("Task ID is required")
+	}
+	if task == nil {
+		return nil, util.NewInvalidInputError("Task is required")
+	}
+	// Ensure task IDs match - prefer the path parameter for authorization
+	if task.GetTaskId() != "" && task.GetTaskId() != taskID {
+		return nil, util.NewInvalidInputError("Task ID in path parameter does not match task ID in request body")
+	}
+	if err := validateTaskRunIDInRequest(task.GetRunId(), runID); err != nil {
+		return nil, err
+	}
+
+	// First get the existing task to find the run UUID for authorization
+	existingTask, err := s.resourceManager.GetTask(taskID)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get existing task for authorization")
+	}
+	if existingTask.RunUUID != runID {
+		return nil, util.NewInvalidInputError("Task run_id in path parameter does not match the existing task run_id")
+	}
+
+	// Check authorization using the run UUID from the URL path
+	err = s.canAccessRun(ctx, runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize task update")
+	}
+
+	modelTask, err := toModelTask(task)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert task to model")
+	}
+	modelTask.UUID = taskID // Always use the path parameter task ID
+	modelTask.RunUUID = runID
+	if err := s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID); err != nil {
+		return nil, util.Wrap(err, "Failed to validate parent task")
+	}
+	updatedTask, err := s.resourceManager.UpdateTask(modelTask)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to update task")
+	}
+
+	taskChildren, err := s.resourceManager.GetTaskChildren(updatedTask.UUID)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get task children")
+	}
+	taskChildren = filterTaskChildrenByRun(taskChildren, updatedTask.RunUUID)
+	return toAPITask(updatedTask, taskChildren)
+}
+
+// UpdateTasksBulk updates multiple tasks in bulk.
+func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2beta1.UpdateTasksBulkRequest) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+	if request == nil || len(request.GetTasks()) == 0 {
+		return nil, util.NewInvalidInputError("UpdateTasksBulkRequest must contain at least one task")
+	}
+	runID := request.GetRunId()
+	if runID == "" {
+		return nil, util.NewInvalidInputError("Run ID is required")
+	}
+
+	taskIDs := make([]string, 0, len(request.GetTasks()))
+	for taskID, task := range request.GetTasks() {
+		if taskID == "" {
+			return nil, util.NewInvalidInputError("Task ID is required")
+		}
+		if task == nil {
+			return nil, util.NewInvalidInputError("Task is required for task ID %s", taskID)
+		}
+		if task.GetTaskId() != "" && task.GetTaskId() != taskID {
+			return nil, util.NewInvalidInputError("Task ID in map key does not match task ID in task detail for task %s", taskID)
+		}
+		if err := validateTaskRunIDInRequest(task.GetRunId(), runID); err != nil {
+			return nil, util.NewInvalidInputError("%s for task %s", err.Error(), taskID)
+		}
+		taskIDs = append(taskIDs, taskID)
+	}
+	sort.Strings(taskIDs)
+
+	existingTasksByID, err := s.resourceManager.GetTasksByIDs(taskIDs)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get existing tasks for authorization")
+	}
+
+	if err := s.canAccessRun(ctx, runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate}); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize task update")
+	}
+
+	for _, taskID := range taskIDs {
+		existingTask, ok := existingTasksByID[taskID]
+		if !ok {
+			return nil, util.Wrapf(util.NewResourceNotFoundError("task", taskID), "Failed to get existing task %s for authorization", taskID)
+		}
+		if existingTask.RunUUID != runID {
+			return nil, util.NewInvalidInputError("Task %s does not belong to run %s", taskID, runID)
+		}
+	}
+
+	response := &apiv2beta1.UpdateTasksBulkResponse{
+		Tasks: make(map[string]*apiv2beta1.PipelineTask),
+	}
+
+	for _, taskID := range taskIDs {
+		task := request.GetTasks()[taskID]
+		modelTask, err := toModelTask(task)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to convert task to model for task %s", taskID)
+		}
+		modelTask.UUID = taskID // Always use the map key task ID
+		modelTask.RunUUID = runID
+		if err := s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID); err != nil {
+			return nil, util.Wrapf(err, "Failed to validate parent task for task %s", taskID)
+		}
+
+		updatedTask, err := s.resourceManager.UpdateTask(modelTask)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to update task %s", taskID)
+		}
+
+		taskChildren, err := s.resourceManager.GetTaskChildren(updatedTask.UUID)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to get task children for task %s", taskID)
+		}
+		taskChildren = filterTaskChildrenByRun(taskChildren, updatedTask.RunUUID)
+
+		apiTask, err := toAPITask(updatedTask, taskChildren)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to convert task to API for task %s", taskID)
+		}
+		response.Tasks[taskID] = apiTask
+	}
+
+	return response, nil
+}
+
+// GetTask retrieves the details of a specific task based on its ID and performs authorization checks.
+func (s *RunServer) GetTask(ctx context.Context, request *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	runID := request.GetRunId()
+	taskID := request.GetTaskId()
+	if runID == "" {
+		return nil, util.NewInvalidInputError("Run ID is required")
+	}
+	if taskID == "" {
+		return nil, util.NewInvalidInputError("Task ID is required")
+	}
+
+	task, err := s.resourceManager.GetTask(taskID)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get task")
+	}
+
+	if task.RunUUID != runID {
+		return nil, util.NewInvalidInputError("Task run_id in path parameter does not match the existing task run_id")
+	}
+
+	// Check authorization using the run UUID from the URL path
+	err = s.canAccessRun(ctx, runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize task access")
+	}
+
+	childTasks, err := s.resourceManager.GetTaskChildren(task.UUID)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get task children")
+	}
+	childTasks = filterTaskChildrenByRun(childTasks, task.RunUUID)
+	return toAPITask(task, childTasks)
+}
+
+// ListTasks retrieves tasks for a specified run and can optionally narrow the results to a parent task.
+// It validates authorization, processes pagination options, and ensures parent-scoped reads stay within the run.
+func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasksRequest) (*apiv2beta1.ListTasksResponse, error) {
+	runID := request.GetRunId()
+	parentID := request.GetParentId()
+
+	if runID == "" {
+		if parentID != "" {
+			return nil, util.NewInvalidInputError("parent_id filter requires run_id")
+		}
+		return nil, util.NewInvalidInputError("Run ID is required")
+	}
+
+	err := s.canAccessRun(ctx, runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize task listing")
+	}
+	if parentID != "" {
+		parentTask, err := s.resourceManager.GetTask(parentID)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to get parent task for authorization")
+		}
+		if parentTask.RunUUID != runID {
+			return nil, util.NewInvalidInputError("parent_task_id must belong to the same run as run_id")
+		}
+	}
+
+	opts, err := validatedListOptions(&model.Task{}, request.GetPageToken(), int(request.GetPageSize()), request.GetOrderBy(), request.GetFilter())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
+	tasks, totalSize, nextPageToken, err := s.resourceManager.ListTasks(runID, parentID, "", opts)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list tasks")
+	}
+
+	taskIDs := make([]string, 0, len(tasks))
+	for _, task := range tasks {
+		taskIDs = append(taskIDs, task.UUID)
+	}
+	childTasksByParent, err := s.resourceManager.GetTaskChildrenByParentIDs(taskIDs)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get task children")
+	}
+
+	apiTasks := make([]*apiv2beta1.PipelineTask, len(tasks))
+	for i, task := range tasks {
+		taskChildren := childTasksByParent[task.UUID]
+		taskChildren = filterTaskChildrenByRun(taskChildren, task.RunUUID)
+		apiTasks[i], err = toAPITask(task, taskChildren)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to convert task to API")
+		}
+	}
+
+	return &apiv2beta1.ListTasksResponse{
+		Tasks:         apiTasks,
+		NextPageToken: nextPageToken,
+		TotalSize:     int32(totalSize),
+	}, nil
+}
+
+func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2beta1.FindCachedTaskRequest) (*apiv2beta1.FindCachedTaskResponse, error) {
+	if request == nil {
+		return nil, util.NewInvalidInputError("FindCachedTaskRequest is required")
+	}
+	if request.GetCacheFingerprint() == "" {
+		return nil, util.NewInvalidInputError("cache_fingerprint is required")
+	}
+
+	namespace := s.resourceManager.ReplaceNamespace(request.GetNamespace())
+	if common.IsMultiUserMode() && namespace == "" {
+		return nil, util.NewInvalidInputError("namespace is required in multi-user mode")
+	}
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	// Runtime clients bind cache lookup auth to the in-flight run via metadata so
+	// run-scoped projected tokens authorize this namespace-scoped RPC without
+	// granting cross-run API access. Non-runtime callers still use namespace RBAC.
+	boundRunID := auth.BoundRunIDFromIncomingContext(ctx)
+	if err := s.canAccessRun(ctx, boundRunID, resourceAttributes); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize cached task lookup")
+	}
+	if boundRunID != "" && namespace != "" {
+		run, err := s.resourceManager.GetRun(boundRunID)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize cached task lookup")
+		}
+		effectiveNamespace := run.Namespace
+		if s.resourceManager.IsEmptyNamespace(effectiveNamespace) {
+			experiment, experimentErr := s.resourceManager.GetExperiment(run.ExperimentId)
+			if experimentErr != nil {
+				return nil, util.NewInvalidInputError(
+					"bound run %s has an empty namespace and the parent experiment %s could not be fetched: %s",
+					boundRunID,
+					run.ExperimentId,
+					experimentErr.Error(),
+				)
+			}
+			effectiveNamespace = experiment.Namespace
+		}
+		if effectiveNamespace != "" && effectiveNamespace != namespace {
+			return nil, util.NewPermissionDeniedError(
+				nil,
+				"bound run %s is not in namespace %s",
+				boundRunID,
+				namespace,
+			)
+		}
+	}
+
+	task, err := s.resourceManager.FindLatestCachedTask(namespace, request.GetCacheFingerprint())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to find cached task")
+	}
+	if task == nil {
+		return &apiv2beta1.FindCachedTaskResponse{}, nil
+	}
+
+	apiTask, err := toAPITask(task, nil)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert cached task to API")
+	}
+	return &apiv2beta1.FindCachedTaskResponse{Task: apiTask}, nil
+}
+
+func (s *RunServer) validateParentTaskOwnership(parentTaskID *string, runID string) error {
+	if parentTaskID == nil || *parentTaskID == "" {
+		return nil
+	}
+
+	parentTask, err := s.resourceManager.GetTask(*parentTaskID)
+	if err != nil {
+		return util.Wrap(err, "Failed to get parent task")
+	}
+	if parentTask.RunUUID != runID {
+		return util.NewInvalidInputError("parent_task_id must belong to the same run as the task")
+	}
+	return nil
+}
+
+func validateTaskRunIDInRequest(taskRunID string, requestRunID string) error {
+	if taskRunID != "" && taskRunID != requestRunID {
+		return util.NewInvalidInputError("Task run_id in request body does not match run_id in path parameter")
+	}
+	return nil
+}
+
+func filterTaskChildrenByRun(childTasks []*model.Task, runID string) []*model.Task {
+	if len(childTasks) == 0 {
+		return childTasks
+	}
+
+	filtered := make([]*model.Task, 0, len(childTasks))
+	for _, childTask := range childTasks {
+		if childTask != nil && childTask.RunUUID == runID {
+			filtered = append(filtered, childTask)
+		}
+	}
+	return filtered
+}
+
+// canAccessRun verifies if the current user has access to a specified run utilizing the provided resource attributes.
 func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if !common.IsMultiUserMode() {
 		// Skip authz if not multi-user mode.
@@ -667,6 +850,11 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = run.K8SName
 		}
+		// Bind TokenReview to this run so a projected runtime token for another
+		// run cannot authorize mutations here. Header-authenticated users are
+		// unaffected; base-audience SA tokens still authenticate as broad via
+		// a single multi-audience TokenReview.
+		ctx = auth.WithRequestedRunID(ctx, runId)
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
 		return util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
@@ -678,6 +866,87 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrapf(err, "Failed to access run %s. Check if you have access to namespace %s", runId, resourceAttributes.Namespace)
+	}
+	if err := auth.EnforceAuthenticatedRunScope(ctx, runId); err != nil {
+		return util.Wrapf(err, "Failed to access run %s", runId)
+	}
+	return nil
+}
+
+func canAccessReferencedPipeline(ctx context.Context, resourceManager *resource.ResourceManager, pipelineSpec *model.PipelineSpec, destinationNamespace string) error {
+	if !common.IsMultiUserMode() {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+	pipelineVersionID := pipelineSpec.PipelineVersionId
+	pipelineID := pipelineSpec.PipelineId
+	hasExplicitPipelineVersionID := pipelineVersionID != ""
+	// The pipeline/version may instead be encoded in the full pipeline name.
+	// Parse it even when one explicit field is present so mixed reference forms
+	// cannot hide a version from authorization.
+	if pipelineSpec.PipelineName != "" {
+		resourceNames := common.ParseResourceIdsFromFullName(pipelineSpec.PipelineName)
+		if pipelineVersionID == "" {
+			pipelineVersionID = resourceNames[common.PipelineVersionIDResourceNameKey]
+		}
+		// V1 conversion historically synthesizes PipelineName as
+		// "pipelines/<version-id>" for a version-only reference. Do not treat
+		// that compatibility name as an independent pipeline ID when the real
+		// version ID is already explicit.
+		if pipelineID == "" && !hasExplicitPipelineVersionID {
+			pipelineID = resourceNames[common.PipelineIDResourceNameKey]
+		}
+	}
+	resourceAttributes := &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet}
+	// Run creation resolves a version before a pipeline ID, so authorization must
+	// follow the same order when both are supplied.
+	if pipelineVersionID != "" {
+		pipelineVersion, err := resourceManager.GetPipelineVersion(pipelineVersionID)
+		if err != nil {
+			return util.Wrapf(err, "Failed to authorize access to the referenced pipeline version %s", pipelineVersionID)
+		}
+		// Fail closed if the version has no owning pipeline: authorizing an empty
+		// pipeline ID would leave the namespace empty and be treated as a shared,
+		// world-readable pipeline, skipping the SubjectAccessReview entirely.
+		if pipelineVersion.PipelineId == "" {
+			return util.NewInternalServerError(
+				fmt.Errorf("pipeline version %s resolves to an empty pipeline id", pipelineVersionID),
+				"Failed to authorize access to the referenced pipeline")
+		}
+		if err := authorizeReferencedPipelineAccess(ctx, resourceManager, pipelineVersion.PipelineId, destinationNamespace, resourceAttributes); err != nil {
+			return err
+		}
+		if pipelineID != "" && pipelineVersion.PipelineId != "" && pipelineID != pipelineVersion.PipelineId {
+			return util.NewInvalidInputError("Pipeline version %s does not belong to pipeline %s", pipelineVersionID, pipelineID)
+		}
+		return nil
+	}
+	if pipelineID == "" {
+		// Inline manifests do not reference a stored pipeline.
+		return nil
+	}
+	return authorizeReferencedPipelineAccess(ctx, resourceManager, pipelineID, destinationNamespace, resourceAttributes)
+}
+
+// authorizeReferencedPipelineAccess first applies the caller's normal pipeline
+// authorization, then ensures that a private pipeline cannot be used to create
+// a run in another namespace. This second check is required for trusted
+// controllers whose service account can read pipelines cluster-wide: otherwise
+// a namespaced custom resource could make the controller act as a confused
+// deputy for a pipeline owned by a different tenant. Shared pipelines remain
+// available in every namespace. MULTIUSER_SHARED_READ intentionally permits
+// cross-namespace references because that mode makes private pipeline reads
+// globally available.
+func authorizeReferencedPipelineAccess(ctx context.Context, resourceManager *resource.ResourceManager, pipelineID string, destinationNamespace string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	pipeline, err := authorizePipelineAccessAndGet(ctx, resourceManager, pipelineID, resourceAttributes)
+	if err != nil {
+		return err
+	}
+	if !common.IsMultiUserSharedReadMode() && !resourceManager.IsEmptyNamespace(pipeline.Namespace) && pipeline.Namespace != destinationNamespace {
+		return util.NewPermissionDeniedError(
+			fmt.Errorf("pipeline namespace %q does not match destination namespace %q", pipeline.Namespace, destinationNamespace),
+			"A private pipeline can only be referenced by runs in its own namespace",
+		)
 	}
 	return nil
 }

@@ -1,7 +1,7 @@
 package main
 
-type ExecutionPaths struct {
-	ExecutionID    string
+type TaskPaths struct {
+	TaskID         string
 	IterationCount string
 	CachedDecision string
 	Condition      string

@@ -4,7 +4,7 @@ env:
   NUMBER_OF_PARALLEL_NODES: 10
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
   USER_NAMESPACE: "kubeflow-user-example-com"
   CA_CERT_PATH: ""
   AWS_ACCESS_KEY_ID: 'minio'
@@ -19,11 +19,16 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
+      - '.github/actions/setup-python/**'
+      - '.github/actions/protobuf/**'
       - '.github/actions/deploy/**'
       - '.github/actions/install-fgo-fake/**'
+      - '.github/actions/install-dra-driver/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'api/**'
@@ -39,6 +44,8 @@ on:
       # changes to it must trigger these lanes.
       - 'test/artifact-proxy/**'
       - 'test_data/sdk_compiled_pipelines/**'
+      - 'sdk/**'
+      - 'kubernetes_platform/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -107,6 +114,13 @@ jobs:
             proxy: "false"
             test_label: "gpu-scheduling-check"
             pod_to_pod_tls_enabled: "false"
+          # DRA (Dynamic Resource Allocation) lane (Kind + dra-example-driver).
+          - k8s_version: "v1.34.3"
+            cache_enabled: "true"
+            argo_version: "v3.7.18"
+            proxy: "false"
+            test_label: "dra-check"
+            pod_to_pod_tls_enabled: "false"
           # PostgreSQL lane — cache_enabled=true only (no pgx overlay for
           # cache-disabled, proxy, or TLS).
           # TODO: expand when additional standalone/postgresql/* overlays exist.
@@ -130,9 +144,46 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
 
+      - name: Set up DRA SDK workspace
+        uses: ./.github/actions/setup-python
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+        with:
+          python-version: "3.11"
+
+      - name: Generate DRA SDK packages
+        uses: ./.github/actions/protobuf
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+        with:
+          generate_golang_proto: "true"
+
+      - name: Build DRA SDK component image
+        shell: bash
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+        run: |
+          make -C kubernetes_platform python-dev
+          uv pip install docker==7.1.0
+
+          BUILD_CONTEXT=$(mktemp -d)
+          cp test_data/sdk_compiled_pipelines/valid/dra/dra_passthrough_check.py "${BUILD_CONTEXT}/"
+
+          source .github/resources/scripts/helper-functions.sh
+          retry 3 30 kfp component build "${BUILD_CONTEXT}" \
+            --component-filepattern dra_passthrough_check.py \
+            --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/api/v2alpha1/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/kubernetes_platform/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/backend/api/v2beta1/python_http_client" \
+            --no-push-image
+          kind --name "${{ env.CLUSTER_NAME }}" load docker-image kfp-dra-sdk:test
+
+      - name: Install DRA Example Driver
+        uses: ./.github/actions/install-dra-driver
+        id: install-dra-driver
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+
       - name: Deploy KFP
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.create-cluster.outcome == 'success' && steps.install-dra-driver.outcome != 'failure' }}
         id: deploy
         with:
           proxy: ${{ matrix.proxy }}
@@ -150,6 +201,12 @@ jobs:
         id: install-fgo-fake
         if: ${{ matrix.test_label == 'gpu-scheduling-check' && steps.deploy.outcome == 'success' }}
 
+      - name: Create DRA ResourceClaimTemplate
+        shell: bash
+        if: ${{ matrix.test_label == 'dra-check' && steps.deploy.outcome == 'success' }}
+        run: |
+          kubectl apply -n "${{ env.NAMESPACE }}" -f .github/actions/install-dra-driver/e2e-resource-claim-template.yaml
+
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
@@ -159,7 +216,7 @@ jobs:
       - name: Configure Input Variables
         shell: bash
         id: configure
-        if: ${{ steps.deploy.outcome == 'success' && steps.install-fgo-fake.outcome != 'failure' }}
+        if: ${{ steps.deploy.outcome == 'success' && steps.install-fgo-fake.outcome != 'failure' && steps.install-dra-driver.outcome != 'failure' }}
         env:
           DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
@@ -395,7 +452,7 @@ jobs:
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@4abf9eabe15727ba3a8c1c8d7d07e9d35b0dd5d7
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@b952a53c4b9066d0c1a8e369ec2b48ffcfb4d451
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'

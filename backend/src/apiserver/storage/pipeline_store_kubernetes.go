@@ -27,7 +27,6 @@ import (
 const pollTimeout = 3 * time.Second
 
 var (
-	ErrNoV1             = errors.New("the v1 API is not available for the Kubernetes pipeline store")
 	ErrUnsupportedField = errors.New("the field is unsupported")
 )
 
@@ -40,12 +39,15 @@ func NewPipelineStoreKubernetes(k8sClient ctrlclient.Client, k8sClientNoCache ct
 	return &PipelineStoreKubernetes{client: k8sClient, clientNoCache: k8sClientNoCache}
 }
 
-func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
-	return nil, nil, ErrNoV1
-}
-
 func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	if namespace == "" {
+		// The pod namespace is where KFP itself runs; falling back to it would cross tenants.
+		if common.IsMultiUserMode() {
+			return nil, util.NewInvalidInputError(
+				"A namespace is required to look up pipeline %v in multi-user mode", name,
+			)
+		}
+
 		namespace = common.GetPodNamespace()
 	}
 
@@ -63,17 +65,17 @@ func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, nam
 	return k8sPipeline.ToModel(), nil
 }
 
-func (k *PipelineStoreKubernetes) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	return nil, nil, 0, "", ErrNoV1
-}
-
-func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
+func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 	k8sPipelines := v2beta1.PipelineList{}
 
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
-		listOptions = append(listOptions, ctrlclient.InNamespace(filterContext.ReferenceKey.ID))
+	if filterContext.ReferenceKey != nil && filterContext.Type == model.NamespaceResourceType {
+		listOptions = append(listOptions, ctrlclient.InNamespace(filterContext.ID))
 	}
 
 	// Be careful, the deep copy is disabled here to reduce memory allocations
@@ -97,9 +99,9 @@ func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterConte
 			}
 		}
 		// Filter by tags if tag filters are provided
-		if len(tagFilters) > 0 {
+		if len(resolvedTagFilters) > 0 {
 			match := true
-			for key, value := range tagFilters {
+			for key, value := range resolvedTagFilters {
 				if k8sPipeline.Spec.Tags[key] != value {
 					match = false
 					break
@@ -330,12 +332,6 @@ func (k *PipelineStoreKubernetes) CreatePipelineVersion(pipelineVersion *model.P
 	return k.createPipelineVersionWithPipeline(context.TODO(), pipeline, pipelineVersion)
 }
 
-func (k *PipelineStoreKubernetes) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-	// Default version was used in KFPv1 and is deprecated. In KFPv2, we do not support this.
-	return util.NewBadRequestError(errors.New("pipeline default version is unsupported"),
-		"pipeline default version is unsupported when storing in Kubernetes")
-}
-
 func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
 	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineId, "")
 	if err != nil {
@@ -444,7 +440,11 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionWithStatus(pipelineVersionId
 	return pipelineVersion, nil
 }
 
-func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineID, "")
 	if err != nil {
 		return nil, 0, "", err
@@ -463,9 +463,9 @@ func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *
 			}
 		}
 		// Filter by tags if tag filters are provided
-		if len(tagFilters) > 0 {
+		if len(resolvedTagFilters) > 0 {
 			match := true
-			for key, value := range tagFilters {
+			for key, value := range resolvedTagFilters {
 				if k8sPipelineVersion.Spec.Tags[key] != value {
 					match = false
 					break

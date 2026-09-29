@@ -17,17 +17,7 @@ images:
   newTag: master
 - name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
   newTag: master
-- name: ghcr.io/kubeflow/kfp-cache-deployer
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-cache-server
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-metadata-envoy
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-metadata-writer
-  newTag: master
 - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-visualization-server
   newTag: master
 - name: ghcr.io/kubeflow/kfp-inverse-proxy-agent
   newTag: master

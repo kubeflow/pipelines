@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+import { NavigationProps } from 'src/lib/Navigation';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import * as React from 'react';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router';
 import {
   V2beta1PipelineVersion,
   V2beta1ListPipelineVersionsResponse,
@@ -28,7 +29,7 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss } from 'src/Css';
 import { Tooltip } from '@mui/material';
 
-export interface PipelineVersionListProps extends RouteComponentProps {
+export interface PipelineVersionListProps extends NavigationProps {
   pipelineId?: string;
   disablePaging?: boolean;
   disableSelection?: boolean;

@@ -13,43 +13,41 @@
 # limitations under the License.
 
 from kfp import compiler
-from kfp import components
 from kfp import dsl
 
-component_op_1 = components.load_component_from_text("""
-name: Write to GCS
-inputs:
-- {name: text, type: String, description: 'Content to be written to GCS'}
-outputs:
-- {name: output_gcs_path, type: GCSPath, description: 'GCS file path'}
-implementation:
-  container:
-    image: google/cloud-sdk:slim
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "$0" | gsutil cp - "$1"
-    - {inputValue: text}
-    - {outputUri: output_gcs_path}
-""")
 
-component_op_2 = components.load_component_from_text("""
-name: Read from GCS
-inputs:
-- {name: input_gcs_path, type: GCSPath, description: 'GCS file path'}
-implementation:
-  container:
-    image: google/cloud-sdk:slim
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      gsutil cat "$0"
-    - {inputUri: input_gcs_path}
-""")
+@dsl.container_component
+def write_to_gcs(text: str, output_gcs_path: dsl.Output[dsl.Artifact]):
+    """
+    Args:
+        text: Content to be written to GCS
+        output_gcs_path: GCS file path"""
+    return dsl.ContainerSpec(
+        image='google/cloud-sdk:slim',
+        command=[
+            'sh', '-c', 'set -e -x\necho "$0" | gsutil cp - "$1"\n', text,
+            output_gcs_path.uri
+        ],
+    )
+
+
+component_op_1 = write_to_gcs
+
+
+@dsl.container_component
+def read_from_gcs(input_gcs_path: dsl.Input[dsl.Artifact]):
+    """
+    Args:
+        input_gcs_path: GCS file path"""
+    return dsl.ContainerSpec(
+        image='google/cloud-sdk:slim',
+        command=[
+            'sh', '-c', 'set -e -x\ngsutil cat "$0"\n', input_gcs_path.uri
+        ],
+    )
+
+
+component_op_2 = read_from_gcs
 
 
 @dsl.pipeline(name='simple-two-step-pipeline')

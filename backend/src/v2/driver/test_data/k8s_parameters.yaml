@@ -1,0 +1,829 @@
+# PIPELINE DEFINITION
+# Name: primary-pipeline
+# Inputs:
+#    configmap_parm: str [Default: 'cfg-2']
+#    container_image: str [Default: 'python:3.9']
+#    cpu_limit: str [Default: '200m']
+#    default_node_affinity_input: dict [Default: {'requiredDuringSchedulingIgnoredDuringExecution': {'nodeSelectorTerms': [{'matchExpressions': [{'operator': 'In', 'values': ['linux'], 'key': 'kubernetes.io/os'}]}]}}]
+#    empty_dir_mnt_path: str [Default: '/empty_dir/path']
+#    field_path: str [Default: 'spec.serviceAccountName']
+#    memory_limit: str [Default: '500Mi']
+#    node_selector_input: dict [Default: {'kubernetes.io/os': 'linux'}]
+#    pull_secret_1: str [Default: 'pull-secret-1']
+#    pull_secret_2: str [Default: 'pull-secret-2']
+#    pull_secret_3: str [Default: 'pull-secret-3']
+#    pvc_name_suffix_input: str [Default: '-pvc-1']
+#    secret_param: str [Default: 'secret-2']
+#    tolerations_dict_input: dict [Default: {'operator': 'Equal', 'effect': 'NoSchedule', 'value': 'value3', 'key': 'some_foo_key6'}]
+#    tolerations_list_input: list [Default: [{'operator': 'Equal', 'effect': 'NoSchedule', 'value': 'value2', 'key': 'some_foo_key4'}, {'operator': 'Exists', 'effect': 'NoExecute', 'key': 'some_foo_key5'}]]
+components:
+  comp-assert-values:
+    executorLabel: exec-assert-values
+  comp-assert-values-three:
+    executorLabel: exec-assert-values-three
+  comp-assert-values-two:
+    executorLabel: exec-assert-values-two
+  comp-cfg-name-generator:
+    executorLabel: exec-cfg-name-generator
+    outputDefinitions:
+      parameters:
+        some_output:
+          parameterType: STRING
+  comp-createpvc:
+    executorLabel: exec-createpvc
+    inputDefinitions:
+      parameters:
+        access_modes:
+          description: 'AccessModes to request for the provisioned PVC. May
+
+            be one or more of ``''ReadWriteOnce''``, ``''ReadOnlyMany''``, ``''ReadWriteMany''``,
+            or
+
+            ``''ReadWriteOncePod''``. Corresponds to `PersistentVolumeClaim.spec.accessModes
+            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.'
+          parameterType: LIST
+        annotations:
+          description: Annotations for the PVC's metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+          isOptional: true
+          parameterType: STRUCT
+        pvc_name:
+          description: 'Name of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
+            Only one of ``pvc_name`` and ``pvc_name_suffix`` can
+
+            be provided.'
+          isOptional: true
+          parameterType: STRING
+        pvc_name_suffix:
+          description: 'Prefix to use for a dynamically generated name, which
+
+            will take the form ``<argo-workflow-name>-<pvc_name_suffix>``. Only one
+
+            of ``pvc_name`` and ``pvc_name_suffix`` can be provided.'
+          isOptional: true
+          parameterType: STRING
+        size:
+          description: The size of storage requested by the PVC that will be provisioned.
+            For example, ``'5Gi'``. Corresponds to `PersistentVolumeClaim.spec.resources.requests.storage
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
+          parameterType: STRING
+        storage_class_name:
+          defaultValue: ''
+          description: 'Name of StorageClass from which to provision the PV
+
+            to back the PVC. ``None`` indicates to use the cluster''s default
+
+            storage_class_name. Set to ``''''`` for a statically specified PVC.'
+          isOptional: true
+          parameterType: STRING
+        volume_name:
+          description: 'Pre-existing PersistentVolume that should back the
+
+            provisioned PersistentVolumeClaim. Used for statically
+
+            specified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        name:
+          parameterType: STRING
+  comp-deletepvc:
+    executorLabel: exec-deletepvc
+    inputDefinitions:
+      parameters:
+        pvc_name:
+          description: Name of the PVC to delete. Supports passing a runtime-generated
+            name, such as a name provided by ``kubernetes.CreatePvcOp().outputs['name']``.
+          parameterType: STRING
+  comp-generate-requests-resources:
+    executorLabel: exec-generate-requests-resources
+    outputDefinitions:
+      parameters:
+        cpu_request_out:
+          parameterType: STRING
+        memory_request_out:
+          parameterType: STRING
+  comp-get-access-mode:
+    executorLabel: exec-get-access-mode
+    outputDefinitions:
+      parameters:
+        access_mode:
+          parameterType: LIST
+  comp-get-node-affinity:
+    executorLabel: exec-get-node-affinity
+    outputDefinitions:
+      parameters:
+        node_affinity:
+          parameterType: STRUCT
+  comp-secondary-pipeline:
+    dag:
+      tasks:
+        assert-values-three:
+          cachingOptions: {}
+          componentRef:
+            name: comp-assert-values-three
+          taskInfo:
+            name: assert-values-three
+    inputDefinitions:
+      parameters:
+        train_tolerations:
+          parameterType: LIST
+  comp-secret-name-generator:
+    executorLabel: exec-secret-name-generator
+    outputDefinitions:
+      parameters:
+        some_output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-assert-values:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - assert_values
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kubernetes'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef assert_values():\n    import os\n    from kubernetes import client,\
+          \ config\n\n    cfg_key_1 = os.getenv(\"CFG_KEY_1\", \"didn't work\")\n\
+          \    cfg_key_2 = os.getenv(\"CFG_KEY_2\", \"didn't work\")\n    cfg_key_3\
+          \ = os.getenv(\"CFG_KEY_3\", \"didn't work\")\n    cfg_key_4 = os.getenv(\"\
+          CFG_KEY_4\", \"didn't work\")\n\n    assert cfg_key_1 == \"value1\"\n  \
+          \  assert cfg_key_2 == \"value2\"\n    assert cfg_key_3 == \"value3\"\n\
+          \    assert cfg_key_4 == \"value4\"\n\n    with open('/tmp/config_map/cfgKey3',\
+          \ 'r') as f:\n        assert f.read() == \"value3\"\n\n    secret_key_1\
+          \ = os.getenv(\"SECRET_KEY_1\", \"didn't work\")\n    secret_key_2 = os.getenv(\"\
+          SECRET_KEY_2\", \"didn't work\")\n    secret_key_3 = os.getenv(\"SECRET_KEY_3\"\
+          , \"didn't work\")\n    secret_key_4 = os.getenv(\"SECRET_KEY_4\", \"didn't\
+          \ work\")\n\n    assert secret_key_1 == \"value1\"\n    assert secret_key_2\
+          \ == \"value2\"\n    assert secret_key_3 == \"value3\"\n    assert secret_key_4\
+          \ == \"value4\"\n\n    with open('/tmp/secret/secretKey3', 'r') as f:\n\
+          \        assert f.read() == \"value3\"\n\n    # Get pod YAML\n    config.load_incluster_config()\n\
+          \    v1 = client.CoreV1Api()\n    pod_name = os.getenv('HOSTNAME')\n   \
+          \ namespace = open('/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()\n\
+          \    pod = v1.read_namespaced_pod(pod_name, namespace)\n\n    # Get pod's\
+          \ pull secrets\n    print(\"\\nPod Pull Secrets:\")\n    pull_secrets =\
+          \ []\n    if pod.spec.image_pull_secrets:\n        for secret in pod.spec.image_pull_secrets:\n\
+          \            print(f\"Secret name: {secret.name}\")\n            pull_secrets.append(secret.name)\n\
+          \n    assert len(pull_secrets) == 6\n    print(pull_secrets)\n    assert\
+          \ pull_secrets == ['pull-secret-1', 'pull-secret-2', 'pull-secret-1', 'pull-secret-2',\
+          \ 'pull-secret-3', 'pull-secret-4']\n\n    # Get pod's node selector\n \
+          \   print(\"\\nPod Node Selector:\")\n    node_selector = pod.spec.node_selector\n\
+          \    print(node_selector)\n    if node_selector:\n        for key, value\
+          \ in node_selector.items():\n            print(f\"Node selector {key}: {value}\"\
+          )\n\n    assert node_selector == {\"kubernetes.io/arch\": \"amd64\",}\n\n\
+          \    # Get pod's tolerations\n    print(\"\\nPod Tolerations:\")\n    tolerations\
+          \ = pod.spec.tolerations\n    print(tolerations)\n\n    # Get pod's node\
+          \ affinity\n    print(\"\\nPod Node Affinity:\")\n    node_affinity = pod.spec.affinity.node_affinity\
+          \ if pod.spec.affinity else None\n    print(node_affinity)\n\n    # Helper\
+          \ function to check node affinity match expression\n    def has_match_expression(expressions,\
+          \ key, operator, values):\n        for expr in expressions:\n          \
+          \  if (expr.key == key and\n                    expr.operator == operator\
+          \ and\n                    expr.values == values):\n                return\
+          \ True\n        return False\n\n    # Check node affinity rules\n    assert\
+          \ node_affinity is not None\n    required_terms = node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms\n\
+          \    assert len(required_terms) == 1\n    match_expressions = required_terms[0].match_expressions\n\
+          \    assert len(match_expressions) == 1\n    assert has_match_expression(match_expressions,\
+          \ \"kubernetes.io/os\", \"In\", [\"linux\"])\n\n    # Helper function to\
+          \ check if a toleration exists\n    def has_toleration(key, effect, operator,\
+          \ value=None, toleration_seconds=None):\n        for t in tolerations:\n\
+          \            if (t.key == key and\n                t.effect == effect and\n\
+          \                t.operator == operator and\n                t.value ==\
+          \ value and\n                t.toleration_seconds == toleration_seconds):\n\
+          \                return True\n        return False\n\n    # Check each toleration\
+          \ individually\n    assert has_toleration('some_foo_key1', 'NoSchedule',\
+          \ 'Equal', 'value1')\n    assert has_toleration('some_foo_key2', 'NoExecute',\
+          \ 'Exists')\n    assert has_toleration('some_foo_key3', 'NoSchedule', 'Equal',\
+          \ 'value1')\n    assert has_toleration('some_foo_key4', 'NoSchedule', 'Equal',\
+          \ 'value2')\n    assert has_toleration('some_foo_key5', 'NoExecute', 'Exists')\n\
+          \    assert has_toleration('some_foo_key6', 'NoSchedule', 'Equal', 'value3')\n\
+          \n    # Get pod's PVCs and Empty Dir\n    print(\"\\nPod Volumes and PVCs:\"\
+          )\n    volumes = pod.spec.volumes\n    pvcs = []\n    empty_dir = []\n \
+          \   if volumes:\n        for volume in volumes:\n            if volume.persistent_volume_claim:\n\
+          \                print(f\"Volume name: {volume.name}\")\n              \
+          \  print(f\"PVC name: {volume.persistent_volume_claim.claim_name}\")\n \
+          \               pvcs.append(volume.persistent_volume_claim)\n    assert\
+          \ len(pvcs) == 1\n    assert pvcs[0].claim_name.endswith('pvc-1')\n\n"
+        image: '{{$.inputs.parameters[''pipelinechannel--container_image'']}}'
+        resources:
+          resourceCpuLimit: '{{$.inputs.parameters[''pipelinechannel--cpu_limit'']}}'
+          resourceCpuRequest: '{{$.inputs.parameters[''pipelinechannel--generate-requests-resources-cpu_request_out'']}}'
+          resourceMemoryLimit: '{{$.inputs.parameters[''pipelinechannel--memory_limit'']}}'
+          resourceMemoryRequest: '{{$.inputs.parameters[''pipelinechannel--generate-requests-resources-memory_request_out'']}}'
+    exec-assert-values-three:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - assert_values_three
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kubernetes'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef assert_values_three():\n    from kubernetes import client, config\n\
+          \    import os\n\n    # Get pod YAML\n    config.load_incluster_config()\n\
+          \    v1 = client.CoreV1Api()\n    pod_name = os.getenv('HOSTNAME')\n   \
+          \ namespace = open('/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()\n\
+          \    pod = v1.read_namespaced_pod(pod_name, namespace)\n\n    tolerations\
+          \ = pod.spec.tolerations\n    print(tolerations)\n\n    # Helper function\
+          \ to check if a toleration exists\n    def has_toleration(key, effect, operator,\
+          \ value=None, toleration_seconds=None):\n        for t in tolerations:\n\
+          \            if (t.key == key and\n                    t.effect == effect\
+          \ and\n                    t.operator == operator and\n                \
+          \    t.value == value and\n                    t.toleration_seconds == toleration_seconds):\n\
+          \                return True\n        return False\n\n    # Check toleration\n\
+          \    assert has_toleration('some_foo_key4', 'NoSchedule', 'Equal', 'value2')\n\
+          \    assert has_toleration('some_foo_key5', 'NoExecute', 'Exists')\n\n"
+        image: python:3.11
+    exec-assert-values-two:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - assert_values_two
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kubernetes'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef assert_values_two():\n    from kubernetes import client, config\n\
+          \    import os\n\n    # Get pod YAML\n    config.load_incluster_config()\n\
+          \    v1 = client.CoreV1Api()\n    pod_name = os.getenv('HOSTNAME')\n   \
+          \ namespace = open('/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()\n\
+          \    pod = v1.read_namespaced_pod(pod_name, namespace)\n\n    print(\"\\\
+          nPod Node Selector:\")\n    node_selector = pod.spec.node_selector\n   \
+          \ print(node_selector)\n    assert node_selector == {\"kubernetes.io/os\"\
+          : \"linux\"}\n\n    # Get pod's node affinity\n    print(\"\\nPod Node Affinity:\"\
+          )\n    node_affinity = pod.spec.affinity.node_affinity if pod.spec.affinity\
+          \ else None\n    print(node_affinity)\n\n    # Helper function to check\
+          \ node affinity match expression\n    def has_match_expression(expressions,\
+          \ key, operator, values):\n        for expr in expressions:\n          \
+          \  if (expr.key == key and\n                    expr.operator == operator\
+          \ and\n                    expr.values == values):\n                return\
+          \ True\n        return False\n\n    # Check node affinity rules\n    assert\
+          \ node_affinity is not None\n    required_terms = node_affinity.required_during_scheduling_ignored_during_execution.node_selector_terms\n\
+          \    assert len(required_terms) == 1\n    match_expressions = required_terms[0].match_expressions\n\
+          \    assert len(match_expressions) == 1\n    assert has_match_expression(match_expressions,\
+          \ \"kubernetes.io/os\", \"In\", [\"linux\"])\n\n"
+        image: python:3.11
+    exec-cfg-name-generator:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - cfg_name_generator
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef cfg_name_generator(some_output: OutputPath(str)):\n    configmap_name\
+          \ = \"cfg-3\"\n    with open(some_output, 'w') as f:\n        f.write(configmap_name)\n\
+          \n"
+        image: python:3.11
+    exec-createpvc:
+      container:
+        image: argostub/createpvc
+    exec-deletepvc:
+      container:
+        image: argostub/deletepvc
+    exec-generate-requests-resources:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - generate_requests_resources
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef generate_requests_resources(cpu_request_out: OutputPath(str),\
+          \ memory_request_out: OutputPath(str)):\n    with open(cpu_request_out,\
+          \ 'w') as f:\n        f.write('100m')\n    with open(memory_request_out,\
+          \ 'w') as f:\n        f.write('500Mi')\n\n"
+        image: python:3.11
+    exec-get-access-mode:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_access_mode
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_access_mode(access_mode: OutputPath(List[str])):\n    import\
+          \ json\n    with open(access_mode, 'w') as f:\n        f.write(json.dumps([\"\
+          ReadWriteOnce\"]))\n\n"
+        image: python:3.11
+    exec-get-node-affinity:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_node_affinity
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_node_affinity(node_affinity: OutputPath(dict)):\n    import\
+          \ json\n    with open(node_affinity, 'w') as f:\n        f.write(json.dumps(\n\
+          \            {\n                \"requiredDuringSchedulingIgnoredDuringExecution\"\
+          : {\n                    \"nodeSelectorTerms\": [\n                    \
+          \    {\n                            \"matchExpressions\": [\n          \
+          \                      {\n                                    \"key\": \"\
+          kubernetes.io/os\",\n                                    \"operator\": \"\
+          In\",\n                                    \"values\": [\"linux\"]\n   \
+          \                             }\n                            ]\n       \
+          \                 }\n                    ]\n                }\n        \
+          \    }\n        ))\n\n"
+        image: python:3.11
+    exec-secret-name-generator:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - secret_name_generator
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef secret_name_generator(some_output: OutputPath(str)):\n    secret_name\
+          \ = \"secret-3\"\n    with open(some_output, 'w') as f:\n        f.write(secret_name)\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  name: primary-pipeline
+root:
+  dag:
+    tasks:
+      assert-values:
+        cachingOptions: {}
+        componentRef:
+          name: comp-assert-values
+        dependentTasks:
+        - cfg-name-generator
+        - createpvc
+        - get-node-affinity
+        - secret-name-generator
+        inputs:
+          parameters:
+            base_image:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--container_image'']}}'
+            cpu_limit:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--cpu_limit'']}}'
+            cpu_request:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--generate-requests-resources-cpu_request_out'']}}'
+            memory_limit:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--memory_limit'']}}'
+            memory_request:
+              runtimeValue:
+                constant: '{{$.inputs.parameters[''pipelinechannel--generate-requests-resources-memory_request_out'']}}'
+            pipelinechannel--container_image:
+              componentInputParameter: container_image
+            pipelinechannel--cpu_limit:
+              componentInputParameter: cpu_limit
+            pipelinechannel--generate-requests-resources-cpu_request_out:
+              taskOutputParameter:
+                outputParameterKey: cpu_request_out
+                producerTask: generate-requests-resources
+            pipelinechannel--generate-requests-resources-memory_request_out:
+              taskOutputParameter:
+                outputParameterKey: memory_request_out
+                producerTask: generate-requests-resources
+            pipelinechannel--memory_limit:
+              componentInputParameter: memory_limit
+        taskInfo:
+          name: assert-values
+      assert-values-two:
+        cachingOptions: {}
+        componentRef:
+          name: comp-assert-values-two
+        taskInfo:
+          name: assert-values-two
+      cfg-name-generator:
+        cachingOptions: {}
+        componentRef:
+          name: comp-cfg-name-generator
+        taskInfo:
+          name: cfg-name-generator
+      createpvc:
+        cachingOptions: {}
+        componentRef:
+          name: comp-createpvc
+        dependentTasks:
+        - get-access-mode
+        inputs:
+          parameters:
+            access_modes:
+              taskOutputParameter:
+                outputParameterKey: access_mode
+                producerTask: get-access-mode
+            pvc_name_suffix:
+              componentInputParameter: pvc_name_suffix_input
+            size:
+              runtimeValue:
+                constant: 5Mi
+        taskInfo:
+          name: createpvc
+      deletepvc:
+        cachingOptions: {}
+        componentRef:
+          name: comp-deletepvc
+        dependentTasks:
+        - assert-values
+        - createpvc
+        inputs:
+          parameters:
+            pvc_name:
+              taskOutputParameter:
+                outputParameterKey: name
+                producerTask: createpvc
+        taskInfo:
+          name: deletepvc
+      generate-requests-resources:
+        cachingOptions: {}
+        componentRef:
+          name: comp-generate-requests-resources
+        taskInfo:
+          name: generate-requests-resources
+      get-access-mode:
+        cachingOptions: {}
+        componentRef:
+          name: comp-get-access-mode
+        taskInfo:
+          name: get-access-mode
+      get-node-affinity:
+        cachingOptions: {}
+        componentRef:
+          name: comp-get-node-affinity
+        taskInfo:
+          name: get-node-affinity
+      secondary-pipeline:
+        cachingOptions: {}
+        componentRef:
+          name: comp-secondary-pipeline
+        inputs:
+          parameters:
+            train_tolerations:
+              componentInputParameter: tolerations_list_input
+        taskInfo:
+          name: secondary-pipeline
+      secret-name-generator:
+        cachingOptions: {}
+        componentRef:
+          name: comp-secret-name-generator
+        taskInfo:
+          name: secret-name-generator
+  inputDefinitions:
+    parameters:
+      configmap_parm:
+        defaultValue: cfg-2
+        isOptional: true
+        parameterType: STRING
+      container_image:
+        defaultValue: python:3.9
+        isOptional: true
+        parameterType: STRING
+      cpu_limit:
+        defaultValue: 200m
+        isOptional: true
+        parameterType: STRING
+      default_node_affinity_input:
+        defaultValue:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+        isOptional: true
+        parameterType: STRUCT
+      empty_dir_mnt_path:
+        defaultValue: /empty_dir/path
+        isOptional: true
+        parameterType: STRING
+      field_path:
+        defaultValue: spec.serviceAccountName
+        isOptional: true
+        parameterType: STRING
+      memory_limit:
+        defaultValue: 500Mi
+        isOptional: true
+        parameterType: STRING
+      node_selector_input:
+        defaultValue:
+          kubernetes.io/os: linux
+        isOptional: true
+        parameterType: STRUCT
+      pull_secret_1:
+        defaultValue: pull-secret-1
+        isOptional: true
+        parameterType: STRING
+      pull_secret_2:
+        defaultValue: pull-secret-2
+        isOptional: true
+        parameterType: STRING
+      pull_secret_3:
+        defaultValue: pull-secret-3
+        isOptional: true
+        parameterType: STRING
+      pvc_name_suffix_input:
+        defaultValue: -pvc-1
+        isOptional: true
+        parameterType: STRING
+      secret_param:
+        defaultValue: secret-2
+        isOptional: true
+        parameterType: STRING
+      tolerations_dict_input:
+        defaultValue:
+          effect: NoSchedule
+          key: some_foo_key6
+          operator: Equal
+          value: value3
+        isOptional: true
+        parameterType: STRUCT
+      tolerations_list_input:
+        defaultValue:
+        - effect: NoSchedule
+          key: some_foo_key4
+          operator: Equal
+          value: value2
+        - effect: NoExecute
+          key: some_foo_key5
+          operator: Exists
+        isOptional: true
+        parameterType: LIST
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-assert-values:
+          configMapAsEnv:
+          - configMapName: cfg-1
+            configMapNameParameter:
+              runtimeValue:
+                constant: cfg-1
+            keyToEnv:
+            - configMapKey: cfgKey1
+              envVar: CFG_KEY_1
+            - configMapKey: cfgKey2
+              envVar: CFG_KEY_2
+            optional: false
+          - configMapNameParameter:
+              componentInputParameter: configmap_parm
+            keyToEnv:
+            - configMapKey: cfgKey3
+              envVar: CFG_KEY_3
+            optional: false
+          - configMapNameParameter:
+              taskOutputParameter:
+                outputParameterKey: some_output
+                producerTask: cfg-name-generator
+            keyToEnv:
+            - configMapKey: cfgKey4
+              envVar: CFG_KEY_4
+            optional: false
+          configMapAsVolume:
+          - configMapNameParameter:
+              componentInputParameter: configmap_parm
+            mountPath: /tmp/config_map
+            optional: false
+          imagePullSecret:
+          - secretNameParameter:
+              componentInputParameter: pull_secret_1
+          - secretNameParameter:
+              componentInputParameter: pull_secret_2
+          - secretName: pull-secret-1
+            secretNameParameter:
+              runtimeValue:
+                constant: pull-secret-1
+          - secretName: pull-secret-2
+            secretNameParameter:
+              runtimeValue:
+                constant: pull-secret-2
+          - secretNameParameter:
+              componentInputParameter: pull_secret_3
+          - secretName: pull-secret-4
+            secretNameParameter:
+              runtimeValue:
+                constant: pull-secret-4
+          nodeAffinity:
+          - nodeAffinityJson:
+              taskOutputParameter:
+                outputParameterKey: node_affinity
+                producerTask: get-node-affinity
+          nodeSelector:
+            nodeSelectorJson:
+              runtimeValue:
+                constant:
+                  kubernetes.io/arch: amd64
+          pvcMount:
+          - mountPath: /pvc/path
+            pvcNameParameter:
+              taskOutputParameter:
+                outputParameterKey: name
+                producerTask: createpvc
+            taskOutputParameter:
+              outputParameterKey: name
+              producerTask: createpvc
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: SECRET_KEY_1
+              secretKey: secretKey1
+            - envVar: SECRET_KEY_2
+              secretKey: secretKey2
+            optional: false
+            secretName: secret-1
+            secretNameParameter:
+              runtimeValue:
+                constant: secret-1
+          - keyToEnv:
+            - envVar: SECRET_KEY_3
+              secretKey: secretKey3
+            optional: false
+            secretNameParameter:
+              componentInputParameter: secret_param
+          - keyToEnv:
+            - envVar: SECRET_KEY_4
+              secretKey: secretKey4
+            optional: false
+            secretNameParameter:
+              taskOutputParameter:
+                outputParameterKey: some_output
+                producerTask: secret-name-generator
+          secretAsVolume:
+          - mountPath: /tmp/secret
+            optional: false
+            secretNameParameter:
+              componentInputParameter: secret_param
+          tolerations:
+          - effect: NoSchedule
+            key: some_foo_key1
+            operator: Equal
+            value: value1
+          - effect: NoExecute
+            key: some_foo_key2
+            operator: Exists
+          - effect: NoSchedule
+            key: some_foo_key3
+            operator: Equal
+            value: value1
+          - tolerationJson:
+              componentInputParameter: tolerations_dict_input
+          - tolerationJson:
+              componentInputParameter: tolerations_list_input
+        exec-assert-values-three:
+          tolerations:
+          - tolerationJson:
+              componentInputParameter: train_tolerations
+        exec-assert-values-two:
+          nodeAffinity:
+          - nodeAffinityJson:
+              componentInputParameter: default_node_affinity_input
+          nodeSelector:
+            nodeSelectorJson:
+              componentInputParameter: node_selector_input

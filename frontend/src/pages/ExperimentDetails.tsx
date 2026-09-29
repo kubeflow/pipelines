@@ -28,7 +28,7 @@ import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from 'src/Css';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
@@ -131,8 +131,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _getRunInitialToolBarButtons(): Buttons {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     buttons
-      .newRun(() => this.props.match.params[RouteParams.experimentId] ?? '')
-      .newRecurringRun(this.props.match.params[RouteParams.experimentId] ?? '')
+      .newRun(() => this.props.params[RouteParams.experimentId] ?? '')
+      .newRecurringRun(this.props.params[RouteParams.experimentId] ?? '')
       .compareRuns(() => this.state.selectedIds)
       .cloneRun(() => this.state.selectedIds, false);
     return buttons;
@@ -144,7 +144,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
-      pageTitle: this.props ? (this.props.match.params[RouteParams.experimentId] ?? '') : '',
+      pageTitle: this.props ? (this.props.params[RouteParams.experimentId] ?? '') : '',
     };
   }
 
@@ -245,7 +245,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               <DialogContent>
                 <RecurringRunsManager
                   {...this.props}
-                  experimentId={this.props.match.params[RouteParams.experimentId] ?? ''}
+                  experimentId={this.props.params[RouteParams.experimentId] ?? ''}
                 />
               </DialogContent>
               <DialogActions>
@@ -277,12 +277,12 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   public async load(isFirstTimeLoad: boolean = false): Promise<void> {
     this.clearBanner();
 
-    const experimentId = this.props.match.params[RouteParams.experimentId] ?? '';
+    const experimentId = this.props.params[RouteParams.experimentId] ?? '';
 
     try {
       const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
       const pageTitle =
-        experiment.display_name || (this.props.match.params[RouteParams.experimentId] ?? '');
+        experiment.display_name || (this.props.params[RouteParams.experimentId] ?? '');
 
       // Update the Archive/Restore button based on the storage state of this experiment.
       const buttons = new Buttons(
@@ -437,7 +437,7 @@ const EnhancedExperimentDetails: React.FC<PageProps> = (props) => {
   // So we redirect to experiment list page instead.
   const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate replace to={RoutePage.EXPERIMENTS} />;
   }
 
   return <ExperimentDetails {...props} />;

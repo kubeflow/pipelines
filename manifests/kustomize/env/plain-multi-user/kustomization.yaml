@@ -3,16 +3,12 @@ kind: Kustomization
 
 resources:
 - ../../base/installs/multi-user
-- ../../base/metadata/base
-- ../../base/metadata/options/istio
 - ../../third-party/mysql/base
 - ../../third-party/mysql/options/istio
 - ../../third-party/seaweedfs/istio
 - ../../third-party/metacontroller/base
 
 
-# !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
 
 # Identifier for application manager to apply ownerReference.

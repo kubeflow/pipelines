@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
+import { NavigationProps } from 'src/lib/Navigation';
 import { QUERY_PARAMS } from '../components/Router';
-import { RouteComponentProps } from 'react-router';
 
 export class URLParser {
   private _paramMap: URLSearchParams;
-  private _routeProps: RouteComponentProps;
+  private _routeProps: NavigationProps;
 
-  constructor(routeProps: RouteComponentProps) {
+  constructor(routeProps: NavigationProps) {
     this._routeProps = routeProps;
     this._paramMap = new URLSearchParams(routeProps.location.search);
   }
@@ -65,10 +65,9 @@ export class URLParser {
   }
 
   private _update(replace = true): void {
-    if (replace) {
-      this._routeProps.history.replace({ search: this._paramMap.toString() });
-    } else {
-      this._routeProps.history.push({ search: this._paramMap.toString() });
-    }
+    this._routeProps.navigate(
+      { pathname: this._routeProps.location.pathname, search: this._paramMap.toString() },
+      { replace },
+    );
   }
 }

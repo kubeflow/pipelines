@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -32,7 +32,7 @@ func TestListK8sPipelines(t *testing.T) {
 	fc := &model.FilterContext{}
 	options := list.EmptyOptions()
 
-	_, size, _, err := store.ListPipelines(fc, options, nil)
+	_, size, _, err := store.ListPipelines(fc, options)
 	require.Nil(t, err, "Failed to list all pipelines: %v")
 	require.Equalf(t, size, 1, "List size is not zero")
 
@@ -45,7 +45,7 @@ func TestListK8sPipelines(t *testing.T) {
 	_, err = store.CreatePipeline(pipeline)
 	require.Nil(t, err, "Failed to create Pipeline: %v", err)
 
-	_, size, _, err = store.ListPipelines(fc, options, nil)
+	_, size, _, err = store.ListPipelines(fc, options)
 	require.Nil(t, err, "Failed to list all pipelines: %v", err)
 	require.Equalf(t, size, 2, "List size should not be zero")
 }
@@ -68,9 +68,9 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "test"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "test"},
 			},
 		},
 	}
@@ -78,7 +78,7 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "id", newFilter)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, _, _, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, _, _, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.Equalf(t, len(pipelines), 2, "List size should return 2")
 }
@@ -109,14 +109,14 @@ func TestListK8sPipelines_Pagination(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
 	require.Nil(t, err1, "Failed to create list options: %v")
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
 }
@@ -147,13 +147,14 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "name desc", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	require.NoError(t, err1)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
 }
@@ -184,13 +185,14 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "name", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	require.NoError(t, err1)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-1", "Pagination failed")
 }
@@ -205,7 +207,7 @@ func TestListK8sPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, pageSize, _, err := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, pageSize, _, err := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err, "Failed to list pipelines: %v")
 	require.Equalf(t, pageSize, 1, "Page size should be 1")
 	require.Equalf(t, len(pipelines), 1, "List size should be 1")
@@ -234,6 +236,46 @@ func TestGetK8sPipeline_NotFoundError(t *testing.T) {
 
 	_, err := store.GetPipeline(DefaultFakePipelineIdFive)
 	require.NotNil(t, err)
+}
+
+func TestGetK8sPipelineByNameAndNamespace_SingleUserDefaultsToPodNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	// Set the mode explicitly rather than relying on the ambient global, so this
+	// case establishes single-user on its own.
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "false")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	// Single-user mode has one namespace, so the fallback stays correct.
+	pipeline, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "")
+	require.NoError(t, err)
+	assert.Equal(t, "test-pipeline-3", pipeline.Name)
+}
+
+func TestGetK8sPipelineByNameAndNamespace_MultiUserRequiresNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "true")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	// "test-pipeline-3" lives in the pod namespace, which must not be reachable without naming it.
+	_, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "")
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+
+	pipeline, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "Test")
+	require.NoError(t, err)
+	assert.Equal(t, "test-pipeline-3", pipeline.Name)
 }
 
 func TestCreateK8sPipeline(t *testing.T) {
@@ -376,14 +418,14 @@ func TestListK8sPipelineVersions_Pagination(t *testing.T) {
 	options, err := list.NewOptions(&model.PipelineVersion{}, 1, "", nil)
 	require.Nil(t, err, "Failed to create list options")
 
-	pipelineVersions, _, npt, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, npt, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.NotNil(t, npt, "Npt should not be nil")
 
 	options, err = list.NewOptionsFromToken(npt, 1)
 	require.Nil(t, err, "Failed to create list options")
-	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.Equalf(t, pipelineVersions[0].Name, "test-pipeline-version-3", "Pagination did not work as expected")
@@ -415,7 +457,7 @@ func TestListK8sPipelineVersions_Pagination_Descend(t *testing.T) {
 
 	options, err := list.NewOptions(&model.PipelineVersion{}, 1, "name desc", nil)
 
-	pipelineVersions, _, _, err1 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err1 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err1, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.Equalf(t, pipelineVersions[0].Name, "test-pipeline-version-3", "Pagination did not work as expected")
@@ -431,7 +473,7 @@ func TestListK8sPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, pageSize, _, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelines, pageSize, _, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline Versions: %v")
 	require.Equalf(t, pageSize, 1, "Page size should be 1")
 	require.Equalf(t, len(pipelines), 1, "List size should be 1")
@@ -460,9 +502,9 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "test"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "test"},
 			},
 		},
 	}
@@ -471,7 +513,7 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	options, err1 := list.NewOptions(&model.PipelineVersion{}, 1, "", newFilter)
 	require.Nil(t, err1, "Failed to list pipeline versions: %v", err)
 
-	pipelineVersions, _, _, err2 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err2 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err2, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 }

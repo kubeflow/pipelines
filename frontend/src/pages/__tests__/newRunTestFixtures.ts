@@ -54,13 +54,6 @@ export const ORIGINAL_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
   pipeline_spec: JsYaml.load(v2XGYamlTemplateString) as object,
 };
 
-export const V1_PIPELINE_VERSION = {
-  id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
-  name: ORIGINAL_TEST_PIPELINE_VERSION_NAME,
-  parameters: [],
-  resource_references: [{ key: { id: ORIGINAL_TEST_PIPELINE_ID, type: 'PIPELINE' } }],
-} as any;
-
 export const NEW_EXPERIMENT: V2beta1Experiment = {
   created_at: new Date('2022-07-26T17:44:28Z'),
   experiment_id: 'new-experiment-id',
@@ -70,14 +63,14 @@ export const NEW_EXPERIMENT: V2beta1Experiment = {
 
 export function generatePropsNoPipelineDef(experimentId: string | null): PageProps {
   return {
-    history: { push: vi.fn(), replace: vi.fn() } as any,
+    navigate: vi.fn(),
     location: {
       pathname: RoutePage.NEW_RUN,
       search: experimentId
         ? `?${QUERY_PARAMS.experimentId}=${experimentId}`
         : `?${QUERY_PARAMS.experimentId}=`,
     } as any,
-    match: '' as any,
+    params: {},
     toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
     updateBanner: vi.fn(),
     updateDialog: vi.fn(),
@@ -91,12 +84,12 @@ export function generatePropsNewRun(
   versionId = ORIGINAL_TEST_PIPELINE_VERSION_ID,
 ): PageProps {
   return {
-    history: { push: vi.fn(), replace: vi.fn() } as any,
+    navigate: vi.fn(),
     location: {
       pathname: RoutePage.NEW_RUN,
       search: `?${QUERY_PARAMS.pipelineId}=${pipelineId}&${QUERY_PARAMS.pipelineVersionId}=${versionId}`,
     } as any,
-    match: '' as any,
+    params: {},
     toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
     updateBanner: vi.fn(),
     updateDialog: vi.fn(),

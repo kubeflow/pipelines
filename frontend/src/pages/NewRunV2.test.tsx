@@ -48,7 +48,6 @@ import {
   ORIGINAL_TEST_PIPELINE_VERSION_ID,
   ORIGINAL_TEST_PIPELINE_VERSION_NAME,
   NEW_EXPERIMENT,
-  V1_PIPELINE_VERSION,
 } from './__tests__/newRunTestFixtures';
 
 const V2_XG_PIPELINESPEC_PATH = 'src/data/test/xgboost_sample_pipeline.yaml';
@@ -215,8 +214,7 @@ describe('NewRunV2', () => {
     storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
 
-  const historyPushSpy = vi.fn();
-  const historyReplaceSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const updateBannerSpy = vi.fn();
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
@@ -280,12 +278,12 @@ describe('NewRunV2', () => {
   // For creating new run with no pipeline is selected (enter from run list)
   function generatePropsNoPipelineDef(eid: string | null): PageProps {
     return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      navigate: navigateSpy,
       location: {
         pathname: RoutePage.NEW_RUN,
         search: eid ? `?${QUERY_PARAMS.experimentId}=${eid}` : `?${QUERY_PARAMS.experimentId}=`,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -300,12 +298,12 @@ describe('NewRunV2', () => {
     vid = ORIGINAL_TEST_PIPELINE_VERSION_ID,
   ): PageProps {
     return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      navigate: navigateSpy,
       location: {
         pathname: RoutePage.NEW_RUN,
         search: `?${QUERY_PARAMS.pipelineId}=${pid}&${QUERY_PARAMS.pipelineVersionId}=${vid}`,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -317,12 +315,12 @@ describe('NewRunV2', () => {
   // For clone run process
   function generatePropsClonedRun(): PageProps {
     return {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      navigate: navigateSpy,
       location: {
         pathname: RoutePage.NEW_RUN,
         search: `?${QUERY_PARAMS.cloneFromRun}=${TEST_RUN_ID}`,
       } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a run' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -333,11 +331,6 @@ describe('NewRunV2', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(Apis.pipelineServiceApi, 'getPipeline').mockResolvedValue(ORIGINAL_TEST_PIPELINE);
-    vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion').mockResolvedValue(V1_PIPELINE_VERSION);
-    vi.spyOn(Apis.pipelineServiceApi, 'getPipelineVersionTemplate').mockResolvedValue({
-      template: v2XGYamlTemplateString,
-    });
   });
 
   afterEach(() => {
@@ -372,7 +365,7 @@ describe('NewRunV2', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 
-    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS);
+    expect(navigateSpy).toHaveBeenCalledWith(RoutePage.RECURRING_RUNS);
   });
 
   it('Submit run ', async () => {

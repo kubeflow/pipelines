@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -104,15 +103,6 @@ var runListColumns = []string{
 	"ArchivedAtInSec",
 }
 
-var runMetricsColumns = []string{
-	"RunUUID",
-	"NodeID",
-	"Name",
-	"NumberValue",
-	"Format",
-	"Payload",
-}
-
 // terminalRunStateStrings lists every raw value that a terminal run can carry
 // in the State or Conditions column across schema generations. These are raw
 // database values on purpose: RuntimeState.ToString() normalizes to v2, which
@@ -181,16 +171,20 @@ func NewArchivedRunRetryError(runID string) error {
 }
 
 type RunStoreInterface interface {
-	// Creates a run entry. Does not create children tasks.
+	// CreateRun creates a run entry. Does not create children tasks.
 	CreateRun(run *model.Run) (*model.Run, error)
 
-	// Fetches a run.
-	GetRun(runId string) (*model.Run, error)
+	// GetRun fetches a run.
+	// If hydrateTasks is true, full task details are loaded (expensive operation).
+	// If hydrateTasks is false, only task count is populated (lightweight operation).
+	GetRun(runID string, hydrateTasks bool) (*model.Run, error)
 
-	// Fetches runs with specified options. Joins with children tasks.
-	ListRuns(filterContext *model.FilterContext, opts *list.Options) ([]*model.Run, int, string, error)
+	// ListRuns fetches runs with specified options.
+	// If hydrateTasks is true, full task details are loaded (expensive operation).
+	// If hydrateTasks is false, only task counts are populated (lightweight operation).
+	ListRuns(filterContext *model.FilterContext, opts *list.Options, hydrateTasks bool) ([]*model.Run, int, string, error)
 
-	// Updates a run.
+	// UpdateRun updates a run.
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
 
@@ -221,19 +215,16 @@ type RunStoreInterface interface {
 	// Conditions, etc.) to avoid redundant writes and potential clobbering.
 	UpdateRunPluginsOutput(runID string, pluginsOutput *model.LargeText) error
 
-	// Archives a run.
+	// ArchiveRun archives a run.
 	ArchiveRun(runId string) error
 
-	// Un-archives a run.
+	// UnarchiveRun un-archives a run.
 	UnarchiveRun(runId string) error
 
-	// Deletes a run.
+	// DeleteRun deletes a run.
 	DeleteRun(runId string) error
 
-	// Creates a new metric entry.
-	CreateMetric(metric *model.RunMetric) (err error)
-
-	// Terminates a run.
+	// TerminateRun terminates a run.
 	TerminateRun(runId string) error
 
 	// Checks if a run already exists for a given recurring run and display name.
@@ -264,15 +255,16 @@ type RunStoreInterface interface {
 type RunStore struct {
 	db                     *sql.DB
 	resourceReferenceStore *ResourceReferenceStore
+	taskStore              *TaskStore
 	time                   util.TimeInterface
 	dbDialect              dialect.DBDialect
 }
 
-// Runs two SQL queries in a transaction to return a list of matching runs, as well as their
+// ListRuns runs two SQL queries in a transaction to return a list of matching runs, as well as their
 // total_size. The total_size does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
-	filterContext *model.FilterContext, opts *list.Options,
+	filterContext *model.FilterContext, opts *list.Options, hydrateTasks bool,
 ) ([]*model.Run, int, string, error) {
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
@@ -338,12 +330,35 @@ func (s *RunStore) ListRuns(
 		return errorF(err)
 	}
 
+	// Either hydrate full task details or just populate task counts for the runs we return on this page
 	if len(runs) <= opts.PageSize {
+		if hydrateTasks {
+			if err := s.hydrateTasksForRuns(runs); err != nil {
+				return errorF(err)
+			}
+		} else {
+			if err := s.populateTaskCountsForRuns(runs); err != nil {
+				return errorF(err)
+			}
+		}
 		return runs, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], totalSize, npt, err
+	if err != nil {
+		return errorF(err)
+	}
+	page := runs[:opts.PageSize]
+	if hydrateTasks {
+		if err := s.hydrateTasksForRuns(page); err != nil {
+			return errorF(err)
+		}
+	} else {
+		if err := s.populateTaskCountsForRuns(page); err != nil {
+			return errorF(err)
+		}
+	}
+	return page, totalSize, npt, nil
 }
 
 func getRunListColumns(opts *list.Options) []string {
@@ -388,21 +403,11 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, q)
 
 	if !selectCount {
-		// Convert metric value (string) to float64 for numeric comparison in SQL, generic for all DBs.
-		// Must happen before building the paging subquery since cursor WHERE uses this value.
-		if opts != nil && opts.IsMetricSort() && opts.GetSortByFieldValue() != nil {
-			if strVal, ok := opts.GetSortByFieldValue().(string); ok {
-				if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
-					opts = opts.WithSortByFieldValue(floatVal)
-				}
-			}
-		}
-
 		// Paginate-then-aggregate: build a lightweight subquery that pages by UUID
-		// with cursor WHERE + ORDER BY + LIMIT, then aggregate refs/tasks/metrics
+		// with cursor WHERE + ORDER BY + LIMIT, then aggregate resource references
 		// only for the paged rows.
 		pagedBuilder := s.buildPagedUUIDSubquery(sqlBuilder, opts)
-		sqlBuilder = s.addMetricsResourceReferencesAndTasks(pagedBuilder, opts)
+		sqlBuilder = s.addResourceReferences(pagedBuilder)
 		sqlBuilder = opts.AddOrderByToSelect(sqlBuilder, q, s.dbDialect.StringCollation())
 	}
 	sql, args, err := s.dbDialect.FinalizeSelect(sqlBuilder)
@@ -413,14 +418,14 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 }
 
 // GetRun Get the run manifest from Workflow CRD.
-func (s *RunStore) GetRun(runId string) (*model.Run, error) {
+func (s *RunStore) GetRun(runID string, hydrateTasks bool) (*model.Run, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
-	getRunBuilder := s.addMetricsResourceReferencesAndTasks(
+	getRunBuilder := s.addResourceReferences(
 		qb.Select(dialect.QuoteAll(q, runColumns)...).
 			From(q("run_details")).
-			Where(sq.Eq{q("UUID"): runId}).
-			Limit(1), nil)
+			Where(sq.Eq{q("UUID"): runID}).
+			Limit(1))
 	sql, args, err := s.dbDialect.FinalizeSelect(getRunBuilder)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
@@ -436,45 +441,134 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
 	if len(runs) == 0 {
-		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
+		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runID))
 	}
 	if string(runs[0].WorkflowRuntimeManifest) == "" && string(runs[0].WorkflowSpecManifest) != "" {
 		// This can only happen when workflow reporting is failed.
-		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
+		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runID)
+	}
+
+	// Either hydrate full task details or just populate task count
+	if hydrateTasks {
+		if err := s.hydrateTasksForRuns(runs); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to get run tasks: %v", err)
+		}
+	} else {
+		if err := s.populateTaskCountsForRuns(runs); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to get run task counts: %v", err)
+		}
 	}
 	return runs[0], nil
 }
 
+// hydrateTasksForRuns fetches tasks for the provided runs and assigns them to the Run model.
+// It issues queries using WHERE RunUUID IN (...) and groups results by RunUUID.
+// It also maps artifacts to tasks using artifact_tasks joined with artifacts.
+func (s *RunStore) hydrateTasksForRuns(runs []*model.Run) error {
+	if len(runs) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(runs))
+	index := make(map[string]*model.Run, len(runs))
+	for _, r := range runs {
+		if r == nil || r.UUID == "" {
+			continue
+		}
+		if _, ok := index[r.UUID]; !ok {
+			index[r.UUID] = r
+			ids = append(ids, r.UUID)
+		}
+	}
+
+	// Select only needed columns from tasks; scan and attach in Go.
+	q := s.dbDialect.QuoteIdentifier
+	sqlQuery, args, err := s.dbDialect.QueryBuilder().
+		Select(dialect.QuoteAll(q, taskColumns)...).
+		From(q("tasks")).
+		Where(sq.Eq{q("RunUUID"): ids}).
+		OrderBy(q("RunUUID")+" ASC", q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	rows, err := s.db.Query(sqlQuery, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	// Map tasks by ID for later artifact hydration
+	taskByID := make(map[string]*model.Task)
+	for rows.Next() {
+		task, err := scanTaskRow(rows)
+		if err != nil {
+			return err
+		}
+		taskByID[task.UUID] = task
+		if run, ok := index[task.RunUUID]; ok {
+			if run.Tasks == nil {
+				run.Tasks = []*model.Task{}
+			}
+			run.Tasks = append(run.Tasks, task)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	if len(taskByID) == 0 {
+		return nil
+	}
+
+	// Hydrate artifacts for these tasks using generalized helper
+	allTasks := make([]*model.Task, 0, len(taskByID))
+	for _, t := range taskByID {
+		allTasks = append(allTasks, t)
+	}
+	return hydrateArtifactsForTasks(s.db, allTasks, s.dbDialect)
+}
+
+// populateTaskCountsForRuns fetches task counts for the provided runs and assigns them to the Run model.
+// This is a lightweight alternative to hydrateTasksForRuns that only populates the TaskCount field
+// without performing expensive task hydration.
+func (s *RunStore) populateTaskCountsForRuns(runs []*model.Run) error {
+	if len(runs) == 0 {
+		return nil
+	}
+
+	runIDs := make([]string, 0, len(runs))
+	for _, run := range runs {
+		if run == nil || run.UUID == "" {
+			continue
+		}
+		runIDs = append(runIDs, run.UUID)
+	}
+
+	countsByRunID, err := s.taskStore.GetTaskCountsForRuns(runIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, run := range runs {
+		if run == nil || run.UUID == "" {
+			continue
+		}
+		run.TaskCount = countsByRunID[run.UUID]
+	}
+
+	return nil
+}
+
 // buildPagedUUIDSubquery creates a lightweight subquery that selects only the
 // UUIDs needed for the current page. It applies cursor-based keyset pagination
-// (WHERE + ORDER BY + LIMIT) so that the expensive refs/tasks/metrics
-// aggregation in addMetricsResourceReferencesAndTasks runs only over
+// (WHERE + ORDER BY + LIMIT) so that the expensive resource references
+// aggregation in addResourceReferences runs only over
 // PageSize+1 rows instead of the entire filtered result set.
 func (s *RunStore) buildPagedUUIDSubquery(filteredBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
 	q := s.dbDialect.QuoteIdentifier
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	collation := s.dbDialect.StringCollation()
-
-	if opts.IsMetricSort() {
-		// Metric sort: LEFT JOIN run_metrics to compute sort_metric_value,
-		// then wrap in a subquery so the alias is a real column for WHERE.
-		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
-			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
-
-		metricSubQ := qb.
-			Select("filtered."+q("UUID")).
-			Column(sq.Expr(metricValueExtract, opts.SortByFieldName)).
-			FromSelect(filteredBuilder, "filtered").
-			LeftJoin(fmt.Sprintf("%s AS rm ON filtered.%s=rm.%s",
-				q("run_metrics"), q("UUID"), q("RunUUID"))).
-			GroupBy("filtered." + q("UUID"))
-
-		pageBuilder := qb.
-			Select(q("UUID"), q(model.MetricSortSQLAlias)).
-			FromSelect(metricSubQ, "metric_page")
-
-		return opts.AddPaginationToSelect(pageBuilder, q, collation)
-	}
 
 	// Regular sort: select UUID (+ sort column if different from UUID).
 	columns := []string{q("UUID")}
@@ -485,7 +579,7 @@ func (s *RunStore) buildPagedUUIDSubquery(filteredBuilder sq.SelectBuilder, opts
 	return opts.AddPaginationToSelect(pageBuilder, q, collation)
 }
 
-func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
+func (s *RunStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
 	q := s.dbDialect.QuoteIdentifier
 	// All builders in this function must use Question format.
 	// Reason: squirrel's aliasExpr.ToSql() (used by FromSelect) calls each
@@ -497,7 +591,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
 
-	// Optimization: Only pass UUID and aggregated columns through the 3 LEFT JOINs,
+	// Only pass UUID and reference aggregates through the LEFT JOIN,
 	// then JOIN back to run_details at the end to get all runColumns.
 	// This avoids GROUP BY on LONGTEXT columns (PipelineSpecManifest, WorkflowSpecManifest, etc.)
 	// and improves performance by reducing data transfer through intermediate queries.
@@ -519,83 +613,22 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 			q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
 		GroupBy("filtered." + q("UUID"))
 
-	// Layer 2: LEFT JOIN tasks
-	tasksConcatQuery := s.dbDialect.ConcatExprs(
-		[]string{
-			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false, "tasks."+q("Payload"), ",") + ", '')", "']'",
-		}, "",
-	)
-	columnsAfterJoiningTasks := []string{
-		"rdref." + q("UUID"),
-		"rdref." + q("refs"),
-		tasksConcatQuery + " AS " + q("taskDetails"),
-	}
-	subQ = qb.
-		Select(columnsAfterJoiningTasks...).
-		FromSelect(subQ, "rdref").
-		LeftJoin(fmt.Sprintf("%s AS tasks ON rdref.%s=tasks.%s",
-			q("tasks"), q("UUID"), q("RunUUID"))).
-		GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
-
-	// Layer 3: LEFT JOIN run_metrics
-	// This layer does two things:
-	// 1. Aggregate all metrics into a JSON array for display
-	// 2. Extract the specific metric for sorting (if sortByFieldName is a metric)
-	metricConcatQuery := s.dbDialect.ConcatExprs(
-		[]string{
-			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false /* DISTINCT off */, "rm."+q("Payload"), ",") + ", '')", "']'",
-		}, "",
-	)
-	columnsAfterJoiningRunMetrics := []string{
-		"subq." + q("UUID"),
-		"subq." + q("refs"),
-		"subq." + q("taskDetails"),
-		metricConcatQuery + " AS " + q("metrics"),
-	}
-
-	// Build the metrics subquery. If sorting by a metric, add the CASE WHEN expression
-	// using a bind parameter for the metric name to prevent SQL injection.
-	// The column alias is always the fixed constant model.MetricSortSQLAlias.
-	subQWithMetrics := qb.
-		Select(columnsAfterJoiningRunMetrics...).
-		FromSelect(subQ, "subq").
-		LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
-			q("run_metrics"), q("UUID"), q("RunUUID"))).
-		GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
-	if opts != nil && opts.IsMetricSort() {
-		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
-			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
-		subQWithMetrics = subQWithMetrics.Column(sq.Expr(metricValueExtract, opts.SortByFieldName))
-	}
-
 	// Final layer: JOIN back to run_details to get all runColumns
 	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
 	joinedColumns := append(
 		dialect.QuoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
-		"withmetrics."+q("refs"),
-		"withmetrics."+q("taskDetails"),
-		"withmetrics."+q("metrics"))
-
-	if opts != nil && opts.IsMetricSort() {
-		joinedColumns = append(joinedColumns, "withmetrics."+q(model.MetricSortSQLAlias))
-	}
+		"withrefs."+q("refs"))
 
 	joinedSubQ := qb.
 		Select(joinedColumns...).
-		FromSelect(subQWithMetrics, "withmetrics").
-		Join(fmt.Sprintf("%s AS rd ON withmetrics.%s=rd.%s",
+		FromSelect(subQ, "withrefs").
+		Join(fmt.Sprintf("%s AS rd ON withrefs.%s=rd.%s",
 			q("run_details"), q("UUID"), q("UUID")))
 
 	// Wrap in final SELECT to provide clean column names without table prefixes
 	// This avoids ambiguity in ORDER BY clauses added by pagination
 	finalSelectColumns := dialect.QuoteAll(q, runColumns)
-	finalSelectColumns = append(finalSelectColumns, q("refs"), q("taskDetails"), q("metrics"))
-
-	// Include metric sort column in SELECT when sorting by metric.
-	// MySQL/PostgreSQL require WHERE-referenced columns in SELECT list.
-	if opts != nil && opts.IsMetricSort() {
-		finalSelectColumns = append(finalSelectColumns, q(model.MetricSortSQLAlias))
-	}
+	finalSelectColumns = append(finalSelectColumns, q("refs"))
 
 	return qb.
 		Select(finalSelectColumns...).
@@ -609,15 +642,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
-		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
+		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
 
-		// Check how many columns are in the result set
-		columns, err := rows.Columns()
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "failed to get columns from rows")
-		}
-
-		// Prepare scan destinations: 32 base columns + 3 aggregated + 1 optional metric sort
+		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
 			&uuid,
 			&experimentUUID,
@@ -652,44 +679,17 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
 			&resourceReferencesInString,
-			&tasksInString,
-			&metricsInString,
 		}
 
-		// If there's an extra column (metric sort column), add a dummy variable to scan it.
-		// Base count = runColumns + 3 aggregated columns (refs, taskDetails, metrics).
-		baseColumnCount := len(runColumns) + 3
-		if len(columns) > baseColumnCount {
-			var dummyMetricValue sql.NullFloat64
-			scanDest = append(scanDest, &dummyMetricValue)
-		}
-
-		err = rows.Scan(scanDest...)
+		err := rows.Scan(scanDest...)
 		if err != nil {
 			glog.Errorf("Failed to scan row into a run: %v", err)
 			return nil, err
-		}
-		metrics, err := parseMetrics(metricsInString)
-		if err != nil {
-			glog.Errorf("Failed to parse metrics (%v) from DB: %v", metricsInString, err)
-			// Skip the error to allow user to get runs even when metrics data
-			// are invalid.
-			metrics = []*model.RunMetric{}
-		}
-		if len(metrics) == 0 {
-			metrics = nil
 		}
 		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
 		if err != nil {
 			// throw internal exception if failed to parse the resource reference.
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference")
-		}
-		tasks, err := parseTaskDetails(tasksInString)
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to parse task details")
-		}
-		if len(tasks) == 0 {
-			tasks = nil
 		}
 		jID := jobID.String
 		pvID := pipelineVersionID.String
@@ -713,7 +713,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
 		var stateHistoryNew []*model.RuntimeStatus
 		if stateHistory.Valid {
-			json.Unmarshal([]byte(stateHistory.String), &stateHistoryNew)
+			err := json.Unmarshal([]byte(stateHistory.String), &stateHistoryNew)
+			if err != nil {
+				return nil, err
+			}
 		}
 		run := &model.Run{
 			UUID:           uuid,
@@ -738,11 +741,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				RetryGeneration:         retryGeneration.Int64,
 				RetryClaimedAtInSec:     retryClaimedAtInSec.Int64,
 				ArchivedAtInSec:         archivedAtInSec.Int64,
-				TaskDetails:             tasks,
 				StateHistory:            stateHistoryNew,
 			},
-			Metrics:            metrics,
-			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
 				PipelineVersionId:    pvID,
@@ -767,17 +767,6 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 	return runs, nil
 }
 
-func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {
-	if !metricsInString.Valid {
-		return nil, nil
-	}
-	var metrics []*model.RunMetric
-	if err := json.Unmarshal([]byte(metricsInString.String), &metrics); err != nil {
-		return nil, util.Wrapf(err, "Failed to parse a run metric '%s'", metricsInString.String)
-	}
-	return metrics, nil
-}
-
 func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
 	var runtimeParametersString, pipelineRootString string
 	if runtimeParameters.Valid {
@@ -800,22 +789,11 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 	return refs, nil
 }
 
-func parseTaskDetails(tasksInString sql.NullString) ([]*model.Task, error) {
-	if !tasksInString.Valid {
-		return nil, nil
-	}
-	var taskDetails []*model.Task
-	if err := json.Unmarshal([]byte(tasksInString.String), &taskDetails); err != nil {
-		return nil, util.Wrapf(err, "Failed to parse task details '%s'", tasksInString.String)
-	}
-	return taskDetails, nil
-}
-
 func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
-	r = r.ToV1().ToV2()
+	r = r.ToV2()
 	if r.StorageState == "" || r.StorageState == model.StorageStateUnspecified || r.StorageState == model.StorageStateUnspecifiedV1 {
 		r.StorageState = model.StorageStateAvailable
 	}
@@ -873,22 +851,15 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			r.Namespace, r.DisplayName)
 	}
 
-	// Use a transaction to make sure both run and its resource references are stored.
-	tx, err := s.db.Begin()
+	// New runs persist ownership in native columns, not legacy resource references.
+	_, err = s.db.Exec(runSQL, runArgs...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create run")
-	}
-	defer tx.Rollback()
-
-	_, err = tx.Exec(runSQL, runArgs...)
-	if err != nil {
-		tx.Rollback()
 		// A concurrent recurring-run trigger may have already created this run. Such runs
 		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
 		// duplicate insert collides on the primary key. Resolve it idempotently by
 		// returning the already-persisted run instead of surfacing an error.
 		if r.RecurringRunId != "" && s.dbDialect.IsDuplicateKeyError(err) {
-			existingRun, getErr := s.GetRun(r.UUID)
+			existingRun, getErr := s.GetRun(r.UUID, true)
 			if getErr != nil {
 				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
 			}
@@ -897,18 +868,6 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.DisplayName)
 	}
 
-	// TODO(gkcalat): consider moving resource reference management to ResourceManager
-	// and provide logic for data migration for v1beta1 data.
-	err = s.resourceReferenceStore.CreateResourceReferences(tx, r.ResourceReferences)
-	if err != nil {
-		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store resource references to table for run %v ", r.DisplayName)
-	}
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store run %v and its resource references to table", r.DisplayName)
-	}
 	return r, nil
 }
 
@@ -1303,13 +1262,7 @@ func (s *RunStore) DeleteRun(id string) error {
 		return util.NewInternalServerError(err, "Failed to delete run metrics for run %s", id)
 	}
 
-	tasksSQL, tasksArgs, err := qb.Delete(q("tasks")).Where(sq.Eq{q("RunUUID"): id}).ToSql()
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to create query to delete tasks for run %s", id)
-	}
-	_, err = tx.Exec(tasksSQL, tasksArgs...)
-	if err != nil {
+	if err = s.taskStore.DeleteTasksForRun(tx, id); err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete tasks for run %s", id)
 	}
@@ -1427,7 +1380,7 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	claimSQL, claimArgs, err := qb.
 		Update(q("run_details")).
 		Set(q("State"), model.RuntimeStatePending.ToString()).
-		Set(q("Conditions"), string(model.RuntimeStatePending.ToV1())).
+		Set(q("Conditions"), string(model.RuntimeStatePending.ToExecutionPhase())).
 		Set(q("FinishedAtInSec"), 0).
 		Set(q("RetryGeneration"), newGeneration).
 		Set(q("RetryClaimedAtInSec"), s.time.Now().Unix()).
@@ -1745,14 +1698,10 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		return 0, util.NewInternalServerError(execError, "Failed to delete run_metrics for expired archived runs")
 	}
 
-	deleteTasksSQL, deleteTasksArgs, err := qb.Delete(q("tasks")).Where(sq.Eq{q("RunUUID"): uuids}).ToSql()
-	if err != nil {
-		tx.Rollback()
-		return 0, util.NewInternalServerError(err, "Failed to build delete query for tasks")
-	}
-	if _, execError := tx.Exec(deleteTasksSQL, deleteTasksArgs...); execError != nil {
-		tx.Rollback()
-		return 0, util.NewInternalServerError(execError, "Failed to delete tasks for expired archived runs")
+	for _, uuid := range uuids {
+		if err := s.taskStore.DeleteTasksForRun(tx, uuid); err != nil {
+			return 0, util.NewInternalServerError(err, "Failed to delete tasks for expired archived runs")
+		}
 	}
 
 	deleteReferencesSQL, deleteReferencesArgs, err := qb.
@@ -1792,46 +1741,12 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	return affected, nil
 }
 
-// Creates a new metric in run_metrics table if does not exist.
-func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-
-	payloadBytes, err := json.Marshal(metric)
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to marshal a run metric to json: %+v", metric)
-	}
-	sql, args, err := qb.
-		Insert(q("run_metrics")).
-		SetMap(sq.Eq{
-			q("RunUUID"):     metric.RunUUID,
-			q("NodeID"):      metric.NodeID,
-			q("Name"):        metric.Name,
-			q("NumberValue"): metric.NumberValue,
-			q("Format"):      metric.Format,
-			q("Payload"):     string(payloadBytes),
-		}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query for inserting a run metric: %+v", metric)
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		if s.dbDialect.IsDuplicateKeyError(err) {
-			return util.NewAlreadyExistError(
-				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
-		}
-		return util.NewInternalServerError(err, "Failed to insert a run metric: %v", metric)
-	}
-	return nil
-}
-
 // Returns a new RunStore.
 func NewRunStore(db *sql.DB, time util.TimeInterface, d dialect.DBDialect) *RunStore {
 	return &RunStore{
 		db:                     db,
 		resourceReferenceStore: NewResourceReferenceStore(db, nil, d),
+		taskStore:              NewTaskStore(db, time, util.NewUUIDGenerator(), d),
 		time:                   time,
 		dbDialect:              d,
 	}
@@ -1845,7 +1760,7 @@ func (s *RunStore) TerminateRun(runId string) error {
 	sql, args, err := qb.
 		Update(q("run_details")).
 		SetMap(sq.Eq{
-			q("Conditions"): string(model.RuntimeStateCancelling.ToV1()),
+			q("Conditions"): string(model.RuntimeStateCancelling.ToExecutionPhase()),
 			q("State"):      model.RuntimeStateCancelling.ToString(),
 		}).
 		Where(sq.And{

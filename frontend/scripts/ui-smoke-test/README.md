@@ -199,7 +199,7 @@ kill 12345
 lsof -i :3001
 ```
 
-Ports used: 3001 (frontend server), 3002 (ml-pipeline proxy), 4001 (base proxy), 4002 (PR proxy), 9000 (minio), 9090 (metadata-envoy).
+Ports used: 3001 (frontend server), 3002 (ml-pipeline proxy), 4001 (base proxy), 4002 (PR proxy), and 9000 (minio).
 
 ### Stale worktrees from a previous failed run
 
@@ -257,15 +257,14 @@ kubectl -n kubeflow scale deployment/ml-pipeline-ui --replicas=1
 | Page | Route | Wait Condition | Description |
 |------|-------|----------------|-------------|
 | pipelines | `/#/pipelines` | Table rows + pipeline links | Pipeline list |
-| pipeline-details-seeded | `/#/pipelines/details/{seed.pipelineId}` | Root + details content | Seeded pipeline details (default view) |
-| pipeline-details-seeded-sidepanel | `/#/pipelines/details/{seed.pipelineId}` | Side panel close button visible | Seeded pipeline details with side panel open |
+| pipeline-details-seeded | `/#/pipelines/details/?fromRun={seed.runId}` | Root + details content | Pipeline details loaded from the seeded run spec |
+| pipeline-details-seeded-sidepanel | `/#/pipelines/details/?fromRun={seed.runId}` | Side panel close button visible | Run-backed pipeline graph with side panel open |
 | experiments | `/#/experiments` | Table rows + experiment links | Experiment list |
 | runs | `/#/runs` | Table rows + run links | Run history |
 | run-details-seeded | `/#/runs/details/{seed.runId}` | Root + graph/details content | Seeded run details (default view) |
 | run-details-seeded-sidepanel | `/#/runs/details/{seed.runId}` | Side panel close button visible | Seeded run details with side panel open |
 | recurring-runs | `/#/recurringruns` | Table rows | Scheduled runs |
 | artifacts | `/#/artifacts` | Table rows | ML artifacts |
-| executions | `/#/executions` | Table rows + execution links | Execution history |
 | pipeline-create | `/#/pipeline/create` | Input field | Create pipeline form |
 | experiment-create | `/#/experiments/new` | Input field | Create experiment form |
 
@@ -299,16 +298,14 @@ Results are saved to `.ui-smoke-test/` at the repo root (gitignored):
 ```
 Kind Cluster (K8s)
   ├── ml-pipeline service :8888
-  ├── metadata-envoy-service :9090
   └── minio-service :9000
 
 Port Forwards (kubectl)
   ├── localhost:3002 → ml-pipeline:8888
-  ├── localhost:9090 → metadata-envoy:9090
   └── localhost:9000 → minio:9000
 
 Node.js Frontend Server (localhost:3001)
-  └── Proxies API calls to :3002, :9090, :9000
+  └── Proxies API calls to :3002 and :9000
 
 proxy-server.js × 2
   ├── localhost:4001 → static base build + API → :3001
@@ -325,10 +322,8 @@ The `detect-changes.js` script maps changed files to backend components using 2-
 |-----------|-----------|-------------|----------------|
 | `backend/src/apiserver/**` | apiserver | `image_apiserver` | `ml-pipeline` |
 | `backend/src/agent/persistence/**` | persistence-agent | `image_persistence_agent` | `ml-pipeline-persistenceagent` |
-| `backend/src/cache/**` | cache-server | `image_cache` | (varies) |
 | `backend/src/crd/controller/scheduledworkflow/**` | scheduledworkflow | `image_swf` | `ml-pipeline-scheduledworkflow` |
 | `backend/src/crd/controller/viewer/**` | viewercontroller | `image_viewer` | `ml-pipeline-viewer-crd` |
-| `backend/src/apiserver/visualization/**` | visualization | `image_visualization` | `ml-pipeline-visualizationserver` |
 | `backend/src/v2/cmd/driver/**` | driver | `image_driver` | (runtime image) |
 | `backend/src/v2/cmd/launcher-v2/**` | launcher | `image_launcher` | (runtime image) |
 | `backend/src/common/**` | ALL Go components | | |

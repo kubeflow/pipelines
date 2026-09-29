@@ -121,6 +121,8 @@ type ClientManagerInterface interface {
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
 	TaskStore() storage.TaskStoreInterface
+	ArtifactStore() storage.ArtifactStoreInterface
+	ArtifactTaskStore() storage.ArtifactTaskStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
@@ -153,6 +155,8 @@ type ResourceManager struct {
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
 	taskStore                 storage.TaskStoreInterface
+	artifactStore             storage.ArtifactStoreInterface
+	artifactTaskStore         storage.ArtifactTaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -301,6 +305,8 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		jobStore:                  clientManager.JobStore(),
 		runStore:                  clientManager.RunStore(),
 		taskStore:                 clientManager.TaskStore(),
+		artifactStore:             clientManager.ArtifactStore(),
+		artifactTaskStore:         clientManager.ArtifactTaskStore(),
 		resourceReferenceStore:    clientManager.ResourceReferenceStore(),
 		dBStatusStore:             clientManager.DBStatusStore(),
 		defaultExperimentStore:    clientManager.DefaultExperimentStore(),
@@ -421,24 +427,17 @@ func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
 	return r.experimentStore.UnarchiveExperiment(experimentId)
 }
 
-// ListPipelines returns a list of pipelines. tagFilters is an optional map of tag key->value pairs for filtering.
-func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
-	pipelines, totalSize, nextPageToken, err := r.pipelineStore.ListPipelines(filterContext, opts, tagFilters)
+// ListPipelines returns a list of pipelines.
+func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
+	pipelines, totalSize, nextPageToken, err := r.pipelineStore.ListPipelines(filterContext, opts, resolvedTagFilters)
 	if err != nil {
 		err = util.Wrapf(err, "Failed to list pipelines with context %v, options %v", filterContext, opts)
 	}
 	return pipelines, totalSize, nextPageToken, err
-}
-
-// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Returns a list of pipelines using LEFT JOIN on SQL query.
-// This could be more performant for a large number of pipeline versions.
-func (r *ResourceManager) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	pipelines, pipelineVersions, total_size, nextPageToken, err := r.pipelineStore.ListPipelinesV1(filterContext, opts)
-	if err != nil {
-		err = util.Wrapf(err, "ResourceManager (v1beta1): Failed to list pipelines with context %v, options %v", filterContext, opts)
-	}
-	return pipelines, pipelineVersions, total_size, nextPageToken, err
 }
 
 // Returns a pipeline.
@@ -456,17 +455,6 @@ func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace s
 		return nil, util.Wrapf(err, "Failed to get a pipeline named %v in namespace %v", name, namespace)
 	} else {
 		return pipeline, nil
-	}
-}
-
-// TODO(gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Returns a pipeline specified by name and namespace using LEFT JOIN on SQL query.
-// This could be more performant for a large number of pipeline versions.
-func (r *ResourceManager) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
-	if pipeline, pipelineVersion, err := r.pipelineStore.GetPipelineByNameAndNamespaceV1(name, namespace); err != nil {
-		return nil, nil, util.Wrapf(err, "ResourceManager (v1beta1): Failed to get a pipeline named %v in namespace %v", name, namespace)
-	} else {
-		return pipeline, pipelineVersion, nil
 	}
 }
 
@@ -525,13 +513,6 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 		return util.Wrapf(err, "Failed to delete pipeline DB entry for pipeline id %v", pipelineId)
 	}
 	return nil
-}
-
-// TODO(gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
-// Updates default pipeline version for a given pipeline.
-// Supports v1beta1 behavior.
-func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-	return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
 }
 
 // MaxTagKeyLength is the maximum allowed length (in characters) for a tag key.
@@ -643,17 +624,9 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
 	}
-	if tmpl.GetTemplateType() == template.V1 {
-		ns := p.Namespace
-		if ns == "" {
-			ns = common.GetPodNamespace()
-		}
-		if util.IsV1PipelinesBlocked(ns) {
-			return nil, nil, util.NewInvalidInputError("V1 pipeline specs are not allowed. Please migrate to using KFP V2 pipelines.")
-		}
-	}
+
 	// Validate pipeline's name in:
-	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements
+	// 1. IR pipeline spec
 	// 2. display name must be non-empty
 	pipelineSpecName := ""
 	if tmpl.IsV2() {
@@ -767,13 +740,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 			return nil, util.Wrap(err, "Failed to check for existing run")
 		}
 		if existingRunID != "" {
-			return r.runStore.GetRun(existingRunID)
+			return r.runStore.GetRun(existingRunID, true)
 		}
 	}
 
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
-	tmpl, manifest, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
+	tmpl, _, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a run due to error fetching manifest")
 	}
@@ -821,10 +794,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
 
-	if util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
-		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
-	}
-
 	executionSpec.SetExecutionNamespace(k8sNamespace)
 
 	// assign OwnerReference and canonical labels to scheduledworkflow
@@ -846,7 +815,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		executionSpec.SetCannonicalLabels(swf.Name, run.CreatedAtInSec, nextIndex)
 	}
 
-	if err := r.authorizeServiceAccount(ctx, executionSpec.ServiceAccount(), k8sNamespace); err != nil {
+	allowCompilerPodSpecPatch := tmpl.GetTemplateType() == template.V2
+	if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a run due to service account authorization error")
 	}
 
@@ -878,6 +848,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 	}()
 
+	if r.pluginDispatcher.PluginsRegistered() {
+		if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run_after_plugins"); err != nil {
+			return nil, util.Wrap(err, "Failed to create a run due to service account authorization error after plugin processing")
+		}
+	}
+
 	newExecSpec, err := r.getWorkflowClient(k8sNamespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
@@ -889,25 +865,16 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	run.Namespace = k8sNamespace
 	run.K8SName = newExecSpec.ExecutionName()
 	run.ServiceAccount = newExecSpec.ServiceAccount()
-	run.RunDetails.State = model.RuntimeState(string(newExecSpec.ExecutionStatus().Condition())).ToV2()
-	run.RunDetails.Conditions = string(run.RunDetails.State.ToV1())
 	// TODO(gkcalat): consider to avoid updating runtime manifest at create time and let
 	// persistence agent update the runtime data.
-	if tmpl.GetTemplateType() == template.V1 && run.RunDetails.WorkflowRuntimeManifest == "" {
-		run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
-		run.WorkflowSpecManifest = model.LargeText(manifest)
-	} else if tmpl.GetTemplateType() == template.V2 {
-		run.PipelineRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
-		run.PipelineSpecManifest = model.LargeText(manifest)
-	} else {
-		run.PipelineSpecManifest = model.LargeText(manifest)
-	}
+	run.PipelineRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
 	// Assign the scheduled at time
 	if run.RunDetails.ScheduledAtInSec == 0 {
 		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
 		run.RunDetails.ScheduledAtInSec = run.RunDetails.CreatedAtInSec
 	}
 	run.State = model.RuntimeStatePending
+	run.Conditions = string(run.State.ToExecutionPhase())
 
 	newRun, err := r.runStore.CreateRun(run)
 	if err != nil {
@@ -927,7 +894,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 // ReconcileSwfCrs reconciles the ScheduledWorkflow CRs based on existing jobs.
 func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
-	filterContext := model.EmptyFilterContext()
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: common.GetPodNamespace()},
+	}
 
 	opts := list.EmptyOptions()
 
@@ -945,7 +914,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 
 		// If the pipeline isn't pinned, skip it. The runs API is used directly by the ScheduledWorkflow controller
 		// in this case with just the pipeline ID and optionally the pipeline version ID.
-		if jobs[i].PipelineSpec.PipelineSpecManifest == "" && jobs[i].PipelineSpec.WorkflowSpecManifest == "" {
+		if jobs[i].PipelineSpecManifest == "" && jobs[i].WorkflowSpecManifest == "" {
 			continue
 		}
 
@@ -1000,17 +969,32 @@ func (r *ResourceManager) updateSwfCrSpec(ctx context.Context, k8sNamespace stri
 }
 
 // Fetches a run with a given id.
+// GetRun fetches a run with full task hydration (backward compatible).
 func (r *ResourceManager) GetRun(runId string) (*model.Run, error) {
-	run, err := r.runStore.GetRun(runId)
+	return r.GetRunWithHydration(runId, true)
+}
+
+// GetRunWithHydration fetches a run with optional task hydration.
+// If hydrateTasks is true, full task details are loaded (expensive operation).
+// If hydrateTasks is false, only task count is populated (lightweight operation).
+func (r *ResourceManager) GetRunWithHydration(runID string, hydrateTasks bool) (*model.Run, error) {
+	run, err := r.runStore.GetRun(runID, hydrateTasks)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to fetch run %v", runId)
+		return nil, util.Wrapf(err, "Failed to fetch run %v", runID)
 	}
 	return run, nil
 }
 
-// Fetches runs with a given set of filtering and listing options.
+// ListRuns fetches runs with full task hydration (backward compatible).
 func (r *ResourceManager) ListRuns(filterContext *model.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
-	runs, totalSize, nextPageToken, err := r.runStore.ListRuns(filterContext, opts)
+	return r.ListRunsWithHydration(filterContext, opts, true)
+}
+
+// ListRunsWithHydration fetches runs with a given set of filtering and listing options.
+// If hydrateTasks is true, full task details are loaded (expensive operation).
+// If hydrateTasks is false, only task counts are populated (lightweight operation).
+func (r *ResourceManager) ListRunsWithHydration(filterContext *model.FilterContext, opts *list.Options, hydrateTasks bool) ([]*model.Run, int, string, error) {
+	runs, totalSize, nextPageToken, err := r.runStore.ListRuns(filterContext, opts, hydrateTasks)
 	if err != nil {
 		return nil, 0, "", util.Wrap(err, "Failed to list runs")
 	}
@@ -1111,14 +1095,14 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 
 // Creates a task entry.
 func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
-	run, err := r.GetRun(t.RunID)
+	run, err := r.GetRun(t.RunUUID)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunID)
+		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunUUID)
 	}
 	if run.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunID)
+			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunUUID)
 		}
 		run.ExperimentId = defaultExperimentId
 	}
@@ -1127,33 +1111,68 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	if t.Namespace == "" {
 		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
+			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
 		}
 		t.Namespace = namespace
 	}
 	if common.IsMultiUserMode() {
 		if t.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunID)
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunUUID)
 		}
 	}
 	if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
+		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
 	}
 
 	newTask, err := r.taskStore.CreateTask(t)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
+		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
 	}
 	return newTask, nil
 }
 
 // Fetches tasks with a given set of filtering and listing options.
-func (r *ResourceManager) ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error) {
+// Namespace filtering only applies when namespace is non-empty.
+func (r *ResourceManager) ListTasks(runID, parentID, namespace string, opts *list.Options) ([]*model.Task, int, string, error) {
+	var filterContext *model.FilterContext
+
+	switch {
+	case runID != "" && parentID != "":
+		tasks, totalSize, nextPageToken, err := r.taskStore.ListChildTasksByParentAndRun(parentID, runID, opts)
+		if err != nil {
+			return nil, 0, "", util.Wrap(err, "Failed to list tasks")
+		}
+		return tasks, totalSize, nextPageToken, nil
+	case runID != "":
+		filterContext = &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: runID},
+		}
+	case parentID != "":
+		filterContext = &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{Type: model.TaskResourceType, ID: parentID},
+		}
+	case namespace != "":
+		// Namespace filter is set (can be empty string in single-user mode)
+		filterContext = &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
+		}
+	default:
+		filterContext = &model.FilterContext{}
+	}
+
 	tasks, totalSize, nextPageToken, err := r.taskStore.ListTasks(filterContext, opts)
 	if err != nil {
 		return nil, 0, "", util.Wrap(err, "Failed to list tasks")
 	}
 	return tasks, totalSize, nextPageToken, nil
+}
+
+func (r *ResourceManager) FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error) {
+	task, err := r.taskStore.FindLatestCachedTask(namespace, fingerprint)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to find latest cached task")
+	}
+	return task, nil
 }
 
 // Fetches recurring runs with given filtering and listing options.
@@ -1233,6 +1252,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 
 	if err := execSpec.CanRetry(); err != nil {
+		if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
+			return util.Wrapf(err, "Failed to retry run %s", runId)
+		}
 		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow retries", runId)
 	}
 
@@ -1296,6 +1318,14 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 	}
 
+	allowCompilerPodSpecPatch, err := r.allowsCompilerPodSpecPatch(run.PipelineSpec)
+	if err != nil {
+		return util.Wrapf(err, "Failed to retry run %s due to error determining its pipeline source", runId)
+	}
+	if err := r.authorizeExecutionServiceAccounts(ctx, newExecSpec, allowCompilerPodSpecPatch, namespace, "retry_run"); err != nil {
+		return util.Wrapf(err, "Failed to retry run %s due to service account authorization error", runId)
+	}
+
 	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
 	// from overwriting with a stale terminal state. The returned claimGeneration
 	// acts as a unique fence token: UpdateRun checks it to reject stale reports,
@@ -1310,7 +1340,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	// Update the in-memory run to reflect the claimed state.
 	run.FinishedAtInSec = 0
 	run.State = model.RuntimeStatePending
-	run.Conditions = string(model.RuntimeStatePending.ToV1())
+	run.Conditions = string(model.RuntimeStatePending.ToExecutionPhase())
 	run.RetryGeneration = claimGeneration
 	run.RetryClaimedAtInSec = r.time.Now().Unix()
 	// Stamp the claim token on the workflow so ReportWorkflowResource can
@@ -1332,6 +1362,12 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	// runtime manifest, which is the object updateOrCreateRetryWorkflow
 	// mutates; run.K8SName can diverge from it.
 	retryWorkflowName := newExecSpec.ExecutionName()
+	// Reset attempt-local task state before resuming Argo so a failed DB reset
+	// cannot leave a live workflow against stale task/link rows. Reset is
+	// idempotent if the subsequent workflow write fails.
+	if err := r.resetRetriedTaskState(run); err != nil {
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error resetting task attempt state", runId)
+	}
 	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, runId, newExecSpec)
 	if err != nil {
 		// Workflow reconciliation failed. Kubernetes timeouts and 5xx responses
@@ -1479,9 +1515,56 @@ func isTransientWorkflowReconcileError(err error) bool {
 		apierrors.IsUnexpectedServerError(err)
 }
 
+func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
+	if run == nil || len(run.Tasks) == 0 {
+		return nil
+	}
+
+	taskIDsToReset := make([]string, 0, len(run.Tasks))
+	for _, task := range run.Tasks {
+		if task == nil || task.UUID == "" || shouldPreserveTaskAcrossRetry(task) {
+			continue
+		}
+		taskIDsToReset = append(taskIDsToReset, task.UUID)
+	}
+	if len(taskIDsToReset) == 0 {
+		return nil
+	}
+
+	// Logical task identity stays stable within a run so duplicate CreateTask
+	// delivery still resolves to the existing row. Clear only the previous
+	// attempt's transient task state before Argo resumes so those rows can
+	// safely represent the new attempt.
+	if err := r.artifactTaskStore.DeleteOutputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
+		return err
+	}
+	// Input links are also attempt-local: leaving them in place causes
+	// CreateArtifactTasks UniqueLink conflicts when the retried driver recreates
+	// the same (artifact, task, key, type) input rows.
+	if err := r.artifactTaskStore.DeleteInputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
+		return err
+	}
+
+	// Output parameters and output artifact links are attempt-local. Resetting
+	// them here prevents a retried task from exposing stale failed-attempt
+	// outputs while leaving successful sibling results intact.
+	return r.taskStore.ResetTasksForRetry(taskIDsToReset)
+}
+
+func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
+	switch task.State {
+	case model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		model.TaskStatus(apiv2beta1.PipelineTask_CACHED),
+		model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED):
+		return true
+	default:
+		return false
+	}
+}
+
 // Fetches execution logs and writes to the destination.
 // 1. Attempts to read logs directly from pod.
-// 2. Attempts to read logs from archive if reading from pod fails.
+// 2. Attempts the archive only if the pod failed before writing any logs.
 func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId string, follow bool, dst io.Writer) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
@@ -1491,8 +1574,12 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	if err != nil {
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to namespace fetching error", runId)
 	}
-	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, dst)
-	if err != nil && r.logArchive != nil {
+	writer := &logWriteTracker{Writer: dst}
+	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, writer)
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if err != nil && !writer.written && r.logArchive != nil {
 		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
@@ -1504,6 +1591,19 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	return nil
 }
 
+// Track actual writes, including partial writes returned with an error, so an
+// interrupted stream cannot restart from the archive and duplicate its prefix.
+type logWriteTracker struct {
+	io.Writer
+	written bool
+}
+
+func (w *logWriteTracker) Write(data []byte) (int, error) {
+	n, err := w.Writer.Write(data)
+	w.written = w.written || n > 0
+	return n, err
+}
+
 // Fetches execution logs from a pod.
 func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, namespace string, nodeID string, follow bool, dst io.Writer) error {
 	// The caller controls nodeID, so confirm the pod was created by this run
@@ -1511,7 +1611,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 	// in it could be read with the API server's credentials.
 	pod, err := r.k8sCoreClient.PodClient(namespace).Get(ctx, nodeID, v1.GetOptions{})
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if ctx.Err() == nil && !apierrors.IsNotFound(err) {
 			glog.Errorf("Failed to get pod %v: %v", nodeID, err)
 		}
 		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error fetching the pod", nodeID)
@@ -1529,7 +1629,7 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 	req := r.k8sCoreClient.PodClient(namespace).GetLogs(nodeID, &logOptions)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
-		if !apierrors.IsNotFound(err) {
+		if ctx.Err() == nil && !apierrors.IsNotFound(err) {
 			glog.Errorf("Failed to read logs from pod %v: %v", nodeID, err)
 		}
 		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error opening log stream", nodeID)
@@ -1589,8 +1689,8 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline version %v", pipelineSpec.PipelineVersionId)
 		}
-		// Requests in v1beta1 may have empty pipeline ID. Therefore, we only catch
-		// v2beta1 calls to create a run or recurring run with inconsistent pipeline ID.
+		// Historical version-only jobs may omit the pipeline ID. Reject an
+		// explicitly conflicting pipeline ID.
 		if pipelineVersion.PipelineId != "" && pipelineSpec.PipelineId != "" && pipelineVersion.PipelineId != pipelineSpec.PipelineId {
 			return nil, util.NewInvalidInputError("Pipeline version %v belongs to pipeline %v (not %v)", pipelineSpec.PipelineVersionId, pipelineVersion.PipelineId, pipelineSpec.PipelineId)
 		}
@@ -1603,19 +1703,19 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 		return pipelineVersion, nil
 	} else if pipelineSpec.PipelineName != "" {
 		resourceNames := common.ParseResourceIdsFromFullName(pipelineSpec.PipelineName)
-		if resourceNames["PipelineVersionId"] == "" && resourceNames["PipelineId"] == "" {
+		if resourceNames[common.PipelineVersionIDResourceNameKey] == "" && resourceNames[common.PipelineIDResourceNameKey] == "" {
 			return nil, util.Wrapf(util.NewInvalidInputError("Pipeline spec source is missing"), "Failed to fetch a pipeline version and its manifest due to an empty pipeline spec source: %v", pipelineSpec.PipelineName)
 		}
-		if resourceNames["PipelineVersionId"] != "" {
-			pipelineVersion, err := r.GetPipelineVersion(resourceNames["PipelineVersionId"])
+		if resourceNames[common.PipelineVersionIDResourceNameKey] != "" {
+			pipelineVersion, err := r.GetPipelineVersion(resourceNames[common.PipelineVersionIDResourceNameKey])
 			if err != nil {
-				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline version %v exists", pipelineSpec.PipelineName, resourceNames["PipelineVersionId"])
+				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline version %v exists", pipelineSpec.PipelineName, resourceNames[common.PipelineVersionIDResourceNameKey])
 			}
 			return pipelineVersion, nil
 		} else {
-			pipelineVersion, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
+			pipelineVersion, err := r.GetLatestPipelineVersion(resourceNames[common.PipelineIDResourceNameKey])
 			if err != nil {
-				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline %v exists", pipelineSpec.PipelineName, resourceNames["PipelineId"])
+				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline %v exists", pipelineSpec.PipelineName, resourceNames[common.PipelineIDResourceNameKey])
 			}
 			return pipelineVersion, nil
 		}
@@ -1638,9 +1738,10 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 	job.Namespace = k8sNamespace
 
-	var manifest string
 	var scheduledWorkflow *scheduledworkflow.ScheduledWorkflow
+	var renderedScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
 	var tmpl template.Template
+	var templateType template.TemplateType
 
 	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
 	// Otherwise, always let the ScheduledWorkflow controller pick the latest.
@@ -1648,11 +1749,16 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		var err error
 		// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 		// Update the job.PipelineSpec if an existing pipeline version is used.
-		tmpl, manifest, err = r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
+		tmpl, _, err = r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
+		templateType = tmpl.GetTemplateType()
 
+		renderedScheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+		}
 		// When plugins are enabled, the SWF controller must call the CreateRun API
 		// so that per-run plugin logic executes.
 		if r.pluginDispatcher.PluginsRegistered() {
@@ -1660,9 +1766,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			// so the SWF controller calls the CreateRun API for per-run plugin logic.
 			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
 		} else {
-			// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
-			// Convert modelJob into scheduledWorkflow.
-			scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+			scheduledWorkflow = renderedScheduledWorkflow
 		}
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
@@ -1687,16 +1791,17 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
 			DefaultHostUsers:     r.options.DefaultHostUsers,
 		}
-		tmpl, err := template.New(manifest, templateOptions)
+		latestTemplate, err := template.New(manifest, templateOptions)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
+		templateType = latestTemplate.GetTemplateType()
 
-		validatedScheduledWorkflow, err := tmpl.ScheduledWorkflow(job)
+		renderedScheduledWorkflow, err = latestTemplate.ScheduledWorkflow(job)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
-		if v2Tmpl, ok := tmpl.(*template.V2Spec); ok {
+		if v2Tmpl, ok := latestTemplate.(*template.V2Spec); ok {
 			if err = v2Tmpl.ValidateJobInputs(job); err != nil {
 				return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 			}
@@ -1715,18 +1820,14 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
 			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
 		}
-		scheduledWorkflow.Spec.ServiceAccount = validatedScheduledWorkflow.Spec.ServiceAccount
+		scheduledWorkflow.Spec.ServiceAccount = renderedScheduledWorkflow.Spec.ServiceAccount
 	}
 
-	if tmpl != nil && util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
-		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
+	jobExecutionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, renderedScheduledWorkflow.Spec.Workflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to inspect the recurring run's service accounts")
 	}
-
-	resolvedJobServiceAccount := scheduledWorkflow.Spec.ServiceAccount
-	if resolvedJobServiceAccount == "" {
-		resolvedJobServiceAccount = job.ServiceAccount
-	}
-	if err := r.authorizeServiceAccount(ctx, resolvedJobServiceAccount, k8sNamespace); err != nil {
+	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
 
@@ -1742,29 +1843,12 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	job.UUID = string(swf.UID)
 	job.K8SName = swf.Name
 	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
-	for _, modelRef := range job.ResourceReferences {
-		modelRef.ResourceUUID = string(swf.UID)
-	}
 
 	if tmpl == nil {
 		return r.jobStore.CreateJob(job)
 	}
 
-	if tmpl.GetTemplateType() == template.V1 {
-		// Get the service account
-		serviceAccount := ""
-		if swf.Spec.Workflow != nil {
-			execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
-			if err == nil {
-				serviceAccount = execSpec.ServiceAccount()
-			}
-		}
-		job.ServiceAccount = serviceAccount
-		job.WorkflowSpecManifest = model.LargeText(manifest)
-	} else {
-		job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
-		job.PipelineSpecManifest = model.LargeText(manifest)
-	}
+	job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
 	return r.jobStore.CreateJob(job)
 }
 
@@ -1786,6 +1870,21 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		if scheduledWorkflow == nil || string(scheduledWorkflow.UID) != jobId {
 			return util.Wrapf(util.NewResourceNotFoundError("recurring run", job.K8SName), "Failed to enable recurring run %v. Check if its k8s resource exists", jobId)
 		}
+		// An embedded workflow is launched directly by the ScheduledWorkflow
+		// controller, so reauthorize its identities whenever a job is enabled.
+		if scheduledWorkflow.Spec.Workflow != nil && scheduledWorkflow.Spec.Workflow.Spec != nil {
+			executionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, scheduledWorkflow.Spec.Workflow)
+			if err != nil {
+				return util.Wrapf(err, "Failed to enable recurring run %v because its workflow could not be inspected", jobId)
+			}
+			allowCompilerPodSpecPatch, err := r.allowsCompilerPodSpecPatch(job.PipelineSpec)
+			if err != nil {
+				return util.Wrapf(err, "Failed to enable recurring run %v due to error determining its pipeline source", jobId)
+			}
+			if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "enable_recurring_run"); err != nil {
+				return util.Wrapf(err, "Failed to enable recurring run %v due to service account authorization error", jobId)
+			}
+		}
 	}
 
 	_, err = r.getScheduledWorkflowClient(k8sNamespace).Patch(
@@ -1805,8 +1904,8 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 	return nil
 }
 
-// Deletes a recurring run with given id.
-func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy apiv2beta1.DeletePropagationPolicy) error {
+// DeleteJob deletes a recurring run with given id.
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy ...apiv2beta1.DeletePropagationPolicy) error {
 	job, err := r.GetJob(jobID)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobID)
@@ -1816,12 +1915,12 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagati
 	if k8sNamespace == "" {
 		k8sNamespace = common.GetPodNamespace()
 	}
-
 	deleteOptions := &v1.DeleteOptions{}
-	if policy, exists := propagationPolicyMap[propagationPolicy]; exists {
-		deleteOptions.PropagationPolicy = &policy
+	if len(propagationPolicy) > 0 {
+		if policy, exists := propagationPolicyMap[propagationPolicy[0]]; exists {
+			deleteOptions.PropagationPolicy = &policy
+		}
 	}
-
 	err = r.getScheduledWorkflowClient(k8sNamespace).Delete(ctx, job.K8SName, deleteOptions)
 	if err != nil {
 		if !util.IsNotFound(err) {
@@ -1838,85 +1937,6 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagati
 		return util.Wrapf(err, "Failed to delete recurring run %v", jobID)
 	}
 	return nil
-}
-
-// Creates new tasks or updates existing ones.
-// This is not a part of internal API exposed to persistence agent only.
-func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task, runID, workflowNamespace string) ([]*model.Task, error) {
-	run, err := r.GetRun(runID)
-	if err != nil {
-		return nil, util.Wrapf(err, "Failed to validate task ownership for run %s", runID)
-	}
-	return r.CreateOrUpdateTasksForRun(t, run, workflowNamespace)
-}
-
-// CreateOrUpdateTasksForRun creates or updates tasks using an already-loaded owning run.
-func (r *ResourceManager) CreateOrUpdateTasksForRun(
-	tasksToReport []*model.Task,
-	run *model.Run,
-	workflowNamespace string,
-) ([]*model.Task, error) {
-	if run == nil {
-		return nil, util.NewInvalidInputError("Failed to report tasks: owning run is missing")
-	}
-	runID := run.UUID
-	runNamespace, err := r.resolveWorkflowReportNamespace(
-		"run", runID, run.Namespace, run.ExperimentId, workflowNamespace)
-	if err != nil {
-		r.recordWorkflowReportRejection(workflowReportRejectionOwnershipUnresolved)
-		return nil, err
-	}
-	if err := r.validateWorkflowReportNamespace(
-		"run", runID, runNamespace, workflowNamespace, run.K8SName); err != nil {
-		return nil, err
-	}
-	for _, task := range tasksToReport {
-		if task.RunID != runID {
-			r.recordWorkflowReportRejection(workflowReportRejectionIdentityMismatch)
-			return nil, util.NewInvalidInputError(
-				"Failed to report tasks: task run ID does not match owning run")
-		}
-		if !r.IsEmptyNamespace(task.Namespace) && task.Namespace != workflowNamespace {
-			r.recordWorkflowReportRejection(workflowReportRejectionNamespaceMismatch)
-			return nil, util.NewInvalidInputError(
-				"Failed to report tasks: task namespace does not match owning run")
-		}
-	}
-	tasks, updated, err := r.taskStore.CreateOrUpdateTasksIfRunUnchanged(
-		tasksToReport,
-		runID,
-		run.Namespace,
-		run.WorkflowRuntimeManifest,
-		run.PipelineRuntimeManifest,
-		run.RetryGeneration,
-	)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create or update tasks")
-	}
-	if !updated {
-		// The workflow report and task upsert are separate transactions. If
-		// the run changed between them, reload its authoritative identity and
-		// retry the complete report rather than attaching stale tasks to a
-		// replacement row that reused the run ID.
-		r.storedWorkflowIdentities.delete(runID)
-		currentRun, readError := r.GetRun(runID)
-		if readError != nil {
-			return nil, util.NewUnavailableServerError(
-				readError,
-				"Failed to reload run %s after a concurrent task report - try again later",
-				runID,
-			)
-		}
-		if _, identityError := r.storedWorkflowIdentityForRun(currentRun); identityError != nil {
-			return nil, identityError
-		}
-		return nil, util.NewUnavailableServerError(
-			errors.New("stored run changed while processing task report"),
-			"Failed to report tasks for run %s because the stored run changed concurrently - try again later",
-			runID,
-		)
-	}
-	return tasks, nil
 }
 
 // Reports a workflow CR.
@@ -2219,7 +2239,6 @@ func (r *ResourceManager) reportWorkflowResource(
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
 		pipelineSpec := recurringJob.PipelineSpec
-		pipelineSpec.WorkflowSpecManifest = model.LargeText(execSpec.GetExecutionSpec().ToStringForStore())
 		scheduledTimeInSec := execSpec.ScheduledAtInSecOr0()
 		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
@@ -2238,15 +2257,11 @@ func (r *ResourceManager) reportWorkflowResource(
 				CreatedAtInSec:          objMeta.CreationTimestamp.Unix(),
 				ScheduledAtInSec:        scheduledTimeInSec,
 				FinishedAtInSec:         execStatus.FinishedAt(),
-				Conditions:              string(state.ToV1()),
+				Conditions:              string(state.ToExecutionPhase()),
 				State:                   state,
 			},
 		}
 		createdRun, err := r.runStore.CreateRun(proposedRun)
-		if r.options.CollectMetrics && !execStatus.StartedAtTime().Time.IsZero() {
-			reportGap := time.Since(execStatus.StartedAtTime().Time).Seconds()
-			recurringPipelineRunReportGap.Observe(reportGap)
-		}
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to report a workflow due to error creating run %s", runId)
 		}
@@ -2343,7 +2358,7 @@ func (r *ResourceManager) reportWorkflowResource(
 	if updateError == nil && !createdFromRecurringReport {
 		run.K8SName = execSpec.ExecutionName()
 		run.State = state
-		run.Conditions = string(state.ToV1())
+		run.Conditions = string(state.ToExecutionPhase())
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		var updated bool
@@ -2489,24 +2504,10 @@ func (r *ResourceManager) reportWorkflowResource(
 		if r.options.CollectMetrics {
 			execNamespace := execSpec.ExecutionNamespace()
 			execName := execSpec.ExecutionName()
-
 			if execStatus.Condition() == exec.ExecutionSucceeded {
 				workflowSuccessCounter.WithLabelValues(execNamespace, execName).Inc()
 			} else {
 				errorMsg := execStatus.Message()
-				// If workflow-level message is empty, try to get error from failed nodes
-				if errorMsg == "" {
-					if wf, ok := execSpec.(*util.Workflow); ok {
-						for nodeID, node := range wf.Status.Nodes {
-							if node.Phase == "Failed" || node.Phase == "Error" {
-								if node.Message != "" {
-									errorMsg = fmt.Sprintf("Node '%s' failed: %s", nodeID, node.Message)
-									break
-								}
-							}
-						}
-					}
-				}
 				if errorMsg == "" {
 					errorMsg = "(no error message available)"
 				}
@@ -3139,8 +3140,9 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWor
 
 // Returns a workflow template based on the manifest in the following priority:
 // 1. Pipeline spec manifest from an existing pipeline version,
-// 2. Pipeline spec manifest or workflow spec manifest provided by a user.
+// 2. IR pipeline spec manifest provided by a user.
 // If an existing pipeline version is found, the referenced pipeline and pipeline version are updated.
+// Persist only the selected source manifest, not unused client-supplied alternatives.
 func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.PipelineSpec) (template.Template, string, error) {
 	manifest := ""
 	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(*pipelineSpec)
@@ -3161,9 +3163,6 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		// Read the provided manifest and fail if it is empty
 		manifest = string(pipelineSpec.PipelineSpecManifest)
 		if manifest == "" {
-			manifest = string(pipelineSpec.WorkflowSpecManifest)
-		}
-		if manifest == "" {
 			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
@@ -3180,7 +3179,49 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 	if err != nil {
 		return nil, "", util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 	}
+	pipelineSpec.PipelineSpecManifest = model.LargeText(manifest)
+	pipelineSpec.WorkflowSpecManifest = ""
 	return tmpl, manifest, nil
+}
+
+// Older records may retain a client-supplied V2 manifest even though creation
+// selected a referenced V1 workflow. Only the exact pinned version can establish
+// compiler provenance in that case; never fall back to the unused manifest or a
+// pipeline's latest version. Without a reference, the inline pipeline manifest
+// was authoritative, including legacy V2 jobs and recurring reports with both
+// manifest fields populated.
+func (r *ResourceManager) allowsCompilerPodSpecPatch(pipelineSpec model.PipelineSpec) (bool, error) {
+	if pipelineSpec.PipelineSpecManifest == "" {
+		return false, nil
+	}
+	manifest := []byte(pipelineSpec.PipelineSpecManifest)
+	if pipelineSpec.PipelineVersionId != "" {
+		version, err := r.GetPipelineVersion(pipelineSpec.PipelineVersionId)
+		if util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			// A deleted source cannot prove the compiler exemption, but static
+			// workflows may still run after normal identity inspection.
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		if version.PipelineSpec == "" {
+			// Creation persists the validated source in the version row. The
+			// legacy object-store fallback can read a different pipeline-level
+			// source, so it cannot establish provenance for this exemption.
+			return false, nil
+		}
+		manifest = []byte(version.PipelineSpec)
+	} else if pipelineSpec.PipelineId != "" || pipelineSpec.PipelineName != "" {
+		// Reference-based creation saves a pin. Do not guess for older records
+		// that lack one, since the referenced pipeline may have changed.
+		return false, nil
+	}
+	tmpl, err := template.New(manifest, template.TemplateOptions{})
+	if err != nil {
+		return false, err
+	}
+	return tmpl.GetTemplateType() == template.V2, nil
 }
 
 // Fetches PipelineSpec as []byte array and a new URI of PipelineSpec.
@@ -3228,16 +3269,17 @@ func (r *ResourceManager) readPipelineSpecFromObjectStore(ctx context.Context, f
 	}
 	defer reader.Close()
 
-	limitedReader := io.LimitReader(reader, int64(common.MaxFileLength)+1)
+	limits, err := common.GetPipelineSizeLimits()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Invalid pipeline size limit configuration")
+	}
+	limitedReader := io.LimitReader(reader, int64(limits.SpecBytes)+1)
 	pipelineSpec, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to read pipeline spec from %v", filePath)
 	}
-	if len(pipelineSpec) > common.MaxFileLength {
-		return nil, util.NewInvalidInputError(
-			"Pipeline spec file size too large (%v bytes). Maximum supported size: %v.",
-			len(pipelineSpec), common.MaxFileLength,
-		)
+	if len(pipelineSpec) > limits.SpecBytes {
+		return nil, common.NewSizeLimitError("pipeline_spec", int64(limits.SpecBytes), common.MaxPipelineSpecBytesEnv)
 	}
 	return pipelineSpec, nil
 }
@@ -3281,20 +3323,16 @@ func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, err
 	return defaultExperiment.UUID, nil
 }
 
-// TODO(gkcalat): deprecate this as we no longer have metrics in the v2beta1 run message.
-// Read metrics as ordinary artifacts instead.
-// Creates a run metric entry.
-func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
-	err := r.runStore.CreateMetric(metric)
-	if err != nil {
-		return util.Wrap(err, "Failed to report a run metric")
-	}
-	return nil
+// UpdateTask updates a task entry.
+func (r *ResourceManager) UpdateTask(new *model.Task) (*model.Task, error) {
+	// Update task
+	return r.taskStore.UpdateTask(new)
 }
 
 // ResolveArtifactPath resolves the object storage path for an artifact.
 func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
-	run, err := r.runStore.GetRun(runID)
+	// No need to hydrate tasks for reading artifacts
+	run, err := r.runStore.GetRun(runID, false)
 	if err != nil {
 		return "", err
 	}
@@ -3393,17 +3431,9 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
 	}
-	if tmpl.GetTemplateType() == template.V1 {
-		pipelineNamespace, _ := r.FetchNamespaceFromPipelineId(pipelineId)
-		if pipelineNamespace == "" {
-			pipelineNamespace = common.GetPodNamespace()
-		}
-		if util.IsV1PipelinesBlocked(pipelineNamespace) {
-			return nil, util.NewInvalidInputError("V1 pipeline specs are not allowed. Please migrate to using KFP V2 pipelines.")
-		}
-	}
+
 	// Validate pipeline's name in:
-	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements
+	// 1. IR pipeline spec
 	// 2. display name must be non-empty
 	pipelineSpecName := ""
 	if tmpl.IsV2() {
@@ -3452,13 +3482,13 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	return version, nil
 }
 
-// GetPipelineVersion returns a pipeline version by Id. Tags are loaded at the store level.
+// GetPipelineVersion returns a pipeline version by Id.
 func (r *ResourceManager) GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error) {
-	pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId)
-	if err != nil {
+	if pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId); err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline version with id %v", pipelineVersionId)
+	} else {
+		return pipelineVersion, nil
 	}
-	return pipelineVersion, nil
 }
 
 // GetPipelineVersionByName returns a pipeline version by pipeline ID and version name. Tags are loaded at the store level.
@@ -3470,7 +3500,7 @@ func (r *ResourceManager) GetPipelineVersionByName(pipelineID, versionName strin
 	return pipelineVersion, nil
 }
 
-// GetLatestPipelineVersion returns the latest pipeline version for a specified pipeline id. Tags are loaded at the store level.
+// GetLatestPipelineVersion returns the latest pipeline version for a specified pipeline id.
 func (r *ResourceManager) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
 	// Verify pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
@@ -3486,15 +3516,17 @@ func (r *ResourceManager) GetLatestPipelineVersion(pipelineId string) (*model.Pi
 	return latestPipelineVersion, nil
 }
 
-// ListPipelineVersions returns a list of pipeline versions. Tags are loaded at the store level.
-// tagFilters is an optional map of tag key->value pairs to filter pipeline versions by.
-func (r *ResourceManager) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) ([]*model.PipelineVersion, int, string, error) {
-	pipelineVersions, totalSize, nextPageToken, err := r.pipelineStore.ListPipelineVersions(pipelineID, opts, tagFilters)
+// ListPipelineVersions returns a list of pipeline versions.
+func (r *ResourceManager) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) ([]*model.PipelineVersion, int, string, error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
+	pipelineVersions, totalSize, nextPageToken, err := r.pipelineStore.ListPipelineVersions(pipelineID, opts, resolvedTagFilters)
 	if err != nil {
 		err = util.Wrapf(err, "Failed to list pipeline versions with pipeline id %v, options %v", pipelineID, opts)
-		return nil, 0, "", err
 	}
-	return pipelineVersions, totalSize, nextPageToken, nil
+	return pipelineVersions, totalSize, nextPageToken, err
 }
 
 // Deletes a pipeline version and the corresponding PipelineSpec.
@@ -3617,6 +3649,12 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 			glog.Info(reportErr.Error())
 			return reportErr
 		}
+	}
+	// KFP deliberately fails closed on incomplete authorization evaluation for
+	// every resource, even when Kubernetes also returns an allow/deny decision.
+	// Audit mode may relax policy denials, never authorization-service failures.
+	if result.Status.EvaluationError != "" {
+		return util.NewInternalServerError(errors.New("SubjectAccessReview evaluation failed"), "Authorization could not be evaluated; retry after restoring the authorization service")
 	}
 	if !result.Status.Allowed {
 		err := util.NewPermissionDeniedError(
@@ -3766,7 +3804,7 @@ func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, n
 	return experimentId, namespace, nil
 }
 
-// Fetches a task entry.
+// GetTask Fetches a task entry.
 func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 	task, err := r.taskStore.GetTask(taskId)
 	if err != nil {
@@ -3776,20 +3814,213 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 }
 
 func (r *ResourceManager) authorizeServiceAccount(ctx context.Context, serviceAccount, namespace string) error {
+	return r.authorizeServiceAccountWithPolicy(ctx, serviceAccount, namespace, false, nil)
+}
+
+// Audit relaxes policy denials only; authorization infrastructure errors still block.
+func (r *ResourceManager) authorizeServiceAccountWithPolicy(ctx context.Context, serviceAccount, namespace string, audit bool, recordViolation func(string)) error {
 	if serviceAccount == "" {
 		return nil
 	}
+	if strings.Contains(serviceAccount, "{{") {
+		if audit {
+			recordViolation("inspection_incomplete")
+			return nil
+		}
+		return util.NewInvalidInputError("service account %q is templated; use a literal name so it can be authorized before execution", serviceAccount)
+	}
 	if err := common.ValidateServiceAccountAllowList(serviceAccount); err != nil {
-		return util.NewInvalidInputError("%s", err)
+		if !audit {
+			return util.NewInvalidInputError("%s", err)
+		}
+		recordViolation("account_not_allowed")
 	}
 	defaultServiceAccount := common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount)
 	if serviceAccount == defaultServiceAccount {
 		return nil
 	}
-	return r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
-		Verb:      common.RbacResourceVerbUse,
-		Namespace: namespace,
-		Resource:  "serviceaccounts",
-		Name:      serviceAccount,
+	err := r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
+		Verb: common.RbacResourceVerbUse, Namespace: namespace, Resource: "serviceaccounts", Name: serviceAccount,
 	})
+	if audit && util.IsUserErrorCodeMatch(err, codes.PermissionDenied) {
+		recordViolation("account_denied")
+		return nil
+	}
+	return err
+}
+
+// GetTasksByIDs fetches tasks keyed by task ID without hydrating artifacts.
+func (r *ResourceManager) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, error) {
+	tasksByID, err := r.taskStore.GetTasksByIDs(taskIDs)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to fetch task batch")
+	}
+	return tasksByID, nil
+}
+
+// GetTaskChildren fetches all immediate child tasks of the given task UUID.
+func (r *ResourceManager) GetTaskChildren(taskID string) ([]*model.Task, error) {
+	children, err := r.taskStore.GetChildTasks(taskID)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to fetch children of task %v", taskID)
+	}
+	return children, nil
+}
+
+// GetTaskChildrenByParentIDs fetches child task summaries for a batch of parent task IDs.
+func (r *ResourceManager) GetTaskChildrenByParentIDs(parentTaskIDs []string) (map[string][]*model.Task, error) {
+	childrenByParent, err := r.taskStore.GetChildTasksByParentIDs(parentTaskIDs)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to fetch children for parent task batch")
+	}
+	return childrenByParent, nil
+}
+
+// ListArtifactTasks Fetches artifact tasks with given filtering and listing options.
+func (r *ResourceManager) ListArtifactTasks(filterContexts []*model.FilterContext, ioType *model.IOType, opts *list.Options) ([]*model.ArtifactTask, int, string, error) {
+	artifactTasks, totalSize, nextPageToken, err := r.artifactTaskStore.ListArtifactTasks(filterContexts, ioType, opts)
+	if err != nil {
+		return nil, 0, "", util.Wrap(err, "Failed to list artifact tasks")
+	}
+	return artifactTasks, totalSize, nextPageToken, nil
+}
+
+// CreateArtifactTask Creates an artifact-task relationship entry.
+func (r *ResourceManager) CreateArtifactTask(artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	newAT, err := r.artifactTaskStore.CreateArtifactTask(artifactTask)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create artifact-task relationship")
+	}
+	return newAT, nil
+}
+
+// CreateArtifactTasks Creates multiple artifact-task relationship entries in bulk.
+func (r *ResourceManager) CreateArtifactTasks(artifactTasks []*model.ArtifactTask) ([]*model.ArtifactTask, error) {
+	newATs, err := r.artifactTaskStore.CreateArtifactTasks(artifactTasks)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create artifact-task relationships in bulk")
+	}
+	return newATs, nil
+}
+
+// GetArtifact Fetches an artifact with a given id.
+func (r *ResourceManager) GetArtifact(artifactID string) (*model.Artifact, error) {
+	artifact, err := r.artifactStore.GetArtifact(artifactID)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to fetch artifact %v", artifactID)
+	}
+	return artifact, nil
+}
+
+// CreateArtifact Creates an artifact entry.
+func (r *ResourceManager) CreateArtifact(artifact *model.Artifact) (*model.Artifact, error) {
+	newArtifact, err := r.artifactStore.CreateArtifact(artifact)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create artifact")
+	}
+	return newArtifact, nil
+}
+
+// CreateArtifactWithTask atomically creates an artifact row and its output link.
+// The artifact APIs surface a single logical create operation, so this method keeps
+// the artifact and artifact_task tables in sync and prevents orphaned artifacts if
+// the second insert fails after the artifact row has been written.
+func (r *ResourceManager) CreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+	newArtifact, newArtifactTask, err := r.artifactStore.CreateArtifactWithTask(artifact, artifactTask)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create artifact and artifact-task")
+	}
+	return newArtifact, newArtifactTask, nil
+}
+
+// FindOrCreateArtifactWithTask reuses a matching artifact or creates one, then links it.
+// Used by CreateArtifact when reuse_if_exists is set so concurrent importers share one row.
+func (r *ResourceManager) FindOrCreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+	newArtifact, newArtifactTask, err := r.artifactStore.FindOrCreateArtifactWithTask(artifact, artifactTask)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to find or create artifact and artifact-task")
+	}
+	return newArtifact, newArtifactTask, nil
+}
+
+// CreateArtifactsWithTasks atomically creates a bulk set of artifacts and output links.
+// The slices are index-aligned, and the method is intentionally all-or-nothing so a
+// later artifact_task failure cannot leave earlier artifacts committed without links.
+func (r *ResourceManager) CreateArtifactsWithTasks(artifacts []*model.Artifact, artifactTasks []*model.ArtifactTask) ([]*model.Artifact, []*model.ArtifactTask, error) {
+	createdArtifacts, createdArtifactTasks, err := r.artifactStore.CreateArtifactsWithTasks(artifacts, artifactTasks)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to create artifacts and artifact-tasks")
+	}
+	return createdArtifacts, createdArtifactTasks, nil
+}
+
+// ListArtifacts Fetches artifacts with given filtering and listing options.
+func (r *ResourceManager) ListArtifacts(filterContexts []*model.FilterContext, opts *list.Options) ([]*model.Artifact, int, string, error) {
+	// Use the first filter context for now (artifacts are typically filtered by namespace)
+	var filterContext *model.FilterContext
+	if len(filterContexts) > 0 {
+		filterContext = filterContexts[0]
+	}
+
+	artifacts, totalSize, nextPageToken, err := r.artifactStore.ListArtifacts(filterContext, opts)
+	if err != nil {
+		return nil, 0, "", util.Wrap(err, "Failed to list artifacts")
+	}
+	return artifacts, totalSize, nextPageToken, nil
+}
+
+// GetArtifactsByURI fetches artifacts with exact Namespace + URI equality using
+// a dedicated store lookup (no pagination / COUNT loop). An empty namespace is
+// valid in single-user mode where persisted namespaces are cleared.
+func (r *ResourceManager) GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error) {
+	artifacts, err := r.artifactStore.GetArtifactsByURI(namespace, uri)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get artifacts by URI")
+	}
+	return artifacts, nil
+}
+
+func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace, operation string) error {
+	mode, err := common.GetWorkflowIdentityMode()
+	if err != nil {
+		return util.NewInternalServerError(err, "Invalid workflow identity configuration")
+	}
+	audit := mode == "audit"
+	mainServiceAccount := executionSpec.ServiceAccount()
+	if mainServiceAccount == "" {
+		mainServiceAccount = "default"
+	}
+	// Main and expanded identity policies remain independent, including when
+	// a dynamic patch prevents additional identity collection.
+	if err := r.authorizeServiceAccount(ctx, mainServiceAccount, namespace); err != nil {
+		return err
+	}
+	serviceAccounts, err := executionSpec.ServiceAccounts(allowCompilerPodSpecPatch)
+	if err != nil {
+		if audit {
+			logWorkflowServiceAccountAudit(executionSpec, namespace, operation, "", "inspection_incomplete")
+			return nil
+		}
+		return err
+	}
+	for _, serviceAccount := range serviceAccounts {
+		if serviceAccount == mainServiceAccount {
+			continue
+		}
+		recordViolation := func(reason string) {
+			logWorkflowServiceAccountAudit(executionSpec, namespace, operation, serviceAccount, reason)
+		}
+		if err := r.authorizeServiceAccountWithPolicy(ctx, serviceAccount, namespace, audit, recordViolation); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func logWorkflowServiceAccountAudit(executionSpec util.ExecutionSpec, namespace, operation, serviceAccount, finding string) {
+	meta := executionSpec.ExecutionObjectMeta()
+	// Parser errors can contain patch values. Log metadata and a finding code,
+	// never the manifest, patch contents, or raw authorization error.
+	glog.Warningf("security_audit control=workflow_identity mode=audit operation=%q namespace=%q workflow=%q generate_name=%q run_id=%q service_account=%q reason=%q disposition=allow_policy_violation",
+		operation, namespace, meta.Name, meta.GenerateName, meta.Labels[util.LabelKeyWorkflowRunId], serviceAccount, finding)
 }

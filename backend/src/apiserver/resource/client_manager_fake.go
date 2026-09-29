@@ -28,6 +28,7 @@ import (
 )
 
 var testDialect = dialect.NewDBDialect("sqlite")
+var _ ClientManagerInterface = &FakeClientManager{}
 
 type FakeClientManager struct {
 	db *sql.DB
@@ -37,6 +38,8 @@ type FakeClientManager struct {
 	jobStore                      storage.JobStoreInterface
 	runStore                      storage.RunStoreInterface
 	taskStore                     storage.TaskStoreInterface
+	artifactStore                 storage.ArtifactStoreInterface
+	artifactTaskStore             storage.ArtifactTaskStoreInterface
 	resourceReferenceStore        storage.ResourceReferenceStoreInterface
 	dBStatusStore                 storage.DBStatusStoreInterface
 	defaultExperimentStore        storage.DefaultExperimentStoreInterface
@@ -92,6 +95,8 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		jobStore:                      storage.NewJobStore(db, time, nil, testDialect),
 		runStore:                      storage.NewRunStore(db, time, testDialect),
 		taskStore:                     storage.NewTaskStore(db, time, uuid, testDialect),
+		artifactStore:                 storage.NewArtifactStore(db, time, uuid, testDialect),
+		artifactTaskStore:             storage.NewArtifactTaskStore(db, uuid, testDialect),
 		ExecClientFake:                client.NewFakeExecClient(),
 		resourceReferenceStore:        storage.NewResourceReferenceStore(db, nil, testDialect),
 		dBStatusStore:                 dBStatusStore,
@@ -139,6 +144,13 @@ func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
 	return f.pipelineStore
 }
 
+// SetPipelineStore swaps in an alternate pipeline store so that tests can drive
+// the Kubernetes-backed implementation through the API layer, where namespace
+// authorization happens.
+func (f *FakeClientManager) SetPipelineStore(pipelineStore storage.PipelineStoreInterface) {
+	f.pipelineStore = pipelineStore
+}
+
 func (f *FakeClientManager) ObjectStore() storage.ObjectStore {
 	return f.objectStore
 }
@@ -173,6 +185,20 @@ func (f *FakeClientManager) RunStore() storage.RunStoreInterface {
 
 func (f *FakeClientManager) TaskStore() storage.TaskStoreInterface {
 	return f.taskStore
+}
+
+func (f *FakeClientManager) ArtifactStore() storage.ArtifactStoreInterface {
+	return f.artifactStore
+}
+
+func (f *FakeClientManager) ArtifactTaskStore() storage.ArtifactTaskStoreInterface {
+	return f.artifactTaskStore
+}
+
+// SetArtifactTaskStore replaces the artifact-task store. Intended for tests that
+// need to assert storage is not reached.
+func (f *FakeClientManager) SetArtifactTaskStore(store storage.ArtifactTaskStoreInterface) {
+	f.artifactTaskStore = store
 }
 
 func (f *FakeClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {

@@ -59,9 +59,9 @@ var LengthSpecs = []ColLenSpec{
 	{Model: &model.Run{}, Field: "ExperimentId", Max: 64},
 	{Model: &model.Run{}, Field: "Conditions", Max: 125},
 
-	{Model: &model.RunMetric{}, Field: "RunUUID", Max: 191},
-	{Model: &model.RunMetric{}, Field: "NodeID", Max: 191},
-	{Model: &model.RunMetric{}, Field: "Name", Max: 191},
+	{Model: &model.RunMetricV1{}, Field: "Name", Max: 191},
+	{Model: &model.RunMetricV1{}, Field: "NodeID", Max: 191},
+	{Model: &model.RunMetricV1{}, Field: "RunUUID", Max: 191},
 
 	{Model: &model.Task{}, Field: "UUID", Max: 191},
 	// Note: struct field is RunID, column is RunUUID.

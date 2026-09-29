@@ -6,8 +6,10 @@ Documentation for operators deploying and configuring Kubeflow Pipelines.
 :maxdepth: 1
 
 installation
+supported-platforms
 server-config
 multi-user
+rbac-migration-2.18
 configure-object-store
 mlflow-plugin
 ```

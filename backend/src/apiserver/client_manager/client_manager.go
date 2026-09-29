@@ -19,6 +19,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -42,6 +43,7 @@ import (
 	commonsql "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql"
 	sqldrv "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -79,9 +81,6 @@ const (
 	archiveLogPathPrefix = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
 	dbConMaxLifeTime     = "DBConfig.ConMaxLifeTime"
 
-	VisualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
-	VisualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
-
 	initConnectionTimeout = "InitConnectionTimeout"
 
 	clientQPS   = "ClientQPS"
@@ -100,7 +99,10 @@ func init() {
 	}
 }
 
-// Container for all service clients.
+// Ensure that ClientManager implements the resource.ClientManagerInterface interface.
+var _ resource.ClientManagerInterface = &ClientManager{}
+
+// ClientManager Container for all service clients.
 type ClientManager struct {
 	db                        *sql.DB
 	dbDialect                 sqldrv.DBDialect
@@ -109,6 +111,8 @@ type ClientManager struct {
 	jobStore                  storage.JobStoreInterface
 	runStore                  storage.RunStoreInterface
 	taskStore                 storage.TaskStoreInterface
+	artifactStore             storage.ArtifactStoreInterface
+	artifactTaskStore         storage.ArtifactTaskStoreInterface
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
@@ -169,6 +173,14 @@ func (c *ClientManager) JobStore() storage.JobStoreInterface {
 
 func (c *ClientManager) RunStore() storage.RunStoreInterface {
 	return c.runStore
+}
+
+func (c *ClientManager) ArtifactStore() storage.ArtifactStoreInterface {
+	return c.artifactStore
+}
+
+func (c *ClientManager) ArtifactTaskStore() storage.ArtifactTaskStoreInterface {
+	return c.artifactTaskStore
 }
 
 func (c *ClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {
@@ -342,6 +354,8 @@ func (c *ClientManager) init(options *Options) error {
 
 	runStore := storage.NewRunStore(db, c.time, c.dbDialect)
 	c.runStore = runStore
+	c.artifactStore = storage.NewArtifactStore(db, c.time, c.uuid, c.dbDialect)
+	c.artifactTaskStore = storage.NewArtifactTaskStore(db, c.uuid, c.dbDialect)
 
 	// Log archive
 	c.logArchive = initLogArchive()
@@ -1364,9 +1378,7 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 		return nil, err
 	}
 
-	if region == "" {
-		region = "us-east-1"
-	}
+	region = resolveObjectStoreRegion(region)
 
 	endpoint := host
 	if port != "" {
@@ -1381,6 +1393,19 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 		accessKey:  accessKey,
 		secretKey:  secretKey,
 	}, nil
+}
+
+func resolveObjectStoreRegion(configuredRegion string) string {
+	if configuredRegion != "" {
+		return configuredRegion
+	}
+	if region := os.Getenv("AWS_REGION"); region != "" {
+		return region
+	}
+	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
+		return region
+	}
+	return "us-east-1"
 }
 
 func newS3BucketClient(ctx context.Context, config *blobStorageConfig) (*s3.Client, error) {

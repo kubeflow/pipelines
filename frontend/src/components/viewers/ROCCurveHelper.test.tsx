@@ -35,22 +35,59 @@ describe('validateConfidenceMetrics', () => {
     ],
     ['missing fields', [{ confidenceThreshold: 0.9 }], true],
     ['non-array input', 'not-an-array', true],
+    ['null input', null, true],
+    ['undefined input', undefined, true],
     ['array containing null', [null], true],
   ] as const)('validates %s', (_label, input, expectError) => {
     const result = validateConfidenceMetrics(input);
     expect(result.error).toEqual(expectError ? expect.anything() : undefined);
   });
+
+  it.each(['confidenceThreshold', 'falsePositiveRate', 'recall'])(
+    'identifies the metric index and invalid %s field',
+    (field) => {
+      const metric = { confidenceThreshold: 0.9, falsePositiveRate: 0.1, recall: 0.95 };
+      const inputs = [metric, { ...metric, [field]: 'invalid' }];
+      const { error } = validateConfidenceMetrics(inputs);
+
+      expect(error).toContain(`confidenceMetrics.1.${field}`);
+      expect(error).toContain('Expected number');
+      expect(error).toContain('string');
+      expect(error).toContain(`Data: ${JSON.stringify(inputs)}`);
+    },
+  );
+
+  it('identifies each missing required field', () => {
+    const { error } = validateConfidenceMetrics([{ confidenceThreshold: 0.9 }]);
+
+    expect(error).toContain('confidenceMetrics.0.falsePositiveRate');
+    expect(error).toContain('confidenceMetrics.0.recall');
+    expect(error).toContain('missing');
+  });
+
+  it('explains a non-array input', () => {
+    const { error } = validateConfidenceMetrics('not-an-array');
+
+    expect(error).toContain('confidenceMetrics:');
+    expect(error).toContain('Expected');
+    expect(error).toContain('string');
+  });
+
+  it('accepts metrics with additional metadata', () => {
+    expect(
+      validateConfidenceMetrics([
+        { confidenceThreshold: 0.9, falsePositiveRate: 0.1, recall: 0.95, extra: 'metadata' },
+      ]),
+    ).toEqual({});
+  });
 });
 
 describe('buildRocCurveConfig', () => {
-  // The ConfidenceMetric TypeScript type declares confidenceThreshold as string,
-  // but the runtypes runtime validator (ConfidenceMetricArrayRunType) expects Number
-  // for all three fields. We use `as any` to match the runtime expectation.
   it('builds ROC curve config from valid metrics', () => {
     const metrics = [
       { confidenceThreshold: 0.9, falsePositiveRate: 0.1, recall: 0.95 },
       { confidenceThreshold: 0.5, falsePositiveRate: 0.3, recall: 0.8 },
-    ] as any;
+    ];
     const config = buildRocCurveConfig(metrics);
     expect(config.type).toBe(PlotType.ROC);
     expect(config.data).toHaveLength(2);
@@ -59,13 +96,13 @@ describe('buildRocCurveConfig', () => {
   });
 
   it('returns empty data array for empty metrics', () => {
-    const config = buildRocCurveConfig([] as any);
+    const config = buildRocCurveConfig([]);
     expect(config.type).toBe(PlotType.ROC);
     expect(config.data).toHaveLength(0);
   });
 
   it('maps falsePositiveRate to x and recall to y', () => {
-    const metrics = [{ confidenceThreshold: 0.7, falsePositiveRate: 0.2, recall: 0.85 }] as any;
+    const metrics = [{ confidenceThreshold: 0.7, falsePositiveRate: 0.2, recall: 0.85 }];
     const config = buildRocCurveConfig(metrics);
     expect(config.data[0].x).toBe(0.2);
     expect(config.data[0].y).toBe(0.85);

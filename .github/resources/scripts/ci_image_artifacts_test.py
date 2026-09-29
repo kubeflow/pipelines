@@ -50,7 +50,7 @@ class CiImageArtifactsTest(unittest.TestCase):
 
         self.assertEqual(configured_artifacts, expected_artifacts)
 
-    def test_metadata_envoy_changes_trigger_its_image_build(self):
+    def test_deleted_metadata_envoy_is_not_referenced(self):
         frontend_e2e_workflow = FRONTEND_E2E_WORKFLOW.read_text(
             encoding='utf-8')
         image_builds_workflow = IMAGE_BUILDS_WORKFLOW.read_text(
@@ -61,18 +61,13 @@ class CiImageArtifactsTest(unittest.TestCase):
             '  pull_request:\n', maxsplit=1)[1].split(
                 '\n\nconcurrency:', maxsplit=1)[0]
 
-        self.assertIn("      - 'third_party/metadata_envoy/**'",
-                      pull_request_block)
+        self.assertNotIn('metadata_envoy', pull_request_block)
         self.assertIn(
             '  build:\n    uses: ./.github/workflows/image-builds.yml',
             frontend_e2e_workflow,
         )
-        self.assertIn(
-            '          - image: metadata-envoy\n'
-            '            dockerfile: third_party/metadata_envoy/Dockerfile\n'
-            '            context: .',
-            image_builds_workflow,
-        )
+        self.assertNotIn('metadata-envoy', image_builds_workflow)
+        self.assertNotIn('metadata_envoy', image_builds_workflow)
         self.assertIn("      - '.github/workflows/e2e-test-frontend.yml'",
                       ci_scripts_workflow)
 

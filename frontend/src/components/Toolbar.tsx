@@ -16,10 +16,9 @@
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { History } from 'history';
 import * as React from 'react';
 import { CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavigateFunction } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import BusyButton from '../atoms/BusyButton';
 import { color, commonCss, dimension, fonts, fontsize, spacing } from '../Css';
@@ -114,7 +113,7 @@ const css = stylesheet({
 export interface ToolbarProps {
   actions: ToolbarActionMap;
   breadcrumbs: Breadcrumb[];
-  history?: History;
+  navigate?: NavigateFunction;
   pageTitle: string | React.JSX.Element;
   pageTitleTooltip?: string;
   topLevelToolbar?: boolean;
@@ -156,14 +155,16 @@ class Toolbar extends React.Component<ToolbarProps> {
                   {/* Div needed because we sometimes disable a button within a tooltip */}
                   <IconButton
                     className={css.backLink}
-                    disabled={this.props.history!.length < 2}
-                    onClick={this.props.history!.goBack}
+                    disabled={!this.props.navigate || window.history.length < 2}
+                    onClick={() => this.props.navigate?.(-1)}
                     size='large'
                   >
                     <ArrowBackIcon
                       className={classes(
                         css.backIcon,
-                        this.props.history!.length < 2 ? css.disabled : css.enabled,
+                        !this.props.navigate || window.history.length < 2
+                          ? css.disabled
+                          : css.enabled,
                       )}
                     />
                   </IconButton>

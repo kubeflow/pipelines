@@ -15,7 +15,7 @@
  */
 
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
-import TestUtils, { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
+import TestUtils, { RouterLocation, flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
@@ -25,8 +25,7 @@ import { ButtonKeys } from 'src/lib/Buttons';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { Router } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
+import { MemoryRouter } from 'react-router';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { vi } from 'vitest';
@@ -40,7 +39,7 @@ describe('ExperimentDetails', () => {
   const updateBannerSpy = vi.fn();
   const updateDialogSpy = vi.fn();
   const updateSnackbarSpy = vi.fn();
-  const historyPushSpy = vi.fn();
+  const navigateSpy = vi.fn();
   const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const listRecurringRunsSpy = vi.spyOn(Apis.recurringRunServiceApi, 'listRecurringRuns');
   const listRunsSpy = vi.spyOn(Apis.runServiceApiV2, 'listRuns');
@@ -56,12 +55,12 @@ describe('ExperimentDetails', () => {
   }
 
   function generateProps(): PageProps {
-    const match = { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.experiment_id } } as any;
+    const params = { [RouteParams.experimentId]: MOCK_EXPERIMENT.experiment_id } as any;
     return TestUtils.generatePageProps(
       ExperimentDetails,
       {} as any,
-      match,
-      historyPushSpy,
+      params,
+      navigateSpy,
       updateBannerSpy,
       updateDialogSpy,
       updateToolbarSpy,
@@ -136,7 +135,7 @@ describe('ExperimentDetails', () => {
     updateSnackbarSpy.mockReset();
     updateToolbarSpy.mockReset();
     getExperimentSpy.mockReset();
-    historyPushSpy.mockReset();
+    navigateSpy.mockReset();
     listRecurringRunsSpy.mockReset();
     listRunsSpy.mockReset();
 
@@ -159,7 +158,7 @@ describe('ExperimentDetails', () => {
     experiment.display_name = '';
 
     const props = generateProps();
-    props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
+    props.params = { [RouteParams.experimentId]: 'test exp ID' } as any;
 
     getExperimentSpy.mockImplementation(() => experiment);
 
@@ -230,7 +229,7 @@ describe('ExperimentDetails', () => {
 
   it('calls getExperiment with the experiment ID in props', async () => {
     const props = generateProps();
-    props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
+    props.params = { [RouteParams.experimentId]: 'test exp ID' } as any;
     await renderExperimentDetails(props);
     await waitFor(() => {
       expect(getExperimentSpy).toHaveBeenCalledWith('test exp ID');
@@ -432,7 +431,7 @@ describe('ExperimentDetails', () => {
     await waitFor(() => expect(compareButton).toBeEnabled());
     fireEvent.click(compareButton);
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.COMPARE + `?${QUERY_PARAMS.runlist}=run-1-id,run-2-id`,
     );
   });
@@ -444,7 +443,7 @@ describe('ExperimentDetails', () => {
     const newRunButton = screen.getByRole('button', { name: 'Create run' });
     fireEvent.click(newRunButton);
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.experiment_id}`,
     );
   });
@@ -456,7 +455,7 @@ describe('ExperimentDetails', () => {
     const newRecurringButton = screen.getByRole('button', { name: 'Create recurring run' });
     fireEvent.click(newRecurringButton);
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN +
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.experiment_id}` +
         `&${QUERY_PARAMS.isRecurring}=1`,
@@ -476,7 +475,7 @@ describe('ExperimentDetails', () => {
     await waitFor(() => expect(cloneButton).toBeEnabled());
     fireEvent.click(cloneButton);
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=run-1-id`,
     );
   });
@@ -617,22 +616,24 @@ describe('ExperimentDetails', () => {
     });
 
     it('redirects to ExperimentList page if namespace changes', () => {
-      const history = createMemoryHistory();
+      const initialEntries = ['/'];
       const { rerender } = render(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='test-ns-1'>
             <EnhancedExperimentDetails {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
       rerender(
-        <Router history={history}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <RouterLocation />
           <NamespaceContext.Provider value='test-ns-2'>
             <EnhancedExperimentDetails {...generateProps()} />
           </NamespaceContext.Provider>
-        </Router>,
+        </MemoryRouter>,
       );
-      expect(history.location.pathname).toEqual(RoutePage.EXPERIMENTS);
+      expect(screen.getByTestId('router-location').textContent).toEqual(RoutePage.EXPERIMENTS);
     });
   });
 });

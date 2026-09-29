@@ -1,26 +1,28 @@
-import { Array as ArrayRunType, Number, Record, ValidationError } from 'runtypes';
+import { Array as ArrayRunType, Failure, Number, Object as ObjectRunType, Static } from 'runtypes';
 import { ROCCurveConfig } from './ROCCurve';
 import { PlotType } from './Viewer';
 
-type ConfidenceMetric = {
-  confidenceThreshold: string;
-  falsePositiveRate: number;
-  recall: number;
-};
-
-const ConfidenceMetricRunType = Record({
+const ConfidenceMetricRunType = ObjectRunType({
   confidenceThreshold: Number,
   falsePositiveRate: Number,
   recall: Number,
 });
+type ConfidenceMetric = Static<typeof ConfidenceMetricRunType>;
 const ConfidenceMetricArrayRunType = ArrayRunType(ConfidenceMetricRunType);
-export function validateConfidenceMetrics(inputs: any): { error?: string } {
-  try {
-    ConfidenceMetricArrayRunType.check(inputs);
-  } catch (e) {
-    if (e instanceof ValidationError) {
-      return { error: e.message + '. Data: ' + JSON.stringify(inputs) };
-    }
+
+function formatValidationFailure(failure: Failure, path = 'confidenceMetrics'): string {
+  if ('details' in failure) {
+    return Object.entries(failure.details)
+      .map(([key, detail]) => formatValidationFailure(detail, `${path}.${key}`))
+      .join('; ');
+  }
+  return `${path}: ${failure.message}`;
+}
+
+export function validateConfidenceMetrics(inputs: unknown): { error?: string } {
+  const result = ConfidenceMetricArrayRunType.inspect(inputs);
+  if (!result.success) {
+    return { error: formatValidationFailure(result) + '. Data: ' + JSON.stringify(inputs) };
   }
   return {};
 }

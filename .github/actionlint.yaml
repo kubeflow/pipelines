@@ -1,0 +1,6 @@
+paths:
+  .github/workflows/upgrade-test.yml:
+    ignore:
+      # This deliberate checked-in pause is required until #14029 is delivered.
+      # Remove this exception when removing the two guarded job pauses.
+      - '^constant expression "false" in condition\. remove the if: section$'

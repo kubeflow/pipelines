@@ -20,7 +20,6 @@ import unittest
 from absl.testing import parameterized
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
-import kfp
 from kfp import dsl
 from kfp import kubernetes
 from kfp.compiler import compiler
@@ -138,6 +137,39 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
         self.assertEqual(
             expected,
             component_spec.input_definitions.parameters['input1'].default_value,
+        )
+
+    def test_to_protobuf_value_with_none(self):
+        self.assertEqual(
+            pipeline_spec_builder.to_protobuf_value(None),
+            struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+        )
+
+    def test_to_protobuf_value_with_none_in_dict(self):
+        self.assertEqual(
+            pipeline_spec_builder.to_protobuf_value({
+                'key': None,
+                'threshold': 0.5
+            }),
+            struct_pb2.Value(
+                struct_value=struct_pb2.Struct(
+                    fields={
+                        'key':
+                            struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+                        'threshold':
+                            struct_pb2.Value(number_value=0.5),
+                    })),
+        )
+
+    def test_to_protobuf_value_with_none_in_list(self):
+        self.assertEqual(
+            pipeline_spec_builder.to_protobuf_value([1, None, 2]),
+            struct_pb2.Value(
+                list_value=struct_pb2.ListValue(values=[
+                    struct_pb2.Value(number_value=1),
+                    struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+                    struct_pb2.Value(number_value=2),
+                ])),
         )
 
     def test_merge_deployment_spec_and_component_spec(self):
@@ -516,6 +548,23 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
                 t = comp()
                 kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
 
+    def test_resource_claims_without_passthrough_raises(self):
+
+        @dsl.component(task_config_passthroughs=[TaskConfigField.RESOURCES])
+        def comp():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Task 'comp' cannot handle resource type 'KUBERNETES_RESOURCE_CLAIMS'"
+        ):
+
+            @dsl.pipeline
+            def pipe():
+                t = comp()
+                kubernetes.add_resource_claim(
+                    t, resource_claim_template_name='gpu')
+
 
 class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
 
@@ -528,6 +577,7 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
             TaskConfigField.KUBERNETES_NODE_SELECTOR,
             TaskConfigField.KUBERNETES_AFFINITY,
             TaskConfigField.KUBERNETES_VOLUMES,
+            TaskConfigField.KUBERNETES_RESOURCE_CLAIMS,
         ])
         def comp():
             pass
@@ -549,6 +599,7 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
                     'values': ['ssd']
                 }])
             kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
+            kubernetes.add_resource_claim(t, resource_claim_template_name='gpu')
 
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(tmpdir, 'pipeline.yaml')

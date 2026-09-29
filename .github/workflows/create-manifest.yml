@@ -10,6 +10,14 @@ on:
         type: string
         description: 'Provide the app name'
         required: true
+      source_sha:
+        type: string
+        description: 'Immutable source commit shared by every platform build'
+        required: true
+      expected_platforms:
+        type: string
+        description: 'Exact comma-separated runnable platforms expected in the index'
+        required: true
       set_latest:
         type: string
         default: 'true'
@@ -38,7 +46,7 @@ jobs:
         uses: ./.github/actions/download-artifact-with-retry
         with:
           path: /tmp/digests
-          pattern: digests-${{ env.APP_NAME }}-*
+          pattern: digests-${{ env.APP_NAME }}-*-${{ github.run_attempt }}
           merge-multiple: true
 
       - name: Log in to the Container registry
@@ -55,26 +63,23 @@ jobs:
           # daemon-backed driver so this job does not pull a BuildKit image.
           driver: docker
 
-      - name: Create and Push Manifest
-        working-directory: /tmp/digests
+      - name: Create, verify, and publish manifest
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          EXPECTED_PLATFORMS: ${{ inputs.expected_platforms }}
+          RUN_TAG: run-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          IMAGE="${IMAGE_REGISTRY}/${IMAGE_ORG}/${APP_NAME}"
-          
-          echo "Building sources from digests..."
-          SOURCES=""
-          for digest in *; do
-            # Only accept filenames that look like a 64-character hexadecimal SHA-256 digest
-            if [[ "$digest" =~ ^[a-fA-F0-9]{64}$ ]]; then
-              SOURCES+="${IMAGE}@sha256:${digest} "
-            else
-              echo "Skipping invalid digest file: ${digest}" >&2
-            fi
-          done
-          
-          echo "Creating manifest for ${IMAGE}:${TARGET_IMAGE_TAG} with sources: ${SOURCES}"
-          docker buildx imagetools create -t "${IMAGE}:${TARGET_IMAGE_TAG}" ${SOURCES}
-          
-          if [ "${SET_LATEST}" == "true" ]; then
-            echo "Creating manifest for ${IMAGE}:latest with sources: ${SOURCES}"
-            docker buildx imagetools create -t "${IMAGE}:latest" ${SOURCES}
-          fi
+          python3 .github/resources/scripts/publish_image_index.py \
+            --image "${IMAGE_REGISTRY}/${IMAGE_ORG}/${APP_NAME}" \
+            --source-sha "$SOURCE_SHA" --platforms "$EXPECTED_PLATFORMS" \
+            --digests /tmp/digests --run-tag "$RUN_TAG" \
+            --target-tag "$TARGET_IMAGE_TAG" --set-latest "$SET_LATEST" \
+            --output "/tmp/published-index/${APP_NAME}.json"
+
+      - name: Upload verified index reference
+        uses: actions/upload-artifact@v7
+        with:
+          name: published-index-${{ inputs.app_to_build }}-${{ github.run_attempt }}
+          path: /tmp/published-index/${{ inputs.app_to_build }}.json
+          if-no-files-found: error
+          retention-days: 1

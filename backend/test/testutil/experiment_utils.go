@@ -15,9 +15,14 @@
 package testutil
 
 import (
+	"fmt"
+	"strings"
+	"time"
+
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
@@ -25,12 +30,35 @@ import (
 )
 
 func CreateExperimentWithParams(experimentClient *api_server.ExperimentClient, experimentParams *experiment_model.V2beta1Experiment) *experiment_model.V2beta1Experiment {
-	logger.Log("Create an experiment with name %s", experimentParams.DisplayName)
-	createdExperiment, experimentErr := experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{
-		Experiment: experimentParams,
-	})
-	gomega.Expect(experimentErr).NotTo(gomega.HaveOccurred(), "Failed to create experiment with name '%s'", experimentParams.DisplayName)
-	return createdExperiment
+	baseName := experimentParams.DisplayName
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			experimentParams.DisplayName = fmt.Sprintf("%s-%d", baseName, time.Now().UnixNano())
+			logger.Log("Retry creating experiment with a unique name %s after duplicate-name conflict", experimentParams.DisplayName)
+		} else {
+			logger.Log("Create an experiment with name %s", experimentParams.DisplayName)
+		}
+		createdExperiment, experimentErr := experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{
+			Experiment: experimentParams,
+		})
+		if experimentErr == nil {
+			return createdExperiment
+		}
+		if !isAlreadyExistsError(experimentErr) || attempt == 2 {
+			gomega.Expect(experimentErr).NotTo(gomega.HaveOccurred(), "Failed to create experiment with name '%s'", experimentParams.DisplayName)
+		}
+	}
+	return nil
+}
+
+func isAlreadyExistsError(err error) bool {
+	if util.IsUserErrorCodeMatch(err, 409) {
+		return true
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "already exists") ||
+		strings.Contains(message, "already exist") ||
+		strings.Contains(message, "[409]")
 }
 
 func CreateExperiment(experimentClient *api_server.ExperimentClient, experimentName string, namespace ...string) *experiment_model.V2beta1Experiment {

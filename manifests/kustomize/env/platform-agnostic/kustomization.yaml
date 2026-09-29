@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
 - ../../base/installs/generic
-- ../../base/metadata/base
 - ../../third-party/argo/installs/namespace
 - ../../third-party/seaweedfs/base
 - ../../third-party/mysql/base
@@ -12,8 +11,6 @@ resources:
 # The ownerReference ensures the resources get garbage collected
 # when application is deleted.
 
-# !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
 labels:
 - includeSelectors: true

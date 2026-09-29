@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
-import { RouteComponentProps } from 'react-router';
+
 import { ToolbarProps } from '../components/Toolbar';
 import { BannerProps } from '../components/Banner';
 import { SnackbarProps } from '@mui/material/Snackbar';
@@ -26,7 +27,7 @@ import { errorToMessage } from '../lib/Utils';
  * Route params are read by RouteParams key (see src/components/Router.tsx), so
  * the params bag is indexed by string rather than by a fixed set of keys.
  */
-export interface PageProps extends RouteComponentProps<{ [param: string]: string | undefined }> {
+export interface PageProps extends NavigationProps<{ [param: string]: string | undefined }> {
   toolbarProps: ToolbarProps;
   updateBanner: (bannerProps: BannerProps) => void;
   updateDialog: (dialogProps: DialogProps) => void;

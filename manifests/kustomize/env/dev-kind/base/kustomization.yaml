@@ -29,20 +29,6 @@ patches:
     apiVersion: v1
     kind: Service
     metadata:
-      name: metadata-grpc-service
-      namespace: kubeflow
-    spec:
-      ports:
-        - $patch: replace
-        - port: 8080
-          protocol: TCP
-          targetPort: 8080
-          nodePort: 30808
-      type: NodePort
-- patch: |-
-    apiVersion: v1
-    kind: Service
-    metadata:
       name: seaweedfs
       namespace: kubeflow
     spec:
@@ -52,20 +38,6 @@ patches:
           protocol: TCP
           targetPort: 8333
           nodePort: 30900
-      type: NodePort
-- patch: |-
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: ml-pipeline-visualizationserver
-      namespace: kubeflow
-    spec:
-      ports:
-        - $patch: replace
-        - port: 8888
-          protocol: TCP
-          targetPort: 8888
-          nodePort: 30889
       type: NodePort
 - patch: |-
     apiVersion: v1

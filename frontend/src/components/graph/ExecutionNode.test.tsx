@@ -17,7 +17,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
-import { Execution } from 'src/third_party/mlmd';
+import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
 describe('ExecutionNode', () => {
@@ -32,11 +32,11 @@ describe('ExecutionNode', () => {
     expect(screen.getByText('train-step')).toBeInTheDocument();
   });
 
-  it('renders with COMPLETE state and correct icon', () => {
+  it('renders with SUCCEEDED state and correct icon', () => {
     renderWithProvider(
       <ExecutionNode
         id='exec-1'
-        data={{ label: 'completed-step', state: Execution.State.COMPLETE }}
+        data={{ label: 'completed-step', state: PipelineTaskTaskState.SUCCEEDED }}
       />,
     );
     expect(screen.getByText('completed-step')).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('ExecutionNode', () => {
     renderWithProvider(
       <ExecutionNode
         id='exec-1'
-        data={{ label: 'running-step', state: Execution.State.RUNNING }}
+        data={{ label: 'running-step', state: PipelineTaskTaskState.RUNNING }}
       />,
     );
     expect(screen.getByText('running-step')).toBeInTheDocument();
@@ -56,7 +56,10 @@ describe('ExecutionNode', () => {
 
   it('renders with FAILED state and correct icon', () => {
     renderWithProvider(
-      <ExecutionNode id='exec-1' data={{ label: 'failed-step', state: Execution.State.FAILED }} />,
+      <ExecutionNode
+        id='exec-1'
+        data={{ label: 'failed-step', state: PipelineTaskTaskState.FAILED }}
+      />,
     );
     expect(screen.getByText('failed-step')).toBeInTheDocument();
     expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
@@ -99,13 +102,17 @@ describe('getIcon', () => {
   });
 
   it.each([
-    ['COMPLETE', Execution.State.COMPLETE, 'CheckCircleIcon', 'bg-mui-green-50'],
-    ['RUNNING', Execution.State.RUNNING, 'RefreshIcon', 'bg-mui-green-50'],
-    ['FAILED', Execution.State.FAILED, 'ErrorIcon', 'bg-mui-red-50'],
-    ['NEW', Execution.State.NEW, 'PowerSettingsNewIcon', 'bg-mui-blue-50'],
-    ['CANCELED', Execution.State.CANCELED, 'StopCircleIcon', 'bg-mui-grey-200'],
-    ['CACHED', Execution.State.CACHED, 'CloudDownloadIcon', 'bg-mui-green-50'],
-    ['UNKNOWN', Execution.State.UNKNOWN, 'MoreHorizIcon', 'bg-mui-grey-200'],
+    ['SUCCEEDED', PipelineTaskTaskState.SUCCEEDED, 'CheckCircleIcon', 'bg-mui-green-50'],
+    ['RUNNING', PipelineTaskTaskState.RUNNING, 'RefreshIcon', 'bg-mui-green-50'],
+    ['FAILED', PipelineTaskTaskState.FAILED, 'ErrorIcon', 'bg-mui-red-50'],
+    ['SKIPPED', PipelineTaskTaskState.SKIPPED, 'StopCircleIcon', 'bg-mui-grey-200'],
+    ['CACHED', PipelineTaskTaskState.CACHED, 'CloudDownloadIcon', 'bg-mui-green-50'],
+    [
+      'UNSPECIFIED',
+      PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      'MoreHorizIcon',
+      'bg-mui-grey-200',
+    ],
   ] as const)(
     'returns the correct icon for %s state',
     (_label, state, iconTestId, backgroundClass) => {
@@ -124,7 +131,7 @@ describe('getExecutionIcon', () => {
   });
 
   it('returns an active ListAlt icon for defined state', () => {
-    render(getExecutionIcon(Execution.State.RUNNING));
+    render(getExecutionIcon(PipelineTaskTaskState.RUNNING));
     expect(screen.getByTestId('execution-icon-active')).toBeInTheDocument();
   });
 });

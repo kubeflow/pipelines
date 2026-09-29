@@ -336,10 +336,18 @@ export async function getConfigMap(
   } catch (error: any) {
     let userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}`;
     if (!isAllowedResourceName(configMapName) || !isAllowedResourceName(configMapNamespace)) {
-      userMessage = `Invalid resource name`;
+      return [undefined, { message: 'Invalid resource name' }];
     }
-    const statusCode = error?.statusCode || error?.response?.statusCode || error?.response?.status;
-    return [undefined, { message: userMessage, statusCode }];
+    const apiError = error as any;
+    const statusCode = apiError?.code || apiError?.statusCode || apiError?.response?.statusCode || apiError?.response?.status;
+    return [
+      undefined,
+      {
+        message: userMessage,
+        additionalInfo: apiError?.body || error,
+        statusCode,
+      },
+    ];
   }
 }
 

@@ -6,6 +6,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
@@ -67,7 +69,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: 3.9
+          python-version: 3.11
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -87,6 +89,20 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           db_type: ${{ matrix.db_type }}
+          # Fixture setup rolls the API pod; forward only after that rollout.
+          forward_port: 'false'
+
+      - name: Deploy pipeline URL test fixtures
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          kubectl kustomize --load-restrictor LoadRestrictionsNone \
+            .github/resources/manifests/pipeline-test-fixtures | kubectl apply -f -
+          kubectl set env deployment/ml-pipeline --namespace kubeflow \
+            PIPELINE_URL_VALIDATION_ENABLED=false
+          kubectl rollout status deployment/ml-pipeline \
+            --namespace kubeflow --timeout 90s
+          kubectl rollout status deployment/pipeline-test-fixtures \
+            --namespace kubeflow --timeout 90s
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -97,25 +113,23 @@ jobs:
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
+      - name: Port-forward API server
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh kubeflow ml-pipeline 8888 8888
+
       - name: Port-forward Postgres
         if: ${{ matrix.db_type == 'pgx' && steps.deploy.outcome == 'success' }}
         run: kubectl -n kubeflow port-forward svc/postgres-service 5432:5432 &
 
-      - name: Forward MLMD port
-        id: forward-mlmd-port
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
-        continue-on-error: true
-
       - name: Start network observability
         id: network-observability
-        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' }}
         run: ./.github/resources/scripts/network-observability.sh start kubeflow /tmp/tmp-network-observability
         continue-on-error: true
 
       - name: API integration tests v2
         id: tests
-        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
         # The PVC cache scenario runs in its own matrix job; the main group
         # skips only that subtest. The union is the original suite, while each
@@ -137,6 +151,7 @@ jobs:
             -branchName=${{ github.ref_name }} \
             2>&1 | tee "$RUNNER_TEMP/go-test-output.log"
         env:
+          KFP_TEST_FIXTURE_BASE_URL: http://pipeline-test-fixtures.kubeflow.svc.cluster.local:8080
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
           # Authenticates the raw.githubusercontent.com HEAD in
@@ -145,7 +160,7 @@ jobs:
         continue-on-error: true
 
       - name: Report network observability
-        if: ${{ always() && steps.forward-mlmd-port.outcome == 'success' }}
+        if: ${{ always() && steps.network-observability.outcome == 'success' }}
         shell: bash
         run: |
           ./.github/resources/scripts/network-observability.sh stop kubeflow /tmp/tmp-network-observability || true
@@ -182,7 +197,7 @@ jobs:
           echo "::error title=Legacy V2 suite exceeded its ${BUDGET} test budget::The sharded go test group was killed by -timeout (${BUDGET}), discarding its results. See the job summary for timing and cluster-state guidance."
 
       - name: Collect failed logs
-        if: ${{ steps.deploy.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        if: ${{ steps.deploy.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
@@ -192,4 +207,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}-db-${{ matrix.db_type }}-${{ matrix.test_group }}
-          path: /tmp/tmp*/*
+          path: |
+            /tmp/tmp*/*
+            ${{ runner.temp }}/go-test-output.log

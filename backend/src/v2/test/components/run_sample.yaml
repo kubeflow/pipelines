@@ -1,59 +1,127 @@
-# Copyright 2021 The Kubeflow Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-name: Run KFP Test Sample
-inputs:
-- {name: Name, type: String}
-- {name: Sample Path, type: Path}
-- {name: GCS Root, type: URI}
-- {name: Host, type: URI, default: "http://ml-pipeline:8888"}
-- {name: External Host, type: URI}
-- {name: Launcher v2 Image, type: URI, default: "gcr.io/ml-pipeline/kfp-launcher-v2:latest"}
-- {name: Driver Image, type: URI, default: "gcr.io/ml-pipeline/kfp-driver:latest"}
-- {name: backend_compiler, type: Binary}
-implementation:
-  container:
-    image: python:3.11-alpine
-    command:
-    - sh
-    - -exc
-    - |
-      backend_compiler_path="$0"
-      sample_path="$1"
-      output_dir="$2"
-      export KF_PIPELINES_ENDPOINT="$3"
-      export KF_PIPELINES_UI_ENDPOINT="$4"
-      launcher_v2_image="$5"
-      driver_image="$6"
-
-      # install kfp v2 backend compiler
-      chmod +x "$backend_compiler_path"
-      cp "$backend_compiler_path" /usr/local/bin/kfp-v2-compiler
-      # run test sample
-      # TODO: remove deprecated dependency
-      pip install -r sdk/python/requirements-deprecated.txt
-      python3 \
-        -u \
-        -m "$sample_path" \
-        --pipeline_root "$output_dir" \
-        --launcher_v2_image "$launcher_v2_image" \
-        --driver_image "$driver_image"
-      
-    - inputPath: backend_compiler
-    - inputValue: Sample Path
-    - concat: [{inputValue: GCS Root}, '/', {inputValue: Name}]
-    - inputValue: Host
-    - inputValue: External Host
-    - inputValue: Launcher v2 Image
-    - inputValue: Driver Image
+# PIPELINE DEFINITION
+# Name: run-sample
+# Description: Run a v2 sample using the compiler artifact and native SDK
+#              dependencies.
+# Inputs:
+#    backend_compiler: system.Artifact
+#    driver_image: str [Default: 'gcr.io/ml-pipeline/kfp-driver:latest']
+#    external_host: str
+#    gcs_root: str
+#    host: str [Default: 'http://ml-pipeline:8888']
+#    launcher_v2_image: str [Default: 'gcr.io/ml-pipeline/kfp-launcher-v2:latest']
+#    name: str
+#    sample_path: str
+components:
+  comp-run-sample:
+    executorLabel: exec-run-sample
+    inputDefinitions:
+      artifacts:
+        backend_compiler:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        driver_image:
+          defaultValue: gcr.io/ml-pipeline/kfp-driver:latest
+          isOptional: true
+          parameterType: STRING
+        external_host:
+          parameterType: STRING
+        gcs_root:
+          parameterType: STRING
+        host:
+          defaultValue: http://ml-pipeline:8888
+          isOptional: true
+          parameterType: STRING
+        launcher_v2_image:
+          defaultValue: gcr.io/ml-pipeline/kfp-launcher-v2:latest
+          isOptional: true
+          parameterType: STRING
+        name:
+          parameterType: STRING
+        sample_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-run-sample:
+      container:
+        command:
+        - sh
+        - -exc
+        - "backend_compiler_path=\"$0\"\nsample_path=\"$1\"\noutput_dir=\"$2\"\nexport\
+          \ KF_PIPELINES_ENDPOINT=\"$3\"\nexport KF_PIPELINES_UI_ENDPOINT=\"$4\"\n\
+          launcher_v2_image=\"$5\"\ndriver_image=\"$6\"\n\n# install kfp v2 backend\
+          \ compiler\nchmod +x \"$backend_compiler_path\"\ncp \"$backend_compiler_path\"\
+          \ /usr/local/bin/kfp-v2-compiler\n# Run with the checkout's native SDK and\
+          \ sample runner dependencies.\npip install uv\nuv run --frozen --extra backend-v2-test\
+          \ python3 \\\n  -u \\\n  -m \"$sample_path\" \\\n  --pipeline_root \"$output_dir\"\
+          \ \\\n  --launcher_v2_image \"$launcher_v2_image\" \\\n  --driver_image\
+          \ \"$driver_image\"\n"
+        - '{{$.inputs.artifacts[''backend_compiler''].path}}'
+        - '{{$.inputs.parameters[''sample_path'']}}'
+        - '{"Concat": ["{{$.inputs.parameters[''gcs_root'']}}", "/", "{{$.inputs.parameters[''name'']}}"]}'
+        - '{{$.inputs.parameters[''host'']}}'
+        - '{{$.inputs.parameters[''external_host'']}}'
+        - '{{$.inputs.parameters[''launcher_v2_image'']}}'
+        - '{{$.inputs.parameters[''driver_image'']}}'
+        image: python:3.11-alpine
+pipelineInfo:
+  name: run-sample
+root:
+  dag:
+    tasks:
+      run-sample:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-run-sample
+        inputs:
+          artifacts:
+            backend_compiler:
+              componentInputArtifact: backend_compiler
+          parameters:
+            driver_image:
+              componentInputParameter: driver_image
+            external_host:
+              componentInputParameter: external_host
+            gcs_root:
+              componentInputParameter: gcs_root
+            host:
+              componentInputParameter: host
+            launcher_v2_image:
+              componentInputParameter: launcher_v2_image
+            name:
+              componentInputParameter: name
+            sample_path:
+              componentInputParameter: sample_path
+        taskInfo:
+          name: run-sample
+  inputDefinitions:
+    artifacts:
+      backend_compiler:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+    parameters:
+      driver_image:
+        defaultValue: gcr.io/ml-pipeline/kfp-driver:latest
+        isOptional: true
+        parameterType: STRING
+      external_host:
+        parameterType: STRING
+      gcs_root:
+        parameterType: STRING
+      host:
+        defaultValue: http://ml-pipeline:8888
+        isOptional: true
+        parameterType: STRING
+      launcher_v2_image:
+        defaultValue: gcr.io/ml-pipeline/kfp-launcher-v2:latest
+        isOptional: true
+        parameterType: STRING
+      name:
+        parameterType: STRING
+      sample_path:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.17.0

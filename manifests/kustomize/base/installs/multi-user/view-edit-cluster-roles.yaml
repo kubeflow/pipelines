@@ -63,6 +63,9 @@ rules:
   resources:
   - runs
   verbs:
+  - get
+  - list
+  - update
   - archive
   - create
   - delete
@@ -106,6 +109,14 @@ rules:
   - workfloweventbindings
   - workflowtemplates
   - workflowtaskresults
+- apiGroups:
+    - pipelines.kubeflow.org
+  resources:
+    - artifacts
+  verbs:
+    - get
+    - list
+    - create
 
 ---
 
@@ -136,14 +147,15 @@ rules:
   - readArtifact
   - readLog
 - apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - artifacts
+  verbs:
+  - get
+  - list
+- apiGroups:
   - kubeflow.org
   resources:
   - viewers
   verbs:
   - get
-- apiGroups:
-  - pipelines.kubeflow.org
-  resources:
-  - visualizations
-  verbs:
-  - create

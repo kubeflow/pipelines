@@ -33,7 +33,7 @@ spec:
         # https://dev.mysql.com/doc/refman/8.0/en/upgrade-docker-mysql.html
         - --datadir
         - /var/lib/mysql
-        # MLMD workloads (metadata-grpc-deployment and metadata-writer) depend on mysql_native_password authentication plugin.
+        # Keep mysql_native_password enabled for compatibility with existing KFP MySQL clients.
         # mysql_native_password plugin implements native authentication; that is, authentication based on the password
         # hashing method in use from before the introduction of pluggable authentication in MySQL 8.0.
         #

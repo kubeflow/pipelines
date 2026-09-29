@@ -26,6 +26,30 @@ import (
 // NOTE: These tests use viper.Reset() which mutates the global viper singleton.
 // Do not add t.Parallel() to these subtests — the shared viper state would race.
 
+func TestWorkflowIdentityMode(t *testing.T) {
+	for _, value := range []string{"", "enforce", "audit", "true", "false", "legacy", "AUDIT", " audit"} {
+		t.Run("value="+value, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			t.Setenv(WorkflowIdentityMode, value)
+			viper.AutomaticEnv()
+			mode, err := GetWorkflowIdentityMode()
+			if value == "" || value == "enforce" || value == "audit" {
+				require.NoError(t, err)
+				expected := value
+				if expected == "" {
+					expected = "enforce"
+				}
+				assert.Equal(t, expected, mode)
+				require.NoError(t, InitializeWorkflowIdentityMode())
+			} else {
+				require.Error(t, err)
+				require.Error(t, InitializeWorkflowIdentityMode())
+			}
+		})
+	}
+}
+
 func TestGetStringConfigWithDefault(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -304,11 +328,6 @@ func TestConfigWrapperDefaults(t *testing.T) {
 		expected interface{}
 	}{
 		{
-			name:     "IsPipelineVersionUpdatedByDefault defaults to true",
-			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
-			expected: true,
-		},
-		{
 			name:     "IsNamespaceRequiredForPipelines defaults to false",
 			getter:   func() interface{} { return IsNamespaceRequiredForPipelines() },
 			expected: false,
@@ -328,11 +347,7 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: DefaultPodNamespace,
 		},
-		{
-			name:     "IsCacheEnabled defaults to true string",
-			getter:   func() interface{} { return IsCacheEnabled() },
-			expected: "true",
-		},
+
 		{
 			name:     "GetKubeflowUserIDHeader defaults to GoogleIAPUserIdentityHeader",
 			getter:   func() interface{} { return GetKubeflowUserIDHeader() },
@@ -347,6 +362,31 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			name:     "GetTokenReviewAudience defaults to DefaultTokenReviewAudience",
 			getter:   func() interface{} { return GetTokenReviewAudience() },
 			expected: DefaultTokenReviewAudience,
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffBaseDelay defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffBaseDelay() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMultiplier defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMultiplier() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffJitter defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffJitter() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMaxDelay defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMaxDelay() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCMinConnectTimeout defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCMinConnectTimeout() },
+			expected: "",
 		},
 		{
 			name:     "GetMetadataTLSEnabled defaults to false",
@@ -409,13 +449,6 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 		expected    interface{}
 	}{
 		{
-			name:     "IsPipelineVersionUpdatedByDefault with custom false",
-			envKey:   UpdatePipelineVersionByDefault,
-			envValue: "false",
-			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
-			expected: false,
-		},
-		{
 			name:     "IsNamespaceRequiredForPipelines with custom true",
 			envKey:   RequireNamespaceForPipelines,
 			envValue: "true",
@@ -443,14 +476,7 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: "custom-ns",
 		},
-		{
-			name:        "IsCacheEnabled with custom false",
-			envKey:      CacheEnabled,
-			envValue:    "false",
-			useViperSet: true, // CacheEnabled is mixed-case, env var lookup via AutomaticEnv uppercases the key
-			getter:      func() interface{} { return IsCacheEnabled() },
-			expected:    "false",
-		},
+
 		{
 			name:     "GetKubeflowUserIDHeader with custom header",
 			envKey:   KubeflowUserIDHeader,
@@ -471,6 +497,48 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envValue: "custom.audience.org",
 			getter:   func() interface{} { return GetTokenReviewAudience() },
 			expected: "custom.audience.org",
+		},
+		{
+			name:     "TokenAudienceForRun appends run ID to custom audience",
+			envKey:   TokenReviewAudience,
+			envValue: "custom.audience.org",
+			getter:   func() interface{} { return TokenAudienceForRun("run-abc") },
+			expected: "custom.audience.org/runs/run-abc",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffBaseDelay with custom value",
+			envKey:   MLPipelineGRPCBackoffBaseDelay,
+			envValue: "2s",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffBaseDelay() },
+			expected: "2s",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMultiplier with custom value",
+			envKey:   MLPipelineGRPCBackoffMultiplier,
+			envValue: "1.8",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMultiplier() },
+			expected: "1.8",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffJitter with custom value",
+			envKey:   MLPipelineGRPCBackoffJitter,
+			envValue: "0.3",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffJitter() },
+			expected: "0.3",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMaxDelay with custom value",
+			envKey:   MLPipelineGRPCBackoffMaxDelay,
+			envValue: "30s",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMaxDelay() },
+			expected: "30s",
+		},
+		{
+			name:     "GetMLPipelineGRPCMinConnectTimeout with custom value",
+			envKey:   MLPipelineGRPCMinConnectTimeout,
+			envValue: "15s",
+			getter:   func() interface{} { return GetMLPipelineGRPCMinConnectTimeout() },
+			expected: "15s",
 		},
 		{
 			name:     "GetMetadataTLSEnabled with custom true",

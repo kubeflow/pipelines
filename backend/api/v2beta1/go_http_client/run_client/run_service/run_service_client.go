@@ -103,6 +103,42 @@ type ClientService interface {
 	// RunServiceUnarchiveRunContext restores an archived run in an experiment given by run ID and experiment ID.
 	RunServiceUnarchiveRunContext(ctx context.Context, params *RunServiceUnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*RunServiceUnarchiveRunOK, error)
 
+	// BatchUpdateTasks updates multiple tasks in bulk.
+	BatchUpdateTasks(params *BatchUpdateTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*BatchUpdateTasksOK, error)
+
+	// BatchUpdateTasksContext updates multiple tasks in bulk.
+	BatchUpdateTasksContext(ctx context.Context, params *BatchUpdateTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*BatchUpdateTasksOK, error)
+
+	// CreateTask creates a new task.
+	CreateTask(params *CreateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*CreateTaskOK, error)
+
+	// CreateTaskContext creates a new task.
+	CreateTaskContext(ctx context.Context, params *CreateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*CreateTaskOK, error)
+
+	// FindCachedTask finds a cached successful task by namespace and fingerprint.
+	FindCachedTask(params *FindCachedTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*FindCachedTaskOK, error)
+
+	// FindCachedTaskContext finds a cached successful task by namespace and fingerprint.
+	FindCachedTaskContext(ctx context.Context, params *FindCachedTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*FindCachedTaskOK, error)
+
+	// GetTask gets a specific task by ID.
+	GetTask(params *GetTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetTaskOK, error)
+
+	// GetTaskContext gets a specific task by ID.
+	GetTaskContext(ctx context.Context, params *GetTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetTaskOK, error)
+
+	// ListTasks lists tasks with optional filtering.
+	ListTasks(params *ListTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*ListTasksOK, error)
+
+	// ListTasksContext lists tasks with optional filtering.
+	ListTasksContext(ctx context.Context, params *ListTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*ListTasksOK, error)
+
+	// UpdateTask updates an existing task.
+	UpdateTask(params *UpdateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*UpdateTaskOK, error)
+
+	// UpdateTaskContext updates an existing task.
+	UpdateTaskContext(ctx context.Context, params *UpdateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*UpdateTaskOK, error)
+
 	SetTransport(transport runtime.ContextualTransport)
 }
 
@@ -598,6 +634,378 @@ func (a *Client) RunServiceUnarchiveRunContext(ctx context.Context, params *RunS
 	//
 	// a default response is provided: fill this and return an error
 	unexpectedSuccess := result.(*RunServiceUnarchiveRunDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// BatchUpdateTasks updates multiple tasks in bulk.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.BatchUpdateTasksContext] instead.
+func (a *Client) BatchUpdateTasks(params *BatchUpdateTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*BatchUpdateTasksOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.BatchUpdateTasksContext(ctx, params, authInfo, opts...)
+}
+
+// BatchUpdateTasksContext updates multiple tasks in bulk.
+//
+// Do not use the deprecated [BatchUpdateTasksParams.Context] with this method: it would be ignored.
+func (a *Client) BatchUpdateTasksContext(ctx context.Context, params *BatchUpdateTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*BatchUpdateTasksOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewBatchUpdateTasksParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "batch_update_tasks",
+		Method:             "POST",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks:batchUpdate",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &BatchUpdateTasksReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*BatchUpdateTasksOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*BatchUpdateTasksDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// CreateTask creates a new task.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.CreateTaskContext] instead.
+func (a *Client) CreateTask(params *CreateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*CreateTaskOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.CreateTaskContext(ctx, params, authInfo, opts...)
+}
+
+// CreateTaskContext creates a new task.
+//
+// Do not use the deprecated [CreateTaskParams.Context] with this method: it would be ignored.
+func (a *Client) CreateTaskContext(ctx context.Context, params *CreateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*CreateTaskOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewCreateTaskParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "create_task",
+		Method:             "POST",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &CreateTaskReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*CreateTaskOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*CreateTaskDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// FindCachedTask finds a cached successful task by namespace and fingerprint.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.FindCachedTaskContext] instead.
+func (a *Client) FindCachedTask(params *FindCachedTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*FindCachedTaskOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.FindCachedTaskContext(ctx, params, authInfo, opts...)
+}
+
+// FindCachedTaskContext finds a cached successful task by namespace and fingerprint.
+//
+// Do not use the deprecated [FindCachedTaskParams.Context] with this method: it would be ignored.
+func (a *Client) FindCachedTaskContext(ctx context.Context, params *FindCachedTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*FindCachedTaskOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewFindCachedTaskParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "find_cached_task",
+		Method:             "POST",
+		PathPattern:        "/apis/v2beta1/tasks:findCached",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &FindCachedTaskReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*FindCachedTaskOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*FindCachedTaskDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// GetTask gets a specific task by ID.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.GetTaskContext] instead.
+func (a *Client) GetTask(params *GetTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetTaskOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.GetTaskContext(ctx, params, authInfo, opts...)
+}
+
+// GetTaskContext gets a specific task by ID.
+//
+// Do not use the deprecated [GetTaskParams.Context] with this method: it would be ignored.
+func (a *Client) GetTaskContext(ctx context.Context, params *GetTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetTaskOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewGetTaskParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "get_task",
+		Method:             "GET",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetTaskReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*GetTaskOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*GetTaskDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// ListTasks lists tasks with optional filtering.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.ListTasksContext] instead.
+func (a *Client) ListTasks(params *ListTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*ListTasksOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.ListTasksContext(ctx, params, authInfo, opts...)
+}
+
+// ListTasksContext lists tasks with optional filtering.
+//
+// Do not use the deprecated [ListTasksParams.Context] with this method: it would be ignored.
+func (a *Client) ListTasksContext(ctx context.Context, params *ListTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*ListTasksOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewListTasksParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "list_tasks",
+		Method:             "GET",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ListTasksReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*ListTasksOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*ListTasksDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// UpdateTask updates an existing task.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.UpdateTaskContext] instead.
+func (a *Client) UpdateTask(params *UpdateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*UpdateTaskOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.UpdateTaskContext(ctx, params, authInfo, opts...)
+}
+
+// UpdateTaskContext updates an existing task.
+//
+// Do not use the deprecated [UpdateTaskParams.Context] with this method: it would be ignored.
+func (a *Client) UpdateTaskContext(ctx context.Context, params *UpdateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*UpdateTaskOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewUpdateTaskParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "update_task",
+		Method:             "PATCH",
+		PathPattern:        "/apis/v2beta1/runs/{run_id}/tasks/{task_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateTaskReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*UpdateTaskOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*UpdateTaskDefault)
 
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }

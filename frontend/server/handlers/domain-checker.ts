@@ -22,6 +22,40 @@ export function isAllowedDomain(urlStr: string, allowedDomain: string): boolean 
   return allowed;
 }
 
+/**
+ * Trusts an object-store endpoint only when its effective origin exactly
+ * matches an endpoint configured by the server operator.
+ */
+export function isTrustedArtifactEndpoint(
+  endpoint: string,
+  configuredEndpoints: string[],
+): boolean {
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+  if (!normalizedEndpoint) {
+    return false;
+  }
+
+  return configuredEndpoints.some(
+    (configuredEndpoint) => normalizeEndpoint(configuredEndpoint) === normalizedEndpoint,
+  );
+}
+
+function normalizeEndpoint(endpoint: string): string | undefined {
+  try {
+    const parsedUrl = new URL(endpoint.includes('://') ? endpoint : `https://${endpoint}`);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return undefined;
+    }
+    if (parsedUrl.username || parsedUrl.password) {
+      return undefined;
+    }
+    const port = parsedUrl.port || (parsedUrl.protocol === 'https:' ? '443' : '80');
+    return `${parsedUrl.protocol}//${parsedUrl.hostname.toLowerCase()}:${port}`;
+  } catch {
+    return undefined;
+  }
+}
+
 function domain_from_url(url: string): string {
   try {
     const parsedUrl = new URL(url.includes('://') ? url : `http://${url}`);

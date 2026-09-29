@@ -30,7 +30,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -42,12 +41,10 @@ import (
 // next set of results.
 type token struct {
 	// SortByFieldName is the user-facing field name used for pagination state
-	// and GetFieldValue lookups. For metric sorts this is the raw metric name
-	// (e.g. "accuracy"). Never use this field directly in SQL identifiers.
+	// and GetFieldValue lookups. SQL identifiers are validated separately.
 	SortByFieldName string
 	// SortBySQLColumn is the safe SQL column name used in ORDER BY and WHERE
-	// clauses. For regular fields it equals SortByFieldName. For metric sorts
-	// it is always the fixed alias "sort_metric_value", never user input.
+	// clauses. It is validated before constructing SQL.
 	SortBySQLColumn string
 	// SortByFieldValue is the value of the sorted field of the next row to be
 	// returned.
@@ -55,9 +52,8 @@ type token struct {
 	SortByFieldPrefix string
 
 	// SortByFieldIsNull is true when the sort field value of the next row is a
-	// genuine SQL NULL rather than an absent/invalid field. This only happens
-	// for metric sorts, where a run without the selected metric produces a NULL
-	// sort_metric_value. It exists to disambiguate a legitimate NULL sort value
+	// genuine SQL NULL rather than an absent/invalid field, for nullable
+	// columns such as a task with no parent. It exists to disambiguate a legitimate NULL sort value
 	// from the "field does not exist" error case: SortByFieldValue is interface{}
 	// and its nil is otherwise ambiguous. When true, SortByFieldValue is nil and
 	// the row belongs to the NULL block, which always sorts last.
@@ -93,27 +89,6 @@ type token struct {
 // Used to validate pageToken fields before they are used in SQL queries.
 var identifierPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]{0,127}$`)
 
-// metricNamePattern matches valid metric names. Metric names follow the same
-// rules as SQL identifiers but additionally allow hyphens ("-"), since ML
-// frameworks commonly use names like "log-loss" or "val-accuracy".
-// Metric names are never used as SQL identifiers — they are passed as bind
-// parameters — so allowing "-" here is safe.
-var metricNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_\-]{0,127}$`)
-
-// validateMetricName validates that a metric name only contains safe characters.
-// Unlike validateIdentifierName, hyphens are permitted.
-func validateMetricName(name string) error {
-	if name == "" {
-		return nil
-	}
-	if !metricNamePattern.MatchString(name) {
-		return util.NewInvalidInputError(
-			"Invalid metric name: %q. Metric names must start with a letter and contain only letters, numbers, underscores, and hyphens (max 128 characters)",
-			name)
-	}
-	return nil
-}
-
 // validateIdentifierName validates that a field name or table name only contains
 // safe characters to prevent SQL injection through pageToken parameters.
 func validateIdentifierName(name, fieldType string) error {
@@ -147,19 +122,13 @@ func (t *token) unmarshal(pageToken string) error {
 	if err := validateIdentifierName(t.KeyFieldName, "key field name"); err != nil {
 		return err
 	}
-	// SortByFieldName is the user-facing metric name when sorting by a run
-	// metric (e.g. "log-loss"). Metric names allow hyphens, so they must not
-	// be validated with the SQL identifier regex. SortBySQLColumn carries the
-	// fixed safe alias ("sort_metric_value") and is always a valid identifier.
-	if t.SortBySQLColumn == model.MetricSortSQLAlias {
-		if err := validateMetricName(t.SortByFieldName); err != nil {
-			return err
-		}
-	} else {
-		if err := validateIdentifierName(t.SortByFieldName, "sort field name"); err != nil {
-			return err
-		}
+	if t.SortBySQLColumn == "sort_metric_value" {
+		return util.NewInvalidInputError("Metric sorting is no longer supported; start a new list request using a run field")
 	}
+	if err := validateIdentifierName(t.SortByFieldName, "sort field name"); err != nil {
+		return err
+	}
+
 	if err := validateIdentifierName(t.SortBySQLColumn, "sort SQL column"); err != nil {
 		return err
 	}
@@ -221,20 +190,11 @@ func EmptyOptions() *Options {
 }
 
 // Matches returns trues if the sorting and filtering criteria in o matches that
-// of the one supplied in opts. For metric sorts SortByFieldName holds the raw
-// metric name, so tokens minted for different metrics never match each other.
+// of the one supplied in opts.
 func (o *Options) Matches(opts *Options) bool {
 	return o.SortByFieldName == opts.SortByFieldName && o.SortByFieldPrefix == opts.SortByFieldPrefix &&
 		o.IsDesc == opts.IsDesc &&
 		reflect.DeepEqual(o.Filter, opts.Filter)
-}
-
-// IsMetricSort reports whether o sorts by a run metric rather than a regular
-// model field. Metric sorts are marked by the fixed SQL alias in
-// SortBySQLColumn; the raw metric name is carried in SortByFieldName and only
-// ever reaches SQL as a bind parameter.
-func (o *Options) IsMetricSort() bool {
-	return o.SortBySQLColumn == model.MetricSortSQLAlias
 }
 
 // NewOptionsFromToken creates a new Options struct from the passed in token
@@ -293,11 +253,13 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 	token.KeyFieldPrefix = listable.GetKeyFieldPrefix()
 
 	// Probe the sort field type using the listable instance. SortByFieldName is
-	// the user-facing name, which GetFieldValue resolves for both regular fields
-	// and metric names. String fields return "" (string type); numeric fields
-	// return int64(0) or similar.
+	// the user-facing name, which GetFieldValue resolves to the model field
+	// value. String fields return "" (string type); numeric fields
+	// return int64(0) or similar. Nullable string fields return a nil *string.
 	probeVal := listable.GetFieldValue(token.SortByFieldName)
-	_, token.SortByFieldIsString = probeVal.(string)
+	_, isString := probeVal.(string)
+	_, isNullableString := probeVal.(*string)
+	token.SortByFieldIsString = isString || isNullableString
 
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"
@@ -362,7 +324,7 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote dialect.
 	sortByFieldNameWithPrefix := qualifyColumn(o.SortByFieldPrefix, o.SortBySQLColumn, quote)
 	keyFieldNameWithPrefix := qualifyColumn(o.KeyFieldPrefix, o.KeyFieldName, quote)
 
-	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
+	// Qualify the sort field with its model prefix when present.
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		// Use SortByFieldIsString (set at Options creation time) to determine field type.
@@ -433,15 +395,14 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote dialect.
 			}
 		}
 	} else if o.SortByFieldIsNull && o.KeyFieldValue != nil {
-		// Cursor value is a genuine NULL (metric sort only). All non-NULL rows have
-		// already been paged through, so advance within the trailing NULL block
-		// using the primary key alone. Direction of the key tie-break follows the
-		// sort direction, matching the non-NULL branches above.
+		// Cursor value is a genuine NULL, from a nil pointer
+		// field. All non-NULL rows have already been paged through, so advance
+		// within the trailing NULL block using the primary key alone. Direction of
+		// the key tie-break follows the sort direction, matching the non-NULL
+		// branches above.
 		//
-		// This branch remains metric-only because Go model structs use value types
-		// (string, int64) and GORM maps SQL NULL to the zero value, so
-		// GetFieldValue cannot distinguish NULL from zero for non-metric fields.
-		// Extending this to all fields would require pointer types in the models.
+		// Fields with value types (string, int64) never get here, because GORM
+		// maps SQL NULL to the zero value and GetFieldValue cannot tell them apart.
 		keyCursor := sq.Sqlizer(sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue})
 		if o.IsDesc {
 			keyCursor = sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue}
@@ -558,8 +519,7 @@ type Listable interface {
 	GetKeyFieldPrefix() string
 	// GetField returns the model field name and safe SQL column name for the
 	// given API field name. For regular fields fieldName and sqlColumn are
-	// identical. For metric fields (e.g. "metric:accuracy") sqlColumn is the
-	// fixed alias "sort_metric_value" so user input never reaches SQL structure.
+	// identical. SQL identifiers are validated before query construction.
 	GetField(name string) (fieldName string, sqlColumn string, ok bool)
 	// Find the value of a given field in a listable object.
 	GetFieldValue(name string) interface{}
@@ -604,22 +564,11 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	elem := reflect.ValueOf(listable).Elem()
 	elemName := elem.Type().Name()
 
-	// SortByFieldName is the user-facing name (for metric sorts, the raw metric
-	// name), which GetFieldValue resolves directly.
-	//
-	// A nil field value is ambiguous: it can mean the field does not exist (a
-	// real error), or, for metric sorts, that this row simply has no value for
-	// the selected metric (a legitimate SQL NULL in sort_metric_value). Only the
-	// metric case is allowed to carry a NULL cursor forward; for regular fields a
-	// nil value still indicates an invalid sort field.
-	sortByField := listable.GetFieldValue(o.SortByFieldName)
-	sortByFieldIsNull := false
-	if sortByField == nil {
-		if o.IsMetricSort() {
-			sortByFieldIsNull = true
-		} else {
-			return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
-		}
+	// Typed nil pointers represent nullable columns. Untyped nil indicates an
+	// unknown field, not a SQL NULL cursor.
+	sortByField, sortByFieldIsNull := nullableFieldValue(listable.GetFieldValue(o.SortByFieldName))
+	if sortByField == nil && !sortByFieldIsNull {
+		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
 	}
 
 	keyField := elem.FieldByName(listable.PrimaryKeyColumnName())
@@ -641,6 +590,28 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		Filter:              o.Filter,
 		ModelName:           o.ModelName,
 	}, nil
+}
+
+// nullableFieldValue unwraps a pointer to a scalar, which is how a model exposes
+// a nullable column. A nil pointer reports isNull, because once it is boxed in
+// an interface{} it no longer compares equal to nil.
+func nullableFieldValue(value interface{}) (interface{}, bool) {
+	v := reflect.ValueOf(value)
+	if v.Kind() != reflect.Pointer {
+		return value, false
+	}
+	switch v.Type().Elem().Kind() {
+	case reflect.String, reflect.Bool,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		if v.IsNil() {
+			return nil, true
+		}
+		return v.Elem().Interface(), false
+	default:
+		return value, false
+	}
 }
 
 const (

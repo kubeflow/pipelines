@@ -1,0 +1,51 @@
+# PIPELINE DEFINITION
+# Name: dra-passthrough-check
+# Description: Verifies DRA ResourceClaims are forwarded through TaskConfig passthrough and applied to the task pod.
+components:
+  comp-verify-dra-passthrough:
+    executorLabel: exec-verify-dra-passthrough
+    inputDefinitions:
+      parameters:
+        task_config:
+          isOptional: true
+          parameterType: TASK_CONFIG
+    taskConfigPassthroughs:
+    - applyToTask: true
+      field: KUBERNETES_RESOURCE_CLAIMS
+deploymentSpec:
+  executors:
+    exec-verify-dra-passthrough:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - verify_dra_passthrough
+        command:
+        - python3
+        - -m
+        - kfp.dsl.executor_main
+        image: kfp-dra-sdk:test
+pipelineInfo:
+  description: Verifies DRA ResourceClaims are forwarded through TaskConfig passthrough
+    and applied to the task pod.
+  name: dra-passthrough-check
+root:
+  dag:
+    tasks:
+      verify-dra-passthrough:
+        cachingOptions: {}
+        componentRef:
+          name: comp-verify-dra-passthrough
+        taskInfo:
+          name: verify-dra-passthrough
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-verify-dra-passthrough:
+          podResourceClaims:
+          - resourceClaimTemplateName: dra-test-claim

@@ -8,6 +8,7 @@ DATABASE ?= mysql
 WEBHOOK_PROXY_ENABLED ?= $(if $(filter mysql,$(DATABASE)),true,false)
 
 CERT_MANAGER_VERSION ?= v1.16.2
+DRA_DRIVER_NAMESPACE ?= dra-example-driver
 
 # Validate DATABASE value
 VALID_DATABASES := mysql postgres
@@ -42,10 +43,8 @@ CONTAINER_ENGINE ?= $(shell \
 IMG_REGISTRY ?=
 IMG_TAG_APISERVER         ?= apiserver
 IMG_TAG_PERSISTENCEAGENT  ?= persistence-agent
-IMG_TAG_CACHESERVER       ?= cache-server
 IMG_TAG_SCHEDULEDWORKFLOW ?= scheduledworkflow
 IMG_TAG_VIEWERCONTROLLER  ?= viewercontroller
-IMG_TAG_VISUALIZATION     ?= visualization
 IMG_TAG_DRIVER            ?= kfp-driver
 IMG_TAG_LAUNCHER          ?= kfp-launcher
 IMG_TAG_WEBHOOK_PROXY     ?= domain.local/kfp/webhook-proxy:latest
@@ -53,7 +52,6 @@ IMG_TAG_WEBHOOK_PROXY     ?= domain.local/kfp/webhook-proxy:latest
 
 MYSQL_WAIT_TIMEOUT ?= 10m
 CERT_MANAGER_WAIT_TIMEOUT ?= 300s
-METADATA_GRPC_WAIT_TIMEOUT ?= 3m
 ML_PIPELINE_WAIT_TIMEOUT ?= 3m
 
 # Whenever build command for any of the binaries change, we should update them both here and in backend/Dockerfiles.
@@ -66,7 +64,7 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: image_all
-image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_visualization image_driver image_launcher
+image_all: image_apiserver image_persistence_agent image_swf image_viewer image_driver image_launcher
 
 .PHONY: image_apiserver
 image_apiserver:
@@ -74,18 +72,12 @@ image_apiserver:
 .PHONY: image_persistence_agent
 image_persistence_agent:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent .
-.PHONY: image_cache
-image_cache:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_CACHESERVER} -f backend/Dockerfile.cacheserver .
 .PHONY: image_swf
 image_swf:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow .
 .PHONY: image_viewer
 image_viewer:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
-.PHONY: image_visualization
-image_visualization:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VISUALIZATION} -f backend/Dockerfile.visualization .
 .PHONY: image_driver
 image_driver:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
@@ -130,7 +122,6 @@ kind-cluster-agnostic:
     		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic; \
      fi
 	kubectl -n kubeflow wait --for condition=Available --timeout=$(MYSQL_WAIT_TIMEOUT) deployment/mysql
-	kubectl -n kubeflow wait --for condition=Available --timeout=$(METADATA_GRPC_WAIT_TIMEOUT) deployment/metadata-grpc-deployment
 	kubectl -n kubeflow wait --for condition=Available --timeout=$(ML_PIPELINE_WAIT_TIMEOUT) deployment/ml-pipeline
 	# Switch to Kubeflow namespace context
 	kubectl config set-context --current --namespace=kubeflow
@@ -166,8 +157,12 @@ dev-kind-cluster:
 		kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml; \
 	fi
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/$(DB_DEPLOYMENT_NAME)
-	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
 	kubectl config set-context --current --namespace=kubeflow
+
+.PHONY: install-dra-driver
+install-dra-driver:
+	NAMESPACE="$(DRA_DRIVER_NAMESPACE)" \
+	bash "$(MOD_ROOT)/.github/actions/install-dra-driver/install-dra-driver.sh"
 
 .PHONY: kind-load-driver-debug
 kind-load-driver-debug:

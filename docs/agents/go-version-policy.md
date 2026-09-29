@@ -19,7 +19,6 @@ All tracked Go modules are managed. The current set is:
 The managed Go builder images are the single builder `FROM` instructions in:
 
 - `backend/Dockerfile`
-- `backend/Dockerfile.cacheserver`
 - `backend/Dockerfile.conformance`
 - `backend/Dockerfile.driver`
 - `backend/Dockerfile.launcher`
@@ -53,6 +52,13 @@ Go setup is managed through these composite actions:
 The consistency check verifies that all tracked modules and every declared
 builder and setup action follow these forms and agree with the root compiler.
 Builder images with the same flavor must use the same tag and digest.
+
+The registry check inspects each immutable pinned digest and verifies that its
+Linux AMD64 and ARM64 image configurations declare the root compiler version
+in `GOLANG_VERSION`. Registry retries and mirror fallback use the same digest.
+A tag moving to a newer image does not invalidate the existing pin. Dependabot
+proposes image updates; `make update-go-version GO_VERSION=1.X.Y` refreshes all
+builder pins together when needed.
 
 The inventory guards are deliberately lexical. A literal Go source or setup-go
 marker in a Dockerfile/YAML comment or heredoc is still reported so a maintainer

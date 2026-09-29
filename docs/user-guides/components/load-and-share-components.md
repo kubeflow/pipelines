@@ -4,10 +4,16 @@ This section describes how to load and use existing components. In this section,
 
 IR YAML serves as a portable, sharable computational template. This allows you compile and share your components with others, as well as leverage an ecosystem of existing components.
 
+All three loaders accept only compiled PipelineSpec IR YAML, optionally followed
+by a PlatformSpec document. Legacy `implementation: container:` and
+`implementation: graph:` component YAML and raw Argo Workflow YAML are not
+supported. This also affects v2 pipelines that load older component files; see
+[migrating component files before upgrading](../migration.md).
+
 To use an existing component, you can load it using the [`components`][components-module] module and use it with other components in a pipeline:
 
 ```python
-from kfp import components
+from kfp import components, dsl
 
 loaded_comp = components.load_component_from_file('component.yaml')
 
@@ -19,7 +25,7 @@ def my_pipeline():
 You can also load a component directly from a URL, such as a GitHub URL:
 
 ```python
-loaded_comp = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/2.0.0/sdk/python/test_data/components/add_numbers.yaml')
+loaded_comp = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/test_data/sdk_compiled_pipelines/valid/critical/add_numbers.yaml')
 ```
 
 Lastly, you can load a component from a string using [`components.load_component_from_text`][components-load-component-from-text]:
@@ -34,9 +40,9 @@ loaded_comp = components.load_component_from_text(component_str)
 As components and pipelines are persisted in the same format (IR YAML), you can also load a pipeline from a local file, URL, or string, just like you load components. Once loaded, a pipeline can be used in another pipeline:
 
 ```python
-from kfp import components
+from kfp import components, dsl
 
-loaded_pipeline = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/2.0.0/sdk/python/test_data/pipelines/pipeline_in_pipeline_complex.yaml')
+loaded_pipeline = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/test_data/sdk_compiled_pipelines/valid/parallel_and_nested/pipeline_in_pipeline_complex.yaml')
 
 @dsl.pipeline
 def my_pipeline():
