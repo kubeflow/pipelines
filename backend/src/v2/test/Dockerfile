@@ -15,12 +15,12 @@
 FROM python:3.11-slim
 
 WORKDIR /workdir
-COPY backend/src/v2/test/requirements.txt backend/src/v2/test/
-COPY sdk/python sdk/python
-COPY samples/test/utils samples/test/utils
-# relative path in requirements.txt are relative to workdir, so we need to
-# cd to that folder first
-RUN cd backend/src/v2/test && pip3 install --no-cache-dir -r requirements.txt
-
-# copy all other code
+RUN apt-get update && apt-get install --no-install-recommends -y make git wget protobuf-compiler \
+    && rm -rf /var/lib/apt/lists
+RUN pip install uv
 COPY . .
+RUN make -C api fetch-protos \
+    && python3 api/v2alpha1/python/generate_proto.py \
+    && python3 kubernetes_platform/python/generate_proto.py \
+    && uv sync --frozen --extra backend-v2-test
+ENV PATH="/workdir/.venv/bin:$PATH"

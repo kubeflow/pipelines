@@ -17,7 +17,7 @@ import userEvent from '@testing-library/user-event';
 import { ComponentProps, useState } from 'react';
 import { ArtifactArtifactType } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
-import { StorageService } from 'src/lib/WorkflowParser';
+import { StorageService } from 'src/lib/StoragePath';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
 import {

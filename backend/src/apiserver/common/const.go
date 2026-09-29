@@ -24,7 +24,6 @@ const (
 	RbacResourceTypeRuns               = "runs"
 	RbacResourceTypeJobs               = "jobs"
 	RbacResourceTypeViewers            = "viewers"
-	RbacResourceTypeVisualizations     = "visualizations"
 	RbacResourceTypeScheduledWorkflows = "scheduledworkflows"
 	RbacResourceTypeWorkflows          = "workflows"
 	RbacResourceTypeArtifacts          = "artifacts"
@@ -67,7 +66,6 @@ const DefaultMetadataTLSEnabled = false
 
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
-	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
 	ProjectIDEnvVar                     = "PROJECT_ID"
 )

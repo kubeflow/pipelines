@@ -20,9 +20,6 @@ CONTROL_PLANE_IMAGE_ARTIFACTS=(
   "persistenceagent"
   "frontend"
   "viewer-crd-controller"
-  "visualization-server"
-  "cache-deployer"
-  "cache-server"
 )
 RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher")
 ALL_CI_IMAGE_ARTIFACTS=(

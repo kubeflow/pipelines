@@ -20,7 +20,7 @@ import {
   ParameterType_ParameterTypeEnum,
   PipelineSpec,
 } from 'src/generated/pipeline_spec';
-import { KeyValue } from 'src/lib/StaticGraphParser';
+import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { getStringEnumKey } from 'src/lib/Utils';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
 import {

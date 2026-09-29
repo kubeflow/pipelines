@@ -84,8 +84,7 @@
       "properties": {
         "multi_user": {
           "type": "boolean",
-          "description": "Returns if KFP in multi-user mode",
-          "title": "TODO(gkcalat): redesign this service to return status\nand move server configuration into a separate service\nTODO(gkcalat): rename or deprecate v1beta1 HealthzService"
+          "description": "Returns whether KFP is in multi-user mode."
         },
         "pipeline_store": {
           "type": "string",

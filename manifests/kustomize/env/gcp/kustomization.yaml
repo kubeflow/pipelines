@@ -7,12 +7,9 @@ resources:
 - ../../base/application
 - ../../base/installs/generic
 - ../../third-party/argo/installs/namespace
-- inverse-proxy
 - cloudsql-proxy
 
 
-# !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
 
 patches:

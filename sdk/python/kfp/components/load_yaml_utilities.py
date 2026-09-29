@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Functions for loading components from compiled YAML."""
+"""Functions for loading components from PipelineSpec IR YAML."""
 
 from typing import Optional, Tuple
 
@@ -21,13 +21,20 @@ import requests
 
 
 def load_component_from_text(text: str) -> yaml_component.YamlComponent:
-    """Loads a component from text.
+    """Loads a component from PipelineSpec IR YAML text.
+
+    The YAML may include a second document containing a PlatformSpec.
 
     Args:
-        text (str): Component YAML text.
+        text (str): PipelineSpec IR YAML text.
 
     Returns:
         Component loaded from YAML.
+
+    Raises:
+        ValueError: If the YAML uses a legacy component format or an Argo
+            Workflow. Rewrite the component with the v2 SDK, or convert legacy
+            container YAML to IR with an older KFP v2 SDK before upgrading.
     """
     return yaml_component.YamlComponent(
         component_spec=structures.ComponentSpec.from_yaml_documents(text),
@@ -35,10 +42,10 @@ def load_component_from_text(text: str) -> yaml_component.YamlComponent:
 
 
 def load_component_from_file(file_path: str) -> yaml_component.YamlComponent:
-    """Loads a component from a file.
+    """Loads a component from a PipelineSpec IR YAML file.
 
     Args:
-        file_path (str): Filepath to a YAML component.
+        file_path (str): Filepath to PipelineSpec IR YAML.
 
     Returns:
         Component loaded from YAML.
@@ -57,10 +64,10 @@ def load_component_from_file(file_path: str) -> yaml_component.YamlComponent:
 def load_component_from_url(
         url: str,
         auth: Optional[Tuple[str, str]] = None) -> yaml_component.YamlComponent:
-    """Loads a component from a URL.
+    """Loads a component from a URL containing PipelineSpec IR YAML.
 
     Args:
-        url (str): URL to a YAML component.
+        url (str): URL to PipelineSpec IR YAML.
         auth (Tuple[str, str], optional): A ``('<username>', '<password>')`` tuple of authentication credentials necessary for URL access. See `Requests Authorization <https://requests.readthedocs.io/en/latest/user/authentication/#authentication>`_ for more information.
 
     Returns:
@@ -71,7 +78,7 @@ def load_component_from_url(
 
         from kfp import components
 
-        components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/7b49eadf621a9054e1f1315c86f95fb8cf8c17c3/sdk/python/kfp/compiler/test_data/components/identity.yaml')
+        components.load_component_from_url('https://example.com/compiled-component.yaml')
 
         components.load_component_from_url('gs://path/to/pipeline.yaml')
     """

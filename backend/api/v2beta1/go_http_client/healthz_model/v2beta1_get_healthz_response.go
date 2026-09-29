@@ -14,11 +14,7 @@ import (
 // swagger:model v2beta1GetHealthzResponse
 type V2beta1GetHealthzResponse struct {
 
-	// TODO(gkcalat): redesign this service to return status
-	// and move server configuration into a separate service
-	// TODO(gkcalat): rename or deprecate v1beta1 HealthzService
-	//
-	// Returns if KFP in multi-user mode
+	// Returns whether KFP is in multi-user mode.
 	MultiUser bool `json:"multi_user,omitempty"`
 
 	// Returns the pipeline storage type (database or kubernetes)

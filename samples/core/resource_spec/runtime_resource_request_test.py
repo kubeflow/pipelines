@@ -18,8 +18,8 @@ from runtime_resource_request import resource_request_pipeline
 
 
 def EXPECTED_OOM(run_id, run, **kwargs):
-    """confirms a sample test case is failing, because of OOM."""
-    assert run.status == 'Failed'
+    """Confirms a sample test case is failing, because of OOM."""
+    assert run.state == 'FAILED'
 
 
 run_pipeline_func([

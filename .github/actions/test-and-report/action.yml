@@ -28,11 +28,11 @@ inputs:
     default: 'kubeflow'
   python_version:
     required: false
-    default: '3.9'
+    default: '3.11'
     description: "Python version to use"
   report_python_version:
     required: false
-    # Reporting uses a newer cached runtime to avoid setup-python
+    # Reporting uses a fixed cached runtime to avoid setup-python
     # rate-limit downloads and to keep junit2html/junit summary tooling stable.
     default: '3.11'
     description: "Python version to use for test reporting steps"
@@ -375,8 +375,8 @@ runs:
             start_port_forward_supervisor "api-server" "${INPUT_DEFAULT_NAMESPACE}" "service/${API_SERVICE}" "8888" "8888"
 
             for i in $(seq 1 12); do
-              if curl -sf http://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1 || \
-                 curl -skf https://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1; then
+              if curl -sf http://localhost:8888/apis/v2beta1/healthz > /dev/null 2>&1 || \
+                 curl -skf https://localhost:8888/apis/v2beta1/healthz > /dev/null 2>&1; then
                 echo "API server is reachable on localhost:8888"
                 break
               fi

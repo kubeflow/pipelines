@@ -17,6 +17,7 @@ tests."""
 from contextlib import redirect_stdout
 import importlib.util
 from io import StringIO
+import json
 from pathlib import Path
 import sys
 from types import ModuleType
@@ -25,8 +26,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 
-def main():
-    object_store_host, cluster_domain, namespace = sys.argv[1:]
+def load_controller():
     repository_root = Path(__file__).resolve().parents[4]
     producer_path = repository_root / (
         "manifests/kustomize/base/installs/multi-user/"
@@ -45,7 +45,10 @@ def main():
             "botocore.session": botocore.session,
     }):
         spec.loader.exec_module(producer)
+    return producer
 
+
+def artifact_repository(producer, object_store_host, cluster_domain, namespace):
     controller_env = {
         "KFP_VERSION": "test-version",
         "OBJECT_STORE_HOST": object_store_host,
@@ -89,8 +92,17 @@ def main():
         child for child in result["attachments"]
         if child.get("kind") == "ConfigMap" and
         child.get("metadata", {}).get("name") == "artifact-repositories")
-    print(repository_config["data"]["default-namespaced"])
+    return json.loads(repository_config["data"]["default-namespaced"])
 
 
 if __name__ == "__main__":
-    main()
+    producer = load_controller()
+    scenarios = json.loads(sys.argv[1])
+    print(
+        json.dumps({
+            scenario["name"]:
+                artifact_repository(producer, scenario["object_store_host"],
+                                    scenario["cluster_domain"],
+                                    scenario["namespace"])
+            for scenario in scenarios
+        }))

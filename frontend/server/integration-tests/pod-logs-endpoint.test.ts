@@ -15,12 +15,13 @@
 import express from 'express';
 import { load as loadYaml } from 'js-yaml';
 import { Client as MinioClient } from 'minio';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { PassThrough } from 'node:stream';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import requests from 'supertest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadConfigs, type ProcessEnv } from '../configs.js';
 import { getPodLogsHandler } from '../handlers/pod-logs.js';
 import { getArgoWorkflow, getK8sSecret, getPodLogs, getServerNamespace } from '../k8s-helper.js';
@@ -275,61 +276,77 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
     },
   );
 
-  it.each([
-    ['default domain', 'seaweedfs', undefined, 'seaweedfs.kubeflow.svc.cluster.local'],
-    ['custom domain', 'seaweedfs', '.svc.cluster.corp', 'seaweedfs.kubeflow.svc.cluster.corp'],
-    [
-      'domain without leading dot',
-      'seaweedfs',
-      'svc.cluster.corp',
-      'seaweedfs.kubeflow.svc.cluster.corp',
-    ],
-    [
-      'custom object store',
-      'operator-store',
-      '.svc.cluster.corp',
-      'operator-store.kubeflow.svc.cluster.corp',
-    ],
-  ])(
-    'retrieves the actual profile-controller archive with %s without an allowlist or fallback',
-    async (_description, objectStoreHost, clusterDomain, endPoint) => {
-      const repository = JSON.parse(
-        execFileSync(
-          'python3',
-          [
-            fileURLToPath(new URL('./testdata/profile-artifact-repository.py', import.meta.url)),
-            objectStoreHost,
-            clusterDomain ?? '',
-            'tenant',
-          ],
-          { encoding: 'utf8', timeout: 5000 },
-        ),
-      ) as ArchivedArtifactRepository;
-      const { workflow, logKey } = workflowWithRepository(repository, 'tenant');
-      vi.mocked(getArgoWorkflow).mockResolvedValue(workflow);
+  describe('profile-controller archives', () => {
+    const scenarios = [
+      ['default domain', 'seaweedfs', undefined, 'seaweedfs.kubeflow.svc.cluster.local'],
+      ['custom domain', 'seaweedfs', '.svc.cluster.corp', 'seaweedfs.kubeflow.svc.cluster.corp'],
+      [
+        'domain without leading dot',
+        'seaweedfs',
+        'svc.cluster.corp',
+        'seaweedfs.kubeflow.svc.cluster.corp',
+      ],
+      [
+        'custom object store',
+        'operator-store',
+        '.svc.cluster.corp',
+        'operator-store.kubeflow.svc.cluster.corp',
+      ],
+    ] as const;
+    let repositories: Record<string, ArchivedArtifactRepository>;
 
-      await createRequest({
-        MINIO_HOST: objectStoreHost,
-        ...(clusterDomain ? { CLUSTER_DOMAIN: clusterDomain } : {}),
-        AWS_S3_ENDPOINT: '',
-        ALLOWED_ARTIFACT_ENDPOINTS: '',
-      })
-        .get('/k8s/pod/logs')
-        .query({ podname: podName, podnamespace: 'tenant' })
-        .expect(200, logContent);
+    beforeAll(async () => {
+      // Generate real producer output once. Cold Python startup belongs to fixture
+      // setup, not each endpoint assertion's five-second test budget.
+      const { stdout } = await promisify(execFile)(
+        'python3',
+        [
+          fileURLToPath(new URL('./testdata/profile-artifact-repository.py', import.meta.url)),
+          JSON.stringify(
+            scenarios.map(([name, objectStoreHost, clusterDomain]) => ({
+              name,
+              object_store_host: objectStoreHost,
+              cluster_domain: clusterDomain ?? '',
+              namespace: 'tenant',
+            })),
+          ),
+        ],
+        { encoding: 'utf8', timeout: 30_000 },
+      );
+      repositories = JSON.parse(stdout);
+      expect(Object.keys(repositories).sort()).toEqual(scenarios.map(([name]) => name).sort());
+    }, 35_000);
 
-      expect(getK8sSecret).not.toHaveBeenCalled();
-      expect(MinioClient).toHaveBeenCalledExactlyOnceWith({
-        accessKey: 'frontend-access-key',
-        secretKey: 'frontend-secret-key',
-        endPoint,
-        port: 9000,
-        useSSL: false,
-      });
-      expect(logKey).toBe(`private-artifacts/tenant/workflow-1/2026/09/05/${podName}/main.log`);
-      expect(getObject).toHaveBeenCalledExactlyOnceWith('mlpipeline', logKey);
-    },
-  );
+    it.each(scenarios)(
+      'retrieves the actual profile-controller archive with %s without an allowlist or fallback',
+      async (description, objectStoreHost, clusterDomain, endPoint) => {
+        const repository = repositories[description];
+        const { workflow, logKey } = workflowWithRepository(repository, 'tenant');
+        vi.mocked(getArgoWorkflow).mockResolvedValue(workflow);
+
+        await createRequest({
+          MINIO_HOST: objectStoreHost,
+          ...(clusterDomain ? { CLUSTER_DOMAIN: clusterDomain } : {}),
+          AWS_S3_ENDPOINT: '',
+          ALLOWED_ARTIFACT_ENDPOINTS: '',
+        })
+          .get('/k8s/pod/logs')
+          .query({ podname: podName, podnamespace: 'tenant' })
+          .expect(200, logContent);
+
+        expect(getK8sSecret).not.toHaveBeenCalled();
+        expect(MinioClient).toHaveBeenCalledExactlyOnceWith({
+          accessKey: 'frontend-access-key',
+          secretKey: 'frontend-secret-key',
+          endPoint,
+          port: 9000,
+          useSSL: false,
+        });
+        expect(logKey).toBe(`private-artifacts/tenant/workflow-1/2026/09/05/${podName}/main.log`);
+        expect(getObject).toHaveBeenCalledExactlyOnceWith('mlpipeline', logKey);
+      },
+    );
+  });
 
   it.each([
     ['seaweedfs.tenant.svc:9000', true],

@@ -16,7 +16,6 @@ const proxyPaths = [
   '/hub',
   '/k8s',
   '/system',
-  '/visualizations',
 ];
 
 const proxy = proxyPaths.reduce<Record<string, { target: string; changeOrigin: boolean }>>(

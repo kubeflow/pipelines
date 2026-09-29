@@ -210,13 +210,7 @@ describe('literal input parameter integration', () => {
   });
 
   it('renders the literal parameter as a dropdown and requires a selection before start', async () => {
-    const runFormVariant = await waitForRunPageReady({ timeout: runStartTimeout });
-    assert.equal(
-      runFormVariant.name,
-      'v2',
-      'compiled literal-input pipeline should open the v2 run form',
-    );
-    const selectors = runFormVariant.selectors;
+    const selectors = await waitForRunPageReady({ timeout: runStartTimeout });
 
     await $(selectors.runName).click();
     await clearDefaultInput();

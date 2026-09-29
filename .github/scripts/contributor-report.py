@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone
@@ -15,9 +14,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from kubeflow_membership import is_kubeflow_member
+
 REPORT_MARKER = "<!-- kfp-contributor-report -->"
-KUBEFLOW_ORG_YAML_PATH = "github-orgs/kubeflow/org.yaml"
-KUBEFLOW_INTERNAL_ACLS_REPO = "kubeflow/internal-acls"
 KFP_REPO = "kubeflow/pipelines"
 TRANSIENT_HTTP_STATUSES = {502, 503, 504}
 TRANSIENT_ATTEMPTS = 4
@@ -153,48 +152,6 @@ def github_graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError(
             f"GitHub GraphQL failed: {json.dumps(result['errors'])}")
     return result["data"]
-
-
-def parse_kubeflow_org_members(yaml_text: str) -> set[str]:
-    members: set[str] = set()
-    in_kubeflow_org = False
-    current_list: str | None = None
-
-    for raw_line in yaml_text.splitlines():
-        line = raw_line.replace("\t", "    ")
-
-        if not in_kubeflow_org:
-            if line == "    kubeflow:":
-                in_kubeflow_org = True
-            continue
-
-        if line == "        teams:":
-            break
-        if line == "        admins:":
-            current_list = "admins"
-            continue
-        if line == "        members:":
-            current_list = "members"
-            continue
-        if line.startswith("        ") and ":" in line and not line.startswith(
-                "        - "):
-            current_list = None
-            continue
-        if current_list and line.startswith("        - "):
-            members.add(line[len("        - "):].strip().lower())
-
-    return members
-
-
-def fetch_kubeflow_org_members() -> set[str]:
-    payload = github_request(
-        f"/repos/{KUBEFLOW_INTERNAL_ACLS_REPO}/contents/{KUBEFLOW_ORG_YAML_PATH}"
-    )
-    if payload.get("encoding") != "base64" or not payload.get("content"):
-        raise RuntimeError(
-            "Unexpected response when fetching kubeflow org.yaml")
-    yaml_text = base64.b64decode(payload["content"]).decode("utf-8")
-    return parse_kubeflow_org_members(yaml_text)
 
 
 def fetch_contributor_stats(username: str) -> ContributorStats:
@@ -374,9 +331,8 @@ def main() -> int:
         raise RuntimeError("Could not determine pull request author login")
 
     if is_human_user(author):
-        org_members = fetch_kubeflow_org_members()
-        rows = build_user_rows(username.lower() in org_members,
-                               fetch_contributor_stats(username))
+        rows = build_user_rows(
+            is_kubeflow_member(username), fetch_contributor_stats(username))
     else:
         rows = build_non_user_rows(author.get("type", "Unknown"))
 

@@ -68,23 +68,31 @@ request issue to help reviewers catch up on the context.
 
 Kubeflow Pipelines uses GitHub Actions workflows to gate CI for pull requests.
 
-- Pull requests opened by Kubeflow organization members, owners, or invited
-  collaborators are treated as trusted and can proceed without this extra gate.
+- Pull requests opened by users listed under Kubeflow's `admins` or `members`
+  in [`kubeflow/internal-acls/github-orgs/kubeflow/org.yaml`](https://github.com/kubeflow/internal-acls/blob/master/github-orgs/kubeflow/org.yaml)
+  can proceed without this extra gate. This lookup is case-insensitive and does
+  not depend on public membership visibility or GitHub's `author_association`.
 - Pull requests authored by `dependabot[bot]` or `copybara-service[bot]` are exempt
   from this linked-issue gate. Required CI checks and merge requirements still
   apply.
-- Pull requests opened by other contributors must link to a GitHub issue using
-  a closing keyword such as `Fixes #1234` in the PR description.
-- The linked issue must be labeled `ready` by a Kubeflow Pipelines maintainer
-  before CI is allowed to proceed.
+- Pull requests opened by other contributors must reference an issue in this
+  repository with a closing keyword such as `Fixes #1234` on its own line in
+  the PR description. For PRs targeting a release branch, GitHub does not
+  automatically create an issue link from that keyword, but the admission gate
+  recognizes the reference.
+- The referenced issue must be labeled `ready` by a Kubeflow Pipelines
+  maintainer before CI is allowed to proceed.
 
 If you plan to contribute regularly, becoming a Kubeflow GitHub organization
 member is straightforward. Follow the instructions in the
 [`kubeflow/internal-acls` guide](https://github.com/kubeflow/internal-acls/#joining-the-kubeflow-github-organization).
 
-If a non-member pull request subject to this gate does not link to an issue, or
-the linked issue is not labeled `ready`, the gatekeeper workflow may comment on
-the PR and close it until the issue triage step is completed.
+If a non-member pull request subject to this gate does not reference an issue,
+or the referenced issue is not labeled `ready`, the gatekeeper workflow may
+comment on the PR and close it until the issue triage step is completed. If the
+membership lookup fails, the workflow fails without closing the PR; a
+maintainer can rerun it after the lookup problem is resolved. Once the issue is
+ready and referenced, reopen the PR to rerun the gate.
 
 ## Project Structure
 
@@ -187,11 +195,11 @@ Scope is optional, it can be one of the following:
 * **frontend**: user interface or frontend server related, folder `frontend`, `frontend/server`
 * **backend**: Backend, folder `backend`
 * **sdk**: `kfp` python package, folder `sdk`
-* **sdk/client**: `kfp-server-api` python package, folder `backend/api/python_http_client`
+* **sdk/client**: `kfp-server-api` python package, folder `backend/api/v2beta1/python_http_client`
 * **components**: Pipeline components, folder `components`
 * **deployment**: Kustomize or gcp marketplace manifests, folder `manifests`
 * **metadata**: Related to machine learning metadata (MLMD), folder `backend/metadata_writer`
-* **cache**: Caching, folder `backend/src/cache`
+* **cache**: Native task caching, folder `backend/src/v2/cacheutils`
 * **swf**: Scheduled workflow, folder `backend/src/crd/controller/scheduledworkflow`
 * **viewer**: Tensorboard viewer, folder `backend/src/crd/controller/viewer`
 

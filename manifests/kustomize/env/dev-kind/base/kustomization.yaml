@@ -43,20 +43,6 @@ patches:
     apiVersion: v1
     kind: Service
     metadata:
-      name: ml-pipeline-visualizationserver
-      namespace: kubeflow
-    spec:
-      ports:
-        - $patch: replace
-        - port: 8888
-          protocol: TCP
-          targetPort: 8888
-          nodePort: 30889
-      type: NodePort
-- patch: |-
-    apiVersion: v1
-    kind: Service
-    metadata:
       name: mysql
       namespace: kubeflow
     spec:

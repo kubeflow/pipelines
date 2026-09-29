@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from contextlib import ExitStack
 import importlib.util
 import pathlib
 import sys
 import unittest
+from unittest import mock
 
 MODULE_PATH = pathlib.Path(__file__).with_name("contributor-report.py")
 SPEC = importlib.util.spec_from_file_location("contributor_report", MODULE_PATH)
@@ -15,21 +17,51 @@ SPEC.loader.exec_module(MODULE)
 
 class ContributorReportTest(unittest.TestCase):
 
-    def test_parse_kubeflow_org_members_includes_admins_and_members(self):
-        members = MODULE.parse_kubeflow_org_members("""
-orgs:
-    kubeflow:
-        admins:
-        - AdminUser
-        members:
-        - MemberUser
-        billing_email: test@example.com
-        teams:
-          team-a:
-            members:
-            - TeamUser
-""")
-        self.assertEqual(members, {"adminuser", "memberuser"})
+    def test_workflow_skips_dependency_and_sync_bot_authors_at_job_level(self):
+        workflow_path = MODULE_PATH.parent.parent / "workflows" / "contributor-report.yml"
+        workflow = workflow_path.read_text()
+        self.assertIn(
+            "  contributor-report:\n"
+            "    if: >-\n"
+            "      github.event.pull_request.user.login != 'dependabot[bot]' &&\n"
+            "      github.event.pull_request.user.login != 'copybara-service[bot]'\n",
+            workflow,
+        )
+
+    def test_report_uses_shared_membership_lookup(self):
+        event = '{"pull_request": {"user": {"login": "JerT33", "type": "User"}}}'
+        stats = MODULE.ContributorStats('2020-01-01T00:00:00Z', 1, 2, 3)
+        for is_member in (True, False):
+            with self.subTest(is_member=is_member), ExitStack() as stack:
+                stack.enter_context(
+                    mock.patch.dict(
+                        MODULE.os.environ, {
+                            'GITHUB_EVENT_PATH': 'event.json',
+                            'CONTRIBUTOR_REPORT_DRY_RUN': 'true',
+                        }))
+                stack.enter_context(
+                    mock.patch('builtins.open',
+                               mock.mock_open(read_data=event)))
+                lookup = stack.enter_context(
+                    mock.patch.object(
+                        MODULE, 'is_kubeflow_member', return_value=is_member))
+                stack.enter_context(
+                    mock.patch.object(
+                        MODULE, 'fetch_contributor_stats', return_value=stats))
+                rows = stack.enter_context(
+                    mock.patch.object(
+                        MODULE, 'build_user_rows', return_value=[]))
+                stack.enter_context(mock.patch('builtins.print'))
+                self.assertEqual(MODULE.main(), 0)
+                lookup.assert_called_once_with('JerT33')
+                rows.assert_called_once_with(is_member, stats)
+
+    def test_workflow_checks_out_shared_membership_module(self):
+        workflow_path = MODULE_PATH.parent.parent / 'workflows' / 'contributor-report.yml'
+        workflow = workflow_path.read_text()
+        self.assertIn('ref: ${{ github.workflow_sha }}', workflow)
+        self.assertIn('            .github/scripts/kubeflow_membership.py\n',
+                      workflow)
 
     def test_non_user_rows_report_not_applicable(self):
         rows = MODULE.build_non_user_rows("Bot")

@@ -13,17 +13,12 @@
 // limitations under the License.
 
 import { testBestPractices } from 'src/TestUtils';
-import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
 import {
   convertYamlToPlatformSpec,
   getContainer,
-  isArgoWorkflowTemplate,
-  isTemplateV2,
-  isV2Pipeline,
   tryConvertYamlToV2PipelineSpec,
 } from './WorkflowUtils';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
-import * as features from 'src/features';
 import v2LightweightYaml from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import { dump, loadAll } from 'js-yaml';
@@ -40,41 +35,11 @@ const V2_PVC_TEMPLATE_STRING = dump(V2_PVC_TEMPLATE_STRING_OBJ);
 
 testBestPractices();
 describe('WorkflowUtils', () => {
-  const WORKFLOW_EMPTY: Workflow = {
-    metadata: {
-      name: 'workflow',
-    },
-    // there are many unrelated fields here, omit them
-    spec: {} as WorkflowSpec,
-    status: {} as WorkflowStatus,
-  };
-
-  it('detects v2/v2 compatible pipeline', () => {
-    const workflow = {
-      ...WORKFLOW_EMPTY,
-      metadata: {
-        ...WORKFLOW_EMPTY.metadata,
-        annotations: { 'pipelines.kubeflow.org/v2_pipeline': 'true' },
-      },
-    };
-    expect(isV2Pipeline(workflow)).toBeTruthy();
-  });
-
-  it('detects v1 pipeline', () => {
-    expect(isV2Pipeline(WORKFLOW_EMPTY)).toBeFalsy();
-  });
-
   it('detects v2 template (yaml file without k8s platform spec)', () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-    );
-    expect(isTemplateV2(V2_LW_YAML_TEMPLATE_STRING)).toBeTruthy();
+    expect(tryConvertYamlToV2PipelineSpec(V2_LW_YAML_TEMPLATE_STRING)).toBeDefined();
   });
 
   it('validates a V2 template without performing graph layout', () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-    );
     const randomSpy = vi.spyOn(Math, 'random');
 
     expect(tryConvertYamlToV2PipelineSpec(V2_LW_YAML_TEMPLATE_STRING)).toBeDefined();
@@ -84,10 +49,7 @@ describe('WorkflowUtils', () => {
   });
 
   it('detects v2 template (yaml file with k8s platform spec)', () => {
-    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
-      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
-    );
-    expect(isTemplateV2(V2_PVC_TEMPLATE_STRING)).toBeTruthy();
+    expect(tryConvertYamlToV2PipelineSpec(V2_PVC_TEMPLATE_STRING)).toBeDefined();
   });
 
   it('converts yaml to PlatformSpec (yaml with k8s platform spec)', () => {
@@ -195,28 +157,9 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-scr
   });
 });
 
-describe('isArgoWorkflowTemplate', () => {
-  it('accepts an Argo workflow manifest', () => {
-    expect(
-      isArgoWorkflowTemplate({
-        kind: 'Workflow',
-        apiVersion: 'argoproj.io/v1alpha1',
-      } as any),
-    ).toBe(true);
-  });
-
-  it('rejects a non-Argo manifest', () => {
-    expect(isArgoWorkflowTemplate({ kind: 'Workflow', apiVersion: 'v1' } as any)).toBe(false);
-  });
-
-  it('returns false rather than throwing when apiVersion is not a string', () => {
-    // Parsed YAML can carry any type here, and optional chaining alone would
-    // still call startsWith on a number.
-    expect(isArgoWorkflowTemplate({ kind: 'Workflow', apiVersion: 1 })).toBe(false);
-  });
-
-  it('returns false for non-object input', () => {
-    expect(isArgoWorkflowTemplate(undefined)).toBe(false);
-    expect(isArgoWorkflowTemplate('a string')).toBe(false);
-  });
+it.each([
+  'kind: Workflow\napiVersion: argoproj.io/v1alpha1\nspec: {}',
+  'name: component\nimplementation:\n  container:\n    image: alpine',
+])('rejects non-IR YAML: %s', (source) => {
+  expect(tryConvertYamlToV2PipelineSpec(source)).toBeUndefined();
 });

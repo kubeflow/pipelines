@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     workflows.argoproj.io/pod-name-format: v1
-  generateName: pipeline-with-importer-and-gcpc-type-
+  generateName: pipeline-with-importer-and-gcpc-types-
 spec:
   arguments:
     parameters:
@@ -26,7 +26,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - pipeline-with-importer-and-gcpc-type
+      - pipeline-with-importer-and-gcpc-types
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -297,7 +297,7 @@ spec:
       - --importer_spec
       - '{{inputs.parameters.importer}}'
       - --pipeline_name
-      - pipeline-with-importer-and-gcpc-type
+      - pipeline-with-importer-and-gcpc-types
       - --run_id
       - '{{workflow.uid}}'
       - --parent_task_id
@@ -438,7 +438,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - pipeline-with-importer-and-gcpc-type
+      - pipeline-with-importer-and-gcpc-types
       - --run_id
       - '{{workflow.uid}}'
       - --run_name

@@ -115,14 +115,14 @@ C_DIR="${BASH_SOURCE%/*}"
 "${C_DIR}/forward-port.sh" "$KFP_NAMESPACE" ml-pipeline 8888 8888
 
 for i in $(seq 1 12); do
-  if curl -sf http://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1; then
+  if curl -sf http://localhost:8888/apis/v2beta1/healthz > /dev/null 2>&1; then
     echo "API server is healthy on localhost:8888"
     break
   fi
   echo "Waiting for API server to become healthy... ($i/12)"
   sleep 5
 done
-curl -sf http://localhost:8888/apis/v1beta1/healthz > /dev/null 2>&1 || {
+curl -sf http://localhost:8888/apis/v2beta1/healthz > /dev/null 2>&1 || {
   echo "ERROR: API server not reachable at localhost:8888"
   exit 1
 }

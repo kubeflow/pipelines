@@ -33,8 +33,8 @@ type PipelineSpec struct {
 	// TODO(kaikaila): consider enforcing a soft limit if needed for performance.
 	PipelineSpecManifest LargeText `gorm:"column:PipelineSpecManifest;"`
 
-	// Argo workflow YAML definition. This is the Argo Spec converted from Pipeline YAML.
-	// This is deprecated. Use the pipeline ID, pipeline version ID, or pipeline spec manifest.
+	// Historical workflow-spec column retained for database upgrades, not accepted
+	// as an execution input. Use PipelineSpecManifest or a pipeline version.
 	WorkflowSpecManifest LargeText `gorm:"column:WorkflowSpecManifest;"`
 
 	// Store parameters key-value pairs as serialized string.
@@ -44,6 +44,6 @@ type PipelineSpec struct {
 	//  {"param1": Value1} will be stored as [{"name": "param1", "value":"value1"}].
 	Parameters LargeText `gorm:"column:Parameters;"`
 
-	// Runtime config of the pipeline, only used for v2 template in API v1beta1 API.
+	// Runtime config of the IR pipeline.
 	RuntimeConfig
 }

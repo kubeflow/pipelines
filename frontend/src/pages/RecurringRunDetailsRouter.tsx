@@ -15,34 +15,26 @@
  */
 
 import { useEffect } from 'react';
-import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
 import { CircularProgress } from '@mui/material';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { errorToMessage } from 'src/lib/Utils';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
-import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { PageProps } from './Page';
-import RecurringRunDetails from './RecurringRunDetails';
 import RecurringRunDetailsV2 from './RecurringRunDetailsV2';
 import { RecurringRunDetailsV2FC } from 'src/pages/functional_components/RecurringRunDetailsV2FC';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
-import { usePipelineVersionTemplate } from 'src/hooks/usePipelineVersionTemplate';
 import { queryKeys } from 'src/hooks/queryKeys';
 
-// This is a router to determine whether to show V1 or V2 recurring run details page.
 export default function RecurringRunDetailsRouter(props: PageProps) {
   const { updateBanner } = props;
   const recurringRunId = props.params[RouteParams.recurringRunId];
-  let pipelineManifest: string | undefined;
 
   const {
-    isSuccess: getRecurringRunSuccess,
     isLoading: recurringRunIsLoading,
-    isError: getRecurringRunError,
     error: recurringRunError,
-    data: v2RecurringRun,
+    data: recurringRun,
   } = useQuery<V2beta1RecurringRun, Error>({
     queryKey: queryKeys.v2RecurringRunDetail(recurringRunId),
     queryFn: () => {
@@ -55,27 +47,8 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     staleTime: Infinity,
   });
 
-  if (getRecurringRunSuccess && v2RecurringRun && v2RecurringRun.pipeline_spec) {
-    pipelineManifest = JsYaml.dump(v2RecurringRun.pipeline_spec);
-  }
-
-  const pipelineId = v2RecurringRun?.pipeline_version_reference?.pipeline_id;
-  const pipelineVersionId = v2RecurringRun?.pipeline_version_reference?.pipeline_version_id;
-
-  const {
-    isLoading: templateStrIsLoading,
-    isError: templateStrIsError,
-    error: templateStrError,
-    data: templateStrFromPipelineVersion,
-  } = usePipelineVersionTemplate(
-    pipelineManifest ? undefined : pipelineId,
-    pipelineManifest ? undefined : pipelineVersionId,
-  );
-
-  const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
-
   useEffect(() => {
-    if (getRecurringRunError && recurringRunError) {
+    if (recurringRunError) {
       let cancelled = false;
       errorToMessage(recurringRunError).then((msg) => {
         if (!cancelled) {
@@ -91,40 +64,19 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
       };
     }
     return undefined;
-  }, [getRecurringRunError, recurringRunError, recurringRunId, updateBanner]);
+  }, [recurringRunError, recurringRunId, updateBanner]);
 
-  useEffect(() => {
-    if (templateStrIsError && templateStrError && !getRecurringRunError) {
-      let cancelled = false;
-      errorToMessage(templateStrError).then((msg) => {
-        if (!cancelled) {
-          updateBanner({
-            message:
-              'Error: failed to retrieve pipeline version template. Click Details for more information.',
-            mode: 'error',
-            additionalInfo: msg,
-          });
-        }
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-    return undefined;
-  }, [templateStrIsError, templateStrError, getRecurringRunError, updateBanner]);
-
-  if (getRecurringRunSuccess && v2RecurringRun && templateString) {
-    const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
-    if (isV2Pipeline) {
-      return isFeatureEnabled(FeatureKey.FUNCTIONAL_COMPONENT) ? (
-        <RecurringRunDetailsV2FC {...props} />
-      ) : (
-        <RecurringRunDetailsV2 {...props} />
-      );
-    }
+  // Metadata and actions do not require a template: latest-version schedules have
+  // no pinned version, and an existing schedule's version may have been deleted.
+  if (recurringRun) {
+    return isFeatureEnabled(FeatureKey.FUNCTIONAL_COMPONENT) ? (
+      <RecurringRunDetailsV2FC {...props} />
+    ) : (
+      <RecurringRunDetailsV2 {...props} />
+    );
   }
 
-  if (recurringRunIsLoading || templateStrIsLoading) {
+  if (recurringRunIsLoading) {
     return (
       <div style={{ textAlign: 'center', paddingTop: 40 }}>
         <CircularProgress />
@@ -133,9 +85,5 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
     );
   }
 
-  if (getRecurringRunError) {
-    return null;
-  }
-
-  return <RecurringRunDetails {...props} />;
+  return <div role='alert'>Unable to load recurring run details. Refresh this page to retry.</div>;
 }

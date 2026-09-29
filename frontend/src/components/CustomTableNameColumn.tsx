@@ -28,7 +28,6 @@ export const NameWithTooltip: React.FC<
     name?: string;
   }>
 > = (props: CustomRendererProps<{ display_name?: string; name?: string }>) => {
-  // props.value.name is the only option for v1 pipelines, which is why it's the fallback.
   return (
     <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
       <span>{props.value?.display_name || props.value?.name || ''}</span>

@@ -22,14 +22,15 @@ PKG_ROOT=$(pwd)
 REPO_ROOT=$(dirname $(dirname $PKG_ROOT))
 echo $REPO_ROOT
 
-SETUPPY_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
+# Read the version without importing SDK/protobuf dependencies or requiring GNU grep.
+PACKAGE_VERSION=$(sed -n "s/^__version__ = ['\"]\([^'\"]*\)['\"].*/\1/p" kfp/kubernetes/__init__.py)
 
 if [ -z "$KFP_KUBERNETES_VERSION" ]
 then
     echo "Set \$KFP_KUBERNETES_VERSION to use this script. Got empty variable."
-elif [[ "$KFP_KUBERNETES_VERSION" != "$SETUPPY_VERSION" ]]
+elif [[ "$KFP_KUBERNETES_VERSION" != "$PACKAGE_VERSION" ]]
 then
-    echo "\$KFP_KUBERNETES_VERSION '$KFP_KUBERNETES_VERSION' does not match version in setup.py '$SETUPPY_VERSION'."
+    echo "\$KFP_KUBERNETES_VERSION '$KFP_KUBERNETES_VERSION' does not match version in __init__.py '$PACKAGE_VERSION'."
 else
     echo "Got version $KFP_KUBERNETES_VERSION from env var \$KFP_KUBERNETES_VERSION"
 
@@ -37,18 +38,22 @@ else
     TARGET_TAR_FILE=kfp-kubernetes-$KFP_KUBERNETES_VERSION.tar.gz
     pushd "$(dirname "$0")"
     dist_dir=$(mktemp -d)
-    python3 setup.py sdist bdist_wheel --dist-dir "$dist_dir"
+    python3 -m build --sdist --wheel --outdir "$dist_dir"
     cp "$dist_dir"/*.tar.gz $TARGET_TAR_FILE
     popd
     echo "Created package."
 
     echo "Testing install"
-    pip install $TARGET_TAR_FILE --break-system-packages
-    INSTALLED_VERSION=$(pip list | grep kfp-kubernetes | awk '{print $2}')
+    test_venv=$(mktemp -d)/venv
+    python3 -m venv "$test_venv"
+    "$test_venv/bin/pip" install "$TARGET_TAR_FILE"
+    INSTALLED_VERSION=$("$test_venv/bin/pip" list | grep kfp-kubernetes | awk '{print $2}')
+    rm -rf "$test_venv"
     if [[ "$INSTALLED_VERSION" != "$KFP_KUBERNETES_VERSION" ]]
     then
         echo "Something went wrong! Expected version $KFP_KUBERNETES_VERSION but found version $INSTALLED_VERSION"
     else
-        python -m twine upload $TARGET_TAR_FILE
+        uvx --python 3.12 --from twine==7.0.0 twine check "$TARGET_TAR_FILE" &&
+            uvx --python 3.12 --from twine==7.0.0 twine upload "$TARGET_TAR_FILE"
     fi
 fi

@@ -363,7 +363,7 @@ func (s *JobStore) DeleteJob(id string) error {
 
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	// Add creation/update time.
-	j = j.ToV1().ToV2()
+	j = j.ToV2()
 	now := s.time.Now().Unix()
 	j.CreatedAtInSec = now
 	j.UpdatedAtInSec = now
@@ -408,30 +408,10 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			err.Error())
 	}
 
-	// Use a transaction to make sure both job and its resource references are stored.
-	tx, err := s.db.Begin()
+	// New recurring runs persist ownership in native columns, not legacy resource references.
+	_, err = s.db.Exec(jobSQL, jobArgs...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create job")
-	}
-	defer tx.Rollback()
-	_, err = tx.Exec(jobSQL, jobArgs...)
-	if err != nil {
-		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store job %v to table", j.DisplayName)
-	}
-
-	// TODO(gkcalat): remove this workflow once we fully deprecate resource references
-	// and provide logic for data migration for v1beta1 data.
-	err = s.resourceReferenceStore.CreateResourceReferences(tx, j.ResourceReferences)
-	if err != nil {
-		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store resource references to table for job %v ", j.DisplayName)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return nil, util.NewInternalServerError(err, "Failed to store job %v and its resource references to table", j.DisplayName)
 	}
 	return j, nil
 }

@@ -100,7 +100,7 @@ deploymentSpec:
         command:
         - sh
         - -c
-        image: jetbrainsinfra/jq
+        image: docker.io/jetbrainsinfra/jq:latest
     exec-double:
       container:
         args:
@@ -185,3 +185,10 @@ root:
         parameterType: LIST
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.14.6
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-add-container:
+          imagePullPolicy: IfNotPresent

@@ -17,7 +17,7 @@
 import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
-import { ExperimentInfo } from 'src/lib/RunUtils';
+import { ExperimentInfo } from 'src/lib/ExperimentInfo';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link } from 'react-router';
 import { RoutePage, RouteParams } from 'src/components/Router';

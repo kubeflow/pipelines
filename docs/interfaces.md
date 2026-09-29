@@ -5,7 +5,7 @@ machine learning (ML) workflows with Kubeflow Pipelines.
 
 ## User interface (UI)
 
-You can access the Kubeflow Pipelines UI by clicking **Pipeline Dashboard** on 
+You can access the Kubeflow Pipelines UI by clicking **Pipeline Dashboard** on
 the Kubeflow UI. The Kubeflow Pipelines UI looks like this:
 
 ![Pipelines UI](images/pipelines-ui.png)
@@ -13,9 +13,9 @@ the Kubeflow UI. The Kubeflow Pipelines UI looks like this:
 From the Kubeflow Pipelines UI you can perform the following tasks:
 
 * Run one or more of the preloaded samples to try out pipelines quickly.
-* Upload a pipeline as a compressed file. The pipeline can be one that you
-  have built (see how to [build a 
-  pipeline](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk/build-pipeline/)) or one 
+* Upload a compiled IR YAML pipeline. The pipeline can be one that you
+  have built (see how to [build a
+  pipeline](user-guides/components/compose-components-into-pipelines.md)) or one
   that someone has shared with you.
 * Create an *experiment* to group one or more of your pipeline runs.
   See the [definition of an
@@ -27,29 +27,29 @@ From the Kubeflow Pipelines UI you can perform the following tasks:
 * Compare the results of one or more runs within an experiment.
 * Schedule runs by creating a recurring run.
 
-See the [quickstart guide](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/overview/quickstart/) for more
+See the [quickstart guide](getting-started.md) for more
 information about accessing the Kubeflow Pipelines UI and running the samples.
 
 When building a pipeline component, you can write out information for display
-in the UI. See the guides to [exporting 
-metrics](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk/output-viewer/#v2-sdk-use-sdk-visualization-apis) and [visualizing results in 
-the UI](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk/output-viewer/).
+in the UI. See the guides to [exporting
+metrics](user-guides/data-handling/artifacts.md) and [visualizing results in
+the UI](user-guides/data-handling/artifacts.md).
 
 ## Python SDK
 
-The Kubeflow Pipelines SDK provides a set of Python packages that you can use to 
+The Kubeflow Pipelines SDK provides a set of Python packages that you can use to
 specify and run your ML workflows.
 
-See the [introduction to the Kubeflow Pipelines 
-SDK](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/sdk/sdk-overview/) for an overview of the ways you can
+See the [introduction to the Kubeflow Pipelines
+SDK](python-sdk.md) for an overview of the ways you can
 use the SDK to build pipeline components and pipelines.
 
 ## REST API
 
 The Kubeflow Pipelines API is useful for continuous integration/deployment
 systems, for example, where you want to incorporate your pipeline executions
-into shell scripts or other systems. 
+into shell scripts or other systems.
 For example, you may want to trigger a pipeline run when new data comes in.
 
-See the [Kubeflow Pipelines API reference 
+See the [Kubeflow Pipelines API reference
 documentation](reference/api/kubeflow-pipeline-api-spec.md).

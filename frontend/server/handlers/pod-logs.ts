@@ -21,9 +21,9 @@ import {
 } from '../workflow-helper.js';
 import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs.js';
 import {
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
-} from '../src/generated/apis/auth/index.js';
+  AuthorizeResourcesEnum,
+  AuthorizeVerbEnum,
+} from '../src/generated/apisv2beta1/auth/index.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 import { getArtifactStoreOrigin } from '../minio-helper.js';
 
@@ -115,8 +115,8 @@ export function getPodLogsHandler(
       try {
         const authError = await authorizeFn(
           {
-            verb: AuthorizeRequestVerb.GET,
-            resources: AuthorizeRequestResources.VIEWERS,
+            verb: AuthorizeVerbEnum.GET,
+            resources: AuthorizeResourcesEnum.VIEWERS,
             namespace: podNamespace,
           },
           req,
