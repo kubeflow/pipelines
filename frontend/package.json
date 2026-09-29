@@ -104,7 +104,7 @@
     "prestorybook": "npm run build:tailwind",
     "prebuild:storybook": "npm run build:tailwind",
     "test:bundle:built": "node scripts/run-browser-suite.mjs",
-    "test:browser-runner": "node --test scripts/run-browser-suite.test.mjs"
+    "test:browser-runner": "node --test scripts/run-browser-suite.check.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
