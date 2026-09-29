@@ -1,5 +1,7 @@
 # Supported-browser qualification checkpoint
 
+Follow-up: the [automated qualification plan](../browser-support.md#automated-qualification) expands CI across engines and desktop operating systems, uses native automation for Apple coverage, and tracks BrowserStack open-source access for future gaps. Manual test sessions are not part of the current delivery plan; the results below retain their original scope.
+
 This checkpoint applies the [approved browser policy](../browser-support.md) to
 actual vendor browser builds. Channel selection was resolved on September 28,
 2026 (America/New_York); native records retain their September 29 UTC timestamps.
@@ -62,17 +64,17 @@ or accessibility assessment.
 
 ## Remaining matrix
 
-| Policy slot                  | Resolved target or constraint                                                              | Qualification still required                                                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Chrome previous stable       | Major 153; vendor Mac ARM releases include 153.0.8010.53 and staged .54/.55 variants       | Choose and record an exact vendor distribution/patch; run the full suite.                                               |
-| Chrome Extended Stable       | 152.0.7977.140 for Mac/Windows                                                             | Acquire the exact enterprise build and run the full suite.                                                              |
-| Edge Extended Stable         | Windows 152.0.4191.100; exact current Mac enterprise patch still unresolved                | Resolve platform-specific package identity and run the full suite.                                                      |
-| Firefox stable and both ESRs | The four exact versions above                                                              | Expand native smoke to full workflow/state coverage; do not substitute Playwright's patched Firefox.                    |
-| Safari current annual        | Safari 27; select latest patch for the chosen supported macOS                              | Actual Safari qualification, both themes and responsive/keyboard behavior.                                              |
-| Safari previous annual       | Installed identity 26.6.2 (21624.5.1.11.3); latest eligible patch still needs confirmation | No completed Safari application run; obtain actual-browser workflow and viewport evidence.                              |
-| iOS/iPadOS current annual    | 27.0.1                                                                                     | Actual device/simulator browser identity, touch/zoom/focus/dialog/inspector tests, and representative physical devices. |
-| iOS/iPadOS previous annual   | 26.7.1                                                                                     | Same device checks, using a supported OS/device pair.                                                                   |
-| Additional desktop platforms | Vendor-supported Windows and Linux combinations                                            | Record exact OS/browser identities and representative platform coverage.                                                |
+| Policy slot                  | Resolved target or constraint                                                              | Qualification still required                                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chrome previous stable       | Major 153; vendor Mac ARM releases include 153.0.8010.53 and staged .54/.55 variants       | Choose and record an exact vendor distribution/patch; run the full suite.                                                                                            |
+| Chrome Extended Stable       | 152.0.7977.140 for Mac/Windows                                                             | Acquire the exact enterprise build and run the full suite.                                                                                                           |
+| Edge Extended Stable         | Windows 152.0.4191.100; exact current Mac enterprise patch still unresolved                | Resolve platform-specific package identity and run the full suite.                                                                                                   |
+| Firefox stable and both ESRs | The four exact versions above                                                              | Expand native smoke to full workflow/state coverage; do not substitute Playwright's patched Firefox.                                                                 |
+| Safari current annual        | Safari 27; select latest patch for the chosen supported macOS                              | Actual Safari qualification, both themes and responsive/keyboard behavior.                                                                                           |
+| Safari previous annual       | Installed identity 26.6.2 (21624.5.1.11.3); latest eligible patch still needs confirmation | No completed Safari application run; obtain actual-browser workflow and viewport evidence.                                                                           |
+| iOS/iPadOS current annual    | 27.0.1                                                                                     | Actual device/simulator browser identity, touch/zoom/focus/dialog/inspector tests, and automated physical-device coverage where available; otherwise record the gap. |
+| iOS/iPadOS previous annual   | 26.7.1                                                                                     | Same device checks, using a supported OS/device pair.                                                                                                                |
+| Additional desktop platforms | Vendor-supported Windows and Linux combinations                                            | Record exact OS/browser identities and representative platform coverage.                                                                                             |
 
 Safari application qualification did not start successfully; no pass is claimed.
 The exact Safari and mobile rows require a working browser/device test environment.

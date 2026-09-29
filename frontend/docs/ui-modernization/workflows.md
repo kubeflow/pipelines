@@ -82,7 +82,7 @@ The maintainer-approved [browser support policy](../browser-support.md) covers t
 
 The [production Browserslist](../../package.json) and [Vite targets](../../vite.config.mts) retain conservative compiler settings. Their Chrome/Edge 111, Firefox 128 and Safari/iOS 16.4 targets no longer define product support or required qualification. Historical engine runs and the actual Firefox 128 smoke retain their recorded provenance; they do not qualify the newly declared channels. Record exact browser/OS versions and final asset identities for the new release matrix.
 
-Keyboard tests cover focus visibility, semantic table selection, tabs, modeless/modal inspection, rich help links, switch operation, dialog trapping/return and draft form behavior. Token tests check normal-text contrast pairs in both themes. These checks support the design review; final accessibility review and representative assistive-technology checks remain open.
+Keyboard tests cover focus visibility, semantic table selection, tabs, modeless/modal inspection, rich help links, switch operation, dialog trapping/return and draft form behavior. Token tests check normal-text contrast pairs in both themes. The delivery plan now uses automated accessibility, keyboard/focus and screenshot regression checks. Uncovered assistive-technology behavior remains an explicit limitation; manual testing is not a planned release task. See the [automated qualification plan](../browser-support.md#automated-qualification).
 
 ## Backend, deployment and KFP Local considerations
 

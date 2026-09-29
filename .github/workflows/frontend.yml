@@ -86,8 +86,103 @@ jobs:
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
 
-    - name: Verify production bundle startup
+    - name: Verify browser evidence runner
       working-directory: frontend
+      run: npm run test:browser-runner
+
+    - name: Build shared production bundle
+      working-directory: frontend
+      run: npm run build
+
+    - name: Upload shared production bundle
+      uses: actions/upload-artifact@v7
+      with:
+        name: frontend-production-bundle
+        path: frontend/build
+        if-no-files-found: error
+        overwrite: true
+        retention-days: 7
+
+  browser-tests:
+    name: Browser / ${{ matrix.os }} / ${{ matrix.browser }}
+    needs: frontend-tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        browser: [chromium, firefox, webkit]
+    defaults:
+      run:
+        shell: bash
+        working-directory: frontend
+    env:
+      KFP_BROWSER: ${{ matrix.browser }}
+      KFP_BROWSER_REPORT_DIR: browser-results
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: frontend/.nvmrc
+
+    - name: Set up npm
       run: |
-        npx playwright install --with-deps chromium
-        npm run test:bundle
+        npm install --global "$(node -p 'require("./package.json").packageManager')"
+        npm --version
+
+    - name: Install browser test dependencies
+      # The shared bundle needs neither native build scripts nor nested server installs.
+      run: npm ci --ignore-scripts
+
+    - name: Download shared production bundle
+      uses: actions/download-artifact@v8
+      with:
+        name: frontend-production-bundle
+        path: frontend/build
+
+    - name: Install browser
+      run: npx playwright install --with-deps "${KFP_BROWSER}"
+
+    - name: Run full production browser suite
+      id: suite
+      run: npm run test:bundle:built
+
+    - name: Record workflow outcome
+      if: always()
+      env:
+        JOB_STATUS: ${{ job.status }}
+        SUITE_OUTCOME: ${{ steps.suite.outcome }}
+      run: |
+        node --input-type=module <<'NODE'
+        import { mkdirSync, writeFileSync } from 'node:fs';
+        import { arch, platform, release } from 'node:os';
+        const directory = process.env.KFP_BROWSER_REPORT_DIR;
+        mkdirSync(directory, { recursive: true });
+        writeFileSync(`${directory}/workflow.json`, JSON.stringify({
+          sourceSha: process.env.GITHUB_SHA,
+          runId: process.env.GITHUB_RUN_ID,
+          runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+          runnerOS: process.env.RUNNER_OS,
+          runnerImage: process.env.ImageOS,
+          runnerImageVersion: process.env.ImageVersion,
+          platform: platform(), release: release(), arch: arch(),
+          requestedEngine: process.env.KFP_BROWSER,
+          jobStatus: process.env.JOB_STATUS,
+          suiteOutcome: process.env.SUITE_OUTCOME,
+        }, null, 2) + '\n');
+        NODE
+
+    - name: Upload browser evidence
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: frontend-browser-${{ matrix.os }}-${{ matrix.browser }}
+        path: frontend/browser-results
+        if-no-files-found: error
+        overwrite: true
+        retention-days: 14

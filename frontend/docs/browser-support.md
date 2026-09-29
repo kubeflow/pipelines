@@ -41,15 +41,36 @@ remain compatible with the oldest supported enterprise/Safari release, pass
 production build and browser qualification, and refresh asset-specific evidence.
 JavaScript syntax transforms do not supply missing runtime APIs or CSS features.
 
+## Automated qualification
+
+Qualification uses automated browser workflows, keyboard/focus assertions,
+accessibility audits and screenshot regression checks. Manual test sessions are
+not part of the delivery plan. Automated coverage does not establish blanket WCAG
+conformance or untested screen-reader/speech-control behavior; retain these limits
+explicitly instead of treating them as passes.
+
+The production fixture suite runs in CI across Chromium, Firefox and WebKit on
+Linux, Windows and macOS. CI engine coverage is separate from the exact branded
+stable/enterprise/Safari release matrix below. Each lane must pass and retain its
+actual browser version, OS/source identity, bundle hashes and test outcomes. A
+failed lane must not be hidden by a successful lane or `continue-on-error`.
+
+Actual Safari and iOS/iPadOS qualification uses automated native-browser/device
+sessions. Unavailable environments remain coverage gaps. Investigate
+[BrowserStack's open-source program](https://www.browserstack.com/open-source) for
+future automated device and version coverage; eligibility and exact available
+browser/device versions must be confirmed before relying on it.
+
 ## Qualification before release
 
 - [x] Adopt the channel policy and retire Chrome/Edge 111, Firefox 128 and Safari/iOS 16.4 as release qualification targets.
 - [x] Record a [dated qualification checkpoint](ui-modernization/supported-browser-qualification.md), with exact tested builds and remaining channel/OS gaps.
 - [ ] Complete the dated exact-version/OS matrix for the release, including Chrome/Edge Extended Stable and all Firefox ESR releases still in their supported transition.
 - [ ] Run the production workflow suite on current and previous stable Chrome/Edge/Firefox and the enterprise releases above. Retain failures and route/action/state results for each actual browser identity.
-- [ ] Qualify current and previous annual macOS Safari releases and iOS/iPadOS devices or simulators, recording which was used. Check touch, zoom, keyboard/focus, dialogs, inspector scrolling and visual-viewport behavior in both themes; retain representative physical-device checks.
+- [ ] Qualify current and previous annual macOS Safari releases and iOS/iPadOS devices or simulators, recording which was used. Automate touch, zoom, keyboard/focus, dialogs, inspector scrolling and visual-viewport checks in both themes; retain actual device identities and record any unavailable physical-device automation.
 - [ ] Verify the final production bundle against the oldest supported versions as well as current releases. Resolve supported-browser failures that block loading, core workflows, data integrity, keyboard access or reachable content before release; document other limitations explicitly.
-- [ ] Publish the tested matrix and changed requirements in release notes. Keep deployment, assistive-technology, performance-budget and rollback gates tracked separately.
+- [ ] Investigate BrowserStack open-source eligibility and automated Safari/iOS/iPadOS, enterprise-version and desktop-OS coverage. Confirm exact versions, CI integration, result retention and access requirements before proposing account setup.
+- [ ] Publish the tested matrix and changed requirements in release notes. Keep deployment, automated accessibility, performance-budget and rollback gates tracked separately, with untested assistive-technology limitations explicit.
 
 Playwright Chromium/Firefox/WebKit provide useful engine coverage; they do not
 substitute for every branded browser version, Safari device or OS combination.
