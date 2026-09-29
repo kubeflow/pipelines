@@ -80,12 +80,13 @@ const report = {
 let session;
 await mkdir(out, { recursive: true });
 
-async function command(method, path, body) {
-  return requestWebDriver(new URL(path, driver), {
-    method,
-    body,
-    timeout: mobile && path === '/session' ? 600000 : 40000,
-  });
+async function command(
+  method,
+  path,
+  body,
+  timeout = mobile && path === '/session' ? 600000 : 40000,
+) {
+  return requestWebDriver(new URL(path, driver), { method, body, timeout });
 }
 
 const execute = (fn, ...args) =>
@@ -105,11 +106,14 @@ async function wait(fn, label, ...args) {
 async function find(selector) {
   return command('POST', `/session/${session}/element`, { using: 'css selector', value: selector });
 }
-async function prepareMobileTap() {
+async function prepareMobileTap({ startup = false } = {}) {
   if (!mobile) return;
   report.nativeSafariPreparation ??= [];
+  // Cold Web Inspector/native accessibility queries exceeded 40s in hosted traces.
+  // Only initial browser preparation gets extra time; suite interactions keep 40s.
+  if (startup) report.nativeSafariStartupCommandTimeoutMs = 60000;
   await prepareNativeSafariTap(
-    command,
+    startup ? (method, path, body) => command(method, path, body, 60000) : command,
     session,
     report.nativeSafariPreparation,
     async (source, label) => {
@@ -340,6 +344,33 @@ try {
       process.env.KFP_EXPECTED_PLATFORM_VERSION,
       'must run requested iOS runtime',
     );
+    const expectedIdleTimeout = capabilities['appium:waitForIdleTimeout'];
+    assert.ok(
+      typeof expectedIdleTimeout === 'number' && expectedIdleTimeout > 0,
+      'Native idle waits must remain enabled',
+    );
+    const wda = new URL(process.env.KFP_WDA_URL);
+    assert.equal(wda.origin, `http://127.0.0.1:${capabilities['appium:wdaLocalPort']}`);
+    // Appium's settings route reads its own cache; query the owned WDA directly.
+    report.nativeDriverStatus = await requestWebDriver(new URL('/status', wda), {
+      method: 'GET',
+      timeout: 40000,
+      envelope: true,
+    });
+    const wdaSession = report.nativeDriverStatus.sessionId;
+    assert.ok(
+      typeof wdaSession === 'string' && wdaSession.length > 0,
+      'Active WDA session required',
+    );
+    report.nativeDriverSettings = await requestWebDriver(
+      new URL(`/session/${encodeURIComponent(wdaSession)}/appium/settings`, wda),
+      { method: 'GET', timeout: 40000 },
+    );
+    assert.equal(
+      report.nativeDriverSettings.waitForIdleTimeout,
+      expectedIdleTimeout,
+      'WDA must apply the requested positive idle wait',
+    );
   } else {
     assert.equal(
       created.capabilities.browserVersion,
@@ -355,7 +386,7 @@ try {
   if (!mobile)
     await command('POST', `/session/${session}/window/rect`, { width: 1440, height: 900 });
   // Browser-owned onboarding and address editing can obstruct the first page query.
-  await prepareMobileTap();
+  await prepareMobileTap({ startup: true });
   await command('POST', `/session/${session}/url`, { url: new URL('#/runs', base).href });
   await wait(
     () => document.querySelectorAll('[data-testid="run-name-link"]').length === 4,

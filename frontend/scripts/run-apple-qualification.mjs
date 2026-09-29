@@ -26,6 +26,8 @@ const appiumVersion = '3.8.0';
 const xcuitestVersion = '12.13.3';
 // First-boot OS migration on a hosted simulator has a separate bounded budget.
 const simulatorBootTimeout = 300_000;
+const mobileIdleTimeoutSeconds = 2;
+const wdaLocalPort = 8100;
 
 export function requireHostedAppleRunner(env = process.env, platform = process.platform) {
   assert.equal(platform, 'darwin', 'Apple qualification requires macOS');
@@ -505,6 +507,10 @@ async function main() {
         'appium:simulatorStartupTimeout': simulatorBootTimeout,
         'appium:wdaLaunchTimeout': 180000,
         'appium:wdaStartupRetries': 1,
+        'appium:wdaLocalPort': wdaLocalPort,
+        // Native Safari input can require three calibrated taps. Bound each XCTest idle
+        // wait while retaining quiescence checks and the harness's explicit DOM readiness.
+        'appium:waitForIdleTimeout': mobileIdleTimeoutSeconds,
         // Cold hosted simulators can publish Safari's inspector application after
         // the driver's 5-second default discovery deadline.
         'appium:webviewConnectTimeout': 60000,
@@ -514,9 +520,17 @@ async function main() {
         'appium:screenshotQuality': 0,
         'appium:safariInitialUrl': 'http://127.0.0.1:4174/',
       };
+      report.nativeInteraction = {
+        waitForIdleTimeoutSeconds: mobileIdleTimeoutSeconds,
+        quiescence: 'Enabled by the pinned XCUITest driver',
+        wdaUrl: `http://127.0.0.1:${wdaLocalPort}`,
+        source:
+          'https://github.com/appium/appium-xcuitest-driver/blob/v12.13.3/lib/commands/wda/startup.ts#L389-L394',
+      };
     }
     Object.assign(env, {
       KFP_WEBDRIVER_URL: 'http://127.0.0.1:4444',
+      KFP_WDA_URL: mode === 'desktop' ? '' : `http://127.0.0.1:${wdaLocalPort}`,
       KFP_WEBDRIVER_BROWSER: 'safari',
       KFP_WEBDRIVER_CAPABILITIES: JSON.stringify(capabilities),
       KFP_BROWSER_FLOOR_MOBILE: mode === 'desktop' ? '0' : '1',

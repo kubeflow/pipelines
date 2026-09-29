@@ -4,10 +4,10 @@ Browser qualification runs in GitHub Actions. It requires no workstation browser
 installation, local Safari/Xcode setup, or manual test execution.
 
 The existing [Frontend Tests workflow](../../../.github/workflows/frontend.yml)
-passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36609251657)
+passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36615195410)
 across Chromium, Firefox and WebKit on Linux, Windows and macOS: 48 cases per lane,
-with no skipped cases. At PR head `c0611500e425c9341708267827b42ab70c8630bc`
-(tested merge `885e34a5e8989aa8275d03ac2cc52491b5b4156a`), audited TAP/JUnit and
+with no skipped cases. At PR head `be13f951a8344054549f8afbf4050faf8f34b323`
+(tested merge `a7b7138cb25920f0c7526f84aff5ef2710c59d4d`), audited TAP/JUnit and
 workflow reports agree on source identity and identical hashes for all 22 shared
 build files. This is engine coverage, separate from exact-version qualification.
 The same hosted source passes 1,760 UI tests and 1,103 server tests, formatting,
@@ -39,9 +39,14 @@ vendor URLs, published checksums, signing identities, sources and unresolved
 policy slots. Exact pins are intentional; a mismatched browser or missing runtime
 fails the lane instead of silently substituting a different version.
 
+Chrome stable was refreshed to 154.0.8037.93 after its vendor download changed.
+[Google Version History](https://versionhistory.googleapis.com/v1/chrome/platforms/mac_arm64/channels/stable/versions/154.0.8037.93/releases)
+records full ARM64 stable rollout from September 29 at 18:30 UTC. Earlier Chrome
+154.0.8037.58 results below remain historical; they do not qualify the new pin.
+
 | Lane                        | Version            | Suite               | Qualification role                                        |
 | --------------------------- | ------------------ | ------------------- | --------------------------------------------------------- |
-| Chrome stable               | 154.0.8037.58      | 48 production cases | Current stable policy row                                 |
+| Chrome stable               | 154.0.8037.93      | 48 production cases | Current stable policy row                                 |
 | Chrome for Testing current  | 154.0.8037.57      | 48 production cases | Supplementary; different Mac patch                        |
 | Chrome for Testing previous | 153.0.8010.52      | 48 production cases | Supplementary; different Mac patch                        |
 | Edge stable                 | 154.0.4258.37      | 48 production cases | Current stable policy row                                 |
@@ -60,7 +65,13 @@ separate eight-minute phase before Appium session startup, record its resolved
 package version and output hashes, and require the generated test manifest, runner
 app and test executable before reuse. Mobile jobs have a 45-minute outer limit;
 desktop Safari retains 35 minutes. Native UI checks retain their own bounded
-command and suite deadlines.
+command and suite deadlines. Initial mobile Safari preparation alone allows 60 seconds per command;
+subsequent suite interactions keep 40 seconds. Two cold-start queries returned
+correct results just beyond 40 seconds, so this allowance is confined to startup.
+Native XCTest idle waits are set to a positive two seconds, with quiescence
+checks retained. The harness reads the live setting from the owned WebDriverAgent
+session and requires it to match before checking the application. This bounds the
+stacked waits for native input without weakening readiness or exact-value assertions.
 Apple automation uses Xcode 26.6 and pins Appium 3.8.0/XCUITest 12.13.3 for simulators. It records Safari bundle builds and simulator
 runtime builds as well as marketing versions. The current Chrome vendor URL is
 mutable; signed-app and exact-version checks reject a changed release. Chrome for
@@ -121,30 +132,26 @@ verified all nine vendor/supplementary lanes and desktop Safari at PR head
 | Actual Chrome stable and Edge stable/previous       | 144/144 production cases |
 | Supplementary Chrome for Testing current/previous   | 96/96 production cases   |
 | Firefox stable/previous and both supported ESR rows | 48/48 native checks      |
-| Desktop Safari with recorded CI text preferences   | 12/12 native checks      |
+| Desktop Safari with recorded CI text preferences    | 12/12 native checks      |
 
 The audit verified source identity, all 22 shared build-file hashes, exact browser
 and downloaded-distribution identity, 70 native screenshot hashes, and both Edge
 post-suite identities and volume cleanup. These 300 passing checks qualify those
-ten rows only. Desktop Safari retained exact experiment name and description
+ten tested builds only. Desktop Safari retained exact experiment name and description
 values; its bounded input trace recorded no composition deletion or application
 value reset. Prediction, autocorrection and IME behavior remain unqualified.
 
 Both mobile simulator lanes remain open. Follow-up
-[run 36612768062](https://github.com/kubeflow/pipelines/actions/runs/36612768062)
-at `190e3c6b6c0c8c28a1c85d105a9e574c7514d659` verified iPad address completion,
-filtering at unchanged scale 1, task inspector open/close, pipeline selection and
-the read-only editor. Its sixth check exposed Appium serializing the disabled
-property as the string `"true"`; the assertion now reads the actual DOM boolean.
-iPhone dismissed its first-launch tip, but native confirmation returned just after
-the existing command deadline. Neither partial lane counts as qualified.
-
-The same run rejected actual Chrome after a background updater changed its build
-from 154.0.8037.58 to 154.0.8037.59. Chrome now uses the same read-only app lifecycle
-and final identity checks as Edge. The frontend prerequisite stopped on ten
-snapshots containing the intended touch-input class; those snapshots now reflect
-only that class change, with all 64 tests in the affected suites passing. A complete
-hosted run is still required for these follow-ups.
+[run 36615195513](https://github.com/kubeflow/pipelines/actions/runs/36615195513)
+at `be13f951a8344054549f8afbf4050faf8f34b323` passed nine lanes (252 checks).
+Chrome correctly rejected a vendor download that had advanced beyond its dated
+pin; the catalog is now refreshed. iPhone's first page query returned after the
+40-second command deadline. iPad passed six checks, including unchanged filter
+scale, inspector open/close and import validation. Experiment text entry then
+exceeded that deadline because three native taps each incurred two 10-second
+XCTest idle waits; the driver subsequently entered the exact expected text.
+The scoped startup allowance and positive two-second idle setting above require
+a fresh hosted run. Neither partial simulator lane counts as qualified.
 
 Shared Input and TextField textarea controls use 16px text on coarse-pointer
 devices to prevent Safari focus zoom. The prior recorded iPhone scale change from

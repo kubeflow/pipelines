@@ -21,7 +21,7 @@ function errorChain(error) {
 // Use the explicit command deadline for connection, headers AND body. Native
 // fetch has a separate Undici header deadline that can end a slow WDA startup
 // before the longer session AbortSignal expires.
-export async function requestWebDriver(url, { method, body, timeout }) {
+export async function requestWebDriver(url, { method, body, timeout, envelope = false }) {
   url = new URL(url);
   assert.equal(url.protocol, 'http:');
   assert.ok(
@@ -66,7 +66,7 @@ export async function requestWebDriver(url, { method, body, timeout }) {
                   `${data.value?.error || response.statusCode}: ${data.value?.message || ''}`,
                 );
               }
-              resolve(data.value);
+              resolve(envelope ? data : data.value);
             } catch (error) {
               reject(error);
             }

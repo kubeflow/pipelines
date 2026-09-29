@@ -6,6 +6,7 @@
     "Exact versions are a dated snapshot; review rolling policy channels before release.",
     "Chrome for Testing rows supplement policy coverage and do not qualify a different vendor patch.",
     "Chrome stable URL is mutable; strict signature and version validation fails if the channel changes.",
+    "Chrome stable refreshed to 154.0.8037.93 after the vendor download changed; Google Version History records full ARM64 stable rollout from 2026-09-29T18:30:47.592727Z. Earlier .58 qualification remains historical evidence.",
     "No vendor SHA-256 is published in the Chrome download metadata; record the acquired hash and verify the signed app.",
     "The two supplementary Mac Chrome for Testing archives have linker ad-hoc signatures, no vendor TeamIdentifier and no resource seal. Their reviewed SHA-256 pins agree across two hosted downloads; CI also verifies pinned Google Storage generation, size and vendor MD5. This is archive integrity, not Developer ID signature qualification."
   ],
@@ -14,7 +15,7 @@
       "id": "chrome-stable",
       "browser": "chromium",
       "slot": "Chrome current stable",
-      "version": "154.0.8037.58",
+      "version": "154.0.8037.93",
       "kind": "dmg",
       "url": "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg",
       "sha256": null,
@@ -25,7 +26,7 @@
       "executable": "Google Chrome",
       "teamId": "EQHXZ8M8AV",
       "qualification": "policy",
-      "source": "https://chromereleases.googleblog.com/2026/09/"
+      "source": "https://versionhistory.googleapis.com/v1/chrome/platforms/mac_arm64/channels/stable/versions/154.0.8037.93/releases"
     },
     {
       "id": "chrome-testing-current",

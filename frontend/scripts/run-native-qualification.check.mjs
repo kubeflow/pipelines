@@ -155,6 +155,8 @@ test('WebDriver transport honors command deadlines for delayed headers and bodie
     if (request.url === '/delayed-headers') {
       await delay(80);
       response.end(JSON.stringify({ value: { sessionId: 'fixture-session' } }));
+    } else if (request.url === '/wda-status') {
+      response.end(JSON.stringify({ sessionId: 'native-session', value: { ready: true } }));
     } else if (request.url === '/delayed-body') {
       response.writeHead(200, { 'content-type': 'application/json' });
       response.write('{"value":');
@@ -177,6 +179,14 @@ test('WebDriver transport honors command deadlines for delayed headers and bodie
         timeout: 1000,
       }),
       { sessionId: 'fixture-session' },
+    );
+    assert.deepEqual(
+      await requestWebDriver(`${base}/wda-status`, {
+        method: 'GET',
+        timeout: 1000,
+        envelope: true,
+      }),
+      { sessionId: 'native-session', value: { ready: true } },
     );
     for (const path of ['/delayed-headers', '/delayed-body']) {
       await assert.rejects(
