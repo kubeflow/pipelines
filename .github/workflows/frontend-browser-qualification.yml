@@ -181,9 +181,9 @@ jobs:
           - mode: desktop
             runner: macos-26
           - mode: iphone
-            runner: macos-26-intel
+            runner: macos-26
           - mode: ipad
-            runner: macos-26-intel
+            runner: macos-26
     defaults:
       run:
         shell: bash
