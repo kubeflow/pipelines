@@ -87,9 +87,16 @@ class FakeCommandsTestCase(unittest.TestCase):
 
 class ProducerLookupRecoveryTest(FakeCommandsTestCase):
 
-    def run_lookup(self, artifacts, fail_api=False):
+    def run_lookup(self,
+                   artifacts,
+                   fail_api=False,
+                   queue_runs=None,
+                   fail_queue_api=False):
         payload = self.directory / 'artifacts.json'
         payload.write_text(json.dumps({'artifacts': artifacts}))
+        queue_payload = self.directory / 'queue-runs.json'
+        queue_payload.write_text(
+            json.dumps({'workflow_runs': queue_runs or []}))
         github_output = self.directory / 'github-output'
         github_output.touch()
         gh_log = self.directory / 'gh.log'
@@ -97,7 +104,12 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
             'gh', '#!/usr/bin/env bash\n'
             'printf \'%s\\n\' "$*" >> "$GH_LOG"\n'
             '[[ "$FAIL_API" == "true" ]] && exit 1\n'
-            'cat "$ARTIFACT_PAYLOAD"\n')
+            'if [[ "$*" == *"/workflows/runtime-base-images-merge-group.yml/runs"* ]]; then\n'
+            '  [[ "$FAIL_QUEUE_API" == "true" ]] && exit 1\n'
+            '  cat "$QUEUE_PAYLOAD"\n'
+            'else\n'
+            '  cat "$ARTIFACT_PAYLOAD"\n'
+            'fi\n')
         lookup = textwrap.dedent(
             consumer_step('Find runtime base image producer').split(
                 '        run: |\n', 1)[1])
@@ -120,6 +132,12 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
                     'kubeflow/pipelines',
                 'SOURCE_SHA':
                     SOURCE_SHA,
+                'REQUIRE_SOURCE_SHA':
+                    str(queue_runs is not None).lower(),
+                'QUEUE_PAYLOAD':
+                    str(queue_payload),
+                'FAIL_QUEUE_API':
+                    str(fail_queue_api).lower(),
             },
             capture_output=True,
             text=True,
@@ -165,6 +183,59 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
 
     def test_artifact_api_failure_does_not_block_local_generation(self):
         self.assert_bounded_miss([], fail_api=True)
+
+    def test_exact_queue_producer_returns_without_waiting(self):
+        candidate, run = self.queue_producer()
+        result, output, requests = self.run_lookup([candidate],
+                                                   queue_runs=[run])
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output, 'run-id=10\n')
+        self.assertEqual(len(requests), 2)
+        self.assertIn('head_sha=current-source-sha', requests[1])
+        self.assertIn('event=merge_group', requests[1])
+        self.assertEqual(self.sleeps(), [])
+
+    def test_queue_mismatch_rebuilds_instead_of_using_master(self):
+        result, output, requests = self.run_lookup([producer_artifact()],
+                                                   queue_runs=[])
+        self.assert_queue_fallback(result, output, requests)
+
+    def test_queue_provenance_api_failure_rebuilds(self):
+        candidate, run = self.queue_producer()
+        result, output, requests = self.run_lookup([candidate],
+                                                   queue_runs=[run],
+                                                   fail_queue_api=True)
+        self.assert_queue_fallback(result, output, requests)
+
+    def assert_queue_fallback(self, result, output, requests):
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output, '')
+        self.assertEqual(len(requests), 6)
+        self.assertEqual(self.sleeps(), ['10', '10'])
+        self.assertIn('building from this checkout', result.stdout)
+
+    def queue_producer(self):
+        candidate = producer_artifact()
+        branch = 'gh-readonly-queue/release-2.18/pr-123'
+        candidate['workflow_run'].update(
+            head_sha=SOURCE_SHA, head_branch=branch)
+        run = {
+            'id': 10,
+            'path': '.github/workflows/runtime-base-images-merge-group.yml',
+            'event': 'merge_group',
+            'head_sha': SOURCE_SHA,
+            'head_branch': branch,
+            'status': 'completed',
+            'conclusion': 'success',
+            'repository': {
+                'id': 1
+            },
+            'head_repository': {
+                'id': 1
+            },
+        }
+        return candidate, run
 
     def assert_bounded_miss(self, artifacts, fail_api=False):
         result, output, requests = self.run_lookup(artifacts, fail_api)
