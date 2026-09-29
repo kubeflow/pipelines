@@ -49,6 +49,14 @@ export function selectSimulator(inventory, config) {
   return { runtime, deviceType };
 }
 
+export function mobileSafariAppPath(runtime) {
+  assert.ok(
+    runtime.runtimeRoot && isAbsolute(runtime.runtimeRoot),
+    'Selected simulator runtime root is unavailable',
+  );
+  return join(runtime.runtimeRoot, 'Applications', 'MobileSafari.app');
+}
+
 async function main() {
   // Refuse before creating files, running Apple tools, or installing automation dependencies.
   requireHostedAppleRunner();
@@ -228,13 +236,14 @@ async function main() {
         'simulator-ready',
         180_000,
       );
-      const mobileSafariApp = await run(
-        '/usr/bin/xcrun',
-        ['simctl', 'get_app_container', simulator, 'com.apple.mobilesafari', 'app'],
-        'mobile-safari-app',
-      );
-      assert.ok(isAbsolute(mobileSafariApp), 'Mobile Safari application path is unavailable');
-      report.mobileSafari = { app: mobileSafariApp };
+      // System Safari belongs to the exact runtime used to create this simulator.
+      // Reading its immutable bundle avoids a booted LaunchServices lookup, which
+      // can stall even after simctl bootstatus has reported successful startup.
+      const mobileSafariApp = mobileSafariAppPath(selected.runtime);
+      report.mobileSafari = {
+        app: mobileSafariApp,
+        identitySource: 'selected simulator runtime bundle',
+      };
       for (const [field, key] of [
         ['version', 'CFBundleShortVersionString'],
         ['buildVersion', 'CFBundleVersion'],
@@ -290,8 +299,12 @@ async function main() {
         'appium:platformVersion': config.platformVersion,
         'appium:deviceName': config.deviceType,
         'appium:derivedDataPath': join(work, 'wda-derived-data'),
+        // Reuse the booted simulator without Appium restarting it to show its UI.
+        'appium:isHeadless': true,
+        'appium:showXcodeLog': true,
         'appium:simulatorStartupTimeout': 180000,
         'appium:wdaLaunchTimeout': 180000,
+        'appium:wdaStartupRetries': 1,
         'appium:newCommandTimeout': 120,
         'appium:nativeWebTap': true,
         'appium:screenshotQuality': 0,

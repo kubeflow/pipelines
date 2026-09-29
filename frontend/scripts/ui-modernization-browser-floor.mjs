@@ -75,7 +75,7 @@ async function command(method, path, body) {
     method,
     headers: body ? { 'content-type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(mobile && path === '/session' ? 300000 : 40000),
+    signal: AbortSignal.timeout(mobile && path === '/session' ? 600000 : 40000),
   });
   const data = await response.json();
   if (!response.ok || data.value?.error) {

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   appleQualification,
+  mobileSafariAppPath,
   requireHostedAppleRunner,
   selectSimulator,
 } from './run-apple-qualification.mjs';
@@ -88,4 +89,19 @@ test('simulator selection requires exact available iOS runtime and device family
     () => selectSimulator({ ...inventory, devicetypes: [] }, appleQualification.ipad),
     /device type iPad/,
   );
+});
+
+test('Mobile Safari identity comes from the selected runtime without a booted app lookup', () => {
+  const runtimeRoot =
+    '/Library/Developer/CoreSimulator/Volumes/iOS_23F77/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.5.simruntime/Contents/Resources/RuntimeRoot';
+  assert.equal(
+    mobileSafariAppPath({ runtimeRoot }),
+    `${runtimeRoot}/Applications/MobileSafari.app`,
+  );
+  for (const invalid of [undefined, '', 'relative/runtime']) {
+    assert.throws(
+      () => mobileSafariAppPath({ runtimeRoot: invalid }),
+      /Selected simulator runtime root is unavailable/,
+    );
+  }
 });
