@@ -173,7 +173,7 @@ jobs:
     name: Apple / ${{ matrix.mode }}
     needs: build
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
+    timeout-minutes: ${{ matrix.mode == 'desktop' && 35 || 45 }}
     strategy:
       fail-fast: false
       matrix:

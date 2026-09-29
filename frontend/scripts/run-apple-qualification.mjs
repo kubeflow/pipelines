@@ -10,7 +10,8 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -88,6 +89,50 @@ export function mobileSafariAppPath(runtime) {
     'Selected simulator runtime root is unavailable',
   );
   return join(runtime.runtimeRoot, 'Applications', 'MobileSafari.app');
+}
+
+// Resolve the driver's own WDA dependency, including npm's nested/hoisted layouts.
+export async function resolveWdaPackage(xcuitestPackagePath) {
+  const packagePath = createRequire(xcuitestPackagePath).resolve(
+    'appium-webdriveragent/package.json',
+  );
+  const packageBytes = await readFile(packagePath);
+  const metadata = JSON.parse(packageBytes);
+  assert.equal(metadata.name, 'appium-webdriveragent');
+  assert.ok(typeof metadata.version === 'string' && metadata.version, 'WDA version is unavailable');
+  const root = dirname(packagePath);
+  const projectPath = join(root, 'WebDriverAgent.xcodeproj');
+  assert.ok((await stat(projectPath)).isDirectory(), 'WDA Xcode project is unavailable');
+  return {
+    version: metadata.version,
+    root,
+    packagePath,
+    packageSha256: createHash('sha256').update(packageBytes).digest('hex'),
+    projectPath,
+  };
+}
+
+export async function inspectWdaBuild(derivedDataPath) {
+  const products = join(derivedDataPath, 'Build', 'Products');
+  const testRuns = (await readdir(products, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.xctestrun'))
+    .map((entry) => join(products, entry.name))
+    .sort();
+  assert.ok(testRuns.length, 'WDA build produced no .xctestrun file');
+  const runnerApp = join(products, 'Debug-iphonesimulator', 'WebDriverAgentRunner-Runner.app');
+  assert.ok((await stat(runnerApp)).isDirectory(), 'WDA runner app is unavailable');
+  const files = [];
+  for (const path of [
+    ...testRuns,
+    join(runnerApp, 'Info.plist'),
+    join(runnerApp, 'WebDriverAgentRunner-Runner'),
+    join(runnerApp, 'PlugIns', 'WebDriverAgentRunner.xctest', 'WebDriverAgentRunner'),
+  ]) {
+    const bytes = await readFile(path);
+    assert.ok(bytes.length, `WDA build output is empty: ${path}`);
+    files.push({ path, sha256: createHash('sha256').update(bytes).digest('hex') });
+  }
+  return { runnerApp, testRuns, files };
 }
 
 // A child may exit while an Apple service still holds its inherited stdout/stderr.
@@ -398,6 +443,47 @@ async function main() {
         [appium, 'driver', 'list', '--installed', '--json'],
         'appium-drivers',
       );
+      // Compile before session startup: cold builds must not consume WDA's
+      // readiness polling budget. Appium then runs only test-without-building.
+      // https://appium.github.io/appium-xcuitest-driver/latest/guides/run-prebuilt-wda/
+      const derivedDataPath = join(work, 'wda-derived-data');
+      report.wdaBuild = {
+        ...(await resolveWdaPackage(
+          join(env.APPIUM_HOME, 'node_modules/appium-xcuitest-driver/package.json'),
+        )),
+        derivedDataPath,
+        simulator,
+        timeoutMs: 480_000,
+        status: 'building',
+      };
+      report.installedTools.webdriveragent = report.wdaBuild.version;
+      try {
+        await run(
+          '/usr/bin/xcodebuild',
+          [
+            'build-for-testing',
+            '-project',
+            report.wdaBuild.projectPath,
+            '-scheme',
+            'WebDriverAgentRunner',
+            '-derivedDataPath',
+            derivedDataPath,
+            '-destination',
+            `id=${simulator}`,
+            `IPHONEOS_DEPLOYMENT_TARGET=${config.platformVersion}`,
+            'GCC_TREAT_WARNINGS_AS_ERRORS=0',
+            'COMPILER_INDEX_STORE_ENABLE=NO',
+            'CODE_SIGNING_ALLOWED=NO',
+          ],
+          'build-wda',
+          report.wdaBuild.timeoutMs,
+        );
+        report.wdaBuild.outputs = await inspectWdaBuild(derivedDataPath);
+        report.wdaBuild.status = 'passed';
+      } catch (error) {
+        report.wdaBuild.status = 'failed';
+        throw error;
+      }
       const driver = start(
         process.execPath,
         [appium, '--address', '127.0.0.1', '--port', '4444', '--log-timestamp'],
@@ -411,7 +497,8 @@ async function main() {
         'appium:udid': simulator,
         'appium:platformVersion': config.platformVersion,
         'appium:deviceName': config.deviceType,
-        'appium:derivedDataPath': join(work, 'wda-derived-data'),
+        'appium:derivedDataPath': derivedDataPath,
+        'appium:usePrebuiltWDA': true,
         // Reuse the booted simulator without Appium restarting it to show its UI.
         'appium:isHeadless': true,
         'appium:showXcodeLog': true,

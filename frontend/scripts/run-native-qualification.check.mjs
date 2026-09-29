@@ -15,6 +15,10 @@ import { requestWebDriver } from './ui-modernization-native-http.mjs';
 import {
   clickNativeSafariLink,
   inspectMobileTarget,
+  planMobileGraphPan,
+  panNativeSafariGraph,
+  nativeSafariGraphSelector,
+  scrollMobileTargetIntoView,
   nativeSafariLinkSelector,
   prepareNativeSafariTap,
   safariKeyboardDoneSelector,
@@ -593,3 +597,145 @@ test('mobile target readiness rejects offscreen and occluded targets, including 
     dom.window.close();
   }
 });
+
+test('mobile graph placement scrolls the canvas, preserving hidden viewport and pane offsets', () => {
+  const dom = new JSDOM(
+    '<main><div class="react-flow" style="overflow:hidden"><div class="react-flow__viewport" style="overflow:hidden"><button>Task</button></div></div><input></main>',
+  );
+  try {
+    const { document } = dom.window;
+    const canvas = document.querySelector('.react-flow');
+    const pane = document.querySelector('.react-flow__viewport');
+    const node = document.querySelector('button');
+    const input = document.querySelector('input');
+    canvas.scrollTop = 7;
+    canvas.scrollLeft = 9;
+    pane.scrollTop = 13;
+    pane.scrollLeft = 17;
+    let anchor;
+    canvas.scrollIntoView = () => {
+      anchor = canvas;
+    };
+    input.scrollIntoView = () => {
+      anchor = input;
+    };
+    node.scrollIntoView = () => {
+      canvas.scrollTop = 100;
+      pane.scrollLeft = 200;
+      assert.fail('Node scrolling changes hidden graph ancestors');
+    };
+    const result = scrollMobileTargetIntoView(node);
+    assert.equal(anchor, canvas);
+    assert.deepEqual(result.canvasScrollBefore, { top: 7, left: 9 });
+    assert.deepEqual(result.canvasScrollAfter, result.canvasScrollBefore);
+    assert.equal(pane.scrollTop, 13);
+    assert.equal(pane.scrollLeft, 17);
+    assert.equal(scrollMobileTargetIntoView(input).anchor, 'target');
+    assert.equal(anchor, input);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('graph pan planning uses empty pane and bounded visible coordinates for a clipped node', () => {
+  const dom = new JSDOM(
+    '<div class="react-flow"><div class="react-flow__pane"><div class="react-flow__node"><button>Task</button></div></div></div>',
+  );
+  try {
+    const { document } = dom.window;
+    const canvas = document.querySelector('.react-flow');
+    const pane = document.querySelector('.react-flow__pane');
+    const target = document.querySelector('button');
+    canvas.getBoundingClientRect = () => ({
+      x: 80,
+      y: 200,
+      width: 306,
+      height: 336,
+      right: 386,
+      bottom: 536,
+    });
+    const geometry = {
+      center: { x: 63, y: 230 },
+      viewport: { left: 70, top: 45, width: 326, height: 580 },
+    };
+    document.elementFromPoint = () => pane;
+    const plan = planMobileGraphPan(target, geometry);
+    assert.ok(plan, 'observed left-clipped node requires a native pan');
+    assert.ok(plan.to.x > plan.from.x);
+    for (const point of [plan.from, plan.to]) {
+      assert.ok(point.x >= plan.bounds.left && point.x <= plan.bounds.right);
+      assert.ok(point.y >= plan.bounds.top && point.y <= plan.bounds.bottom);
+    }
+    document.elementFromPoint = () => target;
+    assert.equal(planMobileGraphPan(target, geometry), null, 'never initiate a node drag');
+    document.elementFromPoint = () => pane;
+    assert.equal(
+      planMobileGraphPan(target, { ...geometry, center: { x: 230, y: 360 } }),
+      null,
+      'do not pan a target already inside the canvas when another overlay occludes it',
+    );
+    assert.equal(planMobileGraphPan(canvas, geometry), null, 'pan only graph-node targets');
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('native graph pan maps measured canvas rectangles, sends native drag, and restores context', async () => {
+  const calls = [];
+  const evidence = [];
+  const command = async (method, path, body) => {
+    calls.push({ method, path, body });
+    if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_7';
+    if (path.endsWith('/elements')) return [{ 'element-6066-11e4-a52e-4f735466cecf': 'canvas' }];
+    if (path.endsWith('/rect')) return { x: 99, y: 464, width: 376, height: 415 };
+    return null;
+  };
+  const plan = {
+    canvas: { x: 80, y: 200, width: 306, height: 336 },
+    from: { x: 150, y: 280 },
+    to: { x: 250, y: 330 },
+  };
+  await panNativeSafariGraph(command, 'fixture', plan, evidence);
+  const drag = calls.find(({ body }) => body?.script === 'mobile: dragFromToForDuration');
+  assert.ok(drag);
+  assert.equal(drag.body.args[0].duration, 0.5);
+  assert.equal(drag.body.args[0].fromX, 99 + 70 * (376 / 306));
+  assert.equal(drag.body.args[0].toY, 464 + 130 * (415 / 336));
+  assert.equal(
+    calls.find(({ path }) => path.endsWith('/elements')).body.value,
+    nativeSafariGraphSelector,
+  );
+  assert.deepEqual(calls.at(-1).body, { name: 'WEBVIEW_7' });
+  assert.equal(evidence[0].status, 'passed');
+});
+
+for (const failureMode of ['ambiguous', 'distorted', 'outside', 'driver']) {
+  test(`native graph pan fails closed and restores context for ${failureMode}`, async () => {
+    const calls = [];
+    const evidence = [];
+    const command = async (method, path, body) => {
+      calls.push({ method, path, body });
+      if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_7';
+      if (path.endsWith('/elements'))
+        return Array.from({ length: failureMode === 'ambiguous' ? 2 : 1 }, () => ({
+          'element-6066-11e4-a52e-4f735466cecf': 'canvas',
+        }));
+      if (path.endsWith('/rect'))
+        return { x: 99, y: 100, width: 300, height: failureMode === 'distorted' ? 100 : 300 };
+      if (body?.script === 'mobile: dragFromToForDuration') throw new Error('native drag failed');
+      return null;
+    };
+    const plan = {
+      canvas: { x: 0, y: 0, width: 300, height: 300 },
+      from: { x: 50, y: 50 },
+      to: { x: failureMode === 'outside' ? 500 : 100, y: 100 },
+    };
+    await assert.rejects(panNativeSafariGraph(command, 'fixture', plan, evidence));
+    assert.deepEqual(calls.at(-1).body, { name: 'WEBVIEW_7' });
+    assert.equal(evidence[0].status, 'failed');
+    assert.equal(
+      calls.some(({ body }) => body?.script === 'mobile: dragFromToForDuration'),
+      failureMode === 'driver',
+    );
+  });
+}

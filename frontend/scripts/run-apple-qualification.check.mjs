@@ -9,10 +9,16 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
 import {
   appleQualification,
   configureDesktopTextInput,
   mobileSafariAppPath,
+  resolveWdaPackage,
+  inspectWdaBuild,
   observeAppleCommand,
   stopOwnedAppleChild,
   requireHostedAppleRunner,
@@ -198,4 +204,74 @@ test('native text-input configuration rejects local mutation and checks every pr
     configureDesktopTextInput(async () => '1', hosted, 'darwin'),
     /preference .* was not disabled/,
   );
+});
+
+test('WDA resolution follows the installed driver dependency rather than an unrelated package', async () => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'kfp-wda-package-')));
+  try {
+    const driver = join(root, 'node_modules', 'appium-xcuitest-driver');
+    const nested = join(driver, 'node_modules', 'appium-webdriveragent');
+    const hoisted = join(root, 'node_modules', 'appium-webdriveragent');
+    for (const [folder, version] of [
+      [nested, '16.12.11'],
+      [hoisted, '99.0.0'],
+    ]) {
+      await mkdir(join(folder, 'WebDriverAgent.xcodeproj'), { recursive: true });
+      await writeFile(
+        join(folder, 'package.json'),
+        JSON.stringify({
+          name: 'appium-webdriveragent',
+          version,
+          exports: { './package.json': './package.json' },
+        }),
+      );
+    }
+    await writeFile(join(driver, 'package.json'), '{"name":"appium-xcuitest-driver"}');
+    const resolved = await resolveWdaPackage(join(driver, 'package.json'));
+    assert.equal(resolved.root, nested);
+    assert.equal(resolved.version, '16.12.11');
+    assert.equal(resolved.projectPath, join(nested, 'WebDriverAgent.xcodeproj'));
+    assert.match(resolved.packageSha256, /^[a-f0-9]{64}$/);
+    const otherDriver = join(root, 'node_modules', 'other-driver');
+    await mkdir(otherDriver);
+    await writeFile(join(otherDriver, 'package.json'), '{}');
+    assert.equal((await resolveWdaPackage(join(otherDriver, 'package.json'))).root, hoisted);
+    await rm(join(nested, 'WebDriverAgent.xcodeproj'), { recursive: true });
+    await assert.rejects(resolveWdaPackage(join(driver, 'package.json')), /ENOENT/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('WDA output inspection rejects incomplete builds and records completed build identities', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'kfp-wda-products-'));
+  try {
+    const products = join(root, 'Build', 'Products');
+    await mkdir(products, { recursive: true });
+    await assert.rejects(inspectWdaBuild(root), /no .xctestrun file/);
+    const testRun = join(products, 'WebDriverAgentRunner_iphonesimulator26.5-x86_64.xctestrun');
+    await writeFile(testRun, 'fixture test manifest');
+    await assert.rejects(inspectWdaBuild(root), /ENOENT/);
+    const runnerApp = join(products, 'Debug-iphonesimulator', 'WebDriverAgentRunner-Runner.app');
+    await mkdir(runnerApp, { recursive: true });
+    await writeFile(join(runnerApp, 'Info.plist'), 'fixture bundle identity');
+    await assert.rejects(inspectWdaBuild(root), /ENOENT/);
+    await writeFile(join(runnerApp, 'WebDriverAgentRunner-Runner'), 'fixture executable');
+    await assert.rejects(inspectWdaBuild(root), /ENOENT/);
+    const plugin = join(runnerApp, 'PlugIns', 'WebDriverAgentRunner.xctest');
+    await mkdir(plugin, { recursive: true });
+    await writeFile(join(plugin, 'WebDriverAgentRunner'), 'fixture WDA test executable');
+    const result = await inspectWdaBuild(root);
+    assert.deepEqual(result.testRuns, [testRun]);
+    assert.equal(result.runnerApp, runnerApp);
+    assert.equal(result.files.length, 4);
+    assert.equal(
+      result.files[0].sha256,
+      createHash('sha256').update('fixture test manifest').digest('hex'),
+    );
+    await writeFile(join(runnerApp, 'WebDriverAgentRunner-Runner'), '');
+    await assert.rejects(inspectWdaBuild(root), /build output is empty/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

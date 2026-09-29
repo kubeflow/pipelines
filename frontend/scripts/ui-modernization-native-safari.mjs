@@ -161,6 +161,20 @@ export async function clickNativeSafariLink(command, session, name, evidence) {
   }
 }
 
+// React Flow owns its transformed, overflow-hidden viewport. Scrolling a node
+// itself also scrolls those hidden ancestors and can move it under graph chrome.
+export function scrollMobileTargetIntoView(element) {
+  const canvas = element.closest('.react-flow');
+  const anchor = canvas || element;
+  const before = canvas ? { left: canvas.scrollLeft, top: canvas.scrollTop } : null;
+  anchor.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+  return {
+    anchor: canvas ? 'react-flow canvas' : 'target',
+    canvasScrollBefore: before,
+    canvasScrollAfter: canvas ? { left: canvas.scrollLeft, top: canvas.scrollTop } : null,
+  };
+}
+
 // Geometry is measured in layout-viewport coordinates, including Safari's
 // visual-viewport offset after it zooms a focused input.
 export function inspectMobileTarget(element) {
@@ -195,4 +209,121 @@ export function inspectMobileTarget(element) {
     hitTarget,
     ready: inViewport && hitTarget && view.getComputedStyle(element).visibility === 'visible',
   };
+}
+
+// Only graph nodes clipped by the canvas/visual viewport need a pan. Start on a
+// hit-tested blank pane so this gesture cannot drag a node or press graph controls.
+export function planMobileGraphPan(element, geometry) {
+  if (!element.closest('.react-flow__node')) return null;
+  const canvas = element.closest('.react-flow');
+  if (!canvas) return null;
+  const box = canvas.getBoundingClientRect();
+  const viewport = geometry.viewport;
+  const bounds = {
+    left: Math.max(box.x, viewport.left) + 24,
+    top: Math.max(box.y, viewport.top) + 24,
+    right: Math.min(box.right, viewport.left + viewport.width) - 24,
+    bottom: Math.min(box.bottom, viewport.top + viewport.height) - 24,
+  };
+  const width = bounds.right - bounds.left;
+  const height = bounds.bottom - bounds.top;
+  if (width < 80 || height < 80) return null;
+  const center = geometry.center;
+  if (
+    center.x >= bounds.left &&
+    center.x <= bounds.right &&
+    center.y >= bounds.top &&
+    center.y <= bounds.bottom
+  )
+    return null;
+  const clamp = (value, limit) => Math.max(-limit, Math.min(limit, value));
+  const delta = {
+    x: clamp((bounds.left + bounds.right) / 2 - center.x, width * 0.4),
+    y: clamp((bounds.top + bounds.bottom) / 2 - center.y, height * 0.4),
+  };
+  const pane = canvas.querySelector('.react-flow__pane');
+  if (!pane) return null;
+  for (const fractionY of [0.5, 0.25, 0.75]) {
+    for (const fractionX of [0.5, 0.25, 0.75]) {
+      const from = { x: bounds.left + width * fractionX, y: bounds.top + height * fractionY };
+      const to = { x: from.x + delta.x, y: from.y + delta.y };
+      if (to.x < bounds.left || to.x > bounds.right || to.y < bounds.top || to.y > bounds.bottom)
+        continue;
+      if (element.ownerDocument.elementFromPoint(from.x, from.y) !== pane) continue;
+      return {
+        canvas: { x: box.x, y: box.y, width: box.width, height: box.height },
+        bounds,
+        targetCenter: center,
+        from,
+        to,
+      };
+    }
+  }
+  return null;
+}
+
+export const nativeSafariGraphSelector =
+  '//XCUIElementTypeWebView//XCUIElementTypeOther[@name="Pipeline graph, web application" and @visible="true"]';
+
+export async function panNativeSafariGraph(command, session, plan, evidence) {
+  const path = `/session/${session}`;
+  const context = await command('GET', `${path}/context`);
+  assert.match(context, /^WEBVIEW_/, 'Native graph pan requires a selected web context');
+  const entry = { startedAt: new Date().toISOString(), plan };
+  evidence.push(entry);
+  let failure;
+  try {
+    await command('POST', `${path}/context`, { name: 'NATIVE_APP' });
+    const canvases = await command('POST', `${path}/elements`, {
+      using: 'xpath',
+      value: nativeSafariGraphSelector,
+    });
+    assert.equal(canvases.length, 1, 'Native graph pan needs exactly one visible canvas');
+    const rect = await command('GET', `${path}/element/${canvases[0][elementKey]}/rect`);
+    entry.nativeCanvas = rect;
+    const scaleX = rect.width / plan.canvas.width;
+    const scaleY = rect.height / plan.canvas.height;
+    assert.ok(Number.isFinite(scaleX) && scaleX > 0 && Number.isFinite(scaleY) && scaleY > 0);
+    assert.ok(
+      Math.abs(scaleX / scaleY - 1) < 0.05,
+      'Native and DOM graph rects must share an isotropic scale',
+    );
+    const nativePoint = (point) => ({
+      x: rect.x + (point.x - plan.canvas.x) * scaleX,
+      y: rect.y + (point.y - plan.canvas.y) * scaleY,
+    });
+    const from = nativePoint(plan.from);
+    const to = nativePoint(plan.to);
+    entry.from = from;
+    entry.to = to;
+    for (const point of [from, to]) {
+      assert.ok(
+        Number.isFinite(point.x) &&
+          Number.isFinite(point.y) &&
+          point.x > rect.x &&
+          point.x < rect.x + rect.width &&
+          point.y > rect.y &&
+          point.y < rect.y + rect.height,
+        'Native graph drag must stay inside its canvas',
+      );
+    }
+    await command('POST', `${path}/execute/sync`, {
+      script: 'mobile: dragFromToForDuration',
+      args: [{ duration: 0.5, fromX: from.x, fromY: from.y, toX: to.x, toY: to.y }],
+    });
+    entry.status = 'passed';
+  } catch (error) {
+    failure = error;
+    entry.status = 'failed';
+    entry.error = String(error);
+    throw error;
+  } finally {
+    try {
+      await command('POST', `${path}/context`, { name: context });
+    } catch (error) {
+      entry.status = 'failed';
+      entry.restoreError = String(error);
+      if (!failure) throw error;
+    }
+  }
 }

@@ -55,7 +55,11 @@ fails the lane instead of silently substituting a different version.
 | iPad (A16) simulator        | iPadOS/Safari 26.5 | 12 native checks    | Simulator coverage; not latest policy patch               |
 
 All lanes use standard `macos-26` ARM64 runners. Simulator OS initialization has
-a separate five-minute deadline; the native UI checks retain their own bounded
+a separate five-minute deadline. Simulator jobs then build WebDriverAgent in a
+separate eight-minute phase before Appium session startup, record its resolved
+package version and output hashes, and require the generated test manifest, runner
+app and test executable before reuse. Mobile jobs have a 45-minute outer limit;
+desktop Safari retains 35 minutes. Native UI checks retain their own bounded
 command and suite deadlines.
 Apple automation uses Xcode 26.6 and pins Appium 3.8.0/XCUITest 12.13.3 for simulators. It records Safari bundle builds and simulator
 runtime builds as well as marketing versions. The current Chrome vendor URL is
@@ -84,7 +88,10 @@ palette, focus, themes and responsive behavior. Desktop checks exercise keyboard
 controls; simulator checks use native page taps and WebDriver text-entry commands.
 iOS WebDriver text entry uses Appium's WebKit typing atom and does not establish
 physical-keyboard or IME behavior. Reports identify the interactions exercised on
-each platform.
+each platform. The read-only YAML check compares the complete existing Ace
+document and read-only setting before and after native keyboard input on desktop
+and theme changes on all platforms; virtualized visible lines are not a stable
+proxy for document contents.
 
 Desktop Safari CI configures macOS inline predictions and automatic spelling
 correction off before browser launch and records each preference readback.
@@ -123,38 +130,27 @@ ten rows only. Desktop Safari retained exact experiment name and description
 values; its bounded input trace recorded no composition deletion or application
 value reset. Prediction, autocorrection and IME behavior remain unqualified.
 
-Both mobile simulator lanes remain open. In this run, iPad completed simulator
-boot and driver installation but Appium became ready about five seconds after its
-60-second startup deadline. iPhone needed Safari's native form-toolbar Done
-control, outside the keyboard subtree searched by generic dismissal.
+Both mobile simulator lanes remain open. The latest
+[run 36604957937](https://github.com/kubeflow/pipelines/actions/runs/36604957937)
+at `fd3c43f08bce6ea6d2c8a7c85de92d0917f8af7a` verified all nine vendor lanes
+(288 checks) and 35 helper tests. Desktop Safari exposed a brittle comparison of
+Ace's virtualized visible lines after focus; the assertion now uses its complete
+document model. iPhone reached Run Details, then target scrolling moved a graph
+node beneath graph controls. Placement now scrolls the containing canvas while
+preserving internal offsets. If a node is cropped at minimum zoom, at most two
+native pans start on verified empty canvas space and must move it toward the
+visible area. Final viewport and hit-test checks remain required. iPad's cold
+WebDriverAgent compilation succeeded but consumed driver startup time; the
+separate build phase above addresses that setup boundary. These corrections need
+hosted verification; partial or failed lanes do not count as qualified.
 
-The follow-up [run 36597138873](https://github.com/kubeflow/pipelines/actions/runs/36597138873)
-at `06ddaffdf2eb31a1bbe1dff163f14219df744765` repeated all ten desktop passes.
-iPhone's first attempt timed out during simulator inventory; its same-commit retry
-verified native Done dismissal, then exposed an Appium tap-coordinate defect under
-Safari input zoom. The driver found both the link and its text child, fell back to
-[coordinate conversion](https://github.com/appium/appium-xcuitest-driver/blob/v12.13.3/lib/commands/web-native-bridge.ts#L376),
-and dropped fitted zoom ratios, tapping the filter instead of the run link. The correction uses the uniquely identified native link and
-retains route/task assertions. iPad's first page command stalled while browser
-chrome showed a separate Start Page prompt and address keyboard. Native preparation
-now precedes initial page readiness and handles both observed prompts. These
-corrections still require hosted verification; failed or partial lanes are not
-counted as qualified.
-
-[Run 36602247564](https://github.com/kubeflow/pipelines/actions/runs/36602247564)
-at `630a32eedef50c776a61c6593ecf2218801c231d` again verified the ten desktop lanes.
-iPhone's native link reached Run Details; its next graph-button tap targeted an
-offscreen element below Safari's toolbar. Mobile taps now prepare the target's
-scroll position and verify visibility before activation. iPad still showed address
-editing during Start Page dismissal, so preparation dismisses its keyboard before
-handling remaining prompts. Both simulator rows still need a complete passing run.
-
-The earlier [run 36591191778](https://github.com/kubeflow/pipelines/actions/runs/36591191778)
-at `a1285d25be576afab18e65893ddecea989e5c1a2` established that both ARM simulators
-could boot and create Safari sessions. Native tap calibration then failed while
-browser-owned chrome obscured the page. Desktop traces identified trusted native
-composition deletions after React had retained typed text. Subsequent corrections
-targeted browser setup and interaction preparation without weakening application
+Native Safari preparation dismisses the keyboard through its browser-owned form
+toolbar, then closes recognized first-launch prompts before page readiness or
+taps. Run-link navigation uses a uniquely identified native accessibility link:
+XCUITest 12.13.3 can match both a link and its text child and fall back to
+[incorrect coordinate conversion under Safari input zoom](https://github.com/appium/appium-xcuitest-driver/blob/v12.13.3/lib/commands/web-native-bridge.ts#L376).
+Native activation, route/task assertions and recorded viewport hit tests remain
+required. Browser setup and interaction preparation do not relax application
 assertions.
 
 Earlier attempts retained evidence of vendor-version drift, native input timing

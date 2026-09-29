@@ -562,11 +562,23 @@ test('pipeline details preserve encoded IDs, rendered IR, version switching and 
       await editor.evaluate((element) => getComputedStyle(element).fontFamily),
       /JetBrains Mono/,
     );
-    const beforeTyping = await editor.locator('.ace_content').textContent();
+    // Focus can scroll Ace's virtualized lines; compare its complete model.
+    const readEditor = (element) => {
+      const instance = element.env?.editor;
+      if (!instance) throw new Error('The rendered pipeline spec has no initialized Ace editor');
+      return { value: instance.getValue(), readOnly: instance.getReadOnly() };
+    };
+    const beforeTyping = await editor.evaluate(readEditor);
+    assert.equal(beforeTyping.readOnly, true);
+    assert.ok(beforeTyping.value.includes('comp-preprocess'));
     await editor.locator('.ace_text-input').focus();
-    await page.keyboard.type('read-only-check');
     assert.equal(
-      await editor.locator('.ace_content').textContent(),
+      await editor.locator('.ace_text-input').evaluate((input) => document.activeElement === input),
+      true,
+    );
+    await page.keyboard.type('read-only-check');
+    assert.deepEqual(
+      await editor.evaluate(readEditor),
       beforeTyping,
       'pipeline specs remain read-only',
     );

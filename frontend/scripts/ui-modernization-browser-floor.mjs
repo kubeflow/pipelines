@@ -18,6 +18,9 @@ import { requestWebDriver } from './ui-modernization-native-http.mjs';
 import {
   clickNativeSafariLink,
   inspectMobileTarget,
+  planMobileGraphPan,
+  panNativeSafariGraph,
+  scrollMobileTargetIntoView,
   prepareNativeSafariTap,
 } from './ui-modernization-native-safari.mjs';
 
@@ -125,10 +128,30 @@ async function readyMobileTarget(element, label) {
   try {
     entry.before = await execute(inspectMobileTarget, element);
     // Viewport placement is setup; activation still uses a native WebDriver tap.
-    await execute(
-      (target) => target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' }),
-      element,
+    entry.placement = await execute(scrollMobileTargetIntoView, element);
+    assert.deepEqual(
+      entry.placement.canvasScrollAfter,
+      entry.placement.canvasScrollBefore,
+      'Viewport placement must preserve React Flow internal scroll offsets',
     );
+    entry.after = await execute(inspectMobileTarget, element);
+    for (let attempt = 0; attempt < 2 && !entry.after.ready; attempt++) {
+      const plan = await execute(planMobileGraphPan, element, entry.after);
+      if (!plan) break;
+      entry.pans ??= [];
+      const beforePan = entry.after;
+      await panNativeSafariGraph(command, session, plan, entry.pans);
+      entry.after = await execute(inspectMobileTarget, element);
+      entry.pans.at(-1).targetAfter = entry.after;
+      const actualX = entry.after.center.x - beforePan.center.x;
+      const actualY = entry.after.center.y - beforePan.center.y;
+      const plannedX = plan.to.x - plan.from.x;
+      const plannedY = plan.to.y - plan.from.y;
+      assert.ok(
+        actualX * plannedX + actualY * plannedY > 1,
+        'Native graph pan must move the node in the requested direction',
+      );
+    }
     const deadline = Date.now() + 20000;
     do {
       entry.after = await execute(inspectMobileTarget, element);
@@ -516,24 +539,40 @@ try {
             ?.textContent.includes('comp-preprocess'),
         'rendered pipeline spec',
       );
-      const before = await execute(
-        () => document.querySelector('.ace_editor .ace_content').textContent,
-      );
+      // Ace virtualizes rendered lines, so focus can change visible text without
+      // changing the document. Verify the complete existing editor model instead.
+      const readEditor = () => {
+        const editor = document.querySelector('[data-testid="spec-ir"] .ace_editor')?.env?.editor;
+        if (!editor) throw new Error('The rendered pipeline spec has no initialized Ace editor');
+        return { value: editor.getValue(), readOnly: editor.getReadOnly() };
+      };
+      const before = await execute(readEditor);
+      assert.equal(before.readOnly, true);
+      assert.ok(before.value.includes('comp-preprocess'));
       if (!mobile) {
         // Ace's read-only textarea rejects Element Send Keys in some native drivers.
         // Focus it, then exercise the same keyboard action a user would send.
-        await execute(() => document.querySelector('.ace_text-input').focus());
-        await key('x');
         assert.equal(
-          await execute(() => document.querySelector('.ace_editor .ace_content').textContent),
-          before,
+          await execute(() => {
+            const input = document.querySelector('[data-testid="spec-ir"] .ace_text-input');
+            input.focus();
+            return document.activeElement === input;
+          }),
+          true,
         );
+        await key('x');
+        assert.deepEqual(await execute(readEditor), before);
       }
       await screenshot('pipeline-spec-light');
       await theme('dark');
       await screenshot('pipeline-spec-dark');
       await theme('light');
-      return { renderedCharacters: before.length, readOnlyTypingChecked: !mobile };
+      assert.deepEqual(await execute(readEditor), before);
+      return {
+        modelCharacters: before.value.length,
+        readOnly: before.readOnly,
+        readOnlyTypingChecked: !mobile,
+      };
     },
   );
   await check('Pipeline import draft validates required fields and local-file choice', async () => {
