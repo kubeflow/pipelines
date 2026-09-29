@@ -45,3 +45,10 @@
   color: var(--status-failed);
   font-size: 12px;
 }
+
+/* Avoid Safari focus zoom while retaining user-controlled pinch zoom. */
+@media (pointer: coarse) {
+  .kfp-theme .kfp-text-field-textarea {
+    font-size: 16px;
+  }
+}

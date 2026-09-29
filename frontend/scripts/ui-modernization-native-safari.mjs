@@ -6,6 +6,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const elementKey = 'element-6066-11e4-a52e-4f735466cecf';
 const tipPredicate =
@@ -40,12 +41,18 @@ export const safariKeyboardDoneSelector =
   '[.//XCUIElementTypeButton[@name="Previous"] and .//XCUIElementTypeButton[@name="Next"]]' +
   '//XCUIElementTypeButton[@name="Done" and @visible="true" and @enabled="true"]';
 
+export const safariActiveAddressSelector =
+  '//XCUIElementTypeTextField[@label="Address" and starts-with(@name,"SearchFieldItemView?")]' +
+  '[contains(concat(@name,"&"),"?isActive=true&") or contains(concat(@name,"&"),"&isActive=true&")]' +
+  '[@visible="true" and @enabled="true" and not(ancestor::XCUIElementTypeWebView)]';
+
 // Safari's first-launch tip and keyboard are outside the web context. They can
 // intercept Appium's native calibration taps even when the page DOM is ready.
-export async function prepareNativeSafariTap(command, session, evidence, snapshot) {
+export async function prepareNativeSafariTap(command, session, evidence, snapshot, fixtureOrigin) {
   const path = `/session/${session}`;
   const context = await command('GET', `${path}/context`);
   assert.match(context, /^WEBVIEW_/, 'Native Safari preparation requires a selected web context');
+  const currentUrl = await command('GET', `${path}/url`);
   let failure;
   const entry = { startedAt: new Date().toISOString(), actions: [] };
   evidence.push(entry);
@@ -93,12 +100,64 @@ export async function prepareNativeSafariTap(command, session, evidence, snapsho
       );
       entry.actions.push(`dismissed Safari ${tip.name} tip through native accessibility`);
     }
+    const addresses = await command('POST', `${path}/elements`, {
+      using: 'xpath',
+      value: safariActiveAddressSelector,
+    });
+    assert.ok(addresses.length <= 1, 'Safari has ambiguous active browser Address fields');
+    if (addresses.length) {
+      const url = new URL(currentUrl);
+      assert.ok(
+        ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname),
+        'Safari address completion requires a loopback fixture URL',
+      );
+      assert.equal(url.protocol, 'http:', 'Safari address completion requires an HTTP fixture');
+      assert.equal(
+        url.origin,
+        fixtureOrigin,
+        'Safari address completion must preserve the configured fixture origin',
+      );
+      assert.ok(!url.username && !url.password, 'Safari fixture URL must not contain credentials');
+      entry.addressCompletion = {
+        url: currentUrl,
+        method: 'native Address clear/value and Return',
+      };
+      await snapshot(await command('GET', `${path}/source`), 'safari-address-edit');
+      const addressPath = `${path}/element/${addresses[0][elementKey]}`;
+      await command('POST', `${addressPath}/clear`, {});
+      // XCUITest 12.13.3 native setValue passes newline through to WDA Return.
+      await command('POST', `${addressPath}/value`, { text: `${currentUrl}\n` });
+      let active = addresses;
+      const deadline = Date.now() + 5000;
+      do {
+        active = await command('POST', `${path}/elements`, {
+          using: 'xpath',
+          value: safariActiveAddressSelector,
+        });
+        if (!active.length) break;
+        if (Date.now() >= deadline) break;
+        await delay(250);
+      } while (Date.now() < deadline);
+      assert.equal(active.length, 0, 'Safari address editor remained active after native Return');
+      await snapshot(await command('GET', `${path}/source`), 'safari-address-completed');
+      await command('POST', `${path}/context`, { name: context });
+      const actualUrl = await command('GET', `${path}/url`);
+      entry.addressCompletion.actualUrl = actualUrl;
+      assert.equal(
+        actualUrl,
+        currentUrl,
+        'Safari address completion changed the current fixture route',
+      );
+      entry.actions.push('completed active Safari Address through native typing and Return');
+    }
     entry.status = 'passed';
   } catch (error) {
     failure = error;
     entry.status = 'failed';
     entry.error = String(error);
     try {
+      // URL verification runs in web context; failure evidence must still be native XML.
+      await command('POST', `${path}/context`, { name: 'NATIVE_APP' });
       await snapshot(await command('GET', `${path}/source`), 'safari-preparation-failed');
     } catch (diagnosticError) {
       entry.diagnosticError = String(diagnosticError);

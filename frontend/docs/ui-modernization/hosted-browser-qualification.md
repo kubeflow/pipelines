@@ -4,10 +4,10 @@ Browser qualification runs in GitHub Actions. It requires no workstation browser
 installation, local Safari/Xcode setup, or manual test execution.
 
 The existing [Frontend Tests workflow](../../../.github/workflows/frontend.yml)
-passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36594507403)
+passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36609251657)
 across Chromium, Firefox and WebKit on Linux, Windows and macOS: 48 cases per lane,
-with no skipped cases. At PR head `6bf2852e62d57cc080a30fe846bc870f1b3c54ac`
-(tested merge `c37456c9f2190a892ed42d8b864f313a7ca327de`), audited TAP/JUnit and
+with no skipped cases. At PR head `c0611500e425c9341708267827b42ab70c8630bc`
+(tested merge `885e34a5e8989aa8275d03ac2cc52491b5b4156a`), audited TAP/JUnit and
 workflow reports agree on source identity and identical hashes for all 22 shared
 build files. This is engine coverage, separate from exact-version qualification.
 The same hosted source passes 1,760 UI tests and 1,103 server tests, formatting,
@@ -111,10 +111,10 @@ they do not by themselves establish visual equivalence.
 
 ## Hosted results
 
-[Run 36594507275](https://github.com/kubeflow/pipelines/actions/runs/36594507275)
+[Run 36609251534](https://github.com/kubeflow/pipelines/actions/runs/36609251534)
 verified all nine vendor/supplementary lanes and desktop Safari at PR head
-`6bf2852e62d57cc080a30fe846bc870f1b3c54ac`, tested merge
-`c37456c9f2190a892ed42d8b864f313a7ca327de`:
+`c0611500e425c9341708267827b42ab70c8630bc`, tested merge
+`885e34a5e8989aa8275d03ac2cc52491b5b4156a`:
 
 | Verified lanes                                      | Passing checks           |
 | --------------------------------------------------- | ------------------------ |
@@ -130,19 +130,23 @@ ten rows only. Desktop Safari retained exact experiment name and description
 values; its bounded input trace recorded no composition deletion or application
 value reset. Prediction, autocorrection and IME behavior remain unqualified.
 
-Both mobile simulator lanes remain open. The latest
-[run 36604957937](https://github.com/kubeflow/pipelines/actions/runs/36604957937)
-at `fd3c43f08bce6ea6d2c8a7c85de92d0917f8af7a` verified all nine vendor lanes
-(288 checks) and 35 helper tests. Desktop Safari exposed a brittle comparison of
-Ace's virtualized visible lines after focus; the assertion now uses its complete
-document model. iPhone reached Run Details, then target scrolling moved a graph
-node beneath graph controls. Placement now scrolls the containing canvas while
-preserving internal offsets. If a node is cropped at minimum zoom, at most two
-native pans start on verified empty canvas space and must move it toward the
-visible area. Final viewport and hit-test checks remain required. iPad's cold
-WebDriverAgent compilation succeeded but consumed driver startup time; the
-separate build phase above addresses that setup boundary. These corrections need
-hosted verification; partial or failed lanes do not count as qualified.
+Both mobile simulator lanes remain open. In the same run, both simulator jobs
+passed the separate WebDriverAgent build and session startup. iPhone filtering,
+native run-link navigation and a native graph pan reached the task inspector, but
+its Close control remained above the visible viewport. iPad dismissed the keyboard
+and first-launch tip, but an active Safari address-editing overlay still covered
+the page and blocked native text-entry calibration. These failures require
+correction and a complete passing run; partial checks do not qualify either lane.
+
+The follow-up addresses active address editing through a uniquely identified
+native Safari Address field, committing the exact current loopback fixture URL
+and requiring the editor to close without changing the route. Shared Input and
+TextField textarea controls use 16px text on coarse-pointer devices to prevent
+Safari focus zoom. The recorded iPhone scale change from 1 to 1.231343 matches
+[WebKit's focus-zoom calculation](https://github.com/WebKit/WebKit/blob/main/Source/WebKit/UIProcess/API/ios/WKWebViewIOS.mm#L1752-L1773)
+for a 13px field on a 402px viewport. A native regression now requires filtering
+to preserve scale. User-controlled zoom remains enabled; arbitrary pinch-zoom
+modal reachability remains a separate compatibility gap.
 
 Native Safari preparation dismisses the keyboard through its browser-owned form
 toolbar, then closes recognized first-launch prompts before page readiness or

@@ -73,7 +73,7 @@ const report = {
     : [],
   limitations: [
     'Native small fixtures; comparison has two runs but no parameters or scalar metrics.',
-    'Read-only fixtures cover navigation and unsubmitted form drafts, not cluster mutations, authorization, upload submission, or full 47-case Playwright suite parity.',
+    'Read-only fixtures cover navigation and unsubmitted form drafts, not cluster mutations, authorization, upload submission, or full 48-case Playwright suite parity.',
     'Page readiness and captured errors are checked; errors before initial Runs readiness are not observed, and this is not a complete network or console trace.',
   ],
 };
@@ -118,6 +118,7 @@ async function prepareMobileTap() {
       report.nativeSafariSources ??= [];
       report.nativeSafariSources.push({ path });
     },
+    base.origin,
   );
 }
 async function readyMobileTarget(element, label) {
@@ -436,13 +437,28 @@ try {
       [...names].sort(),
       ['Python two steps', 'Loops and conditions', 'v2-xgboost-ilbo', 'Various IO types'].sort(),
     );
+    const beforeInputScale = mobile ? await execute(() => window.visualViewport?.scale ?? 1) : null;
     await type('input[placeholder="Filter runs by name"]', 'xgboost');
     await wait(() => {
       const links = document.querySelectorAll('[data-testid="run-name-link"]');
       return links.length === 1 && links[0].textContent === 'v2-xgboost-ilbo';
     }, 'one matching run');
+    let afterInputScale = null;
+    if (mobile) {
+      await prepareMobileTap();
+      afterInputScale = await execute(() => window.visualViewport?.scale ?? 1);
+      assert.ok(
+        Math.abs(afterInputScale - beforeInputScale) < 0.01,
+        'Filtering must not automatically zoom the page and hide subsequent dialog controls',
+      );
+    }
     await screenshot('runs-filtered');
-    return { initialNames: names, filteredName: 'v2-xgboost-ilbo' };
+    return {
+      initialNames: names,
+      filteredName: 'v2-xgboost-ilbo',
+      beforeInputScale,
+      afterInputScale,
+    };
   });
   await check('Run Details graph and task inspection', async () => {
     const runSelector = `[data-testid="run-name-link"][data-run-id="${runId}"]`;

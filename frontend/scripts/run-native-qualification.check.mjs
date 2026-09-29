@@ -22,6 +22,7 @@ import {
   nativeSafariLinkSelector,
   prepareNativeSafariTap,
   safariKeyboardDoneSelector,
+  safariActiveAddressSelector,
   safariStartPageCloseSelector,
 } from './ui-modernization-native-safari.mjs';
 import { JSDOM } from 'jsdom';
@@ -208,19 +209,35 @@ function safariPreparationFixture({
   keyboardDismissesStartPage = false,
   dismissError,
   restoreError,
+  activeAddressCount = 0,
+  currentUrl = 'http://127.0.0.1:4174/#/runs/details/current?tab=graph',
+  actualUrl,
+  addressError,
 } = {}) {
   const calls = [];
   const evidence = [];
   const snapshots = [];
+  let addressCompleted = false;
   const element = (id) => ({ 'element-6066-11e4-a52e-4f735466cecf': id });
   const command = async (method, path, body) => {
     calls.push({ method, path, body });
+    if (method === 'GET' && path.endsWith('/url'))
+      return addressCompleted ? actualUrl || currentUrl : currentUrl;
     if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_1';
     if (method === 'POST' && path.endsWith('/context')) {
       if (body.name === 'WEBVIEW_1' && restoreError) throw restoreError;
       return null;
     }
     if (path.endsWith('/source')) return '<native-source />';
+    if (path.endsWith('/elements') && body.value === safariActiveAddressSelector)
+      return Array.from({ length: activeAddressCount }, (_, i) => element(`address-${i}`));
+    if (path.endsWith('/element/address-0/clear')) return null;
+    if (path.endsWith('/element/address-0/value')) {
+      if (addressError) throw addressError;
+      activeAddressCount = 0;
+      addressCompleted = true;
+      return null;
+    }
     if (path.endsWith('/elements') && body.value === safariKeyboardDoneSelector)
       return Array.from({ length: toolbarDoneCount }, (_, i) => element(`done-${i}`));
     if (path.endsWith('/elements') && body.using === 'xpath')
@@ -255,11 +272,102 @@ function safariPreparationFixture({
     evidence,
     snapshots,
     run: () =>
-      prepareNativeSafariTap(command, 'fixture', evidence, async (source, label) =>
-        snapshots.push({ source, label }),
+      prepareNativeSafariTap(
+        command,
+        'fixture',
+        evidence,
+        async (source, label) => snapshots.push({ source, label }),
+        'http://127.0.0.1:4174',
       ),
   };
 }
+
+test('Safari active Address selector matches captured iPad editor and excludes nested/page-owned fields', () => {
+  // Browser-owned address subtree from the eleventh hosted iPad failure.
+  const address = `<XCUIElementTypeTextField value="Search or enter website" name="SearchFieldItemView?isActive=true&amp;UUID=34D7ACB3-49A3-4D89-96E6-B85EDF67DE51&amp;isPinned=false&amp;isDistractionControlOverlayUp=false" label="Address" enabled="true" visible="true" accessible="true" x="230" y="32" width="360" height="44" placeholderValue="Search or enter website">
+  <XCUIElementTypeTextField value="‎127.0.0.1" name="TabBarItemTitleContainer" label="Address" enabled="true" visible="true" x="230" y="32" width="360" height="44" />
+  </XCUIElementTypeTextField>`;
+  const dom = new JSDOM(
+    `<AppiumAUT><XCUIElementTypeApplication name="Safari">
+    ${address}<XCUIElementTypeWebView>${address}</XCUIElementTypeWebView>
+    ${address.replace('isActive=true', 'isActive=false')}
+    ${address.replace('isActive=true', 'isActive=trueOther')}
+    ${address.replace('visible="true"', 'visible="false"')}
+    </XCUIElementTypeApplication></AppiumAUT>`,
+    { contentType: 'text/xml' },
+  );
+  try {
+    const { document, XPathResult } = dom.window;
+    const matches = document.evaluate(
+      safariActiveAddressSelector,
+      document,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null,
+    );
+    assert.equal(matches.snapshotLength, 1);
+    assert.equal(matches.snapshotItem(0).getAttribute('x'), '230');
+    assert.equal(matches.snapshotItem(0).getAttribute('y'), '32');
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('Safari completes only its active browser Address with the exact current fixture route and native Return', async () => {
+  const currentUrl = 'http://127.0.0.1:4174/prefix/?namespace=team#/runs/details/current';
+  const fixture = safariPreparationFixture({ activeAddressCount: 1, currentUrl });
+  await fixture.run();
+  const writes = fixture.calls.filter(({ path }) =>
+    /\/element\/address-0\/(clear|value)$/.test(path),
+  );
+  assert.equal(writes.length, 2);
+  assert.ok(writes[0].path.endsWith('/clear'));
+  assert.deepEqual(writes[1].body, { text: `${currentUrl}\n` });
+  assert.deepEqual(
+    fixture.snapshots.map(({ label }) => label),
+    ['safari-address-edit', 'safari-address-completed'],
+  );
+  assert.equal(fixture.evidence[0].addressCompletion.actualUrl, currentUrl);
+  assert.equal(fixture.evidence[0].status, 'passed');
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('Safari refuses ambiguous or non-fixture address completion before clearing or typing', async () => {
+  for (const options of [
+    { activeAddressCount: 2 },
+    { currentUrl: 'https://example.org/#/runs' },
+    { currentUrl: 'http://127.0.0.1:9999/#/runs' },
+    { currentUrl: 'https://127.0.0.1:4174/#/runs' },
+    { currentUrl: 'http://user:secret@127.0.0.1:4174/#/runs' },
+  ]) {
+    const fixture = safariPreparationFixture({ activeAddressCount: 1, ...options });
+    await assert.rejects(fixture.run(), /ambiguous|loopback|origin|HTTP|credentials/);
+    assert.equal(
+      fixture.calls.some(({ path }) => /\/(clear|value)$/.test(path)),
+      false,
+    );
+    assert.equal(fixture.snapshots.at(-1).label, 'safari-preparation-failed');
+    assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+  }
+});
+
+test('Safari address completion preserves native failures and rejects an unexpected resulting route', async () => {
+  const error = new Error('native address typing failed');
+  const broken = safariPreparationFixture({
+    activeAddressCount: 1,
+    addressError: error,
+    restoreError: new Error('context restore failed'),
+  });
+  await assert.rejects(broken.run(), (observed) => observed === error);
+  assert.match(broken.evidence[0].restoreError, /context restore failed/);
+  const redirected = safariPreparationFixture({
+    activeAddressCount: 1,
+    actualUrl: 'http://127.0.0.1:4174/#/wrong',
+  });
+  await assert.rejects(redirected.run(), /changed the current fixture route/);
+  assert.equal(redirected.evidence[0].status, 'failed');
+  assert.deepEqual(redirected.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
 
 test('native Safari preparation never clicks Close when the known onboarding tip is absent', async () => {
   const fixture = safariPreparationFixture();
