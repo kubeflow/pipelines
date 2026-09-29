@@ -415,6 +415,16 @@ devices remain explicit gaps for the tracked BrowserStack investigation. The imp
 [hosted qualification report](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/ui-modernization/hosted-browser-qualification.md)
 records configured versions and verified results.
 
+The September 29 hosted checkpoint at implementation head
+`70cde25a20f80097a786a4a0f4c68392f4bccb57` passes all 12 configured qualification
+lanes (324 checks), including 12 native checks each on desktop Safari, iPhone and
+iPad simulators. The separate nine-engine/OS matrix passes 432 cases. Exact source,
+browser identities, per-matrix asset hashes, 98 native screenshot hashes and owned
+cleanup are audited in the report. This closes the configured CI matrix; missing
+policy versions, physical devices and native input/accessibility gaps remain
+tracked separately. Performance acceptance and deployment/rollback rehearsals
+remain release gates.
+
 #### Performance and release evidence
 
 Run `npm run analyze-bundle` on base and candidate. Record production JS/CSS/font
@@ -519,6 +529,11 @@ requires ongoing stable, enterprise-channel and Safari/device qualification.
   Safari/device automation remains separate from Playwright WebKit coverage.
   Track investigation of BrowserStack open-source eligibility and exact automated
   version/device coverage for future gaps; no account or service is assumed.
+
+- 2026-09-29: Completed the configured hosted qualification matrix: 12 lanes/324
+  checks, plus nine engine/OS lanes/432 cases. Native coverage extends to actual
+  Safari and iPhone/iPad simulators; remaining policy/device and release gates
+  remain explicit in the implementation report and issue.
 
 ## References
 
