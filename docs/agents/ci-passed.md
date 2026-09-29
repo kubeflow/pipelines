@@ -2,10 +2,11 @@
 
 CI Check is the sole publisher of the `ci-passed` commit status. The label with
 the same name is informational. Tide remains the merge authority; human PRs
-still require review. This change does not touch Dependabot creation holds: every
-ecosystem keeps `do-not-merge/hold`, and existing PR-specific holds are preserved.
-Removing the automatic creation holds is a separate follow-up, merged only after the
-publisher and protection below are verified in production.
+still require review. Automatic Dependabot creation holds remain configured for every ecosystem;
+existing PR-specific holds remain separate maintainer decisions and are never
+removed by the publisher. Removing creation holds remains a separate change
+after the deployed merge policy has been verified. Required `ci-passed` protection is intended for
+`master` only: older release branches do not publish this commit status.
 
 ## Contract and enforcement
 
@@ -13,12 +14,15 @@ publisher and protection below are verified in production.
 | --- | --- | --- |
 | `needs-ok-to-test` present | No success, regardless of author | Publisher eligibility and Tide query exclusions |
 | No `ok-to-test` | Only exact Dependabot or MEMBER/OWNER/COLLABORATOR authors eligible | Publisher eligibility |
-| Expected workflow absent, pending, cancelled, or unsuccessful | No success | Trusted PR base workflow definitions and current Actions run state |
-| Other discovered check unsuccessful | No success | Pinned allcheckspassed action and Tide contexts |
+| Expected workflow queued, running, or waiting | Pending; no success label | Trusted PR base workflow definitions and current Actions run state |
+| Expected workflow absent | Pending for 15 minutes from the first status on this SHA (or a later base retarget), then failure | Durable status history and PR timeline |
+| Expected workflow cancelled or unsuccessful | Failure, even while other work is pending | Current Actions run state |
+| Other discovered check pending or unsuccessful | Pending or failure respectively; known failures take precedence | Structured check-run assessment, pinned allcheckspassed action, and Tide contexts |
+| API or malformed evidence | Failure; no inferred success | Strict evidence validation |
 | Head changes | Old events cannot publish onto the new head | Event SHA binding and PR rereads |
 | Base retargets | Old workflow executions cannot authorize the new base | Durable PR timeline cutoff; original run creation must follow the retarget |
 | Same-SHA rerun | Reconcile current run attempts, including unsuccessful terminal outcomes | requested/in_progress/completed events, current Actions state, and Tide contexts |
-| PR or CI changes during publication | Undo stale success | Full PR snapshot and workflow evidence reread |
+| PR or CI changes during publication | Undo stale success | Full PR snapshot, workflow evidence, and external checks reread |
 | Fresh complete CI for an eligible open PR | Recover to success | Same reconciliation path for all events |
 
 Publishing a commit status is not atomic with PR or CI updates. Tide must still
@@ -26,7 +30,7 @@ reject pending/failing constituent contexts and honor strict branch protection.
 In particular, GitHub does not emit `workflow_run: requested` for reruns: do not
 claim immediate queued-rerun protection from this publisher alone. Verify that
 the deployed Tide configuration blocks that window before making the status
-required, and before any follow-up removes the automatic creation holds.
+required, and whenever changing the surrounding merge policy.
 
 The writer needs `pull-requests: write` to synchronize PR labels, in addition to
 its commit-status permission; recovery discovery remains read-only. Normal
@@ -48,9 +52,11 @@ workflow filters, even when they predate the committed inventory.
 
 Every applicable workflow must register and complete successfully for the PR head,
 branch, and repository. Unknown filter syntax, incomplete or malformed API data,
-and changes to the PR snapshot block success. Inventory checks operate at workflow
-level; individual jobs and matrix conditions remain the responsibility of each
-workflow and the discovered-check poller.
+and changes to the PR snapshot block success. Matching runs require valid IDs,
+attempt numbers, and creation/start timestamps before latest-attempt selection;
+a malformed competing run cannot be discarded in favor of an older success.
+Inventory checks operate at workflow level; individual jobs and matrix conditions remain the responsibility of each
+workflow and the discovered-check validators.
 
 The sole paused lane is `.github/workflows/upgrade-test.yml` when every job has
 an explicit checked-in `if: false` or `if: ${{ false }}` condition. The publisher
@@ -85,6 +91,12 @@ the selector against the inventory. This list excludes CI Check itself.
 After retargeting, rerunning an old execution is insufficient: GitHub retains
 its original GITHUB_SHA/GITHUB_REF. Update the PR head to trigger fresh CI.
 If any expected workflow does not run, inspect its trigger and approval state.
+The registration deadline is derived from the earliest `ci-passed` status on the
+head SHA, bounded by the most recent base retarget. Repeated events, reruns, and
+changed status explanations do not extend it. API propagation can briefly leave
+that first status unreadable; the next reconciliation starts from its durable
+timestamp. Existing registered workflows have no aggregate runtime timeout;
+their own workflow timeouts remain authoritative.
 
 ## External-check recovery
 
@@ -100,16 +112,34 @@ A late external check such as DCO can therefore recover after the final
 constituent workflow event. Every sweep rechecks eligibility, head, retarget
 history, expected workflows, and discovered checks. Stale sweep entries do not
 write to newer heads; existing holds are never removed by the publisher.
-Scheduled checks preserve existing non-success while evaluating. Status writes
-are deduplicated by state and the published 140-character explanation to avoid
-exhausting GitHub’s 1,000-status limit per SHA/context. A changed failure reason
-updates both the explanation and its run link; a new run link alone does not
-create another status. Expected-workflow rejection reasons are reported even
-when they prevent the discovered-check poll from running. A failed or skipped
-poll still prevents success if workflow evidence subsequently recovers. Label
-synchronization errors do not replace an already selected failure explanation.
-A queued candidate that is now successful is still invalidated before
-revalidation. Status lookup traverses all combined-status pages.
+Preliminary invalidation preserves existing non-success on every event. The final
+assessment can replace an old failure with pending when a rerun starts. Status
+writes are deduplicated by state and the published 140-character explanation to
+avoid exhausting GitHub's 1,000-status limit per SHA/context. A changed explanation
+updates its run link; a new run link alone does not create another status. The
+`ci-passed` label remains absent until success. Label synchronization errors do
+not replace an already selected failure explanation.
+
+The structured reader paginates check runs and head-scoped Actions runs, matches
+GitHub Actions checks to workflow suite IDs, and ignores superseded executions.
+Latest workflow states count even before their first check record registers.
+The publisher is excluded by its exact workflow path and associated suite, so
+its own execution cannot hold the aggregate pending.
+For reruns, it reads the current attempt's job check IDs and retains successful
+jobs from earlier attempts so failed-jobs-only reruns can recover. Checks from
+different apps remain distinct. Individual neutral/skipped checks and the existing
+name exclusions retain their prior behavior; expected workflows must still finish
+successfully. Empty, incomplete, unknown, or inconsistent evidence cannot be green.
+Commit statuses are excluded, avoiding a dependency on `ci-passed` or `tide` itself.
+
+The pinned checker remains an independent success requirement. If it was skipped
+before workflow evidence recovered, the result remains pending until another
+reconciliation validates all checks. Its failed outcome cannot authorize success.
+Both expected workflows and external check evidence are reread after publication
+to revoke a success that raced with a rerun. This adds API reads, including one
+paginated jobs lookup per relevant rerun attempt; it adds no waiting loop or runner
+held for the suite's duration. A queued candidate that is now successful is still
+invalidated before revalidation. Status lookup traverses all combined-status pages.
 
 GitHub can delay or drop scheduled executions, so 15 minutes is a requested
 cadence, not a recovery SLA. More than 256 recovery candidates fails the discovery job
@@ -121,37 +151,30 @@ head SHA is associated with GitHub Actions. See the
 
 ## Validation and coordinated rollout
 
-This change ships the publisher only. Automatic Dependabot creation holds stay in
-place, so no containment edit to deployed Tide configuration is required and none is
-proposed. Merge order:
+Publisher code always executes from the trusted base revision. A PR changing the
+publisher therefore does not change the status display on its own CI run; the new
+behavior becomes active after merge. Validate the structured reader with fixture
+regressions and read-only live snapshots, then exercise pending, failure, success,
+reruns, base retargets, and late external-check recovery on upstream after merge.
+The release tool's `watch_pr_ci` must keep waiting for pending and still stop on
+actual failure.
 
-1. **Land the publisher.** Fix the stale workflow inventory, pass CI, and merge
-   `kubeflow/pipelines#14111` / its replacement through the existing human review and
-   CI path. Required `ci-passed` protection is not enabled yet, so this avoids a
-   bootstrap deadlock, and every new Dependabot PR is still held.
-2. **Verify the publisher on upstream.** On real PRs, exercise publisher success,
-   failure and invalidation, late external-check recovery, stale-head rejection, and
-   base-retarget invalidation. Confirm that ordinary eligible PRs actually receive the
-   `ci-passed` status before the status is required anywhere.
-3. **Merge `oss-test-infra#2674` and verify its deployed effect**, not its content:
-   inspect live `master` protection (`ci-passed` required, `strict: true`, release
-   branches unaffected) and Tide behavior, including pending or failing constituent
-   contexts and queued reruns. A committed configuration change is not evidence that
-   branch protection or Tide changed; verify the applied state directly.
-4. **Merge a small follow-up that removes the automatic creation holds.** Existing
-   PR-specific holds remain separate maintainer decisions and are never removed
-   automatically. Demonstrate an eligible unheld Dependabot merge without review (or
-   record the blocker) and the negative cases: incomplete or failing CI,
-   `needs-ok-to-test`, and an explicit PR hold.
+The coordinated infrastructure change is
+[GoogleCloudPlatform/oss-test-infra#2674](https://github.com/GoogleCloudPlatform/oss-test-infra/pull/2674).
+It scopes required `ci-passed` protection to `master`, preserves strict protection,
+adds `needs-ok-to-test` exclusions to overlapping Tide queries, and makes Tide
+honor GitHub's blocked state. Release branches keep their existing requirements;
+requiring `ci-passed` before their publisher is upgraded would block releases.
+The infrastructure PR needs its own maintainer testing, review, and approval.
 
-Containment note: holds are only effective for PRs created after the label
-configuration that adds them. Dependabot PRs opened before such a change do not
-retroactively receive the label, so audit open Dependabot PRs for missing
-`do-not-merge/hold` before relying on holds as containment (36 of 36 open Dependabot
-PRs carried the hold as of 2026-09-25).
+Inspect live GitHub protection and deployed Tide behavior; configuration in a PR
+or in the Prow repository is not evidence that protection was applied. Verify
+`master` requires `ci-passed` with `strict: true`, existing required checks retain
+their app bindings, release protections remain unchanged, and pending/failing
+constituent contexts and queued reruns block merges. Do not claim the external
+Tide rollout complete until its deployed effect is verified.
 
-Abort and keep the status non-required if the applied protection cannot be inspected,
-if any lifecycle or negative case fails, or if another Tide query permits review-free
-Dependabot merges. Never leave a required status without a working publisher: restore
-the creation holds and re-enable review requirements before reverting the publisher,
-and coordinate removal of the required status before removing its publisher.
+Never remove or revert a required status's publisher without coordinating the
+corresponding protection and merge policy. If rollback is needed, retain a working
+publisher and restore containment before changing merge requirements. Holds only
+protect PRs that actually carry them; audit existing PRs as well as creation labels.

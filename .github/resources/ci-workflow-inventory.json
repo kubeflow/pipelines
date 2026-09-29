@@ -125,7 +125,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bb55d0aaee52861d35560423470c58c8b487fb73de3444586d5d5a7e7b3aec6d",
+      "header_sha256": "b0ff1829b2fa57f442e8788dd333f60b40bae8b8ba6cf9d5de609bcbad5c0ad4",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -186,6 +186,8 @@
           "test_data/sdk_compiled_pipelines/valid/**",
           "backend/test/end2end/pipeline_e2e_test.go",
           "backend/test/v2/resources/env-var.yaml",
+          "backend/test/v2/resources/hello-world-with-returning-component.yaml",
+          "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
@@ -618,13 +620,14 @@
     {
       "path": ".github/workflows/runtime-base-images.yml",
       "name": "Runtime Base Images",
-      "header_sha256": "ca0534edd4c0b236646a5cf5e6690c3eb3b36278aebdb049d887379df0cac193",
+      "header_sha256": "c5007f2a38ed6d560497dd78d9c5dfff59677aa808f75d85340f5665567fb1c3",
       "pull_request": {
         "paths": [
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/image-builds.yml",
           ".github/resources/runtime-base-images.txt",
           ".github/resources/scripts/helper-functions.sh",
+          ".github/resources/scripts/build-runtime-base-images.sh",
           ".github/resources/scripts/configure-docker-hub-mirror.sh",
           ".github/resources/scripts/configure_docker_registry_mirror.py",
           ".github/resources/scripts/prune_runtime_base_image_caches.py",

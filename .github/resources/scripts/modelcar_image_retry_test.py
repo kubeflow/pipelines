@@ -14,8 +14,8 @@
 # limitations under the License.
 """Regression tests for centralized Modelcar fixture image wiring."""
 
-import unittest
 from pathlib import Path
+import unittest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 E2E_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/e2e-test.yml'
@@ -34,7 +34,7 @@ class ModelcarImageArtifactTest(unittest.TestCase):
     def test_producer_builds_and_archives_modelcar_once(self):
         workflow = RUNTIME_IMAGES_WORKFLOW.read_text(encoding='utf-8')
         build_step = workflow.split(
-            '- name: Build and save the sample Modelcar fixture image',
+            '- name: Build runtime base image archives',
             maxsplit=1,
         )[1].split(
             '\n      - name:', maxsplit=1)[0]
@@ -42,12 +42,17 @@ class ModelcarImageArtifactTest(unittest.TestCase):
         self.assertIn(
             "if: steps.cache-runtime-base-images.outputs.cache-hit != 'true'",
             build_step)
-        self.assertIn('retry 3 30 env DOCKER_BUILDKIT=1 docker build',
+        self.assertIn('build-runtime-base-images.sh "${ARTIFACTS_PATH}"',
                       build_step)
-        self.assertIn(f'--file {MODELCAR_DOCKERFILE}', build_step)
-        self.assertIn(f'--tag {MODELCAR_IMAGE}', build_step)
-        self.assertIn(f'docker save {MODELCAR_IMAGE}', build_step)
-        self.assertIn('${ARTIFACTS_PATH}/${MODELCAR_IMAGE_ARCHIVE}', build_step)
+        build_script = (REPOSITORY_ROOT /
+                        '.github/resources/scripts/build-runtime-base-images.sh'
+                       ).read_text()
+        self.assertIn('retry 3 30 env DOCKER_BUILDKIT=1 docker build',
+                      build_script)
+        self.assertIn(f'--file {MODELCAR_DOCKERFILE}', build_script)
+        self.assertIn(f'--tag {MODELCAR_IMAGE}', build_script)
+        self.assertIn(f'docker save {MODELCAR_IMAGE}', build_script)
+        self.assertIn('${artifacts_path}/modelcar.tar', build_script)
 
     def test_e2e_consumes_prebuilt_modelcar_and_fails_closed(self):
         workflow = E2E_WORKFLOW.read_text(encoding='utf-8')
@@ -72,6 +77,12 @@ class ModelcarImageArtifactTest(unittest.TestCase):
 
         self.assertGreaterEqual(producer.count(MODELCAR_DOCKERFILE), 3)
         self.assertIn(MODELCAR_DOCKERFILE, consumer)
+        helper = '.github/resources/scripts/build-runtime-base-images.sh'
+        for workflow in (producer, consumer):
+            fingerprint = workflow.split('archive_fingerprint=$(',
+                                         1)[1].split(')', 1)[0]
+            self.assertIn(helper, fingerprint)
+            self.assertIn(MODELCAR_DOCKERFILE, fingerprint)
         self.assertIn('path: ${{ env.ARTIFACTS_PATH }}', producer)
         self.assertIn('path: ${{ env.ARTIFACTS_PATH }}', consumer)
 

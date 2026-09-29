@@ -158,7 +158,7 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 		if configErr != nil {
 			return fmt.Errorf("failed to load sample %s. Error: %v", cfg.Name, configErr)
 		}
-		pipelineFile, configErr := server.ReadPipelineFile(cfg.File, reader, common.MaxFileLength)
+		pipelineFile, configErr := server.ReadPipelineFileWithConfiguredLimits(cfg.File, reader)
 		if configErr != nil {
 			return fmt.Errorf("failed to load sample %s. Error: %v", cfg.Name, configErr)
 		}

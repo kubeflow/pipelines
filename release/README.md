@@ -136,6 +136,27 @@ kfpr run --state-file release-state.json
 
 Use the exact step ID from `kfpr steps` or the list below.
 
+## Maintainer container architectures
+
+The current `kfp-api-generator` and `kfp-release` tooling images are built and
+tested for Linux AMD64 and ARM64. Their shared `:master` (and subsequent release
+branch) tags select the Docker host's native architecture, including the Linux
+VM used by Docker on Apple Silicon. No architecture-specific tag or forced
+`--platform` is needed for normal use.
+
+Tool versions are identical on both architectures. CI runs native API/client and
+Python-package generation with both images, then exercises manifest versioning
+and changelog preparation in a disposable repository. It compares generated
+source bytes across architectures before publishing the shared tooling tags;
+PR builds do not publish. The release image uses the generator built in the
+same job, so a stale registry tag cannot supply its parent image.
+
+This concerns the machine running maintainer tools, not the supported platforms
+of a KFP installation. Existing 2.x branches are not changed or backported, and
+the remaining 2.x release does not acquire ARM runtime support. The AMD64 tools
+retain their pinned versions. These image changes do not dispatch a release or
+alter the release CLI's existing image-tag and branch-selection behavior.
+
 ## Recovery helpers
 
 ```bash
