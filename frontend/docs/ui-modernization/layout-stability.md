@@ -101,7 +101,7 @@ Fresh hosted qualification at `e79f8d42` also passes [hosted frontend checks](ht
 
 - Agree workload-specific performance and layout-stability budgets and explicitly disposition the final measurements; a low absolute CLS or a faster readiness median alone does not close every criterion.
 - Retain the distinction between deterministic fixture coverage and real-backend performance. The graph/comparison records above have their own workload scope; editor-first-open latency remains unmeasured.
-- Complete supported-browser policy acceptance and outstanding exact Chrome/Edge, Safari and iOS floor/device checks. Current Playwright engines are not substitutes for every branded minimum version.
+- Complete actual supported-browser and device checks under the [approved browser policy](../browser-support.md). Policy acceptance is complete; the recorded Playwright engines do not qualify all newly declared stable/enterprise channels or annual Safari/iOS releases.
 - Complete real assistive-technology/device review. Scoped automated Lighthouse, forced-colors and keyboard checks do not establish blanket WCAG conformance.
 - Qualify the remaining standalone/embedded authorization and deployment modes, and rehearse previous UI → candidate UI → previous UI against the same compatible backend using immutable image identities and retained data/preferences/signing state.
 

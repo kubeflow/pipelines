@@ -45,7 +45,7 @@ Focus uses a 2 px primary-colored outline with offset. Input boundaries use mute
 
 ## Browser and test compatibility
 
-Tailwind 4 requires at least Chrome 111, Safari 16.4 and Firefox 128 according to its [compatibility guide](https://tailwindcss.com/docs/compatibility#browser-support). This applies to the generated stylesheet imported by the existing app as well as to the new components. At this checkpoint the `supports es6-module` Browserslist and ES2015 target were broader. The [current report](workflows.md#browser-floor-and-accessibility) records the aligned configuration; maintainer policy acceptance and minimum-version qualification remain gates. Component-scoped theme classes do not isolate that application-wide CSS compatibility change.
+Tailwind 4 requires at least Chrome 111, Safari 16.4 and Firefox 128 according to its [compatibility guide](https://tailwindcss.com/docs/compatibility#browser-support). This applies to the generated stylesheet imported by the existing app as well as to the new components. At this checkpoint the `supports es6-module` Browserslist and ES2015 target were broader. The [current policy](../browser-support.md) distinguishes the retained conservative compiler settings from supported browser channels. Policy acceptance is complete; qualification under the new matrix remains a release gate. Component-scoped theme classes do not isolate that application-wide CSS compatibility change.
 
 The test DOM uses jsdom 27.4.0, whose modern CSS parser supports the generated cascade layers. jsdom 24 discarded the Tailwind 4 stylesheet. The selected version supports the pinned Node 24.14 runtime; CSS processing remains enabled. Browser checks remain authoritative for layout, fonts and computed CSS variable values.
 

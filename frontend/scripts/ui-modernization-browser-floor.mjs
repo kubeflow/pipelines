@@ -25,7 +25,11 @@ for (const url of [driver, base]) {
 }
 const browserName = process.env.KFP_WEBDRIVER_BROWSER || 'firefox';
 assert.ok(['firefox', 'safari', 'chrome', 'MicrosoftEdge'].includes(browserName));
-const expectedVersion = process.env.KFP_BROWSER_FLOOR_VERSION || '128.0';
+const expectedVersion = process.env.KFP_BROWSER_FLOOR_VERSION?.trim();
+assert.ok(
+  expectedVersion,
+  'Set KFP_BROWSER_FLOOR_VERSION to the exact browser version in the release qualification matrix',
+);
 const out = process.env.KFP_BROWSER_FLOOR_OUTPUT || '/tmp/kfp-browser-floor-evidence';
 const elementKey = 'element-6066-11e4-a52e-4f735466cecf';
 const runId = 'e0115ac1-0479-4194-a22d-01e65e09a32b';

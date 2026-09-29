@@ -78,9 +78,9 @@ The backend already has an effective-state predicate for lifecycle operations, b
 
 ## Browser floor and accessibility
 
-The declared [production Browserslist](../../package.json) is Chrome/Edge 111+, Firefox 128+, Safari 16.4+ and iOS Safari 16.4+. The [Vite JavaScript target](../../vite.config.mts) now names the corresponding engine floors. This replaces the historically broader `supports es6-module`/ES2015 configuration and reflects the CSS requirements of the adopted stack.
+The maintainer-approved [browser support policy](../browser-support.md) covers the latest two stable Chrome/Edge/Firefox majors, current Chrome/Edge Extended Stable, supported Firefox ESR overlap, and current/previous annual Safari and iOS/iPadOS releases with latest patches. Policy acceptance is complete; actual supported-browser and device qualification remains a release gate.
 
-Maintainer acceptance of that product support policy and execution at the minimum versions remain release gates. A successful current Chromium, Firefox or Playwright WebKit run does not prove support for the minimum versions or actual Safari/iOS. Record any unsupported browser behavior and qualification gaps explicitly.
+The [production Browserslist](../../package.json) and [Vite targets](../../vite.config.mts) retain conservative compiler settings. Their Chrome/Edge 111, Firefox 128 and Safari/iOS 16.4 targets no longer define product support or required qualification. Historical engine runs and the actual Firefox 128 smoke retain their recorded provenance; they do not qualify the newly declared channels. Record exact browser/OS versions and final asset identities for the new release matrix.
 
 Keyboard tests cover focus visibility, semantic table selection, tabs, modeless/modal inspection, rich help links, switch operation, dialog trapping/return and draft form behavior. Token tests check normal-text contrast pairs in both themes. These checks support the design review; final accessibility review and representative assistive-technology checks remain open.
 
@@ -114,7 +114,8 @@ The [performance comparison](performance-comparison.md) records repeated measure
 - [x] Record the application source commit and fresh production/Storybook build identities.
 - [x] Run full formatting, lint, application/mock type checks, React peer checks, and UI/server coverage on that source; record exact totals.
 - [x] Run all 44 production browser scenarios in three engines on the recorded emitted assets; retain the browser/version matrix and reviewed screenshots.
-- [ ] Complete supported-browser policy acceptance, minimum-version checks and accessibility review.
+- [x] Adopt the [browser support policy](../browser-support.md), including enterprise channels and annual Safari releases.
+- [ ] Complete actual supported-browser/OS/device qualification and accessibility review against the new policy.
 - [x] Repeat nine native-fixture loads, three filtering trials and three run/task navigation trials on the retirement build against the [performance baseline](https://github.com/kubeflow/pipelines/blob/339670f5e/frontend/docs/ui-modernization/performance-baseline.md); retain the pre-retirement results and report measured regressions and scope limits.
 - [ ] Resolve or explicitly accept measured regressions with agreed budgets, and extend repeated measurements to representative large-graph and populated-comparison workloads.
 - [ ] Reconfirm hosted real-cluster frontend integration results for the final source and record any independent backend failures separately.

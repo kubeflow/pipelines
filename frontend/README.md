@@ -12,6 +12,11 @@ This section of the codebase contains the Kubeflow Pipelines (KFP) Frontend.
 - Vitest for frontend server tests
 - Storybook 10 for component development
 
+## Browser support
+
+See the [browser support policy](docs/browser-support.md) for supported channels,
+release qualification, and the distinction between product support and compiler targets.
+
 ## Quick Start Development
 
 This guide will get you started with development on KFP standalone mode.

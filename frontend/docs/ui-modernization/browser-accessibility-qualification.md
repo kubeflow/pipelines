@@ -58,11 +58,13 @@ The populated creation snapshot used the ordinary pipeline selector to establish
 
 The unit DOM and automated browsers cannot establish representative screen-reader announcements, actual Windows high-contrast behavior, touch/zoom usability on physical Safari/iOS devices, or every layout at 320 CSS pixels and 400% zoom. The forced-colors probe is browser emulation rather than an operating-system or assistive-technology test. The final production matrix covers pointer/keyboard resizing, focus, dismissal and desktop/narrow viewport transitions. Acceptance by representative assistive-technology and device users remains an explicit release gate; no blanket conformance claim is made.
 
-## Browser compatibility qualification
+## Historical browser compatibility qualification
 
-The declared minimums remain Chrome/Edge 111, Firefox 128, and Safari/iOS 16.4. The explicit Vite targets and Browserslist entries match those minimums. [Tailwind's compatibility guidance](https://tailwindcss.com/docs/compatibility) sets the same Chromium, Firefox and Safari floors. Base UI 1.8's [versioned browser targets](https://github.com/mui/base-ui/blob/v1.8.0/.browserslistrc) include these versions, but the actual Firefox check below demonstrated why a dependency target alone does not establish compatibility. Vite transforms syntax; it [does not automatically polyfill runtime APIs](https://v8.vite.dev/guide/build).
+The [maintainer-approved policy](../browser-support.md) supersedes the minimum-version matrix below. Chrome/Edge 111, Firefox 128 and Safari/iOS 16.4 are retired qualification targets. The new stable/enterprise/Safari matrix remains unqualified; no historical result below is relabeled as a run on those channels. The following audit and results describe the earlier checkpoint.
 
-### Audit and minimum-version matrix
+At that checkpoint, the declared minimums were Chrome/Edge 111, Firefox 128, and Safari/iOS 16.4. The explicit Vite targets and Browserslist entries match those minimums. [Tailwind's compatibility guidance](https://tailwindcss.com/docs/compatibility) sets the same Chromium, Firefox and Safari floors. Base UI 1.8's [versioned browser targets](https://github.com/mui/base-ui/blob/v1.8.0/.browserslistrc) include these versions, but the actual Firefox check below demonstrated why a dependency target alone does not establish compatibility. Vite transforms syntax; it [does not automatically polyfill runtime APIs](https://v8.vite.dev/guide/build).
+
+### Historical audit and minimum-version matrix
 
 The emitted source-map audit checked application and dependency uses of dynamic viewport units, `color-mix()`, `:focus-visible`, `ResizeObserver`, `WeakRef`, `structuredClone`, `Object.hasOwn` and `Array.prototype.at`. These APIs fit the declared floors. Base UI's `checkVisibility` use and Floating UI's newer pseudo-class queries have fallbacks; React Router guards the View Transition API. No mandatory newer built-in API was identified. This audit is not equivalent to running each minimum browser.
 
@@ -76,7 +78,7 @@ The emitted source-map audit checked application and dependency uses of dynamic 
 
 The actual minimum-browser run used Firefox 128.0. No actual Chrome/Edge 111, Safari 16.4 or iOS simulator/device result has been retained. Existing Playwright engines provide current-engine coverage and [cannot substitute for branded Firefox or Safari](https://playwright.dev/docs/browsers). No browser automation preference or user profile was changed to obtain these results.
 
-A practical completion matrix needs an isolated browser/OS image or device service supplying each exact version above, plus current Safari and iOS. The minimum-version runs should retain browser/OS identity, source and asset hashes, populated route readiness, keyboard selection and dialogs, theme screenshots, and any failure evidence. Current iOS also needs a visual check of dialog and inspector backdrops against browser chrome: [Base UI's current iOS guidance](https://base-ui.com/react/overview/quick-start) describes viewport behavior that desktop WebKit emulation cannot establish.
+The former uncompleted runs above are no longer release requirements. The replacement matrix needs isolated browser/OS images or a device service supplying the exact versions selected under the [approved policy](../browser-support.md). New runs must retain browser/OS identity, source and asset hashes, populated route readiness, keyboard selection and dialogs, theme screenshots, and any failure evidence. Current iOS also needs a visual check of dialog and inspector backdrops against browser chrome: [Base UI's current iOS guidance](https://base-ui.com/react/overview/quick-start) describes viewport behavior that desktop WebKit emulation cannot establish.
 
 ### Firefox 128 activation regression
 

@@ -44,7 +44,8 @@ export default defineConfig(({ mode }) => ({
     proxy,
   },
   build: {
-    // Match the Tailwind 4 CSS floor and the production browserslist.
+    // Conservative output targets, aligned with production browserslist.
+    // Product support and release qualification: docs/browser-support.md.
     target: ['chrome111', 'edge111', 'firefox128', 'safari16.4'],
     outDir: 'build',
     assetsDir: 'static',
