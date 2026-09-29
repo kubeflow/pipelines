@@ -132,15 +132,14 @@ func ArgoPersistSecretNames(persist *argoconfig.PersistConfig) []string {
 	return names
 }
 
-// InitWorkflowHydrator connects to Argo's offload database and installs the hydrator used by retry.
-func InitWorkflowHydrator(ctx context.Context, kube kubernetes.Interface, persist *argoconfig.PersistConfig, secretsNamespace string) error {
+// CreateWorkflowHydrator connects to Argo's offload database and returns the hydrator used by retry.
+func CreateWorkflowHydrator(ctx context.Context, kube kubernetes.Interface, persist *argoconfig.PersistConfig, secretsNamespace string) (hydrator.Interface, error) {
 	if persist == nil || !persist.NodeStatusOffload {
-		SetWorkflowHydrator(hydratorfake.Noop)
-		return nil
+		return hydratorfake.Noop, nil
 	}
 	tableName, err := persistsqldb.GetTableName(persist)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	loggerCtx := withArgoLogger(ctx)
 	sessionProxy, err := argosqldb.NewSessionProxy(loggerCtx, argosqldb.SessionProxyConfig{
@@ -149,7 +148,7 @@ func InitWorkflowHydrator(ctx context.Context, kube kubernetes.Interface, persis
 		DBConfig:      persist.DBConfig,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create Argo offload DB session: %w", err)
+		return nil, fmt.Errorf("failed to create Argo offload DB session: %w", err)
 	}
 	argosqldb.ConfigureDBSession(sessionProxy.Session(), persist.ConnectionPool)
 	repo, err := persistsqldb.NewOffloadNodeStatusRepo(
@@ -160,9 +159,18 @@ func InitWorkflowHydrator(ctx context.Context, kube kubernetes.Interface, persis
 		tableName,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create Argo offload node status repo: %w", err)
+		return nil, fmt.Errorf("failed to create Argo offload node status repo: %w", err)
 	}
-	SetWorkflowHydrator(hydrator.New(repo))
+	return hydrator.New(repo), nil
+}
+
+// InitWorkflowHydrator connects to Argo's offload database and installs the hydrator used by retry.
+func InitWorkflowHydrator(ctx context.Context, kube kubernetes.Interface, persist *argoconfig.PersistConfig, secretsNamespace string) error {
+	h, err := CreateWorkflowHydrator(ctx, kube, persist, secretsNamespace)
+	if err != nil {
+		return err
+	}
+	SetWorkflowHydrator(h)
 	return nil
 }
 
