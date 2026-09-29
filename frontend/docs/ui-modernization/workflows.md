@@ -115,7 +115,7 @@ The [performance comparison](performance-comparison.md) records repeated measure
 - [x] Run full formatting, lint, application/mock type checks, React peer checks, and UI/server coverage on that source; record exact totals.
 - [x] Run all 44 production browser scenarios in three engines on the recorded emitted assets; retain the browser/version matrix and reviewed screenshots.
 - [x] Adopt the [browser support policy](../browser-support.md), including enterprise channels and annual Safari releases.
-- [ ] Complete actual supported-browser/OS/device qualification and accessibility review against the new policy.
+- [ ] Complete actual supported-browser/OS/device qualification and automated accessibility qualification against the new policy.
 - [x] Repeat nine native-fixture loads, three filtering trials and three run/task navigation trials on the retirement build against the [performance baseline](https://github.com/kubeflow/pipelines/blob/339670f5e/frontend/docs/ui-modernization/performance-baseline.md); retain the pre-retirement results and report measured regressions and scope limits.
 - [ ] Resolve or explicitly accept measured regressions with agreed budgets, and extend repeated measurements to representative large-graph and populated-comparison workloads.
 - [ ] Reconfirm hosted real-cluster frontend integration results for the final source and record any independent backend failures separately.
