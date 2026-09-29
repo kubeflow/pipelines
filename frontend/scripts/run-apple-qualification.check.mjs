@@ -11,6 +11,7 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import {
   appleQualification,
+  configureDesktopTextInput,
   mobileSafariAppPath,
   observeAppleCommand,
   stopOwnedAppleChild,
@@ -168,4 +169,33 @@ test('log failure keeps a live child owned until cleanup explicitly abandons it'
   assert.equal(signalled, true);
   observed.abandon();
   assert.equal(owned.has(child), false);
+});
+
+test('native text-input configuration rejects local mutation and checks every preference readback', async () => {
+  const calls = [];
+  const run = async (command, args) => {
+    calls.push({ command, args });
+    return args[0] === 'read' ? '0' : '';
+  };
+  await assert.rejects(configureDesktopTextInput(run, {}, 'darwin'), /only in GitHub Actions/);
+  assert.equal(calls.length, 0, 'local execution must not write preferences');
+  const configuration = await configureDesktopTextInput(run, hosted, 'darwin');
+  assert.equal(configuration.domain, 'NSGlobalDomain');
+  assert.equal(calls.length, 4);
+  for (let index = 0; index < calls.length; index += 2) {
+    const write = calls[index];
+    const read = calls[index + 1];
+    assert.equal(write.command, '/usr/bin/defaults');
+    assert.deepEqual(write.args.slice(0, 2), ['write', '-g']);
+    assert.deepEqual(write.args.slice(3), ['-bool', 'false']);
+    assert.deepEqual(read.args, ['read', '-g', write.args[2]]);
+    assert.deepEqual(configuration.preferences[write.args[2]], {
+      configured: false,
+      readback: '0',
+    });
+  }
+  await assert.rejects(
+    configureDesktopTextInput(async () => '1', hosted, 'darwin'),
+    /preference .* was not disabled/,
+  );
 });

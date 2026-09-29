@@ -38,6 +38,36 @@ export function requireHostedAppleRunner(env = process.env, platform = process.p
   assert.ok(env.RUNNER_TEMP && isAbsolute(env.RUNNER_TEMP), 'RUNNER_TEMP must be an absolute path');
 }
 
+// These are native macOS text-input settings, not mutations of tested DOM fields.
+// Apple documents the settings; nix-darwin documents their NSGlobalDomain keys:
+// https://support.apple.com/guide/mac-help/mchlp2299/mac
+// https://github.com/nix-darwin/nix-darwin/blob/4cff07de74b50e64bdd68cd4e722ab5b6b35ee48/modules/system/defaults/NSGlobalDomain.nix
+export async function configureDesktopTextInput(
+  run,
+  env = process.env,
+  platform = process.platform,
+) {
+  requireHostedAppleRunner(env, platform);
+  const configuration = {
+    domain: 'NSGlobalDomain',
+    preferences: {},
+    excludedCoverage: [
+      'Native inline predictive text and automatic spelling correction are disabled.',
+      'IME composition and autocorrection compatibility remain unqualified.',
+    ],
+  };
+  for (const key of [
+    'NSAutomaticInlinePredictionEnabled',
+    'NSAutomaticSpellingCorrectionEnabled',
+  ]) {
+    await run('/usr/bin/defaults', ['write', '-g', key, '-bool', 'false'], `disable-${key}`);
+    const readback = await run('/usr/bin/defaults', ['read', '-g', key], `read-${key}`);
+    assert.equal(readback, '0', `Native text-input preference ${key} was not disabled`);
+    configuration.preferences[key] = { configured: false, readback };
+  }
+  return configuration;
+}
+
 export function selectSimulator(inventory, config) {
   const runtime = inventory.runtimes.find(
     (item) =>
@@ -285,6 +315,7 @@ async function main() {
     let capabilities = {};
     if (mode === 'desktop') {
       assert.equal(report.safariVersion, config.browserVersion, 'Pinned Safari version changed');
+      report.textInput = await configureDesktopTextInput(run);
       await run('/usr/bin/sudo', ['-n', '/usr/bin/safaridriver', '--enable'], 'enable-safari');
       const driver = start('/usr/bin/safaridriver', ['--port', '4444'], 'safaridriver');
       await ready('http://127.0.0.1:4444/status', driver);
