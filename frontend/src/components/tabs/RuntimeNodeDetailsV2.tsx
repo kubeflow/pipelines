@@ -124,6 +124,7 @@ export function RuntimeNodeDetailsV2({
         task={elementRuntimeInfo?.task}
         artifactGroup={elementRuntimeInfo?.artifactGroup}
         namespace={namespace}
+        namespacePending={namespacePending}
         sourceFinished={sourceFinished}
       />
     );
@@ -548,6 +549,7 @@ interface ArtifactNodeDetailProps {
   task?: V2beta1PipelineTask;
   artifactGroup?: InputOutputsIOArtifact;
   namespace?: string;
+  namespacePending?: boolean;
   sourceFinished?: boolean;
 }
 
@@ -555,6 +557,7 @@ function ArtifactNodeDetail({
   task,
   artifactGroup,
   namespace,
+  namespacePending = false,
   sourceFinished,
 }: ArtifactNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -578,16 +581,25 @@ function ArtifactNodeDetail({
       >
         <div className='kfp-inspection-scroll'>
           <div hidden={selectedTab !== 0}>
-            <ArtifactInfo task={task} artifactGroup={artifactGroup} namespace={namespace} />
+            <ArtifactInfo
+              task={task}
+              artifactGroup={artifactGroup}
+              namespace={namespace}
+              namespacePending={namespacePending}
+            />
           </div>
           {(selectedTab === 1 || hasOpenedVisualization) && (
             <div hidden={selectedTab !== 1} className='kfp-inspection-legacy'>
-              <RuntimeMetricsVisualizations
-                artifacts={artifacts}
-                artifactKey={artifactGroup.artifact_key}
-                namespace={namespace}
-                sourceFinished={sourceFinished || isTaskFinished(task.state)}
-              />
+              {namespacePending ? (
+                <p role='status'>Loading experiment namespace…</p>
+              ) : (
+                <RuntimeMetricsVisualizations
+                  artifacts={artifacts}
+                  artifactKey={artifactGroup.artifact_key}
+                  namespace={namespace}
+                  sourceFinished={sourceFinished || isTaskFinished(task.state)}
+                />
+              )}
             </div>
           )}
         </div>
@@ -600,8 +612,9 @@ function ArtifactInfo({
   task,
   artifactGroup,
   namespace,
+  namespacePending,
 }: Required<Pick<ArtifactNodeDetailProps, 'task' | 'artifactGroup'>> &
-  Pick<ArtifactNodeDetailProps, 'namespace'>) {
+  Pick<ArtifactNodeDetailProps, 'namespace' | 'namespacePending'>) {
   const artifactEntries = flattenArtifactGroups([artifactGroup]);
   const uriRows = buildRuntimeArtifactRows([artifactGroup]);
   const firstArtifact = artifactEntries[0].artifact;
@@ -622,7 +635,7 @@ function ArtifactInfo({
         title='Artifact Value'
         fields={uriRows}
         valueComponent={RuntimeArtifactValue}
-        valueComponentProps={{ namespace }}
+        valueComponentProps={{ namespace, namespacePending }}
       />
     </div>
   );

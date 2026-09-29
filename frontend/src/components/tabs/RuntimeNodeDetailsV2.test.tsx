@@ -698,6 +698,76 @@ describe('RuntimeNodeDetailsV2', () => {
     ).toEqual(['Succeeded', finishedAt.toLocaleString()]);
   });
 
+  it.each(['Artifact Info', 'Visualization'] as const)(
+    'defers artifact-node %s storage access until namespace resolution without resetting its tab',
+    async (tab) => {
+      const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Scoped report</h1>');
+      const task = createTask();
+      const artifactGroup = {
+        artifact_key: 'report',
+        artifacts: [
+          {
+            artifact_id: 'report-a',
+            name: 'report',
+            type: ArtifactArtifactType.HTML,
+            uri: 's3://reports/output.html',
+          },
+        ],
+      };
+      const content = (namespacePending: boolean, refreshedTask = task) => (
+        <CommonTestWrapper>
+          <RuntimeNodeDetailsV2
+            layers={['root']}
+            onLayerChange={() => {}}
+            element={{
+              data: { label: 'report' },
+              id: 'artifact.preprocess.report',
+              position: { x: 100, y: 100 },
+              type: 'ARTIFACT',
+            }}
+            elementRuntimeInfo={{ task: refreshedTask, artifactGroup }}
+            namespace={namespacePending ? undefined : TEST_NAMESPACE}
+            namespacePending={namespacePending}
+          />
+        </CommonTestWrapper>
+      );
+      const view = render(content(true));
+      expect(
+        within(screen.getByRole('region', { name: 'Artifact Info' })).getByText('report'),
+      ).toBeVisible();
+      if (tab === 'Visualization') fireEvent.click(screen.getByRole('tab', { name: tab }));
+      await act(async () => {});
+      expect(readFileSpy).not.toHaveBeenCalled();
+      expect(document.querySelector('a[download]')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Preview file contents' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen
+          .getAllByText('Loading experiment namespace…')
+          .some((element) => !element.closest('[hidden]')),
+      ).toBe(true);
+      view.rerender(content(false));
+      expect(screen.getByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true');
+      if (tab === 'Artifact Info')
+        fireEvent.click(screen.getByRole('button', { name: 'Preview file contents' }));
+      await waitFor(() =>
+        expect(readFileSpy).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({ namespace: TEST_NAMESPACE }),
+        ),
+      );
+      expect(document.querySelector('a[download]')).toHaveAttribute(
+        'href',
+        expect.stringContaining('namespace=kubeflow'),
+      );
+      view.rerender(content(false, { ...task }));
+      await act(async () => {});
+      expect(screen.getByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true');
+      expect(readFileSpy).toHaveBeenCalledTimes(1);
+      if (tab === 'Artifact Info') expect(screen.getByText('<h1>Scoped report</h1>')).toBeVisible();
+    },
+  );
+
   it('formats artifact timestamps consistently with other details pages', () => {
     const createdAt = new Date('2026-08-11T12:00:00Z');
     const artifactElement = {
