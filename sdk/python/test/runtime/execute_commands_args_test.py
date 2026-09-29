@@ -267,6 +267,37 @@ class TestRuntime:
             'TMPDIR': str(tmp_path),
             'PIP_CONFIG_FILE': os.devnull,
         })
+        self.seed_packages = set(self.get_installation()['packages'])
+        assert 'kfp' not in self.seed_packages
+
+    def get_installation(self) -> Dict[str, Any]:
+        """Read isolated package metadata and optional SDK provenance."""
+        installed = subprocess.run(
+            [
+                str(self.runtime_python), '-I', '-c', '''
+import json
+from importlib import metadata
+distributions = {
+    distribution.metadata["Name"].lower(): distribution
+    for distribution in metadata.distributions()
+}
+sdk = distributions.get("kfp")
+origin = None
+if sdk is not None:
+    origin = json.loads(sdk.read_text("direct_url.json"))
+print(json.dumps({
+    "origin": origin,
+    "packages": sorted(distributions),
+}))
+'''
+            ],
+            cwd=self.temp_dir,
+            env=self.environment,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return json.loads(installed.stdout)
 
     @pytest.mark.parametrize('config', TEST_CONFIGS)
     def test(self, config: RuntimeTestConfig) -> None:
@@ -281,25 +312,6 @@ class TestRuntime:
             config.executor_input['outputs']['outputFile'].replace(
                 '/gcs/', f'{self.temp_dir}/'))
         assert output_file.is_file()
-        installed = subprocess.run(
-            [
-                str(self.runtime_python), '-I', '-c', '''
-import json
-from importlib import metadata
-print(json.dumps({
-    "origin": json.loads(metadata.distribution("kfp").read_text("direct_url.json")),
-    "packages": sorted(distribution.metadata["Name"].lower()
-                       for distribution in metadata.distributions()),
-}))
-'''
-            ],
-            cwd=self.temp_dir,
-            env=self.environment,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        installation = json.loads(installed.stdout)
+        installation = self.get_installation()
         assert installation['origin']['url'] == self.wheel.as_uri()
-        assert set(
-            installation['packages']) <= {'kfp', 'pip', 'setuptools', 'wheel'}
+        assert set(installation['packages']) == self.seed_packages | {'kfp'}

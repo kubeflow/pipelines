@@ -68,6 +68,9 @@ set `KFP_PACKAGE_PATH` to the absolute path of the resulting `kfp-*.whl`, and ru
 `uv run pytest sdk/python/test/runtime -m regression`. These tests require the
 wheel; they never fall back to the published SDK. The generated `--no-deps`
 installation and `_KFP_RUNTIME=true` executor invocation remain unchanged.
+The package inventory is compared before and after bootstrap: only `kfp` may
+be added, independently of the installer dependencies uv seeds for each Python
+version.
 
 ### Code Style
 Dependencies for code style checks/changes are managed in [pyproject.toml](https://github.com/kubeflow/pipelines/blob/master/pyproject.toml) via the `dev`, `lint`, and `test` extras.
