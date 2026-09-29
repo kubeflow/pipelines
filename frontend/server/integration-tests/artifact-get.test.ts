@@ -2243,6 +2243,14 @@ s3:
       ['https://files.example/reports//', 'https://files.example/reports//report.txt'],
       ['https://files.example/reports///', 'https://files.example/reports///report.txt'],
       ['https://files.example//', 'https://files.example//report.txt'],
+      ['  https://files.example/reports/  ', 'https://files.example/reports/report.txt'],
+      [
+        'https://files.example/caf%C3%A9%20reports/',
+        'https://files.example/caf%C3%A9%20reports/report.txt',
+      ],
+      ['https://files.example/100%25/', 'https://files.example/100%25/report.txt'],
+      ['https://files.example/A%26B%3FC%23D/', 'https://files.example/A%26B%3FC%23D/report.txt'],
+      ['https://files.example/%252e%252e/', 'https://files.example/%252e%252e/report.txt'],
       ['http://files.example:8080/reports/', 'http://files.example:8080/reports/report.txt'],
       ['https://files.example/reports/', 'https://files.example/reports/A%26B%3FC%23D.csv'],
       ['https://files.example/reports/', 'https://files.example/reports/caf%C3%A9%20report.txt'],
@@ -2295,6 +2303,8 @@ s3:
       'https://files.example/reports/#fragment',
       'file://files.example/reports/',
       '//https://files.example/reports/',
+      'https:///files.example/reports/',
+      'https:////files.example/reports/',
     ])('rejects invalid HTTP base configuration without fetching: %s', async (base) => {
       mockedFetch.mockClear();
       app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: base }));
@@ -2305,6 +2315,57 @@ s3:
       expect(response.text).toContain('HTTP_BASE_URL');
       expect(response.text).not.toContain(base);
       expect(mockedFetch).not.toHaveBeenCalled();
+    });
+
+    describe.each([
+      ['absolute', 'https://files.example/', 'files.example'],
+      ['gateway', 'files.example/', 'dataset'],
+    ])('invalid original %s HTTP base paths', (_form, prefix, bucket) => {
+      it.each([
+        'archive/../reports/',
+        'archive/%2e%2e/reports/',
+        'archive/%2E%2E/reports/',
+        'archive/..%2freports/',
+        'reports/./',
+        'reports/%2e/',
+        'archive\\..\\reports/',
+        'archive/%5c../reports/',
+        'reports/%invalid/',
+        're\tports/',
+        're\nports/',
+        're\rports/',
+        'reports/?',
+        'reports/#',
+      ])('rejects %j without fetching', async (path) => {
+        app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: `${prefix}${path}` }));
+        await requests(app.app)
+          .get('/artifacts/get')
+          .query({ source: 'https', bucket, key: 'reports/report.txt' })
+          .expect(400);
+        expect(mockedFetch).not.toHaveBeenCalled();
+      });
+    });
+
+    it.each([
+      [
+        'files.example/caf%C3%A9%20reports/',
+        'https://files.example/caf%C3%A9%20reports/dataset/report.txt',
+      ],
+      ['files.example/100%25/', 'https://files.example/100%25/dataset/report.txt'],
+      ['files.example/A%26B%3FC%23D/', 'https://files.example/A%26B%3FC%23D/dataset/report.txt'],
+      ['files.example/%252e%252e/', 'https://files.example/%252e%252e/dataset/report.txt'],
+      [
+        ' /files.example/archive//reports/ ',
+        'https://files.example/archive//reports/dataset/report.txt',
+      ],
+    ])('preserves the configured gateway path in %s', async (base, uri) => {
+      mockedFetch.mockResolvedValueOnce({ body: toWebStream('gateway artifact') });
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: base }));
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({ source: 'https', bucket: 'dataset', key: 'report.txt' })
+        .expect(200, 'gateway artifact');
+      expect(mockedFetch).toHaveBeenCalledWith(uri, { headers: {}, redirect: 'manual' });
     });
 
     it.each([

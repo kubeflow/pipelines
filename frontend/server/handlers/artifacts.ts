@@ -1091,12 +1091,31 @@ function getHttpUrl(
   const configuredBaseUrl = baseUrl.includes('://')
     ? baseUrl.trim()
     : baseUrl.trim().replace(/^\/+/, '');
-  if (!configuredBaseUrl) {
+  if (
+    !configuredBaseUrl ||
+    configuredBaseUrl.includes('\\') ||
+    [...configuredBaseUrl].some((character) => {
+      const codePoint = character.codePointAt(0) || 0;
+      return codePoint <= 0x1f || codePoint === 0x7f;
+    })
+  ) {
     return undefined;
   }
   try {
     const absoluteBase = configuredBaseUrl.includes('://');
-    const base = new URL(absoluteBase ? configuredBaseUrl : `${source}://${configuredBaseUrl}`);
+    const baseUrlToParse = absoluteBase ? configuredBaseUrl : `${source}://${configuredBaseUrl}`;
+    const baseUrlMatch = /^https?:\/\/[^/?#]+(\/[^?#]*)?$/i.exec(baseUrlToParse);
+    // Validate before URL parsing removes dot segments; keep escaped path data for fetching.
+    if (
+      !baseUrlMatch ||
+      applyArtifactPathPolicy(
+        decodeURIComponent(baseUrlMatch[1] || ''),
+        ARTIFACT_PATH_POLICIES.http,
+      ) === undefined
+    ) {
+      return undefined;
+    }
+    const base = new URL(baseUrlToParse);
     if (
       !['http:', 'https:'].includes(base.protocol) ||
       base.username ||
