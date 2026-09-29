@@ -83,6 +83,14 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
         self.assertIsNotNone(original_fingerprint)
         self.assertEqual(queue_fingerprint.group(),
                          original_fingerprint.group())
+        consumer_fingerprint = fingerprint_pattern.search(image_builds_source)
+        self.assertIsNotNone(consumer_fingerprint)
+        self.assertEqual(queue_fingerprint.group(),
+                         consumer_fingerprint.group())
+        self.assertIn('build-runtime-base-images.sh', queue_fingerprint.group())
+        self.assertIn(
+            'run: bash .github/resources/scripts/build-runtime-base-images.sh',
+            queue_source)
         self.assertIn(
             'name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}',
             queue_source)
