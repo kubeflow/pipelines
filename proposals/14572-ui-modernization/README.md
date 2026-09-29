@@ -182,16 +182,41 @@ logic. Small presentation adapters are allowed; do not fold unrelated data-layer
 refactors into the migration. Side effects must not duplicate mutations,
 navigation, or notifications on remount/refetch.
 
-**Browser compatibility.** Tailwind v4 introduces a CSS compatibility constraint:
-its documented baseline is Chrome 111, Safari 16.4, and Firefox 128. The current
-`supports es6-module` browserslist/ES2015 JavaScript target alone does not establish
-this support. The proposed browser floor is at least those versions; confirm and
-document the selected package versions' requirements before implementation and
-align browser configuration and release notes. If the supported KFP browser
-policy requires older versions, revise the styling approach before cutover rather
-than silently dropping support. Exercise Chromium, Firefox, and WebKit/Safari;
-check the declared minimum versions as well as current browser releases. See
-[Tailwind browser support](https://tailwindcss.com/docs/compatibility#browser-support).
+**Browser compatibility.** The maintainer-approved support policy is:
+
+- Chrome and Edge on desktop: latest two stable major releases, plus each
+  browser's current Extended Stable release.
+- Firefox on desktop: latest two stable major releases, plus current ESR and the
+  outgoing ESR during Mozilla's supported transition overlap.
+- Safari on macOS: current and previous annual Safari releases, with latest
+  patches on vendor-supported macOS versions.
+- Safari on iOS/iPadOS: current and previous annual OS releases, with latest
+  patches. Annual releases do not mean the latest two minor updates.
+
+Record a dated exact browser/OS matrix, source commit, emitted asset hashes and
+results for each KFP minor release. Recheck vendor channels before release and
+qualify the oldest supported enterprise/Safari versions as well as current stable
+versions. Patch releases preserve that minor release's minimum required browser
+capabilities and compiler targets while testing current supported channels.
+Intentional capability increases belong in minor releases with release notes.
+Older browsers are unsupported but are not blocked by user-agent version.
+
+Conservative Vite/Browserslist output targets may remain below the support window;
+they are not product support commitments. Tailwind's technical minimums (Chrome
+111, Firefox 128, Safari 16.4) no longer define KFP release qualification targets.
+Check dependency runtime APIs and CSS as well as emitted JavaScript: compiler
+transforms alone do not establish compatibility. Retain historical results under
+their original identities; Playwright engine coverage does not establish every
+branded browser or actual Safari/iOS device result. Resolve supported-browser
+failures affecting loading, core workflows, data integrity, keyboard access or
+reachable content before release, and document other limitations.
+
+The [implementation policy and qualification checklist](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/browser-support.md)
+records remaining stable, Extended Stable, ESR and annual Safari/device checks.
+Policy acceptance does not close these tests, assistive-technology acceptance,
+deployment qualification or rollback rehearsal. See also
+[Tailwind's technical browser requirements](https://tailwindcss.com/docs/compatibility)
+and [Firefox ESR transitions](https://support.mozilla.org/en-US/kb/firefox-esr-release-cycle).
 
 ### KFP Local Considerations
 
@@ -404,8 +429,9 @@ same backend without data repair. Merging this KEP alone does not meet those cri
   inventory and retained behavioral tests, then perform one complete cutover.
 - **Hidden functionality lost in the prototype:** existing routes, tests, and
   deployment contracts define parity beyond the pictured screens.
-- **Browser/CSS regressions:** explicitly resolve the Tailwind v4 support floor
-  and test both themes and declared browser versions.
+- **Browser/CSS regressions:** qualify both themes and the declared stable,
+  enterprise and annual Safari releases; keep exact-version evidence separate
+  from compiler settings and historical engine checks.
 - **Accessibility regressions:** test composed workflows and focus behavior,
   supplementing automated checks with manual checks.
 - **Expensive or misleading summaries:** document scope and query bounds, and omit
@@ -419,8 +445,8 @@ same backend without data repair. Merging this KEP alone does not meet those cri
 
 Owning copied component source increases KFP's maintenance responsibility. The
 migration touches many presentation tests and downstream customizations, and a
-coordinated cutover concentrates release qualification work. Tailwind v4 also
-requires an explicit browser compatibility decision.
+coordinated cutover concentrates release qualification work. The modern browser policy also
+requires ongoing stable, enterprise-channel and Safari/device qualification.
 
 ## Alternatives
 
@@ -443,7 +469,8 @@ requires an explicit browser compatibility decision.
   Reports retain exact source/asset identities and separate automated checks from
   minimum-version, actual-device and assistive-technology acceptance. Actual
   Firefox 128 exposed and now covers a native input activation compatibility fix;
-  other declared minimum browsers remain open. Measured budgets, deployment
+  the historical minimum-version matrix is superseded by the approved policy.
+  New supported-browser checks remain open. Measured budgets, deployment
   authorization and the compatible same-backend rollback rehearsal still require
   acceptance. These implementation results do not complete the coordinated
   release or introduce a KFP Local migration.
@@ -453,6 +480,12 @@ requires an explicit browser compatibility decision.
   cases and fresh matched measurements on `e79f8d42`. All nine candidate load
   samples have zero observed CLS; filtering retains the documented result-row
   movement. Budget acceptance and the remaining release gates stay open.
+
+- 2026-09-28: Maintainer approved the modern browser support policy, including
+  enterprise channels and current/previous annual Safari releases. Retired
+  framework-floor versions no longer require release qualification; retained
+  historical results are unchanged. Exact supported-browser/device qualification
+  remains open before cutover.
 
 ## References
 
