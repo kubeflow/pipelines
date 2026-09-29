@@ -113,7 +113,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "55518d8ecf1b26ffc5858b7442a5a7000f6b4f3ed0da9686a7cddd062d2d1f56",
+      "header_sha256": "4fe3876fe195c367f70082ef26eb3917443a6c8c55047c66406219f1131704ac",
       "pull_request": null
     },
     {
@@ -324,6 +324,31 @@
           "kubernetes_platform/**",
           "!**/*.md",
           "!**/OWNERS"
+        ]
+      }
+    },
+    {
+      "path": ".github/workflows/frontend-browser-qualification.yml",
+      "name": "Frontend Browser Qualification",
+      "header_sha256": "1c87f6b54bbec7b73c7c347abcd96ef531695c4a07696cffed1b9f4371eba9b1",
+      "pull_request": {
+        "branches": [
+          "master"
+        ],
+        "paths": [
+          ".github/workflows/frontend-browser-qualification.yml",
+          "frontend/scripts/qualified-browsers.json",
+          "frontend/scripts/install-qualified-browser*",
+          "frontend/scripts/run-apple-qualification*",
+          "frontend/scripts/run-native-qualification*",
+          "frontend/scripts/ui-modernization-browser-floor.mjs",
+          "frontend/scripts/ui-modernization-native*",
+          "frontend/scripts/run-browser-suite*",
+          "frontend/scripts/*.smoke.mjs",
+          "frontend/mock-backend/**",
+          "frontend/package.json",
+          "frontend/package-lock.json",
+          "frontend/.nvmrc"
         ]
       }
     },

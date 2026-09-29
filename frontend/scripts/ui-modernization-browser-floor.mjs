@@ -5,13 +5,14 @@
  * You may obtain a copy of the License at https://www.apache.org/licenses/LICENSE-2.0
  */
 
-// A bounded native-fixture smoke for real browser versions unsupported by Playwright.
+// Native browser workflow qualification for browsers unsupported by Playwright.
 // Start the selected WebDriver separately. This script creates and closes a fresh session.
 // It reads fixture data and changes only transient UI selection/theme; no backend mutations.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const driver = new URL(process.env.KFP_WEBDRIVER_URL || 'http://127.0.0.1:4444');
@@ -23,6 +24,15 @@ for (const url of [driver, base]) {
   );
   assert.equal(url.protocol, 'http:');
 }
+assert.equal(process.env.CI, 'true', 'Native browser qualification runs only in CI');
+assert.equal(process.env.GITHUB_ACTIONS, 'true', 'Native qualification requires GitHub Actions');
+assert.equal(
+  process.env.RUNNER_ENVIRONMENT,
+  'github-hosted',
+  'Native qualification requires a disposable GitHub-hosted runner',
+);
+const mobile = process.env.KFP_BROWSER_FLOOR_MOBILE === '1';
+const extraCapabilities = JSON.parse(process.env.KFP_WEBDRIVER_CAPABILITIES || '{}');
 const browserName = process.env.KFP_WEBDRIVER_BROWSER || 'firefox';
 assert.ok(['firefox', 'safari', 'chrome', 'MicrosoftEdge'].includes(browserName));
 const expectedVersion = process.env.KFP_BROWSER_FLOOR_VERSION?.trim();
@@ -39,11 +49,21 @@ const report = {
   status: 'running',
   expectedVersion,
   browserName,
+  mobile,
+  sourceRevision:
+    process.env.GITHUB_SHA ||
+    execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   checks: [],
   screenshots: [],
+  gaps: mobile
+    ? [
+        'Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.',
+        'Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.',
+      ]
+    : [],
   limitations: [
     'Native small fixtures; comparison has two runs but no parameters or scalar metrics.',
-    'Desktop viewport checks do not establish actual iOS, assistive-technology, or full workflow parity.',
+    'Read-only fixtures cover navigation and unsubmitted form drafts, not cluster mutations, authorization, upload submission, or full 47-case Playwright suite parity.',
     'Page readiness and captured errors are checked; errors before initial Runs readiness are not observed, and this is not a complete network or console trace.',
   ],
 };
@@ -55,7 +75,7 @@ async function command(method, path, body) {
     method,
     headers: body ? { 'content-type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(40000),
+    signal: AbortSignal.timeout(mobile && path === '/session' ? 300000 : 40000),
   });
   const data = await response.json();
   if (!response.ok || data.value?.error) {
@@ -108,9 +128,70 @@ async function screenshot(name) {
   });
 }
 async function check(name, exercise) {
-  const detail = await exercise();
-  report.checks.push({ name, status: 'passed', detail: detail ?? null });
-  console.log(`PASS ${name}`);
+  const startedAt = new Date().toISOString();
+  try {
+    const detail = await exercise();
+    report.checks.push({ name, status: 'passed', startedAt, detail: detail ?? null });
+    console.log(`PASS ${name}`);
+  } catch (error) {
+    report.checks.push({ name, status: 'failed', startedAt, error: String(error) });
+    throw error;
+  }
+}
+async function navigate(hash) {
+  await execute((next) => {
+    location.hash = next;
+  }, hash);
+}
+async function textElement(selector, text) {
+  return wait(
+    (selector, text) =>
+      Array.from(document.querySelectorAll(selector)).find(
+        (element) =>
+          element.textContent.trim() === text && element.getBoundingClientRect().width > 0,
+      ),
+    `${selector}: ${text}`,
+    selector,
+    text,
+  );
+}
+async function clickText(selector, text) {
+  const element = await textElement(selector, text);
+  await command('POST', `/session/${session}/element/${element[elementKey]}/click`, {});
+}
+async function field(label) {
+  return wait(
+    (label) =>
+      Array.from(document.querySelectorAll('label')).find(
+        (element) => element.textContent.replace(/\s*\*\s*$/, '').trim() === label,
+      )?.control,
+    `field ${label}`,
+    label,
+  );
+}
+async function fillLabel(label, text) {
+  const element = await field(label);
+  await command('POST', `/session/${session}/element/${element[elementKey]}/clear`, {});
+  if (text)
+    await command('POST', `/session/${session}/element/${element[elementKey]}/value`, { text });
+}
+async function valueLabel(label) {
+  const element = await field(label);
+  return command('GET', `/session/${session}/element/${element[elementKey]}/property/value`);
+}
+async function theme(value) {
+  // Safari's native select popup is outside the web context on iOS. Use its change event
+  // for theme setup; interaction assertions continue through WebDriver click/sendkeys.
+  await execute((value) => {
+    const select = document.querySelector('select[aria-label="Theme"]');
+    select.value = value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
+  await wait(
+    (dark) => document.querySelector('.kfp-theme')?.classList.contains('dark') === dark,
+    `${value} theme`,
+    value === 'dark',
+  );
 }
 const visibleNode = (selector) => {
   const node = document.querySelector(selector);
@@ -122,7 +203,7 @@ const visibleNode = (selector) => {
 };
 
 try {
-  const capabilities = { browserName, acceptInsecureCerts: false };
+  const capabilities = { ...extraCapabilities, browserName, acceptInsecureCerts: false };
   if (browserName === 'firefox') {
     capabilities['moz:firefoxOptions'] = {
       ...(process.env.KFP_FIREFOX_BINARY ? { binary: process.env.KFP_FIREFOX_BINARY } : {}),
@@ -130,22 +211,37 @@ try {
       prefs: { 'app.update.auto': false, 'browser.shell.checkDefaultBrowser': false },
     };
   }
+  if (mobile) {
+    assert.equal(browserName, 'safari');
+    assert.equal(capabilities.platformName?.toLowerCase(), 'ios');
+    assert.ok(process.env.KFP_EXPECTED_PLATFORM_VERSION, 'Exact iOS runtime version required');
+    assert.equal(capabilities['appium:platformVersion'], process.env.KFP_EXPECTED_PLATFORM_VERSION);
+  }
   const created = await command('POST', '/session', {
     capabilities: { alwaysMatch: capabilities },
   });
   session = created.sessionId;
   report.capabilities = created.capabilities;
-  assert.equal(
-    created.capabilities.browserVersion,
-    expectedVersion,
-    'must run the requested real version',
-  );
+  if (mobile) {
+    assert.equal(
+      created.capabilities['appium:platformVersion'] || created.capabilities.platformVersion,
+      process.env.KFP_EXPECTED_PLATFORM_VERSION,
+      'must run requested iOS runtime',
+    );
+  } else {
+    assert.equal(
+      created.capabilities.browserVersion,
+      expectedVersion,
+      'must run the requested real version',
+    );
+  }
   await command('POST', `/session/${session}/timeouts`, {
     implicit: 0,
     pageLoad: 30000,
     script: 10000,
   });
-  await command('POST', `/session/${session}/window/rect`, { width: 1440, height: 900 });
+  if (!mobile)
+    await command('POST', `/session/${session}/window/rect`, { width: 1440, height: 900 });
   await command('POST', `/session/${session}/url`, { url: new URL('#/runs', base).href });
   await wait(
     () => document.querySelectorAll('[data-testid="run-name-link"]').length === 4,
@@ -156,7 +252,16 @@ try {
     width: innerWidth,
     height: innerHeight,
     dpr: devicePixelRatio,
+    maxTouchPoints: navigator.maxTouchPoints,
   }));
+  if (mobile) {
+    assert.equal(
+      report.environment.userAgent.match(/Version\/([\d.]+)/)?.[1],
+      expectedVersion,
+      'must run requested Safari version',
+    );
+    assert.ok(report.environment.maxTouchPoints > 0, 'mobile lane must expose a touch device');
+  }
   await execute(() => {
     window.floorErrors = [];
     addEventListener('error', (event) => window.floorErrors.push(event.message));
@@ -245,47 +350,175 @@ try {
     await wait(visibleNode, 'graph remains measured after close', nodeSelector);
     return geometry;
   });
-  await check('Pipelines cards and keyboard selection', async () => {
-    await click('a[aria-label="Pipelines"]');
-    await wait(
-      () => document.querySelectorAll('[data-testid="pipeline-card"]').length === 4,
-      'four pipeline cards',
-    );
-    await type('input[placeholder="Filter pipelines"]', 'XGBoost');
-    await wait(
-      () => document.querySelectorAll('[data-testid="pipeline-card"]').length === 1,
-      'one pipeline card',
-    );
-    const selector = '[role="checkbox"][aria-label="Select pipeline XGBoost"]';
-    await wait(
-      (s) => {
-        const checkbox = document.querySelector(s);
-        return (
-          checkbox &&
-          checkbox.getAttribute('aria-disabled') !== 'true' &&
-          document.querySelector('ul[aria-label="Pipelines"]')?.getAttribute('aria-busy') ===
-            'false'
+  await check(
+    mobile ? 'Pipelines cards and touch selection' : 'Pipelines cards and keyboard selection',
+    async () => {
+      if (mobile) await navigate('#/pipelines');
+      else await click('a[aria-label="Pipelines"]');
+      await wait(
+        () => document.querySelectorAll('[data-testid="pipeline-card"]').length === 4,
+        'four pipeline cards',
+      );
+      await type('input[placeholder="Filter pipelines"]', 'XGBoost');
+      await wait(
+        () => document.querySelectorAll('[data-testid="pipeline-card"]').length === 1,
+        'one pipeline card',
+      );
+      const selector = '[role="checkbox"][aria-label="Select pipeline XGBoost"]';
+      await wait(
+        (s) => {
+          const checkbox = document.querySelector(s);
+          return (
+            checkbox &&
+            checkbox.getAttribute('aria-disabled') !== 'true' &&
+            document.querySelector('ul[aria-label="Pipelines"]')?.getAttribute('aria-busy') ===
+              'false'
+          );
+        },
+        'filtered pipeline selection enabled',
+        selector,
+      );
+      await click(selector);
+      await wait(
+        (s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true',
+        'pipeline selected',
+        selector,
+      );
+      if (mobile) await click(selector);
+      else await key(' ');
+      await wait(
+        (s) => document.querySelector(s)?.getAttribute('aria-checked') === 'false',
+        'Space deselects pipeline',
+        selector,
+      );
+      await screenshot('pipeline-cards');
+    },
+  );
+  await check(
+    'Pipeline details load production YAML editor and retain read-only content',
+    async () => {
+      const id = '8fbe3bd6-a01f-11e8-98d0-529269fb1460';
+      await navigate(`#/pipelines/details/${id}/version/${id}`);
+      await wait(visibleNode, 'pipeline graph', '[data-testid="DagCanvas"]');
+      await clickText('[role="tab"]', 'Pipeline Spec');
+      await wait(
+        () =>
+          !!document.querySelector('.ace_editor .ace_content') &&
+          document.querySelector('[data-testid="spec-ir"]')?.textContent.includes('pipelineInfo'),
+        'rendered pipeline spec',
+      );
+      const before = await execute(
+        () => document.querySelector('.ace_editor .ace_content').textContent,
+      );
+      if (!mobile) {
+        await type('.ace_text-input', 'read-only-check');
+        assert.equal(
+          await execute(() => document.querySelector('.ace_editor .ace_content').textContent),
+          before,
         );
-      },
-      'filtered pipeline selection enabled',
-      selector,
-    );
-    await click(selector);
+      }
+      await screenshot('pipeline-spec-light');
+      await theme('dark');
+      await screenshot('pipeline-spec-dark');
+      await theme('light');
+      return { renderedCharacters: before.length, readOnlyTypingChecked: !mobile };
+    },
+  );
+  await check('Pipeline import draft validates required fields and local-file choice', async () => {
+    await navigate('#/pipeline_versions/new');
+    await fillLabel('Pipeline Name', 'native-browser-draft');
+    await fillLabel('Package Url', 'https://example.test/fixture.yaml');
+    assert.equal(await valueLabel('Pipeline Name'), 'native-browser-draft');
+    await clickText('label', 'Upload a file');
     await wait(
-      (s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true',
-      'pipeline selected',
-      selector,
+      () =>
+        !!document.querySelector('input[type="file"]') &&
+        !document.querySelector('input[type="file"]').disabled,
+      'file upload enabled',
     );
-    await key(' ');
-    await wait(
-      (s) => document.querySelector(s)?.getAttribute('aria-checked') === 'false',
-      'Space deselects pipeline',
-      selector,
+    const create = await textElement('button', 'Create');
+    assert.equal(
+      await command('GET', `/session/${session}/element/${create[elementKey]}/property/disabled`),
+      true,
+      'upload draft without a file cannot submit',
     );
-    await screenshot('pipeline-cards');
+    await screenshot('pipeline-upload-draft');
+    return { submitted: false, fileChooser: 'enabled', missingPackageRejected: true };
+  });
+  await check('New experiment draft preserves name and description', async () => {
+    await navigate('#/experiments/new');
+    await fillLabel('Experiment name', 'Native browser experiment');
+    await fillLabel('Description', 'Unsubmitted automated qualification draft');
+    assert.equal(await valueLabel('Experiment name'), 'Native browser experiment');
+    assert.equal(await valueLabel('Description'), 'Unsubmitted automated qualification draft');
+    await screenshot('experiment-draft');
+    return { submitted: false };
   });
   await check(
-    'Switch pointer and Space activation preserve unsubmitted feature state',
+    'One-off and recurring creation retain pipeline and editable form state',
+    async () => {
+      const id = '8fbe3bd6-a01f-11e8-98d0-529269fb1460';
+      await navigate(
+        `#/runs/new?pipelineId=${id}&pipelineVersionId=${id}&experimentId=275ea11d-ac63-4ce3-bc33-ec81981ed56b`,
+      );
+      await field('Run name');
+      await wait(
+        () =>
+          Array.from(document.querySelectorAll('input')).some(
+            (input) => input.value === 'Python two steps',
+          ),
+        'selected pipeline loaded',
+      );
+      await fillLabel('Run name', 'Native workflow draft');
+      await fillLabel('Description', 'Retained between run types');
+      await clickText('label', 'Recurring');
+      assert.equal(await valueLabel('Recurring run config name'), 'Native workflow draft');
+      await fillLabel('Maximum concurrent runs', '3');
+      assert.equal(await valueLabel('Maximum concurrent runs'), '3');
+      await screenshot('recurring-run-draft');
+      await clickText('label', 'One-off');
+      assert.equal(await valueLabel('Run name'), 'Native workflow draft');
+      assert.equal(await valueLabel('Description'), 'Retained between run types');
+      await screenshot('one-off-run-draft');
+      return { submitted: false, pipeline: 'Python two steps', concurrency: 3 };
+    },
+  );
+  await check('Artifact details, related tasks and directed lineage load', async () => {
+    await navigate('#/artifacts');
+    await clickText('a', 'mock-dataset');
+    await wait(() => document.body.innerText.includes('mock-artifact-1'), 'artifact metadata');
+    await clickText('[role="tab"]', 'Related tasks');
+    await wait(
+      () => document.querySelector('table[aria-label="Related tasks"] a'),
+      'related task navigation',
+    );
+    const links = await execute(() =>
+      Array.from(document.querySelectorAll('table[aria-label="Related tasks"] a'), (element) => ({
+        text: element.textContent,
+        href: element.getAttribute('href'),
+      })),
+    );
+    assert.ok(
+      links.some((link) => link.href.includes('/runs/details/') && link.href.includes('task=')),
+    );
+    await clickText('[role="tab"]', 'Lineage Explorer');
+    await wait(
+      () =>
+        !!document.querySelector('[aria-label="Lineage history"]') &&
+        !!document.querySelector('[aria-label^="Producer "]') &&
+        !!document.querySelector('[aria-label^="Consumer "]'),
+      'producer and consumer lineage',
+    );
+    await screenshot('artifact-lineage-light');
+    await theme('dark');
+    await screenshot('artifact-lineage-dark');
+    await theme('light');
+    return { relatedTasks: links };
+  });
+  await check(
+    mobile
+      ? 'Switch touch activation preserves unsubmitted feature state'
+      : 'Switch pointer and Space activation preserve unsubmitted feature state',
     async () => {
       await execute(() => {
         location.hash = '#/frontend_features';
@@ -307,7 +540,8 @@ try {
         selector,
         before.checked,
       );
-      await key(' ');
+      if (mobile) await click(selector);
+      else await key(' ');
       await wait(
         (s, original) => document.querySelector(s)?.getAttribute('aria-checked') === original,
         'Space restores feature draft',
@@ -347,53 +581,80 @@ try {
         )
       );
     }, 'two selected runs and loaded comparison');
+    const checkbox = '[role="checkbox"][aria-label="Select run Python two steps"]';
+    await click(checkbox);
+    await wait(
+      (selector) => document.querySelector(selector)?.getAttribute('aria-checked') === 'false',
+      'comparison run deselected',
+      checkbox,
+    );
+    await click(checkbox);
+    await wait(
+      (selector) => document.querySelector(selector)?.getAttribute('aria-checked') === 'true',
+      'comparison run selected again',
+      checkbox,
+    );
     await screenshot('comparison');
     return { selectedRuns: 2, parameters: 'empty fixture', scalarMetrics: 'empty fixture' };
   });
-  await check('dark theme and narrow command-dialog keyboard containment', async () => {
-    await click('select[aria-label="Theme"] option[value="dark"]');
-    await wait(
-      () => document.querySelector('.kfp-theme')?.classList.contains('dark'),
-      'dark theme',
-    );
-    const colors = await execute(() => {
-      const el = document.querySelector('.kfp-theme');
-      const style = getComputedStyle(el);
-      return { foreground: style.color, background: style.backgroundColor };
-    });
-    assert.notEqual(colors.foreground, colors.background);
-    await command('POST', `/session/${session}/window/rect`, { width: 600, height: 900 });
-    await click('button[aria-label="Search"]');
-    await wait(
-      () =>
-        document.activeElement?.getAttribute('aria-label') ===
-        'Search pipelines, experiments, and runs',
-      'dialog autofocus',
-    );
-    await key('\uE004', true);
-    await wait(() => {
-      const dialog = document.querySelector('.kfp-page-dialog[role="dialog"]');
-      const close = dialog?.querySelector('.kfp-command-footer button');
-      return close?.textContent === 'Close' && document.activeElement === close;
-    }, 'Shift+Tab wraps to final Close button');
-    await key('\uE004');
-    await wait(
-      () =>
-        document.activeElement?.getAttribute('aria-label') ===
-        'Search pipelines, experiments, and runs',
-      'Tab wraps back to input',
-    );
-    await screenshot('command-dialog-narrow-dark');
-    await key('\uE00C');
-    await wait(
-      () =>
-        !document.querySelector('.kfp-page-dialog[role="dialog"]') &&
-        document.activeElement?.getAttribute('aria-label') === 'Search',
-      'Escape closes and returns focus',
-    );
-    assert.equal(await execute(() => document.documentElement.scrollWidth <= innerWidth), true);
-    return colors;
-  });
+  await check(
+    mobile
+      ? 'dark theme and mobile command-dialog dismissal'
+      : 'dark theme and narrow command-dialog keyboard containment',
+    async () => {
+      await theme('dark');
+      await wait(
+        () => document.querySelector('.kfp-theme')?.classList.contains('dark'),
+        'dark theme',
+      );
+      const colors = await execute(() => {
+        const el = document.querySelector('.kfp-theme');
+        const style = getComputedStyle(el);
+        return { foreground: style.color, background: style.backgroundColor };
+      });
+      assert.notEqual(colors.foreground, colors.background);
+      if (!mobile)
+        await command('POST', `/session/${session}/window/rect`, { width: 600, height: 900 });
+      await click('button[aria-label="Search"]');
+      await wait(
+        () =>
+          document.activeElement?.getAttribute('aria-label') ===
+          'Search pipelines, experiments, and runs',
+        'dialog autofocus',
+      );
+      if (!mobile) {
+        await key('\uE004', true);
+        await wait(() => {
+          const dialog = document.querySelector('.kfp-page-dialog[role="dialog"]');
+          const close = dialog?.querySelector('.kfp-command-footer button');
+          return close?.textContent === 'Close' && document.activeElement === close;
+        }, 'Shift+Tab wraps to final Close button');
+        await key('\uE004');
+        await wait(
+          () =>
+            document.activeElement?.getAttribute('aria-label') ===
+            'Search pipelines, experiments, and runs',
+          'Tab wraps back to input',
+        );
+      }
+      await screenshot('command-dialog-narrow-dark');
+      if (mobile) await click('.kfp-command-footer button');
+      else await key('\uE00C');
+      await wait(
+        (isMobile) =>
+          !document.querySelector('.kfp-page-dialog[role="dialog"]') &&
+          (isMobile || document.activeElement?.getAttribute('aria-label') === 'Search'),
+        'dialog closes and desktop focus returns',
+        mobile,
+      );
+      assert.equal(await execute(() => document.documentElement.scrollWidth <= innerWidth), true);
+      return colors;
+    },
+  );
+  const fixture = await (await fetch(new URL('/__qualification', base))).json();
+  report.fixture = fixture;
+  assert.deepEqual(fixture.mutations, [], 'drafts must not submit backend mutations');
+  assert.deepEqual(fixture.missingAssets, [], 'production assets must load without missing files');
   report.errors = await execute(() => window.floorErrors);
   assert.deepEqual(report.errors, []);
   report.status = 'passed';

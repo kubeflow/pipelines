@@ -55,6 +55,15 @@ stable/enterprise/Safari release matrix below. Each lane must pass and retain it
 actual browser version, OS/source identity, bundle hashes and test outcomes. A
 failed lane must not be hidden by a successful lane or `continue-on-error`.
 
+Browser qualification runs on disposable hosted CI runners; workstation browser
+installation and local Safari/Xcode setup are not prerequisites. The separate
+[hosted qualification workflow](../../.github/workflows/frontend-browser-qualification.yml)
+runs weekly and on demand for releases, with PR validation when its tooling changes.
+Its [dated catalog and coverage report](ui-modernization/hosted-browser-qualification.md)
+separate supported-version evidence from supplementary builds and unavailable slots.
+Refresh exact channel pins before release; a successful dated run does not prove
+that later vendor releases have been tested.
+
 Actual Safari and iOS/iPadOS qualification uses automated native-browser/device
 sessions. Unavailable environments remain coverage gaps. Investigate
 [BrowserStack's open-source program](https://www.browserstack.com/open-source) for
