@@ -400,6 +400,18 @@ plan. Document untested screen-reader/speech-control behavior and device gaps;
 automated checks and primitive-library accessibility do not establish blanket
 WCAG conformance or accessibility of every assembled workflow.
 
+Browser qualification runs on disposable hosted CI runners; workstation browser
+installation and local Safari/Xcode setup are not delivery prerequisites. Keep the
+nine-engine PR matrix and add scheduled/on-demand release qualification from a
+dated exact-version manifest. Native Firefox/Safari/iPhone/iPad fixtures extend
+coverage beyond the initial smoke checks; publish their narrower read/draft scope
+separately from full production mutation/recovery coverage. Fail selected lanes on
+version drift or unavailable runtimes, and retain exact browser/OS/build identity,
+asset hashes and failure logs. Missing policy versions and physical devices remain
+explicit gaps for the tracked BrowserStack investigation. The implementation's
+[hosted qualification report](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/ui-modernization/hosted-browser-qualification.md)
+records configured versions and verified results.
+
 #### Performance and release evidence
 
 Run `npm run analyze-bundle` on base and candidate. Record production JS/CSS/font
