@@ -376,7 +376,14 @@ async function focused(page, locator) {
   const element = await locator.elementHandle();
   assert.ok(element);
   try {
-    await page.waitForFunction((node) => node === document.activeElement, element);
+    try {
+      await page.waitForFunction((node) => node === document.activeElement, element);
+    } catch (error) {
+      const actual = await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 500));
+      throw new Error(`Expected focus on ${locator}; actual active element: ${actual}`, {
+        cause: error,
+      });
+    }
   } finally {
     await element.dispose();
   }
@@ -649,12 +656,25 @@ test('Command palette searches the active namespace and preserves keyboard navig
     );
     await page.keyboard.press('ArrowDown');
     await focused(page, dialog.getByRole('link', { name: 'Training 01', exact: true }));
+    await page.keyboard.press('ArrowDown');
+    await focused(page, dialog.getByRole('link', { name: 'Training 02', exact: true }));
+    await page.keyboard.press('ArrowUp');
+    await focused(page, dialog.getByRole('link', { name: 'Training 01', exact: true }));
     // Safari's default macOS keyboard policy includes links with Option-Tab.
     // https://support.apple.com/guide/safari/cpsh003/mac
+    // Windows WebKit defaults TabsToLinks=false and has no Option-Tab inversion.
+    // Assert its exact native Tab destination as well as arrow-key reachability.
+    // https://github.com/WebKit/WebKit/blob/486de399887bc8fa8a69e2f194ebc9476589a08a/Source/WTF/Scripts/Preferences/UnifiedWebPreferences.yaml#L7162
+    const windowsWebKit = process.env.KFP_BROWSER === 'webkit' && process.platform === 'win32';
     await page.keyboard.press(
       process.env.KFP_BROWSER === 'webkit' && process.platform === 'darwin' ? 'Alt+Tab' : 'Tab',
     );
-    await focused(page, dialog.getByRole('link', { name: 'Training 02', exact: true }));
+    await focused(
+      page,
+      windowsWebKit
+        ? dialog.getByRole('button', { name: 'Close', exact: true })
+        : dialog.getByRole('link', { name: 'Training 02', exact: true }),
+    );
     await input.focus();
     await page.keyboard.press('Shift+Tab');
     await focused(page, dialog.getByRole('button', { name: 'Close', exact: true }));
