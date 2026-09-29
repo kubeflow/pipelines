@@ -55,6 +55,14 @@ runtime builds as well as marketing versions. The current Chrome vendor URL is
 mutable; signed-app and exact-version checks reject a changed release. Chrome for
 Testing is not substituted for a missing exact end-user Chrome patch.
 
+Actual vendor releases require strict app-signature and vendor-team verification.
+The two supplementary Chrome for Testing archives have observed linker ad-hoc
+signatures without vendor resource seals. They instead require reviewed SHA-256
+pins matching two hosted downloads, a pinned official Google Storage object
+generation, and matching vendor MD5 and size. Their recorded packaging identity
+and exact browser version must also match. Edge updates are disabled only on the
+disposable qualification runner so later suites cannot receive a different major.
+
 ## Native workflow coverage
 
 The native suite extends the earlier seven-smoke checkpoint to 12 checks: platform

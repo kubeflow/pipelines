@@ -21,6 +21,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   assertAppIdentity,
+  assertArchiveObject,
   browserUpdatePolicy,
   assertChecksum,
   manifestPath,
@@ -88,7 +89,8 @@ test('dated manifest separates installable exact artifacts from unresolved polic
     assert.equal(new URL(row.source).protocol, 'https:');
     assert.ok(['chromium', 'firefox'].includes(row.browser));
     assert.ok(['dmg', 'pkg', 'zip'].includes(row.kind));
-    assert.match(row.teamId, /^[A-Z0-9]{10}$/);
+    if (row.verification === 'cft-archive') assert.equal(row.teamId, null);
+    else assert.match(row.teamId, /^[A-Z0-9]{10}$/);
     assert.equal(row.platform, 'darwin');
     assert.equal(row.architecture, 'arm64');
     if (row.sha256 !== null) assert.match(row.sha256, /^[a-f0-9]{64}$/);
@@ -113,5 +115,43 @@ test('only Edge receives the vendor-documented disabled-update policy', async ()
       assert.match(policy.plist, /<key>UpdateDefault<\/key><integer>3<\/integer>/);
       assert.match(policy.source, /^https:\/\/learn\.microsoft\.com\//);
     } else assert.equal(policy, null);
+  }
+});
+
+test('CfT archive checks reject changed metadata, scope expansion and signing identity', async () => {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const browser = selectBrowser(manifest, 'chrome-testing-current');
+  const metadata = browser.archiveObject;
+  assert.doesNotThrow(() => assertArchiveObject(metadata, metadata));
+  for (const key of ['bucket', 'name', 'generation', 'size', 'md5Hash']) {
+    assert.throws(
+      () => assertArchiveObject(metadata, { ...metadata, [key]: 'changed' }),
+      /reviewed pin/,
+    );
+  }
+  for (const overrides of [
+    { qualification: 'policy' },
+    { sha256: null },
+    { url: 'https://example.test/archive.zip' },
+    { teamId: 'EQHXZ8M8AV' },
+    { archiveObject: { ...metadata, name: 'different.zip' } },
+  ]) {
+    assert.throws(
+      () => selectBrowser({ browsers: [{ ...browser, ...overrides }] }, browser.id),
+      /exact supplementary Google artifact pins/,
+    );
+  }
+  const signature = 'Signature=adhoc\nTeamIdentifier=not set\nSealed Resources=none\n';
+  assert.doesNotThrow(() => assertAppIdentity(browser, browser.version, signature));
+  assert.throws(() => assertAppIdentity(browser, '0.0', signature), /version changed/);
+  assert.throws(
+    () => assertAppIdentity(browser, browser.version, 'TeamIdentifier=EQHXZ8M8AV'),
+    /packaging changed/,
+  );
+  for (const actualBrowser of manifest.browsers.filter((row) => row.qualification === 'policy')) {
+    assert.throws(
+      () => assertAppIdentity(actualBrowser, actualBrowser.version, signature),
+      /code signature team/,
+    );
   }
 });

@@ -50,6 +50,29 @@ export function selectBrowser(manifest, id) {
   if (!/^[a-z0-9-]+$/.test(browser.id) || !/^\d+(\.\d+)+$/.test(browser.version)) {
     throw new Error('Browser manifest contains an invalid identity or version.');
   }
+  if (browser.verification === 'cft-archive') {
+    const object = browser.archiveObject;
+    const name = `${browser.version}/mac-arm64/chrome-mac-arm64.zip`;
+    if (
+      browser.qualification !== 'supplementary' ||
+      browser.kind !== 'zip' ||
+      browser.appName !== 'Google Chrome for Testing.app' ||
+      browser.teamId !== null ||
+      browser.url !== `https://storage.googleapis.com/chrome-for-testing-public/${name}` ||
+      !/^[a-f0-9]{64}$/.test(browser.sha256 || '') ||
+      object?.bucket !== 'chrome-for-testing-public' ||
+      object.name !== name ||
+      !/^\d+$/.test(object.generation) ||
+      !/^\d+$/.test(object.size) ||
+      !/^[A-Za-z0-9+/]{22}==$/.test(object.md5Hash) ||
+      object.metadataSource !==
+        `https://storage.googleapis.com/storage/v1/b/${object.bucket}/o/${encodeURIComponent(name)}?generation=${object.generation}`
+    ) {
+      throw new Error(
+        'Chrome for Testing archive verification requires exact supplementary Google artifact pins.',
+      );
+    }
+  }
   return browser;
 }
 
@@ -67,10 +90,23 @@ function command(executable, args, timeout = 120_000) {
   return `${result.stdout || ''}${result.stderr || ''}`;
 }
 
-async function sha256(path) {
-  const digest = createHash('sha256');
-  for await (const chunk of createReadStream(path)) digest.update(chunk);
-  return digest.digest('hex');
+async function archiveDigests(path) {
+  const sha256 = createHash('sha256');
+  const md5 = createHash('md5');
+  let size = 0;
+  for await (const chunk of createReadStream(path)) {
+    sha256.update(chunk);
+    md5.update(chunk);
+    size += chunk.length;
+  }
+  return { sha256: sha256.digest('hex'), md5Hash: md5.digest('base64'), size: String(size) };
+}
+
+export function assertArchiveObject(expected, actual) {
+  for (const key of ['bucket', 'name', 'generation', 'size', 'md5Hash']) {
+    if (expected[key] !== actual[key])
+      throw new Error(`Google archive object ${key} differs from its reviewed pin.`);
+  }
 }
 
 export function assertChecksum(expected, actual) {
@@ -78,7 +114,7 @@ export function assertChecksum(expected, actual) {
     throw new Error('Downloaded artifact SHA-256 does not match the vendor pin.');
 }
 
-async function download(url, destination, expectedHash) {
+async function download(url, destination, expectedHash, archiveObject) {
   if (new URL(url).protocol !== 'https:') throw new Error('Browser downloads require HTTPS.');
   command(
     'curl',
@@ -99,9 +135,22 @@ async function download(url, destination, expectedHash) {
     ],
     360_000,
   );
-  const digest = await sha256(destination);
-  assertChecksum(expectedHash, digest);
-  return { url, sha256: digest, vendorChecksumVerified: Boolean(expectedHash) };
+  const digests = await archiveDigests(destination);
+  assertChecksum(expectedHash, digests.sha256);
+  if (archiveObject) {
+    assertArchiveObject(archiveObject, { ...archiveObject, ...digests });
+  }
+  return {
+    url,
+    ...digests,
+    vendorChecksumVerified: Boolean(expectedHash),
+    vendorChecksumAlgorithm: archiveObject ? 'MD5' : expectedHash ? 'SHA-256' : null,
+    sha256Source: archiveObject
+      ? 'reviewed-hosted-downloads'
+      : expectedHash
+        ? 'vendor'
+        : 'observed',
+  };
 }
 
 async function findApps(directory, name) {
@@ -147,6 +196,13 @@ export function assertAppIdentity(browser, actualVersion, signature) {
     throw new Error(
       `Browser version changed: expected ${browser.version}, found ${actualVersion}. Review the dated manifest.`,
     );
+  }
+  if (browser.verification === 'cft-archive') {
+    for (const expected of ['Signature=adhoc', 'TeamIdentifier=not set', 'Sealed Resources=none']) {
+      if (!signature.split('\n').includes(expected))
+        throw new Error('Chrome for Testing packaging changed; review its archive identity.');
+    }
+    return;
   }
   if (!signature.split('\n').includes(`TeamIdentifier=${browser.teamId}`)) {
     throw new Error('Browser code signature team does not match the expected vendor.');
@@ -229,7 +285,24 @@ export async function installBrowser(id, env = process.env) {
       };
     }
     const archive = join(directory, `browser.${browser.kind}`);
-    provenance.download = await download(browser.url, archive, browser.sha256);
+    let downloadUrl = browser.url;
+    if (browser.verification === 'cft-archive') {
+      const response = await fetch(browser.archiveObject.metadataSource, {
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!response.ok)
+        throw new Error(`Google archive metadata request failed: ${response.status}`);
+      const metadata = await response.json();
+      assertArchiveObject(browser.archiveObject, metadata);
+      provenance.archiveObject = metadata;
+      downloadUrl += `?generation=${browser.archiveObject.generation}`;
+    }
+    provenance.download = await download(
+      downloadUrl,
+      archive,
+      browser.sha256,
+      browser.archiveObject,
+    );
     if (browser.kind === 'zip') {
       provenance.archiveSignatureEntries = command('unzip', ['-Z', '-1', archive])
         .split('\n')
@@ -245,8 +318,14 @@ export async function installBrowser(id, env = process.env) {
     ]).trim();
     provenance.actualVersion = version;
     // Keep signature diagnostics even when resource-seal verification fails.
-    command('codesign', ['--verify', '--deep', '--strict', app]);
+    if (browser.verification !== 'cft-archive') {
+      command('codesign', ['--verify', '--deep', '--strict', app]);
+    }
     assertAppIdentity(browser, version, signature);
+    provenance.signatureVerification =
+      browser.verification === 'cft-archive'
+        ? 'Ad-hoc linker signature observed; archive verified using reviewed SHA-256 and pinned Google Storage generation, size and MD5. No vendor resource seal exists.'
+        : 'Strict resource seal and vendor signing team verified';
     const binary = join(app, 'Contents', 'MacOS', browser.executable);
     let driver = '';
     if (browser.browser === 'firefox') {

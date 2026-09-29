@@ -6,7 +6,8 @@
     "Exact versions are a dated snapshot; review rolling policy channels before release.",
     "Chrome for Testing rows supplement policy coverage and do not qualify a different vendor patch.",
     "Chrome stable URL is mutable; strict signature and version validation fails if the channel changes.",
-    "No vendor SHA-256 is published in the Chrome download metadata; record the acquired hash and verify the signed app."
+    "No vendor SHA-256 is published in the Chrome download metadata; record the acquired hash and verify the signed app.",
+    "The two supplementary Mac Chrome for Testing archives have linker ad-hoc signatures, no vendor TeamIdentifier and no resource seal. Their reviewed SHA-256 pins agree across two hosted downloads; CI also verifies pinned Google Storage generation, size and vendor MD5. This is archive integrity, not Developer ID signature qualification."
   ],
   "browsers": [
     {
@@ -33,15 +34,28 @@
       "version": "154.0.8037.57",
       "kind": "zip",
       "url": "https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.57/mac-arm64/chrome-mac-arm64.zip",
-      "sha256": null,
+      "sha256": "0e6b3439469c1b8b95b2e89c72ea29f7af00fb2c28a8878358a0b6002b6d3a64",
       "checksumSource": null,
       "platform": "darwin",
       "architecture": "arm64",
       "appName": "Google Chrome for Testing.app",
       "executable": "Google Chrome for Testing",
-      "teamId": "EQHXZ8M8AV",
+      "teamId": null,
       "qualification": "supplementary",
-      "source": "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
+      "source": "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json",
+      "verification": "cft-archive",
+      "sha256Source": [
+        "https://github.com/kubeflow/pipelines/actions/runs/36577337982",
+        "https://github.com/kubeflow/pipelines/actions/runs/36579511088"
+      ],
+      "archiveObject": {
+        "bucket": "chrome-for-testing-public",
+        "name": "154.0.8037.57/mac-arm64/chrome-mac-arm64.zip",
+        "generation": "1790048159653596",
+        "size": "191429663",
+        "md5Hash": "TsIlmo+9Ym7Xr8cEuw69TQ==",
+        "metadataSource": "https://storage.googleapis.com/storage/v1/b/chrome-for-testing-public/o/154.0.8037.57%2Fmac-arm64%2Fchrome-mac-arm64.zip?generation=1790048159653596"
+      }
     },
     {
       "id": "chrome-testing-previous",
@@ -50,15 +64,28 @@
       "version": "153.0.8010.52",
       "kind": "zip",
       "url": "https://storage.googleapis.com/chrome-for-testing-public/153.0.8010.52/mac-arm64/chrome-mac-arm64.zip",
-      "sha256": null,
+      "sha256": "6f67faa4b34dd551b53abb6fee24edeae470ab695b0b100ddc4885ff0be6724a",
       "checksumSource": null,
       "platform": "darwin",
       "architecture": "arm64",
       "appName": "Google Chrome for Testing.app",
       "executable": "Google Chrome for Testing",
-      "teamId": "EQHXZ8M8AV",
+      "teamId": null,
       "qualification": "supplementary",
-      "source": "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
+      "source": "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json",
+      "verification": "cft-archive",
+      "sha256Source": [
+        "https://github.com/kubeflow/pipelines/actions/runs/36577337982",
+        "https://github.com/kubeflow/pipelines/actions/runs/36579511088"
+      ],
+      "archiveObject": {
+        "bucket": "chrome-for-testing-public",
+        "name": "153.0.8010.52/mac-arm64/chrome-mac-arm64.zip",
+        "generation": "1789628161734392",
+        "size": "191015853",
+        "md5Hash": "yx+IWXOwGckiD27X2zhI2g==",
+        "metadataSource": "https://storage.googleapis.com/storage/v1/b/chrome-for-testing-public/o/153.0.8010.52%2Fmac-arm64%2Fchrome-mac-arm64.zip?generation=1789628161734392"
+      }
     },
     {
       "id": "edge-stable",
