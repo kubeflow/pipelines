@@ -98,6 +98,8 @@ func TestRecurringRunUsesStoredInputsAndStillRequiresCallerServiceAccountPermiss
 	require.NoError(t, err)
 	swf.Spec.ServiceAccount = "privileged-sa"
 	swf.Spec.PipelineId = "attacker-pipeline"
+	require.Nil(t, swf.Spec.Workflow, "new multi-user schedules must use the API")
+	swf.Spec.Workflow = &swfapi.WorkflowResource{}
 	swf.Spec.Workflow.PipelineRoot = "s3://attacker"
 	swf.Spec.Workflow.Parameters = []swfapi.Parameter{{Name: "param1", Value: "attacker"}}
 	_, err = swfs.Update(ctx, swf)
