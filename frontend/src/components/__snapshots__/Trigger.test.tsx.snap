@@ -52,7 +52,7 @@ exports[`Trigger > enables a single day on click 1`] = `
         class="kfp-text-field-control"
       >
         <input
-          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
           id="_r_3h_"
           inputmode="numeric"
@@ -106,7 +106,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_3n_"
               type="date"
@@ -127,7 +127,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_3p_"
               type="time"
@@ -188,7 +188,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_3v_"
               type="date"
@@ -209,7 +209,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_41_"
               type="time"
@@ -490,7 +490,7 @@ exports[`Trigger > enables a single day on click 1`] = `
           class="kfp-text-field-control"
         >
           <input
-            class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+            class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
             data-disabled=""
             data-slot="input"
             disabled=""
@@ -561,7 +561,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
         class="kfp-text-field-control"
       >
         <input
-          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
           id="_r_2i_"
           inputmode="numeric"
@@ -615,7 +615,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_2o_"
               type="date"
@@ -636,7 +636,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_2q_"
               type="time"
@@ -697,7 +697,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_30_"
               type="date"
@@ -718,7 +718,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_32_"
               type="time"
@@ -999,7 +999,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
           class="kfp-text-field-control"
         >
           <input
-            class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+            class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
             data-disabled=""
             data-slot="input"
             disabled=""
@@ -1070,7 +1070,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
         class="kfp-text-field-control"
       >
         <input
-          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
           id="_r_0_"
           inputmode="numeric"
@@ -1124,7 +1124,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_6_"
               type="date"
@@ -1145,7 +1145,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_8_"
               type="time"
@@ -1206,7 +1206,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_e_"
               type="date"
@@ -1227,7 +1227,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_g_"
               type="time"
@@ -1333,7 +1333,7 @@ exports[`Trigger > renders periodic schedule controls for initial render 1`] = `
             class="kfp-text-field-control"
           >
             <input
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_l_"
               min="1"
@@ -1438,7 +1438,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
         class="kfp-text-field-control"
       >
         <input
-          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
           id="_r_n_"
           inputmode="numeric"
@@ -1492,7 +1492,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_t_"
               type="date"
@@ -1513,7 +1513,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_v_"
               type="time"
@@ -1574,7 +1574,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_15_"
               type="date"
@@ -1595,7 +1595,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_17_"
               type="time"
@@ -1772,7 +1772,7 @@ exports[`Trigger > renders periodic schedule controls if the trigger type is CRO
           class="kfp-text-field-control"
         >
           <input
-            class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+            class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
             data-disabled=""
             data-slot="input"
             disabled=""
@@ -1843,7 +1843,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
         class="kfp-text-field-control"
       >
         <input
-          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+          class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
           data-slot="input"
           id="_r_1j_"
           inputmode="numeric"
@@ -1897,7 +1897,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_1p_"
               type="date"
@@ -1918,7 +1918,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_1r_"
               type="time"
@@ -1979,7 +1979,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_21_"
               type="date"
@@ -2000,7 +2000,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           >
             <input
               aria-invalid="false"
-              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+              class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
               data-slot="input"
               id="_r_23_"
               type="time"
@@ -2304,7 +2304,7 @@ exports[`Trigger > renders week days if the trigger type is CRON and interval is
           class="kfp-text-field-control"
         >
           <input
-            class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+            class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
             data-disabled=""
             data-slot="input"
             disabled=""

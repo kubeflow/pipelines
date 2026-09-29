@@ -401,7 +401,7 @@ exports[`ExperimentDetails > fetches this experiment's recurring runs 1`] = `
                       Filter runs by name
                     </label>
                     <input
-                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
                       data-slot="input"
                       id="react-use-id-0"
                       placeholder="Filter runs by name"
@@ -1024,7 +1024,7 @@ exports[`ExperimentDetails > renders a page with no runs or recurring runs 1`] =
                       Filter runs by name
                     </label>
                     <input
-                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
                       data-slot="input"
                       id="react-use-id-0"
                       placeholder="Filter runs by name"
@@ -1645,7 +1645,7 @@ exports[`ExperimentDetails > uses an empty string if the experiment has no descr
                       Filter runs by name
                     </label>
                     <input
-                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
+                      class="h-[34px] w-full min-w-0 rounded-control border border-muted-foreground bg-background px-3 font-kfp-sans text-[13px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive"
                       data-slot="input"
                       id="react-use-id-0"
                       placeholder="Filter runs by name"
