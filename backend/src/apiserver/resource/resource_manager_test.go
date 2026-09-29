@@ -3513,6 +3513,7 @@ func TestRetryRun_OffloadedNodeStatus_SurvivesWorkflowAndOffloadGC(t *testing.T)
 	util.SetWorkflowHydratorForTest(t, util.NewMemoryWorkflowHydrator(repo))
 
 	terminalWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	terminalWorkflow.SetServiceAccount(runDetail.ServiceAccount)
 	terminalWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	terminalWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	terminalWorkflow.Status.Nodes = nil
@@ -3546,26 +3547,25 @@ func TestReportWorkflowResource_RecurringOffloadedTerminalHydratesBeforePersist(
 	util.SetWorkflowHydratorForTest(t, util.NewMemoryWorkflowHydrator(repo))
 
 	const runID = "recurring-offloaded-run-id"
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "recurring-offloaded-workflow",
-			Namespace: job.Namespace,
-			UID:       "recurring-offloaded-uid",
-			Labels: map[string]string{
-				util.LabelKeyWorkflowRunId: runID,
-			},
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "ScheduledWorkflow",
-				Name:       job.K8SName,
-				UID:        types.UID(job.UUID),
-			}},
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Phase:                    v1alpha1.WorkflowFailed,
-			OffloadNodeStatusVersion: "offload-hash",
-		},
-	})
+	recurringWorkflow := testWorkflow.DeepCopy()
+	recurringWorkflow.Name = "recurring-offloaded-workflow"
+	recurringWorkflow.Namespace = job.Namespace
+	recurringWorkflow.UID = "recurring-offloaded-uid"
+	recurringWorkflow.Labels = map[string]string{
+		util.LabelKeyWorkflowRunId: runID,
+	}
+	recurringWorkflow.OwnerReferences = []v1.OwnerReference{{
+		APIVersion: "kubeflow.org/v1beta1",
+		Kind:       "ScheduledWorkflow",
+		Name:       job.K8SName,
+		UID:        types.UID(job.UUID),
+	}}
+	recurringWorkflow.Status = v1alpha1.WorkflowStatus{
+		Phase:                    v1alpha1.WorkflowFailed,
+		OffloadNodeStatusVersion: "offload-hash",
+	}
+	workflow := util.NewWorkflow(recurringWorkflow)
+	workflow.SetServiceAccount(job.ServiceAccount)
 	syncWorkflowReportWithFakeCluster(t, store, workflow)
 	repo.Put(string(workflow.UID), "offload-hash", map[string]v1alpha1.NodeStatus{
 		"node1": {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
