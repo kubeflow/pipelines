@@ -620,6 +620,17 @@ class PipelineTask:
                   policy: Optional[str] = None) -> 'PipelineTask':
         """Sets task retry parameters.
 
+        On the KFP backend with Argo Workflows, these settings apply to task
+        execution. For a container task, they govern the executor phase, not
+        the prerequisite driver. They also exclude the separate DAG driver
+        for a nested pipeline task. A driver failure can prevent execution
+        from starting, regardless of these settings, including ``policy``.
+
+        Driver recovery is controlled separately by the deployment's Argo
+        configuration. Its retries do not consume ``num_retries``; setting
+        ``num_retries=0`` does not disable that recovery. These settings do
+        not define a combined driver-and-executor retry budget.
+
         Args:
             num_retries : Number of times to retry on failure.
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).

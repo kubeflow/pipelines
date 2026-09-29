@@ -4386,6 +4386,11 @@ func (x *PipelineTaskSpec_TriggerPolicy) GetStrategy() PipelineTaskSpec_TriggerP
 }
 
 // User-configured task-level retry.
+// On the KFP Argo backend, this governs task execution, not the prerequisite
+// system-container-driver or system-dag-driver phase. Driver recovery is a
+// separate deployment-level policy: its retries do not consume max_retry_count
+// and are not disabled by setting max_retry_count to zero. This is not a
+// combined driver-and-executor retry budget.
 type PipelineTaskSpec_RetryPolicy struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Number of retries before considering a task as failed. Set to 0 or

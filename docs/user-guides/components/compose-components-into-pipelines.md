@@ -167,6 +167,37 @@ The KFP SDK provides the following task methods for setting task-level configura
 
 See the [`PipelineTask` reference documentation][pipelinetask] for more information about these methods.
 
+#### Retry coverage on Argo Workflows
+
+On the KFP backend with Argo Workflows, `.set_retry()` configures task execution
+retries. An ordinary container task first runs a **driver**, which resolves
+inputs, checks the cache, and prepares execution. The **executor**, which runs
+the component, starts only after that driver succeeds. The retry count, backoff,
+and `policy` passed to `.set_retry()` apply to the executor; they do not cover
+`system-container-driver`. A nested pipeline task similarly has a separate
+`system-dag-driver` that is outside its task retry policy.
+
+For example, `task.set_retry(num_retries=3, policy='Always')` permits up to three
+executor retries after its initial attempt. It does not retry a failed driver.
+If that driver remains failed, the executor never starts. Setting
+`num_retries=0` disables those task retries but does not disable separately
+configured driver recovery.
+
+Driver recovery is an **operator-controlled Argo policy**. KFP's bundled workflow
+controller configuration supplies `workflowDefaults.spec.templateDefaults.retryStrategy`
+with `limit: '2'` and `retryPolicy: OnError`; deployments may change or omit it.
+Argo's `OnError` policy covers errors such as pod deletion or node loss, but does
+not cover ordinary nonzero exits from the driver container. See
+[Argo retry policies](https://argo-workflows.readthedocs.io/en/latest/walk-through/retrying-failed-or-errored-steps/).
+Driver and executor retry budgets are independent, rather than a single
+end-to-end attempt count.
+
+Broader driver retries require replay-safe operations: rerunning a driver can
+repeat plugin hooks and allocate different output locations. Operators should
+assess these side effects before broadening the controller's retry policy.
+[Issue #14266](https://github.com/kubeflow/pipelines/issues/14266) tracks this
+boundary and the prerequisites for safely extending coverage.
+
 ### Pipelines as components
 
 Pipelines can themselves be used as components in other pipelines, just as you would use any other single-step component in a pipeline. For example, we could easily recompose the preceding `pythagorean` pipeline to use an inner helper pipeline `square_and_sum`:
