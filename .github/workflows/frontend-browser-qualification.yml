@@ -172,12 +172,18 @@ jobs:
   apple-browser:
     name: Apple / ${{ matrix.mode }}
     needs: build
-    runs-on: macos-26
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
-        mode: [desktop, iphone, ipad]
+        include:
+          - mode: desktop
+            runner: macos-26
+          - mode: iphone
+            runner: macos-26-intel
+          - mode: ipad
+            runner: macos-26-intel
     defaults:
       run:
         shell: bash

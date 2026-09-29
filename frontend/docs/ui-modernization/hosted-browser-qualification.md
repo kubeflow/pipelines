@@ -50,8 +50,10 @@ fails the lane instead of silently substituting a different version.
 | iPhone 17 simulator         | iOS/Safari 26.5    | 12 native checks    | Simulator coverage; not latest policy patch               |
 | iPad (A16) simulator        | iPadOS/Safari 26.5 | 12 native checks    | Simulator coverage; not latest policy patch               |
 
-The runner is `macos-26` ARM64. Apple automation uses Xcode 26.6 and pins Appium
-3.8.0/XCUITest 12.13.3 for simulators. It records Safari bundle builds and simulator
+Vendor browsers and desktop Safari use `macos-26` ARM64. Simulator lanes use
+standard `macos-26-intel` runners for their 14 GB RAM allocation, compared with
+7 GB on standard ARM64 runners ([runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)).
+Apple automation uses Xcode 26.6 and pins Appium 3.8.0/XCUITest 12.13.3 for simulators. It records Safari bundle builds and simulator
 runtime builds as well as marketing versions. The current Chrome vendor URL is
 mutable; signed-app and exact-version checks reject a changed release. Chrome for
 Testing is not substituted for a missing exact end-user Chrome patch.
