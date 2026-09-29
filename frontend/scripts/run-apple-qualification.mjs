@@ -23,6 +23,8 @@ export const appleQualification = {
 };
 const appiumVersion = '3.8.0';
 const xcuitestVersion = '12.13.3';
+// First-boot OS migration on a hosted simulator has a separate bounded budget.
+const simulatorBootTimeout = 300_000;
 
 export function requireHostedAppleRunner(env = process.env, platform = process.platform) {
   assert.equal(platform, 'darwin', 'Apple qualification requires macOS');
@@ -313,7 +315,7 @@ async function main() {
         '/usr/bin/xcrun',
         ['simctl', 'bootstatus', simulator, '-b'],
         'simulator-ready',
-        180_000,
+        simulatorBootTimeout,
       );
       // System Safari belongs to the exact runtime used to create this simulator.
       // Reading its immutable bundle avoids a booted LaunchServices lookup, which
@@ -381,7 +383,7 @@ async function main() {
         // Reuse the booted simulator without Appium restarting it to show its UI.
         'appium:isHeadless': true,
         'appium:showXcodeLog': true,
-        'appium:simulatorStartupTimeout': 180000,
+        'appium:simulatorStartupTimeout': simulatorBootTimeout,
         'appium:wdaLaunchTimeout': 180000,
         'appium:wdaStartupRetries': 1,
         // Cold hosted simulators can publish Safari's inspector application after
