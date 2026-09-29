@@ -141,6 +141,14 @@ now precedes initial page readiness and handles both observed prompts. These
 corrections still require hosted verification; failed or partial lanes are not
 counted as qualified.
 
+[Run 36602247564](https://github.com/kubeflow/pipelines/actions/runs/36602247564)
+at `630a32eedef50c776a61c6593ecf2218801c231d` again verified the ten desktop lanes.
+iPhone's native link reached Run Details; its next graph-button tap targeted an
+offscreen element below Safari's toolbar. Mobile taps now prepare the target's
+scroll position and verify visibility before activation. iPad still showed address
+editing during Start Page dismissal, so preparation dismisses its keyboard before
+handling remaining prompts. Both simulator rows still need a complete passing run.
+
 The earlier [run 36591191778](https://github.com/kubeflow/pipelines/actions/runs/36591191778)
 at `a1285d25be576afab18e65893ddecea989e5c1a2` established that both ARM simulators
 could boot and create Safari sessions. Native tap calibration then failed while

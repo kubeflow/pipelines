@@ -55,23 +55,6 @@ export async function prepareNativeSafariTap(command, session, evidence, snapsho
     command('POST', `${path}/elements`, { using: '-ios predicate string', value: predicate });
   try {
     await command('POST', `${path}/context`, { name: 'NATIVE_APP' });
-    for (const tip of onboardingTips) {
-      if (!(await tips(tip.predicate)).length) continue;
-      await snapshot(await command('GET', `${path}/source`), tip.evidenceLabel);
-      // Use only the control scoped to the identified browser-owned tip.
-      const buttons = await command('POST', `${path}/elements`, {
-        using: 'xpath',
-        value: tip.closeSelector,
-      });
-      assert.equal(buttons.length, 1, 'Safari onboarding tip needs one identifiable close control');
-      await command('POST', `${path}/element/${buttons[0][elementKey]}/click`, {});
-      assert.equal(
-        (await tips(tip.predicate)).length,
-        0,
-        'Safari onboarding tip remained after its native dismissal',
-      );
-      entry.actions.push(`dismissed Safari ${tip.name} tip through native accessibility`);
-    }
     if (await mobile('isKeyboardShown')) {
       // iPhone Safari exposes Done in its form accessory toolbar, outside the
       // keyboard subtree searched by WDA's generic keyboard dismissal.
@@ -92,6 +75,23 @@ export async function prepareNativeSafariTap(command, session, evidence, snapsho
         'Safari keyboard remained after native dismissal',
       );
       entry.actions.push('dismissed keyboard through native WebDriver');
+    }
+    for (const tip of onboardingTips) {
+      if (!(await tips(tip.predicate)).length) continue;
+      await snapshot(await command('GET', `${path}/source`), tip.evidenceLabel);
+      // Use only the control scoped to the identified browser-owned tip.
+      const buttons = await command('POST', `${path}/elements`, {
+        using: 'xpath',
+        value: tip.closeSelector,
+      });
+      assert.equal(buttons.length, 1, 'Safari onboarding tip needs one identifiable close control');
+      await command('POST', `${path}/element/${buttons[0][elementKey]}/click`, {});
+      assert.equal(
+        (await tips(tip.predicate)).length,
+        0,
+        'Safari onboarding tip remained after its native dismissal',
+      );
+      entry.actions.push(`dismissed Safari ${tip.name} tip through native accessibility`);
     }
     entry.status = 'passed';
   } catch (error) {
@@ -159,4 +159,40 @@ export async function clickNativeSafariLink(command, session, name, evidence) {
       if (!failure) throw error;
     }
   }
+}
+
+// Geometry is measured in layout-viewport coordinates, including Safari's
+// visual-viewport offset after it zooms a focused input.
+export function inspectMobileTarget(element) {
+  const view = element.ownerDocument.defaultView;
+  const box = element.getBoundingClientRect();
+  const visual = view.visualViewport;
+  const viewport = {
+    left: visual?.offsetLeft || 0,
+    top: visual?.offsetTop || 0,
+    width: visual?.width || view.innerWidth,
+    height: visual?.height || view.innerHeight,
+    scale: visual?.scale || 1,
+  };
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const inViewport =
+    box.width > 0 &&
+    box.height > 0 &&
+    x > viewport.left &&
+    x < viewport.left + viewport.width &&
+    y > viewport.top &&
+    y < viewport.top + viewport.height;
+  const hit = element.ownerDocument.elementFromPoint(x, y);
+  const hitTarget = hit === element || element.contains(hit);
+  return {
+    rect: { x: box.x, y: box.y, width: box.width, height: box.height },
+    viewport,
+    center: { x, y },
+    hitTag: hit?.tagName || null,
+    hitLabel: hit?.getAttribute('aria-label') || null,
+    inViewport,
+    hitTarget,
+    ready: inViewport && hitTarget && view.getComputedStyle(element).visibility === 'visible',
+  };
 }

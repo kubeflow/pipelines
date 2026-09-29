@@ -14,6 +14,7 @@ import { createServer as createHttpServer } from 'node:http';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
 import {
   clickNativeSafariLink,
+  inspectMobileTarget,
   nativeSafariLinkSelector,
   prepareNativeSafariTap,
   safariKeyboardDoneSelector,
@@ -200,6 +201,7 @@ function safariPreparationFixture({
   closeCount = 1,
   keyboard = false,
   toolbarDoneCount = 0,
+  keyboardDismissesStartPage = false,
   dismissError,
   restoreError,
 } = {}) {
@@ -239,6 +241,7 @@ function safariPreparationFixture({
     if (body?.script === 'mobile: hideKeyboard') {
       if (dismissError) throw dismissError;
       keyboard = false;
+      if (keyboardDismissesStartPage) startPageTip = false;
       return null;
     }
     assert.fail(`Unexpected native preparation command: ${method} ${path}`);
@@ -268,7 +271,9 @@ test('native Safari preparation never clicks Close when the known onboarding tip
 test('native Safari preparation scopes dismissal to the known tip and hides the keyboard', async () => {
   const fixture = safariPreparationFixture({ tip: true, keyboard: true });
   await fixture.run();
-  const lookup = fixture.calls.find(({ body }) => body?.using === 'xpath');
+  const lookup = fixture.calls.find(
+    ({ body }) => body?.using === 'xpath' && body.value.includes('View Bookmarks'),
+  );
   assert.match(lookup.body.value, /ancestor-or-self/);
   assert.equal(fixture.evidence[0].actions.length, 2);
   assert.equal(fixture.snapshots[0].label, 'safari-bookmarks-tip');
@@ -523,4 +528,68 @@ test('native link failure retains the original error when web context restoratio
   );
   assert.equal(evidence[0].status, 'failed');
   assert.match(evidence[0].restoreError, /context unavailable/);
+});
+
+test('native preparation dismisses address keyboard before looking for remaining Start Page chrome', async () => {
+  const fixture = safariPreparationFixture({
+    keyboard: true,
+    startPageTip: true,
+    keyboardDismissesStartPage: true,
+  });
+  await fixture.run();
+  const dismissal = fixture.calls.findIndex(({ body }) => body?.script === 'mobile: hideKeyboard');
+  const tipLookup = fixture.calls.findIndex(({ body }) =>
+    body?.value?.includes('onboardingButton-CustomizeStartPage'),
+  );
+  assert.ok(dismissal >= 0 && tipLookup > dismissal);
+  assert.equal(
+    fixture.calls.some(({ path }) => path.endsWith('/click')),
+    false,
+  );
+  assert.equal(fixture.evidence[0].status, 'passed');
+});
+
+test('mobile target readiness rejects offscreen and occluded targets, including Safari zoom offsets', () => {
+  const dom = new JSDOM(
+    '<button style="visibility:visible" aria-label="Task"><span>Task</span></button><div aria-label="Overlay"></div>',
+  );
+  try {
+    const { document } = dom.window;
+    const target = document.querySelector('button');
+    let rect = { x: 32, y: 746, width: 125, height: 53 };
+    target.getBoundingClientRect = () => rect;
+    Object.defineProperty(dom.window, 'visualViewport', {
+      value: { offsetLeft: 0, offsetTop: 0, width: 402, height: 714, scale: 1 },
+      configurable: true,
+    });
+    document.elementFromPoint = () => target.querySelector('span');
+    assert.equal(
+      inspectMobileTarget(target).ready,
+      false,
+      'captured graph button is below viewport',
+    );
+    rect = { ...rect, y: 300 };
+    assert.equal(inspectMobileTarget(target).ready, true, 'child hit belongs to the target');
+    document.elementFromPoint = () => document.querySelector('div');
+    assert.equal(inspectMobileTarget(target).ready, false, 'overlay intercepts target');
+    document.elementFromPoint = () => target;
+    Object.assign(dom.window.visualViewport, {
+      offsetLeft: 57,
+      offsetTop: 60,
+      width: 326,
+      height: 580,
+      scale: 1.23134,
+    });
+    rect = { x: 0, y: 100, width: 50, height: 30 };
+    assert.equal(
+      inspectMobileTarget(target).ready,
+      false,
+      'center falls outside offset visual viewport',
+    );
+    rect = { x: 100, y: 100, width: 50, height: 30 };
+    assert.equal(inspectMobileTarget(target).ready, true);
+    assert.equal(inspectMobileTarget(target).viewport.scale, 1.23134);
+  } finally {
+    dom.window.close();
+  }
 });

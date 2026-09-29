@@ -17,6 +17,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
 import {
   clickNativeSafariLink,
+  inspectMobileTarget,
   prepareNativeSafariTap,
 } from './ui-modernization-native-safari.mjs';
 
@@ -116,14 +117,42 @@ async function prepareMobileTap() {
     },
   );
 }
+async function readyMobileTarget(element, label) {
+  if (!mobile) return;
+  report.nativeSafariTargets ??= [];
+  const entry = { label, startedAt: new Date().toISOString(), status: 'pending' };
+  report.nativeSafariTargets.push(entry);
+  try {
+    entry.before = await execute(inspectMobileTarget, element);
+    // Viewport placement is setup; activation still uses a native WebDriver tap.
+    await execute(
+      (target) => target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' }),
+      element,
+    );
+    const deadline = Date.now() + 20000;
+    do {
+      entry.after = await execute(inspectMobileTarget, element);
+      if (entry.after.ready) break;
+      await delay(100);
+    } while (Date.now() < deadline);
+    assert.ok(entry.after.ready, `Mobile target is outside the viewport or occluded: ${label}`);
+    entry.status = 'passed';
+  } catch (error) {
+    entry.status = 'failed';
+    entry.error = String(error);
+    throw error;
+  }
+}
 async function click(selector) {
   await prepareMobileTap();
   const element = await find(selector);
+  await readyMobileTarget(element, selector);
   await command('POST', `/session/${session}/element/${element[elementKey]}/click`, {});
 }
 async function type(selector, text) {
   await prepareMobileTap();
   const element = await find(selector);
+  await readyMobileTarget(element, selector);
   await command('POST', `/session/${session}/element/${element[elementKey]}/value`, { text });
 }
 async function key(value, shift = false) {
@@ -174,6 +203,7 @@ async function textElement(selector, text) {
 async function clickText(selector, text) {
   await prepareMobileTap();
   const element = await textElement(selector, text);
+  await readyMobileTarget(element, `${selector}: ${text}`);
   await command('POST', `/session/${session}/element/${element[elementKey]}/click`, {});
 }
 async function field(label) {
@@ -189,6 +219,7 @@ async function field(label) {
 async function fillLabel(label, text) {
   await prepareMobileTap();
   const element = await field(label);
+  await readyMobileTarget(element, label);
   if (browserName === 'safari' && !mobile) {
     // Safari's Element Clear can empty the DOM without sending the input event that
     // updates React-controlled state. Exercise an actual user edit instead.
@@ -398,6 +429,7 @@ try {
         await execute((selector) => document.querySelector(selector)?.textContent, runSelector),
         'v2-xgboost-ilbo',
       );
+      await readyMobileTarget(await find(runSelector), runSelector);
       report.nativeSafariLinkClicks ??= [];
       await clickNativeSafariLink(
         command,
