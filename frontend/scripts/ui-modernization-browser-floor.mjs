@@ -188,8 +188,26 @@ async function fillLabel(label, text) {
   } else {
     await command('POST', `/session/${session}/element/${element[elementKey]}/clear`, {});
   }
-  if (text)
+  if (text && browserName === 'safari' && !mobile) {
+    // Pace native key actions so Safari's controlled fields can commit each edit
+    // before the next character, instead of sending one bulk typing command;
+    // the caller still verifies the complete, exact value without correcting it.
+    await command('POST', `/session/${session}/actions`, {
+      actions: [
+        {
+          type: 'key',
+          id: 'keyboard',
+          actions: Array.from(text).flatMap((value) => [
+            { type: 'keyDown', value },
+            { type: 'keyUp', value },
+            { type: 'pause', duration: 50 },
+          ]),
+        },
+      ],
+    });
+  } else if (text) {
     await command('POST', `/session/${session}/element/${element[elementKey]}/value`, { text });
+  }
 }
 async function valueLabel(label) {
   const element = await field(label);
