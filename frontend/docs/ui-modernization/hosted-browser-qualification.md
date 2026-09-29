@@ -4,12 +4,12 @@ Browser qualification runs in GitHub Actions. It requires no workstation browser
 installation, local Safari/Xcode setup, or manual test execution.
 
 The existing [Frontend Tests workflow](../../../.github/workflows/frontend.yml)
-passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36621719408)
+passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36624711864)
 across Chromium, Firefox and WebKit on Linux, Windows and macOS: 48 cases per lane,
-with no skipped cases. At PR head `6122512a055439ce9ea4ee55132d5505c8a4270b`
-(tested merge `ebde247587b043c53546f60d970f426a0940610f`), audited TAP/JUnit and
+with no skipped cases. At PR head `70cde25a20f80097a786a4a0f4c68392f4bccb57`
+(tested merge `c062298a63a7fe427ac5815784a38a4b96ef787f`), audited TAP/JUnit and
 workflow reports agree on source identity and identical hashes for all 22 shared
-build files. This is engine coverage, separate from exact-version qualification.
+build files within the engine matrix. This is engine coverage, separate from exact-version qualification.
 The same hosted source passes 1,760 UI tests and 1,103 server tests, formatting,
 lint, type checks, React peer checks and the production build.
 
@@ -42,7 +42,7 @@ fails the lane instead of silently substituting a different version.
 Chrome stable was refreshed to 154.0.8037.93 after its vendor download changed.
 [Google Version History](https://versionhistory.googleapis.com/v1/chrome/platforms/mac_arm64/channels/stable/versions/154.0.8037.93/releases)
 records full ARM64 stable rollout from September 29 at 18:30 UTC. Earlier Chrome
-154.0.8037.58 results below remain historical; they do not qualify the new pin.
+154.0.8037.58 checkpoints remain historical; they do not qualify the new pin.
 
 | Lane                        | Version            | Suite               | Qualification role                                        |
 | --------------------------- | ------------------ | ------------------- | --------------------------------------------------------- |
@@ -124,10 +124,11 @@ they do not by themselves establish visual equivalence.
 
 ## Hosted results
 
-[Run 36609251534](https://github.com/kubeflow/pipelines/actions/runs/36609251534)
-verified all nine vendor/supplementary lanes and desktop Safari at PR head
-`c0611500e425c9341708267827b42ab70c8630bc`, tested merge
-`885e34a5e8989aa8275d03ac2cc52491b5b4156a`:
+[Run 36624712051](https://github.com/kubeflow/pipelines/actions/runs/36624712051)
+passes **12/12 lanes and 324/324 checks**, all on attempt 1, at PR head
+`70cde25a20f80097a786a4a0f4c68392f4bccb57` and tested merge
+`c062298a63a7fe427ac5815784a38a4b96ef787f`. Every configured row in the dated matrix
+above is verified for its stated scope:
 
 | Verified lanes                                      | Passing checks           |
 | --------------------------------------------------- | ------------------------ |
@@ -135,60 +136,45 @@ verified all nine vendor/supplementary lanes and desktop Safari at PR head
 | Supplementary Chrome for Testing current/previous   | 96/96 production cases   |
 | Firefox stable/previous and both supported ESR rows | 48/48 native checks      |
 | Desktop Safari with recorded CI text preferences    | 12/12 native checks      |
+| iPhone 17 simulator, Safari 26.5                    | 12/12 native checks      |
+| iPad (A16) simulator, Safari 26.5                   | 12/12 native checks      |
 
-The audit verified source identity, all 22 shared build-file hashes, exact browser
-and downloaded-distribution identity, 70 native screenshot hashes, and both Edge
-post-suite identities and volume cleanup. These 300 passing checks qualify those
-ten tested builds only. Desktop Safari retained exact experiment name and description
-values; its bounded input trace recorded no composition deletion or application
-value reset. Prediction, autocorrection and IME behavior remain unqualified.
+The independent audit verifies source/merge identity, all 22 shared build-file
+hashes within the qualification matrix, exact browser and downloaded-distribution
+identity, all 98 native screenshot hashes, Chrome/Edge final signed executable
+identity, and owned volume/simulator cleanup. All 57 browser-free qualification
+helper checks pass. The separate engine build has identical runtime files; its
+`Editor-CiEMRP2l.js.map` differs only in two build-generated Vite placeholders.
+The source-map difference is retained explicitly in the build comparison.
 
-The current [run 36621719129](https://github.com/kubeflow/pipelines/actions/runs/36621719129)
-at `6122512a055439ce9ea4ee55132d5505c8a4270b` verified all ten desktop/vendor
-lanes (300 checks), including Chrome 154.0.8037.93 and both Edge versions with
-unchanged signed executable identity through their suites and successful volume
-cleanup. All 22 application files match the passing nine-engine build above.
-The earlier previous-Edge first-test timeout is retained as a failed attempt;
-all 48 cases pass in this current run.
+Both simulators verify first-page startup completion before the checks, unchanged
+filter scale 1→1, native run/artifact link activation with route assertions, and
+native Recurring/One-off activation with associated-radio and checked-state
+assertions. Live WebDriverAgent settings read back the positive two-second idle
+wait. Prebuilt WDA package identity and output hashes are recorded with the exact
+owned simulator and derived-data path; those binaries are not uploaded, so their
+hashes are reported provenance rather than independently rehashed artifacts.
 
-Both mobile simulator lanes remain open. Their prebuild, live two-second WDA idle
-setting and owned cleanup passed. iPhone's initial page query returned true, but
-Appium withheld its response while an in-flight native alert absence probe
-completed after 44 seconds. iPad passed seven checks, then Appium's web-to-native
-calibration produced an off-screen tap for the Recurring radio label as Safari's
-toolbar moved. The harness now extends its startup allowance through first-page
-readiness and selects the uniquely typed native run-type toggle, requiring the
-associated DOM radio and checked state before existing draft assertions.
-The wrapped-link correction and these follow-ups still require hosted verification;
-partial mobile lanes do not count as qualified.
+Native Safari preparation handles its known first-launch prompts, keyboard and
+active address editor before interaction. Wrapped inline targets use an actual
+client fragment for hit testing. Uniquely typed native link/radio actions avoid
+[Appium coordinate-calibration errors](https://github.com/appium/appium-xcuitest-driver/blob/v12.13.3/lib/commands/web-native-bridge.ts#L376)
+while retaining viewport, route, selection and draft-value assertions. Native
+alert detection remains enabled throughout the bounded startup and test phases.
 
-Shared Input and TextField textarea controls use 16px text on coarse-pointer
-devices to prevent Safari focus zoom. The prior recorded iPhone scale change from
-1 to 1.231343 matches
-[WebKit's focus-zoom calculation](https://github.com/WebKit/WebKit/blob/main/Source/WebKit/UIProcess/API/ios/WKWebViewIOS.mm#L1752-L1773)
-for a 13px field on a 402px viewport. A native regression requires filtering to
-preserve scale. User-controlled zoom remains enabled; arbitrary pinch-zoom modal
-reachability remains a separate compatibility gap.
+Qualification also caught two application regressions: artifact reads/downloads
+now wait for experiment namespace resolution, and shared Input/TextField text is
+16px on coarse-pointer devices to prevent Safari input focus zoom. The earlier
+13px field produced scale 1.231343 on iPhone, matching
+[WebKit's focus-zoom calculation](https://github.com/WebKit/WebKit/blob/main/Source/WebKit/UIProcess/API/ios/WKWebViewIOS.mm#L1752-L1773).
+Current native checks preserve scale and inspector Close reachability. User zoom
+remains enabled; arbitrary pinch-zoom modal reachability is still unqualified.
 
-Native Safari preparation dismisses the keyboard through its browser-owned form
-toolbar, then closes recognized first-launch prompts before page readiness or
-taps. Run-link navigation uses a uniquely identified native accessibility link:
-XCUITest 12.13.3 can match both a link and its text child and fall back to
-[incorrect coordinate conversion under Safari input zoom](https://github.com/appium/appium-xcuitest-driver/blob/v12.13.3/lib/commands/web-native-bridge.ts#L376).
-Native activation, route/task assertions and recorded viewport hit tests remain
-required. Browser setup and interaction preparation do not relax application
-assertions.
-
-Earlier attempts retained evidence of vendor-version drift, native input timing
-and simulator startup failures. Exact-version checks caught Edge updating during
-a suite; the read-only installation and final identity check now prevent that
-from being accepted. A Chromium check also exposed artifact storage access before
-experiment namespace resolution. Task, sub-DAG and artifact-node reads/downloads
-now wait for that namespace, with unit regressions and a new production-browser
-case. The corrected 48-case suite passed on actual Chrome and both supplementary
-Chrome for Testing versions in the superseded
-[36586016478 attempt](https://github.com/kubeflow/pipelines/actions/runs/36586016478).
-That partial attempt does not qualify the complete matrix.
+Earlier failed attempts retain evidence of vendor-version drift, simulator
+startup/discovery, native calibration and an isolated previous-Edge first-test
+timeout. Those partial results are not counted in the passing matrix above.
+The narrower native fixture scope, policy-version gaps and release acceptance
+criteria remain separate from this completed qualification checkpoint.
 
 ## Remaining policy coverage and BrowserStack follow-up
 
