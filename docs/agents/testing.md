@@ -7,8 +7,8 @@
 uv sync --frozen --extra dev
 uv run pytest -v sdk/python/kfp
 
-# kfp-kubernetes
-uv run pytest -v kubernetes_platform/python/test
+# Bundled Kubernetes helpers
+uv run pytest -v sdk/python/test/kubernetes
 
 # Backend unit tests
 go test -v $(go list ./backend/... | \
@@ -26,20 +26,18 @@ ginkgo -v --label-filter="Smoke" ./backend/test/end2end -- -namespace=kubeflow
 
 Compiler and API/E2E suites require Ginkgo; API and E2E tests require a cluster. Use a label filter on CPU-only clusters because `gpu-scheduling-check` requires `nvidia.com/gpu`.
 
+Runtime command regressions require a wheel built with `uv build --package kfp --wheel`. Set `KFP_PACKAGE_PATH` to its absolute path, then run `uv run pytest sdk/python/test/runtime -m regression`. Each case installs the wheel with the stored `--no-deps` bootstrap in a clean uv venv using the test runner's Python version; missing artifacts fail instead of selecting a published SDK.
+
 Pipeline inputs live in `test_data/pipeline_files/valid/`; compiler goldens live in `test_data/compiled-workflows/`.
 
 ## Formatting and linting
 
 ```bash
 golangci-lint run
-uv run pycln --check sdk/python
-uv run isort --check --profile google sdk/python
-uv run yapf --recursive --diff sdk/python/
-uv run docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
+bash test/presubmit-isort-sdk.sh
+bash test/presubmit-yapf-sdk.sh
+bash test/presubmit-docformatter-sdk.sh
 ```
 
-Run the Python string fixer before YAPF when needed:
-
-```bash
-uv run python -m pre_commit_hooks.string_fixer $(find sdk/python/kfp -name '*.py' -type f)
-```
+These SDK scripts exclude generated protobuf and OpenAPI modules. The YAPF
+script also normalizes Python string quotes before checking formatting.

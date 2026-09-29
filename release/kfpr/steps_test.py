@@ -32,7 +32,7 @@ class StepSelectionTest(unittest.TestCase):
         self.assertLess(
             steps_list.index('publish-sdks'),
             steps_list.index('create-sdk-release'))
-        self.assertIn('create-kfp-kubernetes-docs-branch', steps_list)
+        self.assertNotIn('create-kfp-kubernetes-docs-branch', steps_list)
         self.assertIn('confirm-rtd', steps_list)
         self.assertNotIn('update-sdk-versions', steps_list)
         self.assertNotIn('merge-sdk-pr', steps_list)
@@ -49,11 +49,7 @@ class StepSelectionTest(unittest.TestCase):
             steps_list.index('create-sdk-tag'),
             steps_list.index('publish-sdks'))
         self.assertLess(
-            steps_list.index('publish-sdks'),
-            steps_list.index('create-kfp-kubernetes-docs-branch'))
-        self.assertLess(
-            steps_list.index('create-kfp-kubernetes-docs-branch'),
-            steps_list.index('confirm-rtd'))
+            steps_list.index('publish-sdks'), steps_list.index('confirm-rtd'))
         self.assertLess(
             steps_list.index('confirm-rtd'),
             steps_list.index('create-sdk-release'))
@@ -600,7 +596,7 @@ class PublishSdksStepTest(unittest.TestCase):
                     steps, 'watch_latest_workflow_run'), mock.patch.object(
                         steps,
                         '_wait_for_pypi_packages',
-                        side_effect=[['kfp-kubernetes'], []]) as wait_mock:
+                        side_effect=[['kfp'], []]) as wait_mock:
                 steps.step_publish_sdks(context)
 
             workflow_commands = [
@@ -609,7 +605,7 @@ class PublishSdksStepTest(unittest.TestCase):
             ]
             self.assertEqual(len(workflow_commands), 2)
             self.assertIn('packages=all', workflow_commands[0])
-            self.assertIn('packages=kfp-kubernetes', workflow_commands[1])
+            self.assertIn('packages=kfp', workflow_commands[1])
             self.assertEqual(wait_mock.call_count, 2)
 
     def test_publish_sdks_fails_when_pypi_packages_are_still_missing_after_retry(
@@ -635,9 +631,7 @@ class PublishSdksStepTest(unittest.TestCase):
 
             with mock.patch.object(
                     steps, 'watch_latest_workflow_run'), mock.patch.object(
-                        steps,
-                        '_wait_for_pypi_packages',
-                        return_value=['kfp-kubernetes']):
+                        steps, '_wait_for_pypi_packages', return_value=['kfp']):
                 with self.assertRaisesRegex(RuntimeError,
                                             'PyPI packages are still missing'):
                     steps.step_publish_sdks(context)
@@ -1602,6 +1596,58 @@ class StepSdkVersionFilesTest(unittest.TestCase):
 
 
 class UvReleasePackagesTest(unittest.TestCase):
+
+    def test_unified_release_generates_and_builds_only_kfp(self) -> None:
+        """Keep codegen ahead of packaging without reviving retired
+        projects."""
+        with TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            files = {
+                'uv.lock':
+                    'version = 1\n',
+                'VERSION':
+                    '2.18.0\n',
+                'sdk/python/kfp/version.py':
+                    "__version__ = '2.17.0'\n",
+                'sdk/python/kfp/server_api/__init__.py':
+                    'from kfp.version import __version__\n',
+                'sdk/python/kfp/kubernetes/__init__.py':
+                    'from kfp.version import __version__\n',
+            }
+            for relative, content in files.items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            runner = mock.Mock(spec=core.CommandRunner)
+            runner.dry_run = False
+            context = core.ReleaseContext(
+                root=root,
+                state=core.ReleaseState(root / 'state.json'),
+                runner=runner,
+                metadata=core.ReleaseMetadata.from_version('major', '3.0.0'),
+                fork_remote='git@github.com:testuser/pipelines.git',
+                include_backend=False,
+                include_sdk=True)
+            with mock.patch.object(
+                    steps, '_generate_sdk_release_notes', return_value=''):
+                steps._update_sdk_version_files(context)
+            self.assertEqual((root / 'VERSION').read_text(), '2.18.0\n')
+            self.assertIn('3.0.0',
+                          (root / 'sdk/python/kfp/version.py').read_text())
+            self.assertEqual(
+                runner.run.call_args_list[0],
+                mock.call(['make', '-C', 'sdk', 'generate-python'], cwd=root))
+            builds = [
+                call.args[0]
+                for call in runner.run.call_args_list
+                if call.args[0][:2] == ['uv', 'build']
+            ]
+            self.assertEqual(builds, [[
+                'uv', 'build', '--package', 'kfp', '--out-dir',
+                'sdk/python/dist'
+            ]])
+            self.assertEqual(steps.PYPI_PACKAGES, ['kfp'])
+            self.assertFalse((root / 'kubernetes_platform/python').exists())
 
     def test_update_sdk_versions_regenerates_server_api_and_refreshes_workspace(
             self) -> None:

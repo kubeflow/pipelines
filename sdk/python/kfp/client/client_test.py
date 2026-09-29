@@ -30,7 +30,7 @@ from kfp.compiler import Compiler
 from kfp.dsl import component
 from kfp.dsl import pipeline
 from kfp.pipeline_spec import pipeline_spec_pb2
-import kfp_server_api
+import kfp.server_api
 import kubernetes as k8s
 import yaml
 
@@ -41,7 +41,7 @@ class TestRecurringRunAliases(parameterized.TestCase):
     def test_job_alias_uses_recurring_run_service(self, operation):
         sdk_client = client.Client.__new__(client.Client)
         sdk_client._recurring_run_api = Mock(
-            spec=kfp_server_api.RecurringRunServiceApi)
+            spec=kfp.server_api.RecurringRunServiceApi)
         service_method = getattr(
             sdk_client._recurring_run_api,
             f'recurring_run_service_{operation}_recurring_run')
@@ -53,7 +53,7 @@ class TestRecurringRunAliases(parameterized.TestCase):
     def test_job_id_alias_uses_recurring_run_service(self):
         sdk_client = client.Client.__new__(client.Client)
         sdk_client._recurring_run_api = Mock(
-            spec=kfp_server_api.RecurringRunServiceApi)
+            spec=kfp.server_api.RecurringRunServiceApi)
         with self.assertWarns(DeprecationWarning):
             sdk_client.get_recurring_run(recurring_run_id=None, job_id='run-id')
         sdk_client._recurring_run_api.recurring_run_service_get_recurring_run.assert_called_once_with(
@@ -269,11 +269,11 @@ class TestClient(parameterized.TestCase):
         self.client = client.Client(namespace='ns1')
 
     def test_wait_for_run_completion_invalid_token_should_raise_error(self):
-        with self.assertRaises(kfp_server_api.ApiException):
+        with self.assertRaises(kfp.server_api.ApiException):
             with patch.object(
                     self.client._run_api,
                     'run_service_get_run',
-                    side_effect=kfp_server_api.ApiException) as mock_get_run:
+                    side_effect=kfp.server_api.ApiException) as mock_get_run:
                 self.client.wait_for_run_completion(
                     run_id='foo', timeout=1, sleep_duration=0)
                 mock_get_run.assert_called_once()
@@ -284,7 +284,7 @@ class TestClient(parameterized.TestCase):
             # We need to iterate through multiple side effects in order to test this logic.
             mock_get_run.side_effect = [
                 Mock(state='unknown state'),
-                kfp_server_api.ApiException(status=401),
+                kfp.server_api.ApiException(status=401),
                 Mock(state='succeeded'),
             ]
 
@@ -397,7 +397,7 @@ class TestClient(parameterized.TestCase):
             experiment_name='foo', namespace='ns1')
         mock_get_url_prefix.assert_called_once()
 
-    @patch('kfp_server_api.V2beta1Experiment')
+    @patch('kfp.server_api.V2beta1Experiment')
     @patch(
         'kfp.Client.get_experiment',
         side_effect=ValueError('No experiment is found with name'))
@@ -473,7 +473,7 @@ class TestClient(parameterized.TestCase):
             mock_list_experiments.assert_called_once()
             mock_get_user_namespace.assert_called_once()
 
-    @patch('kfp_server_api.HealthzServiceApi.healthz_service_get_healthz')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
     def test_get_kfp_healthz(self, mock_get_kfp_healthz):
         mock_get_kfp_healthz.return_value = json.dumps([{'foo': 'bar'}])
         response = self.client.get_kfp_healthz()
@@ -481,8 +481,8 @@ class TestClient(parameterized.TestCase):
         assert (response == mock_get_kfp_healthz.return_value)
 
     @patch(
-        'kfp_server_api.HealthzServiceApi.healthz_service_get_healthz',
-        side_effect=kfp_server_api.ApiException)
+        'kfp.server_api.HealthzServiceApi.healthz_service_get_healthz',
+        side_effect=kfp.server_api.ApiException)
     def test_get_kfp_healthz_should_raise_error(self, mock_get_kfp_healthz):
         with self.assertRaises(TimeoutError):
             self.client.get_kfp_healthz(sleep_duration=0)
@@ -696,14 +696,14 @@ class TestInverseProxyCredentials(parameterized.TestCase):
         self.sdk_client._existing_config = config
         self.sdk_client._run_api = Mock()
         headers_seen = []
-        with kfp_server_api.ApiClient(config) as api_client:
+        with kfp.server_api.ApiClient(config) as api_client:
 
             def get_run(**kwargs):
                 headers = {}
                 api_client.update_params_for_auth(headers, [], ['Bearer'])
                 headers_seen.append(headers)
                 if len(headers_seen) == 2:
-                    raise kfp_server_api.ApiException(status=401)
+                    raise kfp.server_api.ApiException(status=401)
                 return Mock(
                     state='succeeded' if len(headers_seen) == 3 else 'running')
 
@@ -716,7 +716,7 @@ class TestInverseProxyCredentials(parameterized.TestCase):
                         run_id='test-run', timeout=10, sleep_duration=0)
                 else:
                     with self.assertRaises(
-                            kfp_server_api.ApiException) as error:
+                            kfp.server_api.ApiException) as error:
                         self.sdk_client.wait_for_run_completion(
                             run_id='test-run', timeout=10, sleep_duration=0)
                     self.assertEqual(error.exception.status, 401)
@@ -736,14 +736,14 @@ class TestInverseProxyCredentials(parameterized.TestCase):
             config = self._load_config('https://abc.googleusercontent.com')
         self.sdk_client._existing_config = config
         self.sdk_client._run_api = Mock()
-        unauthorized = kfp_server_api.ApiException(status=401)
+        unauthorized = kfp.server_api.ApiException(status=401)
         self.sdk_client._run_api.run_service_get_run.side_effect = [
             Mock(state='running'), unauthorized, unauthorized
         ]
         with patch.object(
                 auth, 'get_gcp_access_token',
                 return_value=refreshed_token) as get_token:
-            with self.assertRaises(kfp_server_api.ApiException) as error:
+            with self.assertRaises(kfp.server_api.ApiException) as error:
                 self.sdk_client.wait_for_run_completion(
                     run_id='test-run', timeout=10, sleep_duration=0)
         self.assertIs(error.exception, unauthorized)
@@ -848,7 +848,7 @@ class TestInverseProxyCredentials(parameterized.TestCase):
                 return_value='synthetic-token') as get_token:
             config = self._load_config(host)
         headers = {}
-        with kfp_server_api.ApiClient(config) as api_client:
+        with kfp.server_api.ApiClient(config) as api_client:
             api_client.update_params_for_auth(headers, [], ['Bearer'])
         if trusted:
             get_token.assert_called_once_with()
@@ -924,7 +924,7 @@ class TestLoadConfigKubeConfigFallback(parameterized.TestCase):
 
         # Loading the kube config is best effort; failing to do so must not
         # raise, to preserve behavior for callers that recover downstream.
-        self.assertIsInstance(config, kfp_server_api.Configuration)
+        self.assertIsInstance(config, kfp.server_api.Configuration)
 
     @patch('kubernetes.config.load_incluster_config')
     @patch('kubernetes.config.load_kube_config')

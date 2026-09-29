@@ -1,4 +1,4 @@
-exclude: ^backend/api/v2beta1/python_http_client/
+exclude: ^(backend/api/v2beta1/python_http_client/|sdk/python/kfp/server_api/|sdk/python/kfp/(pipeline_spec/pipeline_spec|kubernetes/kubernetes_executor_config)_pb2\.py$)
 
 repos:
   # other fast helpful checks
@@ -34,19 +34,19 @@ repos:
         name: pycln
         language: python
         entry: pycln --all
-        exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
+        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/pycqa/isort
     rev: 9.0.1
     hooks:
       - id: isort
         name: isort
         entry: isort --profile google
-        exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
+        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/google/yapf
     rev: "v0.43.0"
     hooks:
       - id: yapf
-        exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
+        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/pycqa/docformatter
     # v1.7.8 corrupts continuation and blank-line tokens, conflicting with YAPF.
     rev: v1.7.7
@@ -57,7 +57,7 @@ repos:
         entry: docformatter -i -r
         # docformatter messes up certain sphinx link formatting.
         # The kubernetes_platform/python docstrings are heavy on links, so ignore.
-        exclude: (sdk/python/kfp/compiler/compiler_test.py|kubernetes_platform/python/)
+        exclude: (sdk/python/kfp/compiler/compiler_test.py|sdk/python/kfp/kubernetes/|kubernetes_platform/python/)
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint

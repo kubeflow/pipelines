@@ -10,9 +10,6 @@ resolution-markers = [
 [manifest]
 members = [
     "kfp",
-    "kfp-kubernetes",
-    "kfp-pipeline-spec",
-    "kfp-server-api",
     "kfp-workspace",
 ]
 constraints = [
@@ -1155,7 +1152,7 @@ name = "importlib-metadata"
 version = "8.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/49/3b30cad09e7771a4982d9975a8cbf64f00d4a1ececb53297f1d9a7be1b10/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb", size = 57107, upload-time = "2025-12-21T10:00:19.278Z" }
 wheels = [
@@ -1396,19 +1393,20 @@ wheels = [
 name = "kfp"
 source = { editable = "sdk/python" }
 dependencies = [
+    { name = "certifi" },
     { name = "click" },
     { name = "click-option-group" },
     { name = "docstring-parser" },
     { name = "google-api-core" },
     { name = "google-auth" },
     { name = "google-cloud-storage" },
-    { name = "kfp-pipeline-spec" },
-    { name = "kfp-server-api" },
     { name = "kubernetes" },
     { name = "protobuf" },
+    { name = "python-dateutil" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "requests-toolbelt" },
+    { name = "six" },
     { name = "tabulate" },
     { name = "urllib3" },
 ]
@@ -1418,11 +1416,7 @@ all = [
     { name = "docker" },
     { name = "ipykernel" },
     { name = "jupyter-client" },
-    { name = "kfp-kubernetes" },
     { name = "nbclient" },
-]
-kubernetes = [
-    { name = "kfp-kubernetes" },
 ]
 notebooks = [
     { name = "ipykernel" },
@@ -1432,6 +1426,7 @@ notebooks = [
 
 [package.metadata]
 requires-dist = [
+    { name = "certifi" },
     { name = "click", specifier = ">=8.1.8" },
     { name = "click-option-group", specifier = "==0.5.7" },
     { name = "docker", marker = "extra == 'all'" },
@@ -1443,65 +1438,19 @@ requires-dist = [
     { name = "ipykernel", marker = "extra == 'notebooks'", specifier = ">=6,<7" },
     { name = "jupyter-client", marker = "extra == 'all'", specifier = ">=7,<9" },
     { name = "jupyter-client", marker = "extra == 'notebooks'", specifier = ">=7,<9" },
-    { name = "kfp-kubernetes", marker = "extra == 'all'", editable = "kubernetes_platform/python" },
-    { name = "kfp-kubernetes", marker = "extra == 'kubernetes'", editable = "kubernetes_platform/python" },
-    { name = "kfp-pipeline-spec", editable = "api/v2alpha1/python" },
-    { name = "kfp-server-api", editable = "backend/api/v2beta1/python_http_client" },
     { name = "kubernetes", specifier = ">=8.0.0,<31" },
     { name = "nbclient", marker = "extra == 'all'", specifier = ">=0.10,<1" },
     { name = "nbclient", marker = "extra == 'notebooks'", specifier = ">=0.10,<1" },
-    { name = "protobuf", specifier = ">=6.31.1,<7.0" },
+    { name = "protobuf", specifier = ">=6.33.5,<7.0" },
+    { name = "python-dateutil" },
     { name = "pyyaml", specifier = ">=5.3,<7" },
     { name = "requests", specifier = "==2.33.0" },
     { name = "requests-toolbelt", specifier = ">=0.8.0,<2" },
+    { name = "six", specifier = ">=1.10" },
     { name = "tabulate", specifier = ">=0.8.6,<1" },
     { name = "urllib3", specifier = "==2.7.0" },
 ]
 provides-extras = ["all", "kubernetes", "notebooks"]
-
-[[package]]
-name = "kfp-kubernetes"
-source = { editable = "kubernetes_platform/python" }
-dependencies = [
-    { name = "kfp" },
-    { name = "protobuf" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "kfp", editable = "sdk/python" },
-    { name = "protobuf", specifier = ">=6.33.5,<7.0" },
-]
-
-[[package]]
-name = "kfp-pipeline-spec"
-version = "2.17.0"
-source = { editable = "api/v2alpha1/python" }
-dependencies = [
-    { name = "protobuf" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "protobuf", specifier = ">=6.31.1,<7.0" }]
-
-[[package]]
-name = "kfp-server-api"
-version = "2.17.0"
-source = { editable = "backend/api/v2beta1/python_http_client" }
-dependencies = [
-    { name = "certifi" },
-    { name = "python-dateutil" },
-    { name = "six" },
-    { name = "urllib3" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "certifi" },
-    { name = "python-dateutil" },
-    { name = "six", specifier = ">=1.10" },
-    { name = "urllib3", specifier = ">=1.15" },
-]
 
 [[package]]
 name = "kfp-workspace"
@@ -1509,9 +1458,6 @@ version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "kfp" },
-    { name = "kfp-kubernetes" },
-    { name = "kfp-pipeline-spec" },
-    { name = "kfp-server-api" },
 ]
 
 [package.optional-dependencies]
@@ -1666,9 +1612,6 @@ requires-dist = [
     { name = "isort", marker = "extra == 'lint'", specifier = "==5.10.1" },
     { name = "junit2html", marker = "extra == 'ci'" },
     { name = "kfp", editable = "sdk/python" },
-    { name = "kfp-kubernetes", editable = "kubernetes_platform/python" },
-    { name = "kfp-pipeline-spec", editable = "api/v2alpha1/python" },
-    { name = "kfp-server-api", editable = "backend/api/v2beta1/python_http_client" },
     { name = "kfp-workspace", extras = ["lint", "test"], marker = "extra == 'dev'" },
     { name = "kfp-workspace", extras = ["lint", "test", "docs"], marker = "extra == 'ci'" },
     { name = "kubernetes", marker = "extra == 'legacy-compatible-runtime'", specifier = ">=8.0.0,<=31.0.0" },

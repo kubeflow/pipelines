@@ -170,9 +170,6 @@ jobs:
           retry 3 30 kfp component build "${BUILD_CONTEXT}" \
             --component-filepattern dra_passthrough_check.py \
             --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
-            --additional-package-path "${GITHUB_WORKSPACE}/api/v2alpha1/python" \
-            --additional-package-path "${GITHUB_WORKSPACE}/kubernetes_platform/python" \
-            --additional-package-path "${GITHUB_WORKSPACE}/backend/api/v2beta1/python_http_client" \
             --no-push-image
           kind --name "${{ env.CLUSTER_NAME }}" load docker-image kfp-dra-sdk:test
 

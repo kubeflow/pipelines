@@ -44,7 +44,7 @@ from kfp.kubeflow_client.types import Pipeline
 from kfp.kubeflow_client.types import PipelineVersion
 from kfp.kubeflow_client.types import Run
 from kfp.pipeline_spec import pipeline_spec_pb2
-import kfp_server_api
+import kfp.server_api
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ _VALID_UPLOAD_EXTENSIONS = ('.yaml', '.yml', '.tar.gz', '.tgz', '.zip')
 class KubernetesBackend:
     """Kubernetes backend providing API connectivity for PipelinesClient.
 
-    Manages the ``kfp_server_api`` configuration, service API instances,
+    Manages the ``kfp.server_api`` configuration, service API instances,
     namespace resolution, and credential lifecycle.
 
     Args:
@@ -67,13 +67,13 @@ class KubernetesBackend:
         self._namespace: str | None = None
 
         self._api_config = self._build_api_configuration(config)
-        api_client = kfp_server_api.ApiClient(self._api_config)
+        api_client = kfp.server_api.ApiClient(self._api_config)
 
-        self._pipelines_api = kfp_server_api.PipelineServiceApi(api_client)
-        self._run_api = kfp_server_api.RunServiceApi(api_client)
-        self._experiment_api = kfp_server_api.ExperimentServiceApi(api_client)
-        self._upload_api = kfp_server_api.PipelineUploadServiceApi(api_client)
-        self._healthz_api = kfp_server_api.HealthzServiceApi(api_client)
+        self._pipelines_api = kfp.server_api.PipelineServiceApi(api_client)
+        self._run_api = kfp.server_api.RunServiceApi(api_client)
+        self._experiment_api = kfp.server_api.ExperimentServiceApi(api_client)
+        self._upload_api = kfp.server_api.PipelineUploadServiceApi(api_client)
+        self._healthz_api = kfp.server_api.HealthzServiceApi(api_client)
 
         self.verify_backend()
 
@@ -83,27 +83,27 @@ class KubernetesBackend:
         return self._config
 
     @property
-    def api_config(self) -> kfp_server_api.Configuration:
-        """The underlying kfp_server_api configuration."""
+    def api_config(self) -> kfp.server_api.Configuration:
+        """The underlying kfp.server_api configuration."""
         return self._api_config
 
     @property
-    def pipelines_api(self) -> kfp_server_api.PipelineServiceApi:
+    def pipelines_api(self) -> kfp.server_api.PipelineServiceApi:
         """Pipeline service API instance."""
         return self._pipelines_api
 
     @property
-    def run_api(self) -> kfp_server_api.RunServiceApi:
+    def run_api(self) -> kfp.server_api.RunServiceApi:
         """Run service API instance."""
         return self._run_api
 
     @property
-    def experiment_api(self) -> kfp_server_api.ExperimentServiceApi:
+    def experiment_api(self) -> kfp.server_api.ExperimentServiceApi:
         """Experiment service API instance."""
         return self._experiment_api
 
     @property
-    def upload_api(self) -> kfp_server_api.PipelineUploadServiceApi:
+    def upload_api(self) -> kfp.server_api.PipelineUploadServiceApi:
         """Pipeline upload service API instance."""
         return self._upload_api
 
@@ -445,7 +445,7 @@ class KubernetesBackend:
                 run_response = self._run_api.run_service_get_run(run_id=run_id)
                 first_poll_succeeded = True
                 auth_retries = 0
-            except kfp_server_api.ApiException as api_error:
+            except kfp.server_api.ApiException as api_error:
                 if (first_poll_succeeded and api_error.status == 401 and
                         auth_retries < max_auth_retries):
                     auth_retries += 1
@@ -567,9 +567,9 @@ class KubernetesBackend:
         if not os.path.isfile(file_path):
             raise ValueError(f'Pipeline file not found: {file_path}')
         pipeline_spec_dict = self._load_pipeline_spec(file_path)
-        runtime_config = kfp_server_api.V2beta1RuntimeConfig(
+        runtime_config = kfp.server_api.V2beta1RuntimeConfig(
             parameters=params or {},)
-        run_body = kfp_server_api.V2beta1Run(
+        run_body = kfp.server_api.V2beta1Run(
             display_name=run_name,
             experiment_id=experiment_id,
             pipeline_spec=pipeline_spec_dict,
@@ -600,7 +600,7 @@ class KubernetesBackend:
             return self._experiment_api.experiment_service_get_experiment(
                 experiment_id=existing_id)
 
-        experiment_body = kfp_server_api.V2beta1Experiment(
+        experiment_body = kfp.server_api.V2beta1Experiment(
             display_name=name,
             description=description,
             namespace=self.namespace,
@@ -753,7 +753,7 @@ class KubernetesBackend:
 
         if version_name and first_version.display_name != version_name:
             try:
-                update_body = kfp_server_api.V2beta1PipelineVersion(
+                update_body = kfp.server_api.V2beta1PipelineVersion(
                     pipeline_id=first_version.pipeline_id,
                     pipeline_version_id=first_version.pipeline_version_id,
                     display_name=version_name,
@@ -765,7 +765,7 @@ class KubernetesBackend:
                     pipeline_version=update_body,
                 )
                 first_version.display_name = version_name
-            except kfp_server_api.ApiException as e:
+            except kfp.server_api.ApiException as e:
                 if e.status in (401, 403):
                     warnings.warn(
                         f'Could not rename the first pipeline version to '
@@ -838,14 +838,14 @@ class KubernetesBackend:
         experiment_id: str | None,
     ) -> Run:
         """Create a run from a pipeline version reference (ID-based)."""
-        runtime_config = kfp_server_api.V2beta1RuntimeConfig(
+        runtime_config = kfp.server_api.V2beta1RuntimeConfig(
             parameters=params or {},)
         pipeline_version_reference = (
-            kfp_server_api.V2beta1PipelineVersionReference(
+            kfp.server_api.V2beta1PipelineVersionReference(
                 pipeline_id=pipeline_id,
                 pipeline_version_id=version_id,
             ))
-        run_body = kfp_server_api.V2beta1Run(
+        run_body = kfp.server_api.V2beta1Run(
             display_name=run_name,
             experiment_id=experiment_id,
             pipeline_version_reference=pipeline_version_reference,
@@ -1068,10 +1068,10 @@ class KubernetesBackend:
     def _build_api_configuration(
         self,
         config: KubernetesBackendConfig,
-    ) -> kfp_server_api.Configuration:
-        """Build a kfp_server_api.Configuration from
+    ) -> kfp.server_api.Configuration:
+        """Build a kfp.server_api.Configuration from
         KubernetesBackendConfig."""
-        api_config = kfp_server_api.Configuration()
+        api_config = kfp.server_api.Configuration()
 
         if config.custom_ca:
             api_config.ssl_ca_cert = config.custom_ca

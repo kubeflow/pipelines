@@ -79,14 +79,8 @@ jobs:
       - name: Install Test dependencies
         run: uv sync --extra ci --frozen
 
-      - name: Build & install kfp-server-api dist
-        id: install-kfp-server-api
-        shell: bash
-        working-directory: backend/api/v2beta1/python_http_client
-        run: |
-          rm -rf dist/
-          uv build --out-dir dist/
-          uv pip install dist/*.whl
+      - name: Build and install the unified SDK
+        uses: ./.github/actions/kfp-k8s
 
       - name: Run tests
         id: tests

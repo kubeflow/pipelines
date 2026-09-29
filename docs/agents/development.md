@@ -8,11 +8,10 @@ The uv workspace creates `.venv`:
 
 ```bash
 uv sync --frozen --extra dev
-make -C api python-dev
-make -C kubernetes_platform python-dev
+make -C sdk generate-python
 ```
 
-Package metadata lives in each workspace member's `pyproject.toml`; regenerate
+The only distributable workspace member is `sdk/python` (`kfp`); regenerate
 `uv.lock` with `uv lock` after dependency changes. Keep the exported requirements
 files synchronized using the commands in `.github/workflows/check-requirements-txt.yml`.
 

@@ -59,11 +59,7 @@ def manual_checklist(step_id: str, metadata) -> str:
 1. Open https://app.readthedocs.org/projects/kubeflow-pipelines/
 2. Confirm {metadata.release_branch} build succeeded.
 3. Set Default version to {metadata.release_branch}.
-4. Set Default branch to {metadata.release_branch}.
-5. Open https://app.readthedocs.org/projects/kfp-kubernetes/
-6. Add or resync version kfp-kubernetes-{metadata.major}.{metadata.minor}.
-7. Confirm kfp-kubernetes-{metadata.major}.{metadata.minor} build succeeded.
-8. Set Default version to kfp-kubernetes-{metadata.major}.{metadata.minor}.''')
+4. Set Default branch to {metadata.release_branch}.''')
     if step_id == 'confirm-website-and-slack':
         compatibility_steps = ''
         slack_step = 4
@@ -623,6 +619,25 @@ def _update_uv_package_versions(root: Path, sdk_version: str) -> None:
 def _refresh_uv_release_packages(context: ReleaseContext) -> None:
     """Regenerate the workspace lock, requirements exports, and local release
     dists."""
+    if (context.root / 'sdk/python/kfp/server_api/__init__.py').is_file():
+        context.runner.run(['make', '-C', 'sdk', 'generate-python'],
+                           cwd=context.root)
+        context.runner.run(['uv', 'lock'], cwd=context.root)
+        export_command = ['uv', 'export', '--frozen', '--no-dev', '--no-hashes']
+        context.runner.run(
+            export_command +
+            ['--format', 'requirements-txt', '-o', 'requirements.txt'],
+            cwd=context.root)
+        context.runner.run(
+            export_command + [
+                '--package', 'kfp', '--format', 'requirements-txt', '-o',
+                'sdk/python/requirements.txt'
+            ],
+            cwd=context.root)
+        context.runner.run(
+            ['uv', 'build', '--package', 'kfp', '--out-dir', 'sdk/python/dist'],
+            cwd=context.root)
+        return
     context.runner.run(
         ['make', 'API_VERSION=v2beta1', 'generate-kfp-server-api-package'],
         cwd=context.root / 'backend/api')
@@ -657,6 +672,7 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
     metadata = context.metadata
     root = context.root
     uses_uv = (root / 'uv.lock').exists()
+    consolidated = (root / 'sdk/python/kfp/server_api/__init__.py').is_file()
 
     # Update SDK version files
     if context.runner.dry_run:
@@ -665,12 +681,14 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
         _replace(root / 'sdk/python/kfp/version.py',
                  r"__version__\s*=\s*['\"]([^'\"]+)['\"]",
                  f"__version__ = '{metadata.tag}'")
-        _replace(root / 'kubernetes_platform/python/kfp/kubernetes/__init__.py',
-                 r"__version__\s*=\s*['\"]([^'\"]+)['\"]",
-                 f"__version__ = '{metadata.tag}'")
-        if uses_uv:
+        if not consolidated:
+            _replace(
+                root / 'kubernetes_platform/python/kfp/kubernetes/__init__.py',
+                r"__version__\s*=\s*['\"]([^'\"]+)['\"]",
+                f"__version__ = '{metadata.tag}'")
+        if uses_uv and not consolidated:
             _update_uv_package_versions(root, metadata.tag)
-        else:
+        elif not uses_uv and not consolidated:
             _replace(root / 'api/v2alpha1/python/setup.py',
                      r"VERSION\s*=\s*['\"]([^'\"]+)['\"]",
                      f"VERSION = '{metadata.tag}'")
@@ -692,8 +710,9 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
             _replace(root / 'kubernetes_platform/python/requirements.in',
                      r'kfp>=[^,\n]+,<\d+', f'kfp>={metadata.tag},<{next_major}')
         _update_sdk_docs_versions(root / 'docs/sdk/versions.json', metadata.tag)
-        _update_kfp_kubernetes_docs_versions(
-            root / 'kubernetes_platform/python/docs/conf.py', metadata.tag)
+        if not consolidated:
+            _update_kfp_kubernetes_docs_versions(
+                root / 'kubernetes_platform/python/docs/conf.py', metadata.tag)
         _update_sdk_release_notes(
             root / 'sdk/RELEASE.md',
             metadata.tag,
@@ -754,20 +773,21 @@ def step_create_sdk_tag(context: ReleaseContext) -> None:
 def step_create_sdk_release(context: ReleaseContext) -> None:
     """Create the SDK GitHub release after packages are published."""
     metadata = context.metadata
-    notes = f'''Release of:
-
-- KFP SDK
-- KFP Kubernetes
-- KFP Server API
-- KFP Pipeline Spec
+    notes = f'''Release of the unified KFP SDK, including Kubernetes configuration,
+the server API client, and pipeline-spec bindings.
 
 To install the KFP SDK:
 
 ```
-pip install kfp-pipeline-spec=={metadata.tag}
-pip install kfp-server-api=={metadata.tag}
 pip install kfp=={metadata.tag}
-pip install kfp-kubernetes=={metadata.tag}
+```
+
+When migrating from the split SDK, remove the legacy distributions before
+installing the unified wheel:
+
+```
+python -m pip uninstall -y kfp-pipeline-spec kfp-server-api kfp-kubernetes
+python -m pip install --upgrade --force-reinstall kfp=={metadata.tag}
 ```
 
 For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}/sdk/RELEASE.md.
@@ -806,7 +826,7 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
     context.runner.run(create_command)
 
 
-PYPI_PACKAGES = ['kfp-pipeline-spec', 'kfp-server-api', 'kfp', 'kfp-kubernetes']
+PYPI_PACKAGES = ['kfp']
 
 
 def _is_pypi_version_published(package: str, version: str) -> bool:
@@ -1158,9 +1178,6 @@ def build_steps(release_type: str, include_backend: bool,
             Step('create-sdk-tag', 'Create SDK tag', 'step_create_sdk_tag'),
             Step('publish-sdks', 'Run SDK publication workflow',
                  'step_publish_sdks'),
-            Step('create-kfp-kubernetes-docs-branch',
-                 'Create kfp-kubernetes docs branch',
-                 'step_create_kfp_kubernetes_docs_branch'),
             Step('confirm-rtd', 'Confirm ReadTheDocs updates',
                  'step_confirm_rtd'),
             Step('create-sdk-release', 'Create SDK GitHub release',
