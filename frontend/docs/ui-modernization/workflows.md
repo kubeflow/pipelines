@@ -78,7 +78,7 @@ The backend already has an effective-state predicate for lifecycle operations, b
 
 ## Browser floor and accessibility
 
-The maintainer-approved [browser support policy](../browser-support.md) covers the latest two stable Chrome/Edge/Firefox majors, current Chrome/Edge Extended Stable, supported Firefox ESR overlap, and current/previous annual Safari and iOS/iPadOS releases with latest patches. Policy acceptance is complete; actual supported-browser and device qualification remains a release gate.
+The maintainer-approved [browser support policy](../browser-support.md) covers the latest two stable Chrome/Edge/Firefox majors, current Chrome/Edge Extended Stable, supported Firefox ESR overlap, and current/previous annual Safari and iOS/iPadOS releases with latest patches. Policy acceptance is complete. The [supported-browser checkpoint](supported-browser-qualification.md) records full Chrome 154 and Edge 154/153 production runs plus scoped Firefox stable/ESR smoke. Remaining supported-browser, device and OS qualification stays open.
 
 The [production Browserslist](../../package.json) and [Vite targets](../../vite.config.mts) retain conservative compiler settings. Their Chrome/Edge 111, Firefox 128 and Safari/iOS 16.4 targets no longer define product support or required qualification. Historical engine runs and the actual Firefox 128 smoke retain their recorded provenance; they do not qualify the newly declared channels. Record exact browser/OS versions and final asset identities for the new release matrix.
 

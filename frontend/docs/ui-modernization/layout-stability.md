@@ -1,5 +1,7 @@
 # UI modernization layout stability
 
+The [supported-browser checkpoint](supported-browser-qualification.md) adds actual branded-browser evidence on identical emitted assets. It does not replace the measurements or source identities below.
+
 This report records the layout-stability follow-up at application source `e79f8d423e6b118e5df94815ee2f36f68570a9a9`. It includes the layout changes from `4ee7610b739ef57c54155e89c9f3111adee2118f` and the subsequent short-viewport correction. The [previous performance qualification](performance-qualification.md) retains results for `b358c3b4dc6bcf1b47c2ae399b5e85dfc3df0269`; those observations remain historical and are not measurements of this build. [Workflow coverage](workflows.md) and [browser/accessibility qualification](browser-accessibility-qualification.md) describe the wider migration and its remaining release gates.
 
 The practical question is whether the same requested content and interactions remain at least as responsive while avoiding the observed loading and filtering shifts. A smaller bundle or a successful functional smoke test alone cannot answer that question. The measurements below must be evaluated separately for content readiness, interaction readiness and layout stability; they do not establish an intrinsic framework speedup.

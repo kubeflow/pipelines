@@ -2,7 +2,9 @@
 
 The UI modernization adopts the following browser support policy, approved by a
 maintainer on 2026-09-28. Release qualification against this policy is still
-pending; historical engine runs do not establish support for every channel below.
+pending. The [supported-browser checkpoint](ui-modernization/supported-browser-qualification.md)
+records actual Chrome/Edge workflow runs and native Firefox stable/ESR smoke;
+it does not establish support for every channel or OS below.
 
 | Browser                            | Supported releases                                                                                                         |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -42,7 +44,8 @@ JavaScript syntax transforms do not supply missing runtime APIs or CSS features.
 ## Qualification before release
 
 - [x] Adopt the channel policy and retire Chrome/Edge 111, Firefox 128 and Safari/iOS 16.4 as release qualification targets.
-- [ ] Record the dated exact-version/OS matrix for the release, including Chrome/Edge Extended Stable and all Firefox ESR releases still in their supported transition.
+- [x] Record a [dated qualification checkpoint](ui-modernization/supported-browser-qualification.md), with exact tested builds and remaining channel/OS gaps.
+- [ ] Complete the dated exact-version/OS matrix for the release, including Chrome/Edge Extended Stable and all Firefox ESR releases still in their supported transition.
 - [ ] Run the production workflow suite on current and previous stable Chrome/Edge/Firefox and the enterprise releases above. Retain failures and route/action/state results for each actual browser identity.
 - [ ] Qualify current and previous annual macOS Safari releases and iOS/iPadOS devices or simulators, recording which was used. Check touch, zoom, keyboard/focus, dialogs, inspector scrolling and visual-viewport behavior in both themes; retain representative physical-device checks.
 - [ ] Verify the final production bundle against the oldest supported versions as well as current releases. Resolve supported-browser failures that block loading, core workflows, data integrity, keyboard access or reachable content before release; document other limitations explicitly.
