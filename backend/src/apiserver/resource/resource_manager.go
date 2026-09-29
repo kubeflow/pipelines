@@ -2549,7 +2549,7 @@ func (r *ResourceManager) reportWorkflowResource(
 		if execStatus.IsInFinalState() {
 			run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 			run.State = state
-			run.Conditions = string(state.ToV1())
+			run.Conditions = string(state.ToExecutionPhase())
 			run.FinishedAtInSec = execStatus.FinishedAt()
 			if err := r.runStore.UpdateRun(run); err != nil {
 				return nil, util.Wrapf(err,
