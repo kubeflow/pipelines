@@ -12,6 +12,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
+import { prepareNativeSafariTap } from './ui-modernization-native-safari.mjs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -184,4 +185,95 @@ test('WebDriver transport honors command deadlines for delayed headers and bodie
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+function safariPreparationFixture({
+  tip = false,
+  closeCount = 1,
+  keyboard = false,
+  dismissError,
+  restoreError,
+} = {}) {
+  const calls = [];
+  const evidence = [];
+  const snapshots = [];
+  const element = (id) => ({ 'element-6066-11e4-a52e-4f735466cecf': id });
+  const command = async (method, path, body) => {
+    calls.push({ method, path, body });
+    if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_1';
+    if (method === 'POST' && path.endsWith('/context')) {
+      if (body.name === 'WEBVIEW_1' && restoreError) throw restoreError;
+      return null;
+    }
+    if (path.endsWith('/source')) return '<native-source />';
+    if (path.endsWith('/elements') && body.using === 'xpath')
+      return Array.from({ length: closeCount }, (_, i) => element(`close-${i}`));
+    if (path.endsWith('/elements')) return tip ? [element('tip')] : [];
+    if (path.endsWith('/click')) {
+      assert.match(path, /element\/close-0\/click$/);
+      tip = false;
+      return null;
+    }
+    if (body?.script === 'mobile: isKeyboardShown') return keyboard;
+    if (body?.script === 'mobile: hideKeyboard') {
+      if (dismissError) throw dismissError;
+      keyboard = false;
+      return null;
+    }
+    assert.fail(`Unexpected native preparation command: ${method} ${path}`);
+  };
+  return {
+    calls,
+    evidence,
+    snapshots,
+    run: () =>
+      prepareNativeSafariTap(command, 'fixture', evidence, async (source, label) =>
+        snapshots.push({ source, label }),
+      ),
+  };
+}
+
+test('native Safari preparation never clicks Close when the known onboarding tip is absent', async () => {
+  const fixture = safariPreparationFixture();
+  await fixture.run();
+  assert.equal(
+    fixture.calls.some(({ path }) => path.endsWith('/click')),
+    false,
+  );
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+  assert.equal(fixture.evidence[0].status, 'passed');
+});
+
+test('native Safari preparation scopes dismissal to the known tip and hides the keyboard', async () => {
+  const fixture = safariPreparationFixture({ tip: true, keyboard: true });
+  await fixture.run();
+  const lookup = fixture.calls.find(({ body }) => body?.using === 'xpath');
+  assert.match(lookup.body.value, /ancestor-or-self/);
+  assert.equal(fixture.evidence[0].actions.length, 2);
+  assert.equal(fixture.snapshots[0].label, 'safari-tip');
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('native Safari preparation rejects ambiguous close controls and retains native diagnostics', async () => {
+  const fixture = safariPreparationFixture({ tip: true, closeCount: 2 });
+  await assert.rejects(fixture.run(), /one identifiable close control/);
+  assert.equal(
+    fixture.calls.some(({ path }) => path.endsWith('/click')),
+    false,
+  );
+  assert.equal(fixture.snapshots.at(-1).label, 'safari-preparation-failed');
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('native Safari keyboard failure restores web context and preserves the original failure', async () => {
+  const error = new Error('keyboard could not be hidden');
+  const fixture = safariPreparationFixture({
+    keyboard: true,
+    dismissError: error,
+    restoreError: new Error('restore failed'),
+  });
+  await assert.rejects(fixture.run(), (observed) => observed === error);
+  assert.equal(fixture.evidence[0].status, 'failed');
+  assert.match(fixture.evidence[0].restoreError, /restore failed/);
+  assert.equal(fixture.snapshots.at(-1).label, 'safari-preparation-failed');
 });

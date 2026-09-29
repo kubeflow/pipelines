@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
+import { prepareNativeSafariTap } from './ui-modernization-native-safari.mjs';
 
 const driver = new URL(process.env.KFP_WEBDRIVER_URL || 'http://127.0.0.1:4444');
 const base = new URL(process.env.KFP_BROWSER_FLOOR_URL || 'http://127.0.0.1:4174/');
@@ -60,6 +61,7 @@ const report = {
     ? [
         'Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.',
         'Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.',
+        'Mobile text entry uses Appium WebDriver web typing atoms and input events; it does not establish physical keyboard typing.',
       ]
     : [],
   limitations: [
@@ -96,11 +98,28 @@ async function wait(fn, label, ...args) {
 async function find(selector) {
   return command('POST', `/session/${session}/element`, { using: 'css selector', value: selector });
 }
+async function prepareMobileTap() {
+  if (!mobile) return;
+  report.nativeSafariPreparation ??= [];
+  await prepareNativeSafariTap(
+    command,
+    session,
+    report.nativeSafariPreparation,
+    async (source, label) => {
+      const path = `${label}-${report.nativeSafariPreparation.length}.xml`;
+      await writeFile(join(out, path), source);
+      report.nativeSafariSources ??= [];
+      report.nativeSafariSources.push({ path });
+    },
+  );
+}
 async function click(selector) {
+  await prepareMobileTap();
   const element = await find(selector);
   await command('POST', `/session/${session}/element/${element[elementKey]}/click`, {});
 }
 async function type(selector, text) {
+  await prepareMobileTap();
   const element = await find(selector);
   await command('POST', `/session/${session}/element/${element[elementKey]}/value`, { text });
 }
@@ -150,6 +169,7 @@ async function textElement(selector, text) {
   );
 }
 async function clickText(selector, text) {
+  await prepareMobileTap();
   const element = await textElement(selector, text);
   await command('POST', `/session/${session}/element/${element[elementKey]}/click`, {});
 }
@@ -164,6 +184,7 @@ async function field(label) {
   );
 }
 async function fillLabel(label, text) {
+  await prepareMobileTap();
   const element = await field(label);
   if (browserName === 'safari' && !mobile) {
     // Safari's Element Clear can empty the DOM without sending the input event that
@@ -346,7 +367,7 @@ try {
     assert.equal(nativeInputActivation.mouseEvent, true);
     return { features, nativeInputActivation };
   });
-  await check('Runs loaded names and native name filter', async () => {
+  await check('Runs loaded names and WebDriver name filter', async () => {
     const names = await execute(() =>
       Array.from(
         document.querySelectorAll('[data-testid="run-name-link"]'),
@@ -808,6 +829,16 @@ try {
       await screenshot('failure');
     } catch (captureError) {
       report.captureError = String(captureError);
+    }
+    if (mobile) {
+      try {
+        await command('POST', `/session/${session}/context`, { name: 'NATIVE_APP' });
+        const source = await command('GET', `/session/${session}/source`);
+        await writeFile(join(out, 'failure-native-source.xml'), source);
+        report.nativeFailureSource = 'failure-native-source.xml';
+      } catch (captureError) {
+        report.nativeSourceCaptureError = String(captureError);
+      }
     }
   }
   console.error(report.error);
