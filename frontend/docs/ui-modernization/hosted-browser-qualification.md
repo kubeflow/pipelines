@@ -4,10 +4,10 @@ Browser qualification runs in GitHub Actions. It requires no workstation browser
 installation, local Safari/Xcode setup, or manual test execution.
 
 The existing [Frontend Tests workflow](../../../.github/workflows/frontend.yml)
-passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36618696217)
+passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36621719408)
 across Chromium, Firefox and WebKit on Linux, Windows and macOS: 48 cases per lane,
-with no skipped cases. At PR head `3ad3d5d1d7be81330835938c79ea4b849b06d186`
-(tested merge `9555e59364bc3c0ff94f4b6ad4f48d8918e817e2`), audited TAP/JUnit and
+with no skipped cases. At PR head `6122512a055439ce9ea4ee55132d5505c8a4270b`
+(tested merge `ebde247587b043c53546f60d970f426a0940610f`), audited TAP/JUnit and
 workflow reports agree on source identity and identical hashes for all 22 shared
 build files. This is engine coverage, separate from exact-version qualification.
 The same hosted source passes 1,760 UI tests and 1,103 server tests, formatting,
@@ -65,9 +65,11 @@ separate eight-minute phase before Appium session startup, record its resolved
 package version and output hashes, and require the generated test manifest, runner
 app and test executable before reuse. Mobile jobs have a 45-minute outer limit;
 desktop Safari retains 35 minutes. Native UI checks retain their own bounded
-command and suite deadlines. Initial mobile Safari preparation alone allows 60 seconds per command;
-subsequent suite interactions keep 40 seconds. Two cold-start queries returned
-correct results just beyond 40 seconds, so this allowance is confined to startup.
+command and suite deadlines. Mobile Appium commands through first-page readiness allow 60 seconds; subsequent
+suite interactions keep 40 seconds. Cold Web Inspector and native accessibility
+queries have returned correct results just beyond 40 seconds. Appium also waits
+for an in-flight native alert probe after JavaScript returns, so the startup
+allowance includes initial page readiness. Alert detection remains enabled.
 Native XCTest idle waits are set to a positive two seconds, with quiescence
 checks retained. The harness reads the live setting from the owned WebDriverAgent
 session and requires it to match before checking the application. This bounds the
@@ -141,22 +143,24 @@ ten tested builds only. Desktop Safari retained exact experiment name and descri
 values; its bounded input trace recorded no composition deletion or application
 value reset. Prediction, autocorrection and IME behavior remain unqualified.
 
-The current [run 36618696246](https://github.com/kubeflow/pipelines/actions/runs/36618696246)
-at `3ad3d5d1d7be81330835938c79ea4b849b06d186` verified nine lanes (252 checks),
-including refreshed Chrome 154.0.8037.93 with unchanged signed executable identity
-through the suite and successful read-only volume cleanup. Previous Edge passed
-47 cases but its first smoke case exceeded the outer 30-second test deadline;
-retained logs do not identify the inner step. That lane remains unqualified.
+The current [run 36621719129](https://github.com/kubeflow/pipelines/actions/runs/36621719129)
+at `6122512a055439ce9ea4ee55132d5505c8a4270b` verified all ten desktop/vendor
+lanes (300 checks), including Chrome 154.0.8037.93 and both Edge versions with
+unchanged signed executable identity through their suites and successful volume
+cleanup. All 22 application files match the passing nine-engine build above.
+The earlier previous-Edge first-test timeout is retained as a failed attempt;
+all 48 cases pass in this current run.
 
-Both mobile simulator lanes remain open. iPad failed before browser checks when
-Xcode could no longer discover concrete simulator destinations after boot. iPhone
-verified the live two-second WDA idle setting and passed eight checks, including
-filter scale preservation, inspector, editor, import and experiment/run drafts.
-Its artifact-link readiness guard incorrectly sampled the gap between wrapped
-text lines. The guard now uses an actual client fragment, and inline links use the
-existing uniquely typed native Link activation with an exact route assertion.
-The correction and all selected lanes require a fresh hosted run; partial or
-setup-failed lanes do not count as qualified.
+Both mobile simulator lanes remain open. Their prebuild, live two-second WDA idle
+setting and owned cleanup passed. iPhone's initial page query returned true, but
+Appium withheld its response while an in-flight native alert absence probe
+completed after 44 seconds. iPad passed seven checks, then Appium's web-to-native
+calibration produced an off-screen tap for the Recurring radio label as Safari's
+toolbar moved. The harness now extends its startup allowance through first-page
+readiness and selects the uniquely typed native run-type toggle, requiring the
+associated DOM radio and checked state before existing draft assertions.
+The wrapped-link correction and these follow-ups still require hosted verification;
+partial mobile lanes do not count as qualified.
 
 Shared Input and TextField textarea controls use 16px text on coarse-pointer
 devices to prevent Safari focus zoom. The prior recorded iPhone scale change from

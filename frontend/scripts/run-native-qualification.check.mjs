@@ -14,6 +14,8 @@ import { createServer as createHttpServer } from 'node:http';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
 import {
   clickNativeSafariLink,
+  clickNativeSafariRadio,
+  nativeSafariRadioSelector,
   inspectMobileTarget,
   planMobileGraphPan,
   panNativeSafariGraph,
@@ -650,6 +652,127 @@ test('native link failure retains the original error when web context restoratio
   );
   assert.equal(evidence[0].status, 'failed');
   assert.match(evidence[0].restoreError, /context unavailable/);
+});
+
+test('native radio selector resolves captured run-type controls without StaticText or unrelated toggles', () => {
+  // iPad AX controls captured when Appium's label calibration tapped off-screen.
+  const recurring =
+    '<XCUIElementTypeOther type="XCUIElementTypeOther" value="0" name="Recurring" label="Recurring" enabled="true" visible="true" accessible="true" x="206" y="622" width="88" height="21" index="0" traits="ToggleButton" />';
+  const oneOff =
+    '<XCUIElementTypeOther type="XCUIElementTypeOther" value="1" name="One-off" label="One-off" enabled="true" visible="true" accessible="true" x="121" y="622" width="73" height="21" index="0" traits="ToggleButton" />';
+  const dom = new JSDOM(
+    `<AppiumAUT><XCUIElementTypeApplication>${recurring}
+    <XCUIElementTypeWebView>${recurring}${oneOff}
+      <XCUIElementTypeStaticText name="Recurring" label="Recurring" enabled="true" visible="true" traits="StaticText" />
+      ${recurring.replace('visible="true"', 'visible="false"')}
+      ${recurring.replace('enabled="true"', 'enabled="false"')}
+      ${recurring.replace('traits="ToggleButton"', 'traits="Button"')}
+      ${recurring.replaceAll('Recurring', 'Recurring runs')}
+    </XCUIElementTypeWebView></XCUIElementTypeApplication></AppiumAUT>`,
+    { contentType: 'text/xml' },
+  );
+  try {
+    const { document, XPathResult } = dom.window;
+    for (const [name, expectedX, expectedValue] of [
+      ['Recurring', '206', '0'],
+      ['One-off', '121', '1'],
+    ]) {
+      const matches = document.evaluate(
+        nativeSafariRadioSelector(name),
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null,
+      );
+      assert.equal(matches.snapshotLength, 1);
+      assert.equal(matches.snapshotItem(0).tagName, 'XCUIElementTypeOther');
+      assert.equal(matches.snapshotItem(0).getAttribute('x'), expectedX);
+      assert.equal(matches.snapshotItem(0).getAttribute('value'), expectedValue);
+    }
+  } finally {
+    dom.window.close();
+  }
+});
+
+for (const count of [0, 1, 2]) {
+  test(`native radio clicks only one typed control and restores web context (${count} matches)`, async () => {
+    const calls = [];
+    const evidence = [];
+    const command = async (method, path, body) => {
+      calls.push({ method, path, body });
+      if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_radio';
+      if (path.endsWith('/elements'))
+        return Array.from({ length: count }, (_, i) => ({
+          'element-6066-11e4-a52e-4f735466cecf': `radio-${i}`,
+        }));
+      return null;
+    };
+    const exercise = clickNativeSafariRadio(command, 'fixture', 'Recurring', evidence);
+    if (count === 1) await exercise;
+    else await assert.rejects(exercise, /exactly one visible matching Radio/);
+    assert.deepEqual(calls.find(({ path }) => path.endsWith('/elements')).body, {
+      using: 'xpath',
+      value: nativeSafariRadioSelector('Recurring'),
+    });
+    assert.deepEqual(
+      calls.filter(({ path }) => path.endsWith('/click')).map(({ path }) => path),
+      count === 1 ? ['/session/fixture/element/radio-0/click'] : [],
+    );
+    assert.deepEqual(calls.at(-1).body, { name: 'WEBVIEW_radio' });
+    assert.equal(evidence[0].method, 'native Radio element click');
+    assert.equal(evidence[0].status, count === 1 ? 'passed' : 'failed');
+    assert.ok(
+      !calls.some(({ path }) => path.endsWith('/execute/sync') || path.endsWith('/actions')),
+    );
+  });
+}
+
+test('native radio preserves action failures when restoring context also fails', async () => {
+  const error = new Error('native radio touch failed');
+  const evidence = [];
+  const command = async (method, path, body) => {
+    if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_radio';
+    if (path.endsWith('/elements')) return [{ 'element-6066-11e4-a52e-4f735466cecf': 'radio' }];
+    if (path.endsWith('/click')) throw error;
+    if (body?.name === 'WEBVIEW_radio') throw new Error('restore unavailable');
+    return null;
+  };
+  await assert.rejects(
+    clickNativeSafariRadio(command, 'fixture', 'Recurring', evidence),
+    (observed) => observed === error,
+  );
+  assert.equal(evidence[0].status, 'failed');
+  assert.match(evidence[0].restoreError, /restore unavailable/);
+});
+
+test('native radio reports restore failure after a successful native action', async () => {
+  const error = new Error('web context no longer available');
+  const evidence = [];
+  const command = async (method, path, body) => {
+    if (method === 'GET' && path.endsWith('/context')) return 'WEBVIEW_radio';
+    if (path.endsWith('/elements')) return [{ 'element-6066-11e4-a52e-4f735466cecf': 'radio' }];
+    if (body?.name === 'WEBVIEW_radio') throw error;
+    return null;
+  };
+  await assert.rejects(
+    clickNativeSafariRadio(command, 'fixture', 'One-off', evidence),
+    (observed) => observed === error,
+  );
+  assert.equal(evidence[0].status, 'failed');
+  assert.match(evidence[0].restoreError, /web context no longer available/);
+});
+
+test('native radio refuses a missing web context before switching or touching controls', async () => {
+  const calls = [];
+  const command = async (method, path) => {
+    calls.push({ method, path });
+    return 'NATIVE_APP';
+  };
+  await assert.rejects(
+    clickNativeSafariRadio(command, 'fixture', 'Recurring', []),
+    /requires a selected web context/,
+  );
+  assert.deepEqual(calls, [{ method: 'GET', path: '/session/fixture/context' }]);
 });
 
 test('native preparation dismisses address keyboard before looking for remaining Start Page chrome', async () => {

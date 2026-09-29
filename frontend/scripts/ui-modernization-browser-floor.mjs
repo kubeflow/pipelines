@@ -17,6 +17,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { requestWebDriver } from './ui-modernization-native-http.mjs';
 import {
   clickNativeSafariLink,
+  clickNativeSafariRadio,
   inspectMobileTarget,
   planMobileGraphPan,
   panNativeSafariGraph,
@@ -78,13 +79,15 @@ const report = {
   ],
 };
 let session;
+let mobileStartup = mobile;
+if (mobile) report.nativeSafariStartupCommandTimeoutMs = 60000;
 await mkdir(out, { recursive: true });
 
 async function command(
   method,
   path,
   body,
-  timeout = mobile && path === '/session' ? 600000 : 40000,
+  timeout = mobile && path === '/session' ? 600000 : mobileStartup ? 60000 : 40000,
 ) {
   return requestWebDriver(new URL(path, driver), { method, body, timeout });
 }
@@ -106,14 +109,11 @@ async function wait(fn, label, ...args) {
 async function find(selector) {
   return command('POST', `/session/${session}/element`, { using: 'css selector', value: selector });
 }
-async function prepareMobileTap({ startup = false } = {}) {
+async function prepareMobileTap() {
   if (!mobile) return;
   report.nativeSafariPreparation ??= [];
-  // Cold Web Inspector/native accessibility queries exceeded 40s in hosted traces.
-  // Only initial browser preparation gets extra time; suite interactions keep 40s.
-  if (startup) report.nativeSafariStartupCommandTimeoutMs = 60000;
   await prepareNativeSafariTap(
-    startup ? (method, path, body) => command(method, path, body, 60000) : command,
+    command,
     session,
     report.nativeSafariPreparation,
     async (source, label) => {
@@ -232,7 +232,23 @@ async function clickText(selector, text) {
   await prepareMobileTap();
   const element = await textElement(selector, text);
   await readyMobileTarget(element, `${selector}: ${text}`);
-  if (mobile && selector === 'a') {
+  if (mobile && selector === 'label' && ['Recurring', 'One-off'].includes(text)) {
+    assert.deepEqual(
+      await execute((label) => ({ type: label.control?.type, name: label.control?.name }), element),
+      { type: 'radio', name: 'runType' },
+      'Native run-type action requires the associated radio control',
+    );
+    report.nativeSafariRadioClicks ??= [];
+    await clickNativeSafariRadio(command, session, text, report.nativeSafariRadioClicks);
+    await wait(
+      (name) =>
+        Array.from(document.querySelectorAll('label')).find(
+          (label) => label.textContent.trim() === name,
+        )?.control?.checked === true,
+      'native run-type radio selected',
+      text,
+    );
+  } else if (mobile && selector === 'a') {
     // Safari exposes both an inline link and its text child with the same label.
     // Activate the unique native Link, preserving its actual accessible action.
     const href = await execute((target) => target.getAttribute('href'), element);
@@ -396,12 +412,16 @@ try {
   if (!mobile)
     await command('POST', `/session/${session}/window/rect`, { width: 1440, height: 900 });
   // Browser-owned onboarding and address editing can obstruct the first page query.
-  await prepareMobileTap({ startup: true });
+  await prepareMobileTap();
   await command('POST', `/session/${session}/url`, { url: new URL('#/runs', base).href });
   await wait(
     () => document.querySelectorAll('[data-testid="run-name-link"]').length === 4,
     'four fixture runs',
   );
+  // Appium can finish JavaScript while its first native alert probe still runs.
+  // Confine the cold-start allowance to first-page readiness; checks retain 40s.
+  mobileStartup = false;
+  if (mobile) report.nativeSafariStartupCompletedAt = new Date().toISOString();
   report.environment = await execute(() => ({
     userAgent: navigator.userAgent,
     width: innerWidth,

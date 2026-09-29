@@ -174,35 +174,76 @@ export async function prepareNativeSafariTap(command, session, evidence, snapsho
   }
 }
 
-export function nativeSafariLinkSelector(name) {
+function nativeNameLiteral(name, kind) {
   assert.equal(typeof name, 'string');
-  assert.ok(name.length, 'Native link needs its exact accessible name');
-  const literal = name.includes('"')
+  assert.ok(name.length, `Native ${kind} needs its exact accessible name`);
+  return name.includes('"')
     ? `concat(${name
         .split('"')
         .map((part) => `"${part}"`)
         .join(`, '"', `)})`
     : `"${name}"`;
-  return `//XCUIElementTypeWebView//XCUIElementTypeLink[@name=${literal} and @visible="true" and @enabled="true"]`;
+}
+
+export function nativeSafariLinkSelector(name) {
+  return `//XCUIElementTypeWebView//XCUIElementTypeLink[@name=${nativeNameLiteral(name, 'link')} and @visible="true" and @enabled="true"]`;
+}
+
+export function nativeSafariRadioSelector(name) {
+  // WDA 16.12.11 exposes wdTraits as the XPath traits attribute. The captured
+  // radio is an Other/ToggleButton, distinct from its same-name StaticText.
+  return `//XCUIElementTypeWebView//XCUIElementTypeOther[@name=${nativeNameLiteral(name, 'radio')} and @traits="ToggleButton" and @visible="true" and @enabled="true"]`;
 }
 
 // Appium 12.13.3 can map an input-zoomed web link to the wrong native coordinates.
 // Selecting its native Link type also excludes the identically named child StaticText.
 export async function clickNativeSafariLink(command, session, name, evidence) {
+  return clickNativeSafariElement(
+    command,
+    session,
+    name,
+    evidence,
+    'Link',
+    nativeSafariLinkSelector(name),
+  );
+}
+
+// Safari toolbar movement can invert Appium's calibration between samples.
+// Activate the observed native radio itself rather than its separate text label.
+export async function clickNativeSafariRadio(command, session, name, evidence) {
+  return clickNativeSafariElement(
+    command,
+    session,
+    name,
+    evidence,
+    'Radio',
+    nativeSafariRadioSelector(name),
+  );
+}
+
+async function clickNativeSafariElement(command, session, name, evidence, kind, selector) {
   const path = `/session/${session}`;
   const context = await command('GET', `${path}/context`);
-  assert.match(context, /^WEBVIEW_/, 'Native link click requires a selected web context');
-  const entry = { startedAt: new Date().toISOString(), name, method: 'native Link element click' };
+  assert.match(
+    context,
+    /^WEBVIEW_/,
+    `Native ${kind.toLowerCase()} click requires a selected web context`,
+  );
+  const entry = {
+    startedAt: new Date().toISOString(),
+    name,
+    method: `native ${kind} element click`,
+  };
   evidence.push(entry);
   let failure;
   try {
     await command('POST', `${path}/context`, { name: 'NATIVE_APP' });
-    const links = await command('POST', `${path}/elements`, {
+    const elements = await command('POST', `${path}/elements`, {
       using: 'xpath',
-      value: nativeSafariLinkSelector(name),
+      value: selector,
     });
-    assert.equal(links.length, 1, 'Native Safari needs exactly one visible matching Link');
-    await command('POST', `${path}/element/${links[0][elementKey]}/click`, {});
+    assert.equal(elements.length, 1, `Native Safari needs exactly one visible matching ${kind}`);
+    await command('POST', `${path}/element/${elements[0][elementKey]}/click`, {});
     entry.status = 'passed';
   } catch (error) {
     failure = error;
