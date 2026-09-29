@@ -305,6 +305,10 @@ async function main() {
         'appium:simulatorStartupTimeout': 180000,
         'appium:wdaLaunchTimeout': 180000,
         'appium:wdaStartupRetries': 1,
+        // Cold hosted simulators can publish Safari's inspector application after
+        // the driver's 5-second default discovery deadline.
+        'appium:webviewConnectTimeout': 60000,
+        'appium:safariLogAllCommunication': true,
         'appium:newCommandTimeout': 120,
         'appium:nativeWebTap': true,
         'appium:screenshotQuality': 0,
