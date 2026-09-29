@@ -113,16 +113,6 @@ jobs:
         env:
           BROWSER_ID: ${{ matrix.id }}
         run: node scripts/install-qualified-browser.mjs "$BROWSER_ID"
-      - name: Retain installation provenance
-        if: always()
-        env:
-          BROWSER_ID: ${{ matrix.id }}
-        run: |
-          mkdir -p "$KFP_BROWSER_REPORT_DIR"
-          provenance="$RUNNER_TEMP/kfp-qualified-browsers/$BROWSER_ID/provenance.json"
-          if test -f "$provenance"; then
-            cp "$provenance" "$KFP_BROWSER_REPORT_DIR/distribution.json"
-          fi
       - name: Run full Chromium-family production workflows
         if: matrix.browser == 'chromium'
         env:
@@ -137,6 +127,21 @@ jobs:
           KFP_GECKODRIVER_BINARY: ${{ steps.browser.outputs.driver }}
           KFP_BROWSER_FLOOR_VERSION: ${{ steps.browser.outputs.version }}
         run: node scripts/run-native-qualification.mjs
+      - name: Verify final Edge identity and detach owned read-only volume
+        if: always() && startsWith(matrix.id, 'edge-')
+        env:
+          BROWSER_ID: ${{ matrix.id }}
+        run: node scripts/install-qualified-browser.mjs --finalize "$BROWSER_ID"
+      - name: Retain installation provenance
+        if: always()
+        env:
+          BROWSER_ID: ${{ matrix.id }}
+        run: |
+          mkdir -p "$KFP_BROWSER_REPORT_DIR"
+          provenance="$RUNNER_TEMP/kfp-qualified-browsers/$BROWSER_ID/provenance.json"
+          if test -f "$provenance"; then
+            cp "$provenance" "$KFP_BROWSER_REPORT_DIR/distribution.json"
+          fi
       - name: Record lane outcome
         if: always()
         env:

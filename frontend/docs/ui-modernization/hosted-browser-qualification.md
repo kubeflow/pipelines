@@ -60,8 +60,11 @@ The two supplementary Chrome for Testing archives have observed linker ad-hoc
 signatures without vendor resource seals. They instead require reviewed SHA-256
 pins matching two hosted downloads, a pinned official Google Storage object
 generation, and matching vendor MD5 and size. Their recorded packaging identity
-and exact browser version must also match. Edge updates are disabled only on the
-disposable qualification runner so later suites cannot receive a different major.
+and exact browser version must also match. Edge runs from an owned read-only disk
+image because a hosted updater can ignore a newly installed policy. Its version,
+full signature and executable hash are verified again after the suite, and the
+volume is detached before uploading final provenance. Update-policy changes and
+mounts are restricted to the disposable qualification runner.
 
 ## Native workflow coverage
 

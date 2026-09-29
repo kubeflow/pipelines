@@ -223,6 +223,88 @@ export function browserUpdatePolicy(browser) {
   };
 }
 
+export function ownedBrowserMount(directory, browser, record) {
+  if (!record?.mounted) return null;
+  const mount = join(directory, 'read-only-volume');
+  const image = join(directory, 'browser-read-only.dmg');
+  if (browser.appName !== 'Microsoft Edge.app' || record.path !== mount || record.image !== image) {
+    throw new Error(
+      'Refusing to inspect or detach a mount not owned by this browser installation.',
+    );
+  }
+  return { mount, image, app: join(mount, browser.appName) };
+}
+
+export async function finalizeBrowser(id, env = process.env) {
+  requireHostedRunner(env, process.platform, process.arch);
+  const browser = selectBrowser(JSON.parse(await readFile(manifestPath, 'utf8')), id);
+  const directory = join(await realpath(env.RUNNER_TEMP), 'kfp-qualified-browsers', browser.id);
+  const provenancePath = join(directory, 'provenance.json');
+  let provenance;
+  try {
+    provenance = JSON.parse(await readFile(provenancePath, 'utf8'));
+  } catch (error) {
+    if (error.code === 'ENOENT') return;
+    throw error;
+  }
+  const owned = ownedBrowserMount(directory, browser, provenance.readOnlyMount);
+  if (!owned) return;
+  let failure;
+  try {
+    if (!provenance.readOnlyMount.binarySha256) {
+      provenance.postSuiteIdentity = {
+        status: 'not-run',
+        reason: 'Installation did not finish initial mounted-app verification.',
+      };
+    } else {
+      const version = command('/usr/libexec/PlistBuddy', [
+        '-c',
+        'Print :CFBundleShortVersionString',
+        join(owned.app, 'Contents', 'Info.plist'),
+      ]).trim();
+      const signature = command('codesign', ['--display', '--verbose=4', owned.app]);
+      command('codesign', ['--verify', '--deep', '--strict', owned.app]);
+      assertAppIdentity(browser, version, signature);
+      const binary = join(owned.app, 'Contents', 'MacOS', browser.executable);
+      const digest = (await archiveDigests(binary)).sha256;
+      assertChecksum(provenance.readOnlyMount.binarySha256, digest);
+      provenance.postSuiteIdentity = {
+        status: 'passed',
+        version,
+        binarySha256: digest,
+        signature,
+        checkedAt: new Date().toISOString(),
+      };
+    }
+  } catch (error) {
+    failure = error;
+    provenance.status = 'failed';
+    provenance.postSuiteIdentity = {
+      status: 'failed',
+      error: error.message,
+      checkedAt: new Date().toISOString(),
+    };
+  } finally {
+    try {
+      try {
+        command('hdiutil', ['detach', owned.mount], 30_000);
+      } catch {
+        // A vendor updater may retain an open file; force-detach only our exact owned volume.
+        command('hdiutil', ['detach', '-force', owned.mount], 30_000);
+        provenance.readOnlyMount.forcedDetach = true;
+      }
+      provenance.readOnlyMount.mounted = false;
+      provenance.readOnlyMount.detachedAt = new Date().toISOString();
+    } catch (error) {
+      failure ??= error;
+      provenance.status = 'failed';
+      provenance.readOnlyMount.cleanupError = error.message;
+    }
+    await writeFile(provenancePath, `${JSON.stringify(provenance, null, 2)}\n`);
+  }
+  if (failure) throw failure;
+}
+
 export async function installBrowser(id, env = process.env) {
   requireHostedRunner(env, process.platform, process.arch);
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
@@ -326,7 +408,56 @@ export async function installBrowser(id, env = process.env) {
       browser.verification === 'cft-archive'
         ? 'Ad-hoc linker signature observed; archive verified using reviewed SHA-256 and pinned Google Storage generation, size and MD5. No vendor resource seal exists.'
         : 'Strict resource seal and vendor signing team verified';
-    const binary = join(app, 'Contents', 'MacOS', browser.executable);
+    let binary = join(app, 'Contents', 'MacOS', browser.executable);
+    if (browserUpdatePolicy(browser)) {
+      // Existing hosted-runner updaters can cache policy before this job starts. A read-only
+      // image freezes the verified app regardless of updater state without modifying its seal.
+      const source = join(directory, 'image-source');
+      await mkdir(source);
+      command('ditto', [app, join(source, browser.appName)]);
+      const image = join(directory, 'browser-read-only.dmg');
+      command(
+        'hdiutil',
+        [
+          'create',
+          '-quiet',
+          '-srcfolder',
+          source,
+          '-format',
+          'UDRO',
+          '-fs',
+          'HFS+',
+          '-volname',
+          `KFP-${browser.id}`,
+          image,
+        ],
+        300_000,
+      );
+      const mount = join(directory, 'read-only-volume');
+      await mkdir(mount);
+      command('hdiutil', ['attach', '-readonly', '-nobrowse', '-mountpoint', mount, image]);
+      provenance.readOnlyMount = {
+        path: mount,
+        image,
+        mounted: true,
+        format: 'UDRO',
+        readOnly: true,
+      };
+      const mountedApp = join(mount, browser.appName);
+      command('codesign', ['--verify', '--deep', '--strict', mountedApp]);
+      const mountedVersion = command('/usr/libexec/PlistBuddy', [
+        '-c',
+        'Print :CFBundleShortVersionString',
+        join(mountedApp, 'Contents', 'Info.plist'),
+      ]).trim();
+      assertAppIdentity(
+        browser,
+        mountedVersion,
+        command('codesign', ['--display', '--verbose=4', mountedApp]),
+      );
+      binary = join(mountedApp, 'Contents', 'MacOS', browser.executable);
+      provenance.readOnlyMount.binarySha256 = (await archiveDigests(binary)).sha256;
+    }
     let driver = '';
     if (browser.browser === 'firefox') {
       const driverArchive = join(directory, 'geckodriver.tar.gz');
@@ -373,5 +504,6 @@ export async function installBrowser(id, env = process.env) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await installBrowser(process.argv[2]);
+  if (process.argv[2] === '--finalize') await finalizeBrowser(process.argv[3]);
+  else await installBrowser(process.argv[2]);
 }

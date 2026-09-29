@@ -23,6 +23,7 @@ import {
   assertAppIdentity,
   assertArchiveObject,
   browserUpdatePolicy,
+  ownedBrowserMount,
   assertChecksum,
   manifestPath,
   requireHostedRunner,
@@ -154,4 +155,44 @@ test('CfT archive checks reject changed metadata, scope expansion and signing id
       /code signature team/,
     );
   }
+});
+
+test('Edge finalization accepts only its exact owned mount and skips incomplete setup', () => {
+  const directory = '/tmp/runner/kfp-qualified-browsers/edge-previous';
+  const browser = { appName: 'Microsoft Edge.app' };
+  const record = {
+    mounted: true,
+    path: `${directory}/read-only-volume`,
+    image: `${directory}/browser-read-only.dmg`,
+  };
+  assert.equal(ownedBrowserMount(directory, browser, undefined), null);
+  assert.equal(ownedBrowserMount(directory, browser, { mounted: false }), null);
+  assert.equal(
+    ownedBrowserMount(directory, browser, record).app,
+    `${record.path}/Microsoft Edge.app`,
+  );
+  for (const mutation of [{ path: '/Volumes/another-app' }, { image: '/tmp/another.dmg' }]) {
+    assert.throws(
+      () => ownedBrowserMount(directory, browser, { ...record, ...mutation }),
+      /not owned/,
+    );
+  }
+  assert.throws(
+    () => ownedBrowserMount(directory, { appName: 'Firefox.app' }, record),
+    /not owned/,
+  );
+  const result = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(new URL('./install-qualified-browser.mjs', import.meta.url)),
+      '--finalize',
+      'edge-previous',
+    ],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, CI: '', GITHUB_ACTIONS: '', RUNNER_ENVIRONMENT: '', RUNNER_TEMP: '' },
+    },
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /restricted to GitHub-hosted CI/);
 });
