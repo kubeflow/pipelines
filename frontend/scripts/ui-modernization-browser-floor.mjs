@@ -232,7 +232,17 @@ async function clickText(selector, text) {
   await prepareMobileTap();
   const element = await textElement(selector, text);
   await readyMobileTarget(element, `${selector}: ${text}`);
-  await command('POST', `/session/${session}/element/${element[elementKey]}/click`, {});
+  if (mobile && selector === 'a') {
+    // Safari exposes both an inline link and its text child with the same label.
+    // Activate the unique native Link, preserving its actual accessible action.
+    const href = await execute((target) => target.getAttribute('href'), element);
+    assert.ok(href?.startsWith('#/'), 'Native fixture link must retain its hash route');
+    report.nativeSafariLinkClicks ??= [];
+    await clickNativeSafariLink(command, session, text, report.nativeSafariLinkClicks);
+    await wait((expected) => location.hash === expected, 'native link route', href);
+  } else {
+    await command('POST', `/session/${session}/element/${element[elementKey]}/click`, {});
+  }
 }
 async function field(label) {
   return wait(

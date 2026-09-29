@@ -4,10 +4,10 @@ Browser qualification runs in GitHub Actions. It requires no workstation browser
 installation, local Safari/Xcode setup, or manual test execution.
 
 The existing [Frontend Tests workflow](../../../.github/workflows/frontend.yml)
-passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36615195410)
+passes [432/432 production-fixture cases](https://github.com/kubeflow/pipelines/actions/runs/36618696217)
 across Chromium, Firefox and WebKit on Linux, Windows and macOS: 48 cases per lane,
-with no skipped cases. At PR head `be13f951a8344054549f8afbf4050faf8f34b323`
-(tested merge `a7b7138cb25920f0c7526f84aff5ef2710c59d4d`), audited TAP/JUnit and
+with no skipped cases. At PR head `3ad3d5d1d7be81330835938c79ea4b849b06d186`
+(tested merge `9555e59364bc3c0ff94f4b6ad4f48d8918e817e2`), audited TAP/JUnit and
 workflow reports agree on source identity and identical hashes for all 22 shared
 build files. This is engine coverage, separate from exact-version qualification.
 The same hosted source passes 1,760 UI tests and 1,103 server tests, formatting,
@@ -141,17 +141,22 @@ ten tested builds only. Desktop Safari retained exact experiment name and descri
 values; its bounded input trace recorded no composition deletion or application
 value reset. Prediction, autocorrection and IME behavior remain unqualified.
 
-Both mobile simulator lanes remain open. Follow-up
-[run 36615195513](https://github.com/kubeflow/pipelines/actions/runs/36615195513)
-at `be13f951a8344054549f8afbf4050faf8f34b323` passed nine lanes (252 checks).
-Chrome correctly rejected a vendor download that had advanced beyond its dated
-pin; the catalog is now refreshed. iPhone's first page query returned after the
-40-second command deadline. iPad passed six checks, including unchanged filter
-scale, inspector open/close and import validation. Experiment text entry then
-exceeded that deadline because three native taps each incurred two 10-second
-XCTest idle waits; the driver subsequently entered the exact expected text.
-The scoped startup allowance and positive two-second idle setting above require
-a fresh hosted run. Neither partial simulator lane counts as qualified.
+The current [run 36618696246](https://github.com/kubeflow/pipelines/actions/runs/36618696246)
+at `3ad3d5d1d7be81330835938c79ea4b849b06d186` verified nine lanes (252 checks),
+including refreshed Chrome 154.0.8037.93 with unchanged signed executable identity
+through the suite and successful read-only volume cleanup. Previous Edge passed
+47 cases but its first smoke case exceeded the outer 30-second test deadline;
+retained logs do not identify the inner step. That lane remains unqualified.
+
+Both mobile simulator lanes remain open. iPad failed before browser checks when
+Xcode could no longer discover concrete simulator destinations after boot. iPhone
+verified the live two-second WDA idle setting and passed eight checks, including
+filter scale preservation, inspector, editor, import and experiment/run drafts.
+Its artifact-link readiness guard incorrectly sampled the gap between wrapped
+text lines. The guard now uses an actual client fragment, and inline links use the
+existing uniquely typed native Link activation with an exact route assertion.
+The correction and all selected lanes require a fresh hosted run; partial or
+setup-failed lanes do not count as qualified.
 
 Shared Input and TextField textarea controls use 16px text on coarse-pointer
 devices to prevent Safari focus zoom. The prior recorded iPhone scale change from

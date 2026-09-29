@@ -680,6 +680,7 @@ test('mobile target readiness rejects offscreen and occluded targets, including 
     const target = document.querySelector('button');
     let rect = { x: 32, y: 746, width: 125, height: 53 };
     target.getBoundingClientRect = () => rect;
+    target.getClientRects = () => [rect];
     Object.defineProperty(dom.window, 'visualViewport', {
       value: { offsetLeft: 0, offsetTop: 0, width: 402, height: 714, scale: 1 },
       configurable: true,
@@ -711,6 +712,66 @@ test('mobile target readiness rejects offscreen and occluded targets, including 
     rect = { x: 100, y: 100, width: 50, height: 30 };
     assert.equal(inspectMobileTarget(target).ready, true);
     assert.equal(inspectMobileTarget(target).viewport.scale, 1.23134);
+  } finally {
+    dom.window.close();
+  }
+});
+
+test('mobile wrapped-link readiness hits the first real fragment instead of the union-box gap', () => {
+  const dom = new JSDOM(
+    '<table><tbody><tr><td><a href="#/artifacts/mock" style="visibility:visible">mock-dataset</a></td></tr></tbody></table><div aria-label="Overlay"></div>',
+  );
+  try {
+    const { document } = dom.window;
+    const target = document.querySelector('a');
+    const bounding = { x: 97, y: 222.656, width: 45.5, height: 35 };
+    const first = { ...bounding, width: 32, height: 15 };
+    const second = { ...bounding, y: 242.656, height: 15 };
+    const empty = { ...bounding, width: 0, height: 0 };
+    let fragments = [empty, first, second];
+    target.getBoundingClientRect = () => bounding;
+    target.getClientRects = () => fragments;
+    Object.defineProperty(dom.window, 'visualViewport', {
+      value: { offsetLeft: 0, offsetTop: 0, width: 402, height: 714, scale: 1 },
+    });
+    const hitFragment = (x, y) =>
+      [first, second].some(
+        (rect) => x > rect.x && x < rect.x + rect.width && y > rect.y && y < rect.y + rect.height,
+      )
+        ? target
+        : document.querySelector('td');
+    document.elementFromPoint = hitFragment;
+    assert.equal(
+      hitFragment(bounding.x + bounding.width / 2, bounding.y + bounding.height / 2).tagName,
+      'TD',
+      'the hosted wrapped-link union center falls in its interline gap',
+    );
+    const geometry = inspectMobileTarget(target);
+    assert.equal(geometry.ready, true);
+    assert.deepEqual(geometry.rect, first);
+    assert.deepEqual(geometry.boundingRect, bounding);
+    assert.deepEqual(geometry.center, { x: 113, y: 230.156 });
+    assert.equal(geometry.hitTag, 'A');
+    assert.deepEqual(geometry.viewport, {
+      left: 0,
+      top: 0,
+      width: 402,
+      height: 714,
+      scale: 1,
+    });
+    document.elementFromPoint = () => document.querySelector('div');
+    assert.equal(inspectMobileTarget(target).ready, false, 'a real overlay still blocks the link');
+    document.elementFromPoint = hitFragment;
+    fragments = [];
+    assert.equal(inspectMobileTarget(target).ready, false, 'a union box alone is not a fragment');
+    fragments = [empty];
+    assert.equal(inspectMobileTarget(target).ready, false, 'empty fragments are not clickable');
+    fragments = [{ ...first, y: -100 }, second];
+    assert.equal(
+      inspectMobileTarget(target).ready,
+      false,
+      'an offscreen first fragment cannot be replaced by a more convenient later fragment',
+    );
   } finally {
     dom.window.close();
   }

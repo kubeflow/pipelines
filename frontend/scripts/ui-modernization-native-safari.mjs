@@ -238,7 +238,13 @@ export function scrollMobileTargetIntoView(element) {
 // visual-viewport offset after it zooms a focused input.
 export function inspectMobileTarget(element) {
   const view = element.ownerDocument.defaultView;
-  const box = element.getBoundingClientRect();
+  const boundingBox = element.getBoundingClientRect();
+  // Wrapped inline links have a union-box center between lines. Use the first
+  // nonempty fragment for WebDriver-style hit testing, not that empty gap.
+  const fragment = Array.from(element.getClientRects()).find(
+    (rect) => rect.width > 0 && rect.height > 0,
+  );
+  const box = fragment || { x: boundingBox.x, y: boundingBox.y, width: 0, height: 0 };
   const visual = view.visualViewport;
   const viewport = {
     left: visual?.offsetLeft || 0,
@@ -260,6 +266,12 @@ export function inspectMobileTarget(element) {
   const hitTarget = hit === element || element.contains(hit);
   return {
     rect: { x: box.x, y: box.y, width: box.width, height: box.height },
+    boundingRect: {
+      x: boundingBox.x,
+      y: boundingBox.y,
+      width: boundingBox.width,
+      height: boundingBox.height,
+    },
     viewport,
     center: { x, y },
     hitTag: hit?.tagName || null,
