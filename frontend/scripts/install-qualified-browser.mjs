@@ -153,6 +153,20 @@ export function assertAppIdentity(browser, actualVersion, signature) {
   }
 }
 
+export function browserUpdatePolicy(browser) {
+  if (browser.appName !== 'Microsoft Edge.app') return null;
+  return {
+    path: '/Library/Managed Preferences/com.microsoft.EdgeUpdater.plist',
+    source: 'https://learn.microsoft.com/en-us/deployedge/edge-learnmore-edgeupdater-for-macos',
+    updateDefault: 3,
+    plist: `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>updatePolicies</key><dict><key>global</key><dict>
+<key>UpdateDefault</key><integer>3</integer></dict></dict></dict></plist>
+`,
+  };
+}
+
 export async function installBrowser(id, env = process.env) {
   requireHostedRunner(env, process.platform, process.arch);
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
@@ -176,6 +190,44 @@ export async function installBrowser(id, env = process.env) {
     startedAt: new Date().toISOString(),
   };
   try {
+    const updatePolicy = browserUpdatePolicy(browser);
+    if (updatePolicy) {
+      // Edge registers its updater even from an extracted app. Freeze only this disposable
+      // CI runner before any launch; otherwise later suites can silently receive a new major.
+      const policyFile = join(directory, 'edge-updater-policy.plist');
+      await writeFile(policyFile, updatePolicy.plist);
+      command('/usr/bin/plutil', ['-lint', policyFile]);
+      command('/usr/bin/sudo', ['-n', '/bin/mkdir', '-p', '/Library/Managed Preferences']);
+      command('/usr/bin/sudo', [
+        '-n',
+        '/usr/bin/install',
+        '-o',
+        'root',
+        '-g',
+        'wheel',
+        '-m',
+        '644',
+        policyFile,
+        updatePolicy.path,
+      ]);
+      const configured = command('/usr/bin/plutil', [
+        '-extract',
+        'updatePolicies.global.UpdateDefault',
+        'raw',
+        '-o',
+        '-',
+        updatePolicy.path,
+      ]).trim();
+      if (configured !== String(updatePolicy.updateDefault)) {
+        throw new Error('Edge updater policy did not retain the disabled-update setting.');
+      }
+      provenance.updatePolicy = {
+        source: updatePolicy.source,
+        path: updatePolicy.path,
+        updateDefault: updatePolicy.updateDefault,
+        verified: true,
+      };
+    }
     const archive = join(directory, `browser.${browser.kind}`);
     provenance.download = await download(browser.url, archive, browser.sha256);
     if (browser.kind === 'zip') {

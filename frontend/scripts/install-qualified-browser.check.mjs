@@ -21,6 +21,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   assertAppIdentity,
+  browserUpdatePolicy,
   assertChecksum,
   manifestPath,
   requireHostedRunner,
@@ -100,4 +101,17 @@ test('dated manifest separates installable exact artifacts from unresolved polic
   }
   assert.match(manifest.geckodriver.sha256, /^[a-f0-9]{64}$/);
   assert.throws(() => selectBrowser(manifest, '../escape'), /unresolved browser slot/);
+});
+
+test('only Edge receives the vendor-documented disabled-update policy', async () => {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  for (const browser of manifest.browsers) {
+    const policy = browserUpdatePolicy(browser);
+    if (browser.id.startsWith('edge-')) {
+      assert.equal(policy.updateDefault, 3);
+      assert.equal(policy.path, '/Library/Managed Preferences/com.microsoft.EdgeUpdater.plist');
+      assert.match(policy.plist, /<key>UpdateDefault<\/key><integer>3<\/integer>/);
+      assert.match(policy.source, /^https:\/\/learn\.microsoft\.com\//);
+    } else assert.equal(policy, null);
+  }
 });
