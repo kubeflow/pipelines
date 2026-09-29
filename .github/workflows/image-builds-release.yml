@@ -81,9 +81,6 @@ jobs:
           - name: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
-          - name: kfp-inverse-proxy-agent
-            dockerfile: proxy/Dockerfile
-            context: ./proxy
 
         arch:
           - arch_name: amd64
@@ -92,10 +89,6 @@ jobs:
           - arch_name: arm64
             runs_on: ubuntu-24.04-arm
             platform: linux/arm64
-
-        exclude:
-          - image: { name: kfp-inverse-proxy-agent }
-            arch: { arch_name: arm64 }
 
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
@@ -127,14 +120,13 @@ jobs:
           - image: kfp-viewer-crd-controller
           - image: kfp-launcher
           - image: kfp-driver
-          - image: kfp-inverse-proxy-agent
     uses: ./.github/workflows/create-manifest.yml
     secrets: inherit
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}
       source_sha: ${{ needs.resolve-source.outputs.sha }}
-      expected_platforms: ${{ matrix.component.image == 'kfp-inverse-proxy-agent' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
+      expected_platforms: linux/amd64,linux/arm64
       set_latest: ${{ inputs.set_latest }}
 
   validate-release-images:

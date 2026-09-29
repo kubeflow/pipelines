@@ -127,7 +127,7 @@ class PublicationTest(unittest.TestCase):
             publication.validate_index(original, PLATFORMS),
             publication.validate_index(reordered, PLATFORMS))
 
-    def test_inverse_proxy_single_platform(self):
+    def test_single_platform_inventory(self):
         publication.validate_index(index(['amd64']), {'linux/amd64'})
 
     def test_missing_index_platform(self):
