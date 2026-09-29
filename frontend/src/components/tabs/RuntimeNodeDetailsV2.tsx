@@ -136,6 +136,7 @@ export function RuntimeNodeDetailsV2({
         layers={layers}
         onLayerChange={onLayerChange}
         namespace={namespace}
+        namespacePending={namespacePending}
       />
     );
   }
@@ -243,7 +244,11 @@ function TaskNodeDetail({
         <div className='kfp-inspection-column'>
           {selectedTab === 0 &&
             (task ? (
-              <RuntimeInputOutputTab task={task} namespace={namespace} />
+              <RuntimeInputOutputTab
+                task={task}
+                namespace={namespace}
+                namespacePending={namespacePending}
+              />
             ) : (
               NODE_STATE_UNAVAILABLE
             ))}
@@ -629,6 +634,7 @@ interface SubDAGNodeDetailProps {
   layers: string[];
   onLayerChange: (layers: string[]) => void;
   namespace?: string;
+  namespacePending?: boolean;
 }
 
 function SubDAGNodeDetail({
@@ -637,6 +643,7 @@ function SubDAGNodeDetail({
   layers,
   onLayerChange,
   namespace,
+  namespacePending = false,
 }: SubDAGNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
   const taskKey = getTaskKeyFromNodeKey(element.id);
@@ -656,7 +663,11 @@ function SubDAGNodeDetail({
         <div className='kfp-inspection-column'>
           {selectedTab === 0 &&
             (task ? (
-              <RuntimeInputOutputTab task={task} namespace={namespace} />
+              <RuntimeInputOutputTab
+                task={task}
+                namespace={namespace}
+                namespacePending={namespacePending}
+              />
             ) : (
               NODE_STATE_UNAVAILABLE
             ))}

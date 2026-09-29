@@ -23,9 +23,14 @@ import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
 export interface RuntimeInputOutputTabProps {
   task: V2beta1PipelineTask;
   namespace?: string;
+  namespacePending?: boolean;
 }
 
-export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTabProps) {
+export function RuntimeInputOutputTab({
+  task,
+  namespace,
+  namespacePending = false,
+}: RuntimeInputOutputTabProps) {
   const inputParameters = formatParameters(task.inputs?.parameters);
   const outputParameters = formatParameters(task.outputs?.parameters);
   const inputArtifacts = buildRuntimeArtifactRows(task.inputs?.artifacts);
@@ -52,7 +57,7 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
               title='Input Artifacts'
               fields={inputArtifacts}
               valueComponent={RuntimeArtifactValue}
-              valueComponentProps={{ namespace, autoLoad: true }}
+              valueComponentProps={{ namespace, namespacePending, autoLoad: true }}
             />
           )}
           {!!outputParameters.length && (
@@ -63,7 +68,7 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
               title='Output Artifacts'
               fields={outputArtifacts}
               valueComponent={RuntimeArtifactValue}
-              valueComponentProps={{ namespace, autoLoad: true }}
+              valueComponentProps={{ namespace, namespacePending, autoLoad: true }}
             />
           )}
         </div>

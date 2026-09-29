@@ -4,9 +4,10 @@ Browser qualification runs in GitHub Actions. It requires no workstation browser
 installation, local Safari/Xcode setup, or manual test execution.
 
 The existing [Frontend Tests workflow](../../../.github/workflows/frontend.yml)
-runs 47 production-fixture cases across Chromium, Firefox and WebKit on Linux,
+runs 48 production-fixture cases across Chromium, Firefox and WebKit on Linux,
 Windows and macOS. Its retained [423/423 checkpoint](https://github.com/kubeflow/pipelines/actions/runs/36520796567)
-is engine coverage, separate from the exact-version qualification below.
+used 47 cases per lane and is engine coverage, separate from the exact-version
+qualification below.
 
 ## Workflow and evidence
 
@@ -36,11 +37,11 @@ fails the lane instead of silently substituting a different version.
 
 | Lane                        | Version            | Suite               | Qualification role                                        |
 | --------------------------- | ------------------ | ------------------- | --------------------------------------------------------- |
-| Chrome stable               | 154.0.8037.58      | 47 production cases | Current stable policy row                                 |
-| Chrome for Testing current  | 154.0.8037.57      | 47 production cases | Supplementary; different Mac patch                        |
-| Chrome for Testing previous | 153.0.8010.52      | 47 production cases | Supplementary; different Mac patch                        |
-| Edge stable                 | 154.0.4258.37      | 47 production cases | Current stable policy row                                 |
-| Edge previous               | 153.0.4234.48      | 47 production cases | Previous stable policy row                                |
+| Chrome stable               | 154.0.8037.58      | 48 production cases | Current stable policy row                                 |
+| Chrome for Testing current  | 154.0.8037.57      | 48 production cases | Supplementary; different Mac patch                        |
+| Chrome for Testing previous | 153.0.8010.52      | 48 production cases | Supplementary; different Mac patch                        |
+| Edge stable                 | 154.0.4258.37      | 48 production cases | Current stable policy row                                 |
+| Edge previous               | 153.0.4234.48      | 48 production cases | Previous stable policy row                                |
 | Firefox stable              | 157.0              | 12 native checks    | Current stable policy row                                 |
 | Firefox previous            | 156.0.1            | 12 native checks    | Previous stable policy row                                |
 | Firefox ESR                 | 153.4.0            | 12 native checks    | Current ESR policy row                                    |
@@ -78,7 +79,7 @@ which interactions were exercised on each platform.
 
 These read/draft checks use fixed same-origin HTTP fixtures and reject backend
 mutations. They do not establish parity with every request/mutation/recovery case
-in the 47-case suite, real deployment authorization, physical-device behavior,
+in the 48-case suite, real deployment authorization, physical-device behavior,
 performance budgets, or untested assistive technology. Screenshots retain evidence;
 they do not by themselves establish visual equivalence.
 

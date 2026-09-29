@@ -616,6 +616,44 @@ test('Run Details preserves nested task links, history, copied URLs, and graph g
   });
 });
 
+test('Run Details defers input/output previews and downloads until the experiment namespace resolves', async () => {
+  await withFixture({}, async (page, fixture) => {
+    const pendingExperiment = gate();
+    fixture.experimentGate = pendingExperiment;
+    await openTask(page, 'preprocess');
+    await page.getByText('Loading experiment namespace…', { exact: true }).waitFor();
+    assert.equal(
+      fixture.requests.filter((request) => request.path === '/artifacts/get').length,
+      0,
+      'automatic previews must wait for the experiment namespace',
+    );
+    assert.equal(
+      await page.locator('a[download]').count(),
+      0,
+      'unscoped download links must not be exposed while namespace resolution is pending',
+    );
+    pendingExperiment.release();
+    await page
+      .locator('.kfp-artifact-preview-preview')
+      .getByText('artifact executor output', { exact: false })
+      .waitFor();
+    assert.deepEqual(
+      fixture.requests
+        .filter((request) => request.path === '/artifacts/get')
+        .map((request) => request.query.namespace),
+      ['team-a'],
+      'resolution starts one namespaced preview request',
+    );
+    assert.equal(
+      new URL(await page.locator('a[download]').getAttribute('href'), origin).searchParams.get(
+        'namespace',
+      ),
+      'team-a',
+    );
+    await screenshot(page, 'run-details-scoped-artifact-preview');
+  });
+});
+
 test('Run Details distinguishes executor, artifact, and driver log sources', async () => {
   await withFixture({}, async (page, fixture) => {
     const pendingExperiment = gate();

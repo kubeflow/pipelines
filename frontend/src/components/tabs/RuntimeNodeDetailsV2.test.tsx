@@ -161,6 +161,62 @@ describe('RuntimeNodeDetailsV2', () => {
     expect(screen.queryByText('Loading experiment namespace…')).not.toBeInTheDocument();
   });
 
+  it.each(['EXECUTION', 'SUB_DAG'] as const)(
+    'defers %s input/output artifact reads and downloads until namespace resolution',
+    async (type) => {
+      const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('scoped artifact preview');
+      const task = createTask({
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'dataset',
+              artifacts: [
+                { artifact_id: 'dataset-a', name: 'dataset', uri: 's3://pipeline-root/data.txt' },
+              ],
+            },
+          ],
+        },
+      });
+      const content = (namespacePending: boolean, refreshedTask = task) => (
+        <CommonTestWrapper>
+          <RuntimeNodeDetailsV2
+            layers={['root']}
+            onLayerChange={() => {}}
+            runId={TEST_RUN_ID}
+            element={{ ...executionElement, type }}
+            elementRuntimeInfo={{ task: refreshedTask }}
+            namespace={namespacePending ? undefined : TEST_NAMESPACE}
+            namespacePending={namespacePending}
+            selectedTaskTab={0}
+          />
+        </CommonTestWrapper>
+      );
+      const view = render(content(true));
+      await act(async () => {});
+      expect(readFileSpy).not.toHaveBeenCalled();
+      expect(screen.getByText('Loading experiment namespace…')).toBeVisible();
+      expect(screen.getByRole('link', { name: 'dataset' })).toHaveAttribute(
+        'href',
+        '/artifacts/dataset-a',
+      );
+      expect(document.querySelector('a[download]')).not.toBeInTheDocument();
+      view.rerender(content(false));
+      expect(await screen.findByText('scoped artifact preview')).toBeVisible();
+      expect(readFileSpy).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ namespace: TEST_NAMESPACE }),
+      );
+      expect(document.querySelector('a[download]')).toHaveAttribute(
+        'href',
+        expect.stringContaining('namespace=kubeflow'),
+      );
+      expect(screen.queryByText('Loading experiment namespace…')).not.toBeInTheDocument();
+      view.rerender(content(false, { ...task }));
+      await act(async () => {});
+      expect(screen.getByText('scoped artifact preview')).toBeVisible();
+      expect(readFileSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('retrieves pod logs without an experiment namespace', async () => {
     const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('test-logs-details');
 

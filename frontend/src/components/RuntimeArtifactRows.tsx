@@ -33,8 +33,12 @@ type RuntimeArtifactRowValue = ArtifactPreviewValue | { text: string; artifactId
 
 export function RuntimeArtifactValue({
   value,
+  namespacePending = false,
   ...props
-}: Omit<ArtifactPreviewProps, 'value'> & { value?: RuntimeArtifactRowValue }) {
+}: Omit<ArtifactPreviewProps, 'value'> & {
+  value?: RuntimeArtifactRowValue;
+  namespacePending?: boolean;
+}) {
   if (value !== null && typeof value === 'object' && 'text' in value) {
     return value.artifactId ? (
       <Link className='kfp-inspection-link' to={RoutePageFactory.artifactDetails(value.artifactId)}>
@@ -44,6 +48,9 @@ export function RuntimeArtifactValue({
       <>{value.text}</>
     );
   }
+  // Keep artifact labels and scalar values visible while withholding storage reads and
+  // download links until Run Details has resolved the experiment namespace.
+  if (namespacePending) return <span role='status'>Loading experiment namespace…</span>;
   return <ArtifactPreview value={value} {...props} />;
 }
 
