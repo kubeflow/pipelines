@@ -16,10 +16,10 @@
 
 import json
 import os
+from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from pathlib import Path
 
 from configure_docker_registry_mirror import configure_registry_mirror
 
@@ -112,7 +112,7 @@ class DockerRegistryMirrorTest(unittest.TestCase):
             '.github/actions/create-cluster/action.yml':
                 'Restore Kind node image cache',
             '.github/workflows/build-tools-images.yml':
-                'Build and push api-generator',
+                'Build api-generator',
             '.github/workflows/image-builds.yml':
                 'Set up Docker Buildx',
             '.github/workflows/runtime-base-images.yml':

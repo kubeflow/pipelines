@@ -61,6 +61,10 @@ data:
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   ## For more information see: https://github.com/kubeflow/pipelines/pull/11965
   ARTIFACTS_PROXY_ENABLED: "false"
+  ## HTTP_BASE_URL: Operator-approved HTTP(S) base URL for HTTP artifact reads.
+  ## Include the full trusted path prefix, if needed; leave empty to disable HTTP
+  ## artifacts. Shared UI and multi-user artifact proxies receive this same URL.
+  HTTP_BASE_URL: ""
   ## ALLOWED_ARTIFACT_ENDPOINTS: Comma-separated HTTP(S) origins that secret-backed
   ## S3-compatible provider configurations may contact in addition to the server's
   ## configured MinIO and AWS S3 origins. Required when bucketProviders use a custom
