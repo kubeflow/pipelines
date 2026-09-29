@@ -58,6 +58,90 @@ export function mobileSafariAppPath(runtime) {
   return join(runtime.runtimeRoot, 'Applications', 'MobileSafari.app');
 }
 
+// A child may exit while an Apple service still holds its inherited stdout/stderr.
+// Observe process exit separately from stream close and bound the final log drain.
+export function observeAppleCommand(
+  child,
+  log,
+  entry,
+  { drainTimeout = 1000, onExit = () => {} } = {},
+) {
+  let stdout = '';
+  let finished = false;
+  let drainTimer;
+  let resolveCompletion;
+  const completion = new Promise((resolveResult) => {
+    resolveCompletion = resolveResult;
+  });
+  log.on('error', (error) => {
+    entry.error = `Could not write command log: ${error.message}`;
+    finish();
+  });
+  child.stdout?.on('data', (chunk) => {
+    log.write(chunk);
+    stdout = (stdout + chunk.toString()).slice(-2_000_000);
+  });
+  child.stderr?.on('data', (chunk) => log.write(chunk));
+  function finish() {
+    if (finished) return;
+    finished = true;
+    clearTimeout(drainTimer);
+    child.stdout?.destroy();
+    child.stderr?.destroy();
+    entry.finishedAt = new Date().toISOString();
+    const resolveResult = () =>
+      resolveCompletion({
+        code: entry.code ?? null,
+        signal: entry.signal ?? null,
+        stdout,
+        error: entry.error,
+      });
+    if (log.destroyed) resolveResult();
+    else {
+      log.once('error', resolveResult);
+      log.end(resolveResult);
+    }
+  }
+  child.once('error', (error) => {
+    entry.error = error.message;
+    log.write(`${error.stack}\n`);
+    finish();
+  });
+  child.once('exit', (code, signal) => {
+    Object.assign(entry, { code, signal, exitedAt: new Date().toISOString() });
+    onExit();
+    if (finished) return;
+    drainTimer = setTimeout(() => {
+      entry.stdioDrainTimedOut = true;
+      finish();
+    }, drainTimeout);
+  });
+  child.once('close', (code, signal) => {
+    Object.assign(entry, { code, signal });
+    onExit();
+    finish();
+  });
+  return {
+    completion,
+    abandon() {
+      entry.abandoned = true;
+      onExit();
+      child.unref();
+      finish();
+    },
+  };
+}
+
+export function stopOwnedAppleChild(child, signal = 'SIGTERM', kill = process.kill) {
+  if (!Number.isInteger(child.pid) || child.exitCode !== null || child.signalCode !== null) return;
+  try {
+    // The child owns its group. Never target Apple services outside that group.
+    kill(-child.pid, signal);
+  } catch (error) {
+    if (error.code !== 'ESRCH') return `${signal} for owned process ${child.pid}: ${error.message}`;
+  }
+}
+
 async function main() {
   // Refuse before creating files, running Apple tools, or installing automation dependencies.
   requireHostedAppleRunner();
@@ -95,6 +179,7 @@ async function main() {
     ],
   };
   const children = new Set();
+  const controls = new WeakMap();
   let simulator;
   let commandIndex = 0;
   let interrupted = false;
@@ -106,12 +191,12 @@ async function main() {
   process.on('SIGINT', interrupt);
 
   function stop(child, signal = 'SIGTERM') {
-    if (!Number.isInteger(child.pid)) return;
-    try {
-      // Every child has its own group; never terminate unrelated runner processes.
-      process.kill(-child.pid, signal);
-    } catch (error) {
-      if (error.code !== 'ESRCH') throw error;
+    const error = stopOwnedAppleChild(child, signal);
+    if (error) {
+      report.processErrors ??= [];
+      report.processErrors.push(error);
+      report.status = 'failed';
+      process.exitCode = 1;
     }
   }
 
@@ -123,36 +208,29 @@ async function main() {
     report.commands.push(entry);
     const child = spawn(command, args, { cwd: frontend, env, detached: true });
     children.add(child);
-    let stdout = '';
-    child.stdout.on('data', (chunk) => {
-      log.write(chunk);
-      stdout = (stdout + chunk.toString()).slice(-2_000_000);
+    const observed = observeAppleCommand(child, log, entry, {
+      onExit: () => children.delete(child),
     });
-    child.stderr.on('data', (chunk) => log.write(chunk));
-    const completion = new Promise((resolveResult) => {
-      child.once('error', (error) => {
-        entry.error = error.message;
-        log.write(`${error.stack}\n`);
-      });
-      child.once('close', (code, signal) => {
-        children.delete(child);
-        Object.assign(entry, { code, signal, finishedAt: new Date().toISOString() });
-        log.end(() => resolveResult({ code, signal, stdout, error: entry.error }));
-      });
-    });
-    return { child, completion, entry };
+    controls.set(child, observed);
+    return { child, ...observed, entry };
   }
 
   async function run(command, args, label, timeout = 60_000) {
     const launched = start(command, args, label);
     let forceTimer;
     const timer = setTimeout(() => {
+      // Process exit wins over a timeout while its final output is still draining.
+      if (launched.child.exitCode !== null || launched.child.signalCode !== null) return;
       launched.entry.timedOut = true;
       stop(launched.child);
-      forceTimer = setTimeout(() => stop(launched.child, 'SIGKILL'), 10_000);
+      forceTimer = setTimeout(() => {
+        stop(launched.child, 'SIGKILL');
+        launched.abandon();
+      }, 10_000);
     }, timeout);
     try {
       const result = await launched.completion;
+      assert.ok(!result.error, `${label} failed: ${result.error}; see ${launched.entry.log}`);
       assert.equal(result.code, 0, `${label} failed; see ${launched.entry.log}`);
       assert.ok(!launched.entry.timedOut, `${label} exceeded ${timeout}ms`);
       return result.stdout.trim();
@@ -332,7 +410,7 @@ async function main() {
       'native-checks',
       900_000,
     );
-    report.status = 'passed';
+    report.status = report.processErrors?.length ? 'failed' : 'passed';
   } catch (error) {
     report.status = 'failed';
     report.error = error.stack;
@@ -364,7 +442,10 @@ async function main() {
     for (const child of children) stop(child);
     // Allow graceful driver/session shutdown, then kill only owned process groups.
     await delay(1_000);
-    for (const child of children) stop(child, 'SIGKILL');
+    for (const child of children) {
+      stop(child, 'SIGKILL');
+      controls.get(child)?.abandon();
+    }
     if (simulator) {
       interrupted = false;
       for (const action of ['shutdown', 'delete']) {

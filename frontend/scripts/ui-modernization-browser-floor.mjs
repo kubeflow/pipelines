@@ -14,6 +14,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
+import { requestWebDriver } from './ui-modernization-native-http.mjs';
 
 const driver = new URL(process.env.KFP_WEBDRIVER_URL || 'http://127.0.0.1:4444');
 const base = new URL(process.env.KFP_BROWSER_FLOOR_URL || 'http://127.0.0.1:4174/');
@@ -71,20 +72,13 @@ let session;
 await mkdir(out, { recursive: true });
 
 async function command(method, path, body) {
-  const response = await fetch(new URL(path, driver), {
+  return requestWebDriver(new URL(path, driver), {
     method,
-    headers: body ? { 'content-type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(mobile && path === '/session' ? 600000 : 40000),
+    body,
+    timeout: mobile && path === '/session' ? 600000 : 40000,
   });
-  const data = await response.json();
-  if (!response.ok || data.value?.error) {
-    throw new Error(
-      `${method} ${path}: ${data.value?.error || response.status}: ${data.value?.message || ''}`,
-    );
-  }
-  return data.value;
 }
+
 const execute = (fn, ...args) =>
   command('POST', `/session/${session}/execute/sync`, {
     script: `return (${fn.toString()})(...arguments);`,

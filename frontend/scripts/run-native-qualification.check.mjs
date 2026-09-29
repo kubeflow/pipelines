@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
+import { createServer as createHttpServer } from 'node:http';
+import { requestWebDriver } from './ui-modernization-native-http.mjs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -133,3 +135,53 @@ test(
     }
   },
 );
+
+test('WebDriver transport honors command deadlines for delayed headers and bodies', async () => {
+  const server = createHttpServer(async (request, response) => {
+    if (request.url === '/delayed-headers') {
+      await delay(80);
+      response.end(JSON.stringify({ value: { sessionId: 'fixture-session' } }));
+    } else if (request.url === '/delayed-body') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.write('{"value":');
+      await delay(150);
+      response.end('null}');
+    } else {
+      response.writeHead(500, { 'content-type': 'application/json' });
+      response.end(
+        JSON.stringify({ value: { error: 'session not created', message: 'fixture WDA failure' } }),
+      );
+    }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.deepEqual(
+      await requestWebDriver(`${base}/delayed-headers`, {
+        method: 'POST',
+        body: {},
+        timeout: 1000,
+      }),
+      { sessionId: 'fixture-session' },
+    );
+    for (const path of ['/delayed-headers', '/delayed-body']) {
+      await assert.rejects(
+        requestWebDriver(`${base}${path}`, { method: 'POST', timeout: 20 }),
+        (error) => {
+          assert.match(error.message, /POST \/delayed-(headers|body)/);
+          assert.match(error.message, /ABORT_ERR/);
+          assert.match(error.message, /TimeoutError/);
+          assert.ok(error.cause);
+          return true;
+        },
+      );
+    }
+    await assert.rejects(
+      requestWebDriver(`${base}/webdriver-error`, { method: 'POST', timeout: 1000 }),
+      /session not created: fixture WDA failure/,
+    );
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

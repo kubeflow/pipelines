@@ -7,9 +7,13 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import {
   appleQualification,
   mobileSafariAppPath,
+  observeAppleCommand,
+  stopOwnedAppleChild,
   requireHostedAppleRunner,
   selectSimulator,
 } from './run-apple-qualification.mjs';
@@ -104,4 +108,64 @@ test('Mobile Safari identity comes from the selected runtime without a booted ap
       /Selected simulator runtime root is unavailable/,
     );
   }
+});
+
+function fakeChild() {
+  return Object.assign(new EventEmitter(), {
+    pid: 123456,
+    exitCode: null,
+    signalCode: null,
+    stdout: new PassThrough(),
+    stderr: new PassThrough(),
+    unref() {},
+  });
+}
+
+test('an exited Apple command completes when an inherited pipe never closes', async () => {
+  const child = fakeChild();
+  const entry = {};
+  const observed = observeAppleCommand(child, new PassThrough(), entry, { drainTimeout: 5 });
+  child.stdout.write('Finished boot status\n');
+  child.exitCode = 0;
+  child.emit('exit', 0, null);
+  const result = await observed.completion;
+  assert.equal(result.code, 0);
+  assert.equal(result.stdout, 'Finished boot status\n');
+  assert.equal(entry.stdioDrainTimedOut, true);
+  assert.equal(child.stdout.destroyed, true);
+  assert.equal(child.stderr.destroyed, true);
+  stopOwnedAppleChild(child, 'SIGTERM', () => assert.fail('must not signal an exited command'));
+});
+
+test('denied process-group signals remain diagnostic and timeout completion stays bounded', async () => {
+  const child = fakeChild();
+  const entry = { timedOut: true };
+  const observed = observeAppleCommand(child, new PassThrough(), entry);
+  const signalError = stopOwnedAppleChild(child, 'SIGKILL', () => {
+    throw Object.assign(new Error('kill EPERM'), { code: 'EPERM' });
+  });
+  assert.match(signalError, /SIGKILL for owned process 123456: kill EPERM/);
+  observed.abandon();
+  const result = await observed.completion;
+  assert.equal(result.code, null);
+  assert.equal(entry.abandoned, true);
+  assert.equal(entry.timedOut, true);
+});
+
+test('log failure keeps a live child owned until cleanup explicitly abandons it', async () => {
+  const child = fakeChild();
+  const owned = new Set([child]);
+  const log = new PassThrough();
+  const observed = observeAppleCommand(child, log, {}, { onExit: () => owned.delete(child) });
+  log.destroy(new Error('test log failure'));
+  const result = await observed.completion;
+  assert.match(result.error, /Could not write command log: test log failure/);
+  assert.equal(owned.has(child), true);
+  let signalled = false;
+  stopOwnedAppleChild(child, 'SIGTERM', () => {
+    signalled = true;
+  });
+  assert.equal(signalled, true);
+  observed.abandon();
+  assert.equal(owned.has(child), false);
 });
