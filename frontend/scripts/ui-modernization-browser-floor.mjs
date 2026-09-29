@@ -171,7 +171,29 @@ async function field(label) {
 }
 async function fillLabel(label, text) {
   const element = await field(label);
-  await command('POST', `/session/${session}/element/${element[elementKey]}/clear`, {});
+  if (browserName === 'safari' && !mobile) {
+    // Safari's Element Clear can empty the DOM without sending the input event that
+    // updates React-controlled state. Exercise an actual user edit instead.
+    await command('POST', `/session/${session}/element/${element[elementKey]}/click`, {});
+    await command('POST', `/session/${session}/actions`, {
+      actions: [
+        {
+          type: 'key',
+          id: 'keyboard',
+          actions: [
+            { type: 'keyDown', value: '\uE03D' },
+            { type: 'keyDown', value: 'a' },
+            { type: 'keyUp', value: 'a' },
+            { type: 'keyUp', value: '\uE03D' },
+            { type: 'keyDown', value: '\uE003' },
+            { type: 'keyUp', value: '\uE003' },
+          ],
+        },
+      ],
+    });
+  } else {
+    await command('POST', `/session/${session}/element/${element[elementKey]}/clear`, {});
+  }
   if (text)
     await command('POST', `/session/${session}/element/${element[elementKey]}/value`, { text });
 }
