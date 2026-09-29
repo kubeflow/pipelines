@@ -407,8 +407,11 @@ dated exact-version manifest. Native Firefox/Safari/iPhone/iPad fixtures extend
 coverage beyond the initial smoke checks; publish their narrower read/draft scope
 separately from full production mutation/recovery coverage. Fail selected lanes on
 version drift or unavailable runtimes, and retain exact browser/OS/build identity,
-asset hashes and failure logs. Missing policy versions and physical devices remain
-explicit gaps for the tracked BrowserStack investigation. The implementation's
+asset hashes and failure logs. Record native text-input settings as part of that
+evidence. Deterministic keyboard fixtures with prediction/autocorrection disabled
+do not establish IME or autocorrection compatibility; retain those automated
+scenarios separately as qualification gaps. Missing policy versions and physical
+devices remain explicit gaps for the tracked BrowserStack investigation. The implementation's
 [hosted qualification report](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/ui-modernization/hosted-browser-qualification.md)
 records configured versions and verified results.
 
