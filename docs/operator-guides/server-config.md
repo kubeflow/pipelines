@@ -177,9 +177,9 @@ host with an unset base.
 
 Both forms validate the configured path before URL normalization. Use a base
 without raw or percent-encoded `.`/`..` path segments, backslashes, invalid
-percent encoding, or embedded ASCII control characters. Correct these values
-in the installation configuration; they are rejected with HTTP 400 on artifact
-requests, without preventing server startup.
+percent encoding, or embedded ASCII control characters (literal or percent-encoded).
+Correct these values in the installation configuration; they are rejected with
+HTTP 400 on artifact requests, without preventing server startup.
 
 The base is read at process startup. After applying the ConfigMap, restart
 `ml-pipeline-ui`. Authenticated multi-user HTTP requests are fetched by the shared

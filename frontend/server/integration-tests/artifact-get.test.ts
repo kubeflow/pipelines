@@ -2251,6 +2251,7 @@ s3:
       ['https://files.example/100%25/', 'https://files.example/100%25/report.txt'],
       ['https://files.example/A%26B%3FC%23D/', 'https://files.example/A%26B%3FC%23D/report.txt'],
       ['https://files.example/%252e%252e/', 'https://files.example/%252e%252e/report.txt'],
+      ['https://files.example/%250A/', 'https://files.example/%250A/report.txt'],
       ['http://files.example:8080/reports/', 'http://files.example:8080/reports/report.txt'],
       ['https://files.example/reports/', 'https://files.example/reports/A%26B%3FC%23D.csv'],
       ['https://files.example/reports/', 'https://files.example/reports/caf%C3%A9%20report.txt'],
@@ -2320,7 +2321,7 @@ s3:
     describe.each([
       ['absolute', 'https://files.example/', 'files.example'],
       ['gateway', 'files.example/', 'dataset'],
-    ])('invalid original %s HTTP base paths', (_form, prefix, bucket) => {
+    ])('invalid original %s HTTP base paths', (form, prefix, bucket) => {
       it.each([
         'archive/../reports/',
         'archive/%2e%2e/reports/',
@@ -2344,6 +2345,25 @@ s3:
           .expect(400);
         expect(mockedFetch).not.toHaveBeenCalled();
       });
+
+      it.each(['%00', '%09', '%0A', '%0D', '%1F', '%7F'])(
+        'rejects the decoded ASCII control in %s before fetching',
+        async (encodedControl) => {
+          const basePath = `reports/${encodedControl}/`;
+          app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: `${prefix}${basePath}` }));
+          const uriKey = form === 'absolute' ? `${basePath}report.txt` : 'report.txt';
+          await requests(app.app)
+            .get('/artifacts/get')
+            .query({ source: 'https', bucket, key: decodeURIComponent(uriKey), uriKey })
+            .expect(
+              400,
+              form === 'absolute'
+                ? 'Invalid HTTP artifact URL. Check HTTP_BASE_URL and the artifact origin/path.'
+                : 'Invalid HTTP artifact path',
+            );
+          expect(mockedFetch).not.toHaveBeenCalled();
+        },
+      );
     });
 
     it.each([
@@ -2354,6 +2374,7 @@ s3:
       ['files.example/100%25/', 'https://files.example/100%25/dataset/report.txt'],
       ['files.example/A%26B%3FC%23D/', 'https://files.example/A%26B%3FC%23D/dataset/report.txt'],
       ['files.example/%252e%252e/', 'https://files.example/%252e%252e/dataset/report.txt'],
+      ['files.example/%250A/', 'https://files.example/%250A/dataset/report.txt'],
       [
         ' /files.example/archive//reports/ ',
         'https://files.example/archive//reports/dataset/report.txt',
