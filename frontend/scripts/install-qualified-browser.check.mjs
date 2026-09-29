@@ -27,6 +27,7 @@ import {
   assertChecksum,
   manifestPath,
   requireHostedRunner,
+  requiresReadOnlyBrowserImage,
   selectBrowser,
 } from './install-qualified-browser.mjs';
 
@@ -157,42 +158,60 @@ test('CfT archive checks reject changed metadata, scope expansion and signing id
   }
 });
 
-test('Edge finalization accepts only its exact owned mount and skips incomplete setup', () => {
-  const directory = '/tmp/runner/kfp-qualified-browsers/edge-previous';
-  const browser = { appName: 'Microsoft Edge.app' };
-  const record = {
-    mounted: true,
-    path: `${directory}/read-only-volume`,
-    image: `${directory}/browser-read-only.dmg`,
-  };
-  assert.equal(ownedBrowserMount(directory, browser, undefined), null);
-  assert.equal(ownedBrowserMount(directory, browser, { mounted: false }), null);
-  assert.equal(
-    ownedBrowserMount(directory, browser, record).app,
-    `${record.path}/Microsoft Edge.app`,
-  );
-  for (const mutation of [{ path: '/Volumes/another-app' }, { image: '/tmp/another.dmg' }]) {
-    assert.throws(
-      () => ownedBrowserMount(directory, browser, { ...record, ...mutation }),
-      /not owned/,
-    );
+test('Chrome stable and Edge use the same owned read-only installation lifecycle', async () => {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  for (const browser of manifest.browsers) {
+    const expected = browser.id === 'chrome-stable' || browser.id.startsWith('edge-');
+    assert.equal(requiresReadOnlyBrowserImage(browser), expected, browser.id);
+    const directory = `/tmp/runner/kfp-qualified-browsers/${browser.id}`;
+    const record = {
+      mounted: true,
+      path: `${directory}/read-only-volume`,
+      image: `${directory}/browser-read-only.dmg`,
+    };
+    assert.equal(ownedBrowserMount(directory, browser, undefined), null);
+    assert.equal(ownedBrowserMount(directory, browser, { mounted: false }), null);
+    if (!expected) {
+      assert.throws(() => ownedBrowserMount(directory, browser, record), /not owned/);
+      continue;
+    }
+    assert.deepEqual(ownedBrowserMount(directory, browser, record), {
+      mount: record.path,
+      image: record.image,
+      app: `${record.path}/${browser.appName}`,
+    });
+    for (const mutation of [{ path: '/Volumes/another-app' }, { image: '/tmp/another.dmg' }]) {
+      assert.throws(
+        () => ownedBrowserMount(directory, browser, { ...record, ...mutation }),
+        /not owned/,
+      );
+    }
+    // A valid mount for a different lane must never be inspected or detached here.
+    assert.throws(() => ownedBrowserMount(`${directory}-other`, browser, record), /not owned/);
   }
-  assert.throws(
-    () => ownedBrowserMount(directory, { appName: 'Firefox.app' }, record),
-    /not owned/,
-  );
-  const result = spawnSync(
-    process.execPath,
-    [
-      fileURLToPath(new URL('./install-qualified-browser.mjs', import.meta.url)),
-      '--finalize',
-      'edge-previous',
-    ],
-    {
-      encoding: 'utf8',
-      env: { ...process.env, CI: '', GITHUB_ACTIONS: '', RUNNER_ENVIRONMENT: '', RUNNER_TEMP: '' },
-    },
-  );
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /restricted to GitHub-hosted CI/);
+});
+
+test('Chrome and Edge finalization reject local execution before inspecting any mount', () => {
+  for (const id of ['chrome-stable', 'edge-previous']) {
+    const result = spawnSync(
+      process.execPath,
+      [
+        fileURLToPath(new URL('./install-qualified-browser.mjs', import.meta.url)),
+        '--finalize',
+        id,
+      ],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CI: '',
+          GITHUB_ACTIONS: '',
+          RUNNER_ENVIRONMENT: '',
+          RUNNER_TEMP: '',
+        },
+      },
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /restricted to GitHub-hosted CI/);
+  }
 });

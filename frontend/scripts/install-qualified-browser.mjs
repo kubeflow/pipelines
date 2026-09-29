@@ -223,11 +223,15 @@ export function browserUpdatePolicy(browser) {
   };
 }
 
+export function requiresReadOnlyBrowserImage(browser) {
+  return ['Microsoft Edge.app', 'Google Chrome.app'].includes(browser.appName);
+}
+
 export function ownedBrowserMount(directory, browser, record) {
   if (!record?.mounted) return null;
   const mount = join(directory, 'read-only-volume');
   const image = join(directory, 'browser-read-only.dmg');
-  if (browser.appName !== 'Microsoft Edge.app' || record.path !== mount || record.image !== image) {
+  if (!requiresReadOnlyBrowserImage(browser) || record.path !== mount || record.image !== image) {
     throw new Error(
       'Refusing to inspect or detach a mount not owned by this browser installation.',
     );
@@ -409,9 +413,9 @@ export async function installBrowser(id, env = process.env) {
         ? 'Ad-hoc linker signature observed; archive verified using reviewed SHA-256 and pinned Google Storage generation, size and MD5. No vendor resource seal exists.'
         : 'Strict resource seal and vendor signing team verified';
     let binary = join(app, 'Contents', 'MacOS', browser.executable);
-    if (browserUpdatePolicy(browser)) {
-      // Existing hosted-runner updaters can cache policy before this job starts. A read-only
-      // image freezes the verified app regardless of updater state without modifying its seal.
+    if (requiresReadOnlyBrowserImage(browser)) {
+      // Vendor updaters can replace even a runner-local app during the suite. A read-only
+      // image freezes Chrome and Edge regardless of updater state without modifying their seals.
       const source = join(directory, 'image-source');
       await mkdir(source);
       command('ditto', [app, join(source, browser.appName)]);

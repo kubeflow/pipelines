@@ -618,7 +618,7 @@ try {
     );
     const create = await textElement('button', 'Create');
     assert.equal(
-      await command('GET', `/session/${session}/element/${create[elementKey]}/property/disabled`),
+      await execute((element) => element.disabled, create),
       true,
       'upload draft without a file cannot submit',
     );

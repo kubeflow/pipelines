@@ -127,8 +127,8 @@ jobs:
           KFP_GECKODRIVER_BINARY: ${{ steps.browser.outputs.driver }}
           KFP_BROWSER_FLOOR_VERSION: ${{ steps.browser.outputs.version }}
         run: node scripts/run-native-qualification.mjs
-      - name: Verify final Edge identity and detach owned read-only volume
-        if: always() && startsWith(matrix.id, 'edge-')
+      - name: Verify final vendor identity and detach owned read-only volume
+        if: always() && (matrix.id == 'chrome-stable' || startsWith(matrix.id, 'edge-'))
         env:
           BROWSER_ID: ${{ matrix.id }}
         run: node scripts/install-qualified-browser.mjs --finalize "$BROWSER_ID"

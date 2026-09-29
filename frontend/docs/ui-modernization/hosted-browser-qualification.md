@@ -72,10 +72,10 @@ The two supplementary Chrome for Testing archives have observed linker ad-hoc
 signatures without vendor resource seals. They instead require reviewed SHA-256
 pins matching two hosted downloads, a pinned official Google Storage object
 generation, and matching vendor MD5 and size. Their recorded packaging identity
-and exact browser version must also match. Edge runs from an owned read-only disk
-image because a hosted updater can ignore a newly installed policy. Its version,
-full signature and executable hash are verified again after the suite, and the
-volume is detached before uploading final provenance. Update-policy changes and
+and exact browser version must also match. Actual Chrome and Edge run from owned
+read-only disk images because hosted updaters can change a browser during the
+suite. Each version, full signature and executable hash is verified again after
+the suite, and the volume is detached before uploading final provenance. Update-policy changes and
 mounts are restricted to the disposable qualification runner.
 
 ## Native workflow coverage
@@ -130,23 +130,29 @@ ten rows only. Desktop Safari retained exact experiment name and description
 values; its bounded input trace recorded no composition deletion or application
 value reset. Prediction, autocorrection and IME behavior remain unqualified.
 
-Both mobile simulator lanes remain open. In the same run, both simulator jobs
-passed the separate WebDriverAgent build and session startup. iPhone filtering,
-native run-link navigation and a native graph pan reached the task inspector, but
-its Close control remained above the visible viewport. iPad dismissed the keyboard
-and first-launch tip, but an active Safari address-editing overlay still covered
-the page and blocked native text-entry calibration. These failures require
-correction and a complete passing run; partial checks do not qualify either lane.
+Both mobile simulator lanes remain open. Follow-up
+[run 36612768062](https://github.com/kubeflow/pipelines/actions/runs/36612768062)
+at `190e3c6b6c0c8c28a1c85d105a9e574c7514d659` verified iPad address completion,
+filtering at unchanged scale 1, task inspector open/close, pipeline selection and
+the read-only editor. Its sixth check exposed Appium serializing the disabled
+property as the string `"true"`; the assertion now reads the actual DOM boolean.
+iPhone dismissed its first-launch tip, but native confirmation returned just after
+the existing command deadline. Neither partial lane counts as qualified.
 
-The follow-up addresses active address editing through a uniquely identified
-native Safari Address field, committing the exact current loopback fixture URL
-and requiring the editor to close without changing the route. Shared Input and
-TextField textarea controls use 16px text on coarse-pointer devices to prevent
-Safari focus zoom. The recorded iPhone scale change from 1 to 1.231343 matches
+The same run rejected actual Chrome after a background updater changed its build
+from 154.0.8037.58 to 154.0.8037.59. Chrome now uses the same read-only app lifecycle
+and final identity checks as Edge. The frontend prerequisite stopped on ten
+snapshots containing the intended touch-input class; those snapshots now reflect
+only that class change, with all 64 tests in the affected suites passing. A complete
+hosted run is still required for these follow-ups.
+
+Shared Input and TextField textarea controls use 16px text on coarse-pointer
+devices to prevent Safari focus zoom. The prior recorded iPhone scale change from
+1 to 1.231343 matches
 [WebKit's focus-zoom calculation](https://github.com/WebKit/WebKit/blob/main/Source/WebKit/UIProcess/API/ios/WKWebViewIOS.mm#L1752-L1773)
-for a 13px field on a 402px viewport. A native regression now requires filtering
-to preserve scale. User-controlled zoom remains enabled; arbitrary pinch-zoom
-modal reachability remains a separate compatibility gap.
+for a 13px field on a 402px viewport. A native regression requires filtering to
+preserve scale. User-controlled zoom remains enabled; arbitrary pinch-zoom modal
+reachability remains a separate compatibility gap.
 
 Native Safari preparation dismisses the keyboard through its browser-owned form
 toolbar, then closes recognized first-launch prompts before page readiness or
