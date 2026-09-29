@@ -95,6 +95,11 @@ func TestWorkflow_HydrateAndRetryOffloadedNodes(t *testing.T) {
 				LabelKeyWorkflowPersistedFinalState: "true",
 			},
 		},
+		Spec: workflowapi.WorkflowSpec{
+			PodMetadata: &workflowapi.Metadata{
+				Labels: map[string]string{V2ComponentKey: "true"},
+			},
+		},
 		Status: workflowapi.WorkflowStatus{
 			Phase:                    workflowapi.WorkflowFailed,
 			OffloadNodeStatusVersion: "offload-hash",
