@@ -15,11 +15,12 @@
 
 import os
 from pathlib import Path
-import re
 import shlex
 import subprocess
 import tempfile
 import unittest
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 PRE_COMMIT_WORKFLOW = (
@@ -70,21 +71,13 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertNotIn('git rev-parse HEAD^', self.workflow)
 
     def test_config_changes_execute_each_applicable_hook_family(self):
-        steps = re.split(r'^      - ', self.workflow, flags=re.MULTILINE)[1:]
+        steps = yaml.safe_load(self.workflow)['jobs']['pre-commit']['steps']
         smoke_steps = [
-            step for step in steps if step.startswith(
-                'name: Smoke-test applicable hooks after configuration changes\n'
-            )
+            step for step in steps if step.get('if') ==
+            "steps.pre-commit-range.outputs.config-changed == 'true'"
         ]
         self.assertEqual(len(smoke_steps), 1)
-        smoke_step = smoke_steps[0]
-        self.assertIn(
-            "if: steps.pre-commit-range.outputs.config-changed == 'true'",
-            smoke_step)
-        run = re.search(r'^        run: >-\n((?:          .+\n?)+)', smoke_step,
-                        re.MULTILINE)
-        self.assertIsNotNone(run)
-        command = shlex.split(run.group(1))
+        command = shlex.split(smoke_steps[0]['run'])
         self.assertEqual(command[:2], ['pre-commit', 'run'])
         self.assertIn('--files', command)
         files = command[command.index('--files') + 1:]
