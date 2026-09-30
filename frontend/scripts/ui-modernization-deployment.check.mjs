@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import test from 'node:test';
 import {
   assetName,
+  experimentRunDependency,
   namespaceOptionPattern,
   safePageUrl,
   loginButtonName,
@@ -185,4 +186,23 @@ test('Polymer namespace options match exact visible text without a name attribut
   assert.doesNotMatch('kfp-qualification-other', pattern);
   assert.match('team.example', namespaceOptionPattern('team.example'));
   assert.doesNotMatch('team-example', namespaceOptionPattern('team.example'));
+});
+
+test('namespace race waits only for real old-experiment run response dependencies', () => {
+  const ids = new Set(['old-experiment']);
+  const base = 'http://127.0.0.1:3000/pipeline/apis/v2beta1/';
+  assert.equal(
+    experimentRunDependency(base + 'runs?experiment_id=old-experiment&page_size=5', ids),
+    'old-experiment',
+  );
+  assert.equal(experimentRunDependency(base + 'runs?experiment_id=new-experiment', ids), null);
+  assert.equal(experimentRunDependency(base + 'runs?namespace=old-experiment', ids), null);
+  assert.equal(
+    experimentRunDependency(base + 'runs/run-id?experiment_id=old-experiment', ids),
+    null,
+  );
+  assert.equal(
+    experimentRunDependency(base + 'experiments?experiment_id=old-experiment', ids),
+    null,
+  );
 });

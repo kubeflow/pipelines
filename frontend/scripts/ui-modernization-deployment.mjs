@@ -29,6 +29,12 @@ export function namespaceOptionPattern(namespace) {
   return new RegExp(`^\\s*${escaped}\\s*$`);
 }
 
+export function experimentRunDependency(url, experimentIds) {
+  const parsed = new URL(url);
+  const id = parsed.searchParams.get('experiment_id');
+  return parsed.pathname.endsWith('/apis/v2beta1/runs') && experimentIds.has(id) ? id : null;
+}
+
 export function safePageUrl(url, secrets = []) {
   try {
     const parsed = new URL(url);
@@ -678,6 +684,31 @@ export async function main() {
         let complete;
         let held = false;
         const heldErrors = [];
+        const experimentIds = new Set();
+        const completedDependencies = new Set();
+        let acceptingDependencies = false;
+        const recordDependency = (response) => {
+          if (!acceptingDependencies) return;
+          const id = experimentRunDependency(response.url(), experimentIds);
+          if (!id) return;
+          (async () => {
+            assert.equal(response.status(), 200, `Old-namespace run dependency failed: ${id}`);
+            assert.equal(await response.finished(), null);
+            await response.body();
+            completedDependencies.add(id);
+          })().catch((error) => heldErrors.push(sanitize(error.message, secretValues)));
+        };
+        const drainDependencies = async () => {
+          if (!acceptingDependencies) return;
+          await poll(
+            () => {
+              assert.deepEqual(heldErrors, []);
+              return [...experimentIds].every((id) => completedDependencies.has(id));
+            },
+            'Old-namespace run response bodies did not finish before the stale-result assertion',
+            60000,
+          );
+        };
         const gate = new Promise((done) => {
           release = done;
         });
@@ -691,7 +722,15 @@ export async function main() {
             try {
               const response = await route.fetch();
               assert.equal(response.status(), 200);
+              const body = await response.json();
+              for (const experiment of body.experiments || [])
+                experimentIds.add(experiment.experiment_id);
+              assert.ok(
+                experimentIds.has(ownerExperiment.experiment_id),
+                'Held namespace response omitted the seeded experiment',
+              );
               await gate;
+              acceptingDependencies = true;
               await route.fulfill({ response });
             } catch (error) {
               heldErrors.push(sanitize(error.message, secretValues));
@@ -718,6 +757,7 @@ export async function main() {
             clearTimeout(timeout);
           }
         };
+        page.on('response', recordDependency);
         await page.route(routePattern, holdPreviousNamespace);
         try {
           await go('/experiments');
@@ -733,7 +773,15 @@ export async function main() {
           assert.equal((await nextResponse).status(), 200);
           release();
           await drainHeldResponse();
+          await drainDependencies();
           assert.deepEqual(heldErrors, []);
+          report.namespaceDependencies ||= [];
+          report.namespaceDependencies.push({
+            phase,
+            experimentIds: [...experimentIds].sort(),
+            completedRunResponseIds: [...completedDependencies].sort(),
+            responseBodiesComplete: true,
+          });
           await app.evaluate(
             () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
           );
@@ -749,8 +797,13 @@ export async function main() {
           await selectNamespace(page, namespace);
         } finally {
           release();
-          await drainHeldResponse();
-          await page.unroute(routePattern, holdPreviousNamespace);
+          try {
+            await drainHeldResponse();
+            await drainDependencies();
+          } finally {
+            page.off('response', recordDependency);
+            await page.unroute(routePattern, holdPreviousNamespace);
+          }
         }
         await go(`/runs/details/${resources.runs[0].run_id}`);
         assert.equal((await api(`runs/${resources.runs[0].run_id}`)).status, 200);
