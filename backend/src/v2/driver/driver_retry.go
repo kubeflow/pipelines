@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package driver resolves pipeline tasks and prepares them for execution.
 package driver
 
 import (

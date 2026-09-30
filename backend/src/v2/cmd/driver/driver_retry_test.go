@@ -16,9 +16,10 @@ package main
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 type failingRetryPluginFactory struct{}

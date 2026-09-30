@@ -206,6 +206,9 @@ Driver retry coverage has these limits:
   retries because plugin side effects are not yet safe to replay. Executor
   retries remain configured.
 
+[Issue #14020](https://github.com/kubeflow/pipelines/issues/14020) tracks the
+remaining driver replay-safety work, including plugin hooks and PVC operations.
+
 ### Pipelines as components
 
 Pipelines can themselves be used as components in other pipelines, just as you would use any other single-step component in a pipeline. For example, we could easily recompose the preceding `pythagorean` pipeline to use an inner helper pipeline `square_and_sum`:
