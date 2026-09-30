@@ -496,11 +496,17 @@ class Client:
 
         return experiment
 
-    def get_pipeline_id(self, name: str) -> Optional[str]:
+    def get_pipeline_id(
+        self,
+        name: str,
+        namespace: Optional[str] = None,
+    ) -> Optional[str]:
         """Gets the ID of a pipeline by its name.
 
         Args:
             name: Pipeline name.
+            namespace: Kubernetes namespace of a private (namespaced) pipeline.
+                If not set, only shared pipelines are searched.
 
         Returns:
             The pipeline ID if a pipeline with the name exists.
@@ -513,7 +519,7 @@ class Client:
             }]
         })
         result = self._pipelines_api.pipeline_service_list_pipelines(
-            filter=pipeline_filter)
+            namespace=namespace, filter=pipeline_filter)
         if result.pipelines is None:
             return None
         if len(result.pipelines) == 1:
