@@ -26,7 +26,10 @@ failures are retained and cannot be hidden by another passing lane. Artifacts
 include browser distribution/signature provenance where applicable, exact browser
 and OS identity, source SHA, asset hashes, checks/screenshots, and lifecycle logs.
 Available failure evidence is uploaded even after setup errors. Results and the
-version manifest are retained for 90 days; the shared build is retained for seven.
+version manifest and shared build are retained for seven days. GitHub clamped the
+previous 90-day request to the repository maximum of seven days, verified from
+artifact creation/expiry metadata on September 30. Selected sanitized release
+records must be preserved in the repository before these downloads expire.
 
 The installers and native runners require disposable GitHub-hosted CI. Browser
 archives, extracted apps, drivers and simulator tooling live in runner temporary

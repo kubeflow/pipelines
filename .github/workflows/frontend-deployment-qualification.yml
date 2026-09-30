@@ -134,6 +134,7 @@ jobs:
           for attempt in $(seq 1 120); do
             if ready=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
                 --jq '.artifacts | any(.name == "legacy-frontend" and .expired == false)') && [ "$ready" = true ]; then
+              echo "Legacy frontend image artifact is ready (check $attempt/120)"
               exit 0
             fi
             if state=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" \
@@ -189,7 +190,7 @@ jobs:
           name: frontend-deployment-${{ matrix.mode }}
           path: ${{ runner.temp }}/deployment-report
           overwrite: true
-          retention-days: 90
+          retention-days: 7
           if-no-files-found: error
       - name: Cleanup owned endpoint and registry
         if: always()

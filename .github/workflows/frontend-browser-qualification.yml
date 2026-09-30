@@ -77,7 +77,7 @@ jobs:
           path: frontend/scripts/qualified-browsers.json
           if-no-files-found: error
           overwrite: true
-          retention-days: 90
+          retention-days: 7
 
   vendor-browser:
     name: Vendor / ${{ matrix.id }}
@@ -179,7 +179,7 @@ jobs:
           path: frontend/browser-results/vendor-${{ matrix.id }}
           if-no-files-found: error
           overwrite: true
-          retention-days: 90
+          retention-days: 7
 
   apple-browser:
     name: Apple / ${{ matrix.mode }} / ${{ matrix.annual }}
@@ -263,4 +263,4 @@ jobs:
           path: frontend/browser-results/apple-${{ matrix.mode }}-${{ matrix.annual }}
           if-no-files-found: error
           overwrite: true
-          retention-days: 90
+          retention-days: 7

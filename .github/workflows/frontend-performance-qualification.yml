@@ -139,4 +139,4 @@ jobs:
           path: frontend/performance-results
           if-no-files-found: warn
           overwrite: true
-          retention-days: 90
+          retention-days: 7
