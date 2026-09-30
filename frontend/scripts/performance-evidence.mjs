@@ -210,3 +210,42 @@ export async function recordScalingTrial(progress, path, trial, operation) {
     await save();
   }
 }
+
+// Preserve the historical protocol; adapt only its readiness capture for hosted sampling.
+export function hostedReadinessProtocol(original) {
+  const protocol = structuredClone(original);
+  {
+    const previous =
+      '  window.__kfpContentReady.contentReadyMs=performance.now();\n  window.__kfpContentReady.readiness=read();\n  mutations.disconnect();resources.disconnect();\n  document.fonts.ready.then(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{\n   window.__kfpContentReady.fontsReadyMs=performance.now();\n  })));';
+    const next =
+      '  window.__kfpContentReady.firstContentReadyMs ??= performance.now();\n  document.fonts.ready.then(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{\n   const state=read();\n   if(!isReady(state)){\n    (window.__kfpContentReady.transientReadiness ??= []).push({atMs:performance.now(),state});\n    pending=false;check();return;\n   }\n   window.__kfpContentReady.contentReadyMs=performance.now();\n   window.__kfpContentReady.fontsReadyMs=window.__kfpContentReady.contentReadyMs;\n   window.__kfpContentReady.readiness=state;\n  })));';
+    assert.ok(
+      protocol.scripts.preNavigation.includes(previous),
+      'Historical readiness protocol changed; review the hosted adapter',
+    );
+    protocol.scripts.preNavigation = protocol.scripts.preNavigation.replace(previous, next);
+    const checkStart = 'function check(){\n if(pending||!document.body||!isReady(read()))return;';
+    assert.ok(protocol.scripts.preNavigation.includes(checkStart));
+    protocol.scripts.preNavigation = protocol.scripts.preNavigation.replace(
+      checkStart,
+      'window.__kfpStopReadiness=()=>{mutations.disconnect();resources.disconnect();};\nfunction check(){\n if(Number.isFinite(window.__kfpContentReady.contentReadyMs)){\n  const state=read();if(!isReady(state))window.__kfpContentReady.postConfirmationLoss ??= {atMs:performance.now(),state};\n  return;\n }\n if(pending||!document.body||!isReady(read()))return;',
+    );
+  }
+  {
+    const previous =
+      " await new Promise((resolve,reject)=>{const begin=performance.now();const poll=()=>{const state=read();if(isReady(state))return resolve();if(performance.now()-begin>30000)return reject(new Error('Readiness not reached: '+JSON.stringify(state)));setTimeout(poll,50);};poll();});\n await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));\n const result=read();if(!isReady(result))throw new Error('Readiness changed');";
+    const next =
+      " const result=await new Promise((resolve,reject)=>{const begin=performance.now();const poll=()=>{const state=read();const marks=window.__kfpContentReady;if(marks?.postConfirmationLoss||(Number.isFinite(marks?.contentReadyMs)&&!isReady(state)))return reject(new Error('Readiness lost after confirmation: '+JSON.stringify({state,marks})));if(Number.isFinite(marks?.contentReadyMs)&&Number.isFinite(marks?.fontsReadyMs)&&isReady(state)){window.__kfpStopReadiness();return resolve(state);}if(performance.now()-begin>30000)return reject(new Error('Confirmed readiness not reached: '+JSON.stringify({state,marks:window.__kfpContentReady})));setTimeout(poll,50);};poll();});";
+    assert.ok(
+      protocol.scripts.perfReadinessFunction.includes(previous),
+      'Historical readiness protocol changed; review the hosted adapter',
+    );
+    protocol.scripts.perfReadinessFunction = protocol.scripts.perfReadinessFunction.replace(
+      previous,
+      next,
+    );
+  }
+  protocol.hostedReadiness =
+    'Content readiness requires the unchanged route/API predicate, fonts and two confirming frames. Transient first readiness is retained separately; post-confirmation loss fails the trial even after recovery. Final capture has a 30-second deadline.';
+  return protocol;
+}

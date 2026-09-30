@@ -31,6 +31,7 @@ import {
   verifyBuild,
   validateSample,
   cleanupWithEvidence,
+  hostedReadinessProtocol,
 } from './performance-evidence.mjs';
 
 assert.equal(process.env.CI, 'true');
@@ -50,7 +51,8 @@ const protocolPath = new URL(
   import.meta.url,
 );
 const protocolBytes = await readFile(protocolPath);
-const protocol = JSON.parse(protocolBytes);
+const protocol = hostedReadinessProtocol(JSON.parse(protocolBytes));
+const hostedProtocolBytes = `${JSON.stringify(protocol, null, 2)}\n`;
 // Compile trusted, versioned repository instrumentation as functions: Playwright treats
 // string evaluate arguments as expressions, not callable functions with arguments.
 const instrumentation = Object.fromEntries(
@@ -98,7 +100,8 @@ const settings = {
 };
 const report = {
   status: 'running',
-  acceptance: 'pending-maintainer-acceptance',
+  acceptance:
+    budgets.status === 'accepted' ? 'accepted-not-yet-evaluated' : 'pending-maintainer-acceptance',
   startedAt: new Date().toISOString(),
   sources,
   run: {
@@ -109,7 +112,8 @@ const report = {
   },
   budgets,
   settings,
-  protocolSha256: sha256(protocolBytes),
+  historicalProtocolSha256: sha256(protocolBytes),
+  protocolSha256: sha256(hostedProtocolBytes),
   harnessSha256: sha256(await readFile(new URL(import.meta.url))),
   runtime: {
     node: process.version,
@@ -131,6 +135,7 @@ const report = {
   ],
 };
 await mkdir(output, { recursive: true });
+await writeFile(resolve(output, 'hosted-protocol.json'), hostedProtocolBytes);
 const save = () =>
   writeFile(resolve(output, 'performance.json'), `${JSON.stringify(report, null, 2)}\n`);
 const servers = [];
@@ -401,6 +406,13 @@ async function sample(variant, origin, kind, trial) {
   } catch (error) {
     record.status = 'failed';
     record.error = error.stack || String(error);
+    record.failedReadiness = await page
+      .evaluate(() => ({
+        readiness: window.__kfpContentReady,
+        paint: window.__kfpPaint,
+        capturedAtMs: performance.now(),
+      }))
+      .catch((failure) => ({ captureError: String(failure) }));
     await page
       .screenshot({ path: resolve(output, `${variant}-${kind}-${trial}-failure.png`) })
       .catch(() => {});

@@ -1,8 +1,8 @@
 # Remaining release qualification
 
 Status: implemented for hosted verification, September 30, 2026.
-Performance thresholds below are proposed project budgets, not accepted criteria
-or field-percentile claims. Unavailable provider/device rows remain explicit
+The maintainer accepted the numeric performance budgets below on September 30.
+They are blocking project criteria, not field-percentile claims. Unavailable provider/device rows remain explicit
 follow-ups under the existing CI-only delivery plan; they do not count as qualified.
 
 ## Available hosted browser coverage
@@ -25,7 +25,7 @@ follow-ups under the existing CI-only delivery plan; they do not count as qualif
   disposition: complete available CI coverage and retain provider-dependent work
   for the previously requested BrowserStack investigation. No account or purchase is assumed.
 
-## Proposed performance acceptance
+## Accepted performance budgets
 
 Measure current and pinned original legacy source
 `02cbc725ac9ddcd950f4400d8355dd78bfcd6c57` on the same disposable hosted runner.
@@ -35,7 +35,7 @@ Finish builds before sampling. Preserve all samples and failed attempts.
 The earlier local protocol did not retain numeric Fast 4G settings, so this is a
 new hosted protocol rather than an exact reproduction of those measurements.
 
-| Criterion                                                     | Proposed budget                                                                                                     |
+| Criterion                                                     | Accepted budget                                                                                                     |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Runs, Details, Compare readiness; filter/run/task interaction | Candidate median <= baseline median + max(10% of baseline median, 50 ms)                                            |
 | Entry JS/CSS gzip                                             | <=80% of freshly built original legacy                                                                              |
@@ -63,7 +63,11 @@ artifacts carry source and per-file SHA256 manifests. The matched runner uses a
 new explicit profile: 150 ms latency, 1.6 Mbit/s download, 0.75 Mbit/s upload,
 1280×720/DPR1 and 4x CPU slowdown. Six cases per pair include first editor open,
 for 84 retained matched trial records. Each matched trial exports its raw Chromium
-trace; layout observations include a declared 500 ms settling interval. Editor
+trace; layout observations include a declared 500 ms settling interval. Hosted
+content readiness requires the route/API predicate after fonts and two confirming
+frames. Earlier transient readiness is retained separately; loss after confirmation
+fails the trial even if it recovers before capture. The effective hosted protocol
+and its hash are retained separately from the unchanged historical protocol. Editor
 readiness requires the complete fixture YAML in both Ace and its initialized
 worker, successful worker download, fonts, and two animation frames.
 
@@ -73,10 +77,9 @@ comparison reverses that order. Their existing raw readiness records retain
 fixture, harness, browser, index and loaded-asset identities. Their automation
 measurements remain separate from the throttled in-page timings.
 
-`frontend/scripts/performance-budgets.json` is explicitly proposed. Measurement,
-fixture and evidence-integrity errors fail CI immediately; threshold comparisons
-are reported without asserting maintainer acceptance. Changing its status to
-`accepted` makes exceeded budgets blocking. First editor-open acceptance remains
+`frontend/scripts/performance-budgets.json` records status `accepted`. Measurement,
+fixture and evidence-integrity errors fail CI immediately, as do exceeded accepted
+budgets. First editor-open acceptance remains
 separate and pending the measured tradeoff. The artifact
 `frontend-performance-evidence/performance.json` records the run, attempt, tested
 merge/source, PR head, every sample, comparisons and limitations.
