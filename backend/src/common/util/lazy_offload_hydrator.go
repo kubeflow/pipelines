@@ -43,7 +43,7 @@ func newLazyOffloadHydrator(initFn func(context.Context) (hydrator.Interface, er
 	return &lazyOffloadHydrator{initFn: initFn}
 }
 
-// TryInit attempts to initialize the underlying hydrator once at startup.
+// TryInitLazyOffloadHydrator attempts to initialize the underlying hydrator once at startup.
 func TryInitLazyOffloadHydrator(h hydrator.Interface, ctx context.Context) error {
 	lazy, ok := h.(*lazyOffloadHydrator)
 	if !ok {
@@ -60,7 +60,7 @@ func (l *lazyOffloadHydrator) ensureInner(ctx context.Context) (hydrator.Interfa
 		return l.inner, nil
 	}
 	if l.initFn == nil {
-		return nil, fmt.Errorf("Argo offload hydrator is not initialized")
+		return nil, fmt.Errorf("argo offload hydrator is not initialized")
 	}
 	inner, err := l.initFn(ctx)
 	if err != nil {
@@ -81,7 +81,7 @@ func (l *lazyOffloadHydrator) IsHydrated(wf *wfv1.Workflow) bool {
 func (l *lazyOffloadHydrator) Hydrate(ctx context.Context, wf *wfv1.Workflow) error {
 	inner, err := l.ensureInner(ctx)
 	if err != nil {
-		return fmt.Errorf("Argo offload hydrator is not ready: %w", err)
+		return fmt.Errorf("argo offload hydrator is not ready: %w", err)
 	}
 	return inner.Hydrate(withArgoLogger(ctx), wf)
 }
@@ -89,7 +89,7 @@ func (l *lazyOffloadHydrator) Hydrate(ctx context.Context, wf *wfv1.Workflow) er
 func (l *lazyOffloadHydrator) Dehydrate(ctx context.Context, wf *wfv1.Workflow) error {
 	inner, err := l.ensureInner(ctx)
 	if err != nil {
-		return fmt.Errorf("Argo offload hydrator is not ready: %w", err)
+		return fmt.Errorf("argo offload hydrator is not ready: %w", err)
 	}
 	return inner.Dehydrate(withArgoLogger(ctx), wf)
 }
