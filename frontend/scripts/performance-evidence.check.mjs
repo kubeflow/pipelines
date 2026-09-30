@@ -29,6 +29,7 @@ import {
   cleanupWithEvidence,
   recordScalingTrial,
   hostedReadinessProtocol,
+  isExpectedLegacyWorkerError,
 } from './performance-evidence.mjs';
 const budgets = { samples: 7, relativeMedianAllowance: 0.1, absoluteMedianAllowanceMs: 50 };
 const samples = (value) => Array(7).fill(value);
@@ -126,13 +127,17 @@ test('readiness rejects missing timestamps, failed APIs and incomplete interacti
   assert.throws(() => validateSample(navigation), /beyond observation/);
 });
 
-test('editor readiness requires the complete expected editor and worker models', () => {
+test('editor endpoints retain common model readiness and require candidate worker readiness', () => {
   const hash = 'a'.repeat(64);
   const sample = {
     kind: 'editor',
+    variant: 'candidate',
     observations: { observedAtMs: 200, paint: { shifts: [] } },
     editor: {
       duration: 100,
+      endpoint: 'complete-read-only-model-fonts-two-frames',
+      workerStatus: 'ready',
+      workerReadyMs: 110,
       readOnly: true,
       workerResponseStatus: 200,
       expectedModelSha256: hash,
@@ -148,10 +153,42 @@ test('editor readiness requires the complete expected editor and worker models',
     'workerResponseStatus',
     'readOnly',
     'duration',
+    'endpoint',
+    'workerReadyMs',
+    'workerStatus',
   ]) {
     const corrupted = structuredClone(sample);
     delete corrupted.editor[field];
     assert.throws(() => validateSample(corrupted));
+  }
+  const legacy = structuredClone(sample);
+  legacy.variant = 'legacy';
+  legacy.editor.workerStatus = 'unavailable-missing-baseline-asset';
+  legacy.editor.workerResponseStatus = 404;
+  legacy.editor.workerPath = '/worker-yaml.js';
+  delete legacy.editor.workerReadyMs;
+  delete legacy.editor.workerModelSha256;
+  validateSample(legacy);
+  for (const change of [
+    (item) => {
+      item.variant = 'candidate';
+    },
+    (item) => {
+      item.editor.workerResponseStatus = 500;
+    },
+    (item) => {
+      item.editor.workerPath = '/other.js';
+    },
+    (item) => {
+      item.editor.workerReadyMs = 100;
+    },
+    (item) => {
+      item.editor.modelSha256 = 'b'.repeat(64);
+    },
+  ]) {
+    const invalid = structuredClone(legacy);
+    change(invalid);
+    assert.throws(() => validateSample(invalid));
   }
 });
 
@@ -334,4 +371,48 @@ test('hosted readiness distinguishes initial font settling from loss after confi
   now += 30001;
   timers.shift()();
   await assert.rejects(missing, /Confirmed readiness not reached/);
+});
+
+test('legacy worker exception cannot hide other assets, modes or candidate errors', () => {
+  const origin = 'http://127.0.0.1:4181';
+  const record = {
+    variant: 'legacy',
+    kind: 'editor',
+    editor: {
+      workerStatus: 'unavailable-missing-baseline-asset',
+      workerResponseStatus: 404,
+      workerPath: '/worker-yaml.js',
+    },
+  };
+  const error =
+    "Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at '" +
+    origin +
+    "/worker-yaml.js' failed to load.";
+  assert.equal(isExpectedLegacyWorkerError(record, error, origin), true);
+  for (const change of [
+    (item) => {
+      item.variant = 'candidate';
+    },
+    (item) => {
+      item.kind = 'runs';
+    },
+    (item) => {
+      item.editor.workerResponseStatus = 500;
+    },
+    (item) => {
+      item.editor.workerPath = '/other.js';
+    },
+    (item) => {
+      item.editor.workerStatus = 'ready';
+    },
+  ]) {
+    const unexpected = structuredClone(record);
+    change(unexpected);
+    assert.equal(isExpectedLegacyWorkerError(unexpected, error, origin), false);
+  }
+  assert.equal(
+    isExpectedLegacyWorkerError(record, error.replace('worker-yaml.js', 'other.js'), origin),
+    false,
+  );
+  assert.equal(isExpectedLegacyWorkerError(record, 'Unexpected application error', origin), false);
 });

@@ -68,8 +68,14 @@ content readiness requires the route/API predicate after fonts and two confirmin
 frames. Earlier transient readiness is retained separately; loss after confirmation
 fails the trial even if it recovers before capture. The effective hosted protocol
 and its hash are retained separately from the unchanged historical protocol. Editor
-readiness requires the complete fixture YAML in both Ace and its initialized
-worker, successful worker download, fonts, and two animation frames.
+model readiness requires the complete fixture YAML in read-only Ace, fonts and
+two animation frames on both builds. The candidate must additionally load its
+YAML worker successfully and return the same complete model through a worker
+round trip; that worker-ready duration is reported separately. The immutable
+legacy build omits `worker-yaml.js`; each baseline editor trial must retain its
+actual 404 and complete model evidence. This known baseline failure does not
+waive candidate worker correctness or permit other missing assets/errors, and
+there is no equivalent fully worker-ready legacy timing.
 
 The larger-workload samplers run seven samples per build without throttling,
 sequentially after matched sampling. Graph uses checkpoint then candidate;
@@ -115,6 +121,14 @@ Recreate transitions; no zero-downtime claim is assumed.
 Upload sanitized image/deployment/resource evidence, JUnit, browser errors and
 cluster diagnostics. Exclude credentials, cookies, tokens and Secret
 contents; record signing-state equality without publishing its value.
+
+## Evidence retention
+
+The repository caps Actions artifacts at seven days. Preserve sanitized raw
+measurement records, effective protocol, source/build/image identities and
+independent audit results in this repository before expiry. Large traces,
+screenshots and complete logs remain downloadable for the configured seven-day
+window; published reports must state that limit and retain their verified hashes.
 
 ## Completion
 

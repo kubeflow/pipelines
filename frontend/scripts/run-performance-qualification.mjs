@@ -32,6 +32,7 @@ import {
   validateSample,
   cleanupWithEvidence,
   hostedReadinessProtocol,
+  isExpectedLegacyWorkerError,
 } from './performance-evidence.mjs';
 
 assert.equal(process.env.CI, 'true');
@@ -131,7 +132,8 @@ const report = {
     'Laboratory fixture measurements, not deployed backend performance or field percentiles.',
     'Fresh contexts; browser process and runner file/OS caches remain warm.',
     'Numeric network profile defines a new hosted protocol, not an exact repeat of historical Fast 4G.',
-    'First editor open has no accepted timing budget.',
+    'First editor open has no accepted timing budget. Both builds compare complete read-only model, fonts and two frames; candidate worker initialization is separately required and measured.',
+    'The immutable legacy build omits worker-yaml.js. Its actual HTTP404 is retained; there is no equivalent fully worker-ready legacy timing.',
   ],
 };
 await mkdir(output, { recursive: true });
@@ -281,55 +283,91 @@ async function sample(variant, origin, kind, trial) {
       const id = '8fbe3bd6-a01f-11e8-98d0-529269fb1460';
       await page.goto(`${origin}/#/pipelines/details/${id}/version/${id}`);
       await page.locator('[data-testid="DagCanvas"] .react-flow__node').first().waitFor();
-      const tab = page.getByRole('tab', { name: 'Pipeline Spec', exact: true });
+      // The retained legacy MD2Tabs used buttons; the migrated component exposes tabs.
+      const tab = page.getByRole(variant === 'legacy' ? 'button' : 'tab', {
+        name: 'Pipeline Spec',
+        exact: true,
+      });
       await tab.evaluate((element) =>
         element.addEventListener('click', () => performance.mark('editor-start'), {
           once: true,
           capture: true,
         }),
       );
-      const workerResponse = page.waitForResponse((response) =>
-        /\/worker-yaml[^/]*\.js$/.test(new URL(response.url()).pathname),
-      );
+      const workerResponse = page
+        .waitForResponse((response) =>
+          /\/worker-yaml[^/]*\.js$/.test(new URL(response.url()).pathname),
+        )
+        .then(
+          (response) => ({ response }),
+          (error) => ({ error }),
+        );
       await tab.click();
-      const response = await workerResponse;
-      assert.equal(response.status(), 200);
-      assert.equal(await response.finished(), null);
       await page.waitForFunction((expected) => {
         const editor = document.querySelector('[data-testid="spec-ir"] .ace_editor')?.env?.editor;
-        return editor?.getReadOnly() && editor.getValue() === expected && !!editor.session.$worker;
+        return editor?.getReadOnly() && editor.getValue() === expected;
       }, expectedEditor);
       record.editor = await page.evaluate(async (expected) => {
         const editor = document.querySelector('[data-testid="spec-ir"] .ace_editor').env.editor;
-        // A read-only worker round trip proves initialization, beyond fetching its script.
-        const workerValue = await new Promise((resolve, reject) => {
-          const timeout = setTimeout(
-            () => reject(new Error('YAML worker readiness timed out')),
-            30000,
-          );
-          editor.session.$worker.call('getValue', [], (value) => {
-            clearTimeout(timeout);
-            resolve(value);
-          });
-        });
-        if (workerValue !== expected) throw new Error('YAML worker model differs from fixture');
         await document.fonts.ready;
         await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-        performance.measure('editor-open', 'editor-start');
+        if (!editor.getReadOnly() || editor.getValue() !== expected)
+          throw new Error('Editor model changed before confirming paint');
+        performance.measure('editor-model-ready', 'editor-start');
         return {
-          duration: performance.getEntriesByName('editor-open')[0].duration,
+          duration: performance.getEntriesByName('editor-model-ready')[0].duration,
+          endpoint: 'complete-read-only-model-fonts-two-frames',
           model: editor.getValue(),
-          workerValue,
           readOnly: editor.getReadOnly(),
-          resources: performance.getEntriesByType('resource').map((entry) => entry.toJSON()),
         };
       }, expectedEditor);
-      record.editor.workerResponseStatus = response.status();
       record.editor.expectedModelSha256 = sha256(expectedEditor);
       record.editor.modelSha256 = sha256(record.editor.model);
-      record.editor.workerModelSha256 = sha256(record.editor.workerValue);
       delete record.editor.model;
-      delete record.editor.workerValue;
+      const workerResult = await workerResponse;
+      if (workerResult.error) throw workerResult.error;
+      const response = workerResult.response;
+      record.editor.workerResponseStatus = response.status();
+      record.editor.workerPath = new URL(response.url()).pathname;
+      assert.equal(await response.finished(), null);
+      if (variant === 'legacy') {
+        // The immutable baseline omitted Ace's default worker asset. Record its real
+        // failure; only the common model endpoint is comparable to this baseline.
+        assert.equal(record.editor.workerPath, '/worker-yaml.js');
+        assert.equal(response.status(), 404);
+        assert.ok(!report.builds.legacy.assets.some((asset) => asset.path === 'worker-yaml.js'));
+        record.editor.workerStatus = 'unavailable-missing-baseline-asset';
+      } else {
+        assert.equal(response.status(), 200);
+        await page.waitForFunction(
+          () =>
+            !!document.querySelector('[data-testid="spec-ir"] .ace_editor')?.env?.editor?.session
+              .$worker,
+        );
+        const worker = await page.evaluate(async (expected) => {
+          const editor = document.querySelector('[data-testid="spec-ir"] .ace_editor').env.editor;
+          const workerValue = await new Promise((resolve, reject) => {
+            const timeout = setTimeout(
+              () => reject(new Error('YAML worker readiness timed out')),
+              30000,
+            );
+            editor.session.$worker.call('getValue', [], (value) => {
+              clearTimeout(timeout);
+              resolve(value);
+            });
+          });
+          if (workerValue !== expected || editor.getValue() !== expected || !editor.getReadOnly())
+            throw new Error('YAML worker or editor model differs from fixture');
+          performance.measure('editor-worker-ready', 'editor-start');
+          return {
+            workerValue,
+            workerReadyMs: performance.getEntriesByName('editor-worker-ready')[0].duration,
+          };
+        }, expectedEditor);
+        record.editor.workerModelSha256 = sha256(worker.workerValue);
+        record.editor.workerReadyMs = worker.workerReadyMs;
+        record.editor.workerStatus = 'ready';
+      }
     } else {
       await page.goto(origin + '/' + (routes[kind] || routes.runs));
       record.readiness = await page.evaluate(
@@ -401,7 +439,13 @@ async function sample(variant, origin, kind, trial) {
         'Only matching-row upward compaction may contribute filter CLS',
       );
     }
-    assert.deepEqual(errors, []);
+    record.errors = errors;
+    const expectedWorkerError = (error) => isExpectedLegacyWorkerError(record, error, origin);
+    record.expectedBaselineWorkerErrors = errors.filter(expectedWorkerError);
+    assert.deepEqual(
+      errors.filter((error) => !expectedWorkerError(error)),
+      [],
+    );
     record.status = 'measured';
   } catch (error) {
     record.status = 'failed';
@@ -489,7 +533,11 @@ try {
   for (const [variant, origin] of Object.entries(origins)) {
     const fixture = await (await fetch(`${origin}/__qualification`)).json();
     assert.deepEqual(fixture.mutations, []);
-    assert.deepEqual(fixture.missingAssets, []);
+    assert.deepEqual(
+      fixture.missingAssets,
+      variant === 'legacy' ? Array(budgets.samples).fill('/worker-yaml.js') : [],
+      'Only the independently observed missing legacy YAML worker is expected',
+    );
     report[`${variant}Fixture`] = fixture;
   }
   const extract = (variant, kind, read) =>
@@ -519,6 +567,12 @@ try {
       variant,
       extract(variant, 'editor', (sample) => sample.editor.duration),
     ]),
+  );
+  report.editorEndpoint = 'complete-read-only-model-fonts-two-frames';
+  report.candidateEditorWorkerReadyMs = extract(
+    'candidate',
+    'editor',
+    (sample) => sample.editor.workerReadyMs,
   );
   report.comparisons.entryGzip = {
     ratio: report.builds.candidate.entryGzipBytes / report.builds.legacy.entryGzipBytes,

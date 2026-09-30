@@ -114,6 +114,19 @@ export async function verifyBuild(directory, provenance, expectedSource) {
   };
 }
 
+export function isExpectedLegacyWorkerError(record, error, origin) {
+  return (
+    record.variant === 'legacy' &&
+    record.kind === 'editor' &&
+    record.editor?.workerStatus === 'unavailable-missing-baseline-asset' &&
+    record.editor.workerResponseStatus === 404 &&
+    record.editor.workerPath === '/worker-yaml.js' &&
+    error.includes("Failed to execute 'importScripts'") &&
+    error.includes(`${origin}/worker-yaml.js`) &&
+    error.includes('failed to load')
+  );
+}
+
 export function validateSample(record) {
   const finite = (value, label) =>
     assert.ok(Number.isFinite(value) && value >= 0, `Missing or invalid ${label}`);
@@ -132,10 +145,23 @@ export function validateSample(record) {
   if (record.kind === 'editor') {
     finite(record.editor?.duration, 'editor duration');
     assert.equal(record.editor.readOnly, true);
-    assert.equal(record.editor.workerResponseStatus, 200);
     assert.match(record.editor.expectedModelSha256, /^[a-f0-9]{64}$/);
     assert.equal(record.editor.modelSha256, record.editor.expectedModelSha256);
-    assert.equal(record.editor.workerModelSha256, record.editor.expectedModelSha256);
+    assert.equal(record.editor.endpoint, 'complete-read-only-model-fonts-two-frames');
+    if (record.variant === 'legacy') {
+      assert.equal(record.editor.workerStatus, 'unavailable-missing-baseline-asset');
+      assert.equal(record.editor.workerResponseStatus, 404);
+      assert.equal(record.editor.workerPath, '/worker-yaml.js');
+      assert.equal(record.editor.workerReadyMs, undefined);
+      assert.equal(record.editor.workerModelSha256, undefined);
+    } else {
+      assert.equal(record.variant, 'candidate');
+      assert.equal(record.editor.workerStatus, 'ready');
+      assert.equal(record.editor.workerResponseStatus, 200);
+      assert.equal(record.editor.workerModelSha256, record.editor.expectedModelSha256);
+      finite(record.editor.workerReadyMs, 'editor worker readiness');
+      assert.ok(record.editor.workerReadyMs >= record.editor.duration);
+    }
     return;
   }
   const ready = observation.readiness;
