@@ -139,6 +139,38 @@ test(
       const evidence = await (await fetch(`${origin}/__qualification`)).json();
       assert.deepEqual(evidence.mutations, [{ method: 'POST', path: '/apis/v2beta1/runs' }]);
       assert.deepEqual(evidence.missingAssets, ['/static/missing-native-contract.js']);
+      const scenario = await fetch(`${origin}/__qualification/scenario?name=experiment`, {
+        method: 'POST',
+      });
+      assert.equal(scenario.status, 200);
+      const html = await (await fetch(`${origin}/?native-scenario=experiment`)).text();
+      assert.match(html, /DEPLOYMENT="KUBEFLOW"/);
+      assert.match(html, /onNamespaceSelected\('team-a'\)/);
+      const body = JSON.stringify({ display_name: 'HTTP fixture', namespace: 'team-a' });
+      assert.equal(
+        (await fetch(`${origin}/apis/v2beta1/experiments`, { method: 'POST', body })).status,
+        503,
+      );
+      assert.equal(
+        (await fetch(`${origin}/apis/v2beta1/experiments`, { method: 'POST', body })).status,
+        200,
+      );
+      assert.equal(
+        (await fetch(`${origin}/apis/v2beta1/experiments/native-created-experiment`)).status,
+        200,
+      );
+      const rejected = await fetch(`${origin}/apis/v2beta1/experiments`, {
+        method: 'POST',
+        body: JSON.stringify({ display_name: 'Wrong scope', namespace: 'another' }),
+      });
+      assert.equal(rejected.status, 400);
+      const ledger = (await (await fetch(`${origin}/__qualification`)).json()).transactions;
+      assert.deepEqual(
+        ledger.mutations.map((entry) => entry.status),
+        [503, 200, rejected.status],
+        'Every recorded mutation status must match its HTTP response',
+      );
+      assert.deepEqual(ledger.unexpected, []);
     } finally {
       child.kill('SIGTERM');
       for (

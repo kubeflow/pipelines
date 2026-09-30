@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import {
   appleQualification,
+  selectAppleQualification,
   configureDesktopTextInput,
   mobileSafariAppPath,
   resolveWdaPackage,
@@ -100,6 +101,36 @@ test('simulator selection requires exact available iOS runtime and device family
     () => selectSimulator({ ...inventory, devicetypes: [] }, appleQualification.ipad),
     /device type iPad/,
   );
+});
+
+test('annual Apple pins never fall back to an available runtime from another annual family', () => {
+  const profile = selectAppleQualification('iphone', '27');
+  assert.equal(profile.config.platformVersion, '27.0');
+  assert.equal(profile.config.browserVersion, '27.0');
+  assert.equal(profile.developerDirectory, '/Applications/Xcode_27.app/Contents/Developer');
+  const inventory = {
+    runtimes: [
+      {
+        identifier: 'com.apple.CoreSimulator.SimRuntime.iOS-26-5',
+        version: '26.5',
+        buildversion: 'older-build',
+        isAvailable: true,
+      },
+    ],
+    devicetypes: [{ name: 'iPhone 17', identifier: 'phone' }],
+  };
+  assert.throws(() => selectSimulator(inventory, profile.config), /Required iOS 27.0/);
+  inventory.runtimes.push({
+    identifier: 'com.apple.CoreSimulator.SimRuntime.iOS-27-0',
+    version: '27.0',
+    buildversion: 'current-build',
+    isAvailable: true,
+  });
+  assert.equal(selectSimulator(inventory, profile.config).runtime.buildversion, 'current-build');
+  assert.equal(selectAppleQualification('desktop', '27').config.browserVersion, '27.0');
+  assert.deepEqual(selectAppleQualification('ipad').config, appleQualification.ipad);
+  assert.throws(() => selectAppleQualification('iphone', '28'), /annual version/);
+  assert.throws(() => selectAppleQualification('watch', '27'), /desktop, iphone, or ipad/);
 });
 
 test('Mobile Safari identity comes from the selected runtime without a booted app lookup', () => {

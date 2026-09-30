@@ -25,7 +25,12 @@ import { fileURLToPath } from 'node:url';
 test('browser preflight failures exit nonzero and retain machine-readable evidence', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'kfp-browser-evidence-'));
   try {
-    for (const name of ['results.tap', 'results.xml']) {
+    for (const name of [
+      'results.tap',
+      'results.xml',
+      'production-startup.json',
+      'production-startup-failure.png',
+    ]) {
       await writeFile(join(directory, name), 'stale passing report');
     }
     await writeFile(join(directory, 'workflow.json'), 'separate workflow evidence');
@@ -48,7 +53,12 @@ test('browser preflight failures exit nonzero and retain machine-readable eviden
     assert.match(report.error, /Unsupported KFP_BROWSER/);
     assert.equal(report.browserVersion, undefined);
     assert.ok(report.finishedAt);
-    for (const name of ['results.tap', 'results.xml']) {
+    for (const name of [
+      'results.tap',
+      'results.xml',
+      'production-startup.json',
+      'production-startup-failure.png',
+    ]) {
       await assert.rejects(readFile(join(directory, name)), { code: 'ENOENT' });
     }
     assert.equal(

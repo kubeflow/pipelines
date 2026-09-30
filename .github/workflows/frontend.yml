@@ -88,7 +88,9 @@ jobs:
 
     - name: Verify browser evidence runner
       working-directory: frontend
-      run: npm run test:browser-runner
+      run: |
+        npm run test:browser-runner
+        node --test scripts/production-bundle-diagnostics.check.mjs
 
     - name: Build shared production bundle
       working-directory: frontend

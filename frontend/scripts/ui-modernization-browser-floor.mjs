@@ -74,7 +74,7 @@ const report = {
     : [],
   limitations: [
     'Native small fixtures; comparison has two runs but no parameters or scalar metrics.',
-    'Read-only fixtures cover navigation and unsubmitted form drafts, not cluster mutations, authorization, upload submission, or full 48-case Playwright suite parity.',
+    'In-memory fixtures cover navigation, drafts and three mutation/recovery contracts, not cluster authorization, upload submission, or full 48-case Playwright suite parity.',
     'Page readiness and captured errors are checked; errors before initial Runs readiness are not observed, and this is not a complete network or console trace.',
   ],
 };
@@ -969,11 +969,198 @@ try {
       return colors;
     },
   );
+  // Mutation scenarios use an isolated server-owned fixture, never a cluster or proxy.
+  async function fixtureState() {
+    const response = await fetch(new URL('/__qualification', base), {
+      signal: AbortSignal.timeout(5000),
+    });
+    assert.ok(response.ok);
+    return response.json();
+  }
+  const transactionPageErrors = [];
+  async function transactionScenario(name, hash) {
+    const errors = await execute(() => window.floorErrors);
+    assert.deepEqual(errors, []);
+    transactionPageErrors.push(...errors);
+    const response = await fetch(new URL(`/__qualification/scenario?name=${name}`, base), {
+      method: 'POST',
+      signal: AbortSignal.timeout(5000),
+    });
+    assert.ok(response.ok);
+    if (!mobile)
+      await command('POST', `/session/${session}/window/rect`, { width: 1440, height: 900 });
+    // Query change forces a fresh document with the fixture dashboard namespace.
+    await command('POST', `/session/${session}/url`, {
+      url: new URL(`?native-scenario=${name}${hash}`, base).href,
+    });
+  }
+  async function mutations(path) {
+    return (await fixtureState()).transactions.mutations.filter((entry) => entry.path === path);
+  }
+  const creationRoute =
+    '#/runs/new?pipelineId=native-pipeline&pipelineVersionId=native-version&experimentId=native-experiment';
+  function assertCreation(body, name) {
+    assert.equal(body.display_name, name);
+    assert.equal(body.experiment_id, 'native-experiment');
+    assert.deepEqual(body.pipeline_version_reference, {
+      pipeline_id: 'native-pipeline',
+      pipeline_version_id: 'native-version',
+    });
+    assert.equal(body.pipeline_spec, undefined);
+    assert.deepEqual(body.runtime_config.parameters, {
+      count: 0,
+      enabled: false,
+      message: '',
+      config: { nested: false },
+    });
+  }
+  await check(
+    'Experiment creation retries a failed scoped mutation without duplicate submissions',
+    async () => {
+      await transactionScenario('experiment', '#/experiments/new?pipelineId=native-pipeline');
+      await field('Experiment name');
+      await fillLabel('Experiment name', 'Native created experiment');
+      await fillLabel('Description', 'Retained after fixture failure');
+      await click('#createExperimentBtn');
+      await wait(
+        () =>
+          Array.from(document.querySelectorAll('[role="dialog"]')).some((el) =>
+            el.textContent.includes('Experiment creation failed'),
+          ),
+        'experiment failure dialog',
+      );
+      let requests = await mutations('/apis/v2beta1/experiments');
+      assert.equal(requests.length, 1);
+      assert.equal(requests[0].status, 503);
+      await clickText('button', 'Dismiss');
+      assert.equal(await valueLabel('Experiment name'), 'Native created experiment');
+      assert.equal(await valueLabel('Description'), 'Retained after fixture failure');
+      await click('#createExperimentBtn');
+      await field('count - integer');
+      await wait(
+        () => location.hash.includes('experimentId=native-created-experiment'),
+        'created experiment handoff',
+      );
+      requests = await mutations('/apis/v2beta1/experiments');
+      assert.equal(requests.length, 2);
+      assert.equal(requests[1].status, 200);
+      for (const request of requests)
+        assert.deepEqual(request.body, {
+          display_name: 'Native created experiment',
+          description: 'Retained after fixture failure',
+          namespace: 'team-a',
+        });
+      await screenshot('experiment-created');
+      return { attempts: 2, namespace: 'team-a', retainedDraft: true };
+    },
+  );
+  await check(
+    'Typed one-off creation preserves falsy parameters and submits exactly once',
+    async () => {
+      await transactionScenario('run', creationRoute);
+      await field('count - integer');
+      await fillLabel('Run name', 'Native typed run');
+      await fillLabel('count - integer', '1.5');
+      assert.equal(await execute(() => document.querySelector('#startNewRunBtn').disabled), true);
+      assert.equal((await mutations('/apis/v2beta1/runs')).length, 0);
+      await fillLabel('count - integer', '0');
+      assert.equal(await valueLabel('enabled - boolean'), 'false');
+      assert.equal(await valueLabel('message - string'), '');
+      await wait(() => !document.querySelector('#startNewRunBtn').disabled, 'valid run ready');
+      await click('#startNewRunBtn');
+      await wait(
+        () => location.hash === '#/runs/details/native-created-run',
+        'created run detail route',
+      );
+      const requests = await mutations('/apis/v2beta1/runs');
+      assert.equal(requests.length, 1);
+      assert.equal(requests[0].status, 200);
+      assertCreation(requests[0].body, 'Native typed run');
+      await wait(
+        () => document.body.textContent.includes('Native typed run'),
+        'created run rendered',
+      );
+      await screenshot('run-created');
+      return { attempts: 1, typedParameters: requests[0].body.runtime_config.parameters };
+    },
+  );
+  await check(
+    'Recurring creation and failed toggle recover without duplicate mutations',
+    async () => {
+      await transactionScenario('recurring', creationRoute + '&recurring=1');
+      await field('count - integer');
+      await fillLabel('Recurring run config name', 'Native created schedule');
+      await fillLabel('Maximum concurrent runs', '3');
+      await wait(() => !document.querySelector('#startNewRunBtn').disabled, 'valid schedule ready');
+      await click('#startNewRunBtn');
+      await wait(
+        () => location.hash === '#/recurringrun/details/native-schedule',
+        'created schedule route',
+      );
+      const requests = await mutations('/apis/v2beta1/recurringruns');
+      assert.equal(requests.length, 1);
+      assertCreation(requests[0].body, 'Native created schedule');
+      assert.equal(requests[0].body.max_concurrency, '3');
+      assert.equal(requests[0].body.mode, 'ENABLE');
+      await navigate('#/recurringruns');
+      const selector = '[role="switch"][aria-label="Enable schedule Native created schedule"]';
+      await wait(visibleNode, 'created schedule control', selector);
+      assert.equal(
+        await execute((sel) => document.querySelector(sel).getAttribute('aria-checked'), selector),
+        'true',
+      );
+      await click(selector);
+      await wait(
+        () =>
+          Array.from(document.querySelectorAll('[role="alert"]')).some((el) =>
+            el.textContent.includes('Unable to update schedule'),
+          ),
+        'failed toggle reported',
+      );
+      const action = '/apis/v2beta1/recurringruns/native-schedule:disable';
+      let toggles = await mutations(action);
+      assert.equal(toggles.length, 1);
+      assert.equal(toggles[0].status, 503);
+      assert.equal(
+        await execute((sel) => document.querySelector(sel).getAttribute('aria-checked'), selector),
+        'true',
+      );
+      await click(selector);
+      await wait(
+        (sel) => document.querySelector(sel)?.getAttribute('aria-checked') === 'false',
+        'schedule disabled after retry',
+        selector,
+      );
+      await wait(
+        () =>
+          !Array.from(document.querySelectorAll('[role="alert"]')).some((el) =>
+            el.textContent.includes('Unable to update schedule'),
+          ),
+        'stale toggle error cleared',
+      );
+      toggles = await mutations(action);
+      assert.deepEqual(
+        toggles.map((entry) => ({ status: entry.status, body: entry.body })),
+        [
+          { status: 503, body: null },
+          { status: 200, body: null },
+        ],
+      );
+      await screenshot('schedule-created-disabled');
+      return { creationAttempts: 1, toggleAttempts: 2, recovered: true };
+    },
+  );
   const fixture = await (await fetch(new URL('/__qualification', base))).json();
   report.fixture = fixture;
-  assert.deepEqual(fixture.mutations, [], 'drafts must not submit backend mutations');
+  assert.deepEqual(fixture.mutations, [], 'draft checks must not submit backend mutations');
+  assert.deepEqual(fixture.transactions.unexpected, [], 'unknown mutations must fail');
+  assert.equal(
+    fixture.transactions.mutations.length,
+    6,
+    'only the six explicitly asserted mutation attempts are allowed',
+  );
   assert.deepEqual(fixture.missingAssets, [], 'production assets must load without missing files');
-  report.errors = await execute(() => window.floorErrors);
+  report.errors = [...transactionPageErrors, ...(await execute(() => window.floorErrors))];
   assert.deepEqual(report.errors, []);
   report.status = 'passed';
 } catch (error) {

@@ -58,7 +58,12 @@ const save = () =>
 await save();
 try {
   // A failed preflight must never retain a previous run's successful test reports.
-  for (const name of ['results.tap', 'results.xml']) {
+  for (const name of [
+    'results.tap',
+    'results.xml',
+    'production-startup.json',
+    'production-startup-failure.png',
+  ]) {
     await rm(resolve(directory, name), { force: true });
   }
   const engine = { chromium, firefox, webkit }[engineName];

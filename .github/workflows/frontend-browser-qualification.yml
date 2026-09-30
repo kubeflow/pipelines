@@ -10,6 +10,8 @@ on:
       - '.github/workflows/frontend-browser-qualification.yml'
       - 'frontend/scripts/qualified-browsers.json'
       - 'frontend/scripts/install-qualified-browser*'
+      - 'frontend/scripts/install-qualified-firefox-linux*'
+      - 'frontend/scripts/production-bundle-diagnostics*'
       - 'frontend/scripts/run-apple-qualification*'
       - 'frontend/scripts/run-native-qualification*'
       - 'frontend/scripts/ui-modernization-browser-floor.mjs'
@@ -47,7 +49,7 @@ jobs:
       - run: npm ci
       - name: Check qualification helpers without launching browsers
         run: |
-          node --test scripts/install-qualified-browser.check.mjs scripts/run-apple-qualification.check.mjs scripts/run-native-qualification.check.mjs
+          node --import tsx --test scripts/ui-modernization-native-transactions.check.mjs scripts/production-bundle-diagnostics.check.mjs scripts/install-qualified-firefox-linux.check.mjs scripts/install-qualified-browser.check.mjs scripts/run-apple-qualification.check.mjs scripts/run-native-qualification.check.mjs
           node --check scripts/run-native-qualification.mjs
           node --check scripts/ui-modernization-browser-floor.mjs
       - name: Resolve dated vendor matrix
@@ -56,7 +58,7 @@ jobs:
           node --input-type=module <<'NODE'
           import { readFileSync, appendFileSync } from 'node:fs';
           const manifest = JSON.parse(readFileSync('scripts/qualified-browsers.json', 'utf8'));
-          const include = manifest.browsers.map(({ id, browser }) => ({ id, browser }));
+          const include = [...manifest.browsers.map(({ id, browser }) => ({ id, browser, runner: 'macos-26', platform: 'darwin' })), ...manifest.linuxBrowsers.map(({ id, browser, runner, platform }) => ({ id, browser, runner, platform }))];
           if (!include.length) throw new Error('The qualification matrix must not be empty');
           appendFileSync(process.env.GITHUB_OUTPUT, `vendors=${JSON.stringify({ include })}\n`);
           NODE
@@ -80,7 +82,7 @@ jobs:
   vendor-browser:
     name: Vendor / ${{ matrix.id }}
     needs: build
-    runs-on: macos-26
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -112,7 +114,12 @@ jobs:
         id: browser
         env:
           BROWSER_ID: ${{ matrix.id }}
-        run: node scripts/install-qualified-browser.mjs "$BROWSER_ID"
+        run: |
+          if [ "${{ matrix.platform }}" = linux ]; then
+            node scripts/install-qualified-firefox-linux.mjs "$BROWSER_ID"
+          else
+            node scripts/install-qualified-browser.mjs "$BROWSER_ID"
+          fi
       - name: Run full Chromium-family production workflows
         if: matrix.browser == 'chromium'
         env:
@@ -127,6 +134,11 @@ jobs:
           KFP_GECKODRIVER_BINARY: ${{ steps.browser.outputs.driver }}
           KFP_BROWSER_FLOOR_VERSION: ${{ steps.browser.outputs.version }}
         run: node scripts/run-native-qualification.mjs
+      - name: Verify Linux Firefox and driver identity after suite
+        if: always() && matrix.platform == 'linux'
+        env:
+          BROWSER_ID: ${{ matrix.id }}
+        run: node scripts/install-qualified-firefox-linux.mjs --finalize "$BROWSER_ID"
       - name: Verify final vendor identity and detach owned read-only volume
         if: always() && (matrix.id == 'chrome-stable' || startsWith(matrix.id, 'edge-'))
         env:
@@ -170,7 +182,7 @@ jobs:
           retention-days: 90
 
   apple-browser:
-    name: Apple / ${{ matrix.mode }}
+    name: Apple / ${{ matrix.mode }} / ${{ matrix.annual }}
     needs: build
     runs-on: ${{ matrix.runner }}
     timeout-minutes: ${{ matrix.mode == 'desktop' && 35 || 45 }}
@@ -179,18 +191,37 @@ jobs:
       matrix:
         include:
           - mode: desktop
+            annual: "26"
             runner: macos-26
+            developer-directory: /Applications/Xcode_26.6.app/Contents/Developer
           - mode: iphone
+            annual: "26"
             runner: macos-26
+            developer-directory: /Applications/Xcode_26.6.app/Contents/Developer
           - mode: ipad
+            annual: "26"
             runner: macos-26
+            developer-directory: /Applications/Xcode_26.6.app/Contents/Developer
+          - mode: desktop
+            annual: "27"
+            runner: xcode-27
+            developer-directory: /Applications/Xcode_27.app/Contents/Developer
+          - mode: iphone
+            annual: "27"
+            runner: xcode-27
+            developer-directory: /Applications/Xcode_27.app/Contents/Developer
+          - mode: ipad
+            annual: "27"
+            runner: xcode-27
+            developer-directory: /Applications/Xcode_27.app/Contents/Developer
     defaults:
       run:
         shell: bash
         working-directory: frontend
     env:
       CI: 'true'
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: ${{ matrix.developer-directory }}
+      APPLE_ANNUAL: ${{ matrix.annual }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -207,7 +238,7 @@ jobs:
       - name: Run native Apple qualification
         env:
           APPLE_MODE: ${{ matrix.mode }}
-        run: node scripts/run-apple-qualification.mjs "$APPLE_MODE"
+        run: node scripts/run-apple-qualification.mjs "$APPLE_MODE" "$APPLE_ANNUAL"
       - name: Record lane outcome
         if: always()
         env:
@@ -216,20 +247,20 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import { mkdirSync, writeFileSync } from 'node:fs';
-          const directory = `browser-results/apple-${process.env.APPLE_MODE}`;
+          const directory = `browser-results/apple-${process.env.APPLE_MODE}-${process.env.APPLE_ANNUAL}`;
           mkdirSync(directory, { recursive: true });
           writeFileSync(`${directory}/workflow.json`, JSON.stringify({
             sourceSha: process.env.GITHUB_SHA, runId: process.env.GITHUB_RUN_ID,
             runAttempt: process.env.GITHUB_RUN_ATTEMPT, status: process.env.JOB_STATUS,
-            mode: process.env.APPLE_MODE, image: process.env.ImageOS,
+            mode: process.env.APPLE_MODE, annual: process.env.APPLE_ANNUAL, image: process.env.ImageOS,
             imageVersion: process.env.ImageVersion,
           }, null, 2) + '\n');
           NODE
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: qualification-apple-${{ matrix.mode }}
-          path: frontend/browser-results/apple-${{ matrix.mode }}
+          name: qualification-apple-${{ matrix.mode }}-${{ matrix.annual }}
+          path: frontend/browser-results/apple-${{ matrix.mode }}-${{ matrix.annual }}
           if-no-files-found: error
           overwrite: true
           retention-days: 90

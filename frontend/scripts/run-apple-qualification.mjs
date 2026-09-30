@@ -22,6 +22,32 @@ export const appleQualification = {
   iphone: { browserVersion: '26.5', platformVersion: '26.5', deviceType: 'iPhone 17' },
   ipad: { browserVersion: '26.5', platformVersion: '26.5', deviceType: 'iPad (A16)' },
 };
+// Dated pins come from actions/runner-images' macos-26-arm64 and xcode-27-arm64
+// inventories. Runner labels are not evidence of the actual browser/runtime version.
+export const appleAnnualQualifications = {
+  26: {
+    developerDirectory: '/Applications/Xcode_26.6.app/Contents/Developer',
+    xcodeVersion: '26.6',
+    modes: appleQualification,
+  },
+  27: {
+    developerDirectory: '/Applications/Xcode_27.app/Contents/Developer',
+    xcodeVersion: '27.0',
+    modes: {
+      desktop: { browserVersion: '27.0' },
+      iphone: { browserVersion: '27.0', platformVersion: '27.0', deviceType: 'iPhone 17' },
+      ipad: { browserVersion: '27.0', platformVersion: '27.0', deviceType: 'iPad (A16)' },
+    },
+  },
+};
+
+export function selectAppleQualification(mode, annual = '26') {
+  assert.ok(Object.hasOwn(appleAnnualQualifications, annual), 'Use Apple annual version 26 or 27');
+  const profile = appleAnnualQualifications[annual];
+  assert.ok(Object.hasOwn(profile.modes, mode), 'Use desktop, iphone, or ipad');
+  return { ...profile, config: profile.modes[mode] };
+}
+
 const appiumVersion = '3.8.0';
 const xcuitestVersion = '12.13.3';
 // First-boot OS migration on a hosted simulator has a separate bounded budget.
@@ -225,9 +251,10 @@ async function main() {
   // Refuse before creating files, running Apple tools, or installing automation dependencies.
   requireHostedAppleRunner();
   const mode = process.argv[2];
-  assert.ok(Object.hasOwn(appleQualification, mode), 'Use desktop, iphone, or ipad');
-  const config = appleQualification[mode];
-  const out = join(frontend, 'browser-results', `apple-${mode}`);
+  const annual = process.argv[3] ?? '26';
+  const { config, developerDirectory, xcodeVersion } = selectAppleQualification(mode, annual);
+  assert.equal(process.env.DEVELOPER_DIR, developerDirectory, 'Pinned Xcode directory changed');
+  const out = join(frontend, 'browser-results', `apple-${mode}-${annual}`);
   // A setup failure must never upload successful checks from an earlier invocation.
   await rm(out, { recursive: true, force: true });
   await mkdir(out, { recursive: true });
@@ -243,7 +270,8 @@ async function main() {
     status: 'running',
     sourceSha: process.env.GITHUB_SHA,
     mode,
-    requested: config,
+    annual,
+    requested: { ...config, developerDirectory, xcodeVersion },
     runner: {
       os: process.env.RUNNER_OS,
       arch: process.env.RUNNER_ARCH,
@@ -342,6 +370,12 @@ async function main() {
   try {
     report.macos = await run('/usr/bin/sw_vers', [], 'macos');
     report.xcode = await run('/usr/bin/xcodebuild', ['-version'], 'xcode');
+    const actualXcode = report.xcode.match(/^Xcode (\d+(?:\.\d+)*)$/m)?.[1];
+    assert.equal(
+      actualXcode?.replace(/\.0$/, ''),
+      xcodeVersion.replace(/\.0$/, ''),
+      'Pinned Xcode version changed',
+    );
     report.safariVersion = await run(
       '/usr/libexec/PlistBuddy',
       ['-c', 'Print :CFBundleShortVersionString', '/Applications/Safari.app/Contents/Info.plist'],

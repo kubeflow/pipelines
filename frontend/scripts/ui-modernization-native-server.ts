@@ -10,15 +10,22 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { extname, resolve, sep } from 'node:path';
+import { extname, isAbsolute, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { NativeTransactions } from './ui-modernization-native-transactions';
 import { createMockApiApp } from '../mock-backend/mock-api-app';
 
 assert.equal(process.env.CI, 'true', 'Native browser qualification runs only in CI');
-const build = fileURLToPath(new URL('../build/', import.meta.url));
+const build =
+  process.env.KFP_BROWSER_BUILD_DIR || fileURLToPath(new URL('../build/', import.meta.url));
+assert.ok(
+  isAbsolute(build),
+  'KFP_BROWSER_BUILD_DIR must identify an absolute production build directory',
+);
 const port = Number(process.env.KFP_BROWSER_FLOOR_PORT || 4174);
 assert.ok(Number.isInteger(port) && port > 0 && port < 65536);
 const api = createMockApiApp();
+const transactions = new NativeTransactions();
 const mutations: { method: string; path: string }[] = [];
 const missingAssets: string[] = [];
 const mime: Record<string, string> = {
@@ -37,8 +44,38 @@ const mime: Record<string, string> = {
 };
 const server = createServer(async (request, response) => {
   try {
-    const pathname = new URL(request.url || '/', 'http://127.0.0.1').pathname;
+    const url = new URL(request.url || '/', 'http://127.0.0.1');
+    const pathname = url.pathname;
     response.setHeader('cache-control', 'no-store');
+    if (pathname === '/__qualification/scenario' && request.method === 'POST') {
+      transactions.start(url.searchParams.get('name') || '');
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify(transactions.snapshot()));
+      return;
+    }
+    if (
+      transactions.active &&
+      /^\/(api|apis|apps|artifacts|hub|k8s|system)(?:\/|$)/.test(pathname)
+    ) {
+      const chunks: Buffer[] = [];
+      let size = 0;
+      for await (const chunk of request) {
+        size += chunk.length;
+        assert.ok(size <= 65536, 'Fixture request body exceeds limit');
+        chunks.push(chunk);
+      }
+      const text = Buffer.concat(chunks).toString();
+      const result = transactions.handle(
+        request.method || 'GET',
+        url,
+        text ? JSON.parse(text) : null,
+      );
+      if (result) {
+        response.writeHead(result.status, { 'content-type': 'application/json' });
+        response.end(JSON.stringify(result.body));
+        return;
+      }
+    }
     if (!['GET', 'HEAD'].includes(request.method || '')) {
       mutations.push({ method: request.method || '', path: pathname });
       response.writeHead(405, { 'content-type': 'application/json' });
@@ -47,7 +84,14 @@ const server = createServer(async (request, response) => {
     }
     if (pathname === '/__qualification') {
       response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ fixture: 'native-fixed-data', mutations, missingAssets }));
+      response.end(
+        JSON.stringify({
+          fixture: 'native-fixed-data',
+          mutations,
+          missingAssets,
+          transactions: transactions.snapshot(),
+        }),
+      );
       return;
     }
     // The development fixture exposes task lists. Derive detail responses from that same
@@ -82,7 +126,19 @@ const server = createServer(async (request, response) => {
       'Assets must remain within production build',
     );
     try {
-      const bytes = await readFile(target);
+      let bytes = await readFile(target);
+      if (pathname === '/' && transactions.active) {
+        const html = bytes.toString();
+        assert.match(html, /window\.KFP_FLAGS\.DEPLOYMENT\s*=\s*null;?/);
+        bytes = Buffer.from(
+          html.replace(
+            /window\.KFP_FLAGS\.DEPLOYMENT\s*=\s*null;?/,
+            `window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW";
+window.floorErrors=[];addEventListener('error',event=>window.floorErrors.push(event.message));addEventListener('unhandledrejection',event=>window.floorErrors.push(String(event.reason)));
+window.centraldashboard={CentralDashboardEventHandler:{init(callback){const handler={};callback(handler);handler.onNamespaceSelected('team-a');}}};`,
+          ),
+        );
+      }
       response.writeHead(200, {
         'content-type': mime[extname(target)] || 'application/octet-stream',
       });
