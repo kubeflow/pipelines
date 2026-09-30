@@ -35,6 +35,44 @@ import kubernetes as k8s
 import yaml
 
 
+class TestRecurringRunTags(parameterized.TestCase):
+
+    @parameterized.parameters((None,), ({},), ({'team': 'ml'},))
+    def test_create_serializes_tags(self, tags):
+        sdk_client = client.Client.__new__(client.Client)
+        sdk_client._recurring_run_api = Mock(
+            spec=kfp_server_api.RecurringRunServiceApi)
+        sdk_client._create_job_config = Mock(
+            return_value=client._JobConfig(
+                pipeline_spec=None,
+                pipeline_version_reference=None,
+                runtime_config=None))
+        sdk_client.create_recurring_run(
+            experiment_id='experiment',
+            job_name='nightly',
+            interval_second=60,
+            tags=tags)
+        body = sdk_client._recurring_run_api.recurring_run_service_create_recurring_run.call_args.kwargs[
+            'recurring_run']
+        serialized = kfp_server_api.ApiClient().sanitize_for_serialization(body)
+        self.assertEqual(serialized.get('tags'), tags)
+
+    @parameterized.parameters(({},), ({'team': 'platform'},))
+    def test_update_sends_explicit_mask(self, tags):
+        api_client = kfp_server_api.ApiClient()
+        api_client.call_api = Mock()
+        sdk_client = client.Client.__new__(client.Client)
+        sdk_client._recurring_run_api = kfp_server_api.RecurringRunServiceApi(
+            api_client)
+        sdk_client.update_recurring_run_tags('schedule-id', tags)
+        args, kwargs = api_client.call_api.call_args
+        self.assertEqual(args[1], 'PATCH')
+        self.assertEqual(args[2], {'recurring_run_id': 'schedule-id'})
+        self.assertIn(('update_mask', 'tags'), args[3])
+        body = api_client.sanitize_for_serialization(kwargs['body'])
+        self.assertEqual(body['tags'], tags)
+
+
 class TestRecurringRunAliases(parameterized.TestCase):
 
     @parameterized.parameters('delete', 'disable', 'enable')

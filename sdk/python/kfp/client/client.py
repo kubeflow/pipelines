@@ -851,6 +851,7 @@ class Client:
         enable_caching: Optional[bool] = None,
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
     ) -> kfp_server_api.V2beta1RecurringRun:
         """Creates a recurring run.
 
@@ -858,6 +859,9 @@ class Client:
             experiment_id: ID of the experiment.
             job_name: Name of the job.
             description: Description of the job.
+            tags: Metadata for this recurring run (not its triggered runs).
+                At most 20 pairs, with keys and values up to 63 characters.
+                Keys must be non-empty and must not contain a dot.
             start_time: RFC3339 time string of the time when to start the
                 job.
             end_time: RFC3339 time string of the time when to end the job.
@@ -946,9 +950,31 @@ class Client:
             no_catchup=no_catchup,
             trigger=trigger,
             max_concurrency=max_concurrency,
-            service_account=service_account)
+            service_account=service_account,
+            tags=tags)
         return self._recurring_run_api.recurring_run_service_create_recurring_run(
             recurring_run=job_body)
+
+    def update_recurring_run_tags(
+        self,
+        recurring_run_id: str,
+        tags: Dict[str, str],
+    ) -> kfp_server_api.V2beta1RecurringRun:
+        """Replaces all tags on a recurring run without changing its schedule.
+
+        Args:
+            recurring_run_id: ID of the recurring run.
+            tags: Complete replacement map. Pass an empty dict to clear tags.
+                At most 20 pairs, with keys and values up to 63 characters.
+                Keys must be non-empty and must not contain a dot.
+
+        Returns:
+            The updated recurring run.
+        """
+        return self._recurring_run_api.recurring_run_service_update_recurring_run(
+            recurring_run_id=recurring_run_id,
+            recurring_run=kfp_server_api.V2beta1RecurringRun(tags=tags),
+            update_mask='tags')
 
     def _create_job_config(
         self,

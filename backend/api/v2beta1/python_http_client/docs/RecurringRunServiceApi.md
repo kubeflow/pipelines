@@ -10,6 +10,7 @@ Method | HTTP request | Description
 [**recurring_run_service_enable_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the recurring run will continue.
 [**recurring_run_service_get_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
 [**recurring_run_service_list_recurring_runs**](RecurringRunServiceApi.md#recurring_run_service_list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace. If experiment ID is not specified, find all recurring runs across all experiments.
+[**recurring_run_service_update_recurring_run**](RecurringRunServiceApi.md#recurring_run_service_update_recurring_run) | **PATCH** /apis/v2beta1/recurringruns/{recurring_run_id} | Updates a recurring run&#39;s tags without changing its schedule.
 
 
 # **recurring_run_service_create_recurring_run**
@@ -470,6 +471,86 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | A successful response. |  -  |
+**0** | An unexpected error response. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **recurring_run_service_update_recurring_run**
+> V2beta1RecurringRun recurring_run_service_update_recurring_run(recurring_run_id, recurring_run, update_mask=update_mask)
+
+Updates a recurring run's tags without changing its schedule.
+
+### Example
+
+* Api Key Authentication (Bearer):
+```python
+from __future__ import print_function
+import time
+import kfp_server_api
+from kfp_server_api.rest import ApiException
+from pprint import pprint
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with kfp_server_api.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
+    recurring_run_id = 'recurring_run_id_example' # str | Required. ID of the recurring run to update.
+recurring_run = kfp_server_api.V2beta1RecurringRun() # V2beta1RecurringRun | Required. Only tags are mutable; all other fields are ignored.
+update_mask = 'update_mask_example' # str | Optional. Only the \"tags\" path is supported and replaces the entire map. Set to \"tags\" to clear tags even when the map is omitted, including over gRPC. Without a mask, omitted tags are unchanged and non-empty tags replace the map. HTTP clients may also clear tags by explicitly sending \"tags\": {}. (optional)
+
+    try:
+        # Updates a recurring run's tags without changing its schedule.
+        api_response = api_instance.recurring_run_service_update_recurring_run(recurring_run_id, recurring_run, update_mask=update_mask)
+        pprint(api_response)
+    except ApiException as e:
+        print("Exception when calling RecurringRunServiceApi->recurring_run_service_update_recurring_run: %s\n" % e)
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **recurring_run_id** | **str**| Required. ID of the recurring run to update. | 
+ **recurring_run** | [**V2beta1RecurringRun**](V2beta1RecurringRun.md)| Required. Only tags are mutable; all other fields are ignored. | 
+ **update_mask** | **str**| Optional. Only the \&quot;tags\&quot; path is supported and replaces the entire map. Set to \&quot;tags\&quot; to clear tags even when the map is omitted, including over gRPC. Without a mask, omitted tags are unchanged and non-empty tags replace the map. HTTP clients may also clear tags by explicitly sending \&quot;tags\&quot;: {}. | [optional] 
+
+### Return type
+
+[**V2beta1RecurringRun**](V2beta1RecurringRun.md)
+
+### Authorization
+
+[Bearer](../README.md#Bearer)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details

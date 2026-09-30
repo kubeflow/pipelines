@@ -58,6 +58,7 @@ ${PROTOCCOMPILER} \
   --plugin=protoc-gen-go-grpc=/go/bin/protoc-gen-go-grpc \
   backend/api/${API_VERSION}/*.proto
 
+# Keep update masks explicit: omitted fields must not be inferred from a PATCH body.
 # Generate *.pb.gw.go (grpc api rest client) from *.proto.
 ${PROTOCCOMPILER} \
     -I. \
@@ -67,7 +68,7 @@ ${PROTOCCOMPILER} \
     -I/usr/include \
     -I/ \
     --plugin=protoc-gen-grpc-gateway=/go/bin/protoc-gen-grpc-gateway \
-    --grpc-gateway_out=logtostderr=true:${TMP_OUTPUT} \
+    --grpc-gateway_out=logtostderr=true,allow_patch_feature=false:${TMP_OUTPUT} \
     backend/api/${API_VERSION}/*.proto
 
 # Move *.pb.go and *.gw.go to go_client folder.
@@ -81,7 +82,7 @@ ${PROTOCCOMPILER} \
     -I/usr/include \
     -I/ \
     --plugin=protoc-gen-openapiv2=/go/bin/protoc-gen-openapiv2 \
-    --openapiv2_out=logtostderr=true,json_names_for_fields=false:${TMP_OUTPUT} \
+    --openapiv2_out=logtostderr=true,json_names_for_fields=false,allow_patch_feature=false:${TMP_OUTPUT} \
     backend/api/${API_VERSION}/*.proto
 # Move *.swagger.json files into swagger folder.
 cp -a ${TMP_OUTPUT}/backend/api/${API_VERSION}/*.swagger.json ./backend/api/${API_VERSION}/swagger

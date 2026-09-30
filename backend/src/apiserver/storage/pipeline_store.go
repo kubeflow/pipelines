@@ -640,9 +640,9 @@ func insertTagsInTx(tx *sql.Tx, dbDialect dialect.DBDialect, tableName, idColumn
 // This updates TagValue in-place for existing keys without deleting and re-inserting
 // the row, avoiding unnecessary row churn in replication binlogs and trigger side effects.
 // The tag tables have a composite primary key on (idColumn, TagKey).
-func (s *PipelineStore) upsertTagsInTx(tx *sql.Tx, tableName, idColumn, entityID string, tags map[string]string) error {
+func upsertTagsInTx(tx *sql.Tx, dbDialect dialect.DBDialect, tableName, idColumn, entityID string, tags map[string]string) error {
 	for key, value := range tags {
-		upsertBuilder := s.dbDialect.Upsert(tableName, []string{idColumn, "TagKey"}, true, []string{"TagValue"}).
+		upsertBuilder := dbDialect.Upsert(tableName, []string{idColumn, "TagKey"}, true, []string{"TagValue"}).
 			Values(entityID, key, value)
 		upsertSQL, args, err := upsertBuilder.ToSql()
 		if err != nil {
@@ -682,28 +682,8 @@ func (s *PipelineStore) updateEntityFields(entityTable, tagTable, idColumn, id, 
 	// Only modify tags when explicitly provided (non-nil).
 	// A nil tags value means "no change"; an empty map means "clear all tags".
 	if tags != nil {
-		// Upsert provided tags (insert new keys, update existing values).
-		if err := s.upsertTagsInTx(tx, tagTable, idColumn, id, tags); err != nil {
-			tx.Rollback()
+		if err := replaceTagsInTx(tx, s.dbDialect, tagTable, idColumn, id, tags); err != nil {
 			return err
-		}
-		// Delete stale tags whose keys are no longer in the provided set.
-		deleteStaleQuery := qb.Delete(q(tagTable)).Where(sq.Eq{q(idColumn): id})
-		if len(tags) > 0 {
-			tagKeys := make([]string, 0, len(tags))
-			for key := range tags {
-				tagKeys = append(tagKeys, key)
-			}
-			deleteStaleQuery = deleteStaleQuery.Where(sq.NotEq{q("TagKey"): tagKeys})
-		}
-		delSQL, delArgs, err := deleteStaleQuery.ToSql()
-		if err != nil {
-			tx.Rollback()
-			return util.NewInternalServerError(err, "Failed to create delete-stale query for %v tags %v", entityTable, id)
-		}
-		if _, err := tx.Exec(delSQL, delArgs...); err != nil {
-			tx.Rollback()
-			return util.NewInternalServerError(err, "Failed to delete stale tags for %v %v", entityTable, id)
 		}
 	}
 	if err := tx.Commit(); err != nil {
@@ -1298,4 +1278,31 @@ func (s *PipelineStore) GetPipelineVersionTagsForVersions(pipelineVersionIds []s
 
 func (s *PipelineStore) DeletePipelineVersionTags(pipelineVersionID string) error {
 	return s.deleteTags("pipeline_version_tags", "PipelineVersionId", pipelineVersionID)
+}
+
+// replaceTagsInTx upserts supplied tags and removes keys omitted from the replacement.
+func replaceTagsInTx(tx *sql.Tx, dbDialect dialect.DBDialect, tagTable, idColumn, id string, tags map[string]string) error {
+	q := dbDialect.QuoteIdentifier
+	qb := dbDialect.QueryBuilder()
+	// Upsert provided tags (insert new keys, update existing values).
+	if err := upsertTagsInTx(tx, dbDialect, tagTable, idColumn, id, tags); err != nil {
+		return err
+	}
+	// Delete stale tags whose keys are no longer in the provided set.
+	deleteStaleQuery := qb.Delete(q(tagTable)).Where(sq.Eq{q(idColumn): id})
+	if len(tags) > 0 {
+		tagKeys := make([]string, 0, len(tags))
+		for key := range tags {
+			tagKeys = append(tagKeys, key)
+		}
+		deleteStaleQuery = deleteStaleQuery.Where(sq.NotEq{q("TagKey"): tagKeys})
+	}
+	delSQL, delArgs, err := deleteStaleQuery.ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create delete-stale query for %v tags %v", tagTable, id)
+	}
+	if _, err := tx.Exec(delSQL, delArgs...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete stale tags for %v %v", tagTable, id)
+	}
+	return nil
 }

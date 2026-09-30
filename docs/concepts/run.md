@@ -18,6 +18,58 @@ concurrent runs, to limit the number of runs launched in parallel. This can be
 helpful if the pipeline is expected to run for a long period of time and is
 triggered to run frequently.
 
+## Recurring run tags
+
+Recurring runs support the same key-value tags as pipelines and pipeline versions.
+Use tags to organize schedules by team, environment, or other metadata and filter
+recurring runs through the API or Python SDK. Each recurring run can have up to
+20 tags. Keys must be nonempty and cannot contain a period (`.`); keys and values
+can each contain up to 63 Unicode characters.
+
+```python
+import json
+import kfp
+
+client = kfp.Client()
+recurring_run = client.create_recurring_run(
+    experiment_id=experiment_id,
+    job_name="nightly",
+    pipeline_id=pipeline_id,
+    version_id=version_id,
+    interval_second=86400,
+    tags={"team": "ml", "environment": "production"},
+)
+
+# Replace the complete tag map.
+client.update_recurring_run_tags(recurring_run.recurring_run_id, {"team": "platform"})
+
+# Tag predicates use EQUALS and can be combined with other list filters.
+matching_runs = client.list_recurring_runs(
+    experiment_id=experiment_id,
+    filter=json.dumps({"predicates": [
+        {"key": "tags.team", "operation": "EQUALS", "string_value": "platform"}
+    ]}),
+)
+
+# Remove all tags.
+client.update_recurring_run_tags(recurring_run.recurring_run_id, {})
+```
+
+Tags belong to the recurring run. They are not inherited from its pipeline or
+pipeline version, and are not copied to the individual runs it creates. Enabling,
+disabling, and scheduler updates preserve tags.
+
+For REST clients, use `PATCH /apis/v2beta1/recurringruns/{recurring_run_id}` with
+`{"tags": {"team": "ml"}}` to replace tags or `{"tags": {}}` to clear them. Omitting
+`tags` leaves them unchanged. gRPC clients should set `update_mask` to `tags` when
+clearing tags, since protobuf maps do not distinguish an empty map from an absent
+one. An explicit `update_mask=tags` also works for REST clients. Other update-mask
+paths are not supported.
+
+In multi-user deployments, updating tags requires the `update` verb on the
+`jobs` resource in `pipelines.kubeflow.org`. The Pipelines edit role includes this
+permission; existing deployments must apply the updated role manifest.
+
 ## Next steps
 
 * Read an [overview of Kubeflow Pipelines](../overview.md).

@@ -181,6 +181,15 @@ export interface V2beta1RecurringRun {
    * @memberof V2beta1RecurringRun
    */
   plugins_input?: { [key: string]: object };
+  /**
+   * Optional. User-defined tags for this recurring run, not its triggered runs.
+   * Maximum 20 tags. Keys must be non-empty and must not contain '.'.
+   * Keys and values must not exceed 63 characters. Empty values are allowed.
+   * ListRecurringRuns supports EQUALS string predicates on "tags.<key>".
+   * @type {{ [key: string]: string; }}
+   * @memberof V2beta1RecurringRun
+   */
+  tags?: { [key: string]: string };
 }
 
 /**
@@ -228,6 +237,7 @@ export function V2beta1RecurringRunFromJSONTyped(
     namespace: json['namespace'] == null ? undefined : json['namespace'],
     experiment_id: json['experiment_id'] == null ? undefined : json['experiment_id'],
     plugins_input: json['plugins_input'] == null ? undefined : json['plugins_input'],
+    tags: json['tags'] == null ? undefined : json['tags'],
   };
 }
 
@@ -266,5 +276,6 @@ export function V2beta1RecurringRunToJSONTyped(
     no_catchup: value['no_catchup'],
     experiment_id: value['experiment_id'],
     plugins_input: value['plugins_input'],
+    tags: value['tags'],
   };
 }

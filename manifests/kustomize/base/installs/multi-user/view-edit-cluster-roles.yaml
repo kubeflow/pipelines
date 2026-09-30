@@ -84,6 +84,7 @@ rules:
   - delete
   - disable
   - enable
+  - update
 - apiGroups:
   - kubeflow.org
   verbs:

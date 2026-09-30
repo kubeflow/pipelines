@@ -38,6 +38,11 @@ var (
 		Help: "The total number of CreateJob requests",
 	})
 
+	updateJobRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "job_server_update_requests",
+		Help: "The total number of UpdateRecurringRun requests",
+	})
+
 	getJobRequests = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "job_server_get_requests",
 		Help: "The total number of GetJob requests",
@@ -122,12 +127,12 @@ func (s *BaseJobServer) getJob(ctx context.Context, jobId string) (*model.Job, e
 	return s.resourceManager.GetJob(jobId)
 }
 
-func (s *BaseJobServer) listJobs(ctx context.Context, pageToken string, pageSize int, sortBy string, opts *list.Options, namespace string, experimentId string) ([]*model.Job, int, string, error) {
+func (s *BaseJobServer) listJobs(ctx context.Context, pageToken string, pageSize int, sortBy string, opts *list.Options, namespace string, experimentID string, tagFilters ...map[string]string) ([]*model.Job, int, string, error) {
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
-	if experimentId != "" {
-		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentId)
+	if experimentID != "" {
+		ns, err := s.resourceManager.GetNamespaceFromExperimentId(experimentID)
 		if err != nil {
-			return nil, 0, "", util.Wrapf(err, "Failed to list recurring runs due to error fetching namespace for experiment %s. Try filtering based on namespace", experimentId)
+			return nil, 0, "", util.Wrapf(err, "Failed to list recurring runs due to error fetching namespace for experiment %s. Try filtering based on namespace", experimentID)
 		}
 		namespace = ns
 	}
@@ -143,15 +148,15 @@ func (s *BaseJobServer) listJobs(ctx context.Context, pageToken string, pageSize
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: namespace},
 	}
-	if experimentId != "" {
-		if err := s.resourceManager.CheckExperimentBelongsToNamespace(experimentId, namespace); err != nil {
+	if experimentID != "" {
+		if err := s.resourceManager.CheckExperimentBelongsToNamespace(experimentID, namespace); err != nil {
 			return nil, 0, "", util.Wrap(err, "Failed to list recurring runs due to namespace mismatch")
 		}
 		filterContext = &model.FilterContext{
-			ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: experimentId},
+			ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: experimentID},
 		}
 	}
-	jobs, totalSize, token, err := s.resourceManager.ListJobs(filterContext, opts)
+	jobs, totalSize, token, err := s.resourceManager.ListJobs(filterContext, opts, tagFilters...)
 	if err != nil {
 		return nil, 0, "", util.Wrap(err, "Failed to list recurring runs")
 	}
@@ -230,12 +235,16 @@ func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRec
 		listJobRequests.Inc()
 	}
 
-	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter())
+	cleanedFilter, tagFilters, err := extractTagFiltersFromFilterSpec(r.GetFilter())
+	if err != nil {
+		return nil, err
+	}
+	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), cleanedFilter)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list recurring runs due to error parsing the listing options")
 	}
 
-	jobs, total_size, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, r.GetNamespace(), r.GetExperimentId())
+	jobs, totalSize, nextPageToken, err := s.listJobs(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, r.GetNamespace(), r.GetExperimentId(), tagFilters)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs")
 	}
@@ -245,7 +254,7 @@ func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2beta1.ListRec
 	}
 	return &apiv2beta1.ListRecurringRunsResponse{
 		RecurringRuns: apiRecurringRuns,
-		TotalSize:     int32(total_size),
+		TotalSize:     int32(totalSize),
 		NextPageToken: nextPageToken,
 	}, nil
 }
@@ -331,4 +340,33 @@ func NewJobServer(resourceManager *resource.ResourceManager, options *JobServerO
 			options:         options,
 		},
 	}
+}
+
+// UpdateRecurringRun updates only the recurring run's tags.
+func (s *JobServer) UpdateRecurringRun(ctx context.Context, request *apiv2beta1.UpdateRecurringRunRequest) (*apiv2beta1.RecurringRun, error) {
+	if s.options.CollectMetrics {
+		updateJobRequests.Inc()
+	}
+	recurringRun := request.GetRecurringRun()
+	id := request.GetRecurringRunId()
+	if id == "" {
+		return nil, util.NewInvalidInputError("Recurring run ID is required")
+	}
+	tags := recoverClearTagsIntent(ctx, recurringRun.GetTags())
+	for _, path := range request.GetUpdateMask().GetPaths() {
+		if path != "tags" {
+			return nil, util.NewInvalidInputError("Unsupported update mask path %q; only tags can be updated", path)
+		}
+		if tags == nil {
+			tags = map[string]string{}
+		}
+	}
+	if err := s.canAccessJob(ctx, id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate}); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize recurring run update")
+	}
+	job, err := s.resourceManager.UpdateJobTags(id, tags)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to update recurring run tags")
+	}
+	return toApiRecurringRun(job), nil
 }

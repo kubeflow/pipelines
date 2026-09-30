@@ -23,6 +23,7 @@ import "google/protobuf/struct.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
 import "google/rpc/status.proto";
 
 import "protoc-gen-openapiv2/options/annotations.proto";
@@ -36,6 +37,14 @@ service RecurringRunService {
   rpc CreateRecurringRun(CreateRecurringRunRequest) returns (RecurringRun) {
     option (google.api.http) = {
       post: "/apis/v2beta1/recurringruns"
+      body: "recurring_run"
+    };
+  }
+
+  // Updates a recurring run's tags without changing its schedule.
+  rpc UpdateRecurringRun(UpdateRecurringRunRequest) returns (RecurringRun) {
+    option (google.api.http) = {
+      patch: "/apis/v2beta1/recurringruns/{recurring_run_id}"
       body: "recurring_run"
     };
   }
@@ -158,11 +167,31 @@ message RecurringRun {
   // Optional input. Plugin inputs to propagate to each triggered run.
   // Each triggered run will inherit these values in its plugins_input field.
   map<string, google.protobuf.Struct> plugins_input = 19;
+
+  // Optional. User-defined tags for this recurring run, not its triggered runs.
+  // Maximum 20 tags. Keys must be non-empty and must not contain '.'.
+  // Keys and values must not exceed 63 characters. Empty values are allowed.
+  // ListRecurringRuns supports EQUALS string predicates on "tags.<key>".
+  map<string, string> tags = 20;
 }
 
 message CreateRecurringRunRequest {
   // The recurring run to be created.
   RecurringRun recurring_run = 1;
+}
+
+message UpdateRecurringRunRequest {
+  // Required. ID of the recurring run to update.
+  string recurring_run_id = 1;
+
+  // Required. Only tags are mutable; all other fields are ignored.
+  RecurringRun recurring_run = 2;
+
+  // Optional. Only the "tags" path is supported and replaces the entire map.
+  // Set to "tags" to clear tags even when the map is omitted, including over gRPC.
+  // Without a mask, omitted tags are unchanged and non-empty tags replace the map.
+  // HTTP clients may also clear tags by explicitly sending "tags": {}.
+  google.protobuf.FieldMask update_mask = 3;
 }
 
 message GetRecurringRunRequest {

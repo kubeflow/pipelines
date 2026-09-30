@@ -67,13 +67,16 @@ type JobStoreInterface interface {
 	GetJob(id string) (*model.Job, error)
 
 	// Fetches recurring runs from the database with the specified filtering and listing options.
-	ListJobs(filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
+	ListJobs(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Job, int, string, error)
 
 	// Enable or disables a recurring run in the database.
 	ChangeJobMode(id string, enabled bool) error
 
 	// Update a recurring run entry in the database.
 	UpdateJob(swf *util.ScheduledWorkflow) error
+
+	// UpdateJobTags replaces tags; nil leaves them unchanged.
+	UpdateJobTags(id string, tags map[string]string) error
 
 	// Removes a recurring run entry from the database.
 	DeleteJob(id string) error
@@ -90,17 +93,17 @@ type JobStore struct {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of jobs
 // matching the supplied filters and resource references.
 func (s *JobStore) ListJobs(
-	filterContext *model.FilterContext, opts *list.Options,
+	filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string,
 ) ([]*model.Job, int, string, error) {
 	errorF := func(err error) ([]*model.Job, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 
-	rowsSql, rowsArgs, err := s.buildSelectJobsQuery(false, opts, filterContext)
+	rowsSQL, rowsArgs, err := s.buildSelectJobsQuery(false, opts, filterContext, tagFilters...)
 	if err != nil {
 		return errorF(err)
 	}
-	sizeSql, sizeArgs, err := s.buildSelectJobsQuery(true, opts, filterContext)
+	sizeSQL, sizeArgs, err := s.buildSelectJobsQuery(true, opts, filterContext, tagFilters...)
 	if err != nil {
 		return errorF(err)
 	}
@@ -112,7 +115,7 @@ func (s *JobStore) ListJobs(
 	}
 	defer tx.Rollback()
 
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		return errorF(err)
 	}
@@ -126,7 +129,7 @@ func (s *JobStore) ListJobs(
 		return errorF(err)
 	}
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -140,6 +143,22 @@ func (s *JobStore) ListJobs(
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
+	}
+
+	// Finish the count result before issuing another query on the same transaction.
+	if err := sizeRow.Close(); err != nil {
+		return errorF(err)
+	}
+	ids := make([]string, 0, len(jobs))
+	for _, job := range jobs {
+		ids = append(ids, job.UUID)
+	}
+	tags, err := queryTagsForEntities(tx, s.dbDialect, "job_tags", "JobId", ids)
+	if err != nil {
+		return errorF(err)
+	}
+	for _, job := range jobs {
+		job.Tags = tags[job.UUID]
 	}
 
 	err = tx.Commit()
@@ -157,7 +176,7 @@ func (s *JobStore) ListJobs(
 }
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
-	filterContext *model.FilterContext,
+	filterContext *model.FilterContext, tagFilters ...map[string]string,
 ) (string, []interface{}, error) {
 	var filteredSelectBuilder sq.SelectBuilder
 	var err error
@@ -177,6 +196,16 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, q)
+	if len(tagFilters) > 0 {
+		for key, value := range tagFilters[0] {
+			subQuery := qb.Select(q("JobId")).From(q("job_tags")).Where(sq.Eq{q("TagKey"): key, q("TagValue"): value})
+			subSQL, subArgs, err := subQuery.PlaceholderFormat(sq.Question).ToSql()
+			if err != nil {
+				return "", nil, util.NewInternalServerError(err, "Failed to build recurring run tag filter")
+			}
+			sqlBuilder = sqlBuilder.Where(sq.Expr(fmt.Sprintf("%s.%s IN (%s)", q("jobs"), q("UUID"), subSQL), subArgs...))
+		}
+	}
 
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Also add pagination.
@@ -215,6 +244,11 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	if len(jobs) == 0 {
 		return nil, util.NewResourceNotFoundError("Job", fmt.Sprint(id))
 	}
+	tags, err := queryTagsForEntities(s.db, s.dbDialect, "job_tags", "JobId", []string{id})
+	if err != nil {
+		return nil, err
+	}
+	jobs[0].Tags = tags[id]
 	return jobs[0], nil
 }
 
@@ -326,7 +360,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 		job = job.ToV2()
 		jobs = append(jobs, job)
 	}
-	return jobs, nil
+	return jobs, r.Err()
 }
 
 func (s *JobStore) DeleteJob(id string) error {
@@ -347,6 +381,13 @@ func (s *JobStore) DeleteJob(id string) error {
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete job %s from table", id)
+	}
+	tagSQL, tagArgs, err := qb.Delete(q("job_tags")).Where(sq.Eq{q("JobId"): id}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build recurring run tag deletion")
+	}
+	if _, err := tx.Exec(tagSQL, tagArgs...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete recurring run tags")
 	}
 	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.JobResourceType)
 	if err != nil {
@@ -408,10 +449,20 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			err.Error())
 	}
 
-	// New recurring runs persist ownership in native columns, not legacy resource references.
-	_, err = s.db.Exec(jobSQL, jobArgs...)
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to start recurring run creation")
+	}
+	defer tx.Rollback()
+	_, err = tx.Exec(jobSQL, jobArgs...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to store job %v to table", j.DisplayName)
+	}
+	if err := insertTagsInTx(tx, s.dbDialect, "job_tags", "JobId", j.UUID, j.Tags); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to commit recurring run creation")
 	}
 	return j, nil
 }
@@ -511,4 +562,44 @@ func NewJobStore(db *sql.DB, time util.TimeInterface, pipelineStore PipelineStor
 		time:                   time,
 		dbDialect:              d,
 	}
+}
+
+// UpdateJobTags replaces tags in a transaction serialized against updates and deletion.
+func (s *JobStore) UpdateJobTags(id string, tags map[string]string) error {
+	if tags == nil {
+		return nil
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start recurring run tag update")
+	}
+	defer tx.Rollback()
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	// Lock the parent row before touching tags, also serializing concurrent replacements.
+	updateSQL, args, err := qb.Update(q("jobs")).SetMap(sq.Eq{q("UpdatedAtInSec"): s.time.Now().Unix()}).Where(sq.Eq{q("UUID"): id}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build recurring run update")
+	}
+	if _, err := tx.Exec(updateSQL, args...); err != nil {
+		return util.NewInternalServerError(err, "Failed to update recurring run")
+	}
+	// MySQL reports zero changed rows for a same-second update, so check existence explicitly.
+	query, args, err := qb.Select(q("UUID")).From(q("jobs")).Where(sq.Eq{q("UUID"): id}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build recurring run lookup")
+	}
+	var existingID string
+	if err := tx.QueryRow(query, args...).Scan(&existingID); err == sql.ErrNoRows {
+		return util.NewResourceNotFoundError("Job", id)
+	} else if err != nil {
+		return util.NewInternalServerError(err, "Failed to find recurring run")
+	}
+	if err := replaceTagsInTx(tx, s.dbDialect, "job_tags", "JobId", id, tags); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit recurring run tag update")
+	}
+	return nil
 }

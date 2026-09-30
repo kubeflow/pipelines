@@ -71,6 +71,8 @@ func (s StatusState) ToV2() StatusState {
 }
 
 type Job struct {
+	Tags map[string]string `gorm:"-"`
+
 	UUID           string `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
 	DisplayName    string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
 	K8SName        string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/

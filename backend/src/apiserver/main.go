@@ -362,23 +362,19 @@ func grpcCustomMatcher(key string) (string, bool) {
 	return strings.ToLower(key), false
 }
 
-// clearTagsMiddleware inspects PUT/PATCH JSON request bodies on pipeline update
-// paths and sets the x-clear-tags header when the "tags" field is an empty map
-// ("tags":{}). This is needed because protobuf binary encoding cannot
-// distinguish an empty map from nil, so the clear-tags intent is lost during
-// the HTTP→gRPC proxy roundtrip.
-//
-// Scoped to pipeline and pipeline version update paths to avoid interfering
-// with other endpoints that may have a top-level "tags" field.
 // MaxUpdateRequestBodySize is the default request-body ceiling (32 MiB) for
-// pipeline and version updates. Operators can override it with
+// pipeline, version and recurring run updates. Operators can override it with
 // MAX_PIPELINE_UPDATE_BODY_BYTES within the validated finite range.
 const MaxUpdateRequestBodySize = 32 << 20
 
+// clearTagsMiddleware inspects PUT/PATCH JSON request bodies on tagged-resource update
+// paths and sets the x-clear-tags header when the "tags" field is an empty map.
+// Protobuf binary encoding cannot distinguish an empty map from nil, so the
+// clear-tags intent would otherwise be lost during the HTTP-to-gRPC roundtrip.
 func clearTagsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if (r.Method == http.MethodPut || r.Method == http.MethodPatch) && r.Body != nil &&
-			isPipelineUpdatePath(r.URL.Path) {
+			isTagUpdatePath(r.URL.Path) {
 			limits, err := common.GetPipelineSizeLimits()
 			if err != nil {
 				glog.Errorf("Invalid pipeline size-limit configuration: %v", err)
@@ -415,8 +411,11 @@ func clearTagsMiddleware(next http.Handler) http.Handler {
 			}
 			var raw map[string]json.RawMessage
 			if json.Unmarshal(body, &raw) == nil {
-				if tagsVal, hasTags := raw["tags"]; hasTags && string(tagsVal) == "{}" {
-					r.Header.Set(common.ClearTagsMetadataKey, "true")
+				if tagsVal, hasTags := raw["tags"]; hasTags {
+					var tags map[string]json.RawMessage
+					if json.Unmarshal(tagsVal, &tags) == nil && tags != nil && len(tags) == 0 {
+						r.Header.Set(common.ClearTagsMetadataKey, "true")
+					}
 				}
 			}
 			r.Body = io.NopCloser(bytes.NewReader(body))
@@ -425,12 +424,11 @@ func clearTagsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// isPipelineUpdatePath returns true if the URL path matches a pipeline or
-// pipeline version update endpoint.
-func isPipelineUpdatePath(path string) bool {
+// isTagUpdatePath returns true for resource endpoints that support tag updates.
+func isTagUpdatePath(path string) bool {
 	// v2beta1 UpdatePipeline:        PATCH /apis/v2beta1/pipelines/{pipeline_id}
 	// v2beta1 UpdatePipelineVersion: PATCH /apis/v2beta1/pipelines/{pipeline_id}/versions/{version_id}
-	return strings.HasPrefix(path, "/apis/v2beta1/pipelines/")
+	return strings.HasPrefix(path, "/apis/v2beta1/pipelines/") || strings.HasPrefix(path, "/apis/v2beta1/recurringruns/")
 }
 
 func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Config) {

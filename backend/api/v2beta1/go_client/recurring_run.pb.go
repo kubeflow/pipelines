@@ -27,6 +27,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
@@ -244,7 +245,12 @@ type RecurringRun struct {
 	ExperimentId string `protobuf:"bytes,17,opt,name=experiment_id,json=experimentId,proto3" json:"experiment_id,omitempty"`
 	// Optional input. Plugin inputs to propagate to each triggered run.
 	// Each triggered run will inherit these values in its plugins_input field.
-	PluginsInput  map[string]*structpb.Struct `protobuf:"bytes,19,rep,name=plugins_input,json=pluginsInput,proto3" json:"plugins_input,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	PluginsInput map[string]*structpb.Struct `protobuf:"bytes,19,rep,name=plugins_input,json=pluginsInput,proto3" json:"plugins_input,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Optional. User-defined tags for this recurring run, not its triggered runs.
+	// Maximum 20 tags. Keys must be non-empty and must not contain '.'.
+	// Keys and values must not exceed 63 characters. Empty values are allowed.
+	// ListRecurringRuns supports EQUALS string predicates on "tags.<key>".
+	Tags          map[string]string `protobuf:"bytes,20,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -426,6 +432,13 @@ func (x *RecurringRun) GetPluginsInput() map[string]*structpb.Struct {
 	return nil
 }
 
+func (x *RecurringRun) GetTags() map[string]string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
 type isRecurringRun_PipelineSource interface {
 	isRecurringRun_PipelineSource()
 }
@@ -498,6 +511,72 @@ func (x *CreateRecurringRunRequest) GetRecurringRun() *RecurringRun {
 	return nil
 }
 
+type UpdateRecurringRunRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Required. ID of the recurring run to update.
+	RecurringRunId string `protobuf:"bytes,1,opt,name=recurring_run_id,json=recurringRunId,proto3" json:"recurring_run_id,omitempty"`
+	// Required. Only tags are mutable; all other fields are ignored.
+	RecurringRun *RecurringRun `protobuf:"bytes,2,opt,name=recurring_run,json=recurringRun,proto3" json:"recurring_run,omitempty"`
+	// Optional. Only the "tags" path is supported and replaces the entire map.
+	// Set to "tags" to clear tags even when the map is omitted, including over gRPC.
+	// Without a mask, omitted tags are unchanged and non-empty tags replace the map.
+	// HTTP clients may also clear tags by explicitly sending "tags": {}.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateRecurringRunRequest) Reset() {
+	*x = UpdateRecurringRunRequest{}
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateRecurringRunRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateRecurringRunRequest) ProtoMessage() {}
+
+func (x *UpdateRecurringRunRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateRecurringRunRequest.ProtoReflect.Descriptor instead.
+func (*UpdateRecurringRunRequest) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UpdateRecurringRunRequest) GetRecurringRunId() string {
+	if x != nil {
+		return x.RecurringRunId
+	}
+	return ""
+}
+
+func (x *UpdateRecurringRunRequest) GetRecurringRun() *RecurringRun {
+	if x != nil {
+		return x.RecurringRun
+	}
+	return nil
+}
+
+func (x *UpdateRecurringRunRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 type GetRecurringRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the recurring run to be retrieved.
@@ -508,7 +587,7 @@ type GetRecurringRunRequest struct {
 
 func (x *GetRecurringRunRequest) Reset() {
 	*x = GetRecurringRunRequest{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[2]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -520,7 +599,7 @@ func (x *GetRecurringRunRequest) String() string {
 func (*GetRecurringRunRequest) ProtoMessage() {}
 
 func (x *GetRecurringRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[2]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -533,7 +612,7 @@ func (x *GetRecurringRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecurringRunRequest.ProtoReflect.Descriptor instead.
 func (*GetRecurringRunRequest) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{2}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRecurringRunRequest) GetRecurringRunId() string {
@@ -569,7 +648,7 @@ type ListRecurringRunsRequest struct {
 
 func (x *ListRecurringRunsRequest) Reset() {
 	*x = ListRecurringRunsRequest{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[3]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -581,7 +660,7 @@ func (x *ListRecurringRunsRequest) String() string {
 func (*ListRecurringRunsRequest) ProtoMessage() {}
 
 func (x *ListRecurringRunsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[3]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -594,7 +673,7 @@ func (x *ListRecurringRunsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecurringRunsRequest.ProtoReflect.Descriptor instead.
 func (*ListRecurringRunsRequest) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{3}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListRecurringRunsRequest) GetPageToken() string {
@@ -653,7 +732,7 @@ type ListRecurringRunsResponse struct {
 
 func (x *ListRecurringRunsResponse) Reset() {
 	*x = ListRecurringRunsResponse{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[4]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -665,7 +744,7 @@ func (x *ListRecurringRunsResponse) String() string {
 func (*ListRecurringRunsResponse) ProtoMessage() {}
 
 func (x *ListRecurringRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[4]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -678,7 +757,7 @@ func (x *ListRecurringRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecurringRunsResponse.ProtoReflect.Descriptor instead.
 func (*ListRecurringRunsResponse) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{4}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListRecurringRunsResponse) GetRecurringRuns() []*RecurringRun {
@@ -712,7 +791,7 @@ type EnableRecurringRunRequest struct {
 
 func (x *EnableRecurringRunRequest) Reset() {
 	*x = EnableRecurringRunRequest{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[5]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -724,7 +803,7 @@ func (x *EnableRecurringRunRequest) String() string {
 func (*EnableRecurringRunRequest) ProtoMessage() {}
 
 func (x *EnableRecurringRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[5]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -737,7 +816,7 @@ func (x *EnableRecurringRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableRecurringRunRequest.ProtoReflect.Descriptor instead.
 func (*EnableRecurringRunRequest) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{5}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EnableRecurringRunRequest) GetRecurringRunId() string {
@@ -757,7 +836,7 @@ type DisableRecurringRunRequest struct {
 
 func (x *DisableRecurringRunRequest) Reset() {
 	*x = DisableRecurringRunRequest{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[6]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -769,7 +848,7 @@ func (x *DisableRecurringRunRequest) String() string {
 func (*DisableRecurringRunRequest) ProtoMessage() {}
 
 func (x *DisableRecurringRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[6]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -782,7 +861,7 @@ func (x *DisableRecurringRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableRecurringRunRequest.ProtoReflect.Descriptor instead.
 func (*DisableRecurringRunRequest) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{6}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DisableRecurringRunRequest) GetRecurringRunId() string {
@@ -804,7 +883,7 @@ type DeleteRecurringRunRequest struct {
 
 func (x *DeleteRecurringRunRequest) Reset() {
 	*x = DeleteRecurringRunRequest{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[7]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -816,7 +895,7 @@ func (x *DeleteRecurringRunRequest) String() string {
 func (*DeleteRecurringRunRequest) ProtoMessage() {}
 
 func (x *DeleteRecurringRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[7]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -829,7 +908,7 @@ func (x *DeleteRecurringRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRecurringRunRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRecurringRunRequest) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{7}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DeleteRecurringRunRequest) GetRecurringRunId() string {
@@ -862,7 +941,7 @@ type CronSchedule struct {
 
 func (x *CronSchedule) Reset() {
 	*x = CronSchedule{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[8]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -874,7 +953,7 @@ func (x *CronSchedule) String() string {
 func (*CronSchedule) ProtoMessage() {}
 
 func (x *CronSchedule) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[8]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -887,7 +966,7 @@ func (x *CronSchedule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CronSchedule.ProtoReflect.Descriptor instead.
 func (*CronSchedule) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{8}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CronSchedule) GetStartTime() *timestamppb.Timestamp {
@@ -926,7 +1005,7 @@ type PeriodicSchedule struct {
 
 func (x *PeriodicSchedule) Reset() {
 	*x = PeriodicSchedule{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[9]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -938,7 +1017,7 @@ func (x *PeriodicSchedule) String() string {
 func (*PeriodicSchedule) ProtoMessage() {}
 
 func (x *PeriodicSchedule) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[9]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -951,7 +1030,7 @@ func (x *PeriodicSchedule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PeriodicSchedule.ProtoReflect.Descriptor instead.
 func (*PeriodicSchedule) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{9}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PeriodicSchedule) GetStartTime() *timestamppb.Timestamp {
@@ -989,7 +1068,7 @@ type Trigger struct {
 
 func (x *Trigger) Reset() {
 	*x = Trigger{}
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[10]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1001,7 +1080,7 @@ func (x *Trigger) String() string {
 func (*Trigger) ProtoMessage() {}
 
 func (x *Trigger) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[10]
+	mi := &file_backend_api_v2beta1_recurring_run_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1014,7 +1093,7 @@ func (x *Trigger) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Trigger.ProtoReflect.Descriptor instead.
 func (*Trigger) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{10}
+	return file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Trigger) GetTrigger() isTrigger_Trigger {
@@ -1062,8 +1141,7 @@ var File_backend_api_v2beta1_recurring_run_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2beta1_recurring_run_proto_rawDesc = "" +
 	"\n" +
-	"'backend/api/v2beta1/recurring_run.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a(backend/api/v2beta1/runtime_config.proto\x1a\x1dbackend/api/v2beta1/run.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x17google/rpc/status.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xe5\n" +
-	"\n" +
+	"'backend/api/v2beta1/recurring_run.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a(backend/api/v2beta1/runtime_config.proto\x1a\x1dbackend/api/v2beta1/run.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x17google/rpc/status.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xf2\v\n" +
 	"\fRecurringRun\x12(\n" +
 	"\x10recurring_run_id\x18\x01 \x01(\tR\x0erecurringRunId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12 \n" +
@@ -1087,10 +1165,14 @@ const file_backend_api_v2beta1_recurring_run_proto_rawDesc = "" +
 	"no_catchup\x18\x0f \x01(\bR\tnoCatchup\x12\x1c\n" +
 	"\tnamespace\x18\x10 \x01(\tR\tnamespace\x12#\n" +
 	"\rexperiment_id\x18\x11 \x01(\tR\fexperimentId\x12k\n" +
-	"\rplugins_input\x18\x13 \x03(\v2F.kubeflow.pipelines.backend.api.v2beta1.RecurringRun.PluginsInputEntryR\fpluginsInput\x1aX\n" +
+	"\rplugins_input\x18\x13 \x03(\v2F.kubeflow.pipelines.backend.api.v2beta1.RecurringRun.PluginsInputEntryR\fpluginsInput\x12R\n" +
+	"\x04tags\x18\x14 \x03(\v2>.kubeflow.pipelines.backend.api.v2beta1.RecurringRun.TagsEntryR\x04tags\x1aX\n" +
 	"\x11PluginsInputEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12-\n" +
-	"\x05value\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05value:\x028\x01\"5\n" +
+	"\x05value\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05value:\x028\x01\x1a7\n" +
+	"\tTagsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"5\n" +
 	"\x04Mode\x12\x14\n" +
 	"\x10MODE_UNSPECIFIED\x10\x00\x12\n" +
 	"\n" +
@@ -1102,7 +1184,12 @@ const file_backend_api_v2beta1_recurring_run_proto_rawDesc = "" +
 	"\bDISABLED\x10\x03B\x11\n" +
 	"\x0fpipeline_source\"v\n" +
 	"\x19CreateRecurringRunRequest\x12Y\n" +
-	"\rrecurring_run\x18\x01 \x01(\v24.kubeflow.pipelines.backend.api.v2beta1.RecurringRunR\frecurringRun\"B\n" +
+	"\rrecurring_run\x18\x01 \x01(\v24.kubeflow.pipelines.backend.api.v2beta1.RecurringRunR\frecurringRun\"\xdd\x01\n" +
+	"\x19UpdateRecurringRunRequest\x12(\n" +
+	"\x10recurring_run_id\x18\x01 \x01(\tR\x0erecurringRunId\x12Y\n" +
+	"\rrecurring_run\x18\x02 \x01(\v24.kubeflow.pipelines.backend.api.v2beta1.RecurringRunR\frecurringRun\x12;\n" +
+	"\vupdate_mask\x18\x03 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask\"B\n" +
 	"\x16GetRecurringRunRequest\x12(\n" +
 	"\x10recurring_run_id\x18\x01 \x01(\tR\x0erecurringRunId\"\xca\x01\n" +
 	"\x18ListRecurringRunsRequest\x12\x1d\n" +
@@ -1146,9 +1233,11 @@ const file_backend_api_v2beta1_recurring_run_proto_rawDesc = "" +
 	"\n" +
 	"BACKGROUND\x10\x02\x12\n" +
 	"\n" +
-	"\x06ORPHAN\x10\x032\xea\b\n" +
+	"\x06ORPHAN\x10\x032\xc1\n" +
+	"\n" +
 	"\x13RecurringRunService\x12\xc1\x01\n" +
-	"\x12CreateRecurringRun\x12A.kubeflow.pipelines.backend.api.v2beta1.CreateRecurringRunRequest\x1a4.kubeflow.pipelines.backend.api.v2beta1.RecurringRun\"2\x82\xd3\xe4\x93\x02,:\rrecurring_run\"\x1b/apis/v2beta1/recurringruns\x12\xbf\x01\n" +
+	"\x12CreateRecurringRun\x12A.kubeflow.pipelines.backend.api.v2beta1.CreateRecurringRunRequest\x1a4.kubeflow.pipelines.backend.api.v2beta1.RecurringRun\"2\x82\xd3\xe4\x93\x02,:\rrecurring_run\"\x1b/apis/v2beta1/recurringruns\x12\xd4\x01\n" +
+	"\x12UpdateRecurringRun\x12A.kubeflow.pipelines.backend.api.v2beta1.UpdateRecurringRunRequest\x1a4.kubeflow.pipelines.backend.api.v2beta1.RecurringRun\"E\x82\xd3\xe4\x93\x02?:\rrecurring_run2./apis/v2beta1/recurringruns/{recurring_run_id}\x12\xbf\x01\n" +
 	"\x0fGetRecurringRun\x12>.kubeflow.pipelines.backend.api.v2beta1.GetRecurringRunRequest\x1a4.kubeflow.pipelines.backend.api.v2beta1.RecurringRun\"6\x82\xd3\xe4\x93\x020\x12./apis/v2beta1/recurringruns/{recurring_run_id}\x12\xbd\x01\n" +
 	"\x11ListRecurringRuns\x12@.kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsRequest\x1aA.kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsResponse\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/apis/v2beta1/recurringruns\x12\xae\x01\n" +
 	"\x12EnableRecurringRun\x12A.kubeflow.pipelines.backend.api.v2beta1.EnableRecurringRunRequest\x1a\x16.google.protobuf.Empty\"=\x82\xd3\xe4\x93\x027\"5/apis/v2beta1/recurringruns/{recurring_run_id}:enable\x12\xb1\x01\n" +
@@ -1168,68 +1257,76 @@ func file_backend_api_v2beta1_recurring_run_proto_rawDescGZIP() []byte {
 }
 
 var file_backend_api_v2beta1_recurring_run_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_backend_api_v2beta1_recurring_run_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_backend_api_v2beta1_recurring_run_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_backend_api_v2beta1_recurring_run_proto_goTypes = []any{
 	(DeletePropagationPolicy)(0),       // 0: kubeflow.pipelines.backend.api.v2beta1.DeletePropagationPolicy
 	(RecurringRun_Mode)(0),             // 1: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.Mode
 	(RecurringRun_Status)(0),           // 2: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.Status
 	(*RecurringRun)(nil),               // 3: kubeflow.pipelines.backend.api.v2beta1.RecurringRun
 	(*CreateRecurringRunRequest)(nil),  // 4: kubeflow.pipelines.backend.api.v2beta1.CreateRecurringRunRequest
-	(*GetRecurringRunRequest)(nil),     // 5: kubeflow.pipelines.backend.api.v2beta1.GetRecurringRunRequest
-	(*ListRecurringRunsRequest)(nil),   // 6: kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsRequest
-	(*ListRecurringRunsResponse)(nil),  // 7: kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsResponse
-	(*EnableRecurringRunRequest)(nil),  // 8: kubeflow.pipelines.backend.api.v2beta1.EnableRecurringRunRequest
-	(*DisableRecurringRunRequest)(nil), // 9: kubeflow.pipelines.backend.api.v2beta1.DisableRecurringRunRequest
-	(*DeleteRecurringRunRequest)(nil),  // 10: kubeflow.pipelines.backend.api.v2beta1.DeleteRecurringRunRequest
-	(*CronSchedule)(nil),               // 11: kubeflow.pipelines.backend.api.v2beta1.CronSchedule
-	(*PeriodicSchedule)(nil),           // 12: kubeflow.pipelines.backend.api.v2beta1.PeriodicSchedule
-	(*Trigger)(nil),                    // 13: kubeflow.pipelines.backend.api.v2beta1.Trigger
-	nil,                                // 14: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.PluginsInputEntry
-	(*structpb.Struct)(nil),            // 15: google.protobuf.Struct
-	(*PipelineVersionReference)(nil),   // 16: kubeflow.pipelines.backend.api.v2beta1.PipelineVersionReference
-	(*RuntimeConfig)(nil),              // 17: kubeflow.pipelines.backend.api.v2beta1.RuntimeConfig
-	(*timestamppb.Timestamp)(nil),      // 18: google.protobuf.Timestamp
-	(*status.Status)(nil),              // 19: google.rpc.Status
-	(*emptypb.Empty)(nil),              // 20: google.protobuf.Empty
+	(*UpdateRecurringRunRequest)(nil),  // 5: kubeflow.pipelines.backend.api.v2beta1.UpdateRecurringRunRequest
+	(*GetRecurringRunRequest)(nil),     // 6: kubeflow.pipelines.backend.api.v2beta1.GetRecurringRunRequest
+	(*ListRecurringRunsRequest)(nil),   // 7: kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsRequest
+	(*ListRecurringRunsResponse)(nil),  // 8: kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsResponse
+	(*EnableRecurringRunRequest)(nil),  // 9: kubeflow.pipelines.backend.api.v2beta1.EnableRecurringRunRequest
+	(*DisableRecurringRunRequest)(nil), // 10: kubeflow.pipelines.backend.api.v2beta1.DisableRecurringRunRequest
+	(*DeleteRecurringRunRequest)(nil),  // 11: kubeflow.pipelines.backend.api.v2beta1.DeleteRecurringRunRequest
+	(*CronSchedule)(nil),               // 12: kubeflow.pipelines.backend.api.v2beta1.CronSchedule
+	(*PeriodicSchedule)(nil),           // 13: kubeflow.pipelines.backend.api.v2beta1.PeriodicSchedule
+	(*Trigger)(nil),                    // 14: kubeflow.pipelines.backend.api.v2beta1.Trigger
+	nil,                                // 15: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.PluginsInputEntry
+	nil,                                // 16: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.TagsEntry
+	(*structpb.Struct)(nil),            // 17: google.protobuf.Struct
+	(*PipelineVersionReference)(nil),   // 18: kubeflow.pipelines.backend.api.v2beta1.PipelineVersionReference
+	(*RuntimeConfig)(nil),              // 19: kubeflow.pipelines.backend.api.v2beta1.RuntimeConfig
+	(*timestamppb.Timestamp)(nil),      // 20: google.protobuf.Timestamp
+	(*status.Status)(nil),              // 21: google.rpc.Status
+	(*fieldmaskpb.FieldMask)(nil),      // 22: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),              // 23: google.protobuf.Empty
 }
 var file_backend_api_v2beta1_recurring_run_proto_depIdxs = []int32{
-	15, // 0: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.pipeline_spec:type_name -> google.protobuf.Struct
-	16, // 1: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.pipeline_version_reference:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineVersionReference
-	17, // 2: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.runtime_config:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeConfig
-	13, // 3: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.trigger:type_name -> kubeflow.pipelines.backend.api.v2beta1.Trigger
+	17, // 0: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.pipeline_spec:type_name -> google.protobuf.Struct
+	18, // 1: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.pipeline_version_reference:type_name -> kubeflow.pipelines.backend.api.v2beta1.PipelineVersionReference
+	19, // 2: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.runtime_config:type_name -> kubeflow.pipelines.backend.api.v2beta1.RuntimeConfig
+	14, // 3: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.trigger:type_name -> kubeflow.pipelines.backend.api.v2beta1.Trigger
 	1,  // 4: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.mode:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun.Mode
-	18, // 5: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.created_at:type_name -> google.protobuf.Timestamp
-	18, // 6: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.updated_at:type_name -> google.protobuf.Timestamp
+	20, // 5: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.created_at:type_name -> google.protobuf.Timestamp
+	20, // 6: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.updated_at:type_name -> google.protobuf.Timestamp
 	2,  // 7: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.status:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun.Status
-	19, // 8: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.error:type_name -> google.rpc.Status
-	14, // 9: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.plugins_input:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun.PluginsInputEntry
-	3,  // 10: kubeflow.pipelines.backend.api.v2beta1.CreateRecurringRunRequest.recurring_run:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
-	3,  // 11: kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsResponse.recurringRuns:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
-	0,  // 12: kubeflow.pipelines.backend.api.v2beta1.DeleteRecurringRunRequest.propagation_policy:type_name -> kubeflow.pipelines.backend.api.v2beta1.DeletePropagationPolicy
-	18, // 13: kubeflow.pipelines.backend.api.v2beta1.CronSchedule.start_time:type_name -> google.protobuf.Timestamp
-	18, // 14: kubeflow.pipelines.backend.api.v2beta1.CronSchedule.end_time:type_name -> google.protobuf.Timestamp
-	18, // 15: kubeflow.pipelines.backend.api.v2beta1.PeriodicSchedule.start_time:type_name -> google.protobuf.Timestamp
-	18, // 16: kubeflow.pipelines.backend.api.v2beta1.PeriodicSchedule.end_time:type_name -> google.protobuf.Timestamp
-	11, // 17: kubeflow.pipelines.backend.api.v2beta1.Trigger.cron_schedule:type_name -> kubeflow.pipelines.backend.api.v2beta1.CronSchedule
-	12, // 18: kubeflow.pipelines.backend.api.v2beta1.Trigger.periodic_schedule:type_name -> kubeflow.pipelines.backend.api.v2beta1.PeriodicSchedule
-	15, // 19: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.PluginsInputEntry.value:type_name -> google.protobuf.Struct
-	4,  // 20: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.CreateRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.CreateRecurringRunRequest
-	5,  // 21: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.GetRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.GetRecurringRunRequest
-	6,  // 22: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.ListRecurringRuns:input_type -> kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsRequest
-	8,  // 23: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.EnableRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.EnableRecurringRunRequest
-	9,  // 24: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.DisableRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.DisableRecurringRunRequest
-	10, // 25: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.DeleteRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.DeleteRecurringRunRequest
-	3,  // 26: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.CreateRecurringRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
-	3,  // 27: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.GetRecurringRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
-	7,  // 28: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.ListRecurringRuns:output_type -> kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsResponse
-	20, // 29: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.EnableRecurringRun:output_type -> google.protobuf.Empty
-	20, // 30: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.DisableRecurringRun:output_type -> google.protobuf.Empty
-	20, // 31: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.DeleteRecurringRun:output_type -> google.protobuf.Empty
-	26, // [26:32] is the sub-list for method output_type
-	20, // [20:26] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	21, // 8: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.error:type_name -> google.rpc.Status
+	15, // 9: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.plugins_input:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun.PluginsInputEntry
+	16, // 10: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.tags:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun.TagsEntry
+	3,  // 11: kubeflow.pipelines.backend.api.v2beta1.CreateRecurringRunRequest.recurring_run:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
+	3,  // 12: kubeflow.pipelines.backend.api.v2beta1.UpdateRecurringRunRequest.recurring_run:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
+	22, // 13: kubeflow.pipelines.backend.api.v2beta1.UpdateRecurringRunRequest.update_mask:type_name -> google.protobuf.FieldMask
+	3,  // 14: kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsResponse.recurringRuns:type_name -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
+	0,  // 15: kubeflow.pipelines.backend.api.v2beta1.DeleteRecurringRunRequest.propagation_policy:type_name -> kubeflow.pipelines.backend.api.v2beta1.DeletePropagationPolicy
+	20, // 16: kubeflow.pipelines.backend.api.v2beta1.CronSchedule.start_time:type_name -> google.protobuf.Timestamp
+	20, // 17: kubeflow.pipelines.backend.api.v2beta1.CronSchedule.end_time:type_name -> google.protobuf.Timestamp
+	20, // 18: kubeflow.pipelines.backend.api.v2beta1.PeriodicSchedule.start_time:type_name -> google.protobuf.Timestamp
+	20, // 19: kubeflow.pipelines.backend.api.v2beta1.PeriodicSchedule.end_time:type_name -> google.protobuf.Timestamp
+	12, // 20: kubeflow.pipelines.backend.api.v2beta1.Trigger.cron_schedule:type_name -> kubeflow.pipelines.backend.api.v2beta1.CronSchedule
+	13, // 21: kubeflow.pipelines.backend.api.v2beta1.Trigger.periodic_schedule:type_name -> kubeflow.pipelines.backend.api.v2beta1.PeriodicSchedule
+	17, // 22: kubeflow.pipelines.backend.api.v2beta1.RecurringRun.PluginsInputEntry.value:type_name -> google.protobuf.Struct
+	4,  // 23: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.CreateRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.CreateRecurringRunRequest
+	5,  // 24: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.UpdateRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.UpdateRecurringRunRequest
+	6,  // 25: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.GetRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.GetRecurringRunRequest
+	7,  // 26: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.ListRecurringRuns:input_type -> kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsRequest
+	9,  // 27: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.EnableRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.EnableRecurringRunRequest
+	10, // 28: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.DisableRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.DisableRecurringRunRequest
+	11, // 29: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.DeleteRecurringRun:input_type -> kubeflow.pipelines.backend.api.v2beta1.DeleteRecurringRunRequest
+	3,  // 30: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.CreateRecurringRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
+	3,  // 31: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.UpdateRecurringRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
+	3,  // 32: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.GetRecurringRun:output_type -> kubeflow.pipelines.backend.api.v2beta1.RecurringRun
+	8,  // 33: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.ListRecurringRuns:output_type -> kubeflow.pipelines.backend.api.v2beta1.ListRecurringRunsResponse
+	23, // 34: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.EnableRecurringRun:output_type -> google.protobuf.Empty
+	23, // 35: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.DisableRecurringRun:output_type -> google.protobuf.Empty
+	23, // 36: kubeflow.pipelines.backend.api.v2beta1.RecurringRunService.DeleteRecurringRun:output_type -> google.protobuf.Empty
+	30, // [30:37] is the sub-list for method output_type
+	23, // [23:30] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_backend_api_v2beta1_recurring_run_proto_init() }
@@ -1244,7 +1341,7 @@ func file_backend_api_v2beta1_recurring_run_proto_init() {
 		(*RecurringRun_PipelineSpec)(nil),
 		(*RecurringRun_PipelineVersionReference)(nil),
 	}
-	file_backend_api_v2beta1_recurring_run_proto_msgTypes[10].OneofWrappers = []any{
+	file_backend_api_v2beta1_recurring_run_proto_msgTypes[11].OneofWrappers = []any{
 		(*Trigger_CronSchedule)(nil),
 		(*Trigger_PeriodicSchedule)(nil),
 	}
@@ -1254,7 +1351,7 @@ func file_backend_api_v2beta1_recurring_run_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backend_api_v2beta1_recurring_run_proto_rawDesc), len(file_backend_api_v2beta1_recurring_run_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -78,6 +78,12 @@ type V2beta1RecurringRun struct {
 	// status
 	Status *V2beta1RecurringRunStatus `json:"status,omitempty"`
 
+	// Optional. User-defined tags for this recurring run, not its triggered runs.
+	// Maximum 20 tags. Keys must be non-empty and must not contain '.'.
+	// Keys and values must not exceed 63 characters. Empty values are allowed.
+	// ListRecurringRuns supports EQUALS string predicates on "tags.<key>".
+	Tags map[string]string `json:"tags,omitempty"`
+
 	// Required input field.
 	// Specifies how a run is triggered. Support cron mode or periodic mode.
 	Trigger *V2beta1Trigger `json:"trigger,omitempty"`

@@ -22,6 +22,7 @@ Name | Type | Description | Notes
 **namespace** | **str** | TODO (gkclat): consider removing this field if it can be obtained from the parent experiment. Output only. Namespace this recurring run belongs to. Derived from the parent experiment. | [optional] [readonly] 
 **experiment_id** | **str** | ID of the parent experiment this recurring run belongs to. | [optional] 
 **plugins_input** | **dict(str, object)** | Optional input. Plugin inputs to propagate to each triggered run. Each triggered run will inherit these values in its plugins_input field. | [optional] 
+**tags** | **dict(str, str)** | Optional. User-defined tags for this recurring run, not its triggered runs. Maximum 20 tags. Keys must be non-empty and must not contain &#39;.&#39;. Keys and values must not exceed 63 characters. Empty values are allowed. ListRecurringRuns supports EQUALS string predicates on \&quot;tags.&lt;key&gt;\&quot;. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

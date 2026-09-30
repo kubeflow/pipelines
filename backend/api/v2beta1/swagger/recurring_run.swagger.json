@@ -195,6 +195,52 @@
         "tags": [
           "RecurringRunService"
         ]
+      },
+      "patch": {
+        "summary": "Updates a recurring run's tags without changing its schedule.",
+        "operationId": "RecurringRunService_UpdateRecurringRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1RecurringRun"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googleRpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recurring_run_id",
+            "description": "Required. ID of the recurring run to update.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "recurring_run",
+            "description": "Required. Only tags are mutable; all other fields are ignored.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1RecurringRun"
+            }
+          },
+          {
+            "name": "update_mask",
+            "description": "Optional. Only the \"tags\" path is supported and replaces the entire map.\nSet to \"tags\" to clear tags even when the map is omitted, including over gRPC.\nWithout a mask, omitted tags are unchanged and non-empty tags replace the map.\nHTTP clients may also clear tags by explicitly sending \"tags\": {}.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RecurringRunService"
+        ]
       }
     },
     "/apis/v2beta1/recurringruns/{recurring_run_id}:disable": {
@@ -487,6 +533,13 @@
             "type": "object"
           },
           "description": "Optional input. Plugin inputs to propagate to each triggered run.\nEach triggered run will inherit these values in its plugins_input field."
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Optional. User-defined tags for this recurring run, not its triggered runs.\nMaximum 20 tags. Keys must be non-empty and must not contain '.'.\nKeys and values must not exceed 63 characters. Empty values are allowed.\nListRecurringRuns supports EQUALS string predicates on \"tags.\u003ckey\u003e\"."
         }
       }
     },

@@ -51,7 +51,8 @@ class V2beta1RecurringRun(object):
         'no_catchup': 'bool',
         'namespace': 'str',
         'experiment_id': 'str',
-        'plugins_input': 'dict(str, object)'
+        'plugins_input': 'dict(str, object)',
+        'tags': 'dict(str, str)'
     }
 
     attribute_map = {
@@ -73,10 +74,11 @@ class V2beta1RecurringRun(object):
         'no_catchup': 'no_catchup',
         'namespace': 'namespace',
         'experiment_id': 'experiment_id',
-        'plugins_input': 'plugins_input'
+        'plugins_input': 'plugins_input',
+        'tags': 'tags'
     }
 
-    def __init__(self, recurring_run_id=None, display_name=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, no_catchup=None, namespace=None, experiment_id=None, plugins_input=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, recurring_run_id=None, display_name=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, no_catchup=None, namespace=None, experiment_id=None, plugins_input=None, tags=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1RecurringRun - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -101,6 +103,7 @@ class V2beta1RecurringRun(object):
         self._namespace = None
         self._experiment_id = None
         self._plugins_input = None
+        self._tags = None
         self.discriminator = None
 
         if recurring_run_id is not None:
@@ -141,6 +144,8 @@ class V2beta1RecurringRun(object):
             self.experiment_id = experiment_id
         if plugins_input is not None:
             self.plugins_input = plugins_input
+        if tags is not None:
+            self.tags = tags
 
     @property
     def recurring_run_id(self):
@@ -566,6 +571,29 @@ class V2beta1RecurringRun(object):
         """
 
         self._plugins_input = plugins_input
+
+    @property
+    def tags(self):
+        """Gets the tags of this V2beta1RecurringRun.  # noqa: E501
+
+        Optional. User-defined tags for this recurring run, not its triggered runs. Maximum 20 tags. Keys must be non-empty and must not contain '.'. Keys and values must not exceed 63 characters. Empty values are allowed. ListRecurringRuns supports EQUALS string predicates on \"tags.<key>\".  # noqa: E501
+
+        :return: The tags of this V2beta1RecurringRun.  # noqa: E501
+        :rtype: dict(str, str)
+        """
+        return self._tags
+
+    @tags.setter
+    def tags(self, tags):
+        """Sets the tags of this V2beta1RecurringRun.
+
+        Optional. User-defined tags for this recurring run, not its triggered runs. Maximum 20 tags. Keys must be non-empty and must not contain '.'. Keys and values must not exceed 63 characters. Empty values are allowed. ListRecurringRuns supports EQUALS string predicates on \"tags.<key>\".  # noqa: E501
+
+        :param tags: The tags of this V2beta1RecurringRun.  # noqa: E501
+        :type tags: dict(str, str)
+        """
+
+        self._tags = tags
 
     def to_dict(self):
         """Returns the model properties as a dict"""

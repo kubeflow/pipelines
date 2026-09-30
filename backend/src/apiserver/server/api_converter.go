@@ -1025,6 +1025,7 @@ func toModelJob(apiJob *apiv2beta1.RecurringRun) (*model.Job, error) {
 	}
 	return &model.Job{
 		UUID:               jobId,
+		Tags:               apiJob.GetTags(),
 		DisplayName:        jobName,
 		K8SName:            k8sName,
 		Namespace:          namespace,
@@ -1106,6 +1107,7 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 	}
 
 	apiRecurringRunV2 := &apiv2beta1.RecurringRun{
+		Tags:           j.Tags,
 		RecurringRunId: j.UUID,
 		DisplayName:    j.DisplayName,
 		ServiceAccount: j.ServiceAccount,

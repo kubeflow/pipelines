@@ -57,6 +57,12 @@ export interface ListRecurringRunsRequest {
   experiment_id?: string;
 }
 
+export interface UpdateRecurringRunRequest {
+  recurring_run_id: string;
+  recurring_run: Omit<V2beta1RecurringRun, 'namespace'>;
+  update_mask?: string;
+}
+
 /**
  *
  */
@@ -396,6 +402,79 @@ export class RecurringRunServiceApi extends runtime.BaseAPI {
         namespace: namespace,
         filter: filter,
         experiment_id: experiment_id,
+      },
+      initOverrides,
+    );
+    return await response.value();
+  }
+
+  /**
+   * Updates a recurring run\'s tags without changing its schedule.
+   */
+  async updateRecurringRunRaw(
+    requestParameters: UpdateRecurringRunRequest,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<runtime.ApiResponse<V2beta1RecurringRun>> {
+    if (requestParameters['recurring_run_id'] == null) {
+      throw new runtime.RequiredError(
+        'recurring_run_id',
+        'Required parameter "recurring_run_id" was null or undefined when calling updateRecurringRun().',
+      );
+    }
+
+    if (requestParameters['recurring_run'] == null) {
+      throw new runtime.RequiredError(
+        'recurring_run',
+        'Required parameter "recurring_run" was null or undefined when calling updateRecurringRun().',
+      );
+    }
+
+    const queryParameters: any = {};
+
+    if (requestParameters['update_mask'] != null) {
+      queryParameters['update_mask'] = requestParameters['update_mask'];
+    }
+
+    const headerParameters: runtime.HTTPHeaders = {};
+
+    headerParameters['Content-Type'] = 'application/json';
+
+    let urlPath = `/apis/v2beta1/recurringruns/{recurring_run_id}`;
+    urlPath = urlPath.replace(
+      `{${'recurring_run_id'}}`,
+      encodeURIComponent(String(requestParameters['recurring_run_id'])),
+    );
+
+    const response = await this.request(
+      {
+        path: urlPath,
+        method: 'PATCH',
+        headers: headerParameters,
+        query: queryParameters,
+        body: V2beta1RecurringRunToJSON(requestParameters['recurring_run']),
+      },
+      initOverrides,
+    );
+
+    return new runtime.JSONApiResponse(response, (jsonValue) =>
+      V2beta1RecurringRunFromJSON(jsonValue),
+    );
+  }
+
+  /**
+   * Updates a recurring run\'s tags without changing its schedule.
+   */
+  async updateRecurringRun(
+    recurring_run_id: string,
+    recurring_run: V2beta1RecurringRun,
+    update_mask?: string,
+    initOverrides?: RequestInit | runtime.InitOverrideFunction,
+  ): Promise<V2beta1RecurringRun> {
+    const response = await this.updateRecurringRunRaw(
+      {
+        recurring_run_id: recurring_run_id,
+        recurring_run: recurring_run,
+        update_mask: update_mask,
       },
       initOverrides,
     );

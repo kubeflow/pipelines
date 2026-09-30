@@ -70,6 +70,13 @@ class TestRecurringRunServiceApi(unittest.TestCase):
         """
         pass
 
+    def test_recurring_run_service_update_recurring_run(self):
+        """Test case for recurring_run_service_update_recurring_run
+
+        Updates a recurring run's tags without changing its schedule.  # noqa: E501
+        """
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

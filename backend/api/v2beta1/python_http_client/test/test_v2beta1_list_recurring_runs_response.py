@@ -79,6 +79,9 @@ class TestV2beta1ListRecurringRunsResponse(unittest.TestCase):
                         experiment_id = '0', 
                         plugins_input = {
                             'key' : None
+                            }, 
+                        tags = {
+                            'key' : '0'
                             }, )
                     ], 
                 total_size = 56, 

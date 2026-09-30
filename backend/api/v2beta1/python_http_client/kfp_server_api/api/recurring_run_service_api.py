@@ -809,3 +809,147 @@ class RecurringRunServiceApi(object):
             _preload_content=local_var_params.get('_preload_content', True),
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
+
+    def recurring_run_service_update_recurring_run(self, recurring_run_id, recurring_run, **kwargs):  # noqa: E501
+        """Updates a recurring run's tags without changing its schedule.  # noqa: E501
+
+        This method makes a synchronous HTTP request by default. To make an
+        asynchronous HTTP request, please pass async_req=True
+
+        >>> thread = api.recurring_run_service_update_recurring_run(recurring_run_id, recurring_run, async_req=True)
+        >>> result = thread.get()
+
+        :param recurring_run_id: Required. ID of the recurring run to update. (required)
+        :type recurring_run_id: str
+        :param recurring_run: Required. Only tags are mutable; all other fields are ignored. (required)
+        :type recurring_run: V2beta1RecurringRun
+        :param update_mask: Optional. Only the \"tags\" path is supported and replaces the entire map. Set to \"tags\" to clear tags even when the map is omitted, including over gRPC. Without a mask, omitted tags are unchanged and non-empty tags replace the map. HTTP clients may also clear tags by explicitly sending \"tags\": {}.
+        :type update_mask: str
+        :param async_req: Whether to execute the request asynchronously.
+        :type async_req: bool, optional
+        :param _preload_content: if False, the urllib3.HTTPResponse object will
+                                 be returned without reading/decoding response
+                                 data. Default is True.
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :return: Returns the result object.
+                 If the method is called asynchronously,
+                 returns the request thread.
+        :rtype: V2beta1RecurringRun
+        """
+        kwargs['_return_http_data_only'] = True
+        return self.recurring_run_service_update_recurring_run_with_http_info(recurring_run_id, recurring_run, **kwargs)  # noqa: E501
+
+    def recurring_run_service_update_recurring_run_with_http_info(self, recurring_run_id, recurring_run, **kwargs):  # noqa: E501
+        """Updates a recurring run's tags without changing its schedule.  # noqa: E501
+
+        This method makes a synchronous HTTP request by default. To make an
+        asynchronous HTTP request, please pass async_req=True
+
+        >>> thread = api.recurring_run_service_update_recurring_run_with_http_info(recurring_run_id, recurring_run, async_req=True)
+        >>> result = thread.get()
+
+        :param recurring_run_id: Required. ID of the recurring run to update. (required)
+        :type recurring_run_id: str
+        :param recurring_run: Required. Only tags are mutable; all other fields are ignored. (required)
+        :type recurring_run: V2beta1RecurringRun
+        :param update_mask: Optional. Only the \"tags\" path is supported and replaces the entire map. Set to \"tags\" to clear tags even when the map is omitted, including over gRPC. Without a mask, omitted tags are unchanged and non-empty tags replace the map. HTTP clients may also clear tags by explicitly sending \"tags\": {}.
+        :type update_mask: str
+        :param async_req: Whether to execute the request asynchronously.
+        :type async_req: bool, optional
+        :param _return_http_data_only: response data without head status code
+                                       and headers
+        :type _return_http_data_only: bool, optional
+        :param _preload_content: if False, the urllib3.HTTPResponse object will
+                                 be returned without reading/decoding response
+                                 data. Default is True.
+        :type _preload_content: bool, optional
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :return: Returns the result object.
+                 If the method is called asynchronously,
+                 returns the request thread.
+        :rtype: tuple(V2beta1RecurringRun, status_code(int), headers(HTTPHeaderDict))
+        """
+
+        local_var_params = locals()
+
+        all_params = [
+            'recurring_run_id',
+            'recurring_run',
+            'update_mask'
+        ]
+        all_params.extend(
+            [
+                'async_req',
+                '_return_http_data_only',
+                '_preload_content',
+                '_request_timeout'
+            ]
+        )
+
+        for key, val in six.iteritems(local_var_params['kwargs']):
+            if key not in all_params:
+                raise ApiTypeError(
+                    "Got an unexpected keyword argument '%s'"
+                    " to method recurring_run_service_update_recurring_run" % key
+                )
+            local_var_params[key] = val
+        del local_var_params['kwargs']
+        # verify the required parameter 'recurring_run_id' is set
+        if self.api_client.client_side_validation and ('recurring_run_id' not in local_var_params or  # noqa: E501
+                                                        local_var_params['recurring_run_id'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `recurring_run_id` when calling `recurring_run_service_update_recurring_run`")  # noqa: E501
+        # verify the required parameter 'recurring_run' is set
+        if self.api_client.client_side_validation and ('recurring_run' not in local_var_params or  # noqa: E501
+                                                        local_var_params['recurring_run'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `recurring_run` when calling `recurring_run_service_update_recurring_run`")  # noqa: E501
+
+        collection_formats = {}
+
+        path_params = {}
+        if 'recurring_run_id' in local_var_params:
+            path_params['recurring_run_id'] = local_var_params['recurring_run_id']  # noqa: E501
+
+        query_params = []
+        if 'update_mask' in local_var_params and local_var_params['update_mask'] is not None:  # noqa: E501
+            query_params.append(('update_mask', local_var_params['update_mask']))  # noqa: E501
+
+        header_params = {}
+
+        form_params = []
+        local_var_files = {}
+
+        body_params = None
+        if 'recurring_run' in local_var_params:
+            body_params = local_var_params['recurring_run']
+        # HTTP header `Accept`
+        header_params['Accept'] = self.api_client.select_header_accept(
+            ['application/json'])  # noqa: E501
+
+        # HTTP header `Content-Type`
+        header_params['Content-Type'] = self.api_client.select_header_content_type(  # noqa: E501
+            ['application/json'])  # noqa: E501
+
+        # Authentication setting
+        auth_settings = ['Bearer']  # noqa: E501
+
+        return self.api_client.call_api(
+            '/apis/v2beta1/recurringruns/{recurring_run_id}', 'PATCH',
+            path_params,
+            query_params,
+            header_params,
+            body=body_params,
+            post_params=form_params,
+            files=local_var_files,
+            response_type='V2beta1RecurringRun',  # noqa: E501
+            auth_settings=auth_settings,
+            async_req=local_var_params.get('async_req'),
+            _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
+            _preload_content=local_var_params.get('_preload_content', True),
+            _request_timeout=local_var_params.get('_request_timeout'),
+            collection_formats=collection_formats)

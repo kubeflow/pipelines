@@ -58,6 +58,8 @@ func TestNativeStoresPostgreSQL(t *testing.T) {
 	orm, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, orm.AutoMigrate(model.AllModels()...))
+	t.Run("recurring run tags", func(t *testing.T) { testJobTagsLifecycle(t, db, d) })
+	t.Run("recurring run tag filters", func(t *testing.T) { testListJobTagsPaginationAndIsolation(t, db, d) })
 
 	clock := util.NewFakeTimeForEpoch()
 	uuid := util.NewUUIDGenerator()

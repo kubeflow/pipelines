@@ -35,6 +35,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	RecurringRunService_CreateRecurringRun_FullMethodName  = "/kubeflow.pipelines.backend.api.v2beta1.RecurringRunService/CreateRecurringRun"
+	RecurringRunService_UpdateRecurringRun_FullMethodName  = "/kubeflow.pipelines.backend.api.v2beta1.RecurringRunService/UpdateRecurringRun"
 	RecurringRunService_GetRecurringRun_FullMethodName     = "/kubeflow.pipelines.backend.api.v2beta1.RecurringRunService/GetRecurringRun"
 	RecurringRunService_ListRecurringRuns_FullMethodName   = "/kubeflow.pipelines.backend.api.v2beta1.RecurringRunService/ListRecurringRuns"
 	RecurringRunService_EnableRecurringRun_FullMethodName  = "/kubeflow.pipelines.backend.api.v2beta1.RecurringRunService/EnableRecurringRun"
@@ -48,6 +49,8 @@ const (
 type RecurringRunServiceClient interface {
 	// Creates a new recurring run in an experiment, given the experiment ID.
 	CreateRecurringRun(ctx context.Context, in *CreateRecurringRunRequest, opts ...grpc.CallOption) (*RecurringRun, error)
+	// Updates a recurring run's tags without changing its schedule.
+	UpdateRecurringRun(ctx context.Context, in *UpdateRecurringRunRequest, opts ...grpc.CallOption) (*RecurringRun, error)
 	// Finds a specific recurring run by ID.
 	GetRecurringRun(ctx context.Context, in *GetRecurringRunRequest, opts ...grpc.CallOption) (*RecurringRun, error)
 	// Finds all recurring runs given experiment and namespace.
@@ -74,6 +77,16 @@ func (c *recurringRunServiceClient) CreateRecurringRun(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RecurringRun)
 	err := c.cc.Invoke(ctx, RecurringRunService_CreateRecurringRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *recurringRunServiceClient) UpdateRecurringRun(ctx context.Context, in *UpdateRecurringRunRequest, opts ...grpc.CallOption) (*RecurringRun, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RecurringRun)
+	err := c.cc.Invoke(ctx, RecurringRunService_UpdateRecurringRun_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +149,8 @@ func (c *recurringRunServiceClient) DeleteRecurringRun(ctx context.Context, in *
 type RecurringRunServiceServer interface {
 	// Creates a new recurring run in an experiment, given the experiment ID.
 	CreateRecurringRun(context.Context, *CreateRecurringRunRequest) (*RecurringRun, error)
+	// Updates a recurring run's tags without changing its schedule.
+	UpdateRecurringRun(context.Context, *UpdateRecurringRunRequest) (*RecurringRun, error)
 	// Finds a specific recurring run by ID.
 	GetRecurringRun(context.Context, *GetRecurringRunRequest) (*RecurringRun, error)
 	// Finds all recurring runs given experiment and namespace.
@@ -160,6 +175,9 @@ type UnimplementedRecurringRunServiceServer struct{}
 
 func (UnimplementedRecurringRunServiceServer) CreateRecurringRun(context.Context, *CreateRecurringRunRequest) (*RecurringRun, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateRecurringRun not implemented")
+}
+func (UnimplementedRecurringRunServiceServer) UpdateRecurringRun(context.Context, *UpdateRecurringRunRequest) (*RecurringRun, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateRecurringRun not implemented")
 }
 func (UnimplementedRecurringRunServiceServer) GetRecurringRun(context.Context, *GetRecurringRunRequest) (*RecurringRun, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRecurringRun not implemented")
@@ -211,6 +229,24 @@ func _RecurringRunService_CreateRecurringRun_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RecurringRunServiceServer).CreateRecurringRun(ctx, req.(*CreateRecurringRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RecurringRunService_UpdateRecurringRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRecurringRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecurringRunServiceServer).UpdateRecurringRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecurringRunService_UpdateRecurringRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecurringRunServiceServer).UpdateRecurringRun(ctx, req.(*UpdateRecurringRunRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -315,6 +351,10 @@ var RecurringRunService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateRecurringRun",
 			Handler:    _RecurringRunService_CreateRecurringRun_Handler,
+		},
+		{
+			MethodName: "UpdateRecurringRun",
+			Handler:    _RecurringRunService_UpdateRecurringRun_Handler,
 		},
 		{
 			MethodName: "GetRecurringRun",

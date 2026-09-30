@@ -77,6 +77,9 @@ class TestV2beta1RecurringRun(unittest.TestCase):
                 experiment_id = '0', 
                 plugins_input = {
                     'key' : None
+                    }, 
+                tags = {
+                    'key' : '0'
                     }
             )
         else :

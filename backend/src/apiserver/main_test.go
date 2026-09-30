@@ -592,6 +592,23 @@ func TestClearTagsMiddleware(t *testing.T) {
 		expectedErrorJSON    string
 	}{
 		{
+			name:                 "recurring run update clears whitespace-formatted empty tags",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/recurringruns/123",
+			reqBodyStr:           `{"tags":{ }}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "true",
+			expectDownstreamCall: true,
+		},
+		{
+			name:                 "recurring run null tags are unchanged",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/recurringruns/123",
+			reqBodyStr:           `{"tags":null}`,
+			expectedStatus:       http.StatusOK,
+			expectDownstreamCall: true,
+		},
+		{
 			name:                 "not an update path",
 			method:               http.MethodPut,
 			path:                 "/apis/v2beta1/experiments/123",
@@ -728,6 +745,7 @@ func TestClearTagsMiddlewareConfiguredLimit(t *testing.T) {
 		for _, path := range []string{
 			"/apis/v2beta1/pipelines/123",
 			"/apis/v2beta1/pipelines/123/versions/456",
+			"/apis/v2beta1/recurringruns/123",
 		} {
 			for _, size := range []int{15, 16, 17} {
 				t.Run(fmt.Sprintf("%s/%s/%d", method, path, size), func(t *testing.T) {

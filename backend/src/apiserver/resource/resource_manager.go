@@ -1176,8 +1176,8 @@ func (r *ResourceManager) FindLatestCachedTask(namespace, fingerprint string) (*
 }
 
 // Fetches recurring runs with given filtering and listing options.
-func (r *ResourceManager) ListJobs(filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
-	return r.jobStore.ListJobs(filterContext, opts)
+func (r *ResourceManager) ListJobs(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Job, int, string, error) {
+	return r.jobStore.ListJobs(filterContext, opts, tagFilters...)
 }
 
 // Terminates a workflow by setting its activeDeadlineSeconds to 0.
@@ -1727,6 +1727,9 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
+	if err := model.ValidateTags(job.Tags); err != nil {
+		return nil, err
+	}
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
@@ -4023,4 +4026,18 @@ func logWorkflowServiceAccountAudit(executionSpec util.ExecutionSpec, namespace,
 	// never the manifest, patch contents, or raw authorization error.
 	glog.Warningf("security_audit control=workflow_identity mode=audit operation=%q namespace=%q workflow=%q generate_name=%q run_id=%q service_account=%q reason=%q disposition=allow_policy_violation",
 		operation, namespace, meta.Name, meta.GenerateName, meta.Labels[util.LabelKeyWorkflowRunId], serviceAccount, finding)
+}
+
+// UpdateJobTags replaces a recurring run's tags without modifying its schedule.
+func (r *ResourceManager) UpdateJobTags(id string, tags map[string]string) (*model.Job, error) {
+	if id == "" {
+		return nil, util.NewInvalidInputError("Recurring run ID is required")
+	}
+	if err := model.ValidateTags(tags); err != nil {
+		return nil, err
+	}
+	if err := r.jobStore.UpdateJobTags(id, tags); err != nil {
+		return nil, err
+	}
+	return r.jobStore.GetJob(id)
 }

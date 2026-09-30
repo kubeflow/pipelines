@@ -91,6 +91,12 @@ type ClientService interface {
 	// RecurringRunServiceListRecurringRunsContext finds all recurring runs given experiment and namespace if experiment ID is not specified find all recurring runs across all experiments.
 	RecurringRunServiceListRecurringRunsContext(ctx context.Context, params *RecurringRunServiceListRecurringRunsParams, opts ...ClientOption) (*RecurringRunServiceListRecurringRunsOK, error)
 
+	// RecurringRunServiceUpdateRecurringRun updates a recurring run s tags without changing its schedule.
+	RecurringRunServiceUpdateRecurringRun(params *RecurringRunServiceUpdateRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceUpdateRecurringRunOK, error)
+
+	// RecurringRunServiceUpdateRecurringRunContext updates a recurring run s tags without changing its schedule.
+	RecurringRunServiceUpdateRecurringRunContext(ctx context.Context, params *RecurringRunServiceUpdateRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceUpdateRecurringRunOK, error)
+
 	SetTransport(transport runtime.ContextualTransport)
 }
 
@@ -456,6 +462,67 @@ func (a *Client) RecurringRunServiceListRecurringRunsContext(ctx context.Context
 	//
 	// a default response is provided: fill this and return an error
 	unexpectedSuccess := result.(*RecurringRunServiceListRecurringRunsDefault)
+
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+// RecurringRunServiceUpdateRecurringRun updates a recurring run s tags without changing its schedule.
+//
+// This method does not support injected context.
+// However, timeout and opentracing contexts are honored whenever enabled.
+//
+// If you need to pass a specific context, use [Client.RecurringRunServiceUpdateRecurringRunContext] instead.
+func (a *Client) RecurringRunServiceUpdateRecurringRun(params *RecurringRunServiceUpdateRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceUpdateRecurringRunOK, error) {
+	var ctx context.Context
+	if params != nil && params.inner.ctx != nil {
+		ctx = params.inner.ctx
+	} else {
+		ctx = context.Background()
+	}
+
+	return a.RecurringRunServiceUpdateRecurringRunContext(ctx, params, opts...)
+}
+
+// RecurringRunServiceUpdateRecurringRunContext updates a recurring run s tags without changing its schedule.
+//
+// Do not use the deprecated [RecurringRunServiceUpdateRecurringRunParams.Context] with this method: it would be ignored.
+func (a *Client) RecurringRunServiceUpdateRecurringRunContext(ctx context.Context, params *RecurringRunServiceUpdateRecurringRunParams, opts ...ClientOption) (*RecurringRunServiceUpdateRecurringRunOK, error) {
+	// NOTE: parameters are not validated before sending
+	if params == nil {
+		params = NewRecurringRunServiceUpdateRecurringRunParams()
+	}
+
+	op := &runtime.ClientOperation{
+		ID:                 "RecurringRunService_UpdateRecurringRun",
+		Method:             "PATCH",
+		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RecurringRunServiceUpdateRecurringRunReader{formats: a.formats},
+		Client:             params.HTTPClient,
+	}
+
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.SubmitContext(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+
+	// only one success response has to be checked
+	success, ok := result.(*RecurringRunServiceUpdateRecurringRunOK)
+	if ok {
+		return success, nil
+	}
+
+	// unexpected success response.
+	//
+	// a default response is provided: fill this and return an error
+	unexpectedSuccess := result.(*RecurringRunServiceUpdateRecurringRunDefault)
 
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
