@@ -87,13 +87,25 @@ test(
     const port = reservation.address().port;
     await new Promise((resolve) => reservation.close(resolve));
     const origin = `http://127.0.0.1:${port}`;
+    // This contract runs before production compilation in CI. Own its HTML fixture
+    // instead of accidentally relying on a developer's existing build directory.
+    const fixtureBuild = await mkdtemp(join(tmpdir(), 'kfp-native-html-contract-'));
+    await writeFile(
+      join(fixtureBuild, 'index.html'),
+      '<!doctype html><html><head><script>window.KFP_FLAGS={};window.KFP_FLAGS.DEPLOYMENT=null;</script></head><body>Native fixture contract</body></html>',
+    );
     let logs = '';
     const child = spawn(
       process.execPath,
       ['--import', 'tsx', 'scripts/ui-modernization-native-server.ts'],
       {
         cwd: frontend,
-        env: { ...process.env, CI: 'true', KFP_BROWSER_FLOOR_PORT: String(port) },
+        env: {
+          ...process.env,
+          CI: 'true',
+          KFP_BROWSER_FLOOR_PORT: String(port),
+          KFP_BROWSER_BUILD_DIR: fixtureBuild,
+        },
         stdio: ['ignore', 'pipe', 'pipe'],
       },
     );
@@ -143,7 +155,10 @@ test(
         method: 'POST',
       });
       assert.equal(scenario.status, 200);
-      const html = await (await fetch(`${origin}/?native-scenario=experiment`)).text();
+      const htmlResponse = await fetch(`${origin}/?native-scenario=experiment`);
+      assert.equal(htmlResponse.status, 200);
+      const html = await htmlResponse.text();
+      assert.match(html, /Native fixture contract/);
       assert.match(html, /DEPLOYMENT="KUBEFLOW"/);
       assert.match(html, /onNamespaceSelected\('team-a'\)/);
       const body = JSON.stringify({ display_name: 'HTTP fixture', namespace: 'team-a' });
@@ -180,6 +195,7 @@ test(
       )
         await delay(100);
       if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+      await rm(fixtureBuild, { recursive: true, force: true });
     }
   },
 );
