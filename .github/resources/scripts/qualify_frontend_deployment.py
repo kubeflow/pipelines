@@ -20,6 +20,13 @@ LEGACY_SHA = '02cbc725ac9ddcd950f4400d8355dd78bfcd6c57'
 MANIFESTS_SHA = '88716b3f7f62b12f98d82bcfc59635bb07e7845c'
 UI = 'ml-pipeline-ui'
 SIGNING = 'ml-pipeline-ui-tensorboard-proxy'
+MESH_DEPLOYMENTS = (
+    'ml-pipeline',
+    UI,
+    'ml-pipeline-persistenceagent',
+    'ml-pipeline-scheduledworkflow',
+    'ml-pipeline-viewer-crd',
+)
 PROFILES = {
     'kubeflow-user-example-com': 'user@example.com',
     'kfp-qualification-second': 'user@example.com',
@@ -181,6 +188,136 @@ def render_upstream(path):
     return [item for item in yaml.safe_load_all(source) if item]
 
 
+def mesh_pod_evidence(pod):
+    initializers = pod['spec'].get('initContainers', [])
+    names = [item['name'] for item in initializers]
+    if 'istio-proxy' not in names:
+        raise AssertionError(
+            'Qualification workload has no native mesh sidecar')
+    position = names.index('istio-proxy')
+    if initializers[position].get('restartPolicy') != 'Always':
+        raise AssertionError(
+            'Mesh sidecar is not a native restartable initializer')
+    if any(index < position and name.startswith('wait-for-')
+           for index, name in enumerate(names)):
+        raise AssertionError(
+            'Mesh sidecar must start before network wait initializers')
+    statuses = pod['status'].get('initContainerStatuses', [])
+    proxy = next((item for item in statuses if item['name'] == 'istio-proxy'),
+                 {})
+    if not proxy.get('ready') or not proxy.get('started') or not proxy.get(
+            'imageID'):
+        raise AssertionError('Native mesh sidecar is not started and ready')
+    applications = pod['status'].get('containerStatuses', [])
+    if not applications or not all(item['ready'] for item in applications):
+        raise AssertionError('Mesh workload application is not ready')
+    return {
+        'uid': pod['metadata']['uid'],
+        'serviceAccount': pod['spec']['serviceAccountName'],
+        'initOrder': names,
+        'proxyImageId': proxy['imageID'],
+        'proxyReady': True
+    }
+
+
+def verify_mesh_image(pod, expected):
+    evidence = mesh_pod_evidence(pod)
+    if evidence['proxyImageId'] not in {
+            item['proxyImageId'] for item in expected
+    }:
+        raise AssertionError(
+            'Mesh sidecar image changed during UI qualification')
+    return evidence
+
+
+def ingress_ui_policy():
+    return {
+        'apiVersion': 'networking.k8s.io/v1',
+        'kind': 'NetworkPolicy',
+        'metadata': {
+            'name': 'qualification-ingress-to-pipeline-ui',
+            'namespace': 'kubeflow'
+        },
+        'spec': {
+            'podSelector': {
+                'matchLabels': {
+                    'app': UI
+                }
+            },
+            'policyTypes': ['Ingress'],
+            'ingress': [{
+                'from': [{
+                    'namespaceSelector': {
+                        'matchLabels': {
+                            'kubernetes.io/metadata.name': 'istio-system'
+                        }
+                    },
+                    'podSelector': {
+                        'matchLabels': {
+                            'app': 'istio-ingressgateway'
+                        }
+                    },
+                }],
+                'ports': [{
+                    'protocol': 'TCP',
+                    'port': 3000
+                }]
+            }],
+        },
+    }
+
+
+def setup_mesh(args):
+    # The shared test deploy intentionally omits workload injection. The real
+    # ingress path requires the repository's existing ISTIO_MUTUAL destinations.
+    # Keep this setup limited to the UI/API and the API's named backend callers.
+    # Istio 1.30.0 reorders native sidecars before application wait initializers;
+    # verify the admitted pods as well, avoiding init-container startup deadlocks.
+    # Preserve the intended path even on a policy-enforcing CNI. This Kind lane
+    # does not itself establish NetworkPolicy enforcement.
+    apply([ingress_ui_policy()])
+    patch = {
+        'spec': {
+            'template': {
+                'metadata': {
+                    'labels': {
+                        'sidecar.istio.io/inject': 'true'
+                    },
+                    'annotations': {
+                        'sidecar.istio.io/nativeSidecar': 'true'
+                    },
+                }
+            }
+        }
+    }
+    for deployment in MESH_DEPLOYMENTS:
+        command('kubectl', '-n', 'kubeflow', 'patch', 'deployment', deployment,
+                '--type=merge', '--patch', json.dumps(patch))
+    evidence = {}
+    for deployment in MESH_DEPLOYMENTS:
+        command(
+            'kubectl',
+            '-n',
+            'kubeflow',
+            'rollout',
+            'status',
+            f'deployment/{deployment}',
+            '--timeout=300s',
+            timeout=320)
+        labels = kube('-n', 'kubeflow', 'get', 'deployment',
+                      deployment)['spec']['selector']['matchLabels']
+        selector = ','.join(
+            f'{key}={value}' for key, value in sorted(labels.items()))
+        pods = kube('-n', 'kubeflow', 'get', 'pods', '-l', selector)['items']
+        active = [
+            pod for pod in pods if not pod['metadata'].get('deletionTimestamp')
+        ]
+        if not active:
+            raise AssertionError(f'No ready mesh workload pods: {deployment}')
+        evidence[deployment] = [mesh_pod_evidence(pod) for pod in active]
+        write_json(Path(args.output) / 'mesh-readiness.json', evidence)
+
+
 def setup_auth(args):
     import bcrypt
     import yaml
@@ -282,6 +419,7 @@ def setup_auth(args):
             'deployment/ml-pipeline-ui-artifact',
             '--timeout=300s',
             timeout=320)
+    setup_mesh(args)
     write_json(
         Path(args.output) / 'authentication.json', {
             'manifestsSourceSha': MANIFESTS_SHA,
@@ -336,17 +474,27 @@ def snapshot(args):
         if args.mode == 'multiuser' else [])
     resources = []
     pods = {}
+    mesh = {}
+    mesh_seed = json.loads((
+        Path(args.output) /
+        'mesh-readiness.json').read_text()) if args.mode == 'multiuser' else {}
     for namespace in namespaces:
         resources += kube(
             '-n', namespace, 'get',
-            'deployments,statefulsets,configmaps,serviceaccounts,roles,rolebindings'
+            'deployments,statefulsets,configmaps,serviceaccounts,roles,rolebindings,networkpolicies'
         )['items']
         for pod in kube('-n', namespace, 'get', 'pods')['items']:
             meta = pod['metadata']
             # Workflow/Job pods are expected to come and go. Existing long-running
             # controllers and services must not be replaced by a UI-only operation.
             owners = meta.get('ownerReferences', [])
-            if meta.get('labels', {}).get('app') == UI:
+            if meta.get('deletionTimestamp'):
+                continue
+            app = meta.get('labels', {}).get('app')
+            if namespace == 'kubeflow' and app in mesh_seed:
+                mesh[f'{namespace}/{meta["name"]}'] = verify_mesh_image(
+                    pod, mesh_seed[app])
+            if app == UI:
                 continue
             if not any(owner['kind'] in ('ReplicaSet', 'StatefulSet')
                        for owner in owners):
@@ -364,7 +512,7 @@ def snapshot(args):
     if args.mode == 'multiuser':
         resources += kube(
             'get',
-            'authorizationpolicies,requestauthentications,virtualservices',
+            'authorizationpolicies,requestauthentications,virtualservices,destinationrules',
             '-A')['items']
     signing = kube('-n', 'kubeflow', 'get', 'secret', SIGNING)
     # This private file is outside uploaded reports. Only compare outcomes leave the runner.
@@ -404,6 +552,8 @@ def snapshot(args):
                 state['resources'],
             'backendPodUids':
                 pods,
+            'readyMeshPods':
+                mesh,
             'signingSecretPreserved':
                 args.phase != 'baseline',
             'signingSecretPresent':
@@ -420,6 +570,33 @@ def assert_preserved(before, after):
                  'authenticationSecrets'):
         if before[name] != after[name]:
             raise AssertionError(f'UI-only rollback invariant changed: {name}')
+
+
+def verify_image_identity(status, expected, inspect_image):
+    if not status.get('ready'):
+        raise AssertionError('Qualified UI container is not ready')
+    reported = status['imageID']
+    manifest = expected['reference'].split('@')[1]
+    if reported.endswith(manifest):
+        return {'method': 'manifest-digest', 'reportedImageId': reported}
+    if reported == expected[
+            'configId'] or reported == 'containerd://' + expected['configId']:
+        return {'method': 'config-digest', 'reportedImageId': reported}
+    # containerd may report the first registered manifest alias when a byte-identical
+    # candidate was preloaded by the shared deploy action. Resolve that actual ID
+    # through CRI and require the Docker archive's exact image config digest.
+    image = reported.removeprefix('docker-pullable://').removeprefix(
+        'containerd://')
+    resolved = inspect_image(image)['status']['id']
+    if resolved != expected['configId']:
+        raise AssertionError(
+            'Running UI image identity differs from the qualified immutable image'
+        )
+    return {
+        'method': 'resolved-runtime-config-digest',
+        'reportedImageId': reported,
+        'resolvedConfigId': resolved
+    }
 
 
 def swap(args):
@@ -466,15 +643,32 @@ def swap(args):
                               for pod in running):
         raise AssertionError('UI has no running image identity')
     expected = images['candidate' if phase == 'candidate' else 'legacy']
-    accepted_ids = [expected['reference'].split('@')[1], expected['configId']]
+    identity_evidence = {
+        'expectedReference': expected['reference'],
+        'expectedConfigId': expected['configId'],
+        'pods': [],
+    }
+    identity_path = output / f'{phase}-image-identity.json'
     for pod in running:
         status = next(item for item in pod['status']['containerStatuses']
                       if item['name'] == UI)
-        if not status['ready'] or not any(status['imageID'].endswith(value)
-                                          for value in accepted_ids):
-            raise AssertionError(
-                'Running UI image identity differs from the qualified immutable image'
-            )
+        evidence = {
+            'uid': pod['metadata']['uid'],
+            'node': pod['spec']['nodeName'],
+            'imageId': status['imageID'],
+            'ready': status['ready']
+        }
+        identity_evidence['pods'].append(evidence)
+        write_json(identity_path, identity_evidence)
+        if args.mode == 'multiuser':
+            baseline_mesh = json.loads(
+                (output / 'mesh-readiness.json').read_text())
+            evidence['mesh'] = verify_mesh_image(pod, baseline_mesh[UI])
+        evidence['verification'] = verify_image_identity(
+            status, expected, lambda image: json.loads(
+                command('docker', 'exec', pod['spec']['nodeName'], 'crictl',
+                        'inspecti', image)))
+        write_json(identity_path, identity_evidence)
     write_json(
         output / f'{phase}-rollout.json', {
             'phase':

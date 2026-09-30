@@ -136,6 +136,138 @@ class QualificationTest(unittest.TestCase):
                 qualification.setup_images(args)
             self.assertTrue((output / 'images.json').is_file())
 
+    def test_image_identity_resolves_alias_only_to_exact_qualified_config(self):
+        expected = {
+            'reference': 'registry/ui@sha256:manifest',
+            'configId': 'sha256:config'
+        }
+        status = {
+            'ready': True,
+            'imageID': 'preloaded/ui@sha256:other-manifest'
+        }
+
+        def inspect(image):
+            self.assertEqual(image, status['imageID'])
+            return {'status': {'id': 'sha256:config'}}
+
+        result = qualification.verify_image_identity(status, expected, inspect)
+        self.assertEqual(result['method'], 'resolved-runtime-config-digest')
+        with self.assertRaises(AssertionError):
+            qualification.verify_image_identity(
+                status, expected, lambda _: {'status': {
+                    'id': 'sha256:wrong'
+                }})
+        with self.assertRaises(AssertionError):
+            qualification.verify_image_identity({
+                **status, 'ready': False
+            }, expected, inspect)
+
+    def test_exact_image_digest_does_not_need_runtime_alias_resolution(self):
+        expected = {
+            'reference': 'registry/ui@sha256:manifest',
+            'configId': 'sha256:config'
+        }
+
+        def unexpected(_):
+            self.fail('Exact image identity should not require alias lookup')
+
+        for image in [
+                'registry/ui@sha256:manifest', 'sha256:config',
+                'containerd://sha256:config'
+        ]:
+            qualification.verify_image_identity(
+                {
+                    'ready': True,
+                    'imageID': image
+                }, expected, unexpected)
+
+    def test_mesh_readiness_requires_native_sidecar_before_network_wait(self):
+        pod = {
+            'metadata': {
+                'uid': 'pod'
+            },
+            'spec': {
+                'serviceAccountName':
+                    'ml-pipeline',
+                'initContainers': [
+                    {
+                        'name': 'istio-validation'
+                    },
+                    {
+                        'name': 'istio-proxy',
+                        'restartPolicy': 'Always'
+                    },
+                    {
+                        'name': 'wait-for-database'
+                    },
+                ]
+            },
+            'status': {
+                'containerStatuses': [{
+                    'name': 'application',
+                    'ready': True
+                }],
+                'initContainerStatuses': [{
+                    'name': 'istio-proxy',
+                    'ready': True,
+                    'started': True,
+                    'imageID': 'sha256:proxy'
+                }]
+            },
+        }
+        self.assertTrue(qualification.mesh_pod_evidence(pod)['proxyReady'])
+        for change in ('missing', 'not-native', 'not-ready', 'wrong-order'):
+            invalid = copy.deepcopy(pod)
+            if change == 'missing':
+                invalid['spec']['initContainers'].pop(1)
+            elif change == 'not-native':
+                invalid['spec']['initContainers'][1].pop('restartPolicy')
+            elif change == 'not-ready':
+                invalid['status']['initContainerStatuses'][0]['ready'] = False
+            else:
+                invalid['spec']['initContainers'].reverse()
+            with self.subTest(change=change), self.assertRaises(AssertionError):
+                qualification.mesh_pod_evidence(invalid)
+
+    def test_mesh_setup_scope_excludes_databases_and_generated_jobs(self):
+        self.assertEqual(
+            set(qualification.MESH_DEPLOYMENTS), {
+                'ml-pipeline',
+                'ml-pipeline-ui',
+                'ml-pipeline-persistenceagent',
+                'ml-pipeline-scheduledworkflow',
+                'ml-pipeline-viewer-crd',
+            })
+
+    def test_mesh_image_must_remain_the_initial_qualified_image(self):
+        with patch.object(
+                qualification,
+                'mesh_pod_evidence',
+                return_value={'proxyImageId': 'sha256:original'}):
+            qualification.verify_mesh_image({}, [{
+                'proxyImageId': 'sha256:original'
+            }])
+            with self.assertRaises(AssertionError):
+                qualification.verify_mesh_image({}, [{
+                    'proxyImageId': 'sha256:different'
+                }])
+
+    def test_gateway_allowance_is_limited_to_ui_ingress_from_gateway(self):
+        policy = qualification.ingress_ui_policy()['spec']
+        self.assertEqual(policy['podSelector'],
+                         {'matchLabels': {
+                             'app': 'ml-pipeline-ui'
+                         }})
+        self.assertEqual(policy['policyTypes'], ['Ingress'])
+        rule = policy['ingress'][0]
+        self.assertEqual(rule['ports'], [{'protocol': 'TCP', 'port': 3000}])
+        source = rule['from'][0]
+        self.assertEqual(source['namespaceSelector']['matchLabels'],
+                         {'kubernetes.io/metadata.name': 'istio-system'})
+        self.assertEqual(source['podSelector']['matchLabels'],
+                         {'app': 'istio-ingressgateway'})
+        self.assertNotIn('egress', policy)
+
 
 if __name__ == '__main__':
     unittest.main()

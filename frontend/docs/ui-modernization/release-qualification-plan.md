@@ -8,8 +8,9 @@ follow-ups under the existing CI-only delivery plan; they do not count as qualif
 ## Available hosted browser coverage
 
 - Instrument the initial production-bundle smoke test with bounded stage evidence.
-  The current Windows Firefox failure is an outer 30-second timeout; the remaining
-  47 cases pass. Preserve that deadline until evidence identifies the slow stage.
+  Preserve the 30-second deadline and capture startup stage evidence. The
+  September 30 engine runs pass this check on all nine OS/engine lanes, including
+  Windows Firefox; vendor and mobile qualification remain separate.
 - Add exact Firefox stable and ESR Linux lanes using official checksums and the
   existing native suite. Keep workstation guards and exact identity checks.
 - Extend native Firefox/Apple fixtures with experiment creation failure/retry,
@@ -101,7 +102,17 @@ Build complete legacy and candidate frontend containers from their own sources
 and lockfiles. Their Express server and Dockerfile are currently identical; still
 prove compatibility against the same candidate backend through the rehearsal.
 Register both images in a disposable CI registry and record actual OCI manifest
-digests, archive hashes, config IDs and running pod image IDs.
+digests, archive hashes, config IDs and running pod image IDs. If the runtime
+reports a preloaded manifest alias, resolve that exact ID through CRI and require
+the qualified archive's exact config digest; an arbitrary alias is insufficient.
+
+Before the multi-user baseline, enable and verify native Istio sidecars on the
+UI, API and their required backend callers. The existing ingress/API routes use
+mutual TLS; preserve their authentication and authorization policies. Require
+the proxy to start before network-wait initializers, retain its observed image
+identity, and check its readiness across UI replacement and restoration. All
+setup finishes before the invariant snapshot and measured UI-only transitions.
+This lane does not establish CNI NetworkPolicy enforcement.
 
 1. Start the legacy UI; establish sessions/preferences and create a pipeline,
    experiment, successful run, future/disabled schedule and inspectable artifacts.
