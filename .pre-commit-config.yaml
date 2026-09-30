@@ -18,7 +18,7 @@ repos:
       - id: no-commit-to-branch
         args: [--branch, master]
   - repo: https://github.com/PyCQA/flake8
-    rev: 7.3.0
+    rev: 7.4.1
     hooks:
       - id: flake8
         args:
@@ -53,7 +53,7 @@ repos:
         exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/pycqa/docformatter
     # v1.7.8 corrupts continuation and blank-line tokens, conflicting with YAPF.
-    rev: v1.7.7
+    rev: v1.7.8
     hooks:
       - id: docformatter
         name: docformatter
@@ -65,7 +65,7 @@ repos:
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.13.2
+    rev: v2.14.0
     hooks:
       - id: golangci-lint
         name: golangci-lint
