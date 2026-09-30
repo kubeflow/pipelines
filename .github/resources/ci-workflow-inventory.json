@@ -113,7 +113,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "4fe3876fe195c367f70082ef26eb3917443a6c8c55047c66406219f1131704ac",
+      "header_sha256": "7736b0977ca492e7d8a9c2f43a377173650994db509321c67f07ae7e5111dfae",
       "pull_request": null
     },
     {
@@ -330,7 +330,7 @@
     {
       "path": ".github/workflows/frontend-browser-qualification.yml",
       "name": "Frontend Browser Qualification",
-      "header_sha256": "1c87f6b54bbec7b73c7c347abcd96ef531695c4a07696cffed1b9f4371eba9b1",
+      "header_sha256": "bd7a47b4269450f9c44ff665b1fb5f94dc848996d94e1b944e0dda3bb32edc9f",
       "pull_request": {
         "branches": [
           "master"
@@ -339,6 +339,8 @@
           ".github/workflows/frontend-browser-qualification.yml",
           "frontend/scripts/qualified-browsers.json",
           "frontend/scripts/install-qualified-browser*",
+          "frontend/scripts/install-qualified-firefox-linux*",
+          "frontend/scripts/production-bundle-diagnostics*",
           "frontend/scripts/run-apple-qualification*",
           "frontend/scripts/run-native-qualification*",
           "frontend/scripts/ui-modernization-browser-floor.mjs",
@@ -349,6 +351,45 @@
           "frontend/package.json",
           "frontend/package-lock.json",
           "frontend/.nvmrc"
+        ]
+      }
+    },
+    {
+      "path": ".github/workflows/frontend-deployment-qualification.yml",
+      "name": "Frontend Deployment Qualification",
+      "header_sha256": "1032bcef6bb5636b66c915c4608eedc8a572f2f56f4798cfc5a244f2db55f65c",
+      "pull_request": {
+        "paths": [
+          ".github/workflows/frontend-deployment-qualification.yml",
+          ".github/workflows/image-builds.yml",
+          ".github/actions/create-cluster/**",
+          ".github/actions/deploy/**",
+          ".github/resources/scripts/qualify_frontend_deployment*",
+          "frontend/**",
+          "manifests/kustomize/**",
+          "test/frontend-integration-test/**",
+          "!**/*.md"
+        ]
+      }
+    },
+    {
+      "path": ".github/workflows/frontend-performance-qualification.yml",
+      "name": "Frontend Performance Qualification",
+      "header_sha256": "7e440e0379a71a962e9c69899b18999c34bde86b57ff8cde4c90f16783847a60",
+      "pull_request": {
+        "branches": [
+          "master"
+        ],
+        "paths": [
+          ".github/workflows/frontend-performance-qualification.yml",
+          "frontend/src/**",
+          "frontend/scripts/**",
+          "frontend/mock-backend/**",
+          "frontend/package.json",
+          "frontend/package-lock.json",
+          "frontend/.nvmrc",
+          "frontend/vite.config.mts",
+          "frontend/docs/ui-modernization/layout-stability/protocol.json"
         ]
       }
     },

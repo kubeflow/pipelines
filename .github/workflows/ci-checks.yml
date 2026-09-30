@@ -22,6 +22,8 @@ on:
       - 'KFP ARM64 Presubmit'
       - 'Frontend Tests'
       - 'Frontend Browser Qualification'
+      - 'Frontend Deployment Qualification'
+      - 'Frontend Performance Qualification'
       - 'Go Builder Image Digests'
       - 'kfp-kubernetes library tests'
       - 'KFP Python Client Tests'

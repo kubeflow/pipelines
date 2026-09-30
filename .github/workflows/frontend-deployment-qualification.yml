@@ -1,0 +1,176 @@
+name: Frontend Deployment Qualification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/frontend-deployment-qualification.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/resources/scripts/qualify_frontend_deployment*'
+      - 'frontend/**'
+      - 'manifests/kustomize/**'
+      - 'test/frontend-integration-test/**'
+      - '!**/*.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/image-builds.yml
+
+  legacy-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check out immutable legacy frontend source
+        uses: actions/checkout@v7
+        with:
+          repository: kubeflow/pipelines
+          ref: 02cbc725ac9ddcd950f4400d8355dd78bfcd6c57
+          path: legacy
+          persist-credentials: false
+      - name: Set up Docker Buildx
+        run: bash .github/resources/scripts/setup-buildx-with-retry.sh
+      - name: Record legacy toolchain
+        id: legacy
+        run: |
+          set -euo pipefail
+          test "$(git -C legacy rev-parse HEAD)" = 02cbc725ac9ddcd950f4400d8355dd78bfcd6c57
+          echo "node=$(tr -d 'v\n' < legacy/frontend/.nvmrc)" >> "$GITHUB_OUTPUT"
+      - name: Build complete legacy frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: legacy
+          file: legacy/frontend/Dockerfile
+          push: false
+          platforms: linux/amd64
+          build-args: |
+            NODE_VERSION=${{ steps.legacy.outputs.node }}
+            COMMIT_HASH=02cbc725ac9ddcd950f4400d8355dd78bfcd6c57
+          tags: kfp-frontend-legacy:qualification
+          outputs: type=docker,dest=${{ runner.temp }}/legacy-frontend.tar
+      - uses: actions/upload-artifact@v7
+        with:
+          name: legacy-frontend
+          path: ${{ runner.temp }}/legacy-frontend.tar
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: error
+
+  rehearsal:
+    needs: [build, legacy-image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [standalone, multiuser]
+    name: UI-only upgrade and rollback (${{ matrix.mode }})
+    env:
+      KFP_DEPLOYMENT_MODE: ${{ matrix.mode }}
+      KFP_DEPLOYMENT_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare evidence directory
+        run: |
+          echo "KFP_DEPLOYMENT_REPORT_DIR=$RUNNER_TEMP/deployment-report" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/deployment-report"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Install qualification dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install -r .github/scripts/requirements.txt bcrypt==4.3.0
+          npm install --global "$(node -p 'require("./frontend/package.json").packageManager')"
+          npm --prefix frontend ci --ignore-scripts
+          cd frontend
+          npx playwright install --with-deps chromium
+      - name: Verify browser-free deployment helpers
+        run: |
+          python -m unittest discover -s .github/resources/scripts -p 'qualify_frontend_deployment_test.py'
+          node --test frontend/scripts/ui-modernization-deployment.check.mjs
+      - uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: v1.33.12
+      - name: Retain candidate image archive before deploy consumes its copy
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: frontend
+          path: ${{ runner.temp }}/candidate-image
+      - uses: actions/download-artifact@v8
+        with:
+          name: legacy-frontend
+          path: ${{ runner.temp }}/legacy-image
+      - name: Deploy fixed candidate backend
+        uses: ./.github/actions/deploy
+        with:
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          multi_user: ${{ matrix.mode == 'multiuser' && 'true' || 'false' }}
+          artifact_proxy: ${{ matrix.mode == 'multiuser' && 'true' || 'false' }}
+          forward_port: 'false'
+      - name: Register immutable frontend images and asset manifests
+        run: |
+          python .github/resources/scripts/qualify_frontend_deployment.py images \
+            --output "$KFP_DEPLOYMENT_REPORT_DIR" \
+            --legacy-archive "$RUNNER_TEMP/legacy-image/legacy-frontend.tar" \
+            --candidate-archive "$RUNNER_TEMP/candidate-image/frontend.tar"
+      - name: Install real authenticated embedded dashboard
+        if: matrix.mode == 'multiuser'
+        run: |
+          python .github/resources/scripts/qualify_frontend_deployment.py auth \
+            --output "$KFP_DEPLOYMENT_REPORT_DIR" --mode multiuser
+      - name: Establish stable browser endpoint
+        run: |
+          set -euo pipefail
+          # A Service port-forward to a UI pod dies during Recreate. Proxy through
+          # the Kubernetes API for standalone; multi-user uses the unchanged ingress.
+          if [ "$KFP_DEPLOYMENT_MODE" = multiuser ]; then
+            kubectl -n istio-system port-forward service/istio-ingressgateway 3000:80 > "$RUNNER_TEMP/ingress-forward.log" 2>&1 &
+          else
+            kubectl proxy --port=3001 --accept-hosts='^127\.0\.0\.1$' > "$RUNNER_TEMP/api-proxy.log" 2>&1 &
+          fi
+          echo "$!" > "$RUNNER_TEMP/kfp-endpoint.pid"
+      - name: Exercise baseline, upgrade and rollback in persistent browser sessions
+        run: node frontend/scripts/ui-modernization-deployment.mjs
+      - name: Collect sanitized cluster diagnostics
+        if: always()
+        run: |
+          mkdir -p "$KFP_DEPLOYMENT_REPORT_DIR/diagnostics"
+          kubectl get pods -A -o wide > "$KFP_DEPLOYMENT_REPORT_DIR/diagnostics/pods.txt" 2>&1 || true
+          kubectl get events -A --sort-by=.metadata.creationTimestamp > "$KFP_DEPLOYMENT_REPORT_DIR/diagnostics/events.txt" 2>&1 || true
+          # Do not upload Secrets, browser storage, auth-provider logs or HAR files.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: frontend-deployment-${{ matrix.mode }}
+          path: ${{ runner.temp }}/deployment-report
+          overwrite: true
+          retention-days: 90
+          if-no-files-found: error
+      - name: Cleanup owned endpoint and registry
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/kfp-endpoint.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/kfp-endpoint.pid")" 2>/dev/null || true
+          fi
+          docker rm -f kfp-qualification-registry 2>/dev/null || true
