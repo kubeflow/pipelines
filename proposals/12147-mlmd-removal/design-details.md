@@ -338,16 +338,9 @@ Legacy execution URLs redirect to Runs (or the known run) with dismissible guida
 not guess a native task ID. Resolving an old execution bookmark to its corresponding task
 requires a trusted migration mapping coordinated with #14029 and #14301.
 
-Artifact Details provides both a Related tasks table and a native Lineage Explorer. The explorer
-uses a five-column graph of input artifacts, producing tasks, the selected artifact, consuming
-tasks, and output artifacts. Individual edges connect the recorded relationships. The first
-bounded page of each visible task's input/output relationships loads automatically; selecting
-an adjacent artifact recenters the neighborhood, with named breadcrumbs, Back, and Reset
-navigation. Relationship reads are filtered by artifact or task ID and loaded five
-at a time with explicit Load more controls, rather than scanning runs or recursively fetching
-the graph. Failed lookups retain already-loaded relationships and provide retry controls.
-This restores interactive neighborhood exploration without reintroducing MLMD. Grouped artifact
-browsing remains a separate read-model follow-up in #14041.
+Artifact Details provides a paginated Related tasks table backed by native artifact-task
+relationships, with links to the associated tasks in Run Details. The interactive Lineage Explorer
+is not retained. Grouped artifact browsing remains a separate read-model follow-up in #14041.
 
 On the Run Details page, MLMD data is fetched in `RuntimeNodeDetailsV2.tsx` via:
 
