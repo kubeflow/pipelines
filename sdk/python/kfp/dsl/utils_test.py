@@ -121,5 +121,83 @@ class UtilsTest(parameterized.TestCase):
                 utils.validate_pipeline_name('my_pipeline')
 
 
+class NormalizeResourceQuantityTest(parameterized.TestCase):
+
+    # Every value here was checked against
+    # k8s.io/apimachinery/pkg/api/resource.ParseQuantity, which is what the KFP
+    # driver runs before it builds the pod spec.
+    @parameterized.parameters(
+        '1',
+        '1000',
+        '0',
+        '1.5',
+        '0.5',
+        '.5',
+        '1.',
+        '+1',
+        '512Mi',
+        '1.5Gi',
+        '1.25Gi',
+        '2.5G',
+        '2.5Ti',
+        '1Ki',
+        '1Ei',
+        '1E',
+        '1P',
+        '1Pi',
+        '1T',
+        '1Ti',
+        '1M',
+        '1G',
+        '100k',
+        '500m',
+        '1n',
+        '1u',
+        '1e3',
+        '1E3',
+        '1e-3',
+        '1.5e3',
+    )
+    def test_accepts_kubernetes_quantity(self, value):
+        self.assertEqual(utils.normalize_resource_quantity(value), value)
+
+    @parameterized.parameters(
+        {
+            'value': '6K',
+            'expected': '6k'
+        },
+        {
+            'value': '1.5K',
+            'expected': '1.5k'
+        },
+    )
+    def test_rewrites_legacy_kilo_suffix(self, value, expected):
+        self.assertEqual(utils.normalize_resource_quantity(value), expected)
+
+    @parameterized.parameters(
+        '',
+        'Gi',
+        'abc',
+        '1gi',
+        '1KI',
+        '1GB',
+        '1B',
+        '1Mib',
+        '512 Mi',
+        '1..5Gi',
+        '1,5Gi',
+        '-1',
+        '-10Gi',
+        '1Ki3',
+        '1e',
+        '0x10',
+        '.',
+        None,
+        10,
+    )
+    def test_rejects_non_quantity(self, value):
+        self.assertIsNone(utils.normalize_resource_quantity(value))
+
+
 if __name__ == '__main__':
     unittest.main()

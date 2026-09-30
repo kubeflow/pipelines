@@ -71,6 +71,11 @@ class PipelineChannelTest(parameterized.TestCase):
                 is_artifact_list=False,
             )
 
+    def test_rejects_dict_channel_type(self):
+        with self.assertRaisesRegex(TypeError, 'channel_type must be'):
+            pipeline_channel.create_pipeline_channel(
+                name='channel', channel_type={'Model': {}})
+
     @parameterized.parameters(
         {
             'pipeline_channel':
@@ -95,13 +100,11 @@ class PipelineChannelTest(parameterized.TestCase):
             'pipeline_channel':
                 pipeline_channel.create_pipeline_channel(
                     name='channel3',
-                    channel_type={'type_a': {
-                        'property_b': 'c'
-                    }},
+                    channel_type='system.Model@0.0.1',
                     task_name='task3',
                 ),
             'str_repr':
-                '{{channel:task=task3;name=channel3;type={"type_a": {"property_b": "c"}};}}',
+                '{{channel:task=task3;name=channel3;type=system.Model@0.0.1;}}',
         },
         {
             'pipeline_channel':
@@ -135,14 +138,12 @@ class PipelineChannelTest(parameterized.TestCase):
         )
         p2 = pipeline_channel.create_pipeline_channel(
             name='channel2',
-            channel_type='customized_type_b',
+            channel_type='system.Dataset@0.0.1',
             task_name='task2',
         )
         p3 = pipeline_channel.create_pipeline_channel(
             name='channel3',
-            channel_type={'customized_type_c': {
-                'property_c': 'value_c'
-            }},
+            channel_type='system.Model@0.0.1',
             task_name='task3',
         )
         stuff_chars = ' between '

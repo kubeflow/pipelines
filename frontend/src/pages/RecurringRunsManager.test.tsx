@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import { Apis } from 'src/lib/Apis';
 import TestUtils, { expectErrors } from 'src/TestUtils';
@@ -55,9 +55,9 @@ describe('RecurringRunsManager', () => {
   function generateProps(): RecurringRunListProps {
     return {
       experimentId: 'test-experiment',
-      history: {} as any,
+      navigate: vi.fn(),
       location: '' as any,
-      match: {} as any,
+      params: {},
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
     };

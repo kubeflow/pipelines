@@ -176,5 +176,64 @@ class TestAdditionalInputNameForPipelineChannel(parameterized.TestCase):
                 data, old_value, new_value))
 
 
+class TestMemoryToFloat(parameterized.TestCase):
+
+    # _memory_to_float reports gigabytes, which is the unit of the deprecated
+    # memoryLimit and memoryRequest fields in the pipeline spec.
+    @parameterized.parameters(
+        {
+            'memory': '1G',
+            'expected': 1.0
+        },
+        {
+            'memory': '1Gi',
+            'expected': 1.073741824
+        },
+        {
+            'memory': '1.5Gi',
+            'expected': 1.610612736
+        },
+        {
+            'memory': '2.5G',
+            'expected': 2.5
+        },
+        {
+            'memory': '512Mi',
+            'expected': 0.536870912
+        },
+        {
+            'memory': '6K',
+            'expected': 6e-06
+        },
+        {
+            'memory': '6k',
+            'expected': 6e-06
+        },
+        {
+            'memory': '500m',
+            'expected': 5e-13
+        },
+        {
+            'memory': '1u',
+            'expected': 1e-15
+        },
+        {
+            'memory': '1n',
+            'expected': 1e-18
+        },
+        {
+            'memory': '1e3',
+            'expected': 1e-06
+        },
+        {
+            'memory': '7000',
+            'expected': 7e-06
+        },
+    )
+    def test_memory_to_float(self, memory, expected):
+        self.assertAlmostEqual(
+            compiler_utils._memory_to_float(memory), expected)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -16,7 +16,7 @@ import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
-import { StorageService } from 'src/lib/WorkflowParser';
+import { StorageService } from 'src/lib/StoragePath';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType, ViewerConfig } from './Viewer';
 import {

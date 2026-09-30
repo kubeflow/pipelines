@@ -202,7 +202,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef get_uri(d: dsl.Input[dsl.Dataset]) -> str:\n    print(f\"Artifact\
           \ URI: {d.uri}\")\n    return d.uri\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-get-uri-2:
       container:
         args:
@@ -231,7 +231,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef get_uri(d: dsl.Input[dsl.Dataset]) -> str:\n    print(f\"Artifact\
           \ URI: {d.uri}\")\n    return d.uri\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-importer:
       importer:
         artifactUri:
@@ -289,7 +289,7 @@ deploymentSpec:
           \ if names else \"EMPTY_DIRECTORY\"\n        print(f\"Found {len(names)}\
           \ files: {result}\")\n        return result\n\n    raise ValueError(f\"\
           Not a directory: {path}\")\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-train:
       container:
         args:
@@ -323,7 +323,7 @@ deploymentSpec:
           \    message = f'My model trained using data: {data}'\n\n    from collections\
           \ import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'message'])\n\
           \    return output(scalar, message)\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-write-dir-artifact:
       container:
         args:
@@ -356,7 +356,7 @@ deploymentSpec:
           First file in directory.\\n\")\n    with open(os.path.join(out_ds.path,\
           \ \"part-001.txt\"), \"w\", encoding=\"utf-8\") as f:\n        f.write(\"\
           Second file in directory.\\n\")\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
     exec-write-file-artifact:
       container:
         args:
@@ -387,7 +387,7 @@ deploymentSpec:
           \ os\n    os.makedirs(os.path.dirname(out_ds.path), exist_ok=True)\n   \
           \ with open(out_ds.path, \"w\", encoding=\"utf-8\") as f:\n        f.write(\"\
           Hello from producer file\\n\")\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
 pipelineInfo:
   description: Importer downloads an artifact into workspace; downstream reads it
   name: pipeline-with-importer-workspace

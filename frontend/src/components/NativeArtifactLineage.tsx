@@ -14,7 +14,7 @@ import ArrowBack from '@mui/icons-material/ArrowBack';
 import Refresh from '@mui/icons-material/Refresh';
 import RestartAlt from '@mui/icons-material/RestartAlt';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { V2beta1ArtifactTask } from 'src/apisv2beta1/artifact';
 import { PipelineTaskTaskType } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';

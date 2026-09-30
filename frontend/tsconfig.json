@@ -48,7 +48,6 @@
     "proto",
     "scripts",
     "server",
-    "src/apis",
     "src/generated",
     "webpack",
     "**/?*test.*"

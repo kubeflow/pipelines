@@ -414,11 +414,10 @@ export default class Buttons {
           [QUERY_PARAMS.isRecurring]: '1',
         };
       } else {
-        // TODO(jlyaoyuli): change query parameters to fromRunId once v1 is deprecated.
         searchTerms = { [QUERY_PARAMS.cloneFromRun]: runId || '' };
       }
       const searchString = this._urlParser.build(searchTerms);
-      this._props.history.push(RoutePage.NEW_RUN + searchString);
+      this._props.navigate(RoutePage.NEW_RUN + searchString);
     }
   }
 
@@ -512,7 +511,7 @@ export default class Buttons {
         selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'
       }? This action cannot be undone.`,
       useCurrentResource,
-      (id) => Apis.pipelineServiceApi.deletePipeline(id),
+      (id) => Apis.pipelineServiceApiV2.deletePipeline(id),
       callback,
       'Delete',
       'pipeline',
@@ -585,7 +584,7 @@ export default class Buttons {
       ids,
       'Do you want to delete the selected runs? This action cannot be undone.',
       useCurrentResource,
-      (id) => Apis.runServiceApi.deleteRun(id),
+      (id) => Apis.runServiceApiV2.deleteRun(id),
       callback,
       'Delete',
       'run',
@@ -688,7 +687,7 @@ export default class Buttons {
     if (indices.length > 1 && indices.length <= 10) {
       const runIds = selectedIds.join(',');
       const searchString = this._urlParser.build({ [QUERY_PARAMS.runlist]: runIds });
-      this._props.history.push(RoutePage.COMPARE + searchString);
+      this._props.navigate(RoutePage.COMPARE + searchString);
     }
   }
 
@@ -698,7 +697,7 @@ export default class Buttons {
           [QUERY_PARAMS.pipelineId]: pipelineId,
         })
       : '';
-    this._props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
+    this._props.navigate(RoutePage.NEW_EXPERIMENT + searchString);
   }
 
   private _createNewRun(isRecurring: boolean, experimentId?: string): void {
@@ -709,7 +708,7 @@ export default class Buttons {
         ? { [QUERY_PARAMS.returnTo]: RoutePage.RECURRING_RUNS }
         : {}),
     });
-    this._props.history.push(RoutePage.NEW_RUN + searchString);
+    this._props.navigate(RoutePage.NEW_RUN + searchString);
   }
 
   private _createNewRunFromPipelineVersion(pipelineId?: string, pipelineVersionId?: string): void {
@@ -725,7 +724,7 @@ export default class Buttons {
       });
     }
 
-    this._props.history.push(RoutePage.NEW_RUN + searchString);
+    this._props.navigate(RoutePage.NEW_RUN + searchString);
   }
 
   private async _setRecurringRunEnabledState(id: string, enabled: boolean): Promise<void> {
@@ -764,7 +763,7 @@ export default class Buttons {
           [QUERY_PARAMS.pipelineId]: pipelineId,
         })
       : '';
-    this._props.history.push(RoutePage.NEW_PIPELINE_VERSION + searchString);
+    this._props.navigate(RoutePage.NEW_PIPELINE_VERSION + searchString);
   }
 
   private async _dialogDeletePipelinesAndPipelineVersions(

@@ -16,7 +16,9 @@
 
 import { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
-import { Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, matchPath } from 'react-router';
+import { NavigationProps } from 'src/lib/Navigation';
+import Page404 from 'src/pages/404';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
@@ -24,7 +26,6 @@ import { classes, stylesheet } from 'typestyle';
 import Banner, { BannerProps } from 'src/components/Banner';
 import { commonCss } from 'src/Css';
 import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
-import Page404 from 'src/pages/404';
 import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
 } from 'src/pages/AllExperimentsAndArchive';
@@ -182,27 +183,23 @@ export interface RouterProps {
 const DEFAULT_ROUTE =
   KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
 
-const RemovedExecutionRoute = ({ match }: RouteComponentProps<{ [RouteParams.ID]?: string }>) => (
-  <Redirect
-    to={`${RoutePage.RUNS}?${QUERY_PARAMS.executionRedirect}=${match.params[RouteParams.ID] ? 'detail' : 'list'}`}
-  />
-);
-
-type LegacyRunExecutionRouteParams = {
-  [RouteParams.runId]: string;
-  [RouteParams.executionId]: string;
+const RemovedExecutionRoute = ({ params }: NavigationProps) => {
+  return (
+    <Navigate
+      replace
+      to={`${RoutePage.RUNS}?${QUERY_PARAMS.executionRedirect}=${params[RouteParams.ID] ? 'detail' : 'list'}`}
+    />
+  );
 };
 
-const LegacyRunExecutionRoute = ({
-  location,
-  match,
-}: RouteComponentProps<LegacyRunExecutionRouteParams>) => {
+const LegacyRunExecutionRoute = ({ location, params }: NavigationProps) => {
   const query = new URLSearchParams(location.search);
   query.set(QUERY_PARAMS.executionRedirect, 'detail');
   return (
-    <Redirect
+    <Navigate
+      replace
       to={{
-        pathname: RoutePageFactory.runDetails(match.params[RouteParams.runId]),
+        pathname: RoutePageFactory.runDetails(encodeURIComponent(params[RouteParams.runId]!)),
         search: `?${query}`,
         hash: location.hash,
       }}
@@ -211,7 +208,9 @@ const LegacyRunExecutionRoute = ({
 };
 
 // Keep navigation guidance separate from page-owned loading and error banners.
-const ExecutionRedirectNotice = ({ location, history }: RouteComponentProps) => {
+const ExecutionRedirectNotice = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const query = new URLSearchParams(location.search);
   const reason = query.get(QUERY_PARAMS.executionRedirect);
   if (reason !== 'list' && reason !== 'detail') return null;
@@ -220,7 +219,10 @@ const ExecutionRedirectNotice = ({ location, history }: RouteComponentProps) => 
       severity='info'
       onClose={() => {
         query.delete(QUERY_PARAMS.executionRedirect);
-        history.replace({ ...location, search: query.size ? `?${query}` : '' });
+        navigate(
+          { ...location, search: query.size ? `?${query}` : '' },
+          { replace: true, state: location.state },
+        );
       }}
     >
       Execution pages have moved to Runs and task details. Open a run and select a task to view its
@@ -288,47 +290,56 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   return (
     // There will be only one instance of SideNav, throughout UI usage.
     <SideNavLayout>
-      <Switch>
-        <Route
-          exact={true}
-          path={'/'}
-          render={({ ...props }) => <Redirect to={DEFAULT_ROUTE} {...props} />}
-        />
-
-        {/* Normal routes */}
-        {routes.map((route, i) => {
-          const { path } = { ...route };
-          return (
-            // Keep canonical Run Details mounted while its task-selection query changes. Other
-            // routes retain query-sensitive identity because some initialize state from the URL.
-            <Route
-              key={i}
-              exact={!route.notExact}
-              path={path}
-              render={(props) => {
-                const routeIdentity =
-                  route.path === RoutePage.RUN_DETAILS
-                    ? props.location.pathname
-                    : props.location.key ||
-                      `${props.location.pathname}${props.location.search}${props.location.hash}`;
-                return <RoutedPage key={routeIdentity} route={route} />;
-              }}
-            />
-          );
-        })}
-
-        {/* 404 */}
-        {
-          <Route>
-            <RoutedPage />
-          </Route>
-        }
-      </Switch>
+      <Routes>
+        <Route path='/' element={<Navigate replace to={DEFAULT_ROUTE} />} />
+        {routes.map((route) => (
+          <Route
+            key={route.path}
+            path={route.notExact ? `${route.path}/*` : route.path}
+            element={<RoutePageElement route={route} />}
+          />
+        ))}
+        <Route path='*' element={<RoutePageElement />} />
+      </Routes>
     </SideNavLayout>
   );
 };
 
-class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponentState> {
+// Run Details owns task selection in the query. Other pages initialize forms from it.
+function RoutePageElement({ route }: { route?: RouteConfig }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Match the encoded pathname before decoding once: useParams turns a literal
+  // "%2F" (encoded as "%252F" in the URL) into a slash in React Router 8.
+  const match = route && matchPath({ path: route.path, end: !route.notExact }, location.pathname);
+  const params = Object.fromEntries(
+    Object.entries(match?.params || {}).map(([name, value]) => {
+      try {
+        return [name, value === undefined ? undefined : decodeURIComponent(value)];
+      } catch {
+        return [name, value];
+      }
+    }),
+  );
+  const routeIdentity =
+    route?.path === RoutePage.RUN_DETAILS
+      ? location.pathname
+      : location.key || `${location.pathname}${location.search}${location.hash}`;
+  return (
+    <RoutedPage
+      key={`${route?.path}:${routeIdentity}`}
+      route={route}
+      location={location}
+      navigate={navigate}
+      params={params}
+    />
+  );
+}
+
+class RoutedPage extends React.Component<
+  NavigationProps & { route?: RouteConfig },
+  RouteComponentState
+> {
   private childProps = {
     toolbarProps: {
       breadcrumbs: [{ displayName: '', href: '' }],
@@ -354,13 +365,15 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
   public render(): React.JSX.Element {
     this.childProps.toolbarProps = this.state.toolbarProps;
-    const route = this.props.route;
+    const { route, location, navigate, params } = this.props;
+    const Component = route?.Component ?? Page404;
+    const navigation = { location, navigate, params };
 
     return (
       <div className={classes(commonCss.page)}>
-        <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
+        <Toolbar {...this.state.toolbarProps} navigate={navigate} />
         {(route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS) && (
-          <Route component={ExecutionRedirectNotice} />
+          <ExecutionRedirectNotice />
         )}
         {this.state.bannerProps.message && (
           <Banner
@@ -371,32 +384,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
             showTroubleshootingGuideLink={true}
           />
         )}
-        <Switch>
-          {route &&
-            (() => {
-              const { path, Component, ...otherProps } = { ...route };
-              return (
-                <Route
-                  exact={!route.notExact}
-                  path={path}
-                  render={({ ...props }) => (
-                    <Component {...props} {...this.childProps} {...otherProps} />
-                  )}
-                />
-              );
-            })()}
-
-          {/* 404 */}
-          {!!route && (
-            <Route
-              render={(props) => (
-                // The catch-all route matches no params, so narrow the params bag
-                // to the string-valued shape PageProps declares.
-                <Page404 {...props} match={{ ...props.match, params: {} }} {...this.childProps} />
-              )}
-            />
-          )}
-        </Switch>
+        <Component {...navigation} {...this.childProps} view={route?.view} />
 
         <Snackbar
           autoHideDuration={this.state.snackbarProps.autoHideDuration}
@@ -479,13 +467,14 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
 export default Router;
 
-const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className={classes(commonCss.page)}>
-    <div className={classes(commonCss.flexGrow)}>
-      <Route
-        render={({ ...props }) => <SideNavigation page={props.location.pathname} {...props} />}
-      />
-      {children}
+const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  return (
+    <div className={classes(commonCss.page)}>
+      <div className={classes(commonCss.flexGrow)}>
+        <SideNavigation page={location.pathname} />
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};

@@ -39,9 +39,9 @@ describe('PipelineVersionList', () => {
 
   function generateProps(): PipelineVersionListProps {
     return {
-      history: {} as any,
+      navigate: vi.fn(),
       location: { search: '' } as any,
-      match: '' as any,
+      params: {},
       onError: onErrorSpy,
       pipelineId: 'pipeline',
     };

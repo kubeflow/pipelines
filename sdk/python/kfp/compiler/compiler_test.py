@@ -42,6 +42,7 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import pipeline_task
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.dsl import placeholders
 from kfp.dsl import tasks_group
 from kfp.dsl import yaml_component
 from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
@@ -51,21 +52,18 @@ from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
-VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
-    name: producer
-    inputs:
-    - {name: input_param, type: String}
-    outputs:
-    - {name: output_model, type: Model}
-    - {name: output_value, type: Integer}
-    implementation:
-      container:
-        image: gcr.io/my-project/my-image:tag
-        args:
-        - {inputValue: input_param}
-        - {outputPath: output_model}
-        - {outputPath: output_value}
-    """)
+
+@dsl.container_component
+def valid_producer_component_sample(output_model: dsl.Output[dsl.Model],
+                                    output_value: dsl.OutputPath(int),
+                                    input_param: str):
+    return dsl.ContainerSpec(
+        image='gcr.io/my-project/my-image:tag',
+        args=[input_param, output_model.path, output_value],
+    )
+
+
+VALID_PRODUCER_COMPONENT_SAMPLE = valid_producer_component_sample
 
 ### components used throughout tests ###
 
@@ -200,34 +198,23 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_simple_pipeline(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            producer_op = components.load_component_from_text("""
-      name: producer
-      inputs:
-      - {name: input_param, type: String}
-      outputs:
-      - {name: output_model, type: Model}
-      - {name: output_value, type: Integer}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: input_param}
-          - {outputPath: output_model}
-          - {outputPath: output_value}
-      """)
 
-            consumer_op = components.load_component_from_text("""
-      name: consumer
-      inputs:
-      - {name: input_model, type: Model}
-      - {name: input_value, type: Integer}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputPath: input_model}
-          - {inputValue: input_value}
-      """)
+            @dsl.container_component
+            def producer_op(output_model: dsl.Output[dsl.Model],
+                            output_value: dsl.OutputPath(int),
+                            input_param: str):
+                return dsl.ContainerSpec(
+                    image='gcr.io/my-project/my-image:tag',
+                    args=[input_param, output_model.path, output_value],
+                )
+
+            @dsl.container_component
+            def consumer_op(input_model: dsl.Input[dsl.Model],
+                            input_value: int):
+                return dsl.ContainerSpec(
+                    image='gcr.io/my-project/my-image:tag',
+                    args=[input_model.path, input_value],
+                )
 
             @dsl.pipeline(name='test-pipeline')
             def simple_pipeline(pipeline_input: str = 'Hello KFP!'):
@@ -248,16 +235,13 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_compile_pipeline_with_bool(self):
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            predict_op = components.load_component_from_text("""
-      name: predict
-      inputs:
-      - {name: generate_explanation, type: Boolean, default: False}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: generate_explanation}
-      """)
+
+            @dsl.container_component
+            def predict_op(generate_explanation: bool = False):
+                return dsl.ContainerSpec(
+                    image='gcr.io/my-project/my-image:tag',
+                    args=[generate_explanation],
+                )
 
             @dsl.pipeline(name='test-boolean-pipeline')
             def simple_pipeline():
@@ -273,26 +257,19 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
 
-        upstream_op = components.load_component_from_text("""
-        name: upstream compoent
-        outputs:
-        - {name: model, type: Model}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {outputPath: model}
-        """)
-        downstream_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: model, type: Model}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputValue: model}
-        """)
+        @dsl.container_component
+        def upstream_op(model: dsl.Output[dsl.Model]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[model.path],
+            )
+
+        @dsl.container_component
+        def downstream_op(model: dsl.Input[dsl.Model]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[placeholders.InputValuePlaceholder('model')],
+            )
 
         with self.assertRaisesRegex(
                 TypeError,
@@ -305,16 +282,12 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
 
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: text, type: String}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputPath: text}
-        """)
+        @dsl.container_component
+        def component_op(text: str):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[placeholders.InputPathPlaceholder('text')],
+            )
 
         with self.assertRaisesRegex(
                 TypeError,
@@ -335,16 +308,12 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
 
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: value, type: Float}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputUri: value}
-        """)
+        @dsl.container_component
+        def component_op(value: float):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[placeholders.InputUriPlaceholder('value')],
+            )
 
         with self.assertRaisesRegex(
                 TypeError,
@@ -356,16 +325,12 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
 
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        outputs:
-        - {name: value, type: Integer}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {outputUri: value}
-        """)
+        @dsl.container_component
+        def component_op(value: dsl.OutputPath(int)):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[placeholders.OutputUriPlaceholder('value')],
+            )
 
         with self.assertRaisesRegex(
                 TypeError,
@@ -455,20 +420,17 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_passing_string_parameter_to_artifact_should_error(self):
 
-        component_op = components.load_component_from_text("""
-      name: component
-      inputs:
-      - {name: some_input, type: , description: an uptyped input}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {inputPath: some_input}
-      """)
+        @dsl.container_component
+        def component_op(some_input: dsl.Input[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[some_input.path],
+            )
+
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
                 "Incompatible argument passed to the input 'some_input' of "
-                "component 'component': Argument type 'STRING' is incompatible "
+                "component 'component-op': Argument type 'STRING' is incompatible "
                 "with the input type 'system.Artifact@0.0.1'"):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
@@ -488,31 +450,23 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_passing_generic_artifact_to_input_expecting_concrete_artifact(
             self):
 
-        producer_op1 = components.load_component_from_text("""
-      name: producer compoent
-      outputs:
-      - {name: output, type: Artifact}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {outputPath: output}
-      """)
+        @dsl.container_component
+        def producer_op1(output: dsl.Output[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[output.path],
+            )
 
         @dsl.component
         def producer_op2(output: dsl.Output[dsl.Artifact]):
             pass
 
-        consumer_op1 = components.load_component_from_text("""
-      name: consumer compoent
-      inputs:
-      - {name: input1, type: MyDataset}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {inputPath: input1}
-      """)
+        @dsl.container_component
+        def consumer_op1(input1: dsl.Input[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[input1.path],
+            )
 
         @dsl.component
         def consumer_op2(input1: dsl.Input[dsl.Dataset]):
@@ -535,31 +489,23 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_passing_concrete_artifact_to_input_expecting_generic_artifact(
             self):
 
-        producer_op1 = components.load_component_from_text("""
-      name: producer compoent
-      outputs:
-      - {name: output, type: Dataset}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {outputPath: output}
-      """)
+        @dsl.container_component
+        def producer_op1(output: dsl.Output[dsl.Dataset]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[output.path],
+            )
 
         @dsl.component
         def producer_op2(output: dsl.Output[dsl.Model]):
             pass
 
-        consumer_op1 = components.load_component_from_text("""
-      name: consumer compoent
-      inputs:
-      - {name: input1, type: Artifact}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {inputPath: input1}
-      """)
+        @dsl.container_component
+        def consumer_op1(input1: dsl.Input[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[input1.path],
+            )
 
         @dsl.component
         def consumer_op2(input1: dsl.Input[dsl.Artifact]):
@@ -582,16 +528,12 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_passing_arbitrary_artifact_to_input_expecting_concrete_artifact(
             self):
 
-        producer_op1 = components.load_component_from_text("""
-      name: producer compoent
-      outputs:
-      - {name: output, type: SomeArbitraryType}
-      implementation:
-        container:
-          image: dummy
-          args:
-          - {outputPath: output}
-      """)
+        @dsl.container_component
+        def producer_op1(output: dsl.Output[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='dummy',
+                args=[output.path],
+            )
 
         @dsl.component
         def consumer_op(input1: dsl.Input[dsl.Dataset]):
@@ -693,17 +635,17 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_use_task_final_status_in_non_exit_op_yaml(self):
 
-        print_op = components.load_component_from_text("""
-name: Print Op
-inputs:
-- {name: message, type: PipelineTaskFinalStatus}
-implementation:
-  container:
-    image: python:3.11
-    command:
-    - echo
-    - {inputValue: message}
-""")
+        @dsl.container_component
+        def print_op(message: dsl.PipelineTaskFinalStatus):
+            return dsl.ContainerSpec(
+                image='python:3.11',
+                command=['echo', message],
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, 'component.yaml')
+            compiler.Compiler().compile(print_op, path)
+            print_op = components.load_component_from_file(path)
 
         with self.assertRaisesRegex(
                 ValueError,
@@ -1426,18 +1368,15 @@ class TestWriteToFileTypes(parameterized.TestCase):
     def test_compile_pipeline_with_default_value(self):
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            producer_op = components.load_component_from_text("""
-      name: producer
-      inputs:
-      - {name: location, type: String, default: 'us-central1'}
-      - {name: name, type: Integer, default: 1}
-      - {name: nodefault, type: String}
-      implementation:
-        container:
-          image: gcr.io/my-project/my-image:tag
-          args:
-          - {inputValue: location}
-      """)
+
+            @dsl.container_component
+            def producer_op(nodefault: str,
+                            location: str = 'us-central1',
+                            name: int = 1):
+                return dsl.ContainerSpec(
+                    image='gcr.io/my-project/my-image:tag',
+                    args=[location],
+                )
 
             @dsl.pipeline(name='test-pipeline')
             def simple_pipeline():
@@ -1665,8 +1604,6 @@ def pipeline_spec_from_file(filepath: str) -> str:
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 _TEST_DATA_DIR = os.path.join(_PROJECT_ROOT, 'test_data')
-UNSUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(_TEST_DATA_DIR,
-                                                    'components', 'unsupported')
 
 
 class TestReadWriteEquality(parameterized.TestCase):
@@ -1743,22 +1680,6 @@ class TestReadWriteEquality(parameterized.TestCase):
         self.assertIn('Deprecated. Please use `kfp dsl compile` instead.)',
                       res.stdout.decode('utf-8'))
 
-    # TODO: the sample does not throw as expected.
-    # def test_compile_unsupported_components_with_output_named_tuple(self):
-    #     with self.assertRaisesRegex(TODO):
-    #         self._test_compile(
-    #             'output_named_tuple',
-    #             directory=UNSUPPORTED_COMPONENTS_TEST_DATA_DIR,
-    #             fn='output_named_tuple')
-
-    # TODO: the sample does not throw as expected.
-    # def test_compile_unsupported_components_with_task_status(self):
-    #     with self.assertRaisesRegex(TODO):
-    #         self._test_compile(
-    #             'task_status',
-    #             directory=UNSUPPORTED_COMPONENTS_TEST_DATA_DIR,
-    #             fn='task_status')
-
 
 def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
     """Ignores kfp sdk versioning in command.
@@ -1817,6 +1738,28 @@ class TestSetRetryCompilation(unittest.TestCase):
         self.assertEqual(retry_policy.backoff_duration.seconds, 30)
         self.assertEqual(retry_policy.backoff_factor, 1.0)
         self.assertEqual(retry_policy.backoff_max_duration.seconds, 10800)
+
+    def test_set_retry_with_policy(self):
+
+        @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text).set_retry(
+                num_retries=3,
+                policy='OnError',
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        _Policy = pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy.Policy
+        retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
+        self.assertEqual(retry_policy.max_retry_count, 3)
+        self.assertEqual(retry_policy.policy, _Policy.POLICY_ON_ERROR)
 
 
 from google.protobuf import json_format
@@ -4444,11 +4387,16 @@ class TestPlatformConfig(unittest.TestCase):
         """Test that workspace size validation works correctly."""
         from kfp.dsl.pipeline_config import WorkspaceConfig
 
-        valid_sizes = ['10Gi', '1.5Gi', '1000Ti', '500Mi', '2Ki']
+        valid_sizes = [
+            '10Gi', '1.5Gi', '1000Ti', '500Mi', '2Ki', '100k', '500m', '1e3'
+        ]
         for size in valid_sizes:
             with self.subTest(size=size):
                 workspace = WorkspaceConfig(size=size)
                 self.assertEqual(workspace.size, size)
+
+        # Kubernetes only reads the lowercase kilobyte suffix.
+        self.assertEqual(WorkspaceConfig(size='10K').size, '10k')
 
         with self.assertRaises(ValueError) as context:
             WorkspaceConfig(size='')
@@ -4468,7 +4416,9 @@ class TestPlatformConfig(unittest.TestCase):
             WorkspaceConfig(size=None)
 
         # Test invalid size raise error
-        invalid_sizes = ['abc', '10XYZ', 'Gi', '.', '1..5Gi', '-10Gi']
+        invalid_sizes = [
+            'abc', '10XYZ', 'Gi', '.', '1..5Gi', '-10Gi', '1gi', '1GB', '1KI'
+        ]
         for size in invalid_sizes:
             with self.subTest(invalid_size=size):
                 with self.assertRaisesRegex(

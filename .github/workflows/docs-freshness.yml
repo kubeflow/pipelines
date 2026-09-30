@@ -5,6 +5,8 @@ on:
     branches: [ master ]
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - .github/workflows/**
       - third_party/**
       - README.md
@@ -24,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install Dependencies
         run: |

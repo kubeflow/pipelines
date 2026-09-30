@@ -15,7 +15,6 @@
  */
 
 import { render } from '@testing-library/react';
-import { createMemoryHistory } from 'history';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
@@ -25,7 +24,7 @@ import PrivateAndSharedPipelines, {
   PrivateAndSharedProps,
   PrivateAndSharedTab,
 } from './PrivateAndSharedPipelines';
-import { Router } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 function generateProps(): PrivateAndSharedProps {
@@ -37,9 +36,9 @@ function generateProps(): PrivateAndSharedProps {
 
 function generatePageProps(): PageProps {
   return {
-    history: {} as any,
+    navigate: vi.fn(),
     location: '' as any,
-    match: {} as any,
+    params: {},
     toolbarProps: {} as any,
     updateBanner: vi.fn(),
     updateDialog: vi.fn(),
@@ -64,9 +63,6 @@ function newMockPipeline(): V2beta1Pipeline {
 // This test is related to pipeline list where we intergrate with v2 API
 // Thus, change to mock v2 API behavior and return values.
 describe('PrivateAndSharedPipelines', () => {
-  const history = createMemoryHistory({
-    initialEntries: ['/does-not-matter'],
-  });
   beforeEach(() => {
     vi.clearAllMocks();
     let listPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelines');
@@ -85,13 +81,13 @@ describe('PrivateAndSharedPipelines', () => {
 
   it('it renders correctly in multi user mode', async () => {
     const tree = render(
-      <Router history={history}>
+      <MemoryRouter initialEntries={['/does-not-matter']}>
         <BuildInfoContext.Provider value={{ apiServerMultiUser: true }}>
           <NamespaceContext.Provider value={'ns'}>
             <PrivateAndSharedPipelines {...generateProps()} />
           </NamespaceContext.Provider>
         </BuildInfoContext.Provider>
-      </Router>,
+      </MemoryRouter>,
     );
     await flushPromisesInAct();
     expect(tree).toMatchSnapshot();
@@ -99,13 +95,13 @@ describe('PrivateAndSharedPipelines', () => {
 
   it('it renders correctly in single user mode', async () => {
     const tree = render(
-      <Router history={history}>
+      <MemoryRouter initialEntries={['/does-not-matter']}>
         <BuildInfoContext.Provider value={{ apiServerMultiUser: false }}>
           <NamespaceContext.Provider value={undefined}>
             <PrivateAndSharedPipelines {...generateProps()} />
           </NamespaceContext.Provider>
         </BuildInfoContext.Provider>
-      </Router>,
+      </MemoryRouter>,
     );
     await flushPromisesInAct();
     expect(tree).toMatchSnapshot();

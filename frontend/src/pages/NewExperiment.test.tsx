@@ -30,7 +30,7 @@ describe('NewExperiment', () => {
 
   const createExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'createExperiment');
   const listPipelineVersionsSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
-  let historyPushSpy: ReturnType<typeof vi.fn>;
+  let navigateSpy: ReturnType<typeof vi.fn>;
   let updateDialogSpy: ReturnType<typeof vi.fn>;
   let updateSnackbarSpy: ReturnType<typeof vi.fn>;
   let updateToolbarSpy: ReturnType<typeof vi.fn>;
@@ -38,9 +38,9 @@ describe('NewExperiment', () => {
 
   function generateProps(): PageProps {
     return {
-      history: { push: historyPushSpy } as any,
+      navigate: navigateSpy,
       location: { pathname: RoutePage.NEW_EXPERIMENT, search: '' } as any,
-      match: '' as any,
+      params: {},
       toolbarProps: NewExperiment.prototype.getInitialToolbarState(),
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -78,7 +78,7 @@ describe('NewExperiment', () => {
   }
 
   beforeEach(() => {
-    historyPushSpy = vi.fn();
+    navigateSpy = vi.fn();
     updateDialogSpy = vi.fn();
     updateSnackbarSpy = vi.fn();
     updateToolbarSpy = vi.fn();
@@ -204,7 +204,7 @@ describe('NewExperiment', () => {
     await userEvent.click(getNextButton());
     await flushPromisesInAct();
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN + `?experimentId=${experimentId}` + `&firstRunInExperiment=1`,
     );
   });
@@ -229,7 +229,7 @@ describe('NewExperiment', () => {
     await userEvent.click(getNextButton());
     await flushPromisesInAct();
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
+    expect(navigateSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN +
         `?experimentId=${experimentId}` +
         `&pipelineId=${pipelineId}` +
@@ -287,6 +287,6 @@ describe('NewExperiment', () => {
     await userEvent.click(getCancelButton());
     await flushPromisesInAct();
 
-    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.EXPERIMENTS);
+    expect(navigateSpy).toHaveBeenCalledWith(RoutePage.EXPERIMENTS);
   });
 });

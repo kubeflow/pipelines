@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { ReactElement } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { InputOutputsIOArtifact } from 'src/apisv2beta1/run';
 import ArtifactPreview, {
   ArtifactPreviewProps,

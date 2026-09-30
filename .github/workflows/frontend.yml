@@ -12,7 +12,6 @@ on:
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
       - 'api/v2alpha1/*.proto'
       - 'kubernetes_platform/proto/*.proto'
-      - 'backend/api/v1beta1/swagger/**'
       - 'backend/api/v2beta1/swagger/**'
       - '.github/workflows/frontend.yml'
       - '!**/*.md'
@@ -86,3 +85,9 @@ jobs:
 
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
+
+    - name: Verify production bundle startup
+      working-directory: frontend
+      run: |
+        npx playwright install --with-deps chromium
+        npm run test:bundle

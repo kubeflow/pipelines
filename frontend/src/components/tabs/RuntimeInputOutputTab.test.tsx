@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { ArtifactArtifactType, V2beta1PipelineTask } from 'src/apisv2beta1/run';
 import { RuntimeInputOutputTab } from './RuntimeInputOutputTab';
 

@@ -21,7 +21,7 @@ import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
-import { StoragePath } from 'src/lib/WorkflowParser';
+import { StoragePath } from 'src/lib/StoragePath';
 import { parseArtifactFileLocation } from 'src/lib/v2/ArtifactFileUtils';
 import { stylesheet } from 'typestyle';
 import Banner from './Banner';

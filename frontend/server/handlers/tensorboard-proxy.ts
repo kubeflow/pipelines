@@ -20,22 +20,15 @@ import { ViewerTensorboardConfig } from '../configs.js';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 import {
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
-} from '../src/generated/apis/auth/index.js';
+  AuthorizeResourcesEnum,
+  AuthorizeVerbEnum,
+} from '../src/generated/apisv2beta1/auth/index.js';
 import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
-const UI_SERVER_ROUTE_PREFIXES = [
-  '/apis',
-  '/apps',
-  '/artifacts',
-  '/k8s',
-  '/system',
-  '/visualizations',
-];
+const UI_SERVER_ROUTE_PREFIXES = ['/apis', '/apps', '/artifacts', '/k8s', '/system'];
 
 interface TensorboardProxyPayload {
   namespace: string;
@@ -315,8 +308,8 @@ export default function registerTensorboardProxy(
 
       const authError = await authorizeFn(
         {
-          verb: AuthorizeRequestVerb.GET,
-          resources: AuthorizeRequestResources.VIEWERS,
+          verb: AuthorizeVerbEnum.GET,
+          resources: AuthorizeResourcesEnum.VIEWERS,
           namespace: payload.namespace,
         },
         req,

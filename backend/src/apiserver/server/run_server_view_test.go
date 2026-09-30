@@ -27,7 +27,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Helper function to create a run with tasks for testing
@@ -47,7 +49,7 @@ func initWithRunAndTasks(t *testing.T) (*resource.FakeClientManager, *resource.R
 		DisplayName: "test-run",
 		Namespace:   "ns1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	}
 	createdRun, err := resourceManager.CreateRun(ctx, run)
@@ -314,7 +316,7 @@ func TestGetRun_NoTasks(t *testing.T) {
 		DisplayName: "test-run-no-tasks",
 		Namespace:   "ns1",
 		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			PipelineSpecManifest: model.LargeText(testIRPipeline),
 		},
 	}
 	createdRun, err := manager.CreateRun(ctx, run)
@@ -481,7 +483,10 @@ func TestGetRun_FullView_AfterReportWorkflowHydratesTasks(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	workflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	execution, err := clients.ExecClient().Execution(run.Namespace).Get(context.Background(), run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	workflow, ok := execution.(*util.Workflow)
+	require.True(t, ok)
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, run.UUID)
 	workflow.Status.Phase = v1alpha1.WorkflowFailed
 	workflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
@@ -533,7 +538,7 @@ func TestListRuns_FullView_UsesConfiguredMaxPageSize(t *testing.T) {
 			DisplayName: fmt.Sprintf("test-run-extra-%d", index),
 			Namespace:   "ns1",
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+				PipelineSpecManifest: model.LargeText(testIRPipeline),
 			},
 		}
 		extraRun, err := manager.CreateRun(ctx, run)

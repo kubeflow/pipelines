@@ -44,33 +44,32 @@ class GoogleCloudTest(unittest.TestCase):
             self.assertNotIn('\t', gcp._command_string[command])
             self.assertNotIn('\n', gcp._command_string[command])
 
-    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-    def test_execute_gsutil_command(self, mock_executor_response):
+    @mock.patch.object(utility, 'execute_command', autospec=True)
+    def test_execute_gsutil_command(self, mock_execute_command):
         """Test execute_gsutil_command."""
         gcp.execute_gsutil_command(
             [gcp._command_string[gcp.Commands.GET_STORAGE_BUCKETS]])
-        mock_executor_response().execute_command.assert_called_once_with(
-            ['gsutil', 'ls'])
+        mock_execute_command.assert_called_once_with(['gsutil', 'ls'])
 
         gcp.execute_gsutil_command(
             [gcp._command_string[gcp.Commands.GET_STORAGE_BUCKETS]],
             project_id='test_project')
-        mock_executor_response().execute_command.assert_called_with(
+        mock_execute_command.assert_called_with(
             ['gsutil', 'ls', '-p', 'test_project'])
 
-    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-    def test_execute_gcloud_command(self, mock_executor_response):
+    @mock.patch.object(utility, 'execute_command', autospec=True)
+    def test_execute_gcloud_command(self, mock_execute_command):
         """Test execute_gcloud_command."""
         gcp.execute_gcloud_command(
             gcp._command_string[gcp.Commands.GET_APIS].split(' '))
-        mock_executor_response().execute_command.assert_called_once_with(
+        mock_execute_command.assert_called_once_with(
             ['gcloud', 'services', 'list', '--format', 'json'])
 
         gcp.execute_gcloud_command(
             gcp._command_string[gcp.Commands.GET_APIS].split(' '),
             project_id='test_project')
         # verify project id is added correctly
-        mock_executor_response().execute_command.assert_called_with([
+        mock_execute_command.assert_called_with([
             'gcloud', 'services', 'list', '--format', 'json', '--project',
             'test_project'
         ])
@@ -79,7 +78,7 @@ class GoogleCloudTest(unittest.TestCase):
             gcp._command_string[gcp.Commands.GET_APIS].split(' '),
             project_id='test_project',
             human_readable=True)
-        mock_executor_response().execute_command.assert_called_with(
+        mock_execute_command.assert_called_with(
             ['gcloud', 'services', 'list', '--project', 'test_project'])
 
 

@@ -78,14 +78,6 @@ func TestExperiments(t *testing.T) {
 	})
 }
 
-func TestVisualization(t *testing.T) {
-	testOBJ(t, caseOpts[*pb.Visualization]{
-		message:          visualization,
-		expectedPBPath:   generatePath("visualization.pb"),
-		expectedJSONPath: generatePath("visualization.json"),
-	})
-}
-
 func TestRecurringRun(t *testing.T) {
 	testOBJ(t, caseOpts[*pb.RecurringRun]{
 		message:          recurringRun,

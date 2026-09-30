@@ -58,7 +58,7 @@ class TestNotebookComponentDecorator(unittest.TestCase):
         self.assertIn('nbclient>=0.10,<1', command)
         self.assertIn('ipykernel>=6,<7', command)
         self.assertIn('jupyter_client>=7,<9', command)
-        self.assertIn('fastjsonschema<2.22; python_version < "3.10"', command)
+        self.assertNotIn('fastjsonschema<2.22', command)
 
     def test_notebook_component_no_extra_packages_when_empty_list(self):
         nb_path = self._make_temp_notebook('pass\n')
@@ -78,10 +78,10 @@ class TestNotebookComponentDecorator(unittest.TestCase):
 class TestNotebookExecutorTemplate(unittest.TestCase):
 
     def test_template_binds_run_notebook(self):
-        from kfp.dsl.templates.notebook_executor import \
-            get_notebook_executor_source
+        from kfp.dsl.templates import notebook_executor
 
-        source = get_notebook_executor_source('ARCHIVE_B64', 'nb.ipynb')
+        source = notebook_executor.get_notebook_executor_source(
+            'ARCHIVE_B64', 'nb.ipynb')
         self.assertIn('dsl.run_notebook = kfp_run_notebook', source)
         self.assertIn('class KFPStreamingNotebookClient(NotebookClient):',
                       source)

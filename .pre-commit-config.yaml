@@ -1,4 +1,4 @@
-exclude: ^backend/api/(v1beta1|v2beta1)/python_http_client/
+exclude: ^backend/api/v2beta1/python_http_client/
 
 repos:
   # other fast helpful checks

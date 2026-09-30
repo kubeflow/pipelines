@@ -8,7 +8,7 @@ env:
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
   USER_NAMESPACE: "kubeflow-user-example-com"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
   CA_CERT_PATH: ""
 
 on:
@@ -35,6 +35,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/api-server-tests.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'

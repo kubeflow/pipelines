@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { NavigationProps } from 'src/lib/Navigation';
 import {
   MouseEvent as ReactMouseEvent,
   useCallback,
@@ -46,7 +47,7 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import { KeyValue } from 'src/lib/StaticGraphParser';
+import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import { URLParser } from 'src/lib/URLParser';
@@ -68,8 +69,8 @@ import {
 } from 'src/lib/v2/StaticFlow';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { classes } from 'typestyle';
-import { RouteComponentProps } from 'react-router-dom';
-import { RunDetailsProps } from './RunDetails';
+
+import { PageProps } from './Page';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
@@ -148,18 +149,16 @@ function evaluateTerminalTaskReconciliation(
   };
 }
 
-export interface RunDetailsV2Params {
+export type RunDetailsV2Params = {
   [RouteParams.runId]: string;
-}
+};
 
-export type RunDetailsV2Props = RunDetailsV2Info &
-  RunDetailsProps &
-  RouteComponentProps<RunDetailsV2Params>;
+export type RunDetailsV2Props = RunDetailsV2Info & PageProps & NavigationProps<RunDetailsV2Params>;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
   const { onRetryStarted, updateToolbar } = props;
   const { updateBanner } = props;
-  const runId = props.match.params[RouteParams.runId];
+  const runId = props.params[RouteParams.runId];
   const run = props.run;
   const selectedNamespace = useContext(NamespaceContext);
   const pipelineJobStr = props.pipeline_job;
@@ -311,19 +310,24 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   });
   const namespace = experiment?.namespace || selectedNamespace;
   const linkedTaskId = new URLParser(props).get(QUERY_PARAMS.taskId);
+  const { location, navigate } = props;
   const clearLinkedTaskQuery = useCallback(() => {
     if (!linkedTaskId) {
       return;
     }
     appliedLinkedTaskId.current = null;
-    const search = new URLSearchParams(props.location.search);
+    const search = new URLSearchParams(location.search);
     search.delete(QUERY_PARAMS.taskId);
     const nextSearch = search.toString();
-    props.history.replace({
-      ...props.location,
-      search: nextSearch ? `?${nextSearch}` : '',
-    });
-  }, [linkedTaskId, props.history, props.location]);
+    navigate(
+      {
+        pathname: location.pathname,
+        hash: location.hash,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true, state: location.state },
+    );
+  }, [linkedTaskId, navigate, location]);
 
   // Query errors take precedence over experiment errors; clear only after both recover.
   useEffect(() => {
@@ -513,7 +517,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Update buttons for managing runs.
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
-  const [runIdFromParams] = useState(props.match.params[RouteParams.runId]);
+  const [runIdFromParams] = useState(props.params[RouteParams.runId]);
   useEffect(() => {
     updateToolBarActions(
       buttons,

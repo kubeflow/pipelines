@@ -377,7 +377,7 @@ class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
                          'system.Artifact@0.0.1')
         self.assertFalse(comp.component_spec.inputs['i'].is_artifact_list)
 
-    def test_known_v1_back_compat(self):
+    def test_sdk_artifact_name(self):
 
         @dsl.component
         def comp(

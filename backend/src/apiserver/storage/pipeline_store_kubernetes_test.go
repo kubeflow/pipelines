@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -68,9 +68,9 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "test"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "test"},
 			},
 		},
 	}
@@ -236,6 +236,46 @@ func TestGetK8sPipeline_NotFoundError(t *testing.T) {
 
 	_, err := store.GetPipeline(DefaultFakePipelineIdFive)
 	require.NotNil(t, err)
+}
+
+func TestGetK8sPipelineByNameAndNamespace_SingleUserDefaultsToPodNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	// Set the mode explicitly rather than relying on the ambient global, so this
+	// case establishes single-user on its own.
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "false")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	// Single-user mode has one namespace, so the fallback stays correct.
+	pipeline, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "")
+	require.NoError(t, err)
+	assert.Equal(t, "test-pipeline-3", pipeline.Name)
+}
+
+func TestGetK8sPipelineByNameAndNamespace_MultiUserRequiresNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "true")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	// "test-pipeline-3" lives in the pod namespace, which must not be reachable without naming it.
+	_, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "")
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+
+	pipeline, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "Test")
+	require.NoError(t, err)
+	assert.Equal(t, "test-pipeline-3", pipeline.Name)
 }
 
 func TestCreateK8sPipeline(t *testing.T) {
@@ -462,9 +502,9 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "test"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "test"},
 			},
 		},
 	}

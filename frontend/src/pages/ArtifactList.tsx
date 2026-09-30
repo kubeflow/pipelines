@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { Tooltip } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ArtifactLink } from 'src/components/ArtifactLink';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import { RoutePageFactory } from 'src/components/Router';

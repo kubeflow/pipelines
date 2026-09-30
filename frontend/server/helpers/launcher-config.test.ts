@@ -216,6 +216,113 @@ s3:
     });
   });
 
+  it('applies the S3 override maxRetries instead of the default', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          providers: `
+s3:
+  default:
+    endpoint: s3.amazonaws.com
+    region: us-east-1
+    maxRetries: 3
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: team-bucket
+      keyPrefix: pipelines/team-a
+      maxRetries: 9
+      credentials:
+        fromEnv: true
+`,
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 's3',
+        bucket: 'team-bucket',
+        key: 'pipelines/team-a/run/artifact',
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '').Params).toMatchObject({ maxRetries: '9' });
+  });
+
+  it('applies the S3 override maxRetries when the default omits it', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          providers: `
+s3:
+  default:
+    endpoint: s3.amazonaws.com
+    region: us-east-1
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: team-bucket
+      keyPrefix: pipelines/team-a
+      maxRetries: 9
+      credentials:
+        fromEnv: true
+`,
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 's3',
+        bucket: 'team-bucket',
+        key: 'pipelines/team-a/run/artifact',
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '').Params).toMatchObject({ maxRetries: '9' });
+  });
+
+  it('applies the S3 override forcePathStyle instead of the default', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          providers: `
+s3:
+  default:
+    endpoint: s3.amazonaws.com
+    region: us-east-1
+    forcePathStyle: true
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: team-bucket
+      keyPrefix: pipelines/team-a
+      forcePathStyle: false
+      credentials:
+        fromEnv: true
+`,
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 's3',
+        bucket: 'team-bucket',
+        key: 'pipelines/team-a/run/artifact',
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '').Params).toMatchObject({ forcePathStyle: 'false' });
+  });
+
   it('matches launcher case-insensitive provider and field decoding', async () => {
     mockedGetConfigMap.mockResolvedValue([
       {

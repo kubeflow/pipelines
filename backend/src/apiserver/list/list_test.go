@@ -20,13 +20,12 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strings"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -35,16 +34,10 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
-type fakeMetric struct {
-	Name  string
-	Value float64
-}
-
 type fakeListable struct {
 	PrimaryKey       string
 	FakeName         string
 	CreatedTimestamp int64
-	Metrics          []*fakeMetric
 }
 
 func (f *fakeListable) PrimaryKeyColumnName() string {
@@ -75,9 +68,7 @@ func (f *fakeListable) GetField(name string) (string, string, bool) {
 	if field, ok := fakeAPIToModelMap[name]; ok {
 		return field, field, true
 	}
-	if strings.HasPrefix(name, "metric:") {
-		return name[7:], model.MetricSortSQLAlias, true
-	}
+
 	return "", "", false
 }
 
@@ -90,11 +81,7 @@ func (f *fakeListable) GetFieldValue(name string) interface{} {
 	case "PrimaryKey":
 		return f.PrimaryKey
 	}
-	for _, metric := range f.Metrics {
-		if metric.Name == name {
-			return metric.Value
-		}
-	}
+
 	return nil
 }
 
@@ -111,22 +98,13 @@ func (f *fakeListable) CaseInsensitiveFields() map[string]struct{} {
 }
 
 func TestNextPageToken_ValidTokens(t *testing.T) {
-	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234, Metrics: []*fakeMetric{
-		{
-			Name:  "m1",
-			Value: 1.0,
-		},
-		{
-			Name:  "m2",
-			Value: 2.0,
-		},
-	}}
+	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234}
 
 	protoFilter := &api.Filter{Predicates: []*api.Predicate{
 		{
-			Key:   "name",
-			Op:    api.Predicate_EQUALS,
-			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+			Key:       "name",
+			Operation: api.Predicate_EQUALS,
+			Value:     &api.Predicate_StringValue{StringValue: "SomeName"},
 		},
 	}}
 	testFilter, err := filter.New(protoFilter)
@@ -199,23 +177,6 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				Filter:            testFilter,
 			},
 		},
-		{
-			inOpts: &Options{
-				PageSize: 10,
-				token: &token{
-					SortByFieldName: "m1", IsDesc: false,
-				},
-			},
-			want: &token{
-				SortByFieldName:   "m1",
-				SortByFieldValue:  1.0,
-				SortByFieldPrefix: "",
-				KeyFieldName:      "PrimaryKey",
-				KeyFieldValue:     "uuid123",
-				KeyFieldPrefix:    "",
-				IsDesc:            false,
-			},
-		},
 	}
 
 	for _, test := range tests {
@@ -241,74 +202,6 @@ func TestNextPageToken_InvalidSortByField(t *testing.T) {
 	if !cmp.Equal(err, want, cmpopts.IgnoreUnexported(util.UserError{})) {
 		t.Errorf("nextPageToken(%+v, %+v) =\nGot: %+v, %v\nWant: _, %v",
 			inOpts, l, got, err, want)
-	}
-}
-
-// TestNextPageToken_MetricValueNull covers the regression where a lookahead row
-// without the selected metric produced a nil sort value and made an otherwise
-// valid ListRuns request fail with "cannot sort by field". For metric sorts a
-// missing metric is a legitimate SQL NULL: the token must be generated with
-// SortByFieldIsNull=true rather than returning an error.
-func TestNextPageToken_MetricValueNull(t *testing.T) {
-	// Row has some metrics, but not the one we are sorting by ("accuracy").
-	l := &fakeListable{
-		PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234,
-		Metrics: []*fakeMetric{{Name: "loss", Value: 0.1}},
-	}
-
-	inOpts := &Options{
-		PageSize: 10,
-		token: &token{
-			SortByFieldName: "accuracy",
-			SortBySQLColumn: model.MetricSortSQLAlias,
-			KeyFieldName:    "PrimaryKey",
-			IsDesc:          true,
-		},
-	}
-
-	got, err := inOpts.nextPageToken(l)
-	if err != nil {
-		t.Fatalf("nextPageToken() unexpected error for missing metric: %v", err)
-	}
-	if !got.SortByFieldIsNull {
-		t.Errorf("nextPageToken() SortByFieldIsNull = false, want true for missing metric")
-	}
-	if got.SortByFieldValue != nil {
-		t.Errorf("nextPageToken() SortByFieldValue = %v, want nil for missing metric", got.SortByFieldValue)
-	}
-	if got.KeyFieldValue != "uuid123" {
-		t.Errorf("nextPageToken() KeyFieldValue = %v, want %q", got.KeyFieldValue, "uuid123")
-	}
-}
-
-// TestNextPageToken_MetricValuePresent is the complementary case: when the row
-// does have the selected metric, SortByFieldIsNull must stay false and the value
-// is carried in the token as usual.
-func TestNextPageToken_MetricValuePresent(t *testing.T) {
-	l := &fakeListable{
-		PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234,
-		Metrics: []*fakeMetric{{Name: "accuracy", Value: 0.95}},
-	}
-
-	inOpts := &Options{
-		PageSize: 10,
-		token: &token{
-			SortByFieldName: "accuracy",
-			SortBySQLColumn: model.MetricSortSQLAlias,
-			KeyFieldName:    "PrimaryKey",
-			IsDesc:          true,
-		},
-	}
-
-	got, err := inOpts.nextPageToken(l)
-	if err != nil {
-		t.Fatalf("nextPageToken() unexpected error: %v", err)
-	}
-	if got.SortByFieldIsNull {
-		t.Errorf("nextPageToken() SortByFieldIsNull = true, want false when metric present")
-	}
-	if got.SortByFieldValue != 0.95 {
-		t.Errorf("nextPageToken() SortByFieldValue = %v, want 0.95", got.SortByFieldValue)
 	}
 }
 
@@ -656,37 +549,6 @@ func TestNewOptions_InvalidSortOptions(t *testing.T) {
 	}
 }
 
-func TestNewOptions_ValidMetricSort(t *testing.T) {
-	pageSize := 10
-	tests := []struct {
-		sortBy         string
-		wantMetricName string
-	}{
-		{"metric:accuracy", "accuracy"},
-		{"metric:log-loss", "log-loss"},
-		{"metric:val_accuracy", "val_accuracy"},
-	}
-
-	for _, test := range tests {
-		got, err := NewOptions(&fakeListable{}, pageSize, test.sortBy, nil)
-		if err != nil {
-			t.Errorf("NewOptions(sortBy=%q) returned unexpected error: %v", test.sortBy, err)
-			continue
-		}
-		// Metric sorts carry the raw metric name in SortByFieldName and the fixed
-		// SQL alias in SortBySQLColumn.
-		if got.SortByFieldName != test.wantMetricName {
-			t.Errorf("NewOptions(sortBy=%q) SortByFieldName = %q, want %q", test.sortBy, got.SortByFieldName, test.wantMetricName)
-		}
-		if got.SortBySQLColumn != model.MetricSortSQLAlias {
-			t.Errorf("NewOptions(sortBy=%q) SortBySQLColumn = %q, want %q", test.sortBy, got.SortBySQLColumn, model.MetricSortSQLAlias)
-		}
-		if !got.IsMetricSort() {
-			t.Errorf("NewOptions(sortBy=%q) IsMetricSort() = false, want true", test.sortBy)
-		}
-	}
-}
-
 func TestNewOptions_InvalidPageSize(t *testing.T) {
 	got, err := NewOptions(&fakeListable{}, -1, "", nil)
 	if err == nil {
@@ -698,9 +560,9 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_EQUALS,
-				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+				Key:       "name",
+				Operation: api.Predicate_EQUALS,
+				Value:     &api.Predicate_StringValue{StringValue: "SomeName"},
 			},
 		},
 	}
@@ -723,9 +585,9 @@ func TestNewOptions_InvalidFilter(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "unknownfield",
-				Op:    api.Predicate_EQUALS,
-				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+				Key:       "unknownfield",
+				Operation: api.Predicate_EQUALS,
+				Value:     &api.Predicate_StringValue{StringValue: "SomeName"},
 			},
 		},
 	}
@@ -741,9 +603,9 @@ func TestNewOptions_ModelFilter(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "finished_at",
-				Op:    api.Predicate_GREATER_THAN,
-				Value: &api.Predicate_StringValue{StringValue: "SomeTime"},
+				Key:       "finished_at",
+				Operation: api.Predicate_GREATER_THAN,
+				Value:     &api.Predicate_StringValue{StringValue: "SomeTime"},
 			},
 		},
 	}
@@ -767,9 +629,9 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "Name",
-				Op:    api.Predicate_EQUALS,
-				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+				Key:       "Name",
+				Operation: api.Predicate_EQUALS,
+				Value:     &api.Predicate_StringValue{StringValue: "SomeName"},
 			},
 		},
 	}
@@ -1045,72 +907,14 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 		// Metric sort, non-NULL cursor, ASC (case A): NULL rows sort last, so the
 		// cursor also pulls in the trailing NULL block via "sort_metric_value IS NULL".
 		// The ORDER BY gains a leading "(col IS NULL) ASC" key for deterministic NULL-last.
-		{
-			in: &Options{
-				PageSize: 123,
-				token: &token{
-					SortByFieldName:     "accuracy",
-					SortBySQLColumn:     model.MetricSortSQLAlias,
-					SortByFieldIsString: false,
-					SortByFieldValue:    float64(0.5),
-					KeyFieldName:        "KeyField",
-					KeyFieldValue:       "uuid-1",
-					IsDesc:              false,
-				},
-			},
-			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" > ? OR ("sort_metric_value" = ? AND "KeyField" >= ?) OR "sort_metric_value" IS NULL) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" ASC, "KeyField" ASC LIMIT 124`,
-			wantArgs: []interface{}{float64(0.5), float64(0.5), "uuid-1"},
-		},
+
 		// Metric sort, non-NULL cursor, DESC (case A).
-		{
-			in: &Options{
-				PageSize: 123,
-				token: &token{
-					SortByFieldName:     "accuracy",
-					SortBySQLColumn:     model.MetricSortSQLAlias,
-					SortByFieldIsString: false,
-					SortByFieldValue:    float64(0.5),
-					KeyFieldName:        "KeyField",
-					KeyFieldValue:       "uuid-1",
-					IsDesc:              true,
-				},
-			},
-			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" < ? OR ("sort_metric_value" = ? AND "KeyField" <= ?) OR "sort_metric_value" IS NULL) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" DESC, "KeyField" DESC LIMIT 124`,
-			wantArgs: []interface{}{float64(0.5), float64(0.5), "uuid-1"},
-		},
+
 		// Metric sort, NULL cursor, ASC (case B): all non-NULL rows are already paged
 		// through; advance within the trailing NULL block using the key alone.
-		{
-			in: &Options{
-				PageSize: 123,
-				token: &token{
-					SortByFieldName:   "accuracy",
-					SortBySQLColumn:   model.MetricSortSQLAlias,
-					SortByFieldIsNull: true,
-					KeyFieldName:      "KeyField",
-					KeyFieldValue:     "uuid-9",
-					IsDesc:            false,
-				},
-			},
-			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" IS NULL AND "KeyField" >= ?) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" ASC, "KeyField" ASC LIMIT 124`,
-			wantArgs: []interface{}{"uuid-9"},
-		},
+
 		// Metric sort, NULL cursor, DESC (case B): key tie-break flips to <=.
-		{
-			in: &Options{
-				PageSize: 123,
-				token: &token{
-					SortByFieldName:   "accuracy",
-					SortBySQLColumn:   model.MetricSortSQLAlias,
-					SortByFieldIsNull: true,
-					KeyFieldName:      "KeyField",
-					KeyFieldValue:     "uuid-9",
-					IsDesc:            true,
-				},
-			},
-			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" IS NULL AND "KeyField" <= ?) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" DESC, "KeyField" DESC LIMIT 124`,
-			wantArgs: []interface{}{"uuid-9"},
-		},
+
 	}
 
 	for _, test := range tests {
@@ -1127,9 +931,9 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 func TestTokenSerialization(t *testing.T) {
 	protoFilter := &api.Filter{Predicates: []*api.Predicate{
 		{
-			Key:   "name",
-			Op:    api.Predicate_EQUALS,
-			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+			Key:       "name",
+			Operation: api.Predicate_EQUALS,
+			Value:     &api.Predicate_StringValue{StringValue: "SomeName"},
 		},
 	}}
 	testFilter, err := filter.New(protoFilter)
@@ -1224,74 +1028,13 @@ func TestTokenSerialization(t *testing.T) {
 	}
 }
 
-func TestUnmarshalInvalidMetricNameRoundTrip(t *testing.T) {
-	// A tampered token may carry a metric name that fails the metric-name
-	// pattern (e.g. contains a slash). unmarshal must reject it before the
-	// value is used anywhere.
-	badToken := token{
-		SortByFieldName: "val/loss",
-		SortBySQLColumn: model.MetricSortSQLAlias,
-		KeyFieldName:    "UUID",
-	}
-	s, err := badToken.marshal()
-	if err != nil {
-		t.Fatalf("marshal: %v", err)
-	}
-	got := &token{}
-	if err := got.unmarshal(s); err == nil {
-		t.Errorf("unmarshal token with metric name %q: expected error, got nil", "val/loss")
-	}
-}
-
-func TestUnmarshalMetricSortToken(t *testing.T) {
-	// Metric-sort tokens carry the raw metric name in SortByFieldName and the
-	// fixed alias in SortBySQLColumn. unmarshal must accept them as-is — both
-	// identifier-like names ("accuracy") and hyphenated ones ("log-loss") —
-	// with no migration or mutation of any field.
-	for _, metricName := range []string{"accuracy", "log-loss"} {
-		t.Run(metricName, func(t *testing.T) {
-			tok := token{
-				SortByFieldName:   metricName,
-				SortBySQLColumn:   model.MetricSortSQLAlias,
-				SortByFieldValue:  0.5,
-				SortByFieldPrefix: "",
-				KeyFieldName:      "UUID",
-				KeyFieldValue:     "abc",
-				KeyFieldPrefix:    "pipeline_runs.",
-				IsDesc:            false,
-			}
-			s, err := tok.marshal()
-			if err != nil {
-				t.Fatalf("marshal: %v", err)
-			}
-
-			got := &token{}
-			if err := got.unmarshal(s); err != nil {
-				t.Fatalf("unmarshal metric sort token: %v", err)
-			}
-
-			if got.SortByFieldName != metricName {
-				t.Errorf("SortByFieldName = %q, want %q", got.SortByFieldName, metricName)
-			}
-			if got.SortBySQLColumn != model.MetricSortSQLAlias {
-				t.Errorf("SortBySQLColumn = %q, want %q", got.SortBySQLColumn, model.MetricSortSQLAlias)
-			}
-			// Prefixes are stored with their trailing dot and left untouched;
-			// the dot is stripped only at SQL build time (see qualifyColumn).
-			if got.KeyFieldPrefix != "pipeline_runs." {
-				t.Errorf("KeyFieldPrefix = %q, want %q", got.KeyFieldPrefix, "pipeline_runs.")
-			}
-		})
-	}
-}
-
 func TestMatches(t *testing.T) {
 	protoFilter1 := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "Name",
-				Op:    api.Predicate_EQUALS,
-				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+				Key:       "Name",
+				Operation: api.Predicate_EQUALS,
+				Value:     &api.Predicate_StringValue{StringValue: "SomeName"},
 			},
 		},
 	}
@@ -1303,9 +1046,9 @@ func TestMatches(t *testing.T) {
 	protoFilter2 := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "Name",
-				Op:    api.Predicate_NOT_EQUALS, // Not equals as opposed to equals above.
-				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+				Key:       "Name",
+				Operation: api.Predicate_NOT_EQUALS, // Not equals as opposed to equals above.
+				Value:     &api.Predicate_StringValue{StringValue: "SomeName"},
 			},
 		},
 	}
@@ -1343,20 +1086,6 @@ func TestMatches(t *testing.T) {
 			o1:   &Options{token: &token{Filter: f1}},
 			o2:   &Options{token: &token{Filter: f2}},
 			want: false,
-		},
-		// Metric sort: SortByFieldName holds the raw metric name, so tokens for
-		// different metrics are distinct queries even though they share the same
-		// SQL alias in SortBySQLColumn.
-		{
-			o1:   &Options{token: &token{SortByFieldName: "accuracy", SortBySQLColumn: model.MetricSortSQLAlias}},
-			o2:   &Options{token: &token{SortByFieldName: "log-loss", SortBySQLColumn: model.MetricSortSQLAlias}},
-			want: false,
-		},
-		// Metric sort: same metric name is the same query.
-		{
-			o1:   &Options{token: &token{SortByFieldName: "accuracy", SortBySQLColumn: model.MetricSortSQLAlias}},
-			o2:   &Options{token: &token{SortByFieldName: "accuracy", SortBySQLColumn: model.MetricSortSQLAlias}},
-			want: true,
 		},
 	}
 
@@ -1405,9 +1134,9 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	protoFilter := &api.Filter{}
 	protoFilter.Predicates = []*api.Predicate{
 		{
-			Key:   "status",
-			Op:    api.Predicate_EQUALS,
-			Value: &api.Predicate_StringValue{StringValue: "Succeeded"},
+			Key:       "status",
+			Operation: api.Predicate_EQUALS,
+			Value:     &api.Predicate_StringValue{StringValue: "Succeeded"},
 		},
 	}
 	newFilter, _ := filter.New(protoFilter)
@@ -1422,9 +1151,9 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	notEqualProtoFilter := &api.Filter{}
 	notEqualProtoFilter.Predicates = []*api.Predicate{
 		{
-			Key:   "status",
-			Op:    api.Predicate_NOT_EQUALS,
-			Value: &api.Predicate_StringValue{StringValue: "somevalue"},
+			Key:       "status",
+			Operation: api.Predicate_NOT_EQUALS,
+			Value:     &api.Predicate_StringValue{StringValue: "somevalue"},
 		},
 	}
 	newNotEqualFilter, _ := filter.New(notEqualProtoFilter)
@@ -1509,4 +1238,13 @@ func decodedTokenValue(t *testing.T, v interface{}) interface{} {
 	var decoded interface{}
 	require.NoError(t, json.Unmarshal(b, &decoded))
 	return decoded
+}
+
+func TestNewOptionsFromToken_RejectsRetiredMetricSort(t *testing.T) {
+	oldToken := &token{KeyFieldName: "UUID", SortByFieldName: "accuracy", SortBySQLColumn: "sort_metric_value"}
+	encoded, err := oldToken.marshal()
+	require.NoError(t, err)
+	_, err = NewOptionsFromToken(encoded, 10)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Metric sorting is no longer supported")
 }

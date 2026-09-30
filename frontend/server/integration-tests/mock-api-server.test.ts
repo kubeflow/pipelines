@@ -23,16 +23,9 @@ describe('standalone mock API server', () => {
   it('constructs the app with the mock backend dependency graph', async () => {
     const request = requests(createMockApiApp());
 
-    await request.get('/apis/v1beta1/healthz').expect(200);
-    await request.get('/APIS/V1BETA1/_PROXY/legacy').expect(410);
-    await request.get('/APIS/V1BETA1/not-found').expect(404, 'Bad request endpoint.');
+    await request.get('/apis/v2beta1/healthz').expect(200);
+    await request.get('/apis/v1beta1/healthz').expect(404);
     await request.get('/APIS/V2BETA1/not-found').expect(404, 'Bad request endpoint.');
-    await request
-      .post('/apis/v1beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b:archive')
-      .expect(200);
-    await request
-      .post('/apis/v1beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b:unarchive')
-      .expect(200);
     await request.get('/APPS/TENSORBOARD/PROXY/mock-token/index.js').expect(200);
   });
 });

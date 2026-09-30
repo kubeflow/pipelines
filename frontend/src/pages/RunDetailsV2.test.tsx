@@ -17,7 +17,7 @@
 import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 
 import {
   ArtifactArtifactType,
@@ -39,9 +39,14 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PageProps } from './Page';
-import { RunDetailsInternalProps } from './RunDetails';
 import { RunDetailsV2 } from './RunDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import { readFileSync } from 'node:fs';
+
+const tensorboardYaml = readFileSync(
+  `${__dirname}/../../../test/frontend-integration-test/tensorboard-example.yaml`,
+  'utf8',
+);
 
 vi.mock('src/components/Editor', () => ({
   default: ({ value }: { value?: string }) => <pre data-testid='Editor'>{value}</pre>,
@@ -56,8 +61,7 @@ describe('RunDetailsV2', () => {
   let updateDialogSpy: any;
   let updateSnackbarSpy: any;
   let updateToolbarSpy: any;
-  let historyPushSpy: any;
-  let historyReplaceSpy: any;
+  let navigateSpy: any;
 
   function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -67,18 +71,12 @@ describe('RunDetailsV2', () => {
     return { promise, resolve };
   }
 
-  function generateProps(): RunDetailsInternalProps &
-    PageProps & { parsedPipelineSpec: PipelineSpec } {
+  function generateProps(): PageProps & { parsedPipelineSpec: PipelineSpec } {
     const pageProps: PageProps = {
-      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      navigate: navigateSpy,
       location: '' as any,
-      match: {
-        params: {
-          [RouteParams.runId]: RUN_ID,
-        },
-        isExact: true,
-        path: '',
-        url: '',
+      params: {
+        [RouteParams.runId]: RUN_ID,
       },
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
@@ -101,7 +99,7 @@ describe('RunDetailsV2', () => {
     display_name: 'test run',
     pipeline_spec: {
       pipeline_id: 'some-pipeline-id',
-      pipeline_manifest: '{some-template-string}',
+      pipelineInfo: { name: 'native-test-pipeline' },
     },
     runtime_config: { parameters: { param1: 'value1' } },
     state: V2beta1RuntimeState.SUCCEEDED,
@@ -208,14 +206,82 @@ describe('RunDetailsV2', () => {
     updateDialogSpy = vi.fn();
     updateSnackbarSpy = vi.fn();
     updateToolbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
-    historyReplaceSpy = vi.fn();
+    navigateSpy = vi.fn();
 
     vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: TEST_TASKS });
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
   });
 
   afterEach(() => vi.useRealTimers());
+
+  it.each(['kubeflow', ''])(
+    'renders TensorBoard controls with artifact namespace %j',
+    async (namespace) => {
+      vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+        tasks: [
+          TEST_TASKS[0],
+          {
+            ...TEST_TASKS[1],
+            name: 'tensorboard-metadata',
+            display_name: 'tensorboard-metadata',
+            outputs: {
+              artifacts: [
+                {
+                  artifact_key: 'mlpipeline_ui_metadata',
+                  artifacts: [
+                    {
+                      artifact_id: 'tensorboard-metadata',
+                      type: ArtifactArtifactType.Artifact,
+                      name: 'mlpipeline_ui_metadata',
+                      namespace,
+                      uri: 'minio://mlpipeline/v2/artifacts/tensorboard/mlpipeline_ui_metadata',
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      });
+      vi.spyOn(Apis, 'readFile').mockResolvedValue(
+        JSON.stringify({
+          outputs: [
+            {
+              type: 'tensorboard',
+              source: 'gs://ml-pipeline-dataset/tensorboard-train',
+            },
+          ],
+        }),
+      );
+      const getTensorboard = vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue({
+        proxyPath: '',
+        tfVersion: '',
+        image: '',
+      });
+      render(
+        <CommonTestWrapper>
+          <NamespaceContext.Provider value={undefined}>
+            <RunDetailsV2
+              {...generateProps()}
+              pipeline_job={tensorboardYaml}
+              parsedPipelineSpec={convertYamlToV2PipelineSpec(tensorboardYaml)}
+              run={TEST_RUN}
+            />
+          </NamespaceContext.Provider>
+        </CommonTestWrapper>,
+      );
+      await waitFor(() =>
+        expect(document.querySelector('.react-flow__node-ARTIFACT')).not.toBeNull(),
+      );
+      fireEvent.click(document.querySelector('.react-flow__node-ARTIFACT')!);
+      fireEvent.click(await screen.findByText('Visualization', { exact: true }));
+      await screen.findByRole('button', { name: 'Start Tensorboard' });
+      expect(getTensorboard).toHaveBeenCalledWith(
+        'gs://ml-pipeline-dataset/tensorboard-train',
+        namespace,
+      );
+    },
+  );
 
   it('Render detail page with reactflow', async () => {
     render(
@@ -251,10 +317,14 @@ describe('RunDetailsV2', () => {
       expect(document.querySelector('[data-id="task.preprocess"]')).toHaveClass('selected'),
     );
     fireEvent.click(screen.getByRole('button', { name: 'close' }));
-    expect(historyReplaceSpy).toHaveBeenCalledWith({
-      ...props.location,
-      search: '?view=graph',
-    });
+    expect(navigateSpy).toHaveBeenCalledWith(
+      {
+        pathname: props.location.pathname,
+        hash: props.location.hash,
+        search: '?view=graph',
+      },
+      { replace: true, state: props.location.state },
+    );
   });
 
   it('keeps Run Details usable when a linked task scope is absent from the pipeline spec', async () => {
@@ -328,7 +398,7 @@ describe('RunDetailsV2', () => {
       expect(document.querySelector('[data-id="task.orphan"]')).not.toBeInTheDocument();
       expect(document.querySelector('[data-id="task.preprocess"]')).toBeInTheDocument();
     });
-    expect(historyReplaceSpy).toHaveBeenCalled();
+    expect(navigateSpy).toHaveBeenCalled();
   });
 
   it('recovers a fallback graph when polling supplies ancestry for the same task ID', async () => {
@@ -422,10 +492,14 @@ describe('RunDetailsV2', () => {
     await waitFor(() =>
       expect(document.querySelector('[data-id="task.train"]')).toHaveClass('selected'),
     );
-    expect(historyReplaceSpy).toHaveBeenCalledWith({
-      pathname: `/runs/details/${RUN_ID}`,
-      search: '',
-    });
+    expect(navigateSpy).toHaveBeenCalledWith(
+      {
+        pathname: `/runs/details/${RUN_ID}`,
+        hash: undefined,
+        search: '',
+      },
+      { replace: true, state: undefined },
+    );
 
     rerenderWithSearch('');
     await act(async () => {});

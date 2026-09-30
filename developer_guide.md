@@ -62,16 +62,6 @@ $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/persistenceagent:latest
 ```
 
-To build the visualization server image and upload it to GCR:
-
-```bash
-# Run in the repository root directory
-$ docker build -t gcr.io/<your-gcp-project>/visualization:latest -f backend/Dockerfile.visualization .
-# Push to GCR
-$ gcloud auth configure-docker
-$ docker push gcr.io/<your-gcp-project>/visualization:latest
-```
-
 To build the frontend image and upload it to GCR:
 
 ```bash
@@ -92,12 +82,11 @@ For example, to build API server image
 $ docker build -t ml-pipeline-api-server -f backend/Dockerfile .
 ```
 
-## Python based visualizations
+## Artifact visualizations
 
-Python based visualizations are a new method to visualize results within the
-Kubeflow Pipelines UI. For more information about Python based visualizations
-please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
-To create predefined visualizations please check the [developer guide](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/README.md).
+Generate custom HTML in a pipeline component and emit it as a `dsl.HTML` output.
+The UI reads the artifact directly; there is no Python visualization service.
+See [output artifacts](docs/concepts/output-artifact.md) for migration guidance.
 
 ## Unit test
 

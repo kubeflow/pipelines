@@ -19,6 +19,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -79,9 +80,6 @@ const (
 	archiveLogFileName   = "ARCHIVE_CONFIG_LOG_FILE_NAME"
 	archiveLogPathPrefix = "ARCHIVE_CONFIG_LOG_PATH_PREFIX"
 	dbConMaxLifeTime     = "DBConfig.ConMaxLifeTime"
-
-	VisualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
-	VisualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
 	initConnectionTimeout = "InitConnectionTimeout"
 
@@ -1380,9 +1378,7 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 		return nil, err
 	}
 
-	if region == "" {
-		region = "us-east-1"
-	}
+	region = resolveObjectStoreRegion(region)
 
 	endpoint := host
 	if port != "" {
@@ -1397,6 +1393,19 @@ func buildConfigFromEnvVars() (*blobStorageConfig, error) {
 		accessKey:  accessKey,
 		secretKey:  secretKey,
 	}, nil
+}
+
+func resolveObjectStoreRegion(configuredRegion string) string {
+	if configuredRegion != "" {
+		return configuredRegion
+	}
+	if region := os.Getenv("AWS_REGION"); region != "" {
+		return region
+	}
+	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
+		return region
+	}
+	return "us-east-1"
 }
 
 func newS3BucketClient(ctx context.Context, config *blobStorageConfig) (*s3.Client, error) {

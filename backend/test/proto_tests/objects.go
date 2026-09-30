@@ -260,14 +260,6 @@ var experiment = &pb.Experiment{
 	LastRunCreatedAt: fixedTimestamp(),
 }
 
-var visualization = &pb.Visualization{
-	Type:      pb.Visualization_ROC_CURVE,
-	Source:    "gs://my-bucket/data/visualization.csv",
-	Arguments: "{\"param1\": \"value1\", \"param2\": \"value2\"}",
-	Html:      "<div>Generated Visualization</div>",
-	Error:     "",
-}
-
 var recurringRun = &pb.RecurringRun{
 	RecurringRunId: "recurring-run-789",
 	DisplayName:    "Daily Data Processing",

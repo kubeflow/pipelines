@@ -39,7 +39,7 @@ import {
 import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_spec';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
-import { KeyValue } from 'src/lib/StaticGraphParser';
+import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { readArtifactFile } from 'src/lib/v2/ArtifactFileUtils';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';

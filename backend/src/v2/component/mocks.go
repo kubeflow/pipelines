@@ -228,6 +228,7 @@ type MockObjectStoreClient struct {
 	UploadError   error
 	UploadErrors  []error
 	DownloadError error
+	DownloadFunc  func(ctx context.Context, remoteURI, localPath, artifactKey string) error
 	RefreshError  error
 }
 
@@ -279,6 +280,9 @@ func (m *MockObjectStoreClient) DownloadArtifact(ctx context.Context, remoteURI,
 		ArtifactKey: artifactKey,
 	})
 
+	if m.DownloadFunc != nil {
+		return m.DownloadFunc(ctx, remoteURI, localPath, artifactKey)
+	}
 	if m.DownloadError != nil {
 		return m.DownloadError
 	}

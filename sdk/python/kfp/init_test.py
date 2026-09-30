@@ -12,24 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import importlib
+from pathlib import Path
+import runpy
 import sys
 import unittest
 from unittest import mock
 
 
-@mock.patch.object(sys, 'version_info', new=(3, 7, 12, 'final', 0))
-class TestPythonEOLWarning(unittest.TestCase):
+class TestPythonMinimum(unittest.TestCase):
 
-    def test(self):
-        mod = importlib.import_module('kfp')
+    def test_unsupported_python_fails_before_dependency_imports(self):
+        for version in ((3, 9, 25), (3, 10, 19)):
+            for runtime in ('false', 'true'):
+                with self.subTest(version=version, runtime=runtime):
+                    with mock.patch.object(sys, 'version_info', version), \
+                            mock.patch.dict('os.environ', {'_KFP_RUNTIME': runtime}):
+                        with self.assertRaisesRegex(
+                                RuntimeError,
+                                'KFP requires Python 3.11 or later'):
+                            runpy.run_path(
+                                str(Path(__file__).with_name('__init__.py')),
+                                init_globals={'__path__': []})
 
-        with self.assertWarnsRegex(
-                FutureWarning,
-                r'KFP will drop support for Python 3.9 on October 1, 2026. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10. See https://devguide.python.org/versions/ for more details.'
-        ):
-            # simulate first import from kfp
-            importlib.reload(mod)
+    def test_supported_python_runtime_import_needs_no_dependencies(self):
+        with mock.patch.object(sys, 'version_info', (3, 11, 0)), \
+                mock.patch.dict('os.environ', {'_KFP_RUNTIME': 'true'}):
+            namespace = runpy.run_path(
+                str(Path(__file__).with_name('__init__.py')),
+                init_globals={'__path__': []})
+        self.assertTrue(namespace['TYPE_CHECK'])
 
 
 if __name__ == '__main__':

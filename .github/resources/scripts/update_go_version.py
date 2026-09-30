@@ -42,7 +42,6 @@ class DockerPin:
 
 MANAGED_DOCKERFILES = (
     DockerPin(Path('backend/Dockerfile'), '-bookworm', 'builder'),
-    DockerPin(Path('backend/Dockerfile.cacheserver'), '-alpine', 'builder'),
     DockerPin(Path('backend/Dockerfile.conformance'), '-alpine', 'builder'),
     DockerPin(Path('backend/Dockerfile.driver'), '-alpine', 'builder'),
     DockerPin(Path('backend/Dockerfile.launcher'), '-alpine', 'builder'),
