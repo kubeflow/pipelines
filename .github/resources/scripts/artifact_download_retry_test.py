@@ -47,6 +47,7 @@ RUNTIME_PYTHON_FIXTURES = (
     'test_data/sdk_compiled_pipelines/valid/env-var.yaml',
 )
 PROXY_FIXTURE_SOURCE = 'test_data/sdk_compiled_pipelines/valid/env_var.py'
+PROXY_WORKFLOW_GOLDEN = 'test_data/compiled-workflows/env-var.yaml'
 
 
 def runtime_images():
@@ -130,6 +131,13 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
         compiled = (REPOSITORY_ROOT / RUNTIME_PYTHON_FIXTURES[-1]).read_text()
         self.assertIn(f'        image: {match.group(1)}\n', compiled)
 
+    def test_proxy_workflow_golden_matches_compiled_image(self):
+        compiled = (REPOSITORY_ROOT / RUNTIME_PYTHON_FIXTURES[-1]).read_text()
+        match = re.search(r'^        image: (\S+)$', compiled, re.MULTILINE)
+        self.assertIsNotNone(match)
+        golden = (REPOSITORY_ROOT / PROXY_WORKFLOW_GOLDEN).read_text()
+        self.assertIn(f'"image":"{match.group(1)}"', golden)
+
     def test_runtime_archive_contains_external_deployment_images(self):
         images = runtime_images()
         current_version = (REPOSITORY_ROOT /
@@ -198,7 +206,8 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
 
     def test_fixture_changes_run_ci_script_tests(self):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
-        for fixture in (*RUNTIME_PYTHON_FIXTURES, PROXY_FIXTURE_SOURCE):
+        for fixture in (*RUNTIME_PYTHON_FIXTURES, PROXY_FIXTURE_SOURCE,
+                        PROXY_WORKFLOW_GOLDEN):
             with self.subTest(fixture=fixture):
                 self.assertIn(f"'{fixture}'", workflow)
 
