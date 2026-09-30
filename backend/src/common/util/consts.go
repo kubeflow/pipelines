@@ -71,6 +71,13 @@ const (
 	// identify the logical role of the pod (driver, launcher, etc.).  It is
 	// used by UpsertRuntimeEnvVars to target the right containers.
 	AnnotationKeyRuntimeRole = "pipelines.kubeflow.org/runtime-role"
+
+	// AnnotationKeyTaskDriverRetry marks driver templates using a task's retry policy.
+	AnnotationKeyTaskDriverRetry = "pipelines.kubeflow.org/task-driver-retry"
+
+	// DriverRetryGenerationKey identifies the run generation recorded with a
+	// terminal task so a driver replay cannot finalize a newer run attempt.
+	DriverRetryGenerationKey = "_kfp_driver_retry_generation"
 )
 
 // GetMaxParameterBytes returns the maximum byte size of parameters.

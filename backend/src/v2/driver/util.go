@@ -23,6 +23,7 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
@@ -426,13 +427,29 @@ func updateTaskAttemptLocalFieldsAfterCreate(
 	if createdTask == nil || attemptTask == nil {
 		return nil, fmt.Errorf("created task and attempt task are required")
 	}
-	createdTask.Pods = attemptTask.GetPods()
+	if _, retrying := createdTask.GetStatusMetadata().GetCustomProperties()[util.DriverRetryGenerationKey]; retrying {
+		for _, pod := range attemptTask.GetPods() {
+			createdTask.Pods = appendDriverPod(createdTask.GetPods(), pod)
+		}
+	} else {
+		createdTask.Pods = attemptTask.GetPods()
+	}
 	createdTask.Inputs = attemptTask.GetInputs()
 	createdTask.Outputs = attemptTask.GetOutputs()
 	createdTask.CacheFingerprint = attemptTask.GetCacheFingerprint()
 	createdTask.State = attemptTask.GetState()
 	createdTask.EndTime = attemptTask.GetEndTime()
+	recoveryProperties := driverRecoveryProperties(createdTask)
 	createdTask.StatusMetadata = attemptTask.GetStatusMetadata()
+	if len(recoveryProperties) > 0 {
+		metadata := driverRecoveryMetadata(createdTask)
+		for key, value := range recoveryProperties {
+			metadata.CustomProperties[key] = value
+		}
+	}
+	if attemptTask.TypeAttributes != nil {
+		createdTask.TypeAttributes = attemptTask.TypeAttributes
+	}
 	updatedTask, err := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 		TaskId: createdTask.GetTaskId(),
 		Task:   createdTask,

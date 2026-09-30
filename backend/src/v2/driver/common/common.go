@@ -34,6 +34,12 @@ const (
 
 // Options contain driver options
 type Options struct {
+	DriverRetryEnabled    bool
+	DriverRetryAttempt    int
+	DriverRetryMaxCount   int
+	DriverRetryGeneration int64
+	// DriverRetryTask is the recovered logical task for this driver invocation.
+	DriverRetryTask *apiv2beta1.PipelineTask `json:"-"`
 	// required, pipeline context name
 	PipelineName string
 	// required, KFP run ID

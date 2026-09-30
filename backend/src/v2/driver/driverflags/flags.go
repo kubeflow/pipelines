@@ -28,6 +28,10 @@ const (
 // Values stores pointers returned by flag registration so callers can continue
 // reading parsed driver arguments through shared state.
 type Values struct {
+	DriverRetryEnabled      *bool
+	DriverRetryAttempt      *int
+	DriverRetryMaxCount     *int
+	DriverRetryGeneration   *int64
 	DriverType              *string
 	PipelineName            *string
 	RunID                   *string
@@ -63,6 +67,10 @@ type Values struct {
 // RegisterDriverFlags registers the driver CLI flags on the provided flag set.
 func RegisterDriverFlags(fs *flag.FlagSet) *Values {
 	return &Values{
+		DriverRetryEnabled:      fs.Bool("driver_retry_enabled", false, "Enable recovery of task-derived driver retries."),
+		DriverRetryAttempt:      fs.Int("driver_retry_attempt", 0, "Zero-based automatic driver retry attempt."),
+		DriverRetryMaxCount:     fs.Int("driver_retry_max_count", 0, "Maximum automatic driver retries."),
+		DriverRetryGeneration:   fs.Int64("driver_retry_generation", 0, "Manual run retry generation used to isolate driver recovery."),
 		DriverType:              fs.String(DriverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER"),
 		PipelineName:            fs.String("pipeline_name", "", "pipeline context name"),
 		RunID:                   fs.String("run_id", "", "pipeline run uid"),

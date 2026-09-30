@@ -169,34 +169,42 @@ See the [`PipelineTask` reference documentation][pipelinetask] for more informat
 
 #### Retry coverage on Argo Workflows
 
-On the KFP backend with Argo Workflows, `.set_retry()` configures task execution
-retries. An ordinary container task first runs a **driver**, which resolves
-inputs, checks the cache, and prepares execution. The **executor**, which runs
-the component, starts only after that driver succeeds. The retry count, backoff,
-and `policy` passed to `.set_retry()` apply to the executor; they do not cover
-`system-container-driver`. A nested pipeline task similarly has a separate
-`system-dag-driver` that is outside its task retry policy.
+On the KFP backend with Argo Workflows, `.set_retry()` configures eligible
+container and nested pipeline drivers as well as container executors. A
+**driver** resolves inputs, checks the cache, and prepares execution. The
+**executor** runs the component after its driver succeeds.
 
-For example, `task.set_retry(num_retries=3, policy='Always')` permits up to three
-executor retries after its initial attempt. It does not retry a failed driver.
-If that driver remains failed, the executor never starts. Setting
-`num_retries=0` disables those task retries but does not disable separately
-configured driver recovery.
+Each phase has its own retry budget and backoff. For example,
+`task.set_retry(num_retries=3, policy='Always')` permits an initial driver attempt
+and up to three driver retries, followed by an initial executor attempt and up
+to three executor retries. Driver retries do not consume executor retries or
+rerun a nested pipeline's completed tasks. Setting `num_retries=0` disables
+retries for both eligible phases.
 
-Driver recovery is an **operator-controlled Argo policy**. KFP's bundled workflow
-controller configuration supplies `workflowDefaults.spec.templateDefaults.retryStrategy`
-with `limit: '2'` and `retryPolicy: OnError`; deployments may change or omit it.
-Argo's `OnError` policy covers errors such as pod deletion or node loss, but does
-not cover ordinary nonzero exits from the driver container. See
+An explicit `policy` applies to both phases. With the default `policy=None`,
+eligible drivers use `Always` so failures while resolving inputs or contacting
+backend services can retry. Executors retain the deployment's Argo policy:
+KFP's bundled configuration supplies `OnError`, which covers errors such as pod
+deletion or node loss. See
 [Argo retry policies](https://argo-workflows.readthedocs.io/en/latest/walk-through/retrying-failed-or-errored-steps/).
-Driver and executor retry budgets are independent, rather than a single
-end-to-end attempt count.
 
-Broader driver retries require replay-safe operations: rerunning a driver can
-repeat plugin hooks and allocate different output locations. Operators should
-assess these side effects before broadening the controller's retry policy.
-[Issue #14266](https://github.com/kubeflow/pipelines/issues/14266) tracks this
-boundary and the prerequisites for safely extending coverage.
+Automatic driver retries reuse the logical task, output locations, and saved
+preparation results. They recover partially completed metadata writes without
+creating a new task for each attempt. A manual retry of the pipeline run starts
+a new recovery generation for tasks that need to run again. Completed tasks
+and their saved results remain preserved.
+
+Driver retry coverage has these limits:
+
+- The root pipeline driver has no task-level retry policy and retains the
+  deployment's driver recovery policy. Unconfigured tasks also retain that
+  policy.
+- Native Kubernetes PVC creation and deletion are excluded until their resource
+  identity and deletion operations can safely replay. They retain their
+  existing deployment retry policy.
+- When task plugins are enabled, the API server disables task-configured driver
+  retries because plugin side effects are not yet safe to replay. Executor
+  retries remain configured.
 
 ### Pipelines as components
 

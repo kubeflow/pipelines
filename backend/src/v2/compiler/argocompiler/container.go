@@ -78,6 +78,7 @@ type containerDriverOutputs struct {
 }
 
 type containerDriverInputs struct {
+	task             *pipelinespec.PipelineTaskSpec
 	taskName         string // preserve the original task name for input resolving
 	parentDagID      string
 	iterationIndex   string // optional, when this is an iteration task
@@ -157,7 +158,7 @@ func GetPipelineRunAsUser() *int64 {
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerDriverTemplate(),
+		Template: c.addTaskRetryDriverTemplate(c.addContainerDriverTemplate(), inputs.task),
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
 				{Name: paramTaskName, Value: wfapi.AnyStringPtr(inputs.taskName)},
@@ -165,6 +166,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 			},
 		},
 	}
+	dagTask.Arguments.Parameters = append(dagTask.Arguments.Parameters, c.getDriverRetryParametersWithValues(inputs.task)...)
 	if inputs.iterationIndex != "" {
 		dagTask.Arguments.Parameters = append(
 			dagTask.Arguments.Parameters,

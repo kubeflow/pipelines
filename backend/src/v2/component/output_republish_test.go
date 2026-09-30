@@ -429,6 +429,9 @@ func TestRepublishPreservedChildOutputsToDAG_RestoresParentParamsFromSucceededSi
 		ScopePath: "root",
 		// Simulate retry reset: parent outputs cleared.
 		Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{CustomProperties: map[string]*structpb.Value{
+			util.DriverRetryGenerationKey: structpb.NewStringValue("8"),
+		}},
 	}
 	successChild := &apiv2beta1.PipelineTask{
 		TaskId:       successChildID,
@@ -438,6 +441,9 @@ func TestRepublishPreservedChildOutputsToDAG_RestoresParentParamsFromSucceededSi
 		Type:         apiv2beta1.PipelineTask_RUNTIME,
 		ScopePath:    "root.success-child",
 		ParentTaskId: parentTaskIDPtr,
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{CustomProperties: map[string]*structpb.Value{
+			util.DriverRetryGenerationKey: structpb.NewStringValue("7"),
+		}},
 		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
 			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
 				ParameterKey: "result",
@@ -490,6 +496,8 @@ func TestRepublishPreservedChildOutputsToDAG_RestoresParentParamsFromSucceededSi
 	assert.Equal(t, "kept", outputParam.GetValue().GetStringValue())
 	require.NotNil(t, outputParam.GetProducer())
 	assert.Equal(t, "success-child", outputParam.GetProducer().GetTaskName())
+	assert.Equal(t, "8", updatedParent.GetStatusMetadata().GetCustomProperties()[util.DriverRetryGenerationKey].GetStringValue(),
+		"republishing preserved outputs belongs to the current parent driver, not the old successful child")
 }
 
 func TestRepublishPreservedChildOutputsToDAG_PagesThroughChildren(t *testing.T) {

@@ -215,6 +215,9 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			err = fmt.Errorf("compiling task %q: %w", name, err)
 		}
 	}()
+	if err := validateDriverRetryPolicy(task.GetRetryPolicy()); err != nil {
+		return nil, err
+	}
 	componentName := task.GetComponentRef().GetName()
 	componentSpec, found := c.spec.Components[componentName]
 	if !found {
@@ -230,6 +233,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	case *pipelinespec.ComponentSpec_Dag:
 		driverTaskName := name + "-driver"
 		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, dagDriverInputs{
+			task:           task,
 			parentTaskID:   inputs.parentDagID,
 			iterationIndex: inputs.iterationIndex,
 			taskName:       name,
@@ -263,7 +267,14 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			driverTaskName := name + "-driver"
 			// The following call will return an empty string for tasks without kubernetes-specific annotation.
 			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
+			driverTaskSpec := task
+			// PVC operations allocate external resources without a replay-safe
+			// identity. Keep their existing deployment retry policy.
+			if dummyImages[e.Container.GetImage()] {
+				driverTaskSpec = nil
+			}
 			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
+				task:             driverTaskSpec,
 				parentDagID:      inputs.parentDagID,
 				iterationIndex:   inputs.iterationIndex,
 				kubernetesConfig: kubernetesConfigPlaceholder,
@@ -379,6 +390,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 	// Set up Iteration (Single  Task) Template
 	driverArgoName := name + "-driver"
 	driverInputs := dagDriverInputs{
+		task:         task,
 		parentTaskID: parentDagID,
 		taskName:     taskName, // Pass the task key for proper input resolution
 	}
@@ -447,6 +459,9 @@ func (c *workflowCompiler) propagateIterationIndexToNestedDAGTemplates(templateN
 		case "system-dag-driver", "system-container-driver", "system-importer", "system-importer-workspace":
 			shouldPropagate = true
 		}
+		if childExists && childTemplate != nil && childTemplate.Metadata.Annotations[util.AnnotationKeyTaskDriverRetry] == "true" {
+			shouldPropagate = true
+		}
 
 		if shouldPropagate {
 			task.Arguments.Parameters = appendParameterIfMissing(task.Arguments.Parameters, wfapi.Parameter{
@@ -482,6 +497,7 @@ type dagDriverOutputs struct {
 }
 
 type dagDriverInputs struct {
+	task           *pipelinespec.PipelineTaskSpec
 	parentTaskID   string                                  // parent DAG Task ID. optional, the root DAG does not have parent
 	taskName       string                                  // optional, the name of the task, used for input resolving
 	runtimeConfig  *pipelinespec.PipelineJob_RuntimeConfig // optional, only root DAG needs this
@@ -489,7 +505,7 @@ type dagDriverInputs struct {
 }
 
 func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*wfapi.DAGTask, *dagDriverOutputs, error) {
-	params := []wfapi.Parameter{}
+	params := c.getDriverRetryParametersWithValues(inputs.task)
 	if inputs.iterationIndex != "" {
 		params = append(params, wfapi.Parameter{
 			Name:  paramIterationIndex,
@@ -523,7 +539,7 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 	}
 	t := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addDAGDriverTemplate(),
+		Template: c.addTaskRetryDriverTemplate(c.addDAGDriverTemplate(), inputs.task),
 		Arguments: wfapi.Arguments{
 			Parameters: params,
 		},

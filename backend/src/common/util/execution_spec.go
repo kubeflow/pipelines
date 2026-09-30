@@ -186,6 +186,11 @@ type ExecutionSpec interface {
 	// UpsertRuntimeEnvVars adds or replaces env vars on containers that
 	// implement the given runtime roles for this execution engine.
 	UpsertRuntimeEnvVars(envVars []corev1.EnvVar, roles ...ExecutionRuntimeRole) error
+
+	// DisableTaskDriverRetries prevents replay of drivers with task-derived retry
+	// policies and returns the number of affected templates. Executor retries
+	// and drivers without a task-derived policy are unchanged.
+	DisableTaskDriverRetries() int
 }
 
 // Convert YAML in bytes into ExecutionSpec instance

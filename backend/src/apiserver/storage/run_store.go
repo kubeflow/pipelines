@@ -192,7 +192,8 @@ type RunStoreInterface interface {
 	// generation still match the values loaded by the caller. Before a V2 run's
 	// first report, when that manifest is empty, its pipeline runtime manifest is
 	// also checked as an incarnation fence. Returns false without mutating the
-	// row when another writer changed any guarded value.
+	// row when another writer changed any guarded value. An unsuccessful terminal
+	// report also finalizes unfinished tasks participating in driver retries.
 	UpdateRunIfRuntimeManifestsUnchanged(
 		run *model.Run,
 		expectedWorkflowRuntimeManifest model.LargeText,
@@ -882,9 +883,10 @@ func (s *RunStore) UpdateRunIfRuntimeManifestsUnchanged(
 	expectedPipelineRuntimeManifest model.LargeText,
 ) (bool, error) {
 	return s.updateRun(run, &runRuntimeManifestPrecondition{
-		workflow:        expectedWorkflowRuntimeManifest,
-		pipeline:        expectedPipelineRuntimeManifest,
-		retryGeneration: run.RetryGeneration,
+		workflow:              expectedWorkflowRuntimeManifest,
+		pipeline:              expectedPipelineRuntimeManifest,
+		retryGeneration:       run.RetryGeneration,
+		finalizeDriverRetries: true,
 	})
 }
 
@@ -985,11 +987,12 @@ func effectiveStatePredicate(q dialect.QuoteFunction, states ...model.RuntimeSta
 }
 
 type runRuntimeManifestPrecondition struct {
-	workflow        model.LargeText
-	pipeline        model.LargeText
-	retryGeneration int64
-	namespace       *string
-	state           *model.RuntimeState
+	workflow              model.LargeText
+	pipeline              model.LargeText
+	retryGeneration       int64
+	namespace             *string
+	state                 *model.RuntimeState
+	finalizeDriverRetries bool
 }
 
 func lockRunForRuntimeManifestWrite(
@@ -1168,6 +1171,11 @@ func (s *RunStore) updateRun(
 		return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
+	if expectedRuntimeManifests != nil && expectedRuntimeManifests.finalizeDriverRetries {
+		if err := finalizeDriverRetryTasks(tx, s.dbDialect, run); err != nil {
+			return false, util.NewInternalServerError(err, "Failed to finalize driver retry tasks for run %s", run.UUID)
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
