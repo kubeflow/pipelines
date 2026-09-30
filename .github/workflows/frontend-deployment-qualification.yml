@@ -69,7 +69,6 @@ jobs:
           if-no-files-found: error
 
   rehearsal:
-    needs: [build, legacy-image]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
@@ -110,15 +109,6 @@ jobs:
       - uses: ./.github/actions/create-cluster
         with:
           k8s_version: v1.33.12
-      - name: Retain candidate image archive before deploy consumes its copy
-        uses: ./.github/actions/download-artifact-with-retry
-        with:
-          name: frontend
-          path: ${{ runner.temp }}/candidate-image
-      - uses: actions/download-artifact@v8
-        with:
-          name: legacy-frontend
-          path: ${{ runner.temp }}/legacy-image
       - name: Deploy fixed candidate backend
         uses: ./.github/actions/deploy
         with:
@@ -128,6 +118,40 @@ jobs:
           multi_user: ${{ matrix.mode == 'multiuser' && 'true' || 'false' }}
           artifact_proxy: ${{ matrix.mode == 'multiuser' && 'true' || 'false' }}
           forward_port: 'false'
+      - name: Retain candidate image archive after the shared image barrier
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: frontend
+          path: ${{ runner.temp }}/candidate-image
+      - name: Wait for the immutable legacy image artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Cluster creation and candidate deployment overlap both image builds.
+          # The shared deploy action already gates its own images; this extra
+          # producer is specific to the UI rollback rehearsal.
+          for attempt in $(seq 1 120); do
+            if ready=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+                --jq '.artifacts | any(.name == "legacy-frontend" and .expired == false)') && [ "$ready" = true ]; then
+              exit 0
+            fi
+            if state=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" \
+                --jq '.jobs[] | select(.name == "legacy-image") | .conclusion // "pending"'); then
+              case "$state" in
+                failure|cancelled|timed_out|skipped|action_required)
+                  echo "::error::Legacy frontend image producer did not succeed: $state"
+                  exit 1 ;;
+              esac
+            fi
+            sleep 15
+          done
+          echo '::error::Legacy frontend image was not published within the bounded wait'
+          exit 1
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: legacy-frontend
+          path: ${{ runner.temp }}/legacy-image
       - name: Register immutable frontend images and asset manifests
         run: |
           python .github/resources/scripts/qualify_frontend_deployment.py images \

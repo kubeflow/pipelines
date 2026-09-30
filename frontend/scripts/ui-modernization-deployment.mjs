@@ -19,6 +19,18 @@ const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const helper = resolve(root, '.github/resources/scripts/qualify_frontend_deployment.py');
 
+// Dex v2.45.1 labels its password submit button 'Login'.
+export const loginButtonName = /^(?:log\s?in|sign\s?in)$/i;
+
+export async function openRunGraph(target, url) {
+  await target.goto(url, { waitUntil: 'domcontentloaded' });
+  // Run details remember the selected tab when navigating to the same run.
+  await target
+    .locator('button')
+    .filter({ hasText: /^Graph$/ })
+    .click();
+}
+
 export function requireHosted(env = process.env) {
   assert.equal(env.CI, 'true');
   assert.equal(env.GITHUB_ACTIONS, 'true');
@@ -315,7 +327,7 @@ export async function main() {
     if (await signIn.isVisible()) await signIn.click();
     await target.locator('input[name="login"]').fill(email);
     await target.locator('input[name="password"]').fill(credentials.password);
-    await target.getByRole('button', { name: /log in|sign in/i }).click();
+    await target.getByRole('button', { name: loginButtonName }).click();
     await target.locator('[data-cy-selected-namespace]').waitFor({ timeout: 120000 });
     await selectNamespace(
       target,
@@ -367,7 +379,7 @@ export async function main() {
     await go(`/runs/new?${parameters}`);
     await app.getByLabel(recurring ? /^Recurring run config name/ : /^Run name/).fill(name);
     if (pipeline.name.endsWith('-hello'))
-      await app.locator('#message').fill(`qualification-${prefix}`);
+      await app.locator('#message').fill(`qualification-${name}`);
     if (recurring) {
       await app.getByRole('checkbox', { name: 'Has start date', exact: true }).check();
       const future = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
@@ -411,19 +423,19 @@ export async function main() {
     return completed;
   };
   const inspectLogs = async (run) => {
-    await go(`/runs/details/${run.run_id}`);
+    await openRunGraph(app, `${uiBase}#/runs/details/${run.run_id}`);
     await app.locator('.react-flow__node-EXECUTION').filter({ hasText: /^A/ }).first().click();
     await app
       .locator('button')
       .filter({ hasText: /^Logs$/ })
       .click();
     await app
-      .getByText(`qualification-${prefix} from node:`, { exact: false })
+      .getByText(`${run.runtime_config.parameters.message} from node:`, { exact: false })
       .first()
       .waitFor({ timeout: 120000 });
   };
   const openArtifact = async () => {
-    await go(`/runs/details/${tensorboardRun.run_id}`);
+    await openRunGraph(app, `${uiBase}#/runs/details/${tensorboardRun.run_id}`);
     await app.locator('.react-flow__node-ARTIFACT').first().click();
     const visualization = app.locator('button').filter({ hasText: /^Visualization$/ });
     await visualization.click();

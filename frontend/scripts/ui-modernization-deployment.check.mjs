@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 import test from 'node:test';
 import {
   assetName,
+  loginButtonName,
+  openRunGraph,
   assertLoginRequired,
   summarizeAvailability,
   requireHosted,
@@ -127,4 +129,36 @@ test('relative proxy paths and extracted bare tokens are redacted', () => {
     !sanitize('failed /apps/tensorboard/proxy/relative-token/data').includes('relative-token'),
   );
   assert.ok(!sanitize('token bare-token was rejected', ['bare-token']).includes('bare-token'));
+});
+
+test('normal Dex password submission recognizes its shipped Login label', () => {
+  for (const label of ['Login', 'Log in', 'Sign in']) assert.match(label, loginButtonName);
+  assert.doesNotMatch('Sign in with Dex', loginButtonName);
+});
+
+test('run graph inspection leaves a remembered Detail tab before inspecting nodes', async () => {
+  let selected = 'Detail';
+  let navigated = false;
+  const target = {
+    goto: async (url) => {
+      assert.equal(url, 'http://127.0.0.1:3000/#/runs/details/existing');
+      navigated = true;
+      // Same-route navigation intentionally preserves the current tab.
+    },
+    locator: (selector) => {
+      assert.equal(selector, 'button');
+      return {
+        filter: ({ hasText }) => ({
+          click: async () => {
+            assert.ok(navigated);
+            assert.match('Graph', hasText);
+            assert.doesNotMatch('Detail', hasText);
+            selected = 'Graph';
+          },
+        }),
+      };
+    },
+  };
+  await openRunGraph(target, 'http://127.0.0.1:3000/#/runs/details/existing');
+  assert.equal(selected, 'Graph');
 });
