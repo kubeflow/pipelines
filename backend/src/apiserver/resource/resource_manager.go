@@ -406,6 +406,11 @@ func (r *ResourceManager) ArchiveExperiment(ctx context.Context, experimentId st
 				types.MergePatchType,
 				[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(false))))
 			if err != nil {
+				if util.IsNotFound(err) {
+					// A missing ScheduledWorkflow cannot trigger runs, so it is already disabled.
+					glog.Infof("Archiving experiment '%v', but skipped disabling ScheduledWorkflow '%v' of recurring run '%v' in namespace '%v' because it was not found", experimentId, job.K8SName, job.UUID, k8sNamespace)
+					continue
+				}
 				return util.NewInternalServerError(err,
 					"Failed to disable job %v while archiving experiment %v", job.UUID, experimentId)
 			}
@@ -2014,7 +2019,11 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enable))),
 	)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to change recurring run's %v mode to enable:%v", jobId, enable)
+		if enable || !util.IsNotFound(err) {
+			return util.NewInternalServerError(err, "Failed to change recurring run's %v mode to enable:%v", jobId, enable)
+		}
+		// A missing ScheduledWorkflow cannot trigger runs, so it is already disabled.
+		glog.Infof("Disabling recurring run '%v', but skipped patching ScheduledWorkflow '%v' in namespace '%v' because it was not found", jobId, job.K8SName, k8sNamespace)
 	}
 
 	err = r.jobStore.ChangeJobMode(jobId, enable)

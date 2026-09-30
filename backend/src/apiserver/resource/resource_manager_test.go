@@ -3866,6 +3866,23 @@ func TestDisableJob_CustomResourceNotFound(t *testing.T) {
 	require.Equal(t, job.Enabled, false)
 }
 
+func TestArchiveExperiment_CustomResourceNotFound(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	// The swf CR can be missing when user reinstalled KFP using existing DB data.
+	// Explicitly delete it to simulate the situation.
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.K8SName, &v1.DeleteOptions{})
+	err := manager.ArchiveExperiment(context.Background(), job.ExperimentId)
+	require.Nil(t, err, "Archiving the experiment should succeed even when a job's custom resource is missing")
+	experiment, err := manager.GetExperiment(job.ExperimentId)
+	require.Nil(t, err)
+	require.Equal(t, model.StorageStateArchived, experiment.StorageState)
+	job, err = manager.GetJob(job.UUID)
+	require.Nil(t, err)
+	require.Equal(t, job.Enabled, false)
+}
+
 func TestEnableJob_DbFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
