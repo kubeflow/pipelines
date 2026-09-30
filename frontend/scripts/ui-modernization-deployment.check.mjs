@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 import test from 'node:test';
 import {
   assetName,
+  namespaceOptionPattern,
+  safePageUrl,
   loginButtonName,
   openRunGraph,
   assertLoginRequired,
@@ -161,4 +163,26 @@ test('run graph inspection leaves a remembered Detail tab before inspecting node
   };
   await openRunGraph(target, 'http://127.0.0.1:3000/#/runs/details/existing');
   assert.equal(selected, 'Graph');
+});
+
+test('login diagnostic URLs retain only a sanitized origin and path', () => {
+  assert.equal(
+    safePageUrl('http://127.0.0.1:3000/oauth2/callback?code=private#state=secret'),
+    'http://127.0.0.1:3000/oauth2/callback',
+  );
+  assert.equal(
+    safePageUrl('http://127.0.0.1:3000/apps/tensorboard/proxy/private-token/foo?secret=other'),
+    'http://127.0.0.1:3000/apps/tensorboard/proxy/[redacted]/foo',
+  );
+  assert.equal(safePageUrl('not a URL'), '[unavailable URL]');
+});
+
+test('Polymer namespace options match exact visible text without a name attribute', () => {
+  const pattern = namespaceOptionPattern('kfp-qualification-second');
+  assert.match('  kfp-qualification-second\n', pattern);
+  assert.doesNotMatch('kfp-qualification-second-extra', pattern);
+  assert.doesNotMatch('other-kfp-qualification-second', pattern);
+  assert.doesNotMatch('kfp-qualification-other', pattern);
+  assert.match('team.example', namespaceOptionPattern('team.example'));
+  assert.doesNotMatch('team-example', namespaceOptionPattern('team.example'));
 });

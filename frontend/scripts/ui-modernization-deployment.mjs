@@ -22,6 +22,22 @@ const helper = resolve(root, '.github/resources/scripts/qualify_frontend_deploym
 // Dex v2.45.1 labels its password submit button 'Login'.
 export const loginButtonName = /^(?:log\s?in|sign\s?in)$/i;
 
+export const selectedNamespaceSelector = 'namespace-selector #SelectedNamespace';
+
+export function namespaceOptionPattern(namespace) {
+  const escaped = namespace.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^\\s*${escaped}\\s*$`);
+}
+
+export function safePageUrl(url, secrets = []) {
+  try {
+    const parsed = new URL(url);
+    return sanitize(`${parsed.origin}${parsed.pathname}`, secrets);
+  } catch {
+    return '[unavailable URL]';
+  }
+}
+
 export async function openRunGraph(target, url) {
   await target.goto(url, { waitUntil: 'domcontentloaded' });
   // Run details remember the selected tab when navigating to the same run.
@@ -308,35 +324,86 @@ export async function main() {
     return result.body;
   };
   const selectNamespace = async (target, selected) => {
-    await target.locator('[data-cy-selected-namespace]').click();
-    await target.locator(`[data-cy-namespace="${selected}"]`).click();
+    await target.locator('namespace-selector #dropdown-trigger').click();
+    // Polymer binds name as a property without reflecting an HTML attribute.
+    await target
+      .locator('namespace-selector paper-item')
+      .filter({ hasText: namespaceOptionPattern(selected) })
+      .click();
     await poll(
-      async () =>
-        (await target.locator('[data-cy-selected-namespace]').innerText()).includes(selected),
+      async () => (await target.locator(selectedNamespaceSelector).innerText()).includes(selected),
       'Dashboard namespace selection did not settle',
     );
   };
   const login = async (target, email) => {
-    await target.goto(base, { waitUntil: 'domcontentloaded' });
-    const signIn = target.getByRole('button', { name: /Sign in with Dex/i });
-    await poll(
-      async () =>
-        (await signIn.isVisible()) || (await target.locator('input[name="login"]').isVisible()),
-      'OIDC login page did not become ready',
-    );
-    if (await signIn.isVisible()) await signIn.click();
-    await target.locator('input[name="login"]').fill(email);
-    await target.locator('input[name="password"]').fill(credentials.password);
-    await target.getByRole('button', { name: loginButtonName }).click();
-    await target.locator('[data-cy-selected-namespace]').waitFor({ timeout: 120000 });
-    await selectNamespace(
-      target,
-      email === 'user@example.com' ? namespace : 'kfp-qualification-other',
-    );
-    await target.locator('[data-cy-sidenav-menu-item="Pipelines"]').click();
-    const embedded = await frame(target);
-    await embedded.locator('#createPipelineVersionBtn').waitFor({ timeout: 60000 });
-    return embedded;
+    const documents = [];
+    const recordDocument = (response) => {
+      if (response.request().resourceType() !== 'document') return;
+      documents.push({ status: response.status(), url: safePageUrl(response.url(), secretValues) });
+      if (documents.length > 20) documents.shift();
+    };
+    target.on('response', recordDocument);
+    try {
+      await target.goto(base, { waitUntil: 'domcontentloaded' });
+      const signIn = target.getByRole('button', { name: /Sign in with Dex/i });
+      await poll(
+        async () =>
+          (await signIn.isVisible()) || (await target.locator('input[name="login"]').isVisible()),
+        'OIDC login page did not become ready',
+      );
+      if (await signIn.isVisible()) await signIn.click();
+      await target.locator('input[name="login"]').fill(email);
+      await target.locator('input[name="password"]').fill(credentials.password);
+      await target.getByRole('button', { name: loginButtonName }).click();
+      await target.locator(selectedNamespaceSelector).waitFor({ timeout: 120000 });
+      await selectNamespace(
+        target,
+        email === 'user@example.com' ? namespace : 'kfp-qualification-other',
+      );
+      const pipelineLink = target
+        .locator('iframe-link paper-item')
+        .filter({ hasText: /^\s*Pipelines\s*$/ });
+      if (!(await pipelineLink.isVisible())) {
+        await target
+          .locator('paper-item.section-item')
+          .filter({ hasText: /^\s*Pipelines\s*$/ })
+          .click();
+      }
+      await pipelineLink.click();
+      const embedded = await frame(target);
+      await embedded.locator('#createPipelineVersionBtn').waitFor({ timeout: 60000 });
+      return embedded;
+    } catch (error) {
+      // Preserve the original failure while collecting only bounded, credential-safe labels.
+      const diagnostic = { url: safePageUrl(target.url(), secretValues), documents };
+      let timer;
+      try {
+        const labels = await Promise.race([
+          Promise.all([
+            target.title(),
+            target
+              .locator('h1,h2,[role="alert"],button')
+              .filter({ visible: true })
+              .allTextContents(),
+          ]),
+          new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error('diagnostic timeout')), 3000);
+          }),
+        ]);
+        diagnostic.title = sanitize(labels[0], secretValues).slice(0, 200);
+        diagnostic.labels = labels[1]
+          .slice(0, 20)
+          .map((label) => sanitize(label, secretValues).replace(/\s+/g, ' ').trim().slice(0, 200));
+      } catch {
+        diagnostic.labelsUnavailable = true;
+      } finally {
+        clearTimeout(timer);
+      }
+      report.loginDiagnostics = diagnostic;
+      throw error;
+    } finally {
+      target.off('response', recordDocument);
+    }
   };
   const submit = async (button, endpoint) => {
     const responsePromise = page.waitForResponse(
@@ -445,7 +512,10 @@ export async function main() {
     if (initial) {
       await app.getByRole('button', { name: 'Start Tensorboard', exact: true }).click();
     }
-    const open = app.getByRole('link', { name: 'Open Tensorboard', exact: true });
+    // Legacy puts its startup warning inside this anchor, changing its accessible name.
+    const open = app
+      .locator('a[href*="apps/tensorboard/proxy/"]')
+      .filter({ hasText: 'Open Tensorboard' });
     await open.waitFor({ timeout: 180000 });
     if (initial) {
       signedTensorboardUrl = new URL(await open.getAttribute('href'), uiBase).href;
@@ -668,7 +738,7 @@ export async function main() {
             () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
           );
           assert.ok(
-            (await page.locator('[data-cy-selected-namespace]').innerText()).includes(
+            (await page.locator(selectedNamespaceSelector).innerText()).includes(
               'kfp-qualification-second',
             ),
           );
