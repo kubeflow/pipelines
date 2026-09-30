@@ -16,10 +16,7 @@ import os
 import subprocess
 import sys
 
-try:
-    from distutils.spawn import find_executable
-except ImportError:
-    from shutil import which as find_executable
+from shutil import which as find_executable
 
 PROTO_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -44,7 +41,8 @@ def generate_proto(source):
       source: The source proto file that needs to be compiled.
     """
 
-    output = source.replace(".proto", "_pb2.py")
+    output_filename = os.path.basename(source).replace(".proto", "_pb2.py")
+    output = os.path.join(PKG_DIR, output_filename)
 
     if not os.path.exists(output) or (
             os.path.exists(source) and
