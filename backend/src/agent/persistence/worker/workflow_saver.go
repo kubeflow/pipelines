@@ -55,6 +55,9 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	if err != nil && isNotFound {
 		// Permanent failure.
 		// The Workflow may no longer exist, we stop processing and do not retry.
+		if s.imagePullFailureChecker != nil {
+			s.imagePullFailureChecker.Forget(namespace, name)
+		}
 		return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT,
 			"Workflow (%s) in work queue no longer exists: %v", key, err)
 	}
@@ -75,9 +78,12 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		return nil
 	}
 
-	// Check for image pull failures on workflows that are still running.
-	if s.imagePullFailureChecker != nil && !wf.ExecutionStatus().IsInFinalState() {
-		if checkErr := s.imagePullFailureChecker.CheckAndTerminate(context.Background(), namespace, name); checkErr != nil {
+	// Check for image pull failures on workflows that are still running, and
+	// drop any tracking state once the workflow has finished.
+	if s.imagePullFailureChecker != nil {
+		if wf.ExecutionStatus().IsInFinalState() {
+			s.imagePullFailureChecker.Forget(namespace, name)
+		} else if checkErr := s.imagePullFailureChecker.CheckAndTerminate(context.Background(), namespace, name); checkErr != nil {
 			log.Warnf("Workflow (%v): error checking image pull failures: %v", name, checkErr)
 		}
 	}

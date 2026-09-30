@@ -32,6 +32,7 @@ import (
 // fakeImagePullFailureChecker is a test double for ImagePullFailureChecker.
 type fakeImagePullFailureChecker struct {
 	called        bool
+	forgotten     bool
 	namespace     string
 	workflowName  string
 	errorToReturn error
@@ -42,6 +43,12 @@ func (f *fakeImagePullFailureChecker) CheckAndTerminate(ctx context.Context, nam
 	f.namespace = namespace
 	f.workflowName = workflowName
 	return f.errorToReturn
+}
+
+func (f *fakeImagePullFailureChecker) Forget(namespace string, workflowName string) {
+	f.forgotten = true
+	f.namespace = namespace
+	f.workflowName = workflowName
 }
 
 func TestWorkflow_Save_Success(t *testing.T) {
@@ -380,6 +387,9 @@ func TestWorkflow_Save_CheckerSkippedForFailedWorkflow(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.False(t, checker.called, "Checker should NOT be called for failed workflow")
+	assert.True(t, checker.forgotten, "Checker state should be dropped for failed workflow")
+	assert.Equal(t, "MY_NAMESPACE", checker.namespace)
+	assert.Equal(t, "MY_NAME", checker.workflowName)
 }
 
 func TestWorkflow_Save_CheckerErrorDoesNotBlockReporting(t *testing.T) {
