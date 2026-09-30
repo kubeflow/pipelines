@@ -20,12 +20,20 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { before, after, test } from 'node:test';
 import { chromium, firefox, webkit } from 'playwright';
+import { recordScalingTrial } from './performance-evidence.mjs';
 
 const origin = 'http://kfp.test';
-const build = new URL('../build/', import.meta.url);
+if (process.env.KFP_PERFORMANCE_BUILD_DIR) {
+  assert.equal(process.env.CI, 'true');
+  assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
+}
+const build = process.env.KFP_PERFORMANCE_BUILD_DIR
+  ? pathToFileURL(resolve(process.env.KFP_PERFORMANCE_BUILD_DIR) + '/')
+  : new URL('../build/', import.meta.url);
 const alphaId = 'run/alpha space';
 const betaId = 'run/beta space';
 const comparisonHash = `#/compare?runlist=${encodeURIComponent(`${betaId},${alphaId}`)}`;
@@ -655,95 +663,128 @@ if (process.env.KFP_SCALING_SAMPLES) {
     assert.equal(classificationCount, 111);
     const samples = [];
     const assetPaths = new Set();
+    await mkdir(process.env.KFP_SCALING_OUTPUT_DIR, { recursive: true });
+    const progressPath = join(
+      process.env.KFP_SCALING_OUTPUT_DIR,
+      'comparison-' + (process.env.KFP_BROWSER || 'chromium') + '-progress.json',
+    );
+    const progress = {
+      status: 'running',
+      expectedSamples: count,
+      applicationSource: process.env.KFP_SOURCE_COMMIT,
+      browserVersion: browser.version(),
+      harnessSha256: createHash('sha256')
+        .update(await readFile(new URL(import.meta.url)))
+        .digest('hex'),
+      fixtureSha256: createHash('sha256').update(JSON.stringify(data)).digest('hex'),
+      indexSha256: createHash('sha256')
+        .update(await readFile(new URL('index.html', build)))
+        .digest('hex'),
+      samples,
+      attempts: [],
+    };
     for (let sample = 1; sample <= count; sample++) {
-      await withFixture(async (page, fixture) => {
-        const parameters = page.getByRole('table', { name: 'parameters comparison', exact: true });
-        const metrics = page.getByRole('table', {
-          name: 'scalar metrics artifacts comparison',
-          exact: true,
-        });
-        await metrics.waitFor();
-        assert.deepEqual(await parameters.locator('thead a').allTextContents(), [
-          'Beta run',
-          'Alpha run',
-        ]);
-        assert.deepEqual(
-          await metrics
-            .getByRole('row')
-            .filter({ hasText: 'Evaluate / accuracy' })
-            .getByRole('cell')
-            .allTextContents(),
-          ['—', '0'],
-        );
-        assert.equal(fixture.requests.filter(({ path }) => path.endsWith('/tasks')).length, 2);
-        await page.evaluate(() =>
-          document.fonts.ready.then(
+      await recordScalingTrial(progress, progressPath, sample, async () => {
+        await withFixture(async (page, fixture) => {
+          const parameters = page.getByRole('table', {
+            name: 'parameters comparison',
+            exact: true,
+          });
+          const metrics = page.getByRole('table', {
+            name: 'scalar metrics artifacts comparison',
+            exact: true,
+          });
+          await metrics.waitFor();
+          assert.deepEqual(await parameters.locator('thead a').allTextContents(), [
+            'Beta run',
+            'Alpha run',
+          ]);
+          assert.deepEqual(
+            await metrics
+              .getByRole('row')
+              .filter({ hasText: 'Evaluate / accuracy' })
+              .getByRole('cell')
+              .allTextContents(),
+            ['—', '0'],
+          );
+          assert.equal(fixture.requests.filter(({ path }) => path.endsWith('/tasks')).length, 2);
+          await page.evaluate(() =>
+            document.fonts.ready.then(
+              () =>
+                new Promise((resolve) =>
+                  requestAnimationFrame(() => requestAnimationFrame(resolve)),
+                ),
+            ),
+          );
+          const contentReadyMs = performance.now() - fixture.navigationStartedAt;
+
+          const chartStarted = performance.now();
+          await page.getByRole('tab', { name: 'Classification Metrics', exact: true }).click();
+          const trigger = page.getByRole('combobox', { name: 'ROC curves', exact: true });
+          await renderedCurves(page, 3);
+          const provenance = page.getByRole('list', {
+            name: 'Selected ROC curve provenance',
+            exact: true,
+          });
+          const original = await provenance.getByRole('listitem').allTextContents();
+          assert.equal(original.length, 3);
+          await page.evaluate(
             () =>
               new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-          ),
-        );
-        const contentReadyMs = performance.now() - fixture.navigationStartedAt;
-
-        const chartStarted = performance.now();
-        await page.getByRole('tab', { name: 'Classification Metrics', exact: true }).click();
-        const trigger = page.getByRole('combobox', { name: 'ROC curves', exact: true });
-        await renderedCurves(page, 3);
-        const provenance = page.getByRole('list', {
-          name: 'Selected ROC curve provenance',
-          exact: true,
+          );
+          const chartReadyMs = performance.now() - chartStarted;
+          await trigger.click();
+          const options = page.getByRole('listbox', { name: 'ROC curves', exact: true });
+          await options.waitFor();
+          assert.equal(await options.getByRole('option').count(), 100);
+          await page.keyboard.press('Escape');
+          await page.getByRole('button', { name: 'Next ROC curves', exact: true }).click();
+          await trigger.click();
+          await options.waitFor();
+          assert.equal(await options.getByRole('option').count(), 11);
+          const last = options.getByRole('option').last();
+          const lastName = (await last.textContent()).trim();
+          const selectStarted = performance.now();
+          await last.click();
+          await renderedCurves(page, 4);
+          const selected = await provenance.getByRole('listitem').allTextContents();
+          assert.ok(original.every((name) => selected.includes(name)));
+          assert.ok(selected.some((name) => name.trim() === lastName));
+          await page.evaluate(
+            () =>
+              new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+          );
+          const addCurveReadyMs = performance.now() - selectStarted;
+          await page.keyboard.press('Escape');
+          const chart = page.locator('.kfp-roc-section .recharts-wrapper');
+          const compactHeight = await chart.evaluate(
+            (element) => element.getBoundingClientRect().height,
+          );
+          const expandStarted = performance.now();
+          await page.getByRole('button', { name: 'Expand ROC chart', exact: true }).click();
+          await page.getByRole('button', { name: 'Compact ROC chart', exact: true }).waitFor();
+          await page.waitForFunction(
+            (before) =>
+              document.querySelector('.kfp-roc-section .recharts-wrapper').getBoundingClientRect()
+                .height > before,
+            compactHeight,
+          );
+          await renderedCurves(page, 4);
+          await page.evaluate(
+            () =>
+              new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+          );
+          const expandChartReadyMs = performance.now() - expandStarted;
+          samples.push({
+            sample,
+            contentReadyMs,
+            chartReadyMs,
+            addCurveReadyMs,
+            expandChartReadyMs,
+          });
+          for (const { path } of fixture.requests)
+            if (path.startsWith('/static/')) assetPaths.add(path);
         });
-        const original = await provenance.getByRole('listitem').allTextContents();
-        assert.equal(original.length, 3);
-        await page.evaluate(
-          () =>
-            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-        );
-        const chartReadyMs = performance.now() - chartStarted;
-        await trigger.click();
-        const options = page.getByRole('listbox', { name: 'ROC curves', exact: true });
-        await options.waitFor();
-        assert.equal(await options.getByRole('option').count(), 100);
-        await page.keyboard.press('Escape');
-        await page.getByRole('button', { name: 'Next ROC curves', exact: true }).click();
-        await trigger.click();
-        await options.waitFor();
-        assert.equal(await options.getByRole('option').count(), 11);
-        const last = options.getByRole('option').last();
-        const lastName = (await last.textContent()).trim();
-        const selectStarted = performance.now();
-        await last.click();
-        await renderedCurves(page, 4);
-        const selected = await provenance.getByRole('listitem').allTextContents();
-        assert.ok(original.every((name) => selected.includes(name)));
-        assert.ok(selected.some((name) => name.trim() === lastName));
-        await page.evaluate(
-          () =>
-            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-        );
-        const addCurveReadyMs = performance.now() - selectStarted;
-        await page.keyboard.press('Escape');
-        const chart = page.locator('.kfp-roc-section .recharts-wrapper');
-        const compactHeight = await chart.evaluate(
-          (element) => element.getBoundingClientRect().height,
-        );
-        const expandStarted = performance.now();
-        await page.getByRole('button', { name: 'Expand ROC chart', exact: true }).click();
-        await page.getByRole('button', { name: 'Compact ROC chart', exact: true }).waitFor();
-        await page.waitForFunction(
-          (before) =>
-            document.querySelector('.kfp-roc-section .recharts-wrapper').getBoundingClientRect()
-              .height > before,
-          compactHeight,
-        );
-        await renderedCurves(page, 4);
-        await page.evaluate(
-          () =>
-            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-        );
-        const expandChartReadyMs = performance.now() - expandStarted;
-        samples.push({ sample, contentReadyMs, chartReadyMs, addCurveReadyMs, expandChartReadyMs });
-        for (const { path } of fixture.requests)
-          if (path.startsWith('/static/')) assetPaths.add(path);
       });
     }
     const assets = await Promise.all(

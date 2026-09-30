@@ -1,0 +1,11 @@
+{
+  "status": "proposed-pending-maintainer-acceptance",
+  "samples": 7,
+  "relativeMedianAllowance": 0.1,
+  "absoluteMedianAllowanceMs": 50,
+  "entryGzipRatio": 0.8,
+  "loadClsMaximum": 0.005,
+  "filterClsMaximum": 0.02,
+  "controlMovementMaximumPx": 1,
+  "firstEditorOpen": "measure-only-pending-results"
+}

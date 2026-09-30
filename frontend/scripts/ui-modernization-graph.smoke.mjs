@@ -22,12 +22,20 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { after, before, test } from 'node:test';
 import { chromium, firefox, webkit } from 'playwright';
+import { recordScalingTrial } from './performance-evidence.mjs';
 
 const origin = 'http://kfp.test';
-const build = new URL('../build/', import.meta.url);
+if (process.env.KFP_PERFORMANCE_BUILD_DIR) {
+  assert.equal(process.env.CI, 'true');
+  assert.equal(process.env.RUNNER_ENVIRONMENT, 'github-hosted');
+}
+const build = process.env.KFP_PERFORMANCE_BUILD_DIR
+  ? pathToFileURL(resolve(process.env.KFP_PERFORMANCE_BUILD_DIR) + '/')
+  : new URL('../build/', import.meta.url);
 const runId = 'graph-fixture';
 const createdAt = '2026-09-26T12:00:00.000Z';
 const finishedAt = '2026-09-26T12:01:00.000Z';
@@ -631,59 +639,81 @@ if (process.env.KFP_SCALING_SAMPLES) {
     assert.equal(data.expectedEdges.length, 363);
     const samples = [];
     const assetPaths = new Set();
+    await mkdir(process.env.KFP_SCALING_OUTPUT_DIR, { recursive: true });
+    const progressPath = join(
+      process.env.KFP_SCALING_OUTPUT_DIR,
+      'graph-' + (process.env.KFP_BROWSER || 'chromium') + '-progress.json',
+    );
+    const progress = {
+      status: 'running',
+      expectedSamples: count,
+      applicationSource: process.env.KFP_SOURCE_COMMIT,
+      browserVersion: browser.version(),
+      harnessSha256: createHash('sha256')
+        .update(await readFile(new URL(import.meta.url)))
+        .digest('hex'),
+      fixtureSha256: createHash('sha256').update(JSON.stringify(data)).digest('hex'),
+      indexSha256: createHash('sha256')
+        .update(await readFile(new URL('index.html', build)))
+        .digest('hex'),
+      samples,
+      attempts: [],
+    };
     for (let sample = 1; sample <= count; sample++) {
-      await withFixture(data, async (page, requests) => {
-        const started = performance.now();
-        await page.goto(`${origin}/#/runs/details/${runId}`);
-        const initial = await geometry(page, 201);
-        assert.deepEqual(
-          initial.nodes.map(({ id }) => id),
-          data.expectedNodes,
-        );
-        assert.deepEqual(
-          initial.edges.map(({ id, connection }) => ({ id, connection })),
-          data.expectedEdges,
-        );
-        assert.ok(initial.nodes.every(({ width, height }) => width === 200 && height === 56));
-        const graphReadyMs = performance.now() - started;
-        assert.deepEqual(
-          requests
-            .filter(({ path }) => path.endsWith('/tasks'))
-            .map(({ query }) => query.page_token || ''),
-          ['', 'remaining-tasks'],
-        );
+      await recordScalingTrial(progress, progressPath, sample, async () => {
+        await withFixture(data, async (page, requests) => {
+          const started = performance.now();
+          await page.goto(`${origin}/#/runs/details/${runId}`);
+          const initial = await geometry(page, 201);
+          assert.deepEqual(
+            initial.nodes.map(({ id }) => id),
+            data.expectedNodes,
+          );
+          assert.deepEqual(
+            initial.edges.map(({ id, connection }) => ({ id, connection })),
+            data.expectedEdges,
+          );
+          assert.ok(initial.nodes.every(({ width, height }) => width === 200 && height === 56));
+          const graphReadyMs = performance.now() - started;
+          assert.deepEqual(
+            requests
+              .filter(({ path }) => path.endsWith('/tasks'))
+              .map(({ query }) => query.page_token || ''),
+            ['', 'remaining-tasks'],
+          );
 
-        // Native keyboard activation exercises the actual rendered task button and inspector.
-        const task = page.getByRole('button', { name: 'step-000', exact: true });
-        await task.focus();
-        const selectStarted = performance.now();
-        await task.press('Enter');
-        await page.locator('.react-flow__node[data-id="task.step-000"].selected').waitFor();
-        await page.getByRole('dialog', { name: 'step-000', exact: true }).waitFor();
-        await page.getByRole('tab', { name: 'Task Details', exact: true }).waitFor();
-        await page.evaluate(
-          () =>
-            new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-        );
-        const selectInspectorReadyMs = performance.now() - selectStarted;
-        await page.getByRole('button', { name: 'close', exact: true }).click();
-        await page.getByRole('dialog').waitFor({ state: 'hidden' });
-        sameGeometry(initial, await geometry(page, 201));
+          // Native keyboard activation exercises the actual rendered task button and inspector.
+          const task = page.getByRole('button', { name: 'step-000', exact: true });
+          await task.focus();
+          const selectStarted = performance.now();
+          await task.press('Enter');
+          await page.locator('.react-flow__node[data-id="task.step-000"].selected').waitFor();
+          await page.getByRole('dialog', { name: 'step-000', exact: true }).waitFor();
+          await page.getByRole('tab', { name: 'Task Details', exact: true }).waitFor();
+          await page.evaluate(
+            () =>
+              new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+          );
+          const selectInspectorReadyMs = performance.now() - selectStarted;
+          await page.getByRole('button', { name: 'close', exact: true }).click();
+          await page.getByRole('dialog').waitFor({ state: 'hidden' });
+          sameGeometry(initial, await geometry(page, 201));
 
-        // The large graph starts at minimum zoom; zoom in so Fit View must update it.
-        const beforeZoom = await viewport(page);
-        await page.getByRole('button', { name: 'Zoom In', exact: true }).click();
-        await changedViewport(page, beforeZoom);
-        await settledViewport(page);
-        const beforeFit = await viewport(page);
-        const fitStarted = performance.now();
-        await page.getByRole('button', { name: 'Fit View', exact: true }).click();
-        await changedViewport(page, beforeFit);
-        await settledViewport(page);
-        const fitSettledMs = performance.now() - fitStarted;
-        sameGeometry(initial, await geometry(page, 201));
-        samples.push({ sample, graphReadyMs, selectInspectorReadyMs, fitSettledMs });
-        for (const { path } of requests) if (path.startsWith('/static/')) assetPaths.add(path);
+          // The large graph starts at minimum zoom; zoom in so Fit View must update it.
+          const beforeZoom = await viewport(page);
+          await page.getByRole('button', { name: 'Zoom In', exact: true }).click();
+          await changedViewport(page, beforeZoom);
+          await settledViewport(page);
+          const beforeFit = await viewport(page);
+          const fitStarted = performance.now();
+          await page.getByRole('button', { name: 'Fit View', exact: true }).click();
+          await changedViewport(page, beforeFit);
+          await settledViewport(page);
+          const fitSettledMs = performance.now() - fitStarted;
+          sameGeometry(initial, await geometry(page, 201));
+          samples.push({ sample, graphReadyMs, selectInspectorReadyMs, fitSettledMs });
+          for (const { path } of requests) if (path.startsWith('/static/')) assetPaths.add(path);
+        });
       });
     }
     const assets = await Promise.all(
