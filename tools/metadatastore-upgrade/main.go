@@ -131,7 +131,7 @@ func main() {
 		log.Printf("Cleaning up Upgrade")
 		// In a highly unlikely scenario upgrade cleanup can fail.
 		if err := updateDeployment(deploymentsClient, newImage, originalContainerArgs); err != nil {
-			log.Printf("Upgrade cleanup failed: %v. \nLikely MetadataStore is in a functioning state but needs verifcation.", err)
+			log.Printf("Upgrade cleanup failed: %v. \nLikely MetadataStore is in a functioning state but needs verification.", err)
 		}
 	} else {
 		log.Fatalf("Upgrade attempt failed. MetadataStore deployment in the cluster needs attention: %v", err)

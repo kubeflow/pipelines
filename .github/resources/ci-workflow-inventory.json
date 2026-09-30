@@ -125,7 +125,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bc31e48ec9321281766d03b29eca5637b85a3e5534ef078e632856d8b3e8ab72",
+      "header_sha256": "b0ff1829b2fa57f442e8788dd333f60b40bae8b8ba6cf9d5de609bcbad5c0ad4",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -184,6 +184,10 @@
           "backend/src/v2/Makefile",
           "release/kfpr/core.py",
           "test_data/sdk_compiled_pipelines/valid/**",
+          "backend/test/end2end/pipeline_e2e_test.go",
+          "backend/test/v2/resources/env-var.yaml",
+          "backend/test/v2/resources/hello-world-with-returning-component.yaml",
+          "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
           ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
@@ -349,7 +353,7 @@
     {
       "path": ".github/workflows/gh-workflow-approve.yml",
       "name": "Approve Workflow Runs",
-      "header_sha256": "faa44e7c1eb63cb382c7b666747887ae31f48dd68b8e91b79b41b63f89482eb6",
+      "header_sha256": "a33f86d80ac847b03bcbd24568aa42b65103d5dd193d8c5660dc524240f7704e",
       "pull_request": null
     },
     {
@@ -616,13 +620,14 @@
     {
       "path": ".github/workflows/runtime-base-images.yml",
       "name": "Runtime Base Images",
-      "header_sha256": "ca0534edd4c0b236646a5cf5e6690c3eb3b36278aebdb049d887379df0cac193",
+      "header_sha256": "c5007f2a38ed6d560497dd78d9c5dfff59677aa808f75d85340f5665567fb1c3",
       "pull_request": {
         "paths": [
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/image-builds.yml",
           ".github/resources/runtime-base-images.txt",
           ".github/resources/scripts/helper-functions.sh",
+          ".github/resources/scripts/build-runtime-base-images.sh",
           ".github/resources/scripts/configure-docker-hub-mirror.sh",
           ".github/resources/scripts/configure_docker_registry_mirror.py",
           ".github/resources/scripts/prune_runtime_base_image_caches.py",

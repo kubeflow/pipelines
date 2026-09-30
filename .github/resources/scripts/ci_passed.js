@@ -12,6 +12,7 @@
 'use strict';
 
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
+const {verifyCheckRuns} = require('./ci_check_runs');
 
 function eligible(pr) {
   const labels = new Set(pr.labels.map(label => label.name));
@@ -96,7 +97,7 @@ async function resolve(github, context, recovery) {
     pr.head.repo?.full_name === run.head_repository.full_name ? pr : null;
 }
 
-async function publish(github, context, pr, state, description) {
+async function publish(github, context, pr, state, description, provisional = false) {
   let current;
   try {
     current = await currentStatus(github, context, pr.head.sha);
@@ -104,14 +105,15 @@ async function publish(github, context, pr, state, description) {
     // A failed read must not prevent invalidating a previously green head.
     if (state === 'success') throw error;
   }
-  // A timer must not exhaust the finite per-SHA/context status history on
-  // unchanged failing heads. Preserve non-success until recovery is proven.
-  const preserve = context.eventName === 'schedule' && state === 'pending' &&
-    current && current.state !== 'success';
-  if (!preserve && current?.state !== state) {
+  // Revoke green immediately without creating two statuses for every event
+  // on an unchanged pending/failing head. Authoritative evidence may still
+  // move an earlier failure to pending when its rerun starts.
+  const preserve = provisional && current && current.state !== 'success';
+  const boundedDescription = description.slice(0, 140);
+  if (!preserve && (current?.state !== state || current.description !== boundedDescription)) {
     await github.rest.repos.createCommitStatus({
       ...context.repo, sha: pr.head.sha, context: 'ci-passed', state,
-      description: description.slice(0, 140),
+      description: boundedDescription,
       target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
     });
   }
@@ -143,9 +145,29 @@ async function freshAfter(github, context, pr) {
 }
 
 async function evidence(github, context, pr, root) {
-  const inventory = await loadBaseInventory({github, ...context.repo, pullRequest: pr, root});
-  return verifyExpectedWorkflows({github, ...context.repo, pullRequest: pr,
-    ...inventory, freshAfter: await freshAfter(github, context, pr)});
+  const [inventory, cutoff] = await Promise.all([
+    loadBaseInventory({github, ...context.repo, pullRequest: pr, root}),
+    freshAfter(github, context, pr),
+  ]);
+  const args = {github, ...context.repo, pullRequest: pr, ...inventory, freshAfter: cutoff};
+  let result = await verifyExpectedWorkflows(args);
+  if (result.missing.length) {
+    // The earliest publication on this SHA starts the registration grace.
+    // Labels, retries, and changing explanations cannot restart that clock.
+    const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
+      ...context.repo, ref: pr.head.sha, per_page: 100,
+    });
+    const times = statuses.filter(status => status.context === 'ci-passed').map(status => {
+      const time = Date.parse(status.created_at);
+      if (!Number.isFinite(time)) throw new Error('CI status has no registration timestamp');
+      return time;
+    });
+    if (times.length) {
+      const start = Math.max(Math.min(...times), cutoff ? Date.parse(cutoff) : 0);
+      result = await verifyExpectedWorkflows({...args, registrationStartedAt: new Date(start).toISOString()});
+    }
+  }
+  return result;
 }
 
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
@@ -166,40 +188,68 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
-  await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.');
+  await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
   if (pr.state !== 'open' || !eligible(pr)) return;
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
 }
 
-async function finalize({github, context, core, number, head, before, pollPassed,
+async function finalize({github, context, core, number, head, before, pollPassed, pollSkipped = false,
   root = process.env.GITHUB_WORKSPACE}) {
   if (!number || !head) return;
-  const pr = await readPR(github, context, Number(number));
-  const original = {...pr, head: {...pr.head, sha: head}};
-  let passed = false;
-  let reason = 'CI did not pass; complete current-head CI and retry.';
+  let original = {number: Number(number), head: {sha: head}};
+  let errorReason = 'Cannot verify CI evidence; inspect CI Check and retry.';
   try {
-    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && eligible(pr) && pollPassed) {
-      const result = await evidence(github, context, pr, root);
-      core.info(JSON.stringify(result));
-      passed = result.passed;
-      if (!passed) reason = result.reasons.join('; ');
+    const pr = await readPR(github, context, Number(number));
+    original = {...pr, head: {...pr.head, sha: head}};
+    let state = 'failure';
+    let reason = 'PR changed or is ineligible; complete current-head CI and retry.';
+    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && eligible(pr)) {
+      const [workflows, checks] = await Promise.all([
+        evidence(github, context, pr, root),
+        verifyCheckRuns({github, ...context.repo, sha: head}),
+      ]);
+      core.info(JSON.stringify({workflows, checks}));
+      const results = [workflows, checks];
+      state = results.some(result => result.state === 'failure') ? 'failure' :
+        results.some(result => result.state === 'pending') ? 'pending' : 'success';
+      reason = results.filter(result => result.state === state)
+        .flatMap(result => result.reasons).join('; ');
+      // Retain the pinned checker's independent success requirement. If it
+      // was skipped before workflow evidence recovered, wait for the next
+      // reconciliation instead of authorizing an unchecked success.
+      if (state === 'success' && !pollPassed) {
+        state = pollSkipped ? 'pending' : 'failure';
+        reason = pollSkipped ? 'CI changed since initial assessment; awaiting check validation.' :
+          'Cannot verify all checks passed; inspect CI Check and retry.';
+      }
     }
-    await publish(github, context, original, passed ? 'success' : 'failure',
-      passed ? successDescription(pr) : reason);
-    // Status/label writes are not atomic with PR updates. Re-read the full
-    // state and durable base history, and undo success when either drifted.
-    if (passed) {
+    if (state === 'failure') errorReason = reason;
+    await publish(github, context, original, state,
+      state === 'success' ? successDescription(pr) : reason);
+    // Status/label writes are not atomic with PR or CI changes. Revalidate
+    // external checks as well as workflow evidence after publishing green.
+    if (state === 'success') {
       const after = await readPR(github, context, Number(number));
-      const current = snapshot(after) === before &&
-        (await evidence(github, context, after, root)).passed;
-      if (!current) await publish(github, context, original, 'failure',
-        'PR or CI changed during publication; rerun CI on the current head.');
+      if (snapshot(after) !== before) {
+        errorReason = 'PR changed during publication; rerun CI on the current head.';
+        await publish(github, context, original, 'failure', errorReason);
+      } else {
+        const results = await Promise.all([
+          evidence(github, context, after, root),
+          verifyCheckRuns({github, ...context.repo, sha: head}),
+        ]);
+        const changed = results.find(result => result.state === 'failure') ||
+          results.find(result => result.state === 'pending');
+        if (changed) {
+          if (changed.state === 'failure') errorReason = changed.reasons.join('; ');
+          await publish(github, context, original, changed.state, changed.reasons.join('; '));
+        }
+      }
     }
   } catch (error) {
-    await publish(github, context, original, 'failure', 'Cannot verify CI evidence; inspect CI Check and retry.');
+    await publish(github, context, original, 'failure', errorReason);
     throw error;
   }
 }

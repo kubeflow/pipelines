@@ -75,20 +75,24 @@ Kubeflow Pipelines uses GitHub Actions workflows to gate CI for pull requests.
 - Pull requests authored by `dependabot[bot]` or `copybara-service[bot]` are exempt
   from this linked-issue gate. Required CI checks and merge requirements still
   apply.
-- Pull requests opened by other contributors must link to a GitHub issue using
-  a closing keyword such as `Fixes #1234` in the PR description.
-- The linked issue must be labeled `ready` by a Kubeflow Pipelines maintainer
-  before CI is allowed to proceed.
+- Pull requests opened by other contributors must reference an issue in this
+  repository with a closing keyword such as `Fixes #1234` on its own line in
+  the PR description. For PRs targeting a release branch, GitHub does not
+  automatically create an issue link from that keyword, but the admission gate
+  recognizes the reference.
+- The referenced issue must be labeled `ready` by a Kubeflow Pipelines
+  maintainer before CI is allowed to proceed.
 
 If you plan to contribute regularly, becoming a Kubeflow GitHub organization
 member is straightforward. Follow the instructions in the
 [`kubeflow/internal-acls` guide](https://github.com/kubeflow/internal-acls/#joining-the-kubeflow-github-organization).
 
-If a non-member pull request subject to this gate does not link to an issue, or
-the linked issue is not labeled `ready`, the gatekeeper workflow may comment on
-the PR and close it until the issue triage step is completed. If the membership
-lookup fails, the workflow fails without closing the PR; a maintainer can rerun
-it after the lookup problem is resolved.
+If a non-member pull request subject to this gate does not reference an issue,
+or the referenced issue is not labeled `ready`, the gatekeeper workflow may
+comment on the PR and close it until the issue triage step is completed. If the
+membership lookup fails, the workflow fails without closing the PR; a
+maintainer can rerun it after the lookup problem is resolved. Once the issue is
+ready and referenced, reopen the PR to rerun the gate.
 
 ## Project Structure
 

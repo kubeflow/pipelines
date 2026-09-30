@@ -362,6 +362,27 @@ class GithubCommandTest(unittest.TestCase):
             1)
         self.assertNotIn('done-job:', output.getvalue())
 
+    def test_watch_pr_ci_waits_for_pending_ci_passed_status(self):
+        runner = mock.Mock(dry_run=False)
+        runner.capture.side_effect = [
+            '[{"context":"ci-passed","state":"PENDING"},'
+            '{"name":"unit-tests","status":"IN_PROGRESS"}]',
+            '[{"context":"ci-passed","state":"PENDING"},'
+            '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]',
+            '[{"context":"ci-passed","state":"SUCCESS"},'
+            '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]',
+        ]
+
+        with contextlib.redirect_stdout(
+                io.StringIO()) as output, mock.patch('time.sleep') as sleep:
+            core.watch_pr_ci(runner,
+                             'https://github.com/kubeflow/pipelines/pull/1')
+
+        self.assertEqual(runner.capture.call_count, 3)
+        self.assertEqual(sleep.call_args_list, [mock.call(60), mock.call(60)])
+        self.assertIn('All PR CI gates completed successfully (2/2)',
+                      output.getvalue())
+
     def test_watch_pr_ci_fails_fast_on_failed_status_context(self):
 
         class FailingStatusRunner:

@@ -90,9 +90,13 @@ class InventoryTests(unittest.TestCase):
     def test_complete_shared_indexes(self):
         self.assertEqual(set(self.read()), smoke.IMAGES)
 
-    def test_inverse_proxy_explicitly_outside_profile(self):
-        self.write("inverse-proxy-agent", platforms=["linux/amd64"])
-        self.assertEqual(set(self.read()), smoke.IMAGES)
+    def test_removed_inverse_proxy_records_fail(self):
+        for name in ("inverse-proxy-agent", "kfp-inverse-proxy-agent"):
+            with self.subTest(name=name):
+                self.write(name, platforms=["linux/amd64"])
+                with self.assertRaisesRegex(ValueError, "Unexpected"):
+                    self.read()
+                (self.directory / f"{name}.json").unlink()
 
     def test_missing_image_fails(self):
         (self.directory / "kfp-driver.json").unlink()

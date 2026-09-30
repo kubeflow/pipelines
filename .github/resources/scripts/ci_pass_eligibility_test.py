@@ -28,7 +28,9 @@ def exercise(options=None):
 const gate = require(process.argv[1]);
 const options = JSON.parse(process.argv[2]);
 const root = process.argv[3];
-const calls = [], outputs = {}, descriptions = [];
+const calls = [], outputs = {}, descriptions = [], targetUrls = [];
+const workflowName = options.workflowName || 'frontend.yml';
+let cycle = 0;
 let pr = {
   number: 7, state: 'open', changed_files: 1,
   head: {sha: 'head', ref: 'feature', repo: {full_name: 'contributor/pipelines'}},
@@ -45,8 +47,13 @@ const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
       head_repository: {owner: {login: 'contributor'}, full_name: 'contributor/pipelines'}}}};
 let published = false;
 let status = options.initialStatus;
+let description = options.initialDescription;
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
-const methods = {files: {}, runs: {}, timeline: {}, pulls: {}};
+const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
+methods.runs = async () => ({data: {total_count: 0, workflow_runs: []}});
+const statusHistory = options.statusHistory || [];
+if (options.initialStatus) statusHistory.push({context: 'ci-passed',
+  created_at: options.registrationStartedAt || new Date().toISOString()});
 const github = {graphql: async (query, variables) => {
   calls.push(['base-workflows', variables]);
   if (options.inventoryFailure) throw Error('Workflow tree unavailable');
@@ -58,7 +65,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
 `;
-  const definitions = [{name: 'frontend.yml', content}];
+  const definitions = [{name: workflowName, content}];
   if (options.upgradePolicy) definitions.push({name: 'upgrade-test.yml', content:
     content + (options.upgradePolicy === 'paused' ? '    if: false\n' : '')});
   return {repository: {nameWithOwner: 'kubeflow/pipelines', object: {__typename: 'Tree',
@@ -69,12 +76,30 @@ jobs:
   pulls: {listFiles: methods.files, list: methods.pulls,
     get: async () => ({data: structuredClone(pr)})},
   actions: {listWorkflowRunsForRepo: methods.runs},
+  checks: {listForRef: async () => {
+    if (options.checkApiFailure) throw Error('Checks API unavailable');
+    const status = published && options.drift === 'external-rerun' ? 'in_progress' :
+      options.checkStatus || 'completed';
+    const conclusion = status !== 'completed' ? null :
+      published && options.drift === 'external-failure' ? 'failure' :
+      options.pollPassed === false && !(options.recoverLast && cycle === options.cycles - 1) ? 'failure' : 'success';
+    return {data: {total_count: 1, check_runs: [{id: 700, name: 'DCO',
+      head_sha: 'head', app: {id: 1861, slug: 'dco'}, status, conclusion,
+      started_at: '2026-09-07T11:00:00Z', completed_at: status === 'completed' ? '2026-09-07T12:00:00Z' : null,
+      check_suite: {id: 900}}]}};
+  }},
   issues: {listEventsForTimeline: methods.timeline,
     addLabels: async request => {calls.push(['add-label', request.labels]);},
-    removeLabel: async request => {calls.push(['remove-label', request.name]);}},
-  repos: {getCombinedStatusForRef: {}, createCommitStatus: async request => {
+    removeLabel: async request => {
+      calls.push(['remove-label', request.name]);
+      if (options.removeLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
+    }},
+  repos: {getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses, createCommitStatus: async request => {
+    statusHistory.push({context: 'ci-passed', created_at: options.registrationStartedAt || new Date().toISOString()});
     status = request.state;
-    descriptions.push(request.description);
+    description = request.description;
+    descriptions.push(description);
+    targetUrls.push(request.target_url);
     calls.push(['status', request.state, request.sha]);
     if (request.state === 'success') {
       published = true;
@@ -86,6 +111,7 @@ jobs:
     }
   }},
 }, paginate: async (method, params) => {
+  if (method === methods.statuses) return statusHistory;
   if (method === methods.files) return [{filename: 'frontend/src/mlmd/Api.ts'}];
   if (method === methods.pulls) return options.ambiguous ? [pr, {...pr, number: 8}] : [pr];
   if (method === methods.timeline) {
@@ -94,31 +120,34 @@ jobs:
   }
   if (method === methods.runs) {
     if (options.missing) return [];
-    const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusion || 'success');
-    return [{path: '.github/workflows/frontend.yml', id: 42, event: 'pull_request', head_sha: 'head', head_branch: 'feature',
+    const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusions?.[cycle] || options.conclusion || 'success');
+    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: 1, event: 'pull_request', head_sha: 'head', head_branch: 'feature',
       head_repository: {full_name: 'contributor/pipelines'},
-      status: options.runStatus || 'completed', conclusion,
+      status: options.runStatus || 'completed', conclusion: options.runStatus && options.runStatus !== 'completed' ? null : conclusion,
       created_at: options.fresh ? '2026-09-07T12:01:00Z' : '2026-09-07T11:00:00Z',
-      run_started_at: '2026-09-07T12:02:00Z', pull_requests: []}];
+      run_started_at: '2026-09-07T12:02:00Z', pull_requests: [], ...options.runPatch}];
   }
   throw Error('Unexpected API request');
 }};
 github.paginate.iterator = async function* () {
   if (options.statusReadFailure) throw Error('Status read unavailable');
-  yield {data: {statuses: status ? [{context: 'ci-passed', state: status}] : []}};
+  yield {data: {statuses: status ? [{context: 'ci-passed', state: status, description}] : []}};
 };
 (async () => {
   let error;
-  for (let cycle = 0; cycle < (options.cycles || 1); cycle++) {
+  for (cycle = 0; cycle < (options.cycles || 1); cycle++) {
+  context.runId = 99 + cycle;
   try {await gate.prepare({github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
+  if (options.recoverBeforeFinal) options.conclusion = 'success';
   try {
     await gate.finalize({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
-      pollPassed: outputs.ready === 'true' && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
+      pollSkipped: outputs.ready === 'false' && !error,
+      pollPassed: outputs.ready === 'true' && !options.checkerFailure && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
   } catch (e) {error = e.message;}
   }
-  console.log(JSON.stringify({calls, outputs, error, status, descriptions}));
+  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run([
@@ -171,12 +200,15 @@ console.log(JSON.stringify(result));
         self.assert_last_status(result, 'success')
 
     def test_failed_poll_blocks_otherwise_complete_workflows(self):
-        self.assert_last_status(exercise({'pollPassed': False}), 'failure')
+        result = exercise({'pollPassed': False})
+        self.assert_last_status(result, 'failure')
+        self.assertEqual(result['descriptions'][-1],
+                         'Check DCO (app 1861): failure')
 
     def test_missing_workflows_never_reach_poller(self):
         result = exercise({'missing': True})
         self.assertEqual(result['outputs']['ready'], 'false')
-        self.assert_last_status(result, 'failure')
+        self.assert_last_status(result, 'pending')
 
     def test_recovery_revisits_legacy_and_changed_base_success(self):
         script = r"""
@@ -242,7 +274,7 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
         )
 
     def test_green_recovery_requires_newly_enabled_upgrade_workflow(self):
-        for policy, expected in [('paused', 'success'), ('enabled', 'failure')]:
+        for policy, expected in [('paused', 'success'), ('enabled', 'pending')]:
             with self.subTest(policy=policy):
                 result = exercise({
                     'schedule': True,
@@ -269,7 +301,8 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
         }, {
                 'retarget': True
         }, {
-                'missing': True
+                'missing': True,
+                'registrationStartedAt': '2026-09-07T11:00:00Z'
         }, {
                 'pr': {
                     'labels': [{
@@ -311,10 +344,12 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
         self.assertIn('Status read unavailable', result['error'])
 
     def test_repeated_failing_sweeps_do_not_exhaust_status_history(self):
+        description = 'Check DCO (app 1861): failure'
         result = exercise({
             'schedule': True,
             'pollPassed': False,
             'initialStatus': 'failure',
+            'initialDescription': description,
             'cycles': 6
         })
         self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
@@ -323,11 +358,104 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
             'schedule': True,
             'pollPassed': False,
             'initialStatus': 'failure',
+            'initialDescription': description,
             'cycles': 6,
             'recoverLast': True
         })
         self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
                          [['status', 'success', 'head']])
+
+    def test_recovery_refreshes_legacy_failure_with_current_workflow_reason(
+            self):
+        legacy_reason = 'Cannot verify CI evidence; inspect CI Check and retry.'
+        for options, expected in [
+            ({
+                'conclusion': 'skipped'
+            },
+             '.github/workflows/frontend.yml: latest run is completed/skipped'),
+            ({
+                'missing': True,
+                'registrationStartedAt': '2026-09-07T11:00:00Z'
+            },
+             '.github/workflows/frontend.yml: expected workflow has not registered after 15 minutes; inspect its trigger and approval state'
+            ),
+        ]:
+            with self.subTest(options=options):
+                result = exercise({
+                    'schedule': True,
+                    'initialStatus': 'failure',
+                    'initialDescription': legacy_reason,
+                    'cycles': 6,
+                    **options,
+                })
+                self.assertEqual(
+                    [c for c in result['calls'] if c[0] == 'status'],
+                    [['status', 'failure', 'head']])
+                self.assertEqual(result['descriptions'], [expected])
+                self.assertEqual(
+                    result['targetUrls'],
+                    ['https://github.com/kubeflow/pipelines/actions/runs/99'])
+
+    def test_repeated_label_failure_preserves_workflow_reason_without_churn(
+            self):
+        result = exercise({
+            'schedule': True,
+            'initialStatus': 'failure',
+            'initialDescription': 'Legacy failure',
+            'conclusion': 'skipped',
+            'removeLabelFailure': True,
+            'cycles': 6,
+        })
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'failure', 'head']])
+        self.assertEqual(
+            result['descriptions'],
+            ['.github/workflows/frontend.yml: latest run is completed/skipped'])
+        self.assertEqual(result['status'], 'failure')
+        self.assertIn('Label write unavailable', result['error'])
+
+    def test_recovery_publishes_each_changed_reason_once_then_success(self):
+        reason = '.github/workflows/frontend.yml: latest run is completed/'
+        result = exercise({
+            'schedule': True,
+            'initialStatus': 'failure',
+            'initialDescription': reason + 'skipped',
+            'conclusions': ['skipped', 'failure', 'failure', 'success'],
+            'cycles': 4,
+        })
+        self.assertEqual(
+            [c for c in result['calls'] if c[0] == 'status'],
+            [['status', 'failure', 'head'], ['status', 'success', 'head']])
+        self.assertEqual(result['descriptions'][0], reason + 'failure')
+        self.assertEqual(result['targetUrls'], [
+            'https://github.com/kubeflow/pipelines/actions/runs/100',
+            'https://github.com/kubeflow/pipelines/actions/runs/102',
+        ])
+
+    def test_repeated_long_failure_descriptions_compare_published_length(self):
+        workflow_name = 'frontend-' + 'x' * 120 + '.yml'
+        reason = (f'.github/workflows/{workflow_name}: '
+                  'latest run is completed/skipped')
+        result = exercise({
+            'schedule': True,
+            'initialStatus': 'failure',
+            'initialDescription': 'Legacy failure',
+            'workflowName': workflow_name,
+            'conclusions': ['skipped', 'failure', 'failure'],
+            'cycles': 3,
+        })
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'failure', 'head']])
+        self.assertEqual(result['descriptions'], [reason[:140]])
+        self.assertEqual(len(result['descriptions'][0]), 140)
+
+    def test_evidence_recovery_stays_pending_when_poller_was_skipped(self):
+        result = exercise({'conclusion': 'skipped', 'recoverBeforeFinal': True})
+        self.assertEqual(result['outputs']['ready'], 'false')
+        self.assert_last_status(result, 'pending')
+        self.assertEqual(
+            result['descriptions'][-1],
+            'CI changed since initial assessment; awaiting check validation.')
 
     def test_queued_recovery_invalidates_success_when_checks_change(self):
         result = exercise({
@@ -366,7 +494,7 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
                     exercise({
                         'workflowRun': True,
                         'runStatus': status
-                    }), 'failure')
+                    }), 'pending')
         for conclusion in [
                 'cancelled', 'failure', 'timed_out', 'action_required', 'stale',
                 'skipped', 'neutral'
@@ -378,6 +506,83 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
                         'conclusion': conclusion
                     }), 'failure')
         self.assert_last_status(exercise({'workflowRun': True}), 'success')
+
+    def test_rerun_clears_previous_failure_to_pending_without_status_churn(
+            self):
+        for schedule in [False, True]:
+            result = exercise({
+                'schedule': schedule,
+                'workflowRun': not schedule,
+                'initialStatus': 'failure',
+                'initialDescription': 'Earlier failed attempt',
+                'runStatus': 'in_progress',
+                'cycles': 6,
+            })
+            self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                             [['status', 'pending', 'head']])
+            self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+
+    def test_external_pending_is_pending_and_recovers(self):
+        result = exercise({'checkStatus': 'in_progress'})
+        self.assert_last_status(result, 'pending')
+        self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+        self.assert_last_status(exercise({'schedule': True}), 'success')
+
+    def test_actual_failure_wins_over_other_pending_evidence(self):
+        self.assert_last_status(
+            exercise({
+                'runStatus': 'in_progress',
+                'pollPassed': False
+            }), 'failure')
+        self.assert_last_status(
+            exercise({
+                'conclusion': 'failure',
+                'checkStatus': 'in_progress'
+            }), 'failure')
+
+    def test_pinned_checker_failure_still_prevents_success(self):
+        result = exercise({'checkerFailure': True})
+        self.assert_last_status(result, 'failure')
+        self.assertIn('Cannot verify all checks passed',
+                      result['descriptions'][-1])
+
+    def test_external_rerun_during_publication_revokes_success_to_pending(self):
+        result = exercise({'drift': 'external-rerun'})
+        self.assertIn(['status', 'success', 'head'], result['calls'])
+        self.assert_last_status(result, 'pending')
+        self.assertEqual(result['calls'][-1], ['remove-label', 'ci-passed'])
+
+    def test_malformed_expected_workflow_metadata_cannot_publish_success(self):
+        for field, value in [('id', None), ('run_attempt', 0),
+                             ('created_at', 'invalid'),
+                             ('run_started_at', None)]:
+            with self.subTest(field=field):
+                result = exercise({'runPatch': {field: value}})
+                self.assert_last_status(result, 'failure')
+                self.assertNotIn(['status', 'success', 'head'], result['calls'])
+                self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
+
+    def test_external_api_failure_cannot_publish_success(self):
+        result = exercise({'checkApiFailure': True})
+        self.assert_last_status(result, 'failure')
+        self.assertNotIn(['status', 'success', 'head'], result['calls'])
+
+    def test_registration_deadline_uses_earliest_status_not_latest(self):
+        result = exercise({
+            'missing':
+                True,
+            'statusHistory': [{
+                'context': 'ci-passed',
+                'created_at': '2026-09-07T11:00:00Z'
+            },],
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertIn('after 15 minutes', result['descriptions'][-1])
+
+    def test_invalid_registration_timestamp_fails_closed(self):
+        result = exercise({'missing': True, 'registrationStartedAt': 'invalid'})
+        self.assert_last_status(result, 'failure')
+        self.assertIn('registration timestamp', result['error'])
 
     def test_retarget_survives_label_reopen_and_stale_completion(self):
         for action in ['edited', 'labeled', 'reopened']:
@@ -439,7 +644,8 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
 
     def test_publication_reconciles_full_state_and_ci(self):
         for drift in [
-                'eligibility', 'base', 'base-sha', 'head', 'closed', 'rerun'
+                'eligibility', 'base', 'base-sha', 'head', 'closed', 'rerun',
+                'external-failure'
         ]:
             with self.subTest(drift=drift):
                 self.assert_last_status(exercise({'drift': drift}), 'failure')

@@ -48,10 +48,6 @@ def image_refs(directory, source_sha, mode):
         record = json.loads(path.read_text())
         image = record["image"]
         name = image.rsplit("/", 1)[-1]
-        # The legacy GCP inverse-proxy overlay is outside this standalone profile.
-        if name in {"inverse-proxy-agent", "kfp-inverse-proxy-agent"
-                   } and mode == "published":
-            continue
         if name not in IMAGES or name in refs:
             raise ValueError(f"Unexpected or duplicate image record: {name}")
         if record["source_sha"] != source_sha:
