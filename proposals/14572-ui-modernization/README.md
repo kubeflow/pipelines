@@ -404,8 +404,8 @@ Browser qualification runs on disposable hosted CI runners; workstation browser
 installation and local Safari/Xcode setup are not delivery prerequisites. Keep the
 nine-engine PR matrix and add scheduled/on-demand release qualification from a
 dated exact-version manifest. Native Firefox/Safari/iPhone/iPad fixtures extend
-coverage beyond the initial smoke checks; publish their narrower read/draft scope
-separately from full production mutation/recovery coverage. Fail selected lanes on
+coverage beyond the initial smoke checks; publish their exact read, draft and
+mutation/recovery scope separately from the full production suite. Fail selected lanes on
 version drift or unavailable runtimes, and retain exact browser/OS/build identity,
 asset hashes and failure logs. Record native text-input settings as part of that
 evidence. Deterministic keyboard fixtures with prediction/autocorrection disabled
@@ -438,6 +438,26 @@ automation readiness timings from field INP. Agree measured budgets before
 qualification; explain increases and resolve unaccepted regressions. Retain
 virtualization and bounded requests; reject per-row fetch growth and unbounded
 history scans.
+
+The hosted qualification implementation compares the candidate with complete
+builds from pinned original legacy source, using seven interleaved matched pairs
+and retained traces. Larger graph/comparison workloads use the separately pinned
+measured checkpoint. The [release qualification plan](https://github.com/jeffspahr/jeffspahr-pipelines/blob/codex/ui-modernization-foundation/frontend/docs/ui-modernization/release-qualification-plan.md)
+records the timing, payload and layout budgets accepted by the maintainer on
+September 30: medians within baseline + max(10%, 50 ms), entry JS/CSS gzip at most
+80% of legacy, initial CLS at most 0.005, and filter CLS at most 0.02 only for
+result-row compaction with controls stable within one CSS pixel. CI blocks exceeded
+budgets. First-editor-open cost is measured separately before accepting its
+allowance; passing the other criteria does not settle that tradeoff.
+
+The same plan defines two disposable hosted Kind rehearsals: standalone and
+real authenticated embedded multi-user. Each uses complete immutable legacy and
+candidate frontend images, one unchanged candidate backend and persistent browser
+sessions through upgrade and rollback. Require actual successful runs, logs,
+artifact downloads, schedules, namespace changes, ordinary authorization denial,
+preferences and existing signed TensorBoard access. Record image/asset identity,
+backend/configuration/signing-state equality and measured interruption. A green
+fixture suite cannot substitute for these deployment results.
 
 The implementation PR must include the completed parity matrix, exact tested
 commits/images, passing checks, functional deployment results, visual review,
