@@ -53,7 +53,7 @@ func InjectPluginRuntimeEnv(executionSpec util.ExecutionSpec, envVars []corev1.E
 		return nil
 	}
 	if count := executionSpec.DisableTaskDriverRetries(); count > 0 {
-		glog.Warningf("Disabled task-derived retries for %d driver templates because task plugins do not support replay; executor retries remain enabled", count)
+		glog.Warningf("Removed task-derived retry overrides from %d driver templates because task plugins do not support replay; deployment driver retry defaults and executor retries are preserved", count)
 	}
 	return executionSpec.UpsertRuntimeEnvVars(envVars,
 		util.ExecutionRuntimeRoleDriver,

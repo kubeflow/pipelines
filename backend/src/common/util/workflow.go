@@ -41,7 +41,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/tools/cache"
@@ -860,8 +859,8 @@ func upsertEnvVars(existing []corev1.EnvVar, toAdd []corev1.EnvVar) []corev1.Env
 	return existing
 }
 
-// DisableTaskDriverRetries prevents task-derived driver retries when a runtime
-// plugin cannot safely repeat its external side effects.
+// DisableTaskDriverRetries removes task-derived driver retry overrides when a
+// runtime plugin cannot safely replay, preserving deployment retry defaults.
 func (w *Workflow) DisableTaskDriverRetries() int {
 	if w == nil || w.Workflow == nil {
 		return 0
@@ -874,9 +873,8 @@ func (w *Workflow) DisableTaskDriverRetries() int {
 			tmpl.Metadata.Annotations[AnnotationKeyTaskDriverRetry] != "true" {
 			continue
 		}
-		// A nil strategy would inherit deployment defaults and permit replay.
-		limit := intstr.FromInt32(0)
-		tmpl.RetryStrategy = &workflowapi.RetryStrategy{Limit: &limit}
+		// Restore the same deployment recovery policy as unconfigured drivers.
+		tmpl.RetryStrategy = nil
 		delete(tmpl.Metadata.Annotations, AnnotationKeyTaskDriverRetry)
 		for j, arg := range tmpl.Container.Args {
 			switch {

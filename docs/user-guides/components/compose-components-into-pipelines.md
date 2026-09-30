@@ -202,9 +202,10 @@ Driver retry coverage has these limits:
 - Native Kubernetes PVC creation and deletion are excluded until their resource
   identity and deletion operations can safely replay. They retain their
   existing deployment retry policy.
-- When task plugins are enabled, the API server disables task-configured driver
-  retries because plugin side effects are not yet safe to replay. Executor
-  retries remain configured.
+- When task plugins are enabled, the API server removes task-configured driver
+  retry overrides because plugin side effects are not yet safe for the expanded
+  replay behavior. Drivers retain the deployment retry policy, including the
+  bundled `OnError` limit of two retries. Executor retries remain configured.
 
 [Issue #14020](https://github.com/kubeflow/pipelines/issues/14020) tracks the
 remaining driver replay-safety work, including plugin hooks and PVC operations.

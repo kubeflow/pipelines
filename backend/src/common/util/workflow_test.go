@@ -2508,14 +2508,15 @@ func TestDisableTaskDriverRetries_OnlyMarkedDrivers(t *testing.T) {
 	ignored := annotatedTemplate("disabled-marker", ExecutionRuntimeRoleDriver)
 	ignored.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "false"
 	w := workflowWithTemplates(marked, root, legacy, launcher, dag, unknown, ignored)
-	w.Spec.TemplateDefaults = &workflowapi.Template{RetryStrategy: marked.RetryStrategy.DeepCopy()}
+	defaultLimit := intstr.FromInt32(2)
+	w.Spec.TemplateDefaults = &workflowapi.Template{RetryStrategy: &workflowapi.RetryStrategy{
+		Limit: &defaultLimit, RetryPolicy: workflowapi.RetryPolicyOnError,
+	}}
 	before := w.DeepCopy()
 
 	assert.Equal(t, 1, w.DisableTaskDriverRetries())
 	changed := w.Spec.Templates[0]
-	require.NotNil(t, changed.RetryStrategy)
-	require.NotNil(t, changed.RetryStrategy.Limit)
-	assert.Equal(t, "0", changed.RetryStrategy.Limit.String())
+	assert.Nil(t, changed.RetryStrategy, "marked drivers must inherit deployment retry defaults like unconfigured drivers")
 	assert.NotContains(t, changed.Metadata.Annotations, AnnotationKeyTaskDriverRetry)
 	assert.Equal(t, []string{
 		"--task_name=task", "--driver_retry_enabled=false", "--driver_retry_attempt=0",
