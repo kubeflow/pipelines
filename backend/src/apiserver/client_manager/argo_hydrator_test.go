@@ -146,7 +146,7 @@ func TestLoadArgoPersistConfig_MalformedConfigWithExtraKeys(t *testing.T) {
 			Namespace: "kubeflow-pipelines",
 		},
 		Data: map[string]string{
-			"config":  "persistence: {}",
+			"config":   "persistence: {}",
 			"extraKey": "value",
 		},
 	})
