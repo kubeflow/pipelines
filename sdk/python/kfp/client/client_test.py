@@ -288,6 +288,48 @@ class TestClient(parameterized.TestCase):
                     run_id='foo', timeout=1, sleep_duration=0)
                 mock_get_run.assert_called_once_with(run_id='foo')
 
+    @parameterized.parameters(None, 'test-ns')
+    def test_get_pipeline_id_passes_namespace(self, namespace):
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipelines') as mock_list_pipelines:
+            mock_list_pipelines.return_value = Mock(
+                pipelines=[Mock(pipeline_id='pipeline-id')])
+
+            pipeline_id = self.client.get_pipeline_id(
+                'test-pipeline', namespace=namespace)
+
+            self.assertEqual(pipeline_id, 'pipeline-id')
+            mock_list_pipelines.assert_called_once()
+            self.assertEqual(mock_list_pipelines.call_args.kwargs['namespace'],
+                             namespace)
+            pipeline_filter = json.loads(
+                mock_list_pipelines.call_args.kwargs['filter'])
+            self.assertEqual(pipeline_filter['predicates'][0]['stringValue'],
+                             'test-pipeline')
+
+    def test_get_pipeline_id_returns_none_when_not_found(self):
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipelines') as mock_list_pipelines:
+            mock_list_pipelines.return_value = Mock(pipelines=None)
+
+            self.assertIsNone(
+                self.client.get_pipeline_id(
+                    'test-pipeline', namespace='test-ns'))
+
+    def test_get_pipeline_id_raises_when_name_is_not_unique(self):
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipelines') as mock_list_pipelines:
+            mock_list_pipelines.return_value = Mock(
+                pipelines=[Mock(pipeline_id='a'),
+                           Mock(pipeline_id='b')])
+
+            with self.assertRaisesRegex(ValueError, 'Multiple pipelines'):
+                self.client.get_pipeline_id(
+                    'test-pipeline', namespace='test-ns')
+
     @patch('kfp.Client.get_experiment', side_effect=ValueError)
     def test_create_experiment_no_experiment_should_raise_error(
             self, mock_get_experiment):
