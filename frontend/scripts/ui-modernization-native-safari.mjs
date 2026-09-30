@@ -41,6 +41,19 @@ export const safariKeyboardDoneSelector =
   '[.//XCUIElementTypeButton[@name="Previous"] and .//XCUIElementTypeButton[@name="Next"]]' +
   '//XCUIElementTypeButton[@name="Done" and @visible="true" and @enabled="true"]';
 
+// iOS 27 can report the visible form-toolbar checkmark as visible=false.
+// The fallback still requires its exact native identity and a positive rectangle
+// fully inside the visible, browser-owned Previous/Next form toolbar.
+export const safariKeyboardDoneGeometrySelector =
+  '//XCUIElementTypeToolbar[@visible="true" and not(ancestor::XCUIElementTypeWebView)]' +
+  '[.//XCUIElementTypeButton[@name="Previous"] and .//XCUIElementTypeButton[@name="Next"]]' +
+  '//XCUIElementTypeButton[@name="Done" and @label="Done" and @enabled="true" and @accessible="true"]' +
+  '[number(@width)>0 and number(@height)>0]' +
+  '[number(@x)>=number(ancestor::XCUIElementTypeToolbar[1]/@x)]' +
+  '[number(@y)>=number(ancestor::XCUIElementTypeToolbar[1]/@y)]' +
+  '[number(@x)+number(@width)<=number(ancestor::XCUIElementTypeToolbar[1]/@x)+number(ancestor::XCUIElementTypeToolbar[1]/@width)]' +
+  '[number(@y)+number(@height)<=number(ancestor::XCUIElementTypeToolbar[1]/@y)+number(ancestor::XCUIElementTypeToolbar[1]/@height)]';
+
 export const safariActiveAddressSelector =
   '//XCUIElementTypeTextField[@label="Address" and starts-with(@name,"SearchFieldItemView?")]' +
   '[contains(concat(@name,"&"),"?isActive=true&") or contains(concat(@name,"&"),"&isActive=true&")]' +
@@ -65,12 +78,23 @@ export async function prepareNativeSafariTap(command, session, evidence, snapsho
     if (await mobile('isKeyboardShown')) {
       // iPhone Safari exposes Done in its form accessory toolbar, outside the
       // keyboard subtree searched by WDA's generic keyboard dismissal.
-      const doneButtons = await command('POST', `${path}/elements`, {
+      let doneButtons = await command('POST', `${path}/elements`, {
         using: 'xpath',
         value: safariKeyboardDoneSelector,
       });
+      let doneSelection = 'visible';
+      if (!doneButtons.length) {
+        doneButtons = await command('POST', `${path}/elements`, {
+          using: 'xpath',
+          value: safariKeyboardDoneGeometrySelector,
+        });
+        doneSelection = 'toolbar-contained';
+        if (doneButtons.length)
+          await snapshot(await command('GET', `${path}/source`), 'safari-form-done-geometry');
+      }
       assert.ok(doneButtons.length <= 1, 'Safari form toolbar has ambiguous Done controls');
       if (doneButtons.length) {
+        entry.keyboardDone = { selection: doneSelection, method: 'native-element-click' };
         await command('POST', `${path}/element/${doneButtons[0][elementKey]}/click`, {});
         entry.actions.push('used Safari native form-toolbar Done');
       } else {
@@ -93,8 +117,19 @@ export async function prepareNativeSafariTap(command, session, evidence, snapsho
       });
       assert.equal(buttons.length, 1, 'Safari onboarding tip needs one identifiable close control');
       await command('POST', `${path}/element/${buttons[0][elementKey]}/click`, {});
+      // Hosted WDA can briefly retain visible=true after the native close succeeds.
+      // Observe the same tip until it disappears; never repeat the tap or accept
+      // a still-visible tip. Keep the observations even when the deadline fails.
+      const dismissal = { name: tip.name, timeoutMs: 5000, visibleCounts: [] };
+      (entry.tipDismissals ||= []).push(dismissal);
+      const deadline = Date.now() + dismissal.timeoutMs;
+      do {
+        dismissal.visibleCounts.push((await tips(tip.predicate)).length);
+        if (dismissal.visibleCounts.at(-1) === 0 || Date.now() >= deadline) break;
+        await delay(250);
+      } while (Date.now() < deadline);
       assert.equal(
-        (await tips(tip.predicate)).length,
+        dismissal.visibleCounts.at(-1),
         0,
         'Safari onboarding tip remained after its native dismissal',
       );

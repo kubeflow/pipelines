@@ -24,6 +24,7 @@ import {
   nativeSafariLinkSelector,
   prepareNativeSafariTap,
   safariKeyboardDoneSelector,
+  safariKeyboardDoneGeometrySelector,
   safariActiveAddressSelector,
   safariStartPageCloseSelector,
 } from './ui-modernization-native-safari.mjs';
@@ -263,9 +264,13 @@ test('WebDriver transport honors command deadlines for delayed headers and bodie
 function safariPreparationFixture({
   tip = false,
   startPageTip = false,
+  tipDismissalReads = 0,
+  tipNeverDismisses = false,
   closeCount = 1,
   keyboard = false,
   toolbarDoneCount = 0,
+  toolbarGeometryDoneCount = 0,
+  toolbarDoneDismisses = true,
   keyboardDismissesStartPage = false,
   dismissError,
   restoreError,
@@ -278,6 +283,7 @@ function safariPreparationFixture({
   const evidence = [];
   const snapshots = [];
   let addressCompleted = false;
+  let tipClicked = false;
   const element = (id) => ({ 'element-6066-11e4-a52e-4f735466cecf': id });
   const command = async (method, path, body) => {
     calls.push({ method, path, body });
@@ -298,23 +304,29 @@ function safariPreparationFixture({
       addressCompleted = true;
       return null;
     }
+    if (path.endsWith('/elements') && body.value === safariKeyboardDoneGeometrySelector)
+      return Array.from({ length: toolbarGeometryDoneCount }, (_, i) => element(`done-${i}`));
     if (path.endsWith('/elements') && body.value === safariKeyboardDoneSelector)
       return Array.from({ length: toolbarDoneCount }, (_, i) => element(`done-${i}`));
     if (path.endsWith('/elements') && body.using === 'xpath')
       return Array.from({ length: closeCount }, (_, i) => element(`close-${i}`));
     if (path.endsWith('/elements')) {
+      if (tipClicked && tip && !tipNeverDismisses) {
+        if (tipDismissalReads > 0) tipDismissalReads--;
+        else tip = false;
+      }
       const visible = body.value.includes('onboardingButton-CustomizeStartPage')
         ? startPageTip
         : tip;
       return visible ? [element('tip')] : [];
     }
     if (path.endsWith('/element/done-0/click')) {
-      keyboard = false;
+      if (toolbarDoneDismisses) keyboard = false;
       return null;
     }
     if (path.endsWith('/click')) {
       assert.match(path, /element\/close-0\/click$/);
-      if (tip) tip = false;
+      if (tip) tipClicked = true;
       else startPageTip = false;
       return null;
     }
@@ -452,6 +464,27 @@ test('native Safari preparation scopes dismissal to the known tip and hides the 
   assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
 });
 
+test('native Safari waits for observed tip disappearance after exactly one native close', async () => {
+  const fixture = safariPreparationFixture({ tip: true, tipDismissalReads: 2 });
+  await fixture.run();
+  assert.equal(fixture.calls.filter(({ path }) => path.endsWith('/click')).length, 1);
+  assert.equal(fixture.evidence[0].status, 'passed');
+  assert.deepEqual(fixture.evidence[0].tipDismissals[0].visibleCounts, [1, 1, 0]);
+  assert.equal(fixture.evidence[0].tipDismissals[0].timeoutMs, 5000);
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('native Safari fails closed when a clicked tip remains visible past its bounded wait', async () => {
+  const fixture = safariPreparationFixture({ tip: true, tipNeverDismisses: true });
+  await assert.rejects(fixture.run(), /onboarding tip remained/);
+  assert.equal(fixture.calls.filter(({ path }) => path.endsWith('/click')).length, 1);
+  assert.equal(fixture.evidence[0].status, 'failed');
+  assert.ok(fixture.evidence[0].tipDismissals[0].visibleCounts.length > 1);
+  assert.ok(fixture.evidence[0].tipDismissals[0].visibleCounts.every((count) => count === 1));
+  assert.equal(fixture.snapshots.at(-1).label, 'safari-preparation-failed');
+  assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
 test('native Safari preparation rejects ambiguous close controls and retains native diagnostics', async () => {
   const fixture = safariPreparationFixture({ tip: true, closeCount: 2 });
   await assert.rejects(fixture.run(), /one identifiable close control/);
@@ -487,7 +520,100 @@ test('native Safari uses its form-toolbar Done without calling keyboard-only dis
     fixture.calls.some(({ body }) => body?.script === 'mobile: hideKeyboard'),
     false,
   );
+  assert.equal(
+    fixture.calls.some(({ body }) => body?.value === safariKeyboardDoneGeometrySelector),
+    false,
+  );
+  assert.deepEqual(fixture.evidence[0].keyboardDone, {
+    selection: 'visible',
+    method: 'native-element-click',
+  });
   assert.deepEqual(fixture.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('Safari uses native toolbar-contained Done only after the visible selector is empty', async () => {
+  const fixture = safariPreparationFixture({ keyboard: true, toolbarGeometryDoneCount: 1 });
+  await fixture.run();
+  assert.deepEqual(fixture.evidence[0].keyboardDone, {
+    selection: 'toolbar-contained',
+    method: 'native-element-click',
+  });
+  assert.equal(fixture.snapshots[0].label, 'safari-form-done-geometry');
+  assert.equal(
+    fixture.calls.filter(({ path }) => path.endsWith('/element/done-0/click')).length,
+    1,
+  );
+  assert.equal(
+    fixture.calls.some(({ body }) => body?.script === 'mobile: hideKeyboard'),
+    false,
+  );
+  const ambiguous = safariPreparationFixture({ keyboard: true, toolbarGeometryDoneCount: 2 });
+  await assert.rejects(ambiguous.run(), /ambiguous Done controls/);
+  assert.equal(
+    ambiguous.calls.some(({ path }) => path.endsWith('/click')),
+    false,
+  );
+  assert.deepEqual(ambiguous.calls.at(-1).body, { name: 'WEBVIEW_1' });
+  const stuck = safariPreparationFixture({
+    keyboard: true,
+    toolbarGeometryDoneCount: 1,
+    toolbarDoneDismisses: false,
+  });
+  await assert.rejects(stuck.run(), /keyboard remained after native dismissal/);
+  assert.equal(stuck.evidence[0].status, 'failed');
+  assert.deepEqual(stuck.calls.at(-1).body, { name: 'WEBVIEW_1' });
+});
+
+test('Safari27 Done geometry selector matches captured toolbar and rejects unsafe alternatives', () => {
+  // Captured iOS27 native attributes: Done/Next are falsely marked invisible,
+  // while the screenshot visibly shows both inside this browser-owned toolbar.
+  const button =
+    '<XCUIElementTypeButton name="Done" label="Done" enabled="true" visible="false" accessible="true" x="341" y="520" width="40" height="38" />';
+  const toolbar = (done = button) =>
+    `<XCUIElementTypeToolbar name="Toolbar" visible="true" x="0" y="515" width="402" height="48"><XCUIElementTypeOther><XCUIElementTypeButton name="Previous" visible="true" /><XCUIElementTypeButton name="Next" visible="false" />${done}</XCUIElementTypeOther></XCUIElementTypeToolbar>`;
+  for (const [xml, expected] of [
+    [toolbar(), 1],
+    [toolbar(button + button), 2],
+    [`<XCUIElementTypeWebView>${toolbar()}</XCUIElementTypeWebView>`, 0],
+    [button, 0],
+    [toolbar().replace('name="Previous"', 'name="Unrelated"'), 0],
+    [toolbar().replace('name="Toolbar" visible="true"', 'name="Toolbar" visible="false"'), 0],
+    ...[
+      'width="0"',
+      'width="NaN"',
+      'x="390"',
+      'x="-1"',
+      'y="500"',
+      'y="550"',
+      'enabled="false"',
+    ].map((attribute) => {
+      const key = attribute.split('=')[0];
+      return [toolbar(button.replace(new RegExp(`${key}="[^\"]*"`), attribute)), 0];
+    }),
+  ]) {
+    const dom = new JSDOM(`<AppiumAUT>${xml}</AppiumAUT>`, { contentType: 'text/xml' });
+    try {
+      const { document, XPathResult } = dom.window;
+      const matches = document.evaluate(
+        safariKeyboardDoneGeometrySelector,
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null,
+      );
+      assert.equal(matches.snapshotLength, expected, xml);
+      const strict = document.evaluate(
+        safariKeyboardDoneSelector,
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null,
+      );
+      assert.equal(strict.snapshotLength, 0);
+    } finally {
+      dom.window.close();
+    }
+  }
 });
 
 test('native Safari refuses ambiguous form-toolbar Done controls', async () => {
