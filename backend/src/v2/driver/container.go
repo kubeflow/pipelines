@@ -395,6 +395,7 @@ func container(ctx context.Context, opts common.Options, clientManager client_ma
 			taskToCreate.Outputs = cachedOutputs
 			taskToCreate.EndTime = timestamppb.Now()
 			*execution.Cached = true
+			attemptLocalFields := taskToCreate
 			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 				Task:  taskToCreate,
 				RunId: taskToCreate.GetRunId(),
@@ -402,21 +403,12 @@ func container(ctx context.Context, opts common.Options, clientManager client_ma
 			if createErr != nil {
 				return execution, fmt.Errorf("failed to update task: %w", createErr)
 			}
-			taskToCreate = createdTask
-			taskToCreate.State = apiV2beta1.PipelineTask_CACHED
-			taskToCreate.Outputs = cachedOutputs
-			taskToCreate.EndTime = timestamppb.Now()
-			if taskToCreate.StatusMetadata == nil {
-				taskToCreate.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
-			}
-			if _, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
-				TaskId: taskToCreate.GetTaskId(),
-				Task:   taskToCreate,
-				RunId:  taskToCreate.GetRunId(),
-			}); updateErr != nil {
+			// CreateTask can return the recovery skeleton without resolved inputs.
+			createdTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, attemptLocalFields)
+			if updateErr != nil {
 				return execution, fmt.Errorf("failed to update cached task state: %w", updateErr)
 			}
-			createdTask = taskToCreate
+			taskToCreate = createdTask
 
 			driverErr = handleInputTaskArtifactsCreation(ctx, opts, inputs.Artifacts, createdTask, clientManager.KFPAPIClient())
 			if driverErr != nil {

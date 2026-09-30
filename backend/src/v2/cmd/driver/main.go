@@ -482,6 +482,8 @@ func drive() (err error) {
 		return err
 	}
 	options := drivercommon.Options{
+		ExitTaskName:               *driverFlagValues.ExitTaskName,
+		ExitTaskStatus:             *driverFlagValues.ExitTaskStatus,
 		DriverRetryEnabled:         *driverFlagValues.DriverRetryEnabled,
 		DriverRetryAttempt:         *driverFlagValues.DriverRetryAttempt,
 		DriverRetryMaxCount:        *driverFlagValues.DriverRetryMaxCount,

@@ -147,6 +147,90 @@ func TestDriverRetryFinalizationPreservesTerminalTasks(t *testing.T) {
 	}
 }
 
+func TestDriverRetryFinalizationCorrectsPrematureSuccessfulAncestors(t *testing.T) {
+	for _, parentState := range []apiv2beta1.PipelineTask_TaskState{apiv2beta1.PipelineTask_CACHED, apiv2beta1.PipelineTask_SUCCEEDED, apiv2beta1.PipelineTask_SKIPPED} {
+		for _, parentFirst := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/parentFirst=%t", parentState, parentFirst), func(t *testing.T) {
+				db, tasks, runs := initializeTaskStore()
+				defer db.Close()
+				createOrderedTask := func(order int, name string, parent *model.Task, state apiv2beta1.PipelineTask_TaskState) *model.Task {
+					task := createDriverRetryFinalizationTask(t, tasks, name, parent, state, util.StringPointer("0"))
+					id := fmt.Sprintf("%08d-0000-0000-0000-000000000000", order)
+					_, err := db.Exec("UPDATE tasks SET UUID = ? WHERE UUID = ?", id, task.UUID)
+					require.NoError(t, err)
+					task.UUID = id
+					return task
+				}
+				root := createOrderedTask(2, "root", nil, apiv2beta1.PipelineTask_SUCCEEDED)
+				grandparent := createOrderedTask(3, "grandparent", root, apiv2beta1.PipelineTask_CACHED)
+				parentOrder, childOrder := 1, 9
+				if !parentFirst {
+					parentOrder, childOrder = childOrder, parentOrder
+				}
+				parent := createOrderedTask(parentOrder, "parent", grandparent, parentState)
+				parent.FinishedInSec = 99
+				parent, err := tasks.UpdateTask(parent)
+				require.NoError(t, err)
+				// A lost response after propagating a cache hit reopens only the
+				// child. Its previously committed successful ancestors must follow
+				// the child's final failure, regardless of task UUID ordering.
+				child := createOrderedTask(childOrder, "reopened-child", parent, apiv2beta1.PipelineTask_RUNNING)
+				child.StatusMetadata["message"] = "status update response lost"
+				child, err = tasks.UpdateTask(child)
+				require.NoError(t, err)
+				sibling := createOrderedTask(4, "successful-sibling", root, apiv2beta1.PipelineTask_SUCCEEDED)
+				completedChild := createOrderedTask(5, "cached-sibling-child", sibling, apiv2beta1.PipelineTask_CACHED)
+
+				reportDriverRetryTerminalRun(t, runs, model.RuntimeStateFailed)
+				var finalized []*model.Task
+				for _, before := range []*model.Task{root, grandparent, parent, child} {
+					after, err := tasks.GetTask(before.UUID)
+					require.NoError(t, err)
+					assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), after.State)
+					assert.Equal(t, int64(123), after.FinishedInSec)
+					require.Len(t, after.StateHistory, len(before.StateHistory)+1)
+					assert.Equal(t, before.StateHistory, after.StateHistory[:len(before.StateHistory)])
+					assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), getLastTaskState(after.StateHistory))
+					assert.Equal(t, before.StatusMetadata["customProperties"], after.StatusMetadata["customProperties"])
+					finalized = append(finalized, after)
+				}
+				assert.Equal(t, "status update response lost", finalized[3].StatusMetadata["message"])
+				for _, before := range []*model.Task{sibling, completedChild} {
+					after, err := tasks.GetTask(before.UUID)
+					require.NoError(t, err)
+					assert.Equal(t, before, after)
+				}
+
+				reportDriverRetryTerminalRun(t, runs, model.RuntimeStateFailed)
+				for _, before := range finalized {
+					after, err := tasks.GetTask(before.UUID)
+					require.NoError(t, err)
+					assert.Equal(t, before, after, "repeated reports must preserve task history and metadata")
+				}
+			})
+		}
+	}
+}
+
+func TestDriverRetryFinalizationPropagatesExistingFailureToSuccessfulAncestor(t *testing.T) {
+	db, tasks, runs := initializeTaskStore()
+	defer db.Close()
+	parent := createDriverRetryFinalizationTask(t, tasks, "parent", nil, apiv2beta1.PipelineTask_CACHED, util.StringPointer("0"))
+	child := createDriverRetryFinalizationTask(t, tasks, "failed-child", parent, apiv2beta1.PipelineTask_FAILED, util.StringPointer("0"))
+	child.FinishedInSec = 99
+	child, err := tasks.UpdateTask(child)
+	require.NoError(t, err)
+
+	reportDriverRetryTerminalRun(t, runs, model.RuntimeStateFailed)
+	parentAfter, err := tasks.GetTask(parent.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), parentAfter.State)
+	require.Len(t, parentAfter.StateHistory, len(parent.StateHistory)+1)
+	childAfter, err := tasks.GetTask(child.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, child, childAfter, "an already-failed task keeps its original finish time and history")
+}
+
 func TestDriverRetryFinalizationRequiresMatchingGeneration(t *testing.T) {
 	db, tasks, runs := initializeTaskStore()
 	defer db.Close()

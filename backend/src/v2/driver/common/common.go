@@ -34,6 +34,10 @@ const (
 
 // Options contain driver options
 type Options struct {
+	// ExitTaskName and ExitTaskStatus identify the completed Argo dependency
+	// whose exit hook is resolving inputs, independently of native task writes.
+	ExitTaskName          string
+	ExitTaskStatus        string
 	DriverRetryEnabled    bool
 	DriverRetryAttempt    int
 	DriverRetryMaxCount   int

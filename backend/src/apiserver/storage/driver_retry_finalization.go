@@ -70,7 +70,10 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 	}
 
 	generation := strconv.FormatInt(run.RetryGeneration, 10)
+	// A completion-only walk must not block a later failed descendant from
+	// correcting the same ancestor's premature successful state.
 	visited := make(map[string]bool)
+	var failedTasks []*model.Task
 	for _, task := range orderedTasks {
 		properties, ok := task.StatusMetadata["customProperties"].(map[string]interface{})
 		if !ok || properties[util.DriverRetryGenerationKey] != generation {
@@ -78,12 +81,16 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 		}
 		// A terminal native/cache task may still have unfinished ancestors when
 		// its driver died before acknowledging completion to the controller.
-		for ancestor := task; ancestor != nil && !visited[ancestor.UUID]; {
-			visited[ancestor.UUID] = true
-			if ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
-				if err := finalizeUnfinishedDriverTask(tx, dbDialect, run, ancestor); err != nil {
-					return err
-				}
+		failedDescendant := false
+		for ancestor := task; ancestor != nil; {
+			failedDescendant = failedDescendant || ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) || ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_FAILED)
+			if propagatedFailure, seen := visited[ancestor.UUID]; seen && (propagatedFailure || !failedDescendant) {
+				break
+			}
+			visited[ancestor.UUID] = failedDescendant
+			prematureSuccess := ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED) || ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_CACHED) || ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED)
+			if ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) || (failedDescendant && prematureSuccess) {
+				failedTasks = append(failedTasks, ancestor)
 			}
 			if ancestor.ParentTaskUUID == nil {
 				break
@@ -91,10 +98,15 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 			ancestor = tasks[*ancestor.ParentTaskUUID]
 		}
 	}
+	for _, task := range failedTasks {
+		if err := finalizeDriverTaskFailure(tx, dbDialect, run, task); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func finalizeUnfinishedDriverTask(tx *sql.Tx, dbDialect dialect.DBDialect, run *model.Run, task *model.Task) error {
+func finalizeDriverTaskFailure(tx *sql.Tx, dbDialect dialect.DBDialect, run *model.Run, task *model.Task) error {
 	failedState := model.TaskStatus(apiv2beta1.PipelineTask_FAILED)
 	history := task.StateHistory
 	if len(history) == 0 || getLastTaskState(history) != failedState {

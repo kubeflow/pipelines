@@ -28,6 +28,8 @@ const (
 // Values stores pointers returned by flag registration so callers can continue
 // reading parsed driver arguments through shared state.
 type Values struct {
+	ExitTaskName            *string
+	ExitTaskStatus          *string
 	DriverRetryEnabled      *bool
 	DriverRetryAttempt      *int
 	DriverRetryMaxCount     *int
@@ -67,6 +69,8 @@ type Values struct {
 // RegisterDriverFlags registers the driver CLI flags on the provided flag set.
 func RegisterDriverFlags(fs *flag.FlagSet) *Values {
 	return &Values{
+		ExitTaskName:            fs.String("exit_task_name", "", "Completed task that triggered this exit hook."),
+		ExitTaskStatus:          fs.String("exit_task_status", "", "Terminal Argo phase of the task that triggered this exit hook."),
 		DriverRetryEnabled:      fs.Bool("driver_retry_enabled", false, "Enable recovery of task-derived driver retries."),
 		DriverRetryAttempt:      fs.Int("driver_retry_attempt", 0, "Zero-based automatic driver retry attempt."),
 		DriverRetryMaxCount:     fs.Int("driver_retry_max_count", 0, "Maximum automatic driver retries."),

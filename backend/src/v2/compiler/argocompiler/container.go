@@ -78,6 +78,8 @@ type containerDriverOutputs struct {
 }
 
 type containerDriverInputs struct {
+	exitTaskName     string
+	exitTaskStatus   string
 	task             *pipelinespec.PipelineTaskSpec
 	taskName         string // preserve the original task name for input resolving
 	parentDagID      string
@@ -179,6 +181,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 			wfapi.Parameter{Name: paramKubernetesConfig, Value: wfapi.AnyStringPtr(inputs.kubernetesConfig)},
 		)
 	}
+	c.configureExitDriver(dagTask, inputs.exitTaskName, inputs.exitTaskStatus)
 	outputs := &containerDriverOutputs{
 		podSpecPatch: taskOutputParameter(name, paramPodSpecPatch),
 		cached:       taskOutputParameter(name, paramCachedDecision),
