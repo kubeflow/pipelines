@@ -631,11 +631,12 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
+			TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			Image:                    c.driverImage,
+			Command:                  c.driverCommand,
+			Args:                     args,
+			Resources:                driverResources,
+			Env:                      proxy.GetConfig().GetEnvVars(),
 		},
 	}
 	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
