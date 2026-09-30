@@ -156,13 +156,12 @@ type Task struct {
 	ScopePath        string     `gorm:"column:ScopePath; type:text; default:null;"`
 	LogicalKey       *string    `gorm:"column:LogicalKey; type:varchar(64); default:null; uniqueIndex:idx_tasks_logical_key;"`
 	// LifecycleMessage is the latest pod lifecycle diagnostic (e.g. "Back-off pulling image…").
-	LifecycleMessage LargeText `gorm:"column:LifecycleMessage; default:null;"`
+	// nil means "leave this field unchanged" in UpdateTask; a non-nil pointer (including empty) is written.
+	LifecycleMessage *LargeText `gorm:"column:LifecycleMessage; default:null;"`
 
 	// Transient fields populated during hydration (not stored in DB)
 	InputArtifactsHydrated  []TaskArtifactHydrated `gorm:"-"`
 	OutputArtifactsHydrated []TaskArtifactHydrated `gorm:"-"`
-	// LifecycleMessagePresent is true when the caller intends to write LifecycleMessage, including empty to clear recovery.
-	LifecycleMessagePresent bool `gorm:"-"`
 }
 
 func (t Task) ToString() string {
@@ -274,7 +273,10 @@ func (t Task) GetFieldValue(name string) interface{} {
 	case "ScopePath":
 		return t.ScopePath
 	case "LifecycleMessage":
-		return t.LifecycleMessage
+		if t.LifecycleMessage != nil {
+			return *t.LifecycleMessage
+		}
+		return LargeText("")
 	default:
 		return nil
 	}

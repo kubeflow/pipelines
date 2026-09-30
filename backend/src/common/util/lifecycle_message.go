@@ -79,7 +79,13 @@ func ResolveNodeLifecycleMessages(nodes map[string]NodeStatus) map[string]string
 		}
 		msg := NormalizeLifecycleMessage(node.Message, node.State)
 		if msg == "" {
-			for _, childID := range node.Children {
+			children := node.Children
+			// For Retry nodes, only the current (last) attempt is relevant.
+			// Earlier attempts may have failed; the last attempt reflects current status.
+			if node.Type == "Retry" && len(children) > 0 {
+				children = children[len(children)-1:]
+			}
+			for _, childID := range children {
 				if childMsg := resolve(childID); childMsg != "" {
 					msg = childMsg
 					break

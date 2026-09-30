@@ -24,6 +24,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -2413,9 +2414,9 @@ func (r *ResourceManager) reportWorkflowResource(
 				manifestDigest:  sha256.Sum256([]byte(run.WorkflowRuntimeManifest)),
 			})
 	}
-	if runId != "" {
-		if err := r.persistTaskLifecycleMessages(runId, execSpec); err != nil {
-			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", runId)
+	if len(run.Tasks) > 0 {
+		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec); err != nil {
+			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
 		}
 	}
 	// Delete a fully persisted workflow only after the version check above:
@@ -4009,8 +4010,9 @@ func containsString(values []string, want string) bool {
 	return false
 }
 
-// lifecycleMessageForTask matches a task to its executor pod node(s) via pod identity and returns the resolved message.
-// matched is true when at least one node was attributed to this task by pod name.
+// lifecycleMessageForTask matches a task to its pod node(s) (executor or driver) via pod identity
+// and returns the resolved message from the most recently created pod. matched is true when at
+// least one node was attributed to this task by pod name.
 func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
 	if task == nil {
 		return "", false
@@ -4019,32 +4021,37 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 	if len(podNames) == 0 {
 		return "", false
 	}
+	type podMatch struct {
+		msg        string
+		createTime int64
+	}
+	var matches []podMatch
 	for id, node := range nodes {
 		if !containsString(podNames, node.ID) {
 			continue
 		}
-		matched = true
-		if resolved[id] != "" {
-			return resolved[id], true
-		}
+		matches = append(matches, podMatch{msg: resolved[id], createTime: node.CreateTime})
 	}
-	return "", matched
+	if len(matches) == 0 {
+		return "", false
+	}
+	// Pick the message from the most recently created pod so that a recovered retry
+	// (no lifecycle event) overrides a stale failure from an earlier attempt.
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].createTime > matches[j].createTime
+	})
+	return matches[0].msg, true
 }
 
-// persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them to tasks.
-func (r *ResourceManager) persistTaskLifecycleMessages(runID string, execSpec util.ExecutionSpec) error {
-	if runID == "" || execSpec == nil || execSpec.ExecutionStatus() == nil {
+// persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
+// to the provided tasks. tasks should be the hydrated tasks already loaded for the run
+// (e.g. from run.Tasks) to avoid an additional database query.
+func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec) error {
+	if execSpec == nil || execSpec.ExecutionStatus() == nil || len(tasks) == 0 {
 		return nil
 	}
 	nodes := execSpec.ExecutionStatus().NodeStatuses()
 	if len(nodes) == 0 {
-		return nil
-	}
-	tasks, err := r.taskStore.ListTasksByRun(runID)
-	if err != nil {
-		return err
-	}
-	if len(tasks) == 0 {
 		return nil
 	}
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
@@ -4053,13 +4060,17 @@ func (r *ResourceManager) persistTaskLifecycleMessages(runID string, execSpec ut
 		if !matched {
 			continue
 		}
-		if string(task.LifecycleMessage) == msg {
+		currentMsg := ""
+		if task.LifecycleMessage != nil {
+			currentMsg = string(*task.LifecycleMessage)
+		}
+		if currentMsg == msg {
 			continue
 		}
+		lm := model.LargeText(msg)
 		if _, err := r.taskStore.UpdateTask(&model.Task{
-			UUID:                    task.UUID,
-			LifecycleMessage:        model.LargeText(msg),
-			LifecycleMessagePresent: true,
+			UUID:             task.UUID,
+			LifecycleMessage: &lm,
 		}); err != nil {
 			return err
 		}

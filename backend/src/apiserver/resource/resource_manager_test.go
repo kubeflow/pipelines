@@ -4071,7 +4071,8 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 
 	got, err := manager.GetTask(task.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), got.LifecycleMessage)
+	require.NotNil(t, got.LifecycleMessage)
+	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), *got.LifecycleMessage)
 
 	workflow.Status.Nodes["executor-pod"] = v1alpha1.NodeStatus{
 		ID:          "executor-pod",
@@ -4085,7 +4086,7 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	require.NoError(t, err)
 	got, err = manager.GetTask(task.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, model.LargeText(""), got.LifecycleMessage)
+	assert.Nil(t, got.LifecycleMessage, "lifecycle message should be cleared after transient startup message")
 }
 
 type runStoreWithBeforeWorkflowUpdateHook struct {
@@ -8713,7 +8714,8 @@ func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
 		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
-	task := &model.Task{Name: "train", Pods: pods, LifecycleMessage: "old"}
+	lm := model.LargeText("old")
+	task := &model.Task{Name: "train", Pods: pods, LifecycleMessage: &lm}
 	nodes := map[string]util.NodeStatus{
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Running"},
 	}

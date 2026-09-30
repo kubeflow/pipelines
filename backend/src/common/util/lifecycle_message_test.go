@@ -119,4 +119,29 @@ func TestResolveNodeLifecycleMessages(t *testing.T) {
 		assert.Equal(t, "ImagePullBackOff", resolved["p2"])
 		assert.Equal(t, "ImagePullBackOff", resolved["shared"])
 	})
+
+	t.Run("retry node uses current attempt not old failed attempt", func(t *testing.T) {
+		// attempt-0 failed with ImagePullBackOff; attempt-1 is now running without issue.
+		// The Retry group node should propagate only the current attempt's message ("").
+		nodes := map[string]NodeStatus{
+			"retry":     {ID: "retry", Type: "Retry", State: "Running", Children: []string{"attempt-0", "attempt-1"}},
+			"attempt-0": {ID: "attempt-0", State: "Failed", Message: "ImagePullBackOff"},
+			"attempt-1": {ID: "attempt-1", State: "Running", Message: ""},
+		}
+		resolved := ResolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "", resolved["retry"], "retry node should reflect current attempt, not stale failure")
+		assert.Equal(t, "ImagePullBackOff", resolved["attempt-0"])
+		assert.Equal(t, "", resolved["attempt-1"])
+	})
+
+	t.Run("retry node propagates current attempt failure", func(t *testing.T) {
+		// Both attempts failed; latest attempt has a message — it should propagate up.
+		nodes := map[string]NodeStatus{
+			"retry":     {ID: "retry", Type: "Retry", State: "Failed", Children: []string{"attempt-0", "attempt-1"}},
+			"attempt-0": {ID: "attempt-0", State: "Failed", Message: "OldError"},
+			"attempt-1": {ID: "attempt-1", State: "Failed", Message: "ImagePullBackOff"},
+		}
+		resolved := ResolveNodeLifecycleMessages(nodes)
+		assert.Equal(t, "ImagePullBackOff", resolved["retry"])
+	})
 }

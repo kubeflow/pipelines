@@ -23,11 +23,14 @@ import (
 type NodeStatus struct {
 	ID          string
 	DisplayName string
-	State       string
-	StartTime   int64
-	CreateTime  int64
-	FinishTime  int64
-	Children    []string
+	// Type is the engine-specific node type (e.g. "Pod", "Retry", "DAG"). Used to identify
+	// Retry group nodes so lifecycle propagation selects the current attempt.
+	Type       string
+	State      string
+	StartTime  int64
+	CreateTime int64
+	FinishTime int64
+	Children   []string
 	// Message is the human-readable status message from the execution engine (e.g. "Back-off pulling image…"). May be empty.
 	Message string
 }

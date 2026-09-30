@@ -524,13 +524,14 @@ func TestUpdateTask_LifecycleMessageSetAndCleared(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	lmSet := model.LargeText("ImagePullBackOff")
 	updated, err := taskStore.UpdateTask(&model.Task{
-		UUID:                    created.UUID,
-		LifecycleMessage:        "ImagePullBackOff",
-		LifecycleMessagePresent: true,
+		UUID:             created.UUID,
+		LifecycleMessage: &lmSet,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, model.LargeText("ImagePullBackOff"), updated.LifecycleMessage)
+	require.NotNil(t, updated.LifecycleMessage)
+	assert.Equal(t, model.LargeText("ImagePullBackOff"), *updated.LifecycleMessage)
 
 	renamed, err := taskStore.UpdateTask(&model.Task{
 		UUID: created.UUID,
@@ -538,15 +539,16 @@ func TestUpdateTask_LifecycleMessageSetAndCleared(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "keep-message", renamed.Name)
-	assert.Equal(t, model.LargeText("ImagePullBackOff"), renamed.LifecycleMessage)
+	require.NotNil(t, renamed.LifecycleMessage)
+	assert.Equal(t, model.LargeText("ImagePullBackOff"), *renamed.LifecycleMessage)
 
+	lmClear := model.LargeText("")
 	cleared, err := taskStore.UpdateTask(&model.Task{
-		UUID:                    created.UUID,
-		LifecycleMessage:        "",
-		LifecycleMessagePresent: true,
+		UUID:             created.UUID,
+		LifecycleMessage: &lmClear,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, model.LargeText(""), cleared.LifecycleMessage)
+	assert.Nil(t, cleared.LifecycleMessage)
 }
 
 func TestUpdateTask_MergesParameters(t *testing.T) {

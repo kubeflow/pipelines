@@ -1262,8 +1262,8 @@ func TestToModelAndAPITask_LifecycleMessage(t *testing.T) {
 	}
 	modelTask, err := toModelTask(apiTask)
 	require.NoError(t, err)
-	assert.Equal(t, model.LargeText("ImagePullBackOff"), modelTask.LifecycleMessage)
-	assert.True(t, modelTask.LifecycleMessagePresent)
+	require.NotNil(t, modelTask.LifecycleMessage)
+	assert.Equal(t, model.LargeText("ImagePullBackOff"), *modelTask.LifecycleMessage)
 
 	exported, err := toAPITask(modelTask, nil)
 	require.NoError(t, err)
@@ -1274,12 +1274,12 @@ func TestToModelAndAPITask_LifecycleMessage(t *testing.T) {
 	apiTask.LifecycleMessage = &clear
 	cleared, err := toModelTask(apiTask)
 	require.NoError(t, err)
-	assert.Equal(t, model.LargeText(""), cleared.LifecycleMessage)
-	assert.True(t, cleared.LifecycleMessagePresent)
+	require.NotNil(t, cleared.LifecycleMessage)
+	assert.Equal(t, model.LargeText(""), *cleared.LifecycleMessage)
 
 	unset, err := toModelTask(&apiv2beta1.PipelineTask{TaskId: "task-2", RunId: "run-1"})
 	require.NoError(t, err)
-	assert.False(t, unset.LifecycleMessagePresent)
+	assert.Nil(t, unset.LifecycleMessage)
 }
 
 func TestToModelRun(t *testing.T) {
