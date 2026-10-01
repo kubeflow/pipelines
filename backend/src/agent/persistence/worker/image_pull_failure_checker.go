@@ -20,10 +20,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
+	workflowregister "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow"
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	argocommon "github.com/argoproj/argo-workflows/v4/workflow/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -43,8 +46,9 @@ const (
 type ImagePullFailureChecker interface {
 	// CheckAndTerminate inspects the pods of a running workflow and terminates
 	// the workflow once a pod has been failing to pull an image for longer than
-	// the grace period.
-	CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error
+	// the grace period. Only pods whose controller owner reference matches the
+	// workflow name and UID are considered, since pod labels are user-controlled.
+	CheckAndTerminate(ctx context.Context, namespace string, workflowName string, workflowUID types.UID) error
 	// Forget drops any failure tracking state held for the workflow. Callers
 	// should invoke it once a workflow reaches a final state or no longer exists
 	// so the checker does not retain state for workflows it will never check again.
@@ -95,12 +99,16 @@ type expiredImagePullFailure struct {
 	podName     string
 	failedImage string
 	elapsed     time.Duration
+	// exitHandler is true when the pod belongs to an exit handler. Such pods
+	// are exempt from the workflow deadline, so terminating the workflow
+	// requires the Terminate shutdown strategy.
+	exitHandler bool
 }
 
 // CheckAndTerminate lists pods for the given workflow and terminates the workflow
 // if any pod has been stuck in ImagePullBackOff or ErrImagePull longer than the
 // grace period (measured from when the failure was first observed).
-func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error {
+func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string, workflowUID types.UID) error {
 	selector, err := labels.Parse(fmt.Sprintf("%s=%s", ArgoWorkflowLabelKey, workflowName))
 	if err != nil {
 		return fmt.Errorf("failed to parse label selector for workflow %s/%s: %w", namespace, workflowName, err)
@@ -111,14 +119,14 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespa
 		return fmt.Errorf("failed to list pods for workflow %s/%s: %w", namespace, workflowName, err)
 	}
 
-	expired := c.trackFailures(namespace, workflowName, pods)
+	expired := c.trackFailures(namespace, workflowName, workflowUID, pods)
 	if expired == nil {
 		return nil
 	}
 
 	log.Infof("Terminating workflow %s/%s: pod %s has image pull failure for %q (failing for %v exceeds grace period %v)",
 		namespace, workflowName, expired.podName, expired.failedImage, expired.elapsed.Round(time.Second), c.gracePeriod)
-	if err := c.terminateWorkflow(ctx, namespace, workflowName, expired.failedImage); err != nil {
+	if err := c.terminateWorkflow(ctx, namespace, workflowName, expired.failedImage, expired.exitHandler); err != nil {
 		return err
 	}
 	c.Forget(namespace, workflowName)
@@ -133,10 +141,12 @@ func (c *imagePullFailureChecker) Forget(namespace string, workflowName string) 
 }
 
 // trackFailures updates the failure start times for the workflow's pods and
-// returns the first pod whose failure has outlasted the grace period, or nil.
+// returns a pod whose failure has outlasted the grace period, or nil. When
+// several pods have expired, an exit-handler pod is preferred because it
+// needs the stronger termination mechanism.
 // Pods that no longer report a failure, or are no longer listed, have their
 // tracking dropped so a recovered pod starts a fresh grace period next time.
-func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, pods []*corev1.Pod) *expiredImagePullFailure {
+func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, workflowUID types.UID, pods []*corev1.Pod) *expiredImagePullFailure {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -147,6 +157,12 @@ func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, 
 
 	var expired *expiredImagePullFailure
 	for _, pod := range pods {
+		if !isOwnedByWorkflow(pod, workflowName, workflowUID) {
+			// Labels are user-controlled; only act on pods the workflow actually owns.
+			log.Warnf("Ignoring pod %s/%s labelled for workflow %s: it is not controlled by that workflow",
+				pod.Namespace, pod.Name, workflowName)
+			continue
+		}
 		if isPodTerminal(pod) {
 			// A retained terminal pod (for example one killed by a task deadline
 			// while an init container was still pulling) must not fail a
@@ -170,8 +186,9 @@ func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, 
 				pod.Namespace, pod.Name, failedImage, elapsed.Round(time.Second), c.gracePeriod)
 			continue
 		}
-		if expired == nil {
-			expired = &expiredImagePullFailure{podName: pod.Name, failedImage: failedImage, elapsed: elapsed}
+		exitHandler := isExitHandlerPod(pod)
+		if expired == nil || (exitHandler && !expired.exitHandler) {
+			expired = &expiredImagePullFailure{podName: pod.Name, failedImage: failedImage, elapsed: elapsed, exitHandler: exitHandler}
 		}
 	}
 
@@ -185,6 +202,29 @@ func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, 
 
 func workflowKey(namespace, workflowName string) string {
 	return namespace + "/" + workflowName
+}
+
+// isOwnedByWorkflow reports whether the pod's controller owner reference is the
+// Argo Workflow with the given name and UID.
+func isOwnedByWorkflow(pod *corev1.Pod, workflowName string, workflowUID types.UID) bool {
+	owner := metav1.GetControllerOf(pod)
+	if owner == nil {
+		return false
+	}
+	group := owner.APIVersion
+	if i := strings.Index(group, "/"); i >= 0 {
+		group = group[:i]
+	}
+	return group == workflowregister.Group &&
+		owner.Kind == workflowregister.WorkflowKind &&
+		owner.Name == workflowName &&
+		owner.UID == workflowUID
+}
+
+// isExitHandlerPod reports whether Argo created the pod as part of an exit
+// handler (an onExit template or an exit lifecycle hook).
+func isExitHandlerPod(pod *corev1.Pod) bool {
+	return pod.Labels[argocommon.LabelKeyOnExit] == "true"
 }
 
 // isPodTerminal reports whether the pod has finished running or is being deleted.
@@ -229,11 +269,11 @@ func imagePullFailureFromStatus(status corev1.ContainerStatus) string {
 // failing image so the reason is visible to users.
 //
 // The patch sets activeDeadlineSeconds to 0, which is how KFP marks a run as
-// terminated, and additionally sets the Terminate shutdown strategy. Argo
-// exempts exit-handler pods from the workflow deadline, so without the shutdown
-// strategy an exit handler whose image cannot be pulled would keep the
-// workflow running forever.
-func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, namespace, workflowName, failedImage string) error {
+// terminated. Argo exempts exit-handler pods from the workflow deadline, so
+// healthy cleanup handlers still run after an ordinary task is terminated this
+// way. When the stuck pod is itself an exit handler, the deadline cannot stop
+// it, so the Terminate shutdown strategy is set as well.
+func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, namespace, workflowName, failedImage string, forceTerminate bool) error {
 	if c.executionClient == nil {
 		return fmt.Errorf("execution client not configured, cannot terminate workflow %s/%s", namespace, workflowName)
 	}
@@ -256,12 +296,14 @@ func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, namespa
 	for k, v := range terminatePatch {
 		patch[k] = v
 	}
-	spec, ok := patch["spec"].(map[string]interface{})
-	if !ok {
-		spec = map[string]interface{}{}
-		patch["spec"] = spec
+	if forceTerminate {
+		spec, ok := patch["spec"].(map[string]interface{})
+		if !ok {
+			spec = map[string]interface{}{}
+			patch["spec"] = spec
+		}
+		spec["shutdown"] = string(workflowapi.ShutdownStrategyTerminate)
 	}
-	spec["shutdown"] = string(workflowapi.ShutdownStrategyTerminate)
 
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
