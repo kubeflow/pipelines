@@ -60,6 +60,11 @@ on:
       - 'third_party/argo/UPGRADE.md'
       - 'third_party/argo/VERSION'
       - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
+      - 'backend/test/v2/resources/env-var.yaml'
+      - 'backend/test/v2/resources/hello-world-with-returning-component.yaml'
+      - 'test_data/sdk_compiled_pipelines/valid/env-var.yaml'
+      - 'test_data/sdk_compiled_pipelines/valid/env_var.py'
+      - 'test_data/compiled-workflows/env-var.yaml'
 
 permissions:
   contents: read

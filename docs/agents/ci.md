@@ -27,6 +27,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Frontend CI also runs `frontend/scripts/check-spec-generation.sh` after installing `protoc`: pipeline and Kubernetes platform specs are generated into temporary directories and typechecked. Changes to either source proto directory trigger this workflow.
 - The frontend protobuf installation scopes both APT commands to `/etc/apt/sources.list.d/ubuntu.sources`, excluding unrelated runner repositories such as Chrome without changing their configuration or bypassing package verification. If the runner's source layout changes, update this explicit path; the step checks that it exists before running APT. Browser integration tests continue to use their separate Selenium container.
 
+- The shared runtime-image inventory pins acquisition of the Python 3.12 image used by the cache and proxy fixtures to a Docker Hub digest. Archive creation and direct Kind loading restore its runtime tag before save/load; keep fixture image references and source declarations aligned with that tag. CI script tests check this contract whenever those fixtures change.
+
 ## Common CI failures
 
 - SDK imports must pass both isort 5.10.1 from `sdk/python/requirements-dev.txt` and isort 9.0.1 from pre-commit. These versions wrap long imports differently; prefer short module imports and verify both checks after SDK import changes.
