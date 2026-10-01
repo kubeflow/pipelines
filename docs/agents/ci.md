@@ -70,7 +70,7 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 - Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
 
 - SDK imports must pass both isort 5.10.1 from the uv lint extra and isort 9.0.1 from pre-commit. These versions wrap long imports differently; prefer short module imports and verify both checks after SDK import changes.
-- Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Verify formatter upgrades by running the full hook chain twice on the updater and SDK structures files.
+- Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Dependabot ignores only v1.7.8, and the configuration smoke test includes the updater and SDK structures files. Verify formatter upgrades by running the full hook chain twice on these files.
 - Registry pull failures for Kind, BuildKit, Python, or Alpine images are usually transient; retry before changing code.
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
