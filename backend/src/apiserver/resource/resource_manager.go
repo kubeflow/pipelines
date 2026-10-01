@@ -23,6 +23,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -2413,6 +2414,11 @@ func (r *ResourceManager) reportWorkflowResource(
 				manifestDigest:  sha256.Sum256([]byte(run.WorkflowRuntimeManifest)),
 			})
 	}
+	if len(run.Tasks) > 0 {
+		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec); err != nil {
+			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
+		}
+	}
 	// Delete a fully persisted workflow only after the version check above:
 	// a stale snapshot carrying the persisted-final-state label must not
 	// delete the live workflow object that a retry has since resubmitted
@@ -3978,6 +3984,98 @@ func (r *ResourceManager) GetArtifactsByURI(namespace, uri string) ([]*model.Art
 		return nil, util.Wrap(err, "Failed to get artifacts by URI")
 	}
 	return artifacts, nil
+}
+
+// podNamesFromTask returns the pod names recorded in task.Pods.
+func podNamesFromTask(task *model.Task) []string {
+	var names []string
+	for _, pod := range task.Pods {
+		podMap, ok := pod.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if name, ok := podMap["name"].(string); ok && name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+func containsString(values []string, want string) bool {
+	for _, v := range values {
+		if v == want {
+			return true
+		}
+	}
+	return false
+}
+
+// lifecycleMessageForTask matches a task to its pod node(s) (executor or driver) via pod identity
+// and returns the resolved message from the most recently created pod. matched is true when at
+// least one node was attributed to this task by pod name.
+func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
+	if task == nil {
+		return "", false
+	}
+	podNames := podNamesFromTask(task)
+	if len(podNames) == 0 {
+		return "", false
+	}
+	type podMatch struct {
+		msg        string
+		createTime int64
+	}
+	var matches []podMatch
+	for id, node := range nodes {
+		if !containsString(podNames, node.ID) {
+			continue
+		}
+		matches = append(matches, podMatch{msg: resolved[id], createTime: node.CreateTime})
+	}
+	if len(matches) == 0 {
+		return "", false
+	}
+	// Pick the message from the most recently created pod so that a recovered retry
+	// (no lifecycle event) overrides a stale failure from an earlier attempt.
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].createTime > matches[j].createTime
+	})
+	return matches[0].msg, true
+}
+
+// persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
+// to the provided tasks. tasks should be the hydrated tasks already loaded for the run
+// (e.g. from run.Tasks) to avoid an additional database query.
+func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, execSpec util.ExecutionSpec) error {
+	if execSpec == nil || execSpec.ExecutionStatus() == nil || len(tasks) == 0 {
+		return nil
+	}
+	nodes := execSpec.ExecutionStatus().NodeStatuses()
+	if len(nodes) == 0 {
+		return nil
+	}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	for _, task := range tasks {
+		msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+		if !matched {
+			continue
+		}
+		currentMsg := ""
+		if task.LifecycleMessage != nil {
+			currentMsg = string(*task.LifecycleMessage)
+		}
+		if currentMsg == msg {
+			continue
+		}
+		lm := model.LargeText(msg)
+		if _, err := r.taskStore.UpdateTask(&model.Task{
+			UUID:             task.UUID,
+			LifecycleMessage: &lm,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *ResourceManager) authorizeExecutionServiceAccounts(ctx context.Context, executionSpec util.ExecutionSpec, allowCompilerPodSpecPatch bool, namespace, operation string) error {
