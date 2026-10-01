@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
@@ -35,13 +36,15 @@ type fakeImagePullFailureChecker struct {
 	forgotten     bool
 	namespace     string
 	workflowName  string
+	workflowUID   types.UID
 	errorToReturn error
 }
 
-func (f *fakeImagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string) error {
+func (f *fakeImagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string, workflowUID types.UID) error {
 	f.called = true
 	f.namespace = namespace
 	f.workflowName = workflowName
+	f.workflowUID = workflowUID
 	return f.errorToReturn
 }
 
@@ -289,6 +292,7 @@ func TestWorkflow_Save_CheckerCalledForRunningWorkflow(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
+			UID:       "MY_WORKFLOW_UID",
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
 		},
 		Status: workflowapi.WorkflowStatus{
@@ -307,6 +311,7 @@ func TestWorkflow_Save_CheckerCalledForRunningWorkflow(t *testing.T) {
 	assert.True(t, checker.called, "Checker should be called for running workflow")
 	assert.Equal(t, "MY_NAMESPACE", checker.namespace)
 	assert.Equal(t, "MY_NAME", checker.workflowName)
+	assert.Equal(t, types.UID("MY_WORKFLOW_UID"), checker.workflowUID)
 }
 
 func TestWorkflow_Save_CheckerCalledForPendingWorkflow(t *testing.T) {
