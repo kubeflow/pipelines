@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	argocommon "github.com/argoproj/argo-workflows/v4/workflow/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -94,19 +95,35 @@ func newTestChecker(podLister corelisters.PodLister, executionClient util.Execut
 	return checker, clock
 }
 
-// newWorkflowPod builds a pod owned by workflowName whose single main container
-// is in the given waiting state. An empty reason yields a running container.
+// testWorkflowUID returns the UID used for the workflow with the given name in
+// these tests.
+func testWorkflowUID(workflowName string) types.UID {
+	return types.UID(workflowName + "-uid")
+}
+
+// newWorkflowPod builds a pod owned by workflowName (both labelled and with a
+// controller owner reference, as Argo creates them) whose single main
+// container is in the given waiting state. An empty reason yields a running
+// container.
 func newWorkflowPod(name, workflowName, image, waitingReason string) *corev1.Pod {
 	state := corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}
 	if waitingReason != "" {
 		state = corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: waitingReason}}
 	}
+	controller := true
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "default",
 			UID:       types.UID(name + "-uid"),
 			Labels:    map[string]string{ArgoWorkflowLabelKey: workflowName},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "argoproj.io/v1alpha1",
+				Kind:       "Workflow",
+				Name:       workflowName,
+				UID:        testWorkflowUID(workflowName),
+				Controller: &controller,
+			}},
 		},
 		Status: corev1.PodStatus{
 			Phase:             corev1.PodPending,
@@ -239,7 +256,7 @@ func TestCheckAndTerminate_NoPods(t *testing.T) {
 	podLister, _ := newTestPodLister()
 	checker, _ := newTestChecker(podLister, nil, 5*time.Minute)
 
-	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow"))
 	assert.NoError(t, err)
 }
 
@@ -247,7 +264,7 @@ func TestCheckAndTerminate_HealthyPods(t *testing.T) {
 	podLister, _ := newTestPodLister(newWorkflowPod("healthy-pod", "my-workflow", "good-image:latest", ""))
 	checker, _ := newTestChecker(podLister, nil, 5*time.Minute)
 
-	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow"))
 	assert.NoError(t, err)
 }
 
@@ -257,9 +274,9 @@ func TestCheckAndTerminate_ImagePullFailureWithinGracePeriod(t *testing.T) {
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	// First observation starts the clock; nothing should be terminated yet.
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(4 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 }
 
@@ -268,10 +285,10 @@ func TestCheckAndTerminate_ImagePullFailureExceedsGracePeriod(t *testing.T) {
 	// executionClient is nil so the termination will return an error.
 	checker, clock := newTestChecker(podLister, nil, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(5 * time.Minute)
 
-	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow")
+	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "execution client not configured")
 }
@@ -286,11 +303,11 @@ func TestCheckAndTerminate_GracePeriodStartsAtFailureNotPodCreation(t *testing.T
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount, "old pod with a fresh failure must get the full grace period")
 
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 1, fakeExecInterface.patchCount)
 }
 
@@ -301,22 +318,22 @@ func TestCheckAndTerminate_RecoveryResetsGracePeriod(t *testing.T) {
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	// Failing for 4 minutes, then the pull recovers.
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(4 * time.Minute)
 	require.NoError(t, indexer.Update(newWorkflowPod("flaky-pod", "my-workflow", "flaky-image:latest", "")))
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 
 	// It fails again 2 minutes later: the clock restarts, so 4 more minutes is
 	// still inside the grace period.
 	clock.advance(2 * time.Minute)
 	require.NoError(t, indexer.Update(newWorkflowPod("flaky-pod", "my-workflow", "flaky-image:latest", "ImagePullBackOff")))
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(4 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 
 	clock.advance(1 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 1, fakeExecInterface.patchCount)
 }
 
@@ -337,9 +354,9 @@ func TestCheckAndTerminate_IgnoresTerminalPods(t *testing.T) {
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(time.Hour)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount, "terminal pods must not trigger termination")
 }
 
@@ -352,9 +369,9 @@ func TestCheckAndTerminate_MixedPods(t *testing.T) {
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	// Only the failing pod has issues but it is within grace -- should not terminate.
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 }
 
@@ -365,9 +382,9 @@ func TestCheckAndTerminate_OnlyListsPodsForWorkflow(t *testing.T) {
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	// Checking "my-workflow" should not see "other-workflow" pods.
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(time.Hour)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 }
 
@@ -377,9 +394,9 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 	fakeExecClient := &fakeExecutionClient{executionInterface: fakeExecInterface}
 	checker, clock := newTestChecker(podLister, fakeExecClient, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 
 	require.Equal(t, 1, fakeExecInterface.patchCount, "Patch should have been called to terminate the workflow")
 	assert.Equal(t, "my-workflow", fakeExecInterface.patchedName)
@@ -399,9 +416,9 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 	assert.Equal(t, "bad-image:latest", patch.Metadata.Annotations["pipelines.kubeflow.org/failed-image"])
 	require.NotNil(t, patch.Spec.ActiveDeadlineSeconds)
 	assert.Equal(t, int64(0), *patch.Spec.ActiveDeadlineSeconds, "KFP marks a run terminated via activeDeadlineSeconds=0")
-	// Exit-handler pods are exempt from the workflow deadline, so the Terminate
-	// shutdown strategy is required to stop an exit handler with a bad image.
-	assert.Equal(t, "Terminate", patch.Spec.Shutdown)
+	// An ordinary task failure must use the deadline only, so that healthy
+	// exit handlers (which Argo exempts from the deadline) still run.
+	assert.Empty(t, patch.Spec.Shutdown)
 
 	// Tracking state is dropped after a successful termination.
 	assert.Empty(t, checker.failureStart)
@@ -414,18 +431,94 @@ func TestCheckAndTerminate_TerminatesExitHandlerPod(t *testing.T) {
 	mainPod := newWorkflowPod("my-workflow-main", "my-workflow", "good-image:latest", "")
 	mainPod.Status.Phase = corev1.PodSucceeded
 	exitHandlerPod := newWorkflowPod("my-workflow-onexit", "my-workflow", "missing-exit-image:latest", "ImagePullBackOff")
+	exitHandlerPod.Labels[argocommon.LabelKeyOnExit] = "true"
 
 	podLister, _ := newTestPodLister(mainPod, exitHandlerPod)
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+
+	require.Equal(t, 1, fakeExecInterface.patchCount)
+	// Exit-handler pods are exempt from the workflow deadline, so the Terminate
+	// shutdown strategy is required to stop an exit handler with a bad image.
+	assert.Contains(t, string(fakeExecInterface.patchData), `"shutdown":"Terminate"`)
+	assert.Contains(t, string(fakeExecInterface.patchData), `"activeDeadlineSeconds":0`)
+	assert.Contains(t, string(fakeExecInterface.patchData), "missing-exit-image:latest")
+}
+
+func TestCheckAndTerminate_OrdinaryFailurePreservesHealthyExitHandler(t *testing.T) {
+	// A task that cannot pull its image must be terminated with the deadline
+	// only, so a healthy dsl.ExitHandler cleanup task still runs afterwards.
+	taskPod := newWorkflowPod("my-workflow-task", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	cleanupPod := newWorkflowPod("my-workflow-cleanup", "my-workflow", "cleanup-image:latest", "")
+	cleanupPod.Labels[argocommon.LabelKeyOnExit] = "true"
+
+	podLister, _ := newTestPodLister(taskPod, cleanupPod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	clock.advance(5 * time.Minute)
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+
+	require.Equal(t, 1, fakeExecInterface.patchCount)
+	assert.Contains(t, string(fakeExecInterface.patchData), `"activeDeadlineSeconds":0`)
+	assert.NotContains(t, string(fakeExecInterface.patchData), "shutdown", "healthy exit handlers must be allowed to run")
+}
+
+func TestCheckAndTerminate_PrefersExitHandlerWhenBothExpired(t *testing.T) {
+	taskPod := newWorkflowPod("my-workflow-task", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	exitHandlerPod := newWorkflowPod("my-workflow-onexit", "my-workflow", "bad-exit-image:latest", "ErrImagePull")
+	exitHandlerPod.Labels[argocommon.LabelKeyOnExit] = "true"
+
+	podLister, _ := newTestPodLister(taskPod, exitHandlerPod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	clock.advance(5 * time.Minute)
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 
 	require.Equal(t, 1, fakeExecInterface.patchCount)
 	assert.Contains(t, string(fakeExecInterface.patchData), `"shutdown":"Terminate"`)
-	assert.Contains(t, string(fakeExecInterface.patchData), "missing-exit-image:latest")
+	assert.Contains(t, string(fakeExecInterface.patchData), "bad-exit-image:latest")
+}
+
+func TestCheckAndTerminate_IgnoresPodWithSpoofedLabel(t *testing.T) {
+	// A pod carrying the workflow label but not owned by the workflow (for
+	// example created by another actor in the namespace) must never cause
+	// the workflow to be terminated.
+	spoofedPod := newWorkflowPod("spoofed-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	spoofedPod.OwnerReferences = nil
+	wrongUIDPod := newWorkflowPod("stale-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	wrongUIDPod.OwnerReferences[0].UID = "some-other-uid"
+	wrongKindPod := newWorkflowPod("job-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	wrongKindPod.OwnerReferences[0].APIVersion = "batch/v1"
+	wrongKindPod.OwnerReferences[0].Kind = "Job"
+
+	podLister, _ := newTestPodLister(spoofedPod, wrongUIDPod, wrongKindPod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	clock.advance(time.Hour)
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "pods not controlled by the workflow must be ignored")
+	assert.Empty(t, checker.failureStart, "ignored pods must not be tracked")
+}
+
+func TestIsOwnedByWorkflow(t *testing.T) {
+	owned := newWorkflowPod("pod", "my-workflow", "img", "")
+	assert.True(t, isOwnedByWorkflow(owned, "my-workflow", testWorkflowUID("my-workflow")))
+	assert.False(t, isOwnedByWorkflow(owned, "my-workflow", "other-uid"))
+	assert.False(t, isOwnedByWorkflow(owned, "other-workflow", testWorkflowUID("my-workflow")))
+
+	nonController := newWorkflowPod("pod", "my-workflow", "img", "")
+	nonController.OwnerReferences[0].Controller = nil
+	assert.False(t, isOwnedByWorkflow(nonController, "my-workflow", testWorkflowUID("my-workflow")))
 }
 
 func TestForget_ResetsGracePeriod(t *testing.T) {
@@ -433,7 +526,7 @@ func TestForget_ResetsGracePeriod(t *testing.T) {
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Len(t, checker.failureStart, 1)
 
 	checker.Forget("default", "my-workflow")
@@ -441,7 +534,7 @@ func TestForget_ResetsGracePeriod(t *testing.T) {
 
 	// After Forget the next observation starts a fresh grace period.
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 }
 
@@ -450,10 +543,10 @@ func TestCheckAndTerminate_DropsTrackingWhenPodsRecover(t *testing.T) {
 	podLister, indexer := newTestPodLister(pod)
 	checker, _ := newTestChecker(podLister, nil, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Len(t, checker.failureStart, 1)
 
 	require.NoError(t, indexer.Delete(pod))
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow"))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
 	assert.Empty(t, checker.failureStart, "no failing pods means no tracking state")
 }

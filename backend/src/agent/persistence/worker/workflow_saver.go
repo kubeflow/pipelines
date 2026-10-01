@@ -83,7 +83,7 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	if s.imagePullFailureChecker != nil {
 		if wf.ExecutionStatus().IsInFinalState() {
 			s.imagePullFailureChecker.Forget(namespace, name)
-		} else if checkErr := s.imagePullFailureChecker.CheckAndTerminate(context.Background(), namespace, name); checkErr != nil {
+		} else if checkErr := s.imagePullFailureChecker.CheckAndTerminate(context.Background(), namespace, name, wf.ExecutionObjectMeta().UID); checkErr != nil {
 			log.Warnf("Workflow (%v): error checking image pull failures: %v", name, checkErr)
 		}
 	}
