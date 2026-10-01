@@ -15,9 +15,12 @@
 package main
 
 import (
+	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestHealthzReturns200(t *testing.T) {
@@ -78,5 +81,51 @@ func TestReadyzTransitionsToReady(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("GET /readyz after sync: got %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestHealthProbeServerShutdownOnContextCancel(t *testing.T) {
+	mux := newHealthMux(func() bool { return true })
+
+	server := &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to create listener: %v", err)
+	}
+
+	serverContext, cancelServer := context.WithCancel(context.Background())
+
+	serverStopped := make(chan struct{})
+	go func() {
+		defer close(serverStopped)
+		go func() {
+			<-serverContext.Done()
+			shutdownTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			server.Shutdown(shutdownTimeout)
+		}()
+		server.Serve(listener)
+	}()
+
+	// Verify the server is serving before shutdown.
+	response, err := http.Get("http://" + listener.Addr().String() + "/healthz")
+	if err != nil {
+		t.Fatalf("GET /healthz before shutdown failed: %v", err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("GET /healthz before shutdown: got %d, want %d", response.StatusCode, http.StatusOK)
+	}
+
+	// Cancel context and wait for the server to stop.
+	cancelServer()
+	select {
+	case <-serverStopped:
+	case <-time.After(10 * time.Second):
+		t.Fatal("server did not shut down within 10 seconds after context cancellation")
 	}
 }
