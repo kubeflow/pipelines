@@ -65,7 +65,12 @@ a scheduled sweep reconcile late or changed results. A PR label event
 discovers every cumulative queue commit that includes that PR; a bounded
 per-SHA invalidation matrix marks all affected statuses pending before the
 validation matrix starts. The queue remains blocked if the entry or
-workflow evidence cannot be verified.
+workflow evidence cannot be verified. If the current PR lookup fails after
+discovery identifies affected queue SHAs, discovery attempts to retire every
+known affected status before reporting the read failure, even if an earlier
+status write fails. Every matching workflow run must
+have valid run IDs, attempt numbers, and timestamps before latest-run selection;
+malformed competing evidence cannot be ignored in favor of an older success.
 
 An `in_progress` workflow event writes a pending `ci-passed-release` marker with its
 run ID and attempt from the discovery job before per-SHA validation. Later

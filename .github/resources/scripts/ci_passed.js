@@ -11,7 +11,8 @@
 
 'use strict';
 
-const {applicable, verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
+const {applicable, verifyExpectedWorkflows, loadBaseInventory, invalidRunMetadata} =
+  require('./ci_expected_workflows');
 
 const RELEASE_BRANCH = 'release-2.18';
 const QUEUE_BRANCH_PREFIX = `gh-readonly-queue/${RELEASE_BRANCH}/`;
@@ -516,8 +517,14 @@ async function queueEventCandidates({github, context}) {
     }
     known.push(sha);
   }
-  const pr = await readPR(github, context, number);
-  const isAdmitted = pr.number === number && pr.node_id === queued.pullRequest?.id &&
+  let pr;
+  let readError;
+  try {
+    pr = await readPR(github, context, number);
+  } catch (error) {
+    readError = error;
+  }
+  const isAdmitted = !readError && pr.number === number && pr.node_id === queued.pullRequest?.id &&
     pr.state === 'open' && pr.base.ref === RELEASE_BRANCH &&
     pr.head.sha === queued.pullRequest?.headRefOid && admitted(pr);
   if (isAdmitted) {
@@ -525,8 +532,9 @@ async function queueEventCandidates({github, context}) {
     // and cannot satisfy the required queue status until a build starts.
     return known.map(sha => ({sha}));
   }
-  // Dequeue removes the invalid PR, but the old cumulative SHAs may remain
-  // green until that mutation finishes. Revoke every known affected SHA first.
+  // A failed PR read must also revoke known successes. Dequeue removes an
+  // invalid PR, but the old cumulative SHAs may remain green until it finishes.
+  // Try every affected SHA even if an earlier status write fails.
   let invalidationError;
   for (const sha of known) {
     try {
@@ -538,6 +546,7 @@ async function queueEventCandidates({github, context}) {
       invalidationError ||= error;
     }
   }
+  if (readError) throw readError;
   if (!queued.id || !queued.pullRequest?.id || pr.node_id !== queued.pullRequest.id) {
     throw new Error('Cannot identify the queued PR to remove');
   }
@@ -701,8 +710,13 @@ async function queueEvidence({github, context, sha, root, verifyCurrentRuns = fa
       run.head_branch?.startsWith(QUEUE_BRANCH_PREFIX) &&
       run.head_repository?.full_name?.toLowerCase() ===
         `${context.repo.owner}/${context.repo.repo}`.toLowerCase());
-    const attemptTime = run => Math.max(Date.parse(run.created_at) || 0,
-      Date.parse(run.run_started_at) || 0);
+    // Malformed competing runs cannot be sorted behind an older success.
+    const invalidField = matchingRuns.map(invalidRunMetadata).find(field => field !== null);
+    if (invalidField) {
+      return {state: 'failure', reason: `${workflow.path}: invalid workflow run ${invalidField}.`};
+    }
+    const attemptTime = run => run.run_started_at === null ? Date.parse(run.created_at) :
+      Math.max(Date.parse(run.created_at), Date.parse(run.run_started_at));
     matchingRuns.sort((left, right) => attemptTime(right) - attemptTime(left) || right.id - left.id);
     const run = matchingRuns[0];
     if (!run || run.status !== 'completed') {

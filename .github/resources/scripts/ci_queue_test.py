@@ -44,6 +44,7 @@ if (options.missingTrigger) inventory[0].merge_group = null;
 if (options.missingEquivalent) inventory.splice(2, 1);
 const expectedModule = require.resolve(process.argv[2]);
 require.cache[expectedModule] = {id: expectedModule, filename: expectedModule, loaded: true, exports: {
+  ...require(expectedModule),
   applicable: () => true,
   loadBaseInventory: async () => {
     if (options.inventoryError) throw Error('Inventory unavailable');
@@ -113,7 +114,8 @@ const runData = (id, head, attempt, status, conclusion) => ({
   run_attempt: attempt, status, conclusion,
   created_at: '2026-09-26T00:00:00Z', run_started_at: '2026-09-26T00:01:00Z',
 });
-const runs = head => paths.filter(path => path !== options.missing).map((path, index) => ({
+const runs = head => {
+  const listed = paths.filter(path => path !== options.missing).map((path, index) => ({
   ...runData(index + 1 + (head === priorSha ? 10 : 0), head,
     index === 0 && head === sha ? listedAttempt : 1,
     path === options.inProgress ? 'in_progress' : 'completed',
@@ -121,6 +123,13 @@ const runs = head => paths.filter(path => path !== options.missing).map((path, i
   status: path === options.inProgress ? 'in_progress' : 'completed',
   conclusion: path === options.failed ? 'failure' : 'success',
 }));
+  if (options.competingRun) {
+    listed.push({...runData(999, head, 1, 'completed', 'failure'),
+      path: paths[0], ...options.competingRun});
+    if (options.missingRunField) delete listed.at(-1)[options.missingRunField];
+  }
+  return listed;
+};
 const github = {
   graphql: async (query, variables) => {
     if (query.includes('query ReleaseWorkflowTrees')) {
@@ -155,8 +164,10 @@ const github = {
     return entries();
   },
   rest: {
-    pulls: {get: async request => ({data: structuredClone(
-      request.pull_number === 8 ? prior : pr)})},
+    pulls: {get: async request => {
+      if (options.prReadError) throw Error('PR read unavailable');
+      return {data: structuredClone(request.pull_number === 8 ? prior : pr)};
+    }},
     repos: {
       compareCommitsWithBasehead: async request => {
         calls.push(['compare', request.basehead]);
@@ -182,7 +193,9 @@ const github = {
       getCombinedStatusForRef: {},
       listCommitStatusesForRef: {},
       createCommitStatus: async request => {
-        if (options.statusWriteError) throw Error('Status write unavailable');
+        if (options.statusWriteError || request.sha === options.statusWriteErrorSha) {
+          throw Error('Status write unavailable');
+        }
         if ((statusHistory.get(request.sha) || []).filter(status =>
           status.context === request.context).length >= 1000) {
           throw Error('Commit status context limit reached');
@@ -355,7 +368,8 @@ const core = {info: () => {}};
   }
   catch (caught) {error = caught.message;}
   console.log(JSON.stringify({calls, status: statuses.get(sha) || null,
-    priorStatus: statuses.get(priorSha) || null, error}));
+    priorStatus: statuses.get(priorSha) || null,
+    description: statusHistory.get(sha)?.[0]?.description, error}));
 })().catch(error => {console.error(error); process.exit(1);});
 '''
     result = subprocess.run([
@@ -424,6 +438,54 @@ class QueueCITest(unittest.TestCase):
                     if call[0] in ('current-run', 'exact-attempt')
                 ]
                 self.assertEqual(len(lookups), 3 + 4 * len(fences))
+
+    def test_malformed_competing_run_blocks_queue_success(self):
+        for field, values in {
+                'id': [None, 0, -1, '999', 1.5],
+                'run_attempt': [None, 0, -1, '1', 1.5],
+                'created_at': [None, '', 'invalid'],
+                'run_started_at': [None, '', 'invalid'],
+        }.items():
+            for value in values:
+                with self.subTest(field=field, value=value):
+                    result = exercise({
+                        'schedule': True,
+                        'initialStatus': 'success',
+                        'competingRun': {
+                            field: value
+                        },
+                    })
+                    self.assertEqual(result['status'], 'failure', result)
+                    self.assertIn(f'invalid workflow run {field}',
+                                  result['description'])
+                    self.assertFalse(
+                        any(call[:2] == ['ci-passed-release', 'success']
+                            for call in result['calls']))
+
+    def test_missing_competing_run_metadata_blocks_queue_success(self):
+        for field in ('id', 'run_attempt', 'created_at', 'run_started_at'):
+            with self.subTest(field=field):
+                result = exercise({
+                    'schedule': True,
+                    'competingRun': {},
+                    'missingRunField': field,
+                })
+                self.assertEqual(result['status'], 'failure', result)
+                self.assertIn(f'invalid workflow run {field}',
+                              result['description'])
+
+    def test_unstarted_competing_run_keeps_queue_pending(self):
+        result = exercise({
+            'schedule': True,
+            'competingRun': {
+                'status': 'queued',
+                'conclusion': None,
+                'run_started_at': None,
+                'created_at': '2026-09-26T00:02:00Z',
+            },
+        })
+        self.assertEqual(result['status'], 'pending', result)
+        self.assertNotIn('invalid workflow run', result['description'])
 
     def test_missing_or_running_workflow_keeps_group_pending(self):
         for options in [{
@@ -785,6 +847,37 @@ console.log(JSON.stringify(tests.map(trigger => {{
         self.assertEqual(unbuilt['priorStatus'], None, unbuilt)
         self.assertEqual(unbuilt['candidates'], [], unbuilt)
         self.assertIn(['dequeue', 'PR_7'], unbuilt['calls'])
+
+    def test_pr_read_failure_retires_all_known_queue_heads(self):
+        result = exercise({
+            'dequeueEvent': True,
+            'action': 'unlabeled',
+            'labelEventEarlier': True,
+            'priorEntry': True,
+            'priorLabels': ['lgtm'],
+            'initialStatus': 'success',
+            'prReadError': True,
+        })
+        self.assertEqual(result['status'], 'pending', result)
+        self.assertEqual(result['priorStatus'], 'pending', result)
+        self.assertEqual(result['error'], 'PR read unavailable', result)
+        self.assertFalse(any(call[0] == 'dequeue' for call in result['calls']))
+
+    def test_pr_read_failure_attempts_later_retirements_after_write_error(self):
+        result = exercise({
+            'dequeueEvent': True,
+            'action': 'unlabeled',
+            'labelEventEarlier': True,
+            'priorEntry': True,
+            'priorLabels': ['lgtm'],
+            'initialStatus': 'success',
+            'prReadError': True,
+            'statusWriteErrorSha': 'd' * 40,
+        })
+        self.assertEqual(result['priorStatus'], 'success', result)
+        self.assertEqual(result['status'], 'pending', result)
+        self.assertEqual(result['error'], 'PR read unavailable', result)
+        self.assertFalse(any(call[0] == 'dequeue' for call in result['calls']))
 
     def test_dequeue_denial_and_readback_failure_preserve_pending(self):
         options = {
