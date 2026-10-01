@@ -816,11 +816,14 @@ describe('RuntimeNodeDetailsV2', () => {
         }),
       );
 
+      fireEvent.click(await screen.findByRole('button', { name: 'Details' }));
       await screen.findByText('Resume requested. The task will continue shortly.');
     });
 
     it('shows an error message if the resume request fails', async () => {
-      vi.spyOn(Apis.runServiceApiV2, 'task_2').mockRejectedValueOnce(new Error('server unreachable'));
+      vi.spyOn(Apis.runServiceApiV2, 'task_2').mockRejectedValueOnce(
+        new Error('server unreachable'),
+      );
 
       renderTask(
         createTask({
@@ -833,6 +836,7 @@ describe('RuntimeNodeDetailsV2', () => {
 
       fireEvent.click(screen.getByText('Resume'));
 
+      fireEvent.click(await screen.findByRole('button', { name: 'Details' }));
       await screen.findByText(/Failed to request resume: server unreachable/);
     });
   });

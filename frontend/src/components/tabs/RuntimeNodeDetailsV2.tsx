@@ -346,8 +346,8 @@ function DebugPauseResumeBanner({ runId, task }: DebugPauseResumeBannerProps) {
     barrier === 'before'
       ? 'before running'
       : barrier === 'on_error'
-      ? 'after failing'
-      : 'after running';
+        ? 'after failing'
+        : 'after running';
 
   return (
     <div className={padding(20, 'lrt')}>
@@ -362,8 +362,8 @@ function DebugPauseResumeBanner({ runId, task }: DebugPauseResumeBannerProps) {
                   : String(resumeMutation.error)
               }`
             : resumeMutation.isSuccess
-            ? 'Resume requested. The task will continue shortly.'
-            : undefined
+              ? 'Resume requested. The task will continue shortly.'
+              : undefined
         }
       />
       <Button
