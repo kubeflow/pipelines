@@ -164,10 +164,8 @@ func main() {
 	go scheduleInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)
 
-	// Create a child context that is canceled when controller.Run returns
-	// for any reason (normal shutdown, error, or recovered panic via
-	// runtime.HandleCrash). This ensures the metrics server always shuts
-	// down, even if the signal context has not been canceled.
+	// Create a child context that is canceled when controller.Run returns,
+	// allowing the metrics server to shut down with the controller.
 	metricsCtx, metricsCancel := context.WithCancel(shutdownContext)
 
 	var serverWg sync.WaitGroup

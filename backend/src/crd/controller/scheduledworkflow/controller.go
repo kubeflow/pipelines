@@ -237,8 +237,10 @@ func NewController(
 }
 
 // HasSynced returns true if both the scheduled workflow and workflow informer
-// caches have completed their initial sync. Used by the readiness probe to
-// gate traffic until the controller is ready to process events.
+// caches have completed their initial LIST from the API server. Used by the
+// readiness probe to prevent the controller from processing events before it
+// has a complete view of existing resources. This does not detect ongoing watch
+// staleness or API server connectivity loss after the initial sync.
 func (c *Controller) HasSynced() bool {
 	return c.swfClient.HasSynced()() && c.workflowClient.HasSynced()()
 }
