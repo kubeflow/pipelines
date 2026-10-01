@@ -101,7 +101,7 @@ func testWorkflowUID(workflowName string) types.UID {
 	return types.UID(workflowName + "-uid")
 }
 
-// newWorkflowPod builds a pod owned by workflowName (both labelled and with a
+// newWorkflowPod builds a pod owned by workflowName (both labeled and with a
 // controller owner reference, as Argo creates them) whose single main
 // container is in the given waiting state. An empty reason yields a running
 // container.
