@@ -159,7 +159,7 @@ func (c *imagePullFailureChecker) trackFailures(namespace, workflowName string, 
 	for _, pod := range pods {
 		if !isOwnedByWorkflow(pod, workflowName, workflowUID) {
 			// Labels are user-controlled; only act on pods the workflow actually owns.
-			log.Warnf("Ignoring pod %s/%s labelled for workflow %s: it is not controlled by that workflow",
+			log.Warnf("Ignoring pod %s/%s labeled for workflow %s: it is not controlled by that workflow",
 				pod.Namespace, pod.Name, workflowName)
 			continue
 		}
