@@ -14,7 +14,7 @@
     "@mui/material": "^5.18.0",
     "@tanstack/react-query": "^5.103.2",
     "@types/lodash.groupby": "^4.6.9",
-    "@xyflow/react": "^12.11.6",
+    "@xyflow/react": "^12.12.0",
     "ace-builds": "^1.44.0",
     "d3-dsv": "^3.0.1",
     "dagre": "^0.8.5",
