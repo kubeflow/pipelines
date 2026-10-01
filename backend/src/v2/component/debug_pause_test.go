@@ -158,10 +158,10 @@ func TestPause_SafetyValveTimesOut(t *testing.T) {
 	require.True(t, signaler.clearCalled, "barrier must still be cleared, best effort, after a timeout")
 }
 
-// TestPause_ContextCancellationClearsBestEffort verifies that cancelling the
+// TestPause_ContextCancellationClearsBestEffort verifies that canceling the
 // context (e.g. the launcher process shutting down) causes Pause to return
 // promptly with the context's error, while still attempting a best-effort
-// clear using a fresh, uncancelled context for cleanup.
+// clear using a fresh, uncanceled context for cleanup.
 func TestPause_ContextCancellationClearsBestEffort(t *testing.T) {
 	signaler := &mockPauseSignaler{} // never resumes
 	ctx, cancel := context.WithCancel(context.Background())

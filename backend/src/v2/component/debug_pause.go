@@ -236,7 +236,7 @@ func (s *kfpAPIPauseSignaler) mergeCustomProperties(ctx context.Context, updates
 
 // Pause parks the launcher at the given barrier: it publishes that it has
 // paused, then repeatedly polls for a resume request until one arrives, the
-// safety-valve duration elapses, or ctx is cancelled. It always attempts to
+// safety-valve duration elapses, or ctx is canceled. It always attempts to
 // clear the barrier before returning, best effort.
 //
 // Failure handling is deliberate, not incidental:
@@ -260,7 +260,7 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 
 	defer func() {
 		// Use a fresh, short-lived context for cleanup: ctx may already be
-		// cancelled (timeout or caller cancellation) by the time we get here,
+		// canceled (timeout or caller cancellation) by the time we get here,
 		// and clearing the barrier is a best-effort courtesy, not something
 		// worth blocking shutdown on.
 		clearCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -281,7 +281,7 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 	for {
 		select {
 		case <-ctx.Done():
-			glog.Warningf("debug pause: context cancelled while parked at barrier %q: %v", barrier, ctx.Err())
+			glog.Warningf("debug pause: context canceled while parked at barrier %q: %v", barrier, ctx.Err())
 			return ctx.Err()
 
 		case <-ticker.C:
