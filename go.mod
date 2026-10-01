@@ -6,7 +6,7 @@ toolchain go1.27.1
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/argoproj/argo-workflows/v4 v4.1.2
+	github.com/argoproj/argo-workflows/v4 v4.1.4
 	github.com/aws/aws-sdk-go-v2 v1.45.1
 	github.com/aws/aws-sdk-go-v2/config v1.33.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.2
