@@ -1205,9 +1205,12 @@ type PipelineTask struct {
 	// always the last entry in a scope_path.
 	// Example of a scope_path:
 	// "root.primary-pipeline.secondary-pipeline.task"
-	ScopePath     string `protobuf:"bytes,18,opt,name=scope_path,json=scopePath,proto3" json:"scope_path,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ScopePath string `protobuf:"bytes,18,opt,name=scope_path,json=scopePath,proto3" json:"scope_path,omitempty"`
+	// Latest pod lifecycle diagnostic from the execution engine.
+	// Read-only via REST; the persistence agent clears this field automatically on recovery.
+	LifecycleMessage *string `protobuf:"bytes,19,opt,name=lifecycle_message,json=lifecycleMessage,proto3,oneof" json:"lifecycle_message,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *PipelineTask) Reset() {
@@ -1362,6 +1365,13 @@ func (x *PipelineTask) GetOutputs() *PipelineTask_InputOutputs {
 func (x *PipelineTask) GetScopePath() string {
 	if x != nil {
 		return x.ScopePath
+	}
+	return ""
+}
+
+func (x *PipelineTask) GetLifecycleMessage() string {
+	if x != nil && x.LifecycleMessage != nil {
+		return *x.LifecycleMessage
 	}
 	return ""
 }
@@ -3060,7 +3070,7 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\n" +
 	"RunDetails\x12.\n" +
 	"\x13pipeline_context_id\x18\x01 \x01(\x03R\x11pipelineContextId\x125\n" +
-	"\x17pipeline_run_context_id\x18\x02 \x01(\x03R\x14pipelineRunContextIdJ\x04\b\x03\x10\x04R\ftask_details\"\x9d\x19\n" +
+	"\x17pipeline_run_context_id\x18\x02 \x01(\x03R\x14pipelineRunContextIdJ\x04\b\x03\x10\x04R\ftask_details\"\xe5\x19\n" +
 	"\fPipelineTask\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x17\n" +
@@ -3083,7 +3093,8 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\x06inputs\x18\x10 \x01(\v2A.kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputsR\x06inputs\x12[\n" +
 	"\aoutputs\x18\x11 \x01(\v2A.kubeflow.pipelines.backend.api.v2beta1.PipelineTask.InputOutputsR\aoutputs\x12\x1d\n" +
 	"\n" +
-	"scope_path\x18\x12 \x01(\tR\tscopePath\x1a\x85\x01\n" +
+	"scope_path\x18\x12 \x01(\tR\tscopePath\x120\n" +
+	"\x11lifecycle_message\x18\x13 \x01(\tH\x01R\x10lifecycleMessage\x88\x01\x01\x1a\x85\x01\n" +
 	"\aTaskPod\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03uid\x18\x02 \x01(\tR\x03uid\x12T\n" +
@@ -3151,7 +3162,8 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\fEXIT_HANDLER\x10\x06\x12\f\n" +
 	"\bIMPORTER\x10\a\x12\a\n" +
 	"\x03DAG\x10\bB\x11\n" +
-	"\x0f_parent_task_id\"z\n" +
+	"\x0f_parent_task_idB\x14\n" +
+	"\x12_lifecycle_message\"z\n" +
 	"\x10CreateRunRequest\x12'\n" +
 	"\rexperiment_id\x18\x01 \x01(\tB\x02\x18\x01R\fexperimentId\x12=\n" +
 	"\x03run\x18\x02 \x01(\v2+.kubeflow.pipelines.backend.api.v2beta1.RunR\x03run\"\xd4\x01\n" +
