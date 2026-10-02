@@ -26,6 +26,7 @@ import { dump } from 'js-yaml';
 import {
   cls,
   compareTiming,
+  compareEditorTiming,
   inventory,
   sha256,
   verifyBuild,
@@ -132,7 +133,7 @@ const report = {
     'Laboratory fixture measurements, not deployed backend performance or field percentiles.',
     'Fresh contexts; browser process and runner file/OS caches remain warm.',
     'Numeric network profile defines a new hosted protocol, not an exact repeat of historical Fast 4G.',
-    'First editor open has no accepted timing budget. Both builds compare complete read-only model, fonts and two frames; candidate worker initialization is separately required and measured.',
+    'First editor open uses separate blocking engineering gates: 4 s median display and 5 s median worker readiness. This accepts a cold lazy-load tradeoff, not parity with the eager legacy editor. Both builds measure the complete read-only model, fonts and two frames; candidate worker initialization is separately required and measured.',
     'The immutable legacy build omits worker-yaml.js. Its actual HTTP404 is retained; there is no equivalent fully worker-ready legacy timing.',
   ],
 };
@@ -573,6 +574,14 @@ try {
     'candidate',
     'editor',
     (sample) => sample.editor.workerReadyMs,
+  );
+  Object.assign(
+    report.comparisons,
+    compareEditorTiming(
+      report.editorSamples.candidate,
+      report.candidateEditorWorkerReadyMs,
+      budgets,
+    ),
   );
   report.comparisons.entryGzip = {
     ratio: report.builds.candidate.entryGzipBytes / report.builds.legacy.entryGzipBytes,

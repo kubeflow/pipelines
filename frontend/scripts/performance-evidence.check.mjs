@@ -23,6 +23,7 @@ import { runInNewContext } from 'node:vm';
 import {
   cls,
   compareTiming,
+  compareEditorTiming,
   inventory,
   verifyBuild,
   validateSample,
@@ -415,4 +416,38 @@ test('legacy worker exception cannot hide other assets, modes or candidate error
     false,
   );
   assert.equal(isExpectedLegacyWorkerError(record, 'Unexpected application error', origin), false);
+});
+
+test('editor gates enforce both median boundaries and reject incomplete or invalid evidence', () => {
+  const editorBudgets = {
+    ...budgets,
+    firstEditorOpen: {
+      status: 'blocking-engineering-gate',
+      displayMedianMaximumMs: 4000,
+      workerReadyMedianMaximumMs: 5000,
+    },
+  };
+  const compare = (display, worker) => compareEditorTiming(display, worker, editorBudgets);
+  const boundary = compare(samples(4000), samples(5000));
+  assert.equal(boundary['editor-display'].passesProposedBudget, true);
+  assert.equal(boundary['editor-worker-ready'].passesProposedBudget, true);
+  assert.equal(compare(samples(4001), samples(5000))['editor-display'].passesProposedBudget, false);
+  assert.equal(
+    compare(samples(4000), samples(5001))['editor-worker-ready'].passesProposedBudget,
+    false,
+  );
+  assert.throws(() => compare([], samples(5000)), /Missing editor display/);
+  assert.throws(() => compare(samples(4000), [5000]), /Missing editor worker/);
+  for (const invalid of [NaN, Infinity, -1]) {
+    assert.throws(() => compare(samples(invalid), samples(5000)));
+    assert.throws(() => compare(samples(4000), samples(invalid)));
+  }
+  assert.throws(
+    () =>
+      compareEditorTiming(samples(1), samples(1), {
+        ...editorBudgets,
+        firstEditorOpen: { ...editorBudgets.firstEditorOpen, displayMedianMaximumMs: NaN },
+      }),
+    /Invalid editor timing budget/,
+  );
 });

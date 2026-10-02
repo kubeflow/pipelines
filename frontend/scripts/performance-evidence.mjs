@@ -64,6 +64,31 @@ export function compareTiming(baseline, candidate, budgets) {
   };
 }
 
+export function compareEditorTiming(display, worker, budgets) {
+  assert.equal(display.length, budgets.samples, 'Missing editor display samples');
+  assert.equal(worker.length, budgets.samples, 'Missing editor worker samples');
+  const limits = budgets.firstEditorOpen;
+  assert.equal(limits?.status, 'blocking-engineering-gate');
+  return Object.fromEntries(
+    [
+      ['editor-display', display, limits.displayMedianMaximumMs],
+      ['editor-worker-ready', worker, limits.workerReadyMedianMaximumMs],
+    ].map(([name, values, limit]) => {
+      assert.ok(Number.isFinite(limit) && limit > 0, 'Invalid editor timing budget');
+      const actual = median(values);
+      return [
+        name,
+        {
+          candidateMedianMs: actual,
+          limitMs: limit,
+          decision: limits.decision,
+          passesProposedBudget: actual <= limit,
+        },
+      ];
+    }),
+  );
+}
+
 export async function inventory(directory) {
   const files = (await readdir(directory, { recursive: true, withFileTypes: true }))
     .filter((item) => item.isFile())

@@ -7,5 +7,10 @@
   "loadClsMaximum": 0.005,
   "filterClsMaximum": 0.02,
   "controlMovementMaximumPx": 1,
-  "firstEditorOpen": "measure-only-pending-results"
+  "firstEditorOpen": {
+    "status": "blocking-engineering-gate",
+    "decision": "Bound cold first-open latency while preserving the smaller initial bundle; retain the separate legacy eager-load comparison.",
+    "displayMedianMaximumMs": 4000,
+    "workerReadyMedianMaximumMs": 5000
+  }
 }

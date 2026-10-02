@@ -18,8 +18,8 @@ import * as React from 'react';
 import { render } from '@testing-library/react';
 import Editor from './Editor';
 import { config } from 'ace-builds';
-import yamlWorkerUrl from 'ace-builds/src-noconflict/worker-yaml.js?url';
-import jsonWorkerUrl from 'ace-builds/src-noconflict/worker-json.js?url';
+import yamlWorkerUrl from 'ace-builds/src-min-noconflict/worker-yaml.js?url';
+import jsonWorkerUrl from 'ace-builds/src-min-noconflict/worker-json.js?url';
 
 /*
   These tests mimic https://github.com/securingsincity/react-ace/blob/master/tests/src/ace.spec.js
