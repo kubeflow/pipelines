@@ -1,8 +1,8 @@
 /* eslint-disable */
-import Long from 'long';
-import _m0 from 'protobufjs/minimal';
+import Long from "long";
+import _m0 from "protobufjs/minimal";
 
-export const protobufPackage = 'google.protobuf';
+export const protobufPackage = "google.protobuf";
 
 /**
  * `Any` contains an arbitrary serialized protocol buffer message along with a
@@ -28,6 +28,10 @@ export const protobufPackage = 'google.protobuf';
  *     ...
  *     if (any.is(Foo.class)) {
  *       foo = any.unpack(Foo.class);
+ *     }
+ *     // or ...
+ *     if (any.isSameTypeAs(Foo.getDefaultInstance())) {
+ *       foo = any.unpack(Foo.getDefaultInstance());
  *     }
  *
  *  Example 3: Pack and unpack a message in Python.
@@ -58,7 +62,6 @@ export const protobufPackage = 'google.protobuf';
  * methods only use the fully qualified type name after the last '/'
  * in the type URL, for example "foo.bar.com/x/y.z" will yield type
  * name "y.z".
- *
  *
  * JSON
  * ====
@@ -113,7 +116,8 @@ export interface Any {
    *
    * Note: this functionality is not currently available in the official
    * protobuf release, and it is not used for type URLs beginning with
-   * type.googleapis.com.
+   * type.googleapis.com. As of May 2023, there are no widely used type server
+   * implementations and no plans to implement one.
    *
    * Schemes other than `http`, `https` (or the empty scheme) might be
    * used with implementation specific semantics.
@@ -123,11 +127,11 @@ export interface Any {
   value: Uint8Array;
 }
 
-const baseAny: object = { typeUrl: '' };
+const baseAny: object = { typeUrl: "" };
 
 export const Any = {
   encode(message: Any, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeUrl !== '') {
+    if (message.typeUrl !== "") {
       writer.uint32(10).string(message.typeUrl);
     }
     if (message.value.length !== 0) {
@@ -161,7 +165,9 @@ export const Any = {
   fromJSON(object: any): Any {
     const message = { ...baseAny } as Any;
     message.typeUrl =
-      object.typeUrl !== undefined && object.typeUrl !== null ? String(object.typeUrl) : '';
+      object.typeUrl !== undefined && object.typeUrl !== null
+        ? String(object.typeUrl)
+        : "";
     message.value =
       object.value !== undefined && object.value !== null
         ? bytesFromBase64(object.value)
@@ -173,13 +179,15 @@ export const Any = {
     const obj: any = {};
     message.typeUrl !== undefined && (obj.typeUrl = message.typeUrl);
     message.value !== undefined &&
-      (obj.value = base64FromBytes(message.value !== undefined ? message.value : new Uint8Array()));
+      (obj.value = base64FromBytes(
+        message.value !== undefined ? message.value : new Uint8Array()
+      ));
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<Any>, I>>(object: I): Any {
     const message = { ...baseAny } as Any;
-    message.typeUrl = object.typeUrl ?? '';
+    message.typeUrl = object.typeUrl ?? "";
     message.value = object.value ?? new Uint8Array();
     return message;
   },
@@ -189,15 +197,16 @@ declare var self: any | undefined;
 declare var window: any | undefined;
 declare var global: any | undefined;
 var globalThis: any = (() => {
-  if (typeof globalThis !== 'undefined') return globalThis;
-  if (typeof self !== 'undefined') return self;
-  if (typeof window !== 'undefined') return window;
-  if (typeof global !== 'undefined') return global;
-  throw 'Unable to locate global object';
+  if (typeof globalThis !== "undefined") return globalThis;
+  if (typeof self !== "undefined") return self;
+  if (typeof window !== "undefined") return window;
+  if (typeof global !== "undefined") return global;
+  throw "Unable to locate global object";
 })();
 
 const atob: (b64: string) => string =
-  globalThis.atob || ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'));
+  globalThis.atob ||
+  ((b64) => globalThis.Buffer.from(b64, "base64").toString("binary"));
 function bytesFromBase64(b64: string): Uint8Array {
   const bin = atob(b64);
   const arr = new Uint8Array(bin.length);
@@ -208,16 +217,24 @@ function bytesFromBase64(b64: string): Uint8Array {
 }
 
 const btoa: (bin: string) => string =
-  globalThis.btoa || ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'));
+  globalThis.btoa ||
+  ((bin) => globalThis.Buffer.from(bin, "binary").toString("base64"));
 function base64FromBytes(arr: Uint8Array): string {
   const bin: string[] = [];
   for (const byte of arr) {
     bin.push(String.fromCharCode(byte));
   }
-  return btoa(bin.join(''));
+  return btoa(bin.join(""));
 }
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined;
 
 export type DeepPartial<T> = T extends Builtin
   ? T
@@ -232,7 +249,10 @@ export type DeepPartial<T> = T extends Builtin
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin
   ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<Exclude<keyof I, KeysOfUnion<P>>, never>;
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
+        Exclude<keyof I, KeysOfUnion<P>>,
+        never
+      >;
 
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;
