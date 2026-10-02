@@ -18,26 +18,11 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / '.github/resources/scripts/ci_passed.js'
-
-
-def run_node(script, *args, membership='["acl-member"]'):
-    with tempfile.TemporaryDirectory() as directory:
-        members_file = Path(directory) / 'members.json'
-        if membership is not None:
-            members_file.write_text(membership, encoding='utf-8')
-        return subprocess.run(['node', '-e', script, *args],
-                              check=True,
-                              capture_output=True,
-                              text=True,
-                              env={
-                                  **os.environ, 'KUBEFLOW_MEMBERS_FILE':
-                                      str(members_file)
-                              })
 
 
 def exercise(options=None):
@@ -52,7 +37,7 @@ let pr = {
   number: 7, state: 'open', changed_files: 1,
   head: {sha: 'head', ref: 'feature', repo: {full_name: 'contributor/pipelines'}},
   base: {sha: 'b'.repeat(40), ref: 'master', repo: {full_name: 'kubeflow/pipelines'}},
-  user: {login: 'dependabot[bot]'}, author_association: 'NONE', labels: [],
+  user: {login: 'outsider'}, author_association: 'CONTRIBUTOR', labels: [],
   ...options.pr,
 };
 const eventPR = structuredClone(pr);
@@ -120,7 +105,7 @@ jobs:
     calls.push(['status', request.state, request.sha]);
     if (request.state === 'success') {
       published = true;
-      if (options.drift === 'eligibility') pr.labels = [{name: 'needs-ok-to-test'}];
+      if (options.drift === 'hold') pr.labels = [{name: 'needs-ok-to-test'}];
       if (options.drift === 'base') pr.base.ref = 'release';
       if (options.drift === 'base-sha') pr.base.sha = 'new-base';
       if (options.drift === 'head') pr.head.sha = 'new-head';
@@ -167,13 +152,15 @@ github.paginate.iterator = async function* () {
   console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
-    options = options or {}
-    result = run_node(
-        script,
+    result = subprocess.run([
+        'node', '-e', script,
         str(MODULE),
-        json.dumps(options),
-        str(ROOT),
-        membership=options.get('membership', '["acl-member"]'))
+        json.dumps(options or {}),
+        str(ROOT)
+    ],
+                            check=True,
+                            capture_output=True,
+                            text=True)
     return json.loads(result.stdout)
 
 
@@ -184,84 +171,73 @@ class CIPassedTest(unittest.TestCase):
         self.assertTrue(statuses, result)
         self.assertEqual(statuses[-1], ['status', state, 'head'], result)
 
-    def test_eligibility_truth_table(self):
-        script = """
-const {eligible} = require(process.argv[1]);
-const result = [];
-for (const author of ['dependabot[bot]', 'renovate[bot]', 'human', 'Acl-Member']) {
-  for (const association of ['NONE', 'CONTRIBUTOR', 'MEMBER', 'OWNER', 'COLLABORATOR']) {
-    for (const ok of [false, true]) for (const needs of [false, true]) {
-      const labels = [ok && 'ok-to-test', needs && 'needs-ok-to-test'].filter(Boolean).map(name => ({name}));
-      result.push([author, association, ok, needs, eligible({user: {login: author}, author_association: association, labels})]);
-    }
-  }
-}
-console.log(JSON.stringify(result));
-"""
-        result = run_node(script, str(MODULE))
-        for author, association, ok, needs, actual in json.loads(result.stdout):
-            expected = not needs and (ok or author
-                                      in {'dependabot[bot]', 'Acl-Member'})
-            self.assertEqual(actual, expected, (author, association, ok, needs))
+    def test_verified_ci_is_independent_of_author_association(self):
+        authors = [('outsider', 'NONE'), ('outsider', 'CONTRIBUTOR'),
+                   ('outsider', 'MEMBER'), ('outsider', 'OWNER'),
+                   ('outsider', 'COLLABORATOR'), ('dependabot[bot]', 'NONE'),
+                   ('renovate[bot]', 'NONE')]
+        for author, association in authors:
+            with self.subTest(author=author, association=association):
+                result = exercise({
+                    'pr': {
+                        'user': {
+                            'login': author
+                        },
+                        'author_association': association,
+                    }
+                })
+                self.assertEqual(result['outputs']['ready'], 'true')
+                self.assert_last_status(result, 'success')
 
     def test_complete_ci_publishes_pending_then_success(self):
         result = exercise()
         self.assertEqual(result['calls'][0], ['status', 'pending', 'head'])
         self.assert_last_status(result, 'success')
 
-    def test_acl_member_with_contributor_association_passes_without_label(self):
+    def test_verified_ci_does_not_require_approval_label(self):
         for schedule in [False, True]:
-            with self.subTest(schedule=schedule):
-                result = exercise({
-                    'schedule': schedule,
-                    'pr': {
-                        'user': {
-                            'login': 'Acl-Member'
+            for labels in [[], ['ok-to-test']]:
+                with self.subTest(schedule=schedule, labels=labels):
+                    result = exercise({
+                        'schedule': schedule,
+                        'pr': {
+                            'labels': [{
+                                'name': name
+                            } for name in labels]
                         },
-                        'author_association': 'CONTRIBUTOR',
-                        'labels': [],
-                    }
-                })
-                self.assertEqual(result['outputs']['ready'], 'true')
-                self.assert_last_status(result, 'success')
+                    })
+                    self.assertEqual(result['outputs']['ready'], 'true')
+                    self.assert_last_status(result, 'success')
+                    self.assertEqual(
+                        json.loads(result['outputs']['snapshot']),
+                        [7, 'open', 'head', 'master', 'b' * 40, False])
 
-    def test_association_does_not_admit_nonmember(self):
-        result = exercise({
-            'pr': {
-                'user': {
-                    'login': 'outsider'
-                },
-                'author_association': 'MEMBER'
-            }
-        })
-        self.assert_last_status(result, 'failure')
-        self.assertNotIn('ready', result['outputs'])
+    def test_membership_file_is_not_required_for_ci_publication(self):
+        with mock.patch.dict(
+                os.environ,
+            {'KUBEFLOW_MEMBERS_FILE': '/nonexistent/kubeflow-members.json'}):
+            self.assert_last_status(exercise(), 'success')
 
-    def test_acl_failure_revokes_previous_success_with_actionable_error(self):
-        for membership in [None, '', 'not json', '[]', '["bad login"]']:
-            with self.subTest(membership=membership):
-                result = exercise({
-                    'membership': membership,
-                    'initialStatus': 'success'
-                })
-                self.assert_last_status(result, 'failure')
-                self.assertNotIn(['status', 'success', 'head'], result['calls'])
-                self.assertNotIn('ready', result['outputs'])
-                self.assertIn('Kubeflow ACL membership',
-                              result['descriptions'][-1])
-                self.assertTrue(result['error'])
-
-    def test_acl_member_label_revocation_prevents_publication(self):
-        result = exercise({
-            'revokeBeforeFinal': True,
-            'pr': {
-                'user': {
-                    'login': 'Acl-Member'
-                },
-                'author_association': 'CONTRIBUTOR',
-            }
-        })
-        self.assert_last_status(result, 'failure')
+    def test_explicit_hold_blocks_authors_even_with_approval_label(self):
+        for author in ['outsider', 'dependabot[bot]']:
+            for approved in [False, True]:
+                with self.subTest(author=author, approved=approved):
+                    labels = ['needs-ok-to-test']
+                    if approved:
+                        labels.append('ok-to-test')
+                    result = exercise({
+                        'pr': {
+                            'user': {
+                                'login': author
+                            },
+                            'author_association': 'MEMBER',
+                            'labels': [{
+                                'name': name
+                            } for name in labels],
+                        }
+                    })
+                    self.assert_last_status(result, 'failure')
+                    self.assertNotIn('ready', result['outputs'])
 
     def test_failed_poll_blocks_otherwise_complete_workflows(self):
         result = exercise({'pollPassed': False})
@@ -278,9 +254,9 @@ console.log(JSON.stringify(result));
         script = r"""
 const {recoveryCandidates} = require(process.argv[1]);
 const requests = [];
-const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked', 'stale-success', 'legacy-success', 'retarget-success', 'acl-member'].map((state, i) => ({
-  number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : state === 'acl-member' ? 'Acl-Member' : 'dependabot[bot]'},
-  labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: state === 'untrusted' ? 'MEMBER' : 'CONTRIBUTOR',
+const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked', 'stale-success', 'legacy-success', 'retarget-success'].map((state, i) => ({
+  number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
+  labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: 'NONE',
 }));
 const github = {paginate: async () => prs, rest: {pulls: {list: {}}, repos: {
   getCombinedStatusForRef: async ({ref}) => {
@@ -299,7 +275,11 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
   console.log(JSON.stringify({result, requests}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
-        result = run_node(script, str(MODULE))
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
         actual = json.loads(result.stdout)
         self.assertEqual(actual['result'], [{
             'number': 2,
@@ -311,6 +291,9 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
             'number': 4,
             'head': 'missing'
         }, {
+            'number': 5,
+            'head': 'untrusted'
+        }, {
             'number': 7,
             'head': 'stale-success'
         }, {
@@ -319,25 +302,11 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
         }, {
             'number': 9,
             'head': 'retarget-success'
-        }, {
-            'number': 10,
-            'head': 'acl-member'
         }])
         self.assertEqual(actual['requests'], [
-            'success', 'failure', 'pending', 'missing', 'stale-success',
-            'legacy-success', 'retarget-success', 'acl-member'
+            'success', 'failure', 'pending', 'missing', 'untrusted',
+            'stale-success', 'legacy-success', 'retarget-success'
         ])
-
-    def test_recovery_acl_failure_is_not_an_empty_candidate_list(self):
-        script = r"""
-const {recoveryCandidates} = require(process.argv[1]);
-const github = {paginate: () => {throw Error('PR lookup must not run');}};
-recoveryCandidates({github, context: {}}).then(() => process.exit(1)).catch(error => {
-  console.log(JSON.stringify({error: error.message}));
-});
-"""
-        result = run_node(script, str(MODULE), membership=None)
-        self.assertIn('Kubeflow', json.loads(result.stdout)['error'])
 
     def test_success_records_the_validated_base_policy(self):
         result = exercise()
@@ -542,24 +511,26 @@ recoveryCandidates({github, context: {}}).then(() => process.exit(1)).catch(erro
             [['status', 'pending', 'head'], ['status', 'failure', 'head']])
 
     def test_existing_pr_hold_is_never_removed(self):
-        for passed in [True, False]:
-            result = exercise({
-                'schedule': True,
-                'pollPassed': passed,
-                'pr': {
-                    'labels': [{
-                        'name': 'do-not-merge/hold'
-                    }]
-                }
-            })
-            labels = [
-                call for call in result['calls']
-                if call[0] in ('add-label', 'remove-label')
-            ]
-            self.assertTrue(labels)
-            for call in labels:
-                self.assertIn(call, [['add-label', ['ci-passed']],
-                                     ['remove-label', 'ci-passed']])
+        for hold in ['do-not-merge/hold', 'needs-ok-to-test']:
+            for passed in [True, False]:
+                with self.subTest(hold=hold, passed=passed):
+                    result = exercise({
+                        'schedule': True,
+                        'pollPassed': passed,
+                        'pr': {
+                            'labels': [{
+                                'name': hold
+                            }]
+                        },
+                    })
+                    labels = [
+                        call for call in result['calls']
+                        if call[0] in ('add-label', 'remove-label')
+                    ]
+                    self.assertTrue(labels)
+                    for call in labels:
+                        self.assertIn(call, [['add-label', ['ci-passed']],
+                                             ['remove-label', 'ci-passed']])
 
     def test_rerun_lifecycle(self):
         for status in ['queued', 'in_progress', 'waiting']:
@@ -683,7 +654,7 @@ recoveryCandidates({github, context: {}}).then(() => process.exit(1)).catch(erro
                 'fresh': True
             }), 'success')
 
-    def test_ineligible_and_closed_prs_fail(self):
+    def test_held_and_closed_prs_fail(self):
         for pr in [{
                 'labels': [{
                     'name': 'needs-ok-to-test'
@@ -718,7 +689,7 @@ recoveryCandidates({github, context: {}}).then(() => process.exit(1)).catch(erro
 
     def test_publication_reconciles_full_state_and_ci(self):
         for drift in [
-                'eligibility', 'base', 'base-sha', 'head', 'closed', 'rerun',
+                'hold', 'base', 'base-sha', 'head', 'closed', 'rerun',
                 'external-failure'
         ]:
             with self.subTest(drift=drift):

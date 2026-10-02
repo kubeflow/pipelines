@@ -371,40 +371,6 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertIn("'.github/workflows/pr-gate.yml'",
                       self._read_workflow('ci-scripts-tests.yml'))
 
-    def test_ci_jobs_load_trusted_acl_before_using_shared_eligibility(self):
-        consumers = {
-            'ci-checks.yml': ['recovery_candidates', 'check_ci_status'],
-            'gh-workflow-approve.yml': ['ok-to-test', 'scheduled-recovery'],
-        }
-        for workflow_name, job_names in consumers.items():
-            workflow = self._read_workflow(workflow_name)
-            for job_name in job_names:
-                with self.subTest(workflow=workflow_name, job=job_name):
-                    job = _mapping_block(workflow, job_name, 2)
-                    export = '.github/scripts/kubeflow_membership.py --list-json'
-                    self.assertEqual(job.count(export), 1)
-                    self.assertLess(
-                        job.index('uses: actions/setup-python@'),
-                        job.index(
-                            'pip install -r .github/scripts/requirements.txt'))
-                    self.assertLess(
-                        job.index(
-                            'pip install -r .github/scripts/requirements.txt'),
-                        job.index(export))
-                    self.assertLess(job.index(export), job.index('require('))
-                    self.assertIn('GH_TOKEN:', job)
-                    self.assertIn(
-                        'KUBEFLOW_MEMBERS_FILE=$RUNNER_TEMP/kubeflow-members.json',
-                        job)
-                    self.assertIn('>> "$GITHUB_ENV"', job)
-                    self.assertIn('> "$RUNNER_TEMP/kubeflow-members.json"', job)
-                    self.assertIn('persist-credentials: false', job)
-                    if workflow_name == 'gh-workflow-approve.yml':
-                        self.assertIn('ref: ${{ github.workflow_sha }}', job)
-                        self.assertIn(
-                            '.github/resources/scripts/ci_eligibility.js', job)
-                        self.assertNotIn('continue-on-error:', job)
-
     def test_membership_consumers_install_shared_requirements(self):
         install = 'run: python3 -m pip install -r .github/scripts/requirements.txt'
         consumers = {

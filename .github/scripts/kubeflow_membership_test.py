@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import io
-import json
 import os
 from pathlib import Path
 import subprocess
@@ -33,41 +31,6 @@ orgs:
 
 
 class KubeflowMembershipTest(unittest.TestCase):
-
-    def test_load_returns_normalized_admins_and_members_in_one_fetch(self):
-        with mock.patch.object(membership.subprocess, 'run') as request:
-            request.return_value.stdout = ACL
-            self.assertEqual(membership.load_kubeflow_members(),
-                             {'orgadmin', 'jert33', 'anothermember'})
-            request.assert_called_once()
-
-    def test_list_json_uses_shared_parser_and_one_fetch(self):
-        with mock.patch.dict(
-                os.environ, {}, clear=True), mock.patch.object(
-                    membership.subprocess, 'run') as request, mock.patch.object(
-                        membership,
-                        '_parse_members',
-                        wraps=membership._parse_members) as parse, mock.patch(
-                            'sys.stdout', new_callable=io.StringIO) as output:
-            request.return_value.stdout = ACL
-            self.assertEqual(membership.main(['--list-json']), 0)
-            self.assertEqual(
-                json.loads(output.getvalue()),
-                ['anothermember', 'jert33', 'orgadmin'])
-            request.assert_called_once()
-            parse.assert_called_once_with(ACL)
-
-    def test_list_json_emits_no_output_when_lookup_or_schema_fails(self):
-        failures = [subprocess.TimeoutExpired(['gh'], 30), None]
-        for error in failures:
-            with self.subTest(error=error), mock.patch.object(
-                    membership.subprocess, 'run',
-                    side_effect=error) as request, mock.patch(
-                        'sys.stdout', new_callable=io.StringIO) as output:
-                request.return_value.stdout = 'orgs: {kubeflow: {members: []}}'
-                with self.assertRaises(RuntimeError):
-                    membership.main(['--list-json'])
-                self.assertEqual(output.getvalue(), '')
 
     def test_lookup_uses_authoritative_admins_and_members_case_insensitively(
             self):

@@ -13,11 +13,14 @@
 
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 const {verifyCheckRuns} = require('./ci_check_runs');
-const {eligible, loadMembers} = require('./ci_eligibility');
-const MEMBERSHIP_FAILURE = 'Cannot verify Kubeflow ACL membership; inspect CI Check and retry.';
 
-function snapshot(pr, members) {
-  return JSON.stringify([pr.number, pr.state, pr.head.sha, pr.base.ref, pr.base.sha, eligible(pr, members)]);
+function blocked(pr) {
+  // Tide's human-PR queries still rely on this explicit merge hold.
+  return pr.labels.some(label => label.name === 'needs-ok-to-test');
+}
+
+function snapshot(pr) {
+  return JSON.stringify([pr.number, pr.state, pr.head.sha, pr.base.ref, pr.base.sha, blocked(pr)]);
 }
 
 async function readPR(github, context, number) {
@@ -45,13 +48,12 @@ function successDescription(pr) {
 }
 
 async function recoveryCandidates({github, context}) {
-  const members = loadMembers();
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', per_page: 100,
   });
   const candidates = [];
   for (const pr of prs) {
-    if (!eligible(pr, members)) continue;
+    if (blocked(pr)) continue;
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
     const status = await currentStatus(github, context, pr.head.sha);
@@ -183,16 +185,9 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   // can fail closed if inventory loading or evidence retrieval fails.
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
-  let members;
-  try {
-    members = loadMembers();
-  } catch (error) {
-    await publish(github, context, pr, 'failure', MEMBERSHIP_FAILURE);
-    throw error;
-  }
-  core.setOutput('snapshot', snapshot(pr, members));
+  core.setOutput('snapshot', snapshot(pr));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
-  if (pr.state !== 'open' || !eligible(pr, members)) return;
+  if (pr.state !== 'open' || blocked(pr)) return;
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
@@ -206,12 +201,10 @@ async function finalize({github, context, core, number, head, before, pollPassed
   try {
     const pr = await readPR(github, context, Number(number));
     original = {...pr, head: {...pr.head, sha: head}};
-    errorReason = MEMBERSHIP_FAILURE;
-    const members = loadMembers();
-    errorReason = 'Cannot verify CI evidence; inspect CI Check and retry.';
     let state = 'failure';
-    let reason = 'PR changed or is ineligible; complete current-head CI and retry.';
-    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr, members) === before && eligible(pr, members)) {
+    let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
+      'PR changed or is closed; complete current-head CI and retry.';
+    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && !blocked(pr)) {
       const [workflows, checks] = await Promise.all([
         evidence(github, context, pr, root),
         verifyCheckRuns({github, ...context.repo, sha: head}),
@@ -238,7 +231,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {
       const after = await readPR(github, context, Number(number));
-      if (snapshot(after, members) !== before) {
+      if (snapshot(after) !== before) {
         errorReason = 'PR changed during publication; rerun CI on the current head.';
         await publish(github, context, original, 'failure', errorReason);
       } else {
@@ -260,4 +253,4 @@ async function finalize({github, context, core, number, head, before, pollPassed
   }
 }
 
-module.exports = {recoveryCandidates, eligible, snapshot, resolve, freshAfter, prepare, finalize};
+module.exports = {recoveryCandidates, snapshot, resolve, freshAfter, prepare, finalize};
