@@ -78,6 +78,11 @@ func (l *lazyOffloadHydrator) ensureInner(ctx context.Context) (hydrator.Interfa
 	if err != nil {
 		return nil, err
 	}
+	// Offload may be toggled in the workflow-controller ConfigMap; do not cache the no-op
+	// hydrator so later reads can pick up an enabled persistence config without restart.
+	if inner == hydratorfake.Noop {
+		return inner, nil
+	}
 	l.inner = inner
 	return l.inner, nil
 }
