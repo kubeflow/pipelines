@@ -153,7 +153,7 @@ func TestGetLogObjectKey_RejectsPathTraversalNodeID(t *testing.T) {
 		"../../other-run/node",
 		"..",
 		"node/../../etc/passwd",
-		`..\other-run`,
+		`..\target-run`,
 		"a/b",
 	} {
 		key, err := logArchive.GetLogObjectKey(workflow, nodeID)
