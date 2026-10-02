@@ -22,6 +22,8 @@ import (
 	argoconfig "github.com/argoproj/argo-workflows/v4/config"
 	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/workflow/hydrator"
+	hydratorfake "github.com/argoproj/argo-workflows/v4/workflow/hydrator/fake"
+	"github.com/argoproj/argo-workflows/v4/workflow/packer"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -31,10 +33,20 @@ type lazyOffloadHydrator struct {
 	inner  hydrator.Interface
 }
 
+// PersistConfigLoader loads Argo persistence config and the namespace for persistence secrets.
+type PersistConfigLoader func(ctx context.Context) (*argoconfig.PersistConfig, string, error)
+
 // NewLazyOffloadHydrator returns a hydrator that lazily connects to Argo's offload database.
-// Initialization is retried on each Hydrate/Dehydrate call until it succeeds.
-func NewLazyOffloadHydrator(kube kubernetes.Interface, persist *argoconfig.PersistConfig, secretsNamespace string) hydrator.Interface {
+// Initialization is retried on each offload read/write until it succeeds.
+func NewLazyOffloadHydrator(kube kubernetes.Interface, load PersistConfigLoader) hydrator.Interface {
 	return newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		persist, secretsNamespace, err := load(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if persist == nil || !persist.NodeStatusOffload {
+			return hydratorfake.Noop, nil
+		}
 		return CreateWorkflowHydrator(ctx, kube, persist, secretsNamespace)
 	})
 }
@@ -71,33 +83,46 @@ func (l *lazyOffloadHydrator) ensureInner(ctx context.Context) (hydrator.Interfa
 }
 
 func (l *lazyOffloadHydrator) IsHydrated(wf *wfv1.Workflow) bool {
-	inner, err := l.ensureInner(ArgoContext())
-	if err != nil {
-		return false
-	}
-	return inner.IsHydrated(wf)
+	return wf.Status.CompressedNodes == "" && !wf.Status.IsOffloadNodeStatus()
 }
 
 func (l *lazyOffloadHydrator) Hydrate(ctx context.Context, wf *wfv1.Workflow) error {
+	ctx = withArgoLogger(ctx)
+	if err := packer.DecompressWorkflow(ctx, wf); err != nil {
+		return err
+	}
+	if !wf.Status.IsOffloadNodeStatus() {
+		return nil
+	}
 	inner, err := l.ensureInner(ctx)
 	if err != nil {
 		return fmt.Errorf("argo offload hydrator is not ready: %w", err)
 	}
-	return inner.Hydrate(withArgoLogger(ctx), wf)
+	return inner.Hydrate(ctx, wf)
 }
 
 func (l *lazyOffloadHydrator) Dehydrate(ctx context.Context, wf *wfv1.Workflow) error {
+	if !l.IsHydrated(wf) {
+		return nil
+	}
+	ctx = withArgoLogger(ctx)
+	err := packer.CompressWorkflowIfNeeded(ctx, wf)
+	if err == nil {
+		wf.Status.OffloadNodeStatusVersion = ""
+		return nil
+	}
+	if !packer.IsTooLargeError(err) {
+		return err
+	}
 	inner, err := l.ensureInner(ctx)
 	if err != nil {
 		return fmt.Errorf("argo offload hydrator is not ready: %w", err)
 	}
-	return inner.Dehydrate(withArgoLogger(ctx), wf)
+	return inner.Dehydrate(ctx, wf)
 }
 
 func (l *lazyOffloadHydrator) HydrateWithNodes(wf *wfv1.Workflow, nodes wfv1.Nodes) {
-	inner, err := l.ensureInner(ArgoContext())
-	if err != nil {
-		return
-	}
-	inner.HydrateWithNodes(wf, nodes)
+	wf.Status.Nodes = nodes
+	wf.Status.CompressedNodes = ""
+	wf.Status.OffloadNodeStatusVersion = ""
 }
