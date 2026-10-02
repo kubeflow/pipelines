@@ -37,14 +37,23 @@ type fakeImagePullFailureChecker struct {
 	namespace     string
 	workflowName  string
 	workflowUID   types.UID
+	hadDeadline   bool
 	errorToReturn error
+	// blockUntilCanceled makes CheckAndTerminate behave like a stalled API
+	// request: it returns only once the context is done.
+	blockUntilCanceled bool
 }
 
-func (f *fakeImagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string, workflowUID types.UID) error {
+func (f *fakeImagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error {
 	f.called = true
-	f.namespace = namespace
-	f.workflowName = workflowName
-	f.workflowUID = workflowUID
+	f.namespace = workflow.Namespace
+	f.workflowName = workflow.Name
+	f.workflowUID = workflow.UID
+	_, f.hadDeadline = ctx.Deadline()
+	if f.blockUntilCanceled {
+		<-ctx.Done()
+		return ctx.Err()
+	}
 	return f.errorToReturn
 }
 
@@ -312,6 +321,7 @@ func TestWorkflow_Save_CheckerCalledForRunningWorkflow(t *testing.T) {
 	assert.Equal(t, "MY_NAMESPACE", checker.namespace)
 	assert.Equal(t, "MY_NAME", checker.workflowName)
 	assert.Equal(t, types.UID("MY_WORKFLOW_UID"), checker.workflowUID)
+	assert.True(t, checker.hadDeadline, "checker must run under a bounded context")
 }
 
 func TestWorkflow_Save_CheckerCalledForPendingWorkflow(t *testing.T) {
@@ -453,4 +463,39 @@ func TestWorkflow_Save_NoCheckerSetDoesNotPanic(t *testing.T) {
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
 	require.NoError(t, err)
+}
+
+func TestWorkflow_Save_StalledCheckerDoesNotBlockReporting(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+	checker := &fakeImagePullFailureChecker{blockUntilCanceled: true}
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "MY_UUID"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.WorkflowRunning,
+		},
+	})
+
+	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver.SetImagePullFailureChecker(checker)
+	saver.imagePullFailureCheckTimeout = 50 * time.Millisecond
+
+	done := make(chan error, 1)
+	go func() { done <- saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20) }()
+
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Save did not return: a stalled checker must be canceled by the per-call timeout")
+	}
+	assert.True(t, checker.called)
+	assert.NotNil(t, pipelineFake.GetWorkflow("MY_NAMESPACE", "MY_NAME"), "workflow must still be reported after the checker timed out")
 }
