@@ -1,7 +1,9 @@
 # Remaining release qualification
 
-Status: implemented for hosted verification, September 30, 2026.
-The maintainer accepted the numeric performance budgets below on September 30.
+Status: completing hosted deployment and editor qualification, October 2, 2026.
+The maintainer accepted timing, payload and layout budgets on September 30.
+The separate first-editor limits below were adopted on October 2 to complete
+editor qualification; the slower cold-open tradeoff remains explicit.
 They are blocking project criteria, not field-percentile claims. Unavailable provider/device rows remain explicit
 follow-ups under the existing CI-only delivery plan; they do not count as qualified.
 
@@ -43,7 +45,7 @@ new hosted protocol rather than an exact reproduction of those measurements.
 | Initial route loading CLS                                     | Every sample <=0.005                                                                                                |
 | Filter CLS                                                    | Every sample <=0.02, only with the conditions below                                                                 |
 | Larger graph/comparison workloads                             | Same relative timing budget against a fresh build of measured checkpoint `e79f8d423e6b118e5df94815ee2f36f68570a9a9` |
-| First editor open                                             | Measure the deferred download cost before accepting a separate budget                                               |
+| First editor open                                             | Candidate median <=4,000 ms for complete editor display; <=5,000 ms for YAML worker readiness                                               |
 
 The filter allowance accepts only expected result-row compaction: the same keyed
 matching row moves upward when preceding results disappear. Headers, filter,
@@ -86,8 +88,10 @@ measurements remain separate from the throttled in-page timings.
 
 `frontend/scripts/performance-budgets.json` records status `accepted`. Measurement,
 fixture and evidence-integrity errors fail CI immediately, as do exceeded accepted
-budgets. First editor-open acceptance remains
-separate and pending the measured tradeoff. The artifact
+budgets, including the separate absolute first-editor limits. The editor limits
+apply to the same cold-context profile and do not assert legacy timing parity.
+Retain the original legacy display timing and candidate worker timing separately.
+The artifact
 `frontend-performance-evidence/performance.json` records the run, attempt, tested
 merge/source, PR head, every sample, comparisons and limitations.
 
@@ -103,12 +107,13 @@ and lockfiles. Their Express server and Dockerfile are currently identical; stil
 prove compatibility against the same candidate backend through the rehearsal.
 Register both images in a disposable CI registry and record actual OCI manifest
 digests, archive hashes, config IDs and running pod image IDs. If the runtime
-reports a preloaded manifest alias, resolve that exact ID through CRI and require
-the qualified archive's exact config digest; an arbitrary alias is insufficient.
+reports a preloaded manifest alias, read the exact reported SHA256 manifest from
+the node's containerd content store. Verify the raw manifest hash, image-manifest
+schema and qualified archive config digest; a mutable alias is insufficient.
 
 Before the multi-user baseline, enable and verify native Istio sidecars on the
-UI, API and their required backend callers. The existing ingress/API routes use
-mutual TLS; preserve their authentication and authorization policies. Require
+UI, API, required backend callers, MySQL and SeaweedFS. Their existing
+DestinationRules require mutual TLS; preserve their authentication and authorization policies. Require
 the proxy to start before network-wait initializers, retain its observed image
 identity, and check its readiness across UI replacement and restoration. All
 setup finishes before the invariant snapshot and measured UI-only transitions.
@@ -143,6 +148,8 @@ window; published reports must state that limit and retain their verified hashes
 
 ## Completion
 
-Publish measured results and accepted budgets to the existing issue, PR and KEP.
-Keep unavailable coverage and first-editor-open tradeoffs explicit until resolved.
+Publish measured results and qualification budgets to issue #14572 and
+implementation PR #14584. Maintainers confirmed no KEP is required; the issue
+holds the complete design, compatibility and release requirements. Keep
+unavailable coverage and the measured first-editor tradeoff explicit.
 Real deployment and rollback must pass without backend changes or data repair.

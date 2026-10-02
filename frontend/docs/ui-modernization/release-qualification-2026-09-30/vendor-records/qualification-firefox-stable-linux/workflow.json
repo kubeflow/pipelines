@@ -1,0 +1,12 @@
+{
+  "sourceSha": "da6ec8bebac0614fcb1939a92aff4a7e1672b9b6",
+  "runId": "36734476076",
+  "runAttempt": "1",
+  "status": "success",
+  "browserId": "firefox-stable-linux",
+  "platform": "linux",
+  "release": "6.17.0-1022-azure",
+  "arch": "x64",
+  "image": "ubuntu24",
+  "imageVersion": "20260920.314.1"
+}
