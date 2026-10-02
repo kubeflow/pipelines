@@ -132,7 +132,11 @@ def update_release_docs(
     version: str,
     release_branch: str,
     sleep: Callable[[float], None] = time.sleep,
+    *,
+    consolidated: bool,
 ) -> None:
+    """Build and update defaults for the target SDK's documentation
+    projects."""
     projects = [
         (
             'kubeflow-pipelines',
@@ -143,6 +147,16 @@ def update_release_docs(
             },
         ),
     ]
+    if not consolidated:
+        major_minor = '.'.join(version.split('.')[:2])
+        kubernetes_branch = f'kfp-kubernetes-{major_minor}'
+        projects.append((
+            'kfp-kubernetes',
+            kubernetes_branch,
+            {
+                'default_version': kubernetes_branch
+            },
+        ))
     print('Syncing ReadTheDocs versions...')
     for project, _, _ in projects:
         client.sync_versions(project)

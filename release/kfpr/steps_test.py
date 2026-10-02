@@ -32,7 +32,7 @@ class StepSelectionTest(unittest.TestCase):
         self.assertLess(
             steps_list.index('publish-sdks'),
             steps_list.index('create-sdk-release'))
-        self.assertNotIn('create-kfp-kubernetes-docs-branch', steps_list)
+        self.assertIn('create-kfp-kubernetes-docs-branch', steps_list)
         self.assertIn('confirm-rtd', steps_list)
         self.assertNotIn('update-sdk-versions', steps_list)
         self.assertNotIn('merge-sdk-pr', steps_list)
@@ -79,6 +79,238 @@ class StepRegistryTest(unittest.TestCase):
                 self.assertIn(step.step_id, steps.STEP_HANDLERS)
                 self.assertIs(steps.STEP_HANDLERS[step.step_id],
                               getattr(steps, step.handler))
+
+
+class ReleaseLayoutTest(unittest.TestCase):
+    """Exercise the imported CLI against both target release layouts."""
+
+    def setUp(self) -> None:
+        """Mock external operations without changing the current checkout."""
+        directory = TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        self.runner = mock.Mock(spec=core.CommandRunner)
+        self.runner.dry_run = False
+        self.runner.run.return_value = subprocess.CompletedProcess([], 1)
+        self.context = core.ReleaseContext(
+            root=self.root,
+            state=core.ReleaseState(self.root / 'state.json'),
+            runner=self.runner,
+            metadata=core.ReleaseMetadata.from_version('patch', '2.18.1'),
+            fork_remote='origin',
+            include_backend=False,
+            include_sdk=True,
+        )
+
+    def select_layout(self, consolidated: bool) -> None:
+        """Return the target tag's layout, opposite to the local checkout."""
+        self.runner.capture.return_value = 'version.py\n' + (
+            'server_api\n' if consolidated else '')
+        local_client = self.root / 'sdk/python/kfp/server_api/__init__.py'
+        local_client.parent.mkdir(parents=True, exist_ok=True)
+        if consolidated:
+            local_client.unlink(missing_ok=True)
+        else:
+            local_client.write_text('from kfp.version import __version__\n')
+        self.runner.run.reset_mock()
+        self.runner.capture.reset_mock()
+
+    def test_install_instructions_follow_target_layout(self) -> None:
+        """Never remove Kubernetes helpers from a split-package release."""
+        for version in ('2.18.1', '3.0.0'):
+            for consolidated in (False, True):
+                with self.subTest(version=version, consolidated=consolidated):
+                    self.context.metadata = core.ReleaseMetadata.from_version(
+                        'patch', version)
+                    self.select_layout(consolidated)
+                    steps.step_create_sdk_release(self.context)
+                    command = self.runner.run.call_args.args[0]
+                    notes = command[command.index('--notes') + 1]
+                    self.assertIn(f'pip install kfp=={version}', notes)
+                    if consolidated:
+                        self.assertIn('unified KFP SDK', notes)
+                        self.assertIn('pip uninstall -y', notes)
+                        self.assertNotIn(
+                            f'pip install kfp-kubernetes=={version}', notes)
+                    else:
+                        self.assertNotIn('pip uninstall', notes)
+                        for package in ('kfp-pipeline-spec', 'kfp-server-api',
+                                        'kfp-kubernetes'):
+                            self.assertIn(f'pip install {package}=={version}',
+                                          notes)
+                    self.runner.capture.assert_called_once_with([
+                        'gh', 'api',
+                        f'repos/{core.REPO}/contents/sdk/python/kfp?ref=sdk-{version}',
+                        '--jq', '.[].name'
+                    ],
+                                                                cwd=self.root)
+
+    def test_docs_branch_is_conditional_at_execution_time(self) -> None:
+        """Keep the checkpoint, but mutate branches only for split tags."""
+        step_ids = [
+            step.step_id for step in steps.build_steps('patch', False, True)
+        ]
+        self.assertLess(
+            step_ids.index('publish-sdks'),
+            step_ids.index('create-kfp-kubernetes-docs-branch'))
+        self.assertLess(
+            step_ids.index('create-kfp-kubernetes-docs-branch'),
+            step_ids.index('confirm-rtd'))
+        for consolidated in (False, True):
+            with self.subTest(consolidated=consolidated):
+                self.select_layout(consolidated)
+                steps.step_create_kfp_kubernetes_docs_branch(self.context)
+                if consolidated:
+                    self.runner.run.assert_not_called()
+                else:
+                    self.runner.run.assert_any_call([
+                        'git', 'push', '--set-upstream', 'upstream',
+                        'kfp-kubernetes-2.18'
+                    ],
+                                                    cwd=self.root)
+
+    def test_rtd_automation_and_fallback_follow_target_layout(self) -> None:
+        """Automated and manual paths must cover the same projects."""
+        for consolidated in (False, True):
+            for fails in (False, True):
+                with self.subTest(consolidated=consolidated, fails=fails):
+                    self.select_layout(consolidated)
+                    with mock.patch.dict('os.environ', {'RTD_TOKEN': 'test'}), \
+                            mock.patch.object(steps.rtd, 'ReadTheDocsClient') as client, \
+                            mock.patch.object(steps.rtd, 'update_release_docs') as update, \
+                            mock.patch.object(steps, 'confirm'), \
+                            contextlib.redirect_stdout(io.StringIO()) as output:
+                        if fails:
+                            update.side_effect = steps.rtd.ReadTheDocsError(
+                                'unavailable')
+                        steps.step_confirm_rtd(self.context)
+                    update.assert_called_once_with(
+                        client.return_value,
+                        '2.18.1',
+                        'release-2.18',
+                        consolidated=consolidated)
+                    if fails:
+                        self.assertIn('ReadTheDocs manual checkpoint:',
+                                      output.getvalue())
+                        self.assertEqual(
+                            'projects/kfp-kubernetes/' in output.getvalue(),
+                            not consolidated)
+
+    def test_pypi_polling_follows_target_layout(self) -> None:
+        """Check every split distribution, but only kfp for unified tags."""
+        for consolidated in (False, True):
+            with self.subTest(consolidated=consolidated):
+                self.select_layout(consolidated)
+                with mock.patch.object(steps, 'watch_latest_workflow_run'), \
+                        mock.patch.object(
+                            steps, '_is_pypi_version_published',
+                            return_value=True) as published:
+                    steps.step_publish_sdks(self.context)
+                packages = ['kfp'] if consolidated else [
+                    'kfp-pipeline-spec', 'kfp-server-api', 'kfp',
+                    'kfp-kubernetes'
+                ]
+                self.assertEqual(
+                    published.call_args_list,
+                    [mock.call(package, '2.18.1') for package in packages])
+
+    def test_legacy_kubernetes_publication_is_retried(self) -> None:
+        """A missing optional distribution must not report release success."""
+        self.select_layout(False)
+        with mock.patch.object(steps, 'watch_latest_workflow_run'), \
+                mock.patch.object(
+                    steps, '_wait_for_pypi_packages',
+                    side_effect=[['kfp-kubernetes'], []]) as wait:
+            steps.step_publish_sdks(self.context)
+        packages = [
+            'kfp-pipeline-spec', 'kfp-server-api', 'kfp', 'kfp-kubernetes'
+        ]
+        self.assertEqual(wait.call_args_list, [
+            mock.call('2.18.1', packages),
+            mock.call('2.18.1', packages),
+        ])
+        self.runner.run.assert_any_call(
+            core.sdk_workflow_command(
+                self.context.metadata, packages='kfp-kubernetes'))
+
+    def test_missing_tag_layout_fails_before_mutations(self) -> None:
+        """Do not guess a legacy layout if target inspection fails."""
+        for handler in (steps.step_create_sdk_release, steps.step_publish_sdks,
+                        steps.step_create_kfp_kubernetes_docs_branch,
+                        steps.step_confirm_rtd):
+            with self.subTest(handler=handler.__name__):
+                self.runner.capture.return_value = ''
+                self.runner.run.reset_mock()
+                with self.assertRaisesRegex(RuntimeError, 'packaging layout'):
+                    handler(self.context)
+                self.runner.run.assert_not_called()
+
+    def test_resume_runs_the_matching_sdk_release_flow(self) -> None:
+        """Use current handlers for legacy and unified release checkpoints."""
+        for version, consolidated in (('2.18.1', False), ('3.0.0', True)):
+            with self.subTest(version=version):
+                self.context.metadata = core.ReleaseMetadata.from_version(
+                    'patch', version)
+                self.select_layout(consolidated)
+                step_ids = [
+                    step.step_id
+                    for step in steps.build_steps('patch', False, True)
+                ]
+                self.context.state.completed_steps = step_ids[:step_ids.index(
+                    'publish-sdks')]
+                with mock.patch.dict('os.environ', {'RTD_TOKEN': 'test'}), \
+                        mock.patch.object(steps, 'watch_latest_workflow_run'), \
+                        mock.patch.object(
+                            steps, '_is_pypi_version_published',
+                            return_value=True), \
+                        mock.patch.object(steps.rtd, 'ReadTheDocsClient') as client:
+                    client.return_value.get_build.return_value = {
+                        'state': {
+                            'code': 'finished'
+                        },
+                        'success': True,
+                    }
+                    steps.run_steps(self.context)
+                self.assertEqual(
+                    core.ReleaseState.load(
+                        self.context.state.path).completed_steps, step_ids)
+                expected_projects = ['kubeflow-pipelines']
+                if not consolidated:
+                    expected_projects.append('kfp-kubernetes')
+                self.assertEqual(
+                    client.return_value.sync_versions.call_args_list,
+                    [mock.call(project) for project in expected_projects])
+                command = self.runner.run.call_args.args[0]
+                self.assertEqual(command[:4],
+                                 ['gh', 'release', 'create', f'sdk-{version}'])
+                notes = command[command.index('--notes') + 1]
+                self.assertEqual('pip uninstall' in notes, consolidated)
+                self.assertEqual(
+                    any(call.args[0][:2] == ['git', 'push']
+                        for call in self.runner.run.call_args_list),
+                    not consolidated)
+
+    def test_dry_run_defers_tag_inspection_and_external_operations(
+            self) -> None:
+        """An uncreated SDK tag must not prevent a read-only preview."""
+        self.runner.dry_run = True
+        with mock.patch.object(steps, 'watch_latest_workflow_run'), \
+                mock.patch.object(steps.rtd, 'ReadTheDocsClient') as client, \
+                mock.patch.object(steps, '_wait_for_pypi_packages') as wait, \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            steps.step_publish_sdks(self.context)
+            self.runner.run.assert_called_once_with(
+                core.sdk_workflow_command(self.context.metadata))
+            self.runner.run.reset_mock()
+            steps.step_create_kfp_kubernetes_docs_branch(self.context)
+            steps.step_confirm_rtd(self.context)
+            steps.step_create_sdk_release(self.context)
+        self.runner.capture.assert_not_called()
+        self.runner.run.assert_not_called()
+        client.assert_not_called()
+        wait.assert_not_called()
+        self.assertIn('split-package SDK tags only', output.getvalue())
+        self.assertIn('kfp-kubernetes-2.18', output.getvalue())
 
 
 class CherryPickStepTest(unittest.TestCase):
@@ -290,6 +522,13 @@ class PublishImagesStepTest(unittest.TestCase):
 
 
 class CreateSdkReleaseStepTest(unittest.TestCase):
+
+    def setUp(self) -> None:
+        """Keep release-reuse tests independent of remote layout inspection."""
+        layout = mock.patch.object(
+            steps, '_sdk_release_is_consolidated', return_value=True)
+        layout.start()
+        self.addCleanup(layout.stop)
 
     def test_create_sdk_release_reuses_existing_release_when_user_accepts(self):
         with TemporaryDirectory() as tmpdir:
@@ -571,6 +810,13 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
 
 
 class PublishSdksStepTest(unittest.TestCase):
+
+    def setUp(self) -> None:
+        """Use unified tags for existing publication retry tests."""
+        layout = mock.patch.object(
+            steps, '_sdk_release_is_consolidated', return_value=True)
+        layout.start()
+        self.addCleanup(layout.stop)
 
     def test_publish_sdks_reruns_once_when_pypi_packages_are_missing(self):
         with TemporaryDirectory() as tmpdir:
@@ -1646,7 +1892,6 @@ class UvReleasePackagesTest(unittest.TestCase):
                 'uv', 'build', '--package', 'kfp', '--out-dir',
                 'sdk/python/dist'
             ]])
-            self.assertEqual(steps.PYPI_PACKAGES, ['kfp'])
             self.assertFalse((root / 'kubernetes_platform/python').exists())
 
     def test_update_sdk_versions_regenerates_server_api_and_refreshes_workspace(
@@ -1739,6 +1984,13 @@ class UvReleasePackagesTest(unittest.TestCase):
 
 
 class DryRunOutputTest(unittest.TestCase):
+
+    def setUp(self) -> None:
+        """Retain legacy branch-operation coverage without GitHub requests."""
+        layout = mock.patch.object(
+            steps, '_sdk_release_is_consolidated', return_value=False)
+        layout.start()
+        self.addCleanup(layout.stop)
 
     def test_update_version_tags_cuts_update_branch_from_release_branch(self):
 
@@ -2211,8 +2463,11 @@ class DryRunOutputTest(unittest.TestCase):
                 steps.step_confirm_rtd(context)
 
             client_cls.assert_called_once_with('secret-token')
-            update_docs.assert_called_once_with(client_cls.return_value,
-                                                '3.2.0', 'release-3.2')
+            update_docs.assert_called_once_with(
+                client_cls.return_value,
+                '3.2.0',
+                'release-3.2',
+                consolidated=False)
             self.assertNotIn('rtd_token', context.state.answers)
             output = '\n'.join(
                 str(call.args[0]) for call in print_mock.call_args_list)
@@ -2242,8 +2497,11 @@ class DryRunOutputTest(unittest.TestCase):
 
             getpass_mock.assert_not_called()
             client_cls.assert_called_once_with('env-token')
-            update_docs.assert_called_once_with(client_cls.return_value,
-                                                '3.2.0', 'release-3.2')
+            update_docs.assert_called_once_with(
+                client_cls.return_value,
+                '3.2.0',
+                'release-3.2',
+                consolidated=False)
 
     def test_confirm_rtd_reasks_for_empty_token(self):
         with TemporaryDirectory() as tmpdir:

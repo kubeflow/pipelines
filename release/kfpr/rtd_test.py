@@ -61,7 +61,11 @@ class ReadTheDocsClientTest(unittest.TestCase):
         client.trigger_build.side_effect = [101, 202]
 
         rtd.update_release_docs(
-            client, '3.2.1', 'release-3.2', sleep=lambda _: None)
+            client,
+            '3.2.1',
+            'release-3.2',
+            sleep=lambda _: None,
+            consolidated=True)
 
         client.sync_versions.assert_called_once_with('kubeflow-pipelines')
         client.get_version.assert_called_once_with('kubeflow-pipelines',
@@ -74,6 +78,50 @@ class ReadTheDocsClientTest(unittest.TestCase):
             'default_version': 'release-3.2',
             'default_branch': 'release-3.2'
         })
+
+    def test_split_release_updates_both_projects(self) -> None:
+        """Preserve each legacy project's branch and defaults."""
+        client = mock.Mock()
+        client.get_build.return_value = {
+            'state': {
+                'code': 'finished'
+            },
+            'success': True,
+        }
+        client.trigger_build.side_effect = [101, 202]
+
+        rtd.update_release_docs(
+            client,
+            '2.18.1',
+            'release-2.18',
+            sleep=lambda _: None,
+            consolidated=False)
+
+        targets = [
+            ('kubeflow-pipelines', 'release-2.18'),
+            ('kfp-kubernetes', 'kfp-kubernetes-2.18'),
+        ]
+        self.assertEqual(client.sync_versions.call_args_list,
+                         [mock.call(project) for project, _ in targets])
+        for method in (client.get_version, client.activate_version,
+                       client.trigger_build):
+            self.assertEqual(
+                method.call_args_list,
+                [mock.call(project, branch) for project, branch in targets])
+        self.assertEqual(client.get_build.call_args_list, [
+            mock.call('kubeflow-pipelines', 101),
+            mock.call('kfp-kubernetes', 202),
+        ])
+        self.assertEqual(client.patch_project.call_args_list, [
+            mock.call(
+                'kubeflow-pipelines', {
+                    'default_version': 'release-2.18',
+                    'default_branch': 'release-2.18',
+                }),
+            mock.call('kfp-kubernetes', {
+                'default_version': 'kfp-kubernetes-2.18',
+            }),
+        ])
 
     def test_update_release_docs_prints_polling_progress(self):
         client = mock.Mock()
@@ -109,7 +157,11 @@ class ReadTheDocsClientTest(unittest.TestCase):
 
         with mock.patch('builtins.print') as print_mock:
             rtd.update_release_docs(
-                client, '3.2.1', 'release-3.2', sleep=lambda _: None)
+                client,
+                '3.2.1',
+                'release-3.2',
+                sleep=lambda _: None,
+                consolidated=True)
 
         output = '\n'.join(
             str(call.args[0]) for call in print_mock.call_args_list)
@@ -120,6 +172,38 @@ class ReadTheDocsClientTest(unittest.TestCase):
                       output)
         self.assertIn('kubeflow-pipelines build 101 is building.', output)
         self.assertIn('Setting ReadTheDocs defaults...', output)
+
+    def test_split_kubernetes_build_failure_preserves_defaults(self) -> None:
+        """Do not complete a split release with failed Kubernetes docs."""
+        client = mock.Mock()
+        client.trigger_build.side_effect = [101, 202]
+        client.get_build.side_effect = [
+            {
+                'state': {
+                    'code': 'finished'
+                },
+                'success': True
+            },
+            {
+                'state': {
+                    'code': 'finished'
+                },
+                'success': False,
+                'error': 'Kubernetes docs failed',
+            },
+        ]
+
+        with self.assertRaisesRegex(rtd.ReadTheDocsError,
+                                    'Kubernetes docs failed'):
+            rtd.update_release_docs(
+                client,
+                '2.18.1',
+                'release-2.18',
+                sleep=lambda _: None,
+                consolidated=False)
+
+        client.get_build.assert_called_with('kfp-kubernetes', 202)
+        client.patch_project.assert_not_called()
 
     def test_update_release_docs_raises_when_build_fails(self):
         client = mock.Mock()
@@ -135,7 +219,11 @@ class ReadTheDocsClientTest(unittest.TestCase):
 
         with self.assertRaisesRegex(rtd.ReadTheDocsError, 'bad docs'):
             rtd.update_release_docs(
-                client, '3.2.1', 'release-3.2', sleep=lambda _: None)
+                client,
+                '3.2.1',
+                'release-3.2',
+                sleep=lambda _: None,
+                consolidated=True)
 
     def test_update_release_docs_waits_for_synced_version(self):
         client = mock.Mock()
@@ -165,7 +253,11 @@ class ReadTheDocsClientTest(unittest.TestCase):
         client.trigger_build.side_effect = [101, 202]
 
         rtd.update_release_docs(
-            client, '3.2.1', 'release-3.2', sleep=lambda _: None)
+            client,
+            '3.2.1',
+            'release-3.2',
+            sleep=lambda _: None,
+            consolidated=True)
 
         self.assertEqual(client.get_version.call_args_list[:2], [
             mock.call('kubeflow-pipelines', 'release-3.2'),
