@@ -21,6 +21,8 @@ MANIFESTS_SHA = '88716b3f7f62b12f98d82bcfc59635bb07e7845c'
 UI = 'ml-pipeline-ui'
 SIGNING = 'ml-pipeline-ui-tensorboard-proxy'
 MESH_DEPLOYMENTS = (
+    'mysql',
+    'seaweedfs',
     'ml-pipeline',
     UI,
     'ml-pipeline-persistenceagent',
@@ -44,12 +46,12 @@ def require_hosted(env=None):
         )
 
 
-def command(*args, payload=None, timeout=300):
+def command(*args, payload=None, timeout=300, raw=False):
     result = subprocess.run(
         args,
         input=payload,
         capture_output=True,
-        text=True,
+        text=not raw,
         timeout=timeout,
         check=False)
     if result.returncode:
@@ -270,7 +272,8 @@ def ingress_ui_policy():
 def setup_mesh(args):
     # The shared test deploy intentionally omits workload injection. The real
     # ingress path requires the repository's existing ISTIO_MUTUAL destinations.
-    # Keep this setup limited to the UI/API and the API's named backend callers.
+    # Include storage destinations and the API's named backend callers before
+    # capturing the baseline; preserve these mesh workloads across UI changes.
     # Istio 1.30.0 reorders native sidecars before application wait initializers;
     # verify the admitted pods as well, avoiding init-container startup deadlocks.
     # Preserve the intended path even on a policy-enforcing CNI. This Kind lane
@@ -572,7 +575,29 @@ def assert_preserved(before, after):
             raise AssertionError(f'UI-only rollback invariant changed: {name}')
 
 
-def verify_image_identity(status, expected, inspect_image):
+def runtime_manifest(node, image_digest, output):
+    if not re.fullmatch(r'sha256:[0-9a-f]{64}', image_digest):
+        raise AssertionError('Runtime manifest address must be a SHA256 digest')
+    raw = command(
+        'docker',
+        'exec',
+        node,
+        'ctr',
+        '-n',
+        'k8s.io',
+        'content',
+        'get',
+        image_digest,
+        raw=True)
+    directory = Path(output) / 'runtime-manifests'
+    directory.mkdir(parents=True, exist_ok=True)
+    # Persist the exact returned bytes before validation, including failed proofs.
+    (directory /
+     f'{image_digest.removeprefix("sha256:")}.json').write_bytes(raw)
+    return raw
+
+
+def verify_image_identity(status, expected, read_manifest):
     if not status.get('ready'):
         raise AssertionError('Qualified UI container is not ready')
     reported = status['imageID']
@@ -582,19 +607,35 @@ def verify_image_identity(status, expected, inspect_image):
     if reported == expected[
             'configId'] or reported == 'containerd://' + expected['configId']:
         return {'method': 'config-digest', 'reportedImageId': reported}
-    # containerd may report the first registered manifest alias when a byte-identical
-    # candidate was preloaded by the shared deploy action. Resolve that actual ID
-    # through CRI and require the Docker archive's exact image config digest.
+    # containerd may retain an import alias after CRI removes that image name.
+    # Read the actual reported digest from the node's content store; never infer
+    # identity from the requested tag or from another registered image alias.
     image = reported.removeprefix('docker-pullable://').removeprefix(
         'containerd://')
-    resolved = inspect_image(image)['status']['id']
+    reported_digest = image.rsplit('@', 1)[-1]
+    if not re.fullmatch(r'sha256:[0-9a-f]{64}', reported_digest):
+        raise AssertionError(
+            'Running UI image has no resolvable manifest digest')
+    raw = read_manifest(reported_digest)
+    if not isinstance(raw, bytes) or 'sha256:' + hashlib.sha256(
+            raw).hexdigest() != reported_digest:
+        raise AssertionError(
+            'Runtime manifest content does not match its digest')
+    content = json.loads(raw)
+    if content.get('schemaVersion') != 2 or content.get('mediaType') not in (
+            'application/vnd.docker.distribution.manifest.v2+json',
+            'application/vnd.oci.image.manifest.v1+json'):
+        raise AssertionError(
+            'Runtime image content is not a schema-2 image manifest')
+    resolved = content.get('config', {}).get('digest')
     if resolved != expected['configId']:
         raise AssertionError(
             'Running UI image identity differs from the qualified immutable image'
         )
     return {
-        'method': 'resolved-runtime-config-digest',
+        'method': 'resolved-runtime-manifest-config-digest',
         'reportedImageId': reported,
+        'verifiedManifestDigest': reported_digest,
         'resolvedConfigId': resolved
     }
 
@@ -665,9 +706,8 @@ def swap(args):
                 (output / 'mesh-readiness.json').read_text())
             evidence['mesh'] = verify_mesh_image(pod, baseline_mesh[UI])
         evidence['verification'] = verify_image_identity(
-            status, expected, lambda image: json.loads(
-                command('docker', 'exec', pod['spec']['nodeName'], 'crictl',
-                        'inspecti', image)))
+            status, expected, lambda image: runtime_manifest(
+                pod['spec']['nodeName'], image, output))
         write_json(identity_path, identity_evidence)
     write_json(
         output / f'{phase}-rollout.json', {

@@ -6,7 +6,10 @@
 boundaries."""
 import argparse
 import copy
+import hashlib
+import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -141,26 +144,111 @@ class QualificationTest(unittest.TestCase):
             'reference': 'registry/ui@sha256:manifest',
             'configId': 'sha256:config'
         }
-        status = {
-            'ready': True,
-            'imageID': 'preloaded/ui@sha256:other-manifest'
+        manifest = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'digest': expected['configId']
+            },
+            'layers': []
         }
 
-        def inspect(image):
-            self.assertEqual(image, status['imageID'])
-            return {'status': {'id': 'sha256:config'}}
+        def verify(value, raw_override=None):
+            raw = json.dumps(value).encode()
+            digest = 'sha256:' + hashlib.sha256(raw).hexdigest()
+            status = {
+                'ready': True,
+                'imageID': 'docker.io/library/import-old@' + digest
+            }
 
-        result = qualification.verify_image_identity(status, expected, inspect)
-        self.assertEqual(result['method'], 'resolved-runtime-config-digest')
+            def read(actual):
+                self.assertEqual(actual, digest)
+                return raw if raw_override is None else raw_override
+
+            return qualification.verify_image_identity(status, expected, read)
+
+        result = verify(manifest)
+        self.assertEqual(result['method'],
+                         'resolved-runtime-manifest-config-digest')
+        self.assertEqual(result['resolvedConfigId'], expected['configId'])
+        for invalid in [
+            {
+                **manifest, 'schemaVersion': 1
+            },
+            {
+                **manifest, 'mediaType':
+                    'application/vnd.oci.image.index.v1+json'
+            },
+            {
+                **manifest, 'config': {
+                    'digest': 'sha256:wrong'
+                }
+            },
+            {
+                **manifest, 'config': {}
+            },
+        ]:
+            with self.subTest(
+                    manifest=invalid), self.assertRaises(AssertionError):
+                verify(invalid)
         with self.assertRaises(AssertionError):
-            qualification.verify_image_identity(
-                status, expected, lambda _: {'status': {
-                    'id': 'sha256:wrong'
-                }})
-        with self.assertRaises(AssertionError):
-            qualification.verify_image_identity({
-                **status, 'ready': False
-            }, expected, inspect)
+            verify(manifest, b'altered bytes')
+        for invalid in [
+            {
+                'ready': False,
+                'imageID': 'sha256:config'
+            },
+            {
+                'ready': True,
+                'imageID': 'docker.io/library/import-old:latest'
+            },
+        ]:
+            with self.assertRaises(AssertionError):
+                qualification.verify_image_identity(
+                    invalid, expected, lambda _: self.fail(
+                        'Invalid identity must not read content'))
+
+    def test_runtime_manifest_retains_failed_proof_bytes_before_validation(
+            self):
+        expected = {
+            'reference': 'registry/ui@sha256:other',
+            'configId': 'sha256:config'
+        }
+        address = 'sha256:' + 'a' * 64
+        raw = b'{\r\n"schemaVersion": 1\r\n}\n'
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+                qualification, 'command', return_value=raw) as command:
+            with self.assertRaises(AssertionError):
+                qualification.verify_image_identity(
+                    {
+                        'ready': True,
+                        'imageID': 'import-old@' + address
+                    }, expected, lambda digest: qualification.runtime_manifest(
+                        'node', digest, directory))
+            command.assert_called_once_with(
+                'docker',
+                'exec',
+                'node',
+                'ctr',
+                '-n',
+                'k8s.io',
+                'content',
+                'get',
+                address,
+                raw=True)
+            self.assertEqual((Path(directory) / 'runtime-manifests' /
+                              ('a' * 64 + '.json')).read_bytes(), raw)
+
+    def test_content_command_preserves_manifest_bytes(self):
+        content = b'{\r\n"schemaVersion": 2\r\n}\n'
+        result = subprocess.CompletedProcess([], 0, stdout=content, stderr=b'')
+        with patch.object(
+                qualification.subprocess, 'run', return_value=result) as run:
+            self.assertEqual(
+                qualification.command(
+                    'ctr', 'content', 'get', 'sha256:fixture', raw=True),
+                content)
+        self.assertIs(run.call_args.kwargs['text'], False)
 
     def test_exact_image_digest_does_not_need_runtime_alias_resolution(self):
         expected = {
@@ -229,9 +317,12 @@ class QualificationTest(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(AssertionError):
                 qualification.mesh_pod_evidence(invalid)
 
-    def test_mesh_setup_scope_excludes_databases_and_generated_jobs(self):
+    def test_mesh_setup_includes_mutual_tls_storage_and_excludes_generated_jobs(
+            self):
         self.assertEqual(
             set(qualification.MESH_DEPLOYMENTS), {
+                'mysql',
+                'seaweedfs',
                 'ml-pipeline',
                 'ml-pipeline-ui',
                 'ml-pipeline-persistenceagent',
