@@ -3287,37 +3287,55 @@ func (r *ResourceManager) readPipelineSpecFromObjectStore(ctx context.Context, f
 
 // Creates the default experiment entry.
 func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, error) {
-	// First check that we don't already have a default experiment ID in the DB.
-	defaultExperimentId, err := r.GetDefaultExperimentId()
-	if err != nil {
-		return "", util.Wrap(err, "Failed to check if default experiment exists")
-	}
-	// If default experiment ID is already present, don't fail, simply return.
-	if defaultExperimentId != "" {
-		glog.Infof("Default experiment already exists! ID: %v", defaultExperimentId)
-		return defaultExperimentId, nil
+	// default_experiments holds a single global row, so it cannot record a
+	// default per namespace. In multi-user mode the namespace's default is
+	// resolved by name below instead; consulting the global id here would
+	// return another namespace's experiment.
+	if !common.IsMultiUserMode() {
+		// First check that we don't already have a default experiment ID in the DB.
+		defaultExperimentID, err := r.GetDefaultExperimentId()
+		if err != nil {
+			return "", util.Wrap(err, "Failed to check if default experiment exists")
+		}
+		// If default experiment ID is already present, don't fail, simply return.
+		if defaultExperimentID != "" {
+			glog.Infof("Default experiment already exists! ID: %v", defaultExperimentID)
+			return defaultExperimentID, nil
+		}
 	}
 
-	// Check if an experiment named Default already exists
+	// Check if an experiment named Default already exists. Only a NotFound means it is absent;
+	// any other error must not be mistaken for absence and trigger a create.
 	defaultExperiment, err := r.experimentStore.GetExperimentByNameNamespace("Default", namespace)
-	if err != nil || defaultExperiment == nil {
-		// Create the default experiment
-		defaultExperiment = &model.Experiment{
+	if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+		return "", util.Wrapf(err, "Failed to check for an existing default experiment in namespace %v", namespace)
+	}
+	if defaultExperiment == nil {
+		defaultExperiment, err = r.CreateExperiment(&model.Experiment{
 			Name:         "Default",
 			Description:  "All runs created without specifying an experiment will be grouped here.",
 			Namespace:    namespace,
 			StorageState: model.StorageStateAvailable,
-		}
-		defaultExperiment, err = r.CreateExperiment(defaultExperiment)
+		})
 		if err != nil {
-			return "", util.Wrap(err, "Failed to create the default experiment")
+			// Lookup and create are not atomic, so concurrent first runs in a namespace can both
+			// miss. The unique index on (Name, Namespace) rejects the loser; adopt the winner
+			// rather than failing a valid request.
+			if !util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
+				return "", util.Wrap(err, "Failed to create the default experiment")
+			}
+			defaultExperiment, err = r.experimentStore.GetExperimentByNameNamespace("Default", namespace)
+			if err != nil {
+				return "", util.Wrapf(err, "Failed to fetch the default experiment created concurrently in namespace %v", namespace)
+			}
 		}
 	}
 
-	// Set default experiment ID in the DB
-	err = r.SetDefaultExperimentId(defaultExperiment.UUID)
-	if err != nil {
-		return "", util.Wrap(err, "Failed to set default experiment ID")
+	// Only single-user mode records the global default id; see above.
+	if !common.IsMultiUserMode() {
+		if err := r.SetDefaultExperimentId(defaultExperiment.UUID); err != nil {
+			return "", util.Wrap(err, "Failed to set default experiment ID")
+		}
 	}
 
 	glog.Infof("Default experiment is set. ID is: %v", defaultExperiment.UUID)
@@ -3775,9 +3793,6 @@ func (r *ResourceManager) CheckExperimentBelongsToNamespace(experimentId string,
 //     Creates the default experiment in the given namespace (could be empty in single-user mode) if it is missing.
 //  3. Replaces empty namespace with the parent namespace of the given experimentId.
 func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, namespace string) (string, string, error) {
-	if common.IsMultiUserMode() && experimentId == "" {
-		return "", "", util.NewInvalidInputError("Experiment id can not be empty in multi-user mode")
-	}
 	if experimentId != "" {
 		ns, err := r.GetNamespaceFromExperimentId(experimentId)
 		if err != nil {
@@ -3788,18 +3803,17 @@ func (r *ResourceManager) GetValidExperimentNamespacePair(experimentId string, n
 		}
 		namespace = ns
 	} else {
-		defExpId, err := r.GetDefaultExperimentId()
+		// The default experiment is per-namespace in multi-user mode, so a
+		// namespace is needed to resolve one.
+		if common.IsMultiUserMode() && namespace == "" {
+			return "", "", util.NewInvalidInputError("A namespace is required when experiment id is empty in multi-user mode")
+		}
+		// Returns the namespace's default experiment, creating it if missing.
+		defExpID, err := r.CreateDefaultExperiment(namespace)
 		if err != nil {
-			return "", "", util.Wrapf(err, "Specify experiment id or check if the default experiment exists in namespace %v", namespace)
+			return "", "", util.Wrapf(err, "Experiment id is empty. Failed to resolve the default experiment in namespace %v", namespace)
 		}
-		// Create the default experiment if it is missing
-		if defExpId == "" {
-			defExpId, err = r.CreateDefaultExperiment(namespace)
-			if err != nil {
-				return "", "", util.Wrapf(err, "Experiment id is empty. Failed to create a new default experiment in namespace %v", namespace)
-			}
-		}
-		experimentId = defExpId
+		experimentId = defExpID
 	}
 	return experimentId, namespace, nil
 }

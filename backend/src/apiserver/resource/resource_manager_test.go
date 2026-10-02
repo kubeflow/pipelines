@@ -8640,3 +8640,97 @@ func TestDeletePipeline_DanglingDefaultVersionStillBlocksNonCascade(t *testing.T
 	_, err = manager.GetPipeline(pipelineID)
 	assert.NoError(t, err, "the pipeline must survive a refused delete")
 }
+
+func TestGetValidExperimentNamespacePair_MultiUserCreatesDefaultPerNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	// The shared fake returns one constant UUID, which cannot represent two
+	// experiments; this case needs a real generator.
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// An omitted experiment id resolves to a default experiment created in the
+	// caller's own namespace.
+	experimentID, namespace, err := manager.GetValidExperimentNamespacePair("", "ns1")
+	require.NoError(t, err)
+	assert.Equal(t, "ns1", namespace)
+	require.NotEmpty(t, experimentID)
+
+	experiment, err := manager.GetExperiment(experimentID)
+	require.NoError(t, err)
+	assert.Equal(t, "Default", experiment.Name)
+	assert.Equal(t, "ns1", experiment.Namespace)
+
+	// A second namespace must get its own default, not a reference to ns1's.
+	// The global default_experiments row cannot distinguish the two.
+	otherExperimentID, otherNamespace, err := manager.GetValidExperimentNamespacePair("", "ns2")
+	require.NoError(t, err)
+	assert.Equal(t, "ns2", otherNamespace)
+	assert.NotEqual(t, experimentID, otherExperimentID, "ns2 must not reuse ns1's default experiment")
+
+	otherExperiment, err := manager.GetExperiment(otherExperimentID)
+	require.NoError(t, err)
+	assert.Equal(t, "ns2", otherExperiment.Namespace)
+
+	// Resolving again returns the existing default rather than creating another.
+	repeatID, _, err := manager.GetValidExperimentNamespacePair("", "ns1")
+	require.NoError(t, err)
+	assert.Equal(t, experimentID, repeatID)
+}
+
+func TestGetValidExperimentNamespacePair_MultiUserRequiresNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Without a namespace there is nowhere to put the default experiment.
+	_, _, err := manager.GetValidExperimentNamespacePair("", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "namespace is required")
+}
+
+func TestGetValidExperimentNamespacePair_SingleUserUnchanged(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experimentID, namespace, err := manager.GetValidExperimentNamespacePair("", "")
+	require.NoError(t, err)
+	assert.Empty(t, namespace)
+	require.NotEmpty(t, experimentID)
+
+	// Single-user still records the global default id, so a repeat resolves to
+	// the same experiment through default_experiments.
+	storedID, err := manager.GetDefaultExperimentId()
+	require.NoError(t, err)
+	assert.Equal(t, experimentID, storedID)
+}
+
+// A failed lookup must not be mistaken for "no default exists" and trigger a create; only a
+// NotFound means absence. The concurrent-create path (adopting the winner on AlreadyExists) is
+// reachable only under a real race, which the in-memory SQLite fake cannot reproduce because each
+// connection gets its own database.
+func TestCreateDefaultExperiment_LookupFailureIsNotTreatedAsAbsent(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Break the database so the existence check fails for a reason other than absence.
+	store.Close()
+
+	_, err = manager.CreateDefaultExperiment("ns1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to check for an existing default experiment",
+		"a broken lookup must surface as a failed check, not as a failed create")
+}

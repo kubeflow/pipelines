@@ -131,7 +131,8 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                                         ], ), 
                                 outputs = kfp_server_api.models.pipeline_task_input_outputs.PipelineTaskInputOutputs(), 
                                 scope_path = '0', )
-                            ], )
+                            ], 
+                        namespace = '0', )
                     ], 
                 total_size = 56, 
                 next_page_token = '0'

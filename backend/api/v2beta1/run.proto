@@ -295,6 +295,12 @@ message Run {
   int32 task_count = 22;
 
   repeated PipelineTask tasks = 23;
+
+  // Optional input field. Namespace this run belongs to. Derived from the
+  // parent experiment when experiment_id is set. In multi-user mode with
+  // experiment_id omitted, this selects the namespace whose default
+  // experiment the run is placed in.
+  string namespace = 24;
 }
 
 // Reference to an existing pipeline version.
@@ -578,6 +584,9 @@ message CreateRunRequest {
 
   // Run to be created.
   Run run = 2;
+
+  // Optional input field. Namespace for the run. Ignored when run.namespace is set.
+  string namespace = 3;
 }
 
 message GetRunRequest {
