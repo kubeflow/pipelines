@@ -208,6 +208,124 @@ class QualificationTest(unittest.TestCase):
                     invalid, expected, lambda _: self.fail(
                         'Invalid identity must not read content'))
 
+    def test_authorization_probe_rejects_command_failure_not_just_denial(self):
+        for code, answer, allowed in [(0, 'yes\n', True), (1, 'no\n', False)]:
+            with patch.object(
+                    qualification.subprocess,
+                    'run',
+                    return_value=subprocess.CompletedProcess([],
+                                                             code,
+                                                             stdout=answer,
+                                                             stderr='')) as run:
+                self.assertEqual(
+                    qualification.pipeline_create_allowed(
+                        'owner-space', 'owner@example.com'), allowed)
+                self.assertIn('pipelines.pipelines.kubeflow.org',
+                              run.call_args.args[0])
+        with patch.object(
+                qualification.subprocess,
+                'run',
+                return_value=subprocess.CompletedProcess([],
+                                                         1,
+                                                         stdout='',
+                                                         stderr='unavailable')):
+            with self.assertRaises(RuntimeError):
+                qualification.pipeline_create_allowed('owner-space',
+                                                      'owner@example.com')
+
+    def test_profile_authorization_requires_owner_allow_and_other_owner_deny(
+            self):
+        profiles = qualification.PROFILES
+
+        def binding(*args):
+            return {
+                'roleRef': {
+                    'apiGroup': 'rbac.authorization.k8s.io',
+                    'kind': 'ClusterRole',
+                    'name': 'kubeflow-admin'
+                },
+                'subjects': [{
+                    'kind': 'User',
+                    'name': profiles[args[1]]
+                }]
+            }
+
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+                qualification, 'kube', side_effect=binding), patch.object(
+                    qualification,
+                    'pipeline_create_allowed',
+                    side_effect=lambda ns, user: profiles[ns] == user):
+            qualification.verify_profile_authorization(directory)
+            evidence = json.loads(
+                (Path(directory) / 'profile-authorization.json').read_text())
+            self.assertEqual(len(evidence), 6)
+            self.assertEqual(sum(item['allowed'] for item in evidence), 3)
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+                qualification, 'kube', side_effect=binding), patch.object(
+                    qualification, 'pipeline_create_allowed',
+                    return_value=True):
+            with self.assertRaises(AssertionError):
+                qualification.verify_profile_authorization(directory)
+
+    def test_runtime_index_requires_one_verified_child_image(self):
+        expected = {
+            'reference': 'registry/ui@sha256:other',
+            'configId': 'sha256:config'
+        }
+        child = json.dumps({
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'digest': expected['configId']
+            }
+        }).encode()
+        address = lambda raw: 'sha256:' + hashlib.sha256(raw).hexdigest()
+        descriptor = {
+            'digest': address(child),
+            'size': len(child),
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json'
+        }
+
+        def verify(descriptors, child_bytes=child):
+            raw = json.dumps({
+                'schemaVersion': 2,
+                'mediaType': 'application/vnd.oci.image.index.v1+json',
+                'manifests': descriptors
+            }).encode()
+            content = {address(raw): raw, descriptor['digest']: child_bytes}
+            return qualification.verify_image_identity(
+                {
+                    'ready': True,
+                    'imageID': 'import-old@' + address(raw)
+                }, expected, content.__getitem__)
+
+        result = verify([
+            descriptor, {
+                **descriptor, 'annotations': {
+                    'org.opencontainers.image.ref.name': 'ci'
+                }
+            }
+        ])
+        self.assertEqual(result['resolvedManifestDigest'], address(child))
+        self.assertEqual(result['resolvedConfigId'], expected['configId'])
+        for descriptors in [[],
+                            [
+                                descriptor, {
+                                    **descriptor, 'digest': 'sha256:' + 'b' * 64
+                                }
+                            ], [{
+                                **descriptor, 'size': len(child) + 1
+                            }],
+                            [{
+                                **descriptor, 'mediaType':
+                                    'application/vnd.oci.image.index.v1+json'
+                            }]]:
+            with self.subTest(
+                    descriptors=descriptors), self.assertRaises(AssertionError):
+                verify(descriptors)
+        with self.assertRaises(AssertionError):
+            verify([descriptor], b'wrong child bytes')
+
     def test_runtime_manifest_retains_failed_proof_bytes_before_validation(
             self):
         expected = {

@@ -100,6 +100,10 @@ merge/source, PR head, every sample, comparisons and limitations.
 Use disposable hosted Kind clusters for standalone and authenticated embedded
 multi-user configurations. The latter needs real Dex/OAuth2 Proxy/Dashboard login;
 existing tests that inject identity headers do not establish browser authentication.
+Install the pinned upstream aggregate roles used by profile owners, verify their
+canonical namespace bindings, and require owner access plus cross-owner denial
+before the browser rehearsal. Preserve this authorization configuration through
+both UI transitions.
 Use the repository's pinned Kubeflow manifests and disposable test users.
 
 Build complete legacy and candidate frontend containers from their own sources
@@ -109,7 +113,9 @@ Register both images in a disposable CI registry and record actual OCI manifest
 digests, archive hashes, config IDs and running pod image IDs. If the runtime
 reports a preloaded manifest alias, read the exact reported SHA256 manifest from
 the node's containerd content store. Verify the raw manifest hash, image-manifest
-schema and qualified archive config digest; a mutable alias is insufficient.
+schema and qualified archive config digest; a mutable alias is insufficient. An
+index must identify exactly one distinct image child; verify both content hashes
+and the child descriptor size and media type, and retain the exact bytes.
 
 Before the multi-user baseline, enable and verify native Istio sidecars on the
 UI, API, required backend callers, MySQL and SeaweedFS. Their existing

@@ -321,6 +321,61 @@ def setup_mesh(args):
         write_json(Path(args.output) / 'mesh-readiness.json', evidence)
 
 
+def pipeline_create_allowed(namespace, user):
+    result = subprocess.run([
+        'kubectl', 'auth', 'can-i', 'create',
+        'pipelines.pipelines.kubeflow.org', '-n', namespace, '--as', user
+    ],
+                            capture_output=True,
+                            text=True,
+                            timeout=30)
+    answer = result.stdout.strip()
+    if (result.returncode, answer) not in ((0, 'yes'), (1, 'no')):
+        raise RuntimeError(
+            'Could not verify namespace pipeline creation authorization')
+    return answer == 'yes'
+
+
+def verify_profile_authorization(output):
+    deadline = time.monotonic() + 120
+    while True:
+        owner_access = {
+            namespace: pipeline_create_allowed(namespace, user)
+            for namespace, user in PROFILES.items()
+        }
+        if all(owner_access.values()):
+            break
+        if time.monotonic() >= deadline:
+            raise AssertionError(
+                'Profile owners lack namespace pipeline creation permission')
+        time.sleep(2)
+    evidence = []
+    for namespace, owner in PROFILES.items():
+        binding = kube('-n', namespace, 'get', 'rolebinding', 'namespaceAdmin')
+        if binding['roleRef'] != {
+                'apiGroup': 'rbac.authorization.k8s.io',
+                'kind': 'ClusterRole',
+                'name': 'kubeflow-admin'
+        } or not any(
+                subject.get('kind') == 'User' and subject.get('name') == owner
+                for subject in binding['subjects']):
+            raise AssertionError(
+                'Profile owner does not have its canonical namespace role binding'
+            )
+        for user in sorted(set(PROFILES.values())):
+            allowed = pipeline_create_allowed(namespace, user)
+            if allowed != (user == owner):
+                raise AssertionError(
+                    'Pipeline creation authorization crossed a profile boundary'
+                )
+            evidence.append({
+                'namespace': namespace,
+                'user': user,
+                'allowed': allowed
+            })
+    write_json(Path(output) / 'profile-authorization.json', evidence)
+
+
 def setup_auth(args):
     import bcrypt
     import yaml
@@ -335,6 +390,9 @@ def setup_auth(args):
         }))
     auth_file.chmod(0o600)
     # Use upstream ExtAuthz, OIDC and Dashboard, not an identity-header fixture.
+    # Profile owners bind kubeflow-admin; install its canonical aggregation chain
+    # rather than the shared test deployment's edit-only role fixture.
+    apply(render_upstream('common/kubeflow-roles/base'))
     apply(render_upstream('common/istio/istio-install/overlays/oauth2-proxy'))
     apply(render_upstream('common/istio/kubeflow-istio-resources/base'))
     oauth = render_upstream('common/oauth2-proxy/overlays/m2m-dex-only')
@@ -422,6 +480,7 @@ def setup_auth(args):
             'deployment/ml-pipeline-ui-artifact',
             '--timeout=300s',
             timeout=320)
+    verify_profile_authorization(args.output)
     setup_mesh(args)
     write_json(
         Path(args.output) / 'authentication.json', {
@@ -616,15 +675,47 @@ def verify_image_identity(status, expected, read_manifest):
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', reported_digest):
         raise AssertionError(
             'Running UI image has no resolvable manifest digest')
-    raw = read_manifest(reported_digest)
-    if not isinstance(raw, bytes) or 'sha256:' + hashlib.sha256(
-            raw).hexdigest() != reported_digest:
-        raise AssertionError(
-            'Runtime manifest content does not match its digest')
-    content = json.loads(raw)
-    if content.get('schemaVersion') != 2 or content.get('mediaType') not in (
-            'application/vnd.docker.distribution.manifest.v2+json',
-            'application/vnd.oci.image.manifest.v1+json'):
+
+    def verified_content(address):
+        if not re.fullmatch(r'sha256:[0-9a-f]{64}', address):
+            raise AssertionError(
+                'Runtime content address is not a SHA256 digest')
+        raw = read_manifest(address)
+        if not isinstance(raw, bytes) or 'sha256:' + hashlib.sha256(
+                raw).hexdigest() != address:
+            raise AssertionError(
+                'Runtime manifest content does not match its digest')
+        content = json.loads(raw)
+        if content.get('schemaVersion') != 2:
+            raise AssertionError('Runtime image content is not schema 2')
+        return raw, content
+
+    raw, content = verified_content(reported_digest)
+    resolved_digest = reported_digest
+    image_types = ('application/vnd.docker.distribution.manifest.v2+json',
+                   'application/vnd.oci.image.manifest.v1+json')
+    if content.get('mediaType') in (
+            'application/vnd.oci.image.index.v1+json',
+            'application/vnd.docker.distribution.manifest.list.v2+json'):
+        # Docker save/load may register an index with latest/ci descriptors for
+        # the same image. Only one distinct child is unambiguous; never guess a
+        # platform or accept an index itself as proof of a running image config.
+        descriptors = content.get('manifests', [])
+        identities = {(item.get('digest'), item.get('size'),
+                       item.get('mediaType')) for item in descriptors}
+        if len(identities) != 1:
+            raise AssertionError(
+                'Runtime image index does not identify one unique image')
+        child_digest, child_size, child_type = identities.pop()
+        if child_type not in image_types or not isinstance(
+                child_size, int) or child_size <= 0:
+            raise AssertionError('Runtime image index descriptor is invalid')
+        raw, content = verified_content(child_digest)
+        if len(raw) != child_size or content.get('mediaType') != child_type:
+            raise AssertionError(
+                'Runtime child manifest does not match its index descriptor')
+        resolved_digest = child_digest
+    if content.get('mediaType') not in image_types:
         raise AssertionError(
             'Runtime image content is not a schema-2 image manifest')
     resolved = content.get('config', {}).get('digest')
@@ -636,6 +727,7 @@ def verify_image_identity(status, expected, read_manifest):
         'method': 'resolved-runtime-manifest-config-digest',
         'reportedImageId': reported,
         'verifiedManifestDigest': reported_digest,
+        'resolvedManifestDigest': resolved_digest,
         'resolvedConfigId': resolved
     }
 
