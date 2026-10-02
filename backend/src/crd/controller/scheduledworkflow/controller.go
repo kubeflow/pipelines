@@ -49,7 +49,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/transport"
@@ -235,6 +234,15 @@ func NewController(
 	}
 
 	return controller, nil
+}
+
+// HasSynced returns true if both the scheduled workflow and workflow informer
+// caches have completed their initial LIST from the API server. Used by the
+// readiness probe to prevent the controller from processing events before it
+// has a complete view of existing resources. This does not detect ongoing watch
+// staleness or API server connectivity loss after the initial sync.
+func (c *Controller) HasSynced() bool {
+	return c.swfClient.HasSynced()() && c.workflowClient.HasSynced()()
 }
 
 // Run will set up the event handlers for types we are interested in, as well
