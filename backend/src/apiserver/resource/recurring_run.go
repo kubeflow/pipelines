@@ -24,6 +24,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 )
@@ -89,6 +90,45 @@ func (r *ResourceManager) PrepareRecurringRun(ctx context.Context, run *model.Ru
 	run.ServiceAccount = job.ServiceAccount
 	run.PluginsInputString = job.PluginsInputString
 	return nil
+}
+
+// GetRecurringRunReplay returns an account-authorized acknowledgement without
+// creating an execution. Call PrepareRecurringRun first and authorize pipeline
+// access before returning the result to the caller. New and pending ticks return nil.
+func (r *ResourceManager) GetRecurringRunReplay(ctx context.Context, run *model.Run) (*model.Run, error) {
+	if !common.IsMultiUserMode() || run.RecurringRunId == "" {
+		return nil, nil
+	}
+	if err := validation.ValidateRecurringRunRequestKey(run.DisplayName); err != nil {
+		return nil, err
+	}
+	job, err := r.jobStore.GetJob(run.RecurringRunId)
+	if err != nil {
+		return nil, err
+	}
+	state, err := r.jobStore.GetRecurringRunState(job.UUID)
+	if err != nil {
+		return nil, err
+	}
+	prepared := *run
+	tick, err := r.getRetainedRecurringRunTick(&prepared, job, state)
+	if err != nil {
+		return nil, err
+	}
+	if tick == nil || tick.replay == nil {
+		return nil, nil
+	}
+	return r.authorizeRecurringRunReplay(ctx, &prepared, tick.replay)
+}
+
+func (r *ResourceManager) authorizeRecurringRunReplay(ctx context.Context, run, replay *model.Run) (*model.Run, error) {
+	if err := r.authorizeServiceAccount(ctx, run.ServiceAccount, run.Namespace); err != nil {
+		return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to service account authorization error")
+	}
+	if err := r.authorizeStoredRunServiceAccount(ctx, replay); err != nil {
+		return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to stored workflow identity authorization error")
+	}
+	return replay, nil
 }
 
 // Replay authorizes the retained execution, not a newer template or mutable schedule.

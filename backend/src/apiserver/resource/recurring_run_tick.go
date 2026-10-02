@@ -57,6 +57,45 @@ func (r *ResourceManager) prepareRecurringRunTick(run *model.Run, owner *schedul
 	if err != nil {
 		return nil, err
 	}
+	tick, err := r.getRetainedRecurringRunTick(run, job, state)
+	if err != nil || tick != nil {
+		return tick, err
+	}
+	if state.Pending {
+		return nil, util.NewFailedPreconditionError(fmt.Errorf("a previous tick is still pending"),
+			"Retry the previous scheduled tick before submitting another one")
+	}
+	schedule, err := template.NewGenericScheduledWorkflow(job)
+	if err != nil {
+		return nil, err
+	}
+	// Kubernetes owns creationTimestamp; unlike spec/status it is immutable.
+	schedule.CreationTimestamp = owner.CreationTimestamp
+	if schedule.CreationTimestamp.IsZero() {
+		schedule.CreationTimestamp = metav1.NewTime(time.Unix(job.CreatedAtInSec, 0))
+	}
+	if state.LastRunIndex > 0 {
+		last := metav1.NewTime(time.Unix(state.LastScheduledAtInSec, 0))
+		schedule.Status.Trigger.LastTriggeredTime = &last
+	}
+	location, err := scheduleutil.GetLocation()
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to resolve the recurring-run timezone")
+	}
+	scheduledAt, due := scheduleutil.NewScheduledWorkflow(schedule).GetNextScheduledEpoch(0, now, *location)
+	if !due {
+		return nil, util.NewFailedPreconditionError(fmt.Errorf("no authorized tick is due"),
+			"Wait for the next tick allowed by the API-stored recurring-run schedule")
+	}
+	return &recurringRunTick{
+		previousIndex: state.LastRunIndex, index: state.LastRunIndex + 1,
+		scheduledAt: scheduledAt, createdAt: now,
+	}, nil
+}
+
+// getRetainedRecurringRunTick only reads a previously selected tick; it never
+// decides whether another execution is due or reserves one.
+func (r *ResourceManager) getRetainedRecurringRunTick(run *model.Run, job *model.Job, state *model.RecurringRunState) (*recurringRunTick, error) {
 	existingID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(job.UUID, run.DisplayName)
 	if err != nil {
 		return nil, err
@@ -99,36 +138,7 @@ func (r *ResourceManager) prepareRecurringRunTick(run *model.Run, owner *schedul
 		}
 		return tick, nil
 	}
-	if state.Pending {
-		return nil, util.NewFailedPreconditionError(fmt.Errorf("a previous tick is still pending"),
-			"Retry the previous scheduled tick before submitting another one")
-	}
-	schedule, err := template.NewGenericScheduledWorkflow(job)
-	if err != nil {
-		return nil, err
-	}
-	// Kubernetes owns creationTimestamp; unlike spec/status it is immutable.
-	schedule.CreationTimestamp = owner.CreationTimestamp
-	if schedule.CreationTimestamp.IsZero() {
-		schedule.CreationTimestamp = metav1.NewTime(time.Unix(job.CreatedAtInSec, 0))
-	}
-	if state.LastRunIndex > 0 {
-		last := metav1.NewTime(time.Unix(state.LastScheduledAtInSec, 0))
-		schedule.Status.Trigger.LastTriggeredTime = &last
-	}
-	location, err := scheduleutil.GetLocation()
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to resolve the recurring-run timezone")
-	}
-	scheduledAt, due := scheduleutil.NewScheduledWorkflow(schedule).GetNextScheduledEpoch(0, now, *location)
-	if !due {
-		return nil, util.NewFailedPreconditionError(fmt.Errorf("no authorized tick is due"),
-			"Wait for the next tick allowed by the API-stored recurring-run schedule")
-	}
-	return &recurringRunTick{
-		previousIndex: state.LastRunIndex, index: state.LastRunIndex + 1,
-		scheduledAt: scheduledAt, createdAt: now,
-	}, nil
+	return nil, nil
 }
 
 func (r *ResourceManager) claimRecurringRunTick(run *model.Run, tick *recurringRunTick) error {

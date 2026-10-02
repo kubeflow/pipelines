@@ -817,13 +817,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		// Acknowledgement does not reconstruct the execution template. Preparation
 		// restores the job's effective account, including for reporter-recovered
 		// runs without a stored account. The server checks pipeline and namespace access.
-		if err := r.authorizeServiceAccount(ctx, run.ServiceAccount, run.Namespace); err != nil {
-			return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to service account authorization error")
-		}
-		if err := r.authorizeStoredRunServiceAccount(ctx, tick.replay); err != nil {
-			return nil, util.Wrap(err, "Failed to acknowledge a scheduled run due to stored workflow identity authorization error")
-		}
-		return tick.replay, nil
+		return r.authorizeRecurringRunReplay(ctx, run, tick.replay)
 	}
 	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
