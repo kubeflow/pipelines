@@ -1,48 +1,163 @@
 [
   {
+    "path": "deployment-multiuser/audit.json",
+    "bytes": 64625,
+    "sha256": "c4fd65794b7d441556a8c340436fd13cdb84230e57284971ee80eaa51d05c88b"
+  },
+  {
+    "path": "deployment-multiuser/authentication.json",
+    "bytes": 383,
+    "sha256": "6db37600012e147af17c98145b30c45ac6364157c315f2342faea35315220bdf"
+  },
+  {
+    "path": "deployment-multiuser/baseline-image-identity.json",
+    "bytes": 1054,
+    "sha256": "2c7032f9b2b84cea58ec6027cac477e78adfd57cd964219615932ba12f03fe7a"
+  },
+  {
+    "path": "deployment-multiuser/baseline-invariants.json",
+    "bytes": 48256,
+    "sha256": "54db8262dbc990a305a5c10b0e3351ea1275ef7d970b719e19dee2b56c5263bb"
+  },
+  {
+    "path": "deployment-multiuser/baseline-rollout.json",
+    "bytes": 625,
+    "sha256": "9524f8f716f85c7125a46e3519fd164f079648170a21cc2e9e91dac5c2c3720c"
+  },
+  {
+    "path": "deployment-multiuser/candidate-assets.json",
+    "bytes": 2436,
+    "sha256": "77f87c42b55010fe683635169855cf9e57a670a287b23874ba552a3b6b4e0dc1"
+  },
+  {
+    "path": "deployment-multiuser/candidate-image-identity.json",
+    "bytes": 1415,
+    "sha256": "a1ae07afa3f05b614d452d249b61050445f72b69800a3cdd8c710a97aebd499d"
+  },
+  {
+    "path": "deployment-multiuser/candidate-invariants.json",
+    "bytes": 48255,
+    "sha256": "1b0e614a804e7d447ae32ace48ba7afc9418b7d8c333a8808e39abdb43535c7d"
+  },
+  {
+    "path": "deployment-multiuser/candidate-rollout.json",
+    "bytes": 635,
+    "sha256": "b90602a5a159d4a607c0f85212c76d19a5088e07e00b479b4ef96d1c0a0ac68d"
+  },
+  {
+    "path": "deployment-multiuser/downloaded-client-hashes.json",
+    "bytes": 3649,
+    "sha256": "511c73f3d8e6ddda9f515d3758059fc13e2c06faa76f2ae7f73f66bd03ab0844"
+  },
+  {
+    "path": "deployment-multiuser/images.json",
+    "bytes": 956,
+    "sha256": "f046408fa9df7883b4371c34b7753a2cc6ecf038b72691fce4fbd7979324c900"
+  },
+  {
+    "path": "deployment-multiuser/legacy-assets.json",
+    "bytes": 594,
+    "sha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+  },
+  {
+    "path": "deployment-multiuser/mesh-readiness.json",
+    "bytes": 2742,
+    "sha256": "83758d8e723365da6c89a3c3c6861a09e00c278994be172a3569565792af4a69"
+  },
+  {
+    "path": "deployment-multiuser/profile-authorization-state.json",
+    "bytes": 59270,
+    "sha256": "49b5f5debb61df1de9fd06d424daafb0693ea2ffe4c70c0c2f78ba72b4ff2330"
+  },
+  {
+    "path": "deployment-multiuser/profile-authorization.json",
+    "bytes": 645,
+    "sha256": "497c7122aabe5e9af27e91072e3b42dc248d265e1b17e55a10eb8c289b549491"
+  },
+  {
+    "path": "deployment-multiuser/provenance.json",
+    "bytes": 774,
+    "sha256": "1afc47921d10380836b129f460e5f51ea415704d60717171e8a023ee6b270eaa"
+  },
+  {
+    "path": "deployment-multiuser/result.json",
+    "bytes": 73700,
+    "sha256": "3ade2b9ccdf29c540217b3405fb199ce163748e4a23e9b04d089e92cdb1df50a"
+  },
+  {
+    "path": "deployment-multiuser/rollback-image-identity.json",
+    "bytes": 1054,
+    "sha256": "e4a2f21ee08a757fcd3a7e3576a511f42de29c45b78b8156753935772930cc00"
+  },
+  {
+    "path": "deployment-multiuser/rollback-invariants.json",
+    "bytes": 48254,
+    "sha256": "bd42d49a23c4a5ef9520b0b79ce538ad6e04c4121b9e2b3d1f0a37e55e25a787"
+  },
+  {
+    "path": "deployment-multiuser/rollback-rollout.json",
+    "bytes": 626,
+    "sha256": "12af7de3838252be9f1fd12b8a856221bac052a97232dd13ce3a8743b4a6838a"
+  },
+  {
+    "path": "deployment-multiuser/runtime-manifests/205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016.json",
+    "bytes": 851,
+    "sha256": "205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016"
+  },
+  {
+    "path": "deployment-multiuser/runtime-manifests/7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a.json",
+    "bytes": 2392,
+    "sha256": "7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a"
+  },
+  {
     "path": "deployment-standalone/audit.json",
-    "bytes": 61654,
-    "sha256": "e59eb91adabc37d7c60d77f0744ce46e32af569ce9286b79bae5e6238546222b"
+    "bytes": 61905,
+    "sha256": "a2ce6b98f3571c9d5e39133ee6154b003d64555d429863e00fa946f5e7b76003"
   },
   {
     "path": "deployment-standalone/baseline-image-identity.json",
     "bytes": 682,
-    "sha256": "21dee206cf3c6bd1272f603622378e74aa4cccff41786060faf14f342904d598"
+    "sha256": "d07d1d6db0b4f445fd59651cf47a76458b8f68b9b6c3d980b9c937786b786624"
   },
   {
     "path": "deployment-standalone/baseline-invariants.json",
     "bytes": 10686,
-    "sha256": "fcaa9e218d11ea2be70735c77561819c02863feb201844c788bbb33d628476f0"
+    "sha256": "231022394bff6d0b77bd9eedc7eee166c2a67fec3f9739a4bf6a2422370d445d"
   },
   {
     "path": "deployment-standalone/baseline-rollout.json",
     "bytes": 625,
-    "sha256": "ef39ccfb252c5a90abc1aa94fe3326cff00785c1e6beff9625c786affaffa0bf"
+    "sha256": "b02f20e214bb7f977ff57eed86dcf2bc32b8b911c7dd616cc07e4177cf7377ff"
   },
   {
     "path": "deployment-standalone/candidate-assets.json",
     "bytes": 2436,
-    "sha256": "627efbadf57fd6bf10a166dc749b7171b1413ba563c60d79e71ddadd24c28785"
+    "sha256": "77f87c42b55010fe683635169855cf9e57a670a287b23874ba552a3b6b4e0dc1"
   },
   {
     "path": "deployment-standalone/candidate-image-identity.json",
     "bytes": 1043,
-    "sha256": "9f5e5a5fe833834d4990255b9b2e00b8548f864f67de732854d91f55726fe502"
+    "sha256": "25bb9e351e568c3f27878e5fc94df0c3efe65c2eb686ab48d813f269ca0cd459"
   },
   {
     "path": "deployment-standalone/candidate-invariants.json",
     "bytes": 10686,
-    "sha256": "faa33cfeda7b65065d3a1e0715ee8e5724f30e10a96042dc50fb5ca7e9dc87fe"
+    "sha256": "c3097128b30e50dde0ef789b18207b37c02b9023376bdeb67cfc8600df806242"
   },
   {
     "path": "deployment-standalone/candidate-rollout.json",
     "bytes": 634,
-    "sha256": "66a5d784155bf1300249e5e1eddf860647fee4314c6526ef71f8e9fa11631058"
+    "sha256": "c23d1422416757e03c13a93d4151e1c073f32523788739e89588b0f69e5792bf"
+  },
+  {
+    "path": "deployment-standalone/downloaded-client-hashes.json",
+    "bytes": 3649,
+    "sha256": "7e72155b4e96117d754d1951a192fa741b69b5c754899a9f559c4bf6fafe5b29"
   },
   {
     "path": "deployment-standalone/images.json",
     "bytes": 956,
-    "sha256": "df37a7bd8f5e676b63dc883db429c10846199940eb9f95512dc401733bc46482"
+    "sha256": "f046408fa9df7883b4371c34b7753a2cc6ecf038b72691fce4fbd7979324c900"
   },
   {
     "path": "deployment-standalone/legacy-assets.json",
@@ -51,38 +166,38 @@
   },
   {
     "path": "deployment-standalone/provenance.json",
-    "bytes": 612,
-    "sha256": "22a0fc3e291106e69e88c85bdcc014b35a8b318ae2e2b11187a9b5c170f84e63"
+    "bytes": 732,
+    "sha256": "4df289677cf8b51f2f9bbcab29372fca1b294a160691f1581d5ef6633ee87c07"
   },
   {
     "path": "deployment-standalone/result.json",
-    "bytes": 69422,
-    "sha256": "df2ae88d766f494fc8abc3acc714a1225209d584b2cec0a373ce928af40937aa"
+    "bytes": 69673,
+    "sha256": "80836c02ff0c460994ba7b2dbcc76a34797043760b95aec8510f3af49b2569fe"
   },
   {
     "path": "deployment-standalone/rollback-image-identity.json",
     "bytes": 682,
-    "sha256": "25cbe6d8ef3c59f4c7739e71d8fd2146f571b4c00db93dce3861464bcc937c87"
+    "sha256": "f2bf6a09a92eb226d77e93e1fd0c8ab70c2b2f91500fe500c1e0a7a7a69401bb"
   },
   {
     "path": "deployment-standalone/rollback-invariants.json",
     "bytes": 10685,
-    "sha256": "d59942b173d7149d838165efe44d89d052c8f7b096111fcb03626a8bfa23f80d"
+    "sha256": "c7aa3fb761ef3b2f1c53d3a2f0f70f2f478f3eedca7151db7d1af3ea8f28ac07"
   },
   {
     "path": "deployment-standalone/rollback-rollout.json",
-    "bytes": 624,
-    "sha256": "2658a81d728731dd9a820916a8bd27ef2c080b0a24e9376027ff52bbc1595135"
+    "bytes": 620,
+    "sha256": "fb7f007f066492d5b0f16120def9c6bf659b694681484af05b7037408d9d2344"
   },
   {
-    "path": "deployment-standalone/runtime-manifests/ad0fd6dafe00d4b211e16671ba67661abd0ab51b0500f34d7c6b131c7d201144.json",
-    "bytes": 2392,
-    "sha256": "ad0fd6dafe00d4b211e16671ba67661abd0ab51b0500f34d7c6b131c7d201144"
-  },
-  {
-    "path": "deployment-standalone/runtime-manifests/be3f94d0624dbd24f95ab74267e4c5c9ca830cfece9ab241751b6b4d30fca041.json",
+    "path": "deployment-standalone/runtime-manifests/205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016.json",
     "bytes": 851,
-    "sha256": "be3f94d0624dbd24f95ab74267e4c5c9ca830cfece9ab241751b6b4d30fca041"
+    "sha256": "205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016"
+  },
+  {
+    "path": "deployment-standalone/runtime-manifests/7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a.json",
+    "bytes": 2392,
+    "sha256": "7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a"
   },
   {
     "path": "hosted-protocol.json",
@@ -91,12 +206,12 @@
   },
   {
     "path": "performance-audit.json",
-    "bytes": 3353,
-    "sha256": "07b9558007d506e7dc2cc6a9f08cc5ec806802833a4af17a1d9946a52b944292"
+    "bytes": 3432,
+    "sha256": "936ccb9a67d1c59d10504b859605701e33d0a8187ff1174d280fdbb3096b0ae1"
   },
   {
     "path": "performance.json",
-    "bytes": 2946098,
-    "sha256": "b2caecb81adb8b3b7a5e77604b4d4e9ebca4838a7bef76a5d65dd89d9e362ec4"
+    "bytes": 2949737,
+    "sha256": "535cbd6df44a77076a20a48ab9acae9baa2bf68d4666359556a08cc232f86c49"
   }
 ]

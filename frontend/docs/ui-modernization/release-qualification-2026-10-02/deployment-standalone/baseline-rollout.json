@@ -3,16 +3,16 @@
   "strategy": {
     "type": "Recreate"
   },
-  "elapsedMs": 42868.67638200011,
-  "podTemplateSha256": "a652f4e338218c19f0b9d3190e49e7d520b023edbd032ae7436da5418ac4a98b",
-  "image": "localhost:5001/kfp-frontend@sha256:e18147e70e5abcefcd3fcdd56d2338fe6376a982e80f341cd8efdddbad69e5d4",
+  "elapsedMs": 37506.19665199997,
+  "podTemplateSha256": "a0fd1fd3075d0eb7e2aaf732693d53523cfdd361948282040f709853b217b84f",
+  "image": "localhost:5001/kfp-frontend@sha256:f8e9ba3e5f3b31805efbab979542cb22ec27ecec10ca40a7b34dfc619e0c808b",
   "pods": [
     {
-      "uid": "3069a125-f1a6-4dcf-aa7c-c4fe7b1fdffc",
+      "uid": "d572657d-8ff7-4953-ac25-3bf2495d0321",
       "containers": [
         {
           "name": "ml-pipeline-ui",
-          "imageID": "localhost:5001/kfp-frontend@sha256:e18147e70e5abcefcd3fcdd56d2338fe6376a982e80f341cd8efdddbad69e5d4",
+          "imageID": "localhost:5001/kfp-frontend@sha256:f8e9ba3e5f3b31805efbab979542cb22ec27ecec10ca40a7b34dfc619e0c808b",
           "ready": true
         }
       ]

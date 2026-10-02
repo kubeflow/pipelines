@@ -1,6 +1,8 @@
 # Remaining release qualification
 
-Status: completing hosted deployment and editor qualification, October 2, 2026.
+Status: hosted deployment/rollback and editor qualification passed October 2, 2026.
+See [retained results](release-qualification-2026-10-02/README.md) for exact sources,
+measurements, image/state proofs and remaining coverage limits.
 The maintainer accepted timing, payload and layout budgets on September 30.
 The separate first-editor limits below were adopted on October 2 to complete
 editor qualification; the slower cold-open tradeoff remains explicit.

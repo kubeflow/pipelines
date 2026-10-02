@@ -3,10 +3,20 @@
   "expectedConfigId": "sha256:8abd9a0fa88a46ff66b3c385cc48819a84af25b38227a13623253b8dccd44c67",
   "pods": [
     {
-      "uid": "ad7569b8-78ca-404a-9e45-64f09531f678",
+      "uid": "8e2445be-4b8d-432a-9f21-2322903f7140",
       "node": "kfp-control-plane",
       "imageId": "docker.io/library/import-2026-10-02@sha256:205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016",
       "ready": true,
+      "mesh": {
+        "uid": "8e2445be-4b8d-432a-9f21-2322903f7140",
+        "serviceAccount": "ml-pipeline-ui",
+        "initOrder": [
+          "istio-validation",
+          "istio-proxy"
+        ],
+        "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+        "proxyReady": true
+      },
       "verification": {
         "method": "resolved-runtime-manifest-config-digest",
         "reportedImageId": "docker.io/library/import-2026-10-02@sha256:205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016",

@@ -9,9 +9,11 @@ repos:
         args: [--allow-multiple-documents]
       - id: check-json
       - id: end-of-file-fixer
+        # Runtime manifest digests require the exact bytes returned by containerd.
+        exclude: ^frontend/docs/ui-modernization/release-qualification-[^/]+/deployment-(standalone|multiuser)/runtime-manifests/
       - id: trailing-whitespace
-        # Snapshot whitespace represents rendered text and is owned by Vitest.
-        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$)
+        # Snapshots preserve rendered text; runtime manifests preserve digest identity.
+        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$|^frontend/docs/ui-modernization/release-qualification-[^/]+/deployment-(standalone|multiuser)/runtime-manifests/)
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test

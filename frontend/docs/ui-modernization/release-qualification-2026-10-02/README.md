@@ -2,10 +2,10 @@
 
 ## Performance and first editor acceptance
 
-[Hosted performance run 37057281124](https://github.com/kubeflow/pipelines/actions/runs/37057281124)
-passed at implementation head `998115570cd27b2b6a2b67bf4093e9a746c09017`, tested as
-merge `295cf388a0d0845a0ffb34367d8a85ce9c2e80f8`. The merge parents independently
-verify the implementation head and base `0a34391b09303c03eae17116c5003e62b9d9f881`.
+[Hosted performance run 37064291277](https://github.com/kubeflow/pipelines/actions/runs/37064291277)
+passed at implementation head `71543eb922a82b8716cb58f139618052866eece7`, tested as
+merge `00d243a9d92888c2746a7084bec45f36850ced5f`. The merge parents independently
+verify the implementation head and base `463f15ff9df3be4b5720a3d9473d033a19509a65`.
 
 The first editor gates are an engineering acceptance decision: bound cold lazy
 loading while preserving the smaller initial bundle. Both use seven-sample
@@ -16,10 +16,10 @@ not deployed backend performance or field percentiles.
 
 | Measurement                                                          | Candidate median | Blocking limit |
 | -------------------------------------------------------------------- | ---------------: | -------------: |
-| First editor display: complete read-only model, fonts and two frames |       3,352.5 ms |       4,000 ms |
-| First initialized YAML worker: complete model round trip             |       3,688.0 ms |       5,000 ms |
+| First editor display: complete read-only model, fonts and two frames |       3,354.3 ms |       4,000 ms |
+| First initialized YAML worker: complete model round trip             |       3,706.3 ms |       5,000 ms |
 
-The same-run eager legacy editor displays in **275.6 ms**. The candidate's cold
+The same-run eager legacy editor displays in **291.6 ms**. The candidate's cold
 first open remains slower; this accepted tradeoff moves editor code off the
 initial route. The immutable legacy build omits its YAML worker, so its recorded
 HTTP 404 cannot support a worker-ready timing comparison. Candidate worker HTTP
@@ -27,7 +27,7 @@ HTTP 404 cannot support a worker-ready timing comparison. Candidate worker HTTP
 
 All other existing blocking budgets also pass:
 
-- Main-route median readiness improves 21.2–22.4% against the same-run legacy
+- Main-route median readiness improves 21.3–22.5% against the same-run legacy
   build. All route, interaction and larger-workload timing medians remain within
   their reference plus max(10%, 50 ms).
 - Entry JS/CSS gzip is 596,806 bytes, 24.0% below legacy and within the 80% limit.
@@ -56,19 +56,42 @@ remain available in the repository after artifact expiration.
 
 ## Deployment and rollback
 
-Standalone qualification passes in [run 37060216956](https://github.com/kubeflow/pipelines/actions/runs/37060216956),
-implementation head `aa925258a3ae78faca5541cb7957570b1ea9526e`, tested merge
-`2388b2182a881e236f2f959e2f5f304f7f289d5e`. All 18 checks pass through legacy,
-candidate and restored legacy phases. Independent verification covers immutable
-image/config identities, exact runtime index and child-manifest hashes, static
-assets, unchanged backend/RBAC/signing state, preserved resources/preferences,
-old signed TensorBoard access, and exact restoration of the captured UI template.
+[Hosted deployment run 37064291781](https://github.com/kubeflow/pipelines/actions/runs/37064291781)
+passes both standalone and real authenticated embedded multi-user rehearsals at
+implementation head `71543eb922a82b8716cb58f139618052866eece7`, tested merge
+`00d243a9d92888c2746a7084bec45f36850ced5f`. Standalone passes all 18 checks and
+multi-user all 21, with no skipped phases. Each exercises legacy → candidate →
+restored legacy UI/Express images against one unchanged candidate backend.
 
-The Recreate transitions produce a measured interruption; recovery upper bounds
-are 42.613 seconds for upgrade and 38.064 seconds for rollback. This is not a
-zero-downtime claim. Sanitized records and their independent audit are retained
-in `deployment-standalone/`; full static builds remain in the seven-day artifact.
+Independent verification covers immutable image/config identities, exact runtime
+index and child-manifest hashes, all 6 legacy and 22 candidate asset files,
+unchanged backend/RBAC/authentication/signing state, preserved resources and
+preferences, successful new runs/logs, schedules, artifacts and old signed
+TensorBoard access. Rollback restores the exact captured legacy UI template.
+Downloaded artifact archive hashes also match GitHub's published digests.
 
-Authenticated multi-user qualification remains pending. Standalone success does
-not establish its namespace isolation or authorization behavior. Its result and
-verified state evidence will be added after the hosted rehearsal completes.
+Multi-user additionally verifies real Dex/OAuth2 sessions, three namespace-change
+checks with prior responses fully drained, normal cross-user denial, six explicit
+SubjectAccessReview allow/deny cases, and seven mesh workloads. Canonical profile
+roles, owner bindings and mesh setup finish before baseline; these remain
+unchanged during UI replacement and restoration. This does not establish CNI
+NetworkPolicy enforcement or every downstream deployment/storage configuration.
+
+| Mode | Upgrade recovery upper bound | Rollback recovery upper bound |
+| --- | ---: | ---: |
+| Standalone | 43.114 s | 36.473 s |
+| Embedded multi-user | 42.154 s | 40.709 s |
+
+The Recreate transitions produce a measured interruption; this is not a
+zero-downtime claim. Recovery is observed by 200 ms polling with a 2 s request
+deadline. Raw availability observations are retained.
+
+Sanitized raw records, source/job provenance, asset and image manifests, runtime
+manifest bytes, phase invariants and independent audits live in
+`deployment-standalone/` and `deployment-multiuser/`. They exclude credentials,
+browser storage, private authentication snapshots and signed URLs. Full static
+builds and screenshots remain in the seven-day Actions artifacts.
+
+The two gates covered here—editor acceptance and deployment/rollback
+qualification—are complete. Browser/provider/device gaps and release delivery
+remain separate work tracked in issue #14572; no KEP approval is required.

@@ -3,10 +3,20 @@
   "expectedConfigId": "sha256:41c9cb61b22236af12ce954e13bfa992139989918f6a4118f5293a742d992f81",
   "pods": [
     {
-      "uid": "c9096b9e-6d1b-4bdc-9d1b-fea8f08d2091",
+      "uid": "60df92ed-8f5f-4b86-9973-950a12a9a11a",
       "node": "kfp-control-plane",
       "imageId": "localhost:5001/kfp-frontend@sha256:f8e9ba3e5f3b31805efbab979542cb22ec27ecec10ca40a7b34dfc619e0c808b",
       "ready": true,
+      "mesh": {
+        "uid": "60df92ed-8f5f-4b86-9973-950a12a9a11a",
+        "serviceAccount": "ml-pipeline-ui",
+        "initOrder": [
+          "istio-validation",
+          "istio-proxy"
+        ],
+        "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+        "proxyReady": true
+      },
       "verification": {
         "method": "manifest-digest",
         "reportedImageId": "localhost:5001/kfp-frontend@sha256:f8e9ba3e5f3b31805efbab979542cb22ec27ecec10ca40a7b34dfc619e0c808b"

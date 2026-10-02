@@ -1,0 +1,2737 @@
+{
+  "ownerCreateAllowed": {
+    "kubeflow-user-example-com": true,
+    "kfp-qualification-second": true,
+    "kfp-qualification-other": true
+  },
+  "roles": {
+    "aggregate-to-kubeflow-pipelines-edit": {
+      "labels": {
+        "app.kubernetes.io/component": "ml-pipeline",
+        "app.kubernetes.io/name": "kubeflow-pipelines",
+        "application-crd-id": "kubeflow-pipelines",
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-edit": "true"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "experiments"
+          ],
+          "verbs": [
+            "archive",
+            "create",
+            "delete",
+            "unarchive"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "update",
+            "archive",
+            "create",
+            "delete",
+            "retry",
+            "terminate",
+            "unarchive",
+            "reportMetrics",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "jobs"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "disable",
+            "enable"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "scheduledworkflows"
+          ],
+          "verbs": [
+            "*"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "create",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "argoproj.io"
+          ],
+          "resources": [
+            "cronworkflows",
+            "cronworkflows/finalizers",
+            "workflows",
+            "workflows/finalizers",
+            "workfloweventbindings",
+            "workflowtemplates",
+            "workflowtaskresults"
+          ],
+          "verbs": [
+            "*"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create"
+          ]
+        }
+      ]
+    },
+    "aggregate-to-kubeflow-pipelines-view": {
+      "labels": {
+        "app.kubernetes.io/component": "ml-pipeline",
+        "app.kubernetes.io/name": "kubeflow-pipelines",
+        "application-crd-id": "kubeflow-pipelines",
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-view": "true"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions",
+            "experiments",
+            "jobs"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "get"
+          ]
+        }
+      ]
+    },
+    "kubeflow-admin": {
+      "labels": {},
+      "aggregationRule": {
+        "clusterRoleSelectors": [
+          {
+            "matchLabels": {
+              "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-admin": "true"
+            }
+          }
+        ]
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "pods",
+            "pods/log",
+            "secrets",
+            "events",
+            "persistentvolumeclaims",
+            "services"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments",
+            "replicasets"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "istio.io",
+            "networking.istio.io"
+          ],
+          "resources": [
+            "*"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods/attach",
+            "pods/exec",
+            "pods/portforward",
+            "pods/proxy",
+            "secrets",
+            "services/proxy"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods",
+            "pods/attach",
+            "pods/exec",
+            "pods/portforward",
+            "pods/proxy"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "endpoints",
+            "persistentvolumeclaims",
+            "replicationcontrollers",
+            "replicationcontrollers/scale",
+            "secrets",
+            "serviceaccounts",
+            "services",
+            "services/proxy"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "daemonsets",
+            "deployments",
+            "deployments/rollback",
+            "deployments/scale",
+            "replicasets",
+            "replicasets/scale",
+            "statefulsets",
+            "statefulsets/scale"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "autoscaling"
+          ],
+          "resources": [
+            "horizontalpodautoscalers"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs",
+            "jobs"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "extensions"
+          ],
+          "resources": [
+            "daemonsets",
+            "deployments",
+            "deployments/rollback",
+            "deployments/scale",
+            "ingresses",
+            "networkpolicies",
+            "replicasets",
+            "replicasets/scale",
+            "replicationcontrollers/scale"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "policy"
+          ],
+          "resources": [
+            "poddisruptionbudgets"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "networking.k8s.io"
+          ],
+          "resources": [
+            "ingresses",
+            "networkpolicies"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "experiments"
+          ],
+          "verbs": [
+            "archive",
+            "create",
+            "delete",
+            "unarchive"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "update",
+            "archive",
+            "create",
+            "delete",
+            "retry",
+            "terminate",
+            "unarchive",
+            "reportMetrics",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "jobs"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "disable",
+            "enable"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "scheduledworkflows"
+          ],
+          "verbs": [
+            "*"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "create",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "argoproj.io"
+          ],
+          "resources": [
+            "cronworkflows",
+            "cronworkflows/finalizers",
+            "workflows",
+            "workflows/finalizers",
+            "workfloweventbindings",
+            "workflowtemplates",
+            "workflowtaskresults"
+          ],
+          "verbs": [
+            "*"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions",
+            "experiments",
+            "jobs"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "get"
+          ]
+        },
+        {
+          "apiGroups": [
+            "security.istio.io"
+          ],
+          "resources": [
+            "authorizationpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "endpoints",
+            "persistentvolumeclaims",
+            "persistentvolumeclaims/status",
+            "pods",
+            "replicationcontrollers",
+            "replicationcontrollers/scale",
+            "serviceaccounts",
+            "services",
+            "services/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "bindings",
+            "events",
+            "limitranges",
+            "namespaces/status",
+            "pods/log",
+            "pods/status",
+            "replicationcontrollers/status",
+            "resourcequotas",
+            "resourcequotas/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "namespaces"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "controllerrevisions",
+            "daemonsets",
+            "daemonsets/status",
+            "deployments",
+            "deployments/scale",
+            "deployments/status",
+            "replicasets",
+            "replicasets/scale",
+            "replicasets/status",
+            "statefulsets",
+            "statefulsets/scale",
+            "statefulsets/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "autoscaling"
+          ],
+          "resources": [
+            "horizontalpodautoscalers",
+            "horizontalpodautoscalers/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs",
+            "cronjobs/status",
+            "jobs",
+            "jobs/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "extensions"
+          ],
+          "resources": [
+            "daemonsets",
+            "daemonsets/status",
+            "deployments",
+            "deployments/scale",
+            "deployments/status",
+            "ingresses",
+            "ingresses/status",
+            "networkpolicies",
+            "replicasets",
+            "replicasets/scale",
+            "replicasets/status",
+            "replicationcontrollers/scale"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "policy"
+          ],
+          "resources": [
+            "poddisruptionbudgets",
+            "poddisruptionbudgets/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "networking.k8s.io"
+          ],
+          "resources": [
+            "ingresses",
+            "ingresses/status",
+            "networkpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "authorization.k8s.io"
+          ],
+          "resources": [
+            "localsubjectaccessreviews"
+          ],
+          "verbs": [
+            "create"
+          ]
+        },
+        {
+          "apiGroups": [
+            "rbac.authorization.k8s.io"
+          ],
+          "resources": [
+            "rolebindings",
+            "roles"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "get",
+            "list",
+            "patch",
+            "update",
+            "watch"
+          ]
+        }
+      ]
+    },
+    "kubeflow-edit": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-admin": "true"
+      },
+      "aggregationRule": {
+        "clusterRoleSelectors": [
+          {
+            "matchLabels": {
+              "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit": "true"
+            }
+          }
+        ]
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "pods",
+            "pods/log",
+            "secrets",
+            "events",
+            "persistentvolumeclaims",
+            "services"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments",
+            "replicasets"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "istio.io",
+            "networking.istio.io"
+          ],
+          "resources": [
+            "*"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods/attach",
+            "pods/exec",
+            "pods/portforward",
+            "pods/proxy",
+            "secrets",
+            "services/proxy"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods",
+            "pods/attach",
+            "pods/exec",
+            "pods/portforward",
+            "pods/proxy"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "endpoints",
+            "persistentvolumeclaims",
+            "replicationcontrollers",
+            "replicationcontrollers/scale",
+            "secrets",
+            "serviceaccounts",
+            "services",
+            "services/proxy"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "daemonsets",
+            "deployments",
+            "deployments/rollback",
+            "deployments/scale",
+            "replicasets",
+            "replicasets/scale",
+            "statefulsets",
+            "statefulsets/scale"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "autoscaling"
+          ],
+          "resources": [
+            "horizontalpodautoscalers"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs",
+            "jobs"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "extensions"
+          ],
+          "resources": [
+            "daemonsets",
+            "deployments",
+            "deployments/rollback",
+            "deployments/scale",
+            "ingresses",
+            "networkpolicies",
+            "replicasets",
+            "replicasets/scale",
+            "replicationcontrollers/scale"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "policy"
+          ],
+          "resources": [
+            "poddisruptionbudgets"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "networking.k8s.io"
+          ],
+          "resources": [
+            "ingresses",
+            "networkpolicies"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "experiments"
+          ],
+          "verbs": [
+            "archive",
+            "create",
+            "delete",
+            "unarchive"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "update",
+            "archive",
+            "create",
+            "delete",
+            "retry",
+            "terminate",
+            "unarchive",
+            "reportMetrics",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "jobs"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "disable",
+            "enable"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "scheduledworkflows"
+          ],
+          "verbs": [
+            "*"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "create",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "argoproj.io"
+          ],
+          "resources": [
+            "cronworkflows",
+            "cronworkflows/finalizers",
+            "workflows",
+            "workflows/finalizers",
+            "workfloweventbindings",
+            "workflowtemplates",
+            "workflowtaskresults"
+          ],
+          "verbs": [
+            "*"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions",
+            "experiments",
+            "jobs"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "get"
+          ]
+        },
+        {
+          "apiGroups": [
+            "security.istio.io"
+          ],
+          "resources": [
+            "authorizationpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "endpoints",
+            "persistentvolumeclaims",
+            "persistentvolumeclaims/status",
+            "pods",
+            "replicationcontrollers",
+            "replicationcontrollers/scale",
+            "serviceaccounts",
+            "services",
+            "services/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "bindings",
+            "events",
+            "limitranges",
+            "namespaces/status",
+            "pods/log",
+            "pods/status",
+            "replicationcontrollers/status",
+            "resourcequotas",
+            "resourcequotas/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "namespaces"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "controllerrevisions",
+            "daemonsets",
+            "daemonsets/status",
+            "deployments",
+            "deployments/scale",
+            "deployments/status",
+            "replicasets",
+            "replicasets/scale",
+            "replicasets/status",
+            "statefulsets",
+            "statefulsets/scale",
+            "statefulsets/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "autoscaling"
+          ],
+          "resources": [
+            "horizontalpodautoscalers",
+            "horizontalpodautoscalers/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs",
+            "cronjobs/status",
+            "jobs",
+            "jobs/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "extensions"
+          ],
+          "resources": [
+            "daemonsets",
+            "daemonsets/status",
+            "deployments",
+            "deployments/scale",
+            "deployments/status",
+            "ingresses",
+            "ingresses/status",
+            "networkpolicies",
+            "replicasets",
+            "replicasets/scale",
+            "replicasets/status",
+            "replicationcontrollers/scale"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "policy"
+          ],
+          "resources": [
+            "poddisruptionbudgets",
+            "poddisruptionbudgets/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "networking.k8s.io"
+          ],
+          "resources": [
+            "ingresses",
+            "ingresses/status",
+            "networkpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        }
+      ]
+    },
+    "kubeflow-edit-basic-permissions": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit": "true"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "pods",
+            "pods/log",
+            "secrets",
+            "events",
+            "persistentvolumeclaims",
+            "services"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments",
+            "replicasets"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        }
+      ]
+    },
+    "kubeflow-istio-admin": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-admin": "true"
+      },
+      "aggregationRule": {
+        "clusterRoleSelectors": [
+          {
+            "matchLabels": {
+              "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-istio-admin": "true"
+            }
+          }
+        ]
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "istio.io",
+            "networking.istio.io"
+          ],
+          "resources": [
+            "*"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        }
+      ]
+    },
+    "kubeflow-istio-edit": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit": "true",
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-istio-admin": "true"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            "istio.io",
+            "networking.istio.io"
+          ],
+          "resources": [
+            "*"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        }
+      ]
+    },
+    "kubeflow-istio-view": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view": "true"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            "istio.io",
+            "networking.istio.io"
+          ],
+          "resources": [
+            "*"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "security.istio.io"
+          ],
+          "resources": [
+            "authorizationpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        }
+      ]
+    },
+    "kubeflow-kubernetes-admin": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-admin": "true"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            "authorization.k8s.io"
+          ],
+          "resources": [
+            "localsubjectaccessreviews"
+          ],
+          "verbs": [
+            "create"
+          ]
+        },
+        {
+          "apiGroups": [
+            "rbac.authorization.k8s.io"
+          ],
+          "resources": [
+            "rolebindings",
+            "roles"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "get",
+            "list",
+            "patch",
+            "update",
+            "watch"
+          ]
+        }
+      ]
+    },
+    "kubeflow-kubernetes-edit": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit": "true"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods/attach",
+            "pods/exec",
+            "pods/portforward",
+            "pods/proxy",
+            "secrets",
+            "services/proxy"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods",
+            "pods/attach",
+            "pods/exec",
+            "pods/portforward",
+            "pods/proxy"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "endpoints",
+            "persistentvolumeclaims",
+            "replicationcontrollers",
+            "replicationcontrollers/scale",
+            "secrets",
+            "serviceaccounts",
+            "services",
+            "services/proxy"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "daemonsets",
+            "deployments",
+            "deployments/rollback",
+            "deployments/scale",
+            "replicasets",
+            "replicasets/scale",
+            "statefulsets",
+            "statefulsets/scale"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "autoscaling"
+          ],
+          "resources": [
+            "horizontalpodautoscalers"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs",
+            "jobs"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "extensions"
+          ],
+          "resources": [
+            "daemonsets",
+            "deployments",
+            "deployments/rollback",
+            "deployments/scale",
+            "ingresses",
+            "networkpolicies",
+            "replicasets",
+            "replicasets/scale",
+            "replicationcontrollers/scale"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "policy"
+          ],
+          "resources": [
+            "poddisruptionbudgets"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "networking.k8s.io"
+          ],
+          "resources": [
+            "ingresses",
+            "networkpolicies"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "deletecollection",
+            "patch",
+            "update"
+          ]
+        }
+      ]
+    },
+    "kubeflow-kubernetes-view": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view": "true"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "endpoints",
+            "persistentvolumeclaims",
+            "persistentvolumeclaims/status",
+            "pods",
+            "replicationcontrollers",
+            "replicationcontrollers/scale",
+            "serviceaccounts",
+            "services",
+            "services/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "bindings",
+            "events",
+            "limitranges",
+            "namespaces/status",
+            "pods/log",
+            "pods/status",
+            "replicationcontrollers/status",
+            "resourcequotas",
+            "resourcequotas/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "namespaces"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "controllerrevisions",
+            "daemonsets",
+            "daemonsets/status",
+            "deployments",
+            "deployments/scale",
+            "deployments/status",
+            "replicasets",
+            "replicasets/scale",
+            "replicasets/status",
+            "statefulsets",
+            "statefulsets/scale",
+            "statefulsets/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "autoscaling"
+          ],
+          "resources": [
+            "horizontalpodautoscalers",
+            "horizontalpodautoscalers/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs",
+            "cronjobs/status",
+            "jobs",
+            "jobs/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "extensions"
+          ],
+          "resources": [
+            "daemonsets",
+            "daemonsets/status",
+            "deployments",
+            "deployments/scale",
+            "deployments/status",
+            "ingresses",
+            "ingresses/status",
+            "networkpolicies",
+            "replicasets",
+            "replicasets/scale",
+            "replicasets/status",
+            "replicationcontrollers/scale"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "policy"
+          ],
+          "resources": [
+            "poddisruptionbudgets",
+            "poddisruptionbudgets/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "networking.k8s.io"
+          ],
+          "resources": [
+            "ingresses",
+            "ingresses/status",
+            "networkpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        }
+      ]
+    },
+    "kubeflow-metacontroller": {
+      "labels": {
+        "application-crd-id": "kubeflow-pipelines",
+        "kustomize.component": "metacontroller"
+      },
+      "aggregationRule": null,
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "namespaces"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "namespaces/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch",
+            "update",
+            "patch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "secrets",
+            "configmaps"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "services"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "networking.istio.io"
+          ],
+          "resources": [
+            "destinationrules"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "security.istio.io"
+          ],
+          "resources": [
+            "authorizationpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch",
+            "create",
+            "update",
+            "patch",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "metacontroller.k8s.io"
+          ],
+          "resources": [
+            "compositecontrollers",
+            "controllerrevisions",
+            "decoratorcontrollers"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "events"
+          ],
+          "verbs": [
+            "create",
+            "patch"
+          ]
+        }
+      ]
+    },
+    "kubeflow-pipelines-edit": {
+      "labels": {
+        "app.kubernetes.io/component": "ml-pipeline",
+        "app.kubernetes.io/name": "kubeflow-pipelines",
+        "application-crd-id": "kubeflow-pipelines",
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit": "true"
+      },
+      "aggregationRule": {
+        "clusterRoleSelectors": [
+          {
+            "matchLabels": {
+              "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-edit": "true"
+            }
+          }
+        ]
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "update"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "experiments"
+          ],
+          "verbs": [
+            "archive",
+            "create",
+            "delete",
+            "unarchive"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "update",
+            "archive",
+            "create",
+            "delete",
+            "retry",
+            "terminate",
+            "unarchive",
+            "reportMetrics",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "jobs"
+          ],
+          "verbs": [
+            "create",
+            "delete",
+            "disable",
+            "enable"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "scheduledworkflows"
+          ],
+          "verbs": [
+            "*"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "create",
+            "delete"
+          ]
+        },
+        {
+          "apiGroups": [
+            "argoproj.io"
+          ],
+          "resources": [
+            "cronworkflows",
+            "cronworkflows/finalizers",
+            "workflows",
+            "workflows/finalizers",
+            "workfloweventbindings",
+            "workflowtemplates",
+            "workflowtaskresults"
+          ],
+          "verbs": [
+            "*"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "create"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions",
+            "experiments",
+            "jobs"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "get"
+          ]
+        }
+      ]
+    },
+    "kubeflow-pipelines-view": {
+      "labels": {
+        "app.kubernetes.io/component": "ml-pipeline",
+        "app.kubernetes.io/name": "kubeflow-pipelines",
+        "application-crd-id": "kubeflow-pipelines",
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-edit": "true",
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view": "true"
+      },
+      "aggregationRule": {
+        "clusterRoleSelectors": [
+          {
+            "matchLabels": {
+              "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-pipelines-view": "true"
+            }
+          }
+        ]
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions",
+            "experiments",
+            "jobs"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "get"
+          ]
+        }
+      ]
+    },
+    "kubeflow-view": {
+      "labels": {
+        "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit": "true"
+      },
+      "aggregationRule": {
+        "clusterRoleSelectors": [
+          {
+            "matchLabels": {
+              "rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view": "true"
+            }
+          }
+        ]
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "istio.io",
+            "networking.istio.io"
+          ],
+          "resources": [
+            "*"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "security.istio.io"
+          ],
+          "resources": [
+            "authorizationpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps",
+            "endpoints",
+            "persistentvolumeclaims",
+            "persistentvolumeclaims/status",
+            "pods",
+            "replicationcontrollers",
+            "replicationcontrollers/scale",
+            "serviceaccounts",
+            "services",
+            "services/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "bindings",
+            "events",
+            "limitranges",
+            "namespaces/status",
+            "pods/log",
+            "pods/status",
+            "replicationcontrollers/status",
+            "resourcequotas",
+            "resourcequotas/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "namespaces"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "controllerrevisions",
+            "daemonsets",
+            "daemonsets/status",
+            "deployments",
+            "deployments/scale",
+            "deployments/status",
+            "replicasets",
+            "replicasets/scale",
+            "replicasets/status",
+            "statefulsets",
+            "statefulsets/scale",
+            "statefulsets/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "autoscaling"
+          ],
+          "resources": [
+            "horizontalpodautoscalers",
+            "horizontalpodautoscalers/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "batch"
+          ],
+          "resources": [
+            "cronjobs",
+            "cronjobs/status",
+            "jobs",
+            "jobs/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "extensions"
+          ],
+          "resources": [
+            "daemonsets",
+            "daemonsets/status",
+            "deployments",
+            "deployments/scale",
+            "deployments/status",
+            "ingresses",
+            "ingresses/status",
+            "networkpolicies",
+            "replicasets",
+            "replicasets/scale",
+            "replicasets/status",
+            "replicationcontrollers/scale"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "policy"
+          ],
+          "resources": [
+            "poddisruptionbudgets",
+            "poddisruptionbudgets/status"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "networking.k8s.io"
+          ],
+          "resources": [
+            "ingresses",
+            "ingresses/status",
+            "networkpolicies"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "pipelines",
+            "pipelineversions",
+            "experiments",
+            "jobs"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "runs"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "readArtifact",
+            "readLog"
+          ]
+        },
+        {
+          "apiGroups": [
+            "pipelines.kubeflow.org"
+          ],
+          "resources": [
+            "artifacts"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        },
+        {
+          "apiGroups": [
+            "kubeflow.org"
+          ],
+          "resources": [
+            "viewers"
+          ],
+          "verbs": [
+            "get"
+          ]
+        }
+      ]
+    }
+  },
+  "profiles": {
+    "kubeflow-user-example-com": {
+      "owner": {
+        "kind": "User",
+        "name": "user@example.com"
+      },
+      "namespaceOwner": "user@example.com",
+      "status": null,
+      "bindings": {
+        "default-editor": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-edit"
+          },
+          "subjects": [
+            {
+              "kind": "ServiceAccount",
+              "name": "default-editor",
+              "namespace": "kubeflow-user-example-com"
+            }
+          ]
+        },
+        "default-viewer": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-view"
+          },
+          "subjects": [
+            {
+              "kind": "ServiceAccount",
+              "name": "default-viewer",
+              "namespace": "kubeflow-user-example-com"
+            }
+          ]
+        },
+        "namespaceAdmin": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-admin"
+          },
+          "subjects": [
+            {
+              "apiGroup": "rbac.authorization.k8s.io",
+              "kind": "User",
+              "name": "user@example.com"
+            }
+          ]
+        }
+      }
+    },
+    "kfp-qualification-second": {
+      "owner": {
+        "kind": "User",
+        "name": "user@example.com"
+      },
+      "namespaceOwner": "user@example.com",
+      "status": null,
+      "bindings": {
+        "default-editor": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-edit"
+          },
+          "subjects": [
+            {
+              "kind": "ServiceAccount",
+              "name": "default-editor",
+              "namespace": "kfp-qualification-second"
+            }
+          ]
+        },
+        "default-viewer": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-view"
+          },
+          "subjects": [
+            {
+              "kind": "ServiceAccount",
+              "name": "default-viewer",
+              "namespace": "kfp-qualification-second"
+            }
+          ]
+        },
+        "namespaceAdmin": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-admin"
+          },
+          "subjects": [
+            {
+              "apiGroup": "rbac.authorization.k8s.io",
+              "kind": "User",
+              "name": "user@example.com"
+            }
+          ]
+        }
+      }
+    },
+    "kfp-qualification-other": {
+      "owner": {
+        "kind": "User",
+        "name": "other@example.com"
+      },
+      "namespaceOwner": "other@example.com",
+      "status": null,
+      "bindings": {
+        "default-editor": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-edit"
+          },
+          "subjects": [
+            {
+              "kind": "ServiceAccount",
+              "name": "default-editor",
+              "namespace": "kfp-qualification-other"
+            }
+          ]
+        },
+        "default-viewer": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-view"
+          },
+          "subjects": [
+            {
+              "kind": "ServiceAccount",
+              "name": "default-viewer",
+              "namespace": "kfp-qualification-other"
+            }
+          ]
+        },
+        "namespaceAdmin": {
+          "roleRef": {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "ClusterRole",
+            "name": "kubeflow-admin"
+          },
+          "subjects": [
+            {
+              "apiGroup": "rbac.authorization.k8s.io",
+              "kind": "User",
+              "name": "other@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "profileControllerErrors": []
+}

@@ -1,0 +1,89 @@
+{
+  "mysql": [
+    {
+      "uid": "f7bf8ebf-e9d6-4751-b232-768fd581d568",
+      "serviceAccount": "mysql",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    }
+  ],
+  "seaweedfs": [
+    {
+      "uid": "fbb91ac6-77a5-486d-aaae-0838416e102d",
+      "serviceAccount": "seaweedfs",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    }
+  ],
+  "ml-pipeline": [
+    {
+      "uid": "4efc531a-0ce2-4a50-bf5c-3a84d79c5927",
+      "serviceAccount": "ml-pipeline",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy",
+        "wait-for-database"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    }
+  ],
+  "ml-pipeline-ui": [
+    {
+      "uid": "4f9896ca-12f6-440d-8f28-f018a9ed2c9b",
+      "serviceAccount": "ml-pipeline-ui",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    }
+  ],
+  "ml-pipeline-persistenceagent": [
+    {
+      "uid": "cf211123-9443-48bb-8075-6b64b0e1063d",
+      "serviceAccount": "ml-pipeline-persistenceagent",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy",
+        "wait-for-ml-pipeline"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    }
+  ],
+  "ml-pipeline-scheduledworkflow": [
+    {
+      "uid": "3f673b0b-8568-4918-a7f6-3b1311c4b8b3",
+      "serviceAccount": "ml-pipeline-scheduledworkflow",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy",
+        "wait-for-ml-pipeline"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    }
+  ],
+  "ml-pipeline-viewer-crd": [
+    {
+      "uid": "585ecf70-dd3e-4072-a6a2-43fee44d0a8b",
+      "serviceAccount": "ml-pipeline-viewer-crd-service-account",
+      "initOrder": [
+        "istio-validation",
+        "istio-proxy"
+      ],
+      "proxyImageId": "registry.istio.io/release/proxyv2@sha256:180f7cf94fbafc3d49879e48eb180b4bb274d0c8993b7328c93a2e84378d766c",
+      "proxyReady": true
+    }
+  ]
+}
