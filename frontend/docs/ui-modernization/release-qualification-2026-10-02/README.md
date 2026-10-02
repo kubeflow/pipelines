@@ -56,7 +56,19 @@ remain available in the repository after artifact expiration.
 
 ## Deployment and rollback
 
-Qualification is pending. Successful performance measurements do not establish
-backend compatibility, authenticated namespace isolation or rollback safety.
-The deployment rehearsal result and independently checked image/state evidence
-will be added after both hosted modes complete.
+Standalone qualification passes in [run 37060216956](https://github.com/kubeflow/pipelines/actions/runs/37060216956),
+implementation head `aa925258a3ae78faca5541cb7957570b1ea9526e`, tested merge
+`2388b2182a881e236f2f959e2f5f304f7f289d5e`. All 18 checks pass through legacy,
+candidate and restored legacy phases. Independent verification covers immutable
+image/config identities, exact runtime index and child-manifest hashes, static
+assets, unchanged backend/RBAC/signing state, preserved resources/preferences,
+old signed TensorBoard access, and exact restoration of the captured UI template.
+
+The Recreate transitions produce a measured interruption; recovery upper bounds
+are 42.613 seconds for upgrade and 38.064 seconds for rollback. This is not a
+zero-downtime claim. Sanitized records and their independent audit are retained
+in `deployment-standalone/`; full static builds remain in the seven-day artifact.
+
+Authenticated multi-user qualification remains pending. Standalone success does
+not establish its namespace isolation or authorization behavior. Its result and
+verified state evidence will be added after the hosted rehearsal completes.

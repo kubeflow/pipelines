@@ -1,0 +1,2440 @@
+{
+  "passed": true,
+  "mode": "standalone",
+  "sourceSha": "2388b2182a881e236f2f959e2f5f304f7f289d5e",
+  "runId": "37060216956",
+  "checks": 18,
+  "assetCounts": {
+    "legacy": 6,
+    "candidate": 22
+  },
+  "rawManifests": {
+    "be3f94d0624dbd24f95ab74267e4c5c9ca830cfece9ab241751b6b4d30fca041.json": "be3f94d0624dbd24f95ab74267e4c5c9ca830cfece9ab241751b6b4d30fca041",
+    "ad0fd6dafe00d4b211e16671ba67661abd0ab51b0500f34d7c6b131c7d201144.json": "ad0fd6dafe00d4b211e16671ba67661abd0ab51b0500f34d7c6b131c7d201144"
+  },
+  "availability": {
+    "candidate": {
+      "samples": [
+        {
+          "offsetMs": 226895.75308,
+          "durationMs": 11.976468000008026,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 227100.700357,
+          "durationMs": 4.364964000007603,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 227304.843757,
+          "durationMs": 4.51814000000013,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 227508.921977,
+          "durationMs": 4.4262999999918975,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 227713.905687,
+          "durationMs": 5.387440999998944,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 227917.648327,
+          "durationMs": 4.213197000004584,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 228122.131457,
+          "durationMs": 4.634947000013199,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 228326.985411,
+          "durationMs": 4.223496999999043,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 228531.912167,
+          "durationMs": 4.2888180000009015,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 228736.096349,
+          "durationMs": 4.505807999987155,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 228941.963065,
+          "durationMs": 5.19315700000152,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 229146.263352,
+          "durationMs": 3.75460500002373,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 229351.694673,
+          "durationMs": 4.893383999995422,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 229555.9026,
+          "durationMs": 4.502483999996912,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 229759.385547,
+          "durationMs": 3.8466780000017025,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 229963.5137,
+          "durationMs": 4.337367000000086,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 230167.132668,
+          "durationMs": 4.064645000005839,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 230371.380815,
+          "durationMs": 3.7099379999854136,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 230575.60262,
+          "durationMs": 3.6151689999969676,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 230778.827013,
+          "durationMs": 3.641494999988936,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 230983.204951,
+          "durationMs": 4.445286000001943,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 231188.629254,
+          "durationMs": 4.790412000002107,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 231392.877969,
+          "durationMs": 4.206925000005867,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 231597.092749,
+          "durationMs": 4.6391550000116695,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 231802.018843,
+          "durationMs": 4.8665299999993294,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 232007.412841,
+          "durationMs": 4.726754000002984,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 232212.01358,
+          "durationMs": 4.93291699999827,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 232436.457477,
+          "durationMs": 24.47580799998832,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 232640.315367,
+          "durationMs": 4.243209999985993,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 232843.722146,
+          "durationMs": 3.7526850000140257,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 233135.736788,
+          "durationMs": 92.42393700001412,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 233339.783162,
+          "durationMs": 4.403533000004245,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 233543.57474,
+          "durationMs": 4.1584900000016205,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 233748.310732,
+          "durationMs": 5.102696999994805,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 233953.667842,
+          "durationMs": 4.806668999983231,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 234158.523993,
+          "durationMs": 5.157613000017591,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 234363.123399,
+          "durationMs": 4.926708999992115,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 234569.025154,
+          "durationMs": 5.232378999993671,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 234774.541017,
+          "durationMs": 4.563741999998456,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 234978.745672,
+          "durationMs": 4.567165999993449,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 235182.865378,
+          "durationMs": 4.544936999998754,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 235387.203375,
+          "durationMs": 4.636597000004258,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 235592.597656,
+          "durationMs": 4.692194000002928,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 235797.480323,
+          "durationMs": 4.892244999995455,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 236001.74274,
+          "durationMs": 4.590523000020767,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 236205.442195,
+          "durationMs": 4.26427899999544,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 236410.353148,
+          "durationMs": 4.370985999994446,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 236614.619795,
+          "durationMs": 4.333367999992333,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 236819.502834,
+          "durationMs": 5.245620000001509,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 237023.899832,
+          "durationMs": 4.740740000008373,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 237228.019707,
+          "durationMs": 4.405473999999231,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 237432.456263,
+          "durationMs": 3.8963979999825824,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 237636.204476,
+          "durationMs": 3.9292849999910686,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 237841.584111,
+          "durationMs": 4.786072000017157,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 238046.087437,
+          "durationMs": 4.780674999987241,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 238251.666721,
+          "durationMs": 4.850116999994498,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 238455.829721,
+          "durationMs": 4.521607000002405,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 238660.487051,
+          "durationMs": 4.773315999977058,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 238865.233814,
+          "durationMs": 5.110056000004988,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 239071.343439,
+          "durationMs": 5.463000000017928,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 239277.705452,
+          "durationMs": 5.6990939999814145,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 239482.225829,
+          "durationMs": 4.877722000004724,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 239687.284775,
+          "durationMs": 5.069504999992205,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 239892.982281,
+          "durationMs": 5.007865999999922,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 240098.519958,
+          "durationMs": 4.885737000004156,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 240303.286032,
+          "durationMs": 5.1552300000039395,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 240508.779414,
+          "durationMs": 4.779614999977639,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 240713.40131,
+          "durationMs": 4.532126000005519,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 240917.884085,
+          "durationMs": 4.777526999998372,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 241122.058967,
+          "durationMs": 4.520714000012958,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 241327.536638,
+          "durationMs": 4.918197999999393,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 241532.209519,
+          "durationMs": 4.796258999995189,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 241737.829942,
+          "durationMs": 4.938572999992175,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 242030.403588,
+          "durationMs": 92.9136770000041,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 242234.579503,
+          "durationMs": 4.497742000006838,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 242544.952269,
+          "durationMs": 110.70746400000644,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 242750.077438,
+          "durationMs": 4.509282999992138,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 242953.765528,
+          "durationMs": 4.0916290000022855,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 243157.651987,
+          "durationMs": 4.2083200000051875,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 243361.340457,
+          "durationMs": 4.1363060000003316,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 243565.517418,
+          "durationMs": 3.559382999985246,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 243767.971972,
+          "durationMs": 3.8235229999991134,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 243972.57396,
+          "durationMs": 3.9107049999875017,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 244174.960949,
+          "durationMs": 3.860735000023851,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 244378.469659,
+          "durationMs": 3.7259590000030585,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 244581.186312,
+          "durationMs": 3.779523999983212,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 244784.389577,
+          "durationMs": 3.40271299998858,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 244987.449699,
+          "durationMs": 3.5004720000142697,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 245189.48144,
+          "durationMs": 3.312066999991657,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 245391.578127,
+          "durationMs": 3.5052299999806564,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 245595.315706,
+          "durationMs": 3.8285669999895617,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 245799.492664,
+          "durationMs": 3.4825940000009723,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 246002.605516,
+          "durationMs": 3.4456200000131503,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 246205.215561,
+          "durationMs": 3.717214000003878,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 246408.95221,
+          "durationMs": 4.180041000014171,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 246612.241941,
+          "durationMs": 3.6490089999861084,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 246816.430098,
+          "durationMs": 4.33953600001405,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 247020.005776,
+          "durationMs": 4.841806999989785,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 247348.278299,
+          "durationMs": 128.66407599998638,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 247552.229036,
+          "durationMs": 4.765121999982512,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 247757.821984,
+          "durationMs": 4.957481999997981,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 247962.121117,
+          "durationMs": 4.676826000009896,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 248166.793313,
+          "durationMs": 4.92386800001259,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 248369.312898,
+          "durationMs": 3.9010529999795835,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 248804.105721,
+          "durationMs": 234.80121000000509,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 249007.857253,
+          "durationMs": 4.110333999997238,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 249218.7119,
+          "durationMs": 12.164281000004848,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 249422.838417,
+          "durationMs": 4.423326000018278,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 249625.485696,
+          "durationMs": 4.078853000013623,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 249829.656724,
+          "durationMs": 4.2366239999828395,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 250033.086658,
+          "durationMs": 3.6705690000089817,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 250236.821989,
+          "durationMs": 3.986200999992434,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 250439.445096,
+          "durationMs": 4.023065999994287,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 250643.506134,
+          "durationMs": 4.374990999989677,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 250847.057306,
+          "durationMs": 4.571318000002066,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 251050.87595,
+          "durationMs": 3.1458200000051875,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 251256.236306,
+          "durationMs": 6.777682000014465,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 251461.641758,
+          "durationMs": 4.779708999994909,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 251666.584488,
+          "durationMs": 6.243678999977419,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 251870.407447,
+          "durationMs": 5.031817000010051,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 252075.704934,
+          "durationMs": 5.5081110000028275,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 252284.515031,
+          "durationMs": 10.207999000005657,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 252489.480707,
+          "durationMs": 5.098850999987917,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 252694.10237,
+          "durationMs": 4.52753500000108,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 252900.098691,
+          "durationMs": 5.072597999998834,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 253104.749455,
+          "durationMs": 5.11749500001315,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 253308.378453,
+          "durationMs": 4.920146999997087,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 253512.572683,
+          "durationMs": 5.386399999988498,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 253717.810443,
+          "durationMs": 5.469007999985479,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 253921.508498,
+          "durationMs": 4.782183000002988,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 254125.50014,
+          "durationMs": 4.339023000007728,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 254329.325942,
+          "durationMs": 4.267189999984112,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 254533.153817,
+          "durationMs": 4.075760000006994,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 254738.070036,
+          "durationMs": 4.202044000005117,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 254943.131231,
+          "durationMs": 4.286812000005739,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 255146.743334,
+          "durationMs": 3.9948569999833126,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 255349.567869,
+          "durationMs": 4.126720000000205,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 255552.914108,
+          "durationMs": 4.639119000028586,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 255757.014236,
+          "durationMs": 4.372778999997536,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 255962.527241,
+          "durationMs": 4.675989999988815,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 256168.105411,
+          "durationMs": 5.213515000010375,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 256372.450189,
+          "durationMs": 4.580051999975694,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 256577.189275,
+          "durationMs": 4.837608000001637,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 257009.703966,
+          "durationMs": 232.6916659999988,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 257227.13737,
+          "durationMs": 18.632760999986203,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 257432.713829,
+          "durationMs": 4.860085000022082,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 257637.620825,
+          "durationMs": 5.2842819999787025,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 257841.559041,
+          "durationMs": 4.1400379999831785,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 258044.963936,
+          "durationMs": 3.6982180000049993,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 258249.912359,
+          "durationMs": 4.119555999990553,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 258452.704978,
+          "durationMs": 4.160548000014387,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 258799.883876,
+          "durationMs": 147.64174900000216,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 259003.193699,
+          "durationMs": 3.6477949999971315,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 259206.460282,
+          "durationMs": 3.5997819999756757,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 259477.024776,
+          "durationMs": 71.83347499999218,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 259682.262688,
+          "durationMs": 4.511170999991009,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 259886.444075,
+          "durationMs": 4.4925639999855775,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 260091.197108,
+          "durationMs": 5.0160260000266135,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 260295.246548,
+          "durationMs": 4.286588000017218,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 260500.473037,
+          "durationMs": 4.747873000014806,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 260726.334137,
+          "durationMs": 26.205122999992454,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 260930.540475,
+          "durationMs": 4.389310000027763,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 261134.05736,
+          "durationMs": 3.925721000006888,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 261338.61501,
+          "durationMs": 3.886501999979373,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 261542.172809,
+          "durationMs": 3.8452170000236947,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 261751.689784,
+          "durationMs": 8.685765000001993,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 261956.267306,
+          "durationMs": 5.96860100000049,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 262159.495069,
+          "durationMs": 3.4570330000133254,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 262362.816771,
+          "durationMs": 3.816068999993149,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 262566.950405,
+          "durationMs": 4.480706000002101,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 262772.673694,
+          "durationMs": 4.959321999980602,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 262976.507975,
+          "durationMs": 4.204818999976851,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 263180.65322,
+          "durationMs": 4.549597000004724,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 263384.128402,
+          "durationMs": 3.8141279999981634,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 263587.196194,
+          "durationMs": 3.480230000044685,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 263791.969335,
+          "durationMs": 3.973803999950178,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 263997.227359,
+          "durationMs": 4.41235699999379,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 264200.324348,
+          "durationMs": 3.5273680000100285,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 264404.420478,
+          "durationMs": 3.44575299997814,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 264609.065547,
+          "durationMs": 4.873175000015181,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 264814.20914,
+          "durationMs": 4.420210000011139,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 265018.739986,
+          "durationMs": 4.468272000027355,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 265222.441117,
+          "durationMs": 4.0604220000095665,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 265425.808487,
+          "durationMs": 3.763556999969296,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 265629.532702,
+          "durationMs": 4.062521999992896,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 265836.459898,
+          "durationMs": 7.140289000002667,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 266039.596237,
+          "durationMs": 3.1745230000233278,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 266242.734095,
+          "durationMs": 3.5077640000381507,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 266445.064131,
+          "durationMs": 3.6181679999572225,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 266649.398769,
+          "durationMs": 3.5560139999724925,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 266852.81542,
+          "durationMs": 3.749995999969542,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 267054.655134,
+          "durationMs": 3.245549999992363,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 267258.710564,
+          "durationMs": 4.149681999988388,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 267462.417283,
+          "durationMs": 4.070958000025712,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 267666.436064,
+          "durationMs": 4.390086999977939,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 267870.994124,
+          "durationMs": 4.569771999958903,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 268075.112033,
+          "durationMs": 4.778484000009485,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 268278.854438,
+          "durationMs": 4.106041000050027,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 268481.700979,
+          "durationMs": 4.252263000002131,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 268685.148358,
+          "durationMs": 3.831404000055045,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 268889.055275,
+          "durationMs": 3.9067989999894053,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 269093.547356,
+          "durationMs": 3.837878999998793,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 269297.755274,
+          "durationMs": 4.496870000031777,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 269501.74485,
+          "durationMs": 4.286932000017259,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 269709.308291,
+          "durationMs": 7.806450999982189,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 269916.395736,
+          "durationMs": 5.781070999975782,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 270123.605377,
+          "durationMs": 7.391592999978457,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 270328.572912,
+          "durationMs": 6.17978199996287,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 270536.043141,
+          "durationMs": 6.2162200000020675,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 270741.685548,
+          "durationMs": 5.859642000054009,
+          "status": 200,
+          "ready": true
+        }
+      ],
+      "unavailableSamples": 203,
+      "observedUnavailable": true,
+      "observedUnavailableSpanMs": 42401.04449300002,
+      "recoveryUpperBoundMs": 42612.97289800004,
+      "intervalMs": 200,
+      "requestDeadlineMs": 2000,
+      "strategy": "Recreate"
+    },
+    "rollback": {
+      "samples": [
+        {
+          "offsetMs": 363780.783796,
+          "durationMs": 10.344963999988977,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 364001.635281,
+          "durationMs": 19.56495100003667,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 364207.432247,
+          "durationMs": 4.883047999988776,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 364412.789014,
+          "durationMs": 4.761845999979414,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 364616.753224,
+          "durationMs": 4.589937999960966,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 364821.855109,
+          "durationMs": 5.459617999964394,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 365024.884277,
+          "durationMs": 4.396558000007644,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 365229.118271,
+          "durationMs": 4.694844999990892,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 365433.923306,
+          "durationMs": 4.244337000011001,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 365636.825496,
+          "durationMs": 4.1791359999915585,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 365840.012528,
+          "durationMs": 4.512165000021923,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 366043.87828,
+          "durationMs": 4.712163000018336,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 366246.882372,
+          "durationMs": 4.407520999957342,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 366450.111719,
+          "durationMs": 4.47132299997611,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 366654.567697,
+          "durationMs": 4.849201000004541,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 366858.999422,
+          "durationMs": 4.631623999972362,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 367064.226257,
+          "durationMs": 4.608423999976367,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 367269.711558,
+          "durationMs": 4.805608000024222,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 367473.838886,
+          "durationMs": 4.227146000019275,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 367676.980022,
+          "durationMs": 4.421509000007063,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 367881.89559,
+          "durationMs": 4.933637999987695,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 368085.186436,
+          "durationMs": 4.036369999987073,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 368289.765579,
+          "durationMs": 4.588186999957543,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 368493.520212,
+          "durationMs": 4.701681999955326,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 368697.843108,
+          "durationMs": 4.314652999979444,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 368900.930434,
+          "durationMs": 4.533527999999933,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 369106.217339,
+          "durationMs": 4.485227000026498,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 369310.453012,
+          "durationMs": 4.272050000028685,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 369514.573795,
+          "durationMs": 4.4354549999698065,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 369718.577593,
+          "durationMs": 4.4483040000195615,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 369921.732632,
+          "durationMs": 4.5820110000204295,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 370125.364304,
+          "durationMs": 4.799652000016067,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 370330.109694,
+          "durationMs": 5.009241000050679,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 370535.338702,
+          "durationMs": 5.457694000040647,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 370739.670105,
+          "durationMs": 4.695443000004161,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 370943.290187,
+          "durationMs": 4.8477749999728985,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 371148.300755,
+          "durationMs": 5.288715999980923,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 371352.85795,
+          "durationMs": 4.656669000047259,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 371556.572596,
+          "durationMs": 4.697311999974772,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 371760.683079,
+          "durationMs": 4.304858000017703,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 371963.922508,
+          "durationMs": 4.500997000024654,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 372167.07469,
+          "durationMs": 4.503873999987263,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 372416.79868,
+          "durationMs": 49.13004199997522,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 372620.957308,
+          "durationMs": 4.519644999993034,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 372826.102851,
+          "durationMs": 4.43767100002151,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 373028.822284,
+          "durationMs": 3.633646000002045,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 373231.316472,
+          "durationMs": 3.8997180000296794,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 373436.307849,
+          "durationMs": 4.264681000029668,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 373641.030596,
+          "durationMs": 4.178184000018518,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 373846.213843,
+          "durationMs": 4.391776000033133,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 374050.289407,
+          "durationMs": 4.179630999977235,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 374254.667172,
+          "durationMs": 4.611021000018809,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 374457.911877,
+          "durationMs": 4.626325000019278,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 374661.653718,
+          "durationMs": 5.10979600000428,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 374866.012197,
+          "durationMs": 4.695189999998547,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 375071.062302,
+          "durationMs": 4.314096999994945,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 375275.518489,
+          "durationMs": 4.4411659999750555,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 375479.861173,
+          "durationMs": 4.683460000029299,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 375684.356797,
+          "durationMs": 4.787150000047404,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 375888.397629,
+          "durationMs": 4.324658999976236,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 376092.168362,
+          "durationMs": 4.101928999996744,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 376422.769333,
+          "durationMs": 130.0177459999686,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 376627.128841,
+          "durationMs": 4.6892879999941215,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 376832.296751,
+          "durationMs": 4.432970999972895,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 377037.658757,
+          "durationMs": 4.754072999989148,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 377240.998533,
+          "durationMs": 4.717918999958783,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 377477.349896,
+          "durationMs": 35.438046999974176,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 377681.744041,
+          "durationMs": 4.667663000000175,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 377885.859943,
+          "durationMs": 4.489234999986365,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 378090.431159,
+          "durationMs": 4.740523999964353,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 378293.651505,
+          "durationMs": 4.3770970000186935,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 378497.912811,
+          "durationMs": 4.608784999989439,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 378702.04424,
+          "durationMs": 4.527453999966383,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 378907.96924,
+          "durationMs": 5.234296999988146,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 379113.049888,
+          "durationMs": 4.789301000011619,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 379317.651666,
+          "durationMs": 4.882653000007849,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 379521.986332,
+          "durationMs": 4.595574999984819,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 379727.547078,
+          "durationMs": 4.86303200002294,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 379931.664491,
+          "durationMs": 4.545916000031866,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 380135.99186,
+          "durationMs": 4.754742999968585,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 380340.647022,
+          "durationMs": 4.363373000000138,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 380545.384969,
+          "durationMs": 4.921607999945991,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 380750.04818,
+          "durationMs": 4.968021999986377,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 380955.043087,
+          "durationMs": 5.324164999998175,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 381160.730584,
+          "durationMs": 4.814580999955069,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 381364.431014,
+          "durationMs": 4.954468999989331,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 381568.055236,
+          "durationMs": 4.745922000030987,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 381772.365924,
+          "durationMs": 4.575161000015214,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 381977.089351,
+          "durationMs": 4.580665999965277,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 382181.510521,
+          "durationMs": 4.764962000015657,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 382385.029731,
+          "durationMs": 4.787811000016518,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 382589.565161,
+          "durationMs": 4.737296000006609,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 382793.365863,
+          "durationMs": 4.188873999984935,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 382998.627188,
+          "durationMs": 5.447780999995302,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 383203.501159,
+          "durationMs": 5.017783999966923,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 383550.203017,
+          "durationMs": 147.06044899998233,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 383755.255171,
+          "durationMs": 4.268585000012536,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 383960.130691,
+          "durationMs": 5.22216100001242,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 384164.493481,
+          "durationMs": 4.656224000034854,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 384367.873549,
+          "durationMs": 4.603683999972418,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 384572.481155,
+          "durationMs": 4.832910000055563,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 384777.418836,
+          "durationMs": 5.320911999966484,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 384981.659413,
+          "durationMs": 4.51505599997472,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 385184.953707,
+          "durationMs": 4.610360999999102,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 385389.898975,
+          "durationMs": 4.114277999964543,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 385594.219062,
+          "durationMs": 4.546262999996543,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 385798.869588,
+          "durationMs": 4.674431000021286,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 386003.367203,
+          "durationMs": 4.776952999993227,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 386208.00538,
+          "durationMs": 4.8944159999955446,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 386413.641149,
+          "durationMs": 4.814863000006881,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 386617.763927,
+          "durationMs": 5.4985909999813884,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 386822.123706,
+          "durationMs": 4.808234000054654,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 387026.46728,
+          "durationMs": 4.551114000030793,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 387230.836968,
+          "durationMs": 4.637569000013173,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 387453.760768,
+          "durationMs": 23.161123999976553,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 387657.854833,
+          "durationMs": 5.3740100000286475,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 387863.186045,
+          "durationMs": 5.4197759999660775,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 388067.160436,
+          "durationMs": 4.847645999980159,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 388297.450863,
+          "durationMs": 29.63324699999066,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 388502.243432,
+          "durationMs": 5.080880999972578,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 388707.607639,
+          "durationMs": 4.578892999968957,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 388911.789827,
+          "durationMs": 4.527218000032008,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 389115.3448,
+          "durationMs": 4.875073000031989,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 389319.855198,
+          "durationMs": 4.785070999991149,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 389585.109693,
+          "durationMs": 65.96956100000534,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 389790.468358,
+          "durationMs": 4.549406999954954,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 389994.682222,
+          "durationMs": 4.479275999998208,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 390199.129918,
+          "durationMs": 4.669333999976516,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 390405.188596,
+          "durationMs": 5.3327140000183135,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 390609.827038,
+          "durationMs": 5.001859000010882,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 390814.846674,
+          "durationMs": 5.263878999976441,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 391018.286068,
+          "durationMs": 4.6936250000144355,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 391223.124368,
+          "durationMs": 4.983053000003565,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 391429.350618,
+          "durationMs": 5.3309969999827445,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 391633.810131,
+          "durationMs": 4.812426999968011,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 391838.210889,
+          "durationMs": 4.706268999958411,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 392044.043195,
+          "durationMs": 5.130635999958031,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 392248.724942,
+          "durationMs": 4.912323999975342,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 392527.247476,
+          "durationMs": 78.70289000001503,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 392731.487844,
+          "durationMs": 4.454007000022102,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 392934.541281,
+          "durationMs": 3.426824999973178,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 393138.877424,
+          "durationMs": 4.608310999989044,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 393448.176507,
+          "durationMs": 109.50574799999595,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 393667.678568,
+          "durationMs": 19.769896999991033,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 393871.869173,
+          "durationMs": 4.414165999973193,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 394078.176885,
+          "durationMs": 6.480855000030715,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 394336.563902,
+          "durationMs": 57.59685799997533,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 394542.91926,
+          "durationMs": 6.607961000001524,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 394796.578786,
+          "durationMs": 54.0032390000415,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 395000.679439,
+          "durationMs": 4.430217000015546,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 395203.43779,
+          "durationMs": 4.08267800003523,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 395408.37746,
+          "durationMs": 4.336264999990817,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 395612.885094,
+          "durationMs": 4.568163999996614,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 395818.174476,
+          "durationMs": 5.576864000002388,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 396082.984771,
+          "durationMs": 63.93880300002638,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 396322.6319,
+          "durationMs": 39.076845000032336,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 396526.613294,
+          "durationMs": 4.405180000001565,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 396731.404582,
+          "durationMs": 4.54803600005107,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 396935.543767,
+          "durationMs": 4.471959999995306,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 397139.477014,
+          "durationMs": 4.212974999973085,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 397343.898461,
+          "durationMs": 4.8558349999948405,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 397546.352898,
+          "durationMs": 3.8950949999853037,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 397750.549921,
+          "durationMs": 4.104145999997854,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 397953.44575,
+          "durationMs": 3.3812920000054874,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 398158.064955,
+          "durationMs": 4.87195800000336,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 398363.359641,
+          "durationMs": 4.6693300000042655,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 398567.79375,
+          "durationMs": 5.033490999951027,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 398772.590949,
+          "durationMs": 4.952805000008084,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 398977.416138,
+          "durationMs": 4.98519999999553,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 399191.412706,
+          "durationMs": 14.30285899998853,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 399395.825394,
+          "durationMs": 4.8148870000150055,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 399599.883108,
+          "durationMs": 4.972970000002533,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 399804.798152,
+          "durationMs": 5.200072000036016,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 400008.403155,
+          "durationMs": 4.950560000026599,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 400212.768203,
+          "durationMs": 4.672895000025164,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 400417.368483,
+          "durationMs": 5.021936999983154,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 400622.007483,
+          "durationMs": 4.6418910000356846,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 400827.477747,
+          "durationMs": 4.6895199999562465,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 401032.053153,
+          "durationMs": 4.84524200001033,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 401237.37471,
+          "durationMs": 5.521826999960467,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 401441.887734,
+          "durationMs": 4.808702000009362,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 401645.445139,
+          "durationMs": 4.483217999979388,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 401849.774627,
+          "durationMs": 4.545784000016283,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 402052.698198,
+          "durationMs": 4.29385200003162,
+          "status": 503,
+          "ready": false
+        },
+        {
+          "offsetMs": 402267.030132,
+          "durationMs": 14.712537000013981,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 402530.273161,
+          "durationMs": 63.103278999973554,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 402737.795159,
+          "durationMs": 7.414726999995764,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 402945.900679,
+          "durationMs": 7.087433000036981,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 403153.399946,
+          "durationMs": 7.059437000018079,
+          "status": 200,
+          "ready": true
+        },
+        {
+          "offsetMs": 403361.051251,
+          "durationMs": 7.775978000019677,
+          "status": 200,
+          "ready": true
+        }
+      ],
+      "unavailableSamples": 182,
+      "observedUnavailable": true,
+      "observedUnavailableSpanMs": 37845.26595100004,
+      "recoveryUpperBoundMs": 38064.480932999984,
+      "intervalMs": 200,
+      "requestDeadlineMs": 2000,
+      "strategy": "Recreate"
+    }
+  },
+  "resultSha256": "df2ae88d766f494fc8abc3acc714a1225209d584b2cec0a373ce928af40937aa"
+}

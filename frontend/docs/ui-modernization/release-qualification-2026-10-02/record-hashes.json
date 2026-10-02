@@ -1,5 +1,90 @@
 [
   {
+    "path": "deployment-standalone/audit.json",
+    "bytes": 61654,
+    "sha256": "e59eb91adabc37d7c60d77f0744ce46e32af569ce9286b79bae5e6238546222b"
+  },
+  {
+    "path": "deployment-standalone/baseline-image-identity.json",
+    "bytes": 682,
+    "sha256": "21dee206cf3c6bd1272f603622378e74aa4cccff41786060faf14f342904d598"
+  },
+  {
+    "path": "deployment-standalone/baseline-invariants.json",
+    "bytes": 10686,
+    "sha256": "fcaa9e218d11ea2be70735c77561819c02863feb201844c788bbb33d628476f0"
+  },
+  {
+    "path": "deployment-standalone/baseline-rollout.json",
+    "bytes": 625,
+    "sha256": "ef39ccfb252c5a90abc1aa94fe3326cff00785c1e6beff9625c786affaffa0bf"
+  },
+  {
+    "path": "deployment-standalone/candidate-assets.json",
+    "bytes": 2436,
+    "sha256": "627efbadf57fd6bf10a166dc749b7171b1413ba563c60d79e71ddadd24c28785"
+  },
+  {
+    "path": "deployment-standalone/candidate-image-identity.json",
+    "bytes": 1043,
+    "sha256": "9f5e5a5fe833834d4990255b9b2e00b8548f864f67de732854d91f55726fe502"
+  },
+  {
+    "path": "deployment-standalone/candidate-invariants.json",
+    "bytes": 10686,
+    "sha256": "faa33cfeda7b65065d3a1e0715ee8e5724f30e10a96042dc50fb5ca7e9dc87fe"
+  },
+  {
+    "path": "deployment-standalone/candidate-rollout.json",
+    "bytes": 634,
+    "sha256": "66a5d784155bf1300249e5e1eddf860647fee4314c6526ef71f8e9fa11631058"
+  },
+  {
+    "path": "deployment-standalone/images.json",
+    "bytes": 956,
+    "sha256": "df37a7bd8f5e676b63dc883db429c10846199940eb9f95512dc401733bc46482"
+  },
+  {
+    "path": "deployment-standalone/legacy-assets.json",
+    "bytes": 594,
+    "sha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+  },
+  {
+    "path": "deployment-standalone/provenance.json",
+    "bytes": 612,
+    "sha256": "22a0fc3e291106e69e88c85bdcc014b35a8b318ae2e2b11187a9b5c170f84e63"
+  },
+  {
+    "path": "deployment-standalone/result.json",
+    "bytes": 69422,
+    "sha256": "df2ae88d766f494fc8abc3acc714a1225209d584b2cec0a373ce928af40937aa"
+  },
+  {
+    "path": "deployment-standalone/rollback-image-identity.json",
+    "bytes": 682,
+    "sha256": "25cbe6d8ef3c59f4c7739e71d8fd2146f571b4c00db93dce3861464bcc937c87"
+  },
+  {
+    "path": "deployment-standalone/rollback-invariants.json",
+    "bytes": 10685,
+    "sha256": "d59942b173d7149d838165efe44d89d052c8f7b096111fcb03626a8bfa23f80d"
+  },
+  {
+    "path": "deployment-standalone/rollback-rollout.json",
+    "bytes": 624,
+    "sha256": "2658a81d728731dd9a820916a8bd27ef2c080b0a24e9376027ff52bbc1595135"
+  },
+  {
+    "path": "deployment-standalone/runtime-manifests/ad0fd6dafe00d4b211e16671ba67661abd0ab51b0500f34d7c6b131c7d201144.json",
+    "bytes": 2392,
+    "sha256": "ad0fd6dafe00d4b211e16671ba67661abd0ab51b0500f34d7c6b131c7d201144"
+  },
+  {
+    "path": "deployment-standalone/runtime-manifests/be3f94d0624dbd24f95ab74267e4c5c9ca830cfece9ab241751b6b4d30fca041.json",
+    "bytes": 851,
+    "sha256": "be3f94d0624dbd24f95ab74267e4c5c9ca830cfece9ab241751b6b4d30fca041"
+  },
+  {
     "path": "hosted-protocol.json",
     "bytes": 14325,
     "sha256": "42837c8f0fd0b71d6cb4b6c5fc746af05d32c3acb1d3b2d0cbe8c7085afd224c"
