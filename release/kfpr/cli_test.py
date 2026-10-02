@@ -222,6 +222,10 @@ class CliTest(unittest.TestCase):
         )
         self.assertIn('preflight: Verify tools and GitHub auth', result.stdout)
         self.assertNotIn('preflight [manual]', result.stdout)
+        self.assertIn(
+            'create-kfp-kubernetes-docs-branch: '
+            'Create Kubernetes docs branch for split SDK releases',
+            result.stdout)
 
     def test_steps_diagram_prints_release_flow_branches(self):
         result = CliRunner().invoke(app, ['steps', '--diagram'])
@@ -234,6 +238,8 @@ class CliTest(unittest.TestCase):
         self.assertIn('+-- include-sdk --> create-sdk-tag -> publish-sdks',
                       result.stdout)
         self.assertIn('confirm-rtd -> create-sdk-release', result.stdout)
+        self.assertIn('[split SDK: create-kfp-kubernetes-docs-branch]',
+                      result.stdout)
         self.assertNotIn('preflight: Verify tools', result.stdout)
 
     def test_next_runs_and_marks_next_incomplete_step(self):

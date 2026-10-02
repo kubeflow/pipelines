@@ -157,7 +157,9 @@ update-version-tags -> merge-version-pr
   |
   +-- include-backend --> publish-images
   |
-  +-- include-sdk --> create-sdk-tag -> publish-sdks -> confirm-rtd -> create-sdk-release
+  +-- include-sdk --> create-sdk-tag -> publish-sdks
+                      -> [split SDK: create-kfp-kubernetes-docs-branch]
+                      -> confirm-rtd -> create-sdk-release
   |
 
 create-backend-release -> sync-master -> confirm-website-and-slack'''
