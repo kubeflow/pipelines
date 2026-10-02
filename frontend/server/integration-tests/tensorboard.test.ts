@@ -161,7 +161,7 @@ describe('/apps/tensorboard', () => {
       const receivedQueries: unknown[] = [];
       const receivedIdentities: unknown[] = [];
       kfpApiServer = express()
-        .get('/apis/v2beta1/auth', (req, res) => {
+        .get('/apis/v1beta1/auth', (req, res) => {
           receivedQueries.push(req.query);
           receivedIdentities.push(req.headers['x-kubeflow-userid']);
           // A reader may get viewers, but cannot create or delete them.
