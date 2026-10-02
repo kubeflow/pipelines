@@ -336,6 +336,62 @@ def pipeline_create_allowed(namespace, user):
     return answer == 'yes'
 
 
+def profile_authorization_state(output, owner_access):
+    # Preserve only RBAC and synthetic profile identities, never credentials.
+    roles = kube('get', 'clusterroles')['items']
+    evidence = {
+        'ownerCreateAllowed': owner_access,
+        'roles': {
+            item['metadata']['name']: {
+                'labels': item['metadata'].get('labels', {}),
+                'aggregationRule': item.get('aggregationRule'),
+                'rules': item.get('rules', [])
+            }
+            for item in roles
+            if item['metadata']['name'].startswith(('kubeflow-',
+                                                    'aggregate-to-kubeflow-'))
+        },
+        'profiles': {},
+    }
+    for namespace in PROFILES:
+        profile = kube('get', 'profile', namespace)
+        bindings = kube('-n', namespace, 'get', 'rolebindings')['items']
+        evidence['profiles'][namespace] = {
+            'owner':
+                profile['spec']['owner'],
+            'namespaceOwner':
+                kube('get', 'namespace', namespace)
+                ['metadata'].get('annotations', {}).get('owner'),
+            'status':
+                profile.get('status'),
+            'bindings': {
+                item['metadata']['name']: {
+                    'roleRef': item['roleRef'],
+                    'subjects': item.get('subjects', [])
+                } for item in bindings
+            },
+        }
+    try:
+        logs = command(
+            'kubectl',
+            '-n',
+            'kubeflow',
+            'logs',
+            'deployment/profiles-deployment',
+            '-c',
+            'manager',
+            '--tail=100',
+            timeout=15)
+        evidence['profileControllerErrors'] = [
+            line[:1500]
+            for line in logs.splitlines()
+            if re.search(r'\b(error|failed|forbidden)\b', line, re.IGNORECASE)
+        ][-20:]
+    except (RuntimeError, subprocess.TimeoutExpired):
+        evidence['profileControllerErrorsUnavailable'] = True
+    write_json(Path(output) / 'profile-authorization-state.json', evidence)
+
+
 def verify_profile_authorization(output):
     deadline = time.monotonic() + 120
     while True:
@@ -346,6 +402,7 @@ def verify_profile_authorization(output):
         if all(owner_access.values()):
             break
         if time.monotonic() >= deadline:
+            profile_authorization_state(output, owner_access)
             raise AssertionError(
                 'Profile owners lack namespace pipeline creation permission')
         time.sleep(2)
@@ -373,6 +430,7 @@ def verify_profile_authorization(output):
                 'user': user,
                 'allowed': allowed
             })
+    profile_authorization_state(output, owner_access)
     write_json(Path(output) / 'profile-authorization.json', evidence)
 
 

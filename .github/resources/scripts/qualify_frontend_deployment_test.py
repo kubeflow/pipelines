@@ -251,21 +251,38 @@ class QualificationTest(unittest.TestCase):
             }
 
         with tempfile.TemporaryDirectory() as directory, patch.object(
-                qualification, 'kube', side_effect=binding), patch.object(
-                    qualification,
-                    'pipeline_create_allowed',
-                    side_effect=lambda ns, user: profiles[ns] == user):
+                qualification, 'profile_authorization_state'), patch.object(
+                    qualification, 'kube', side_effect=binding), patch.object(
+                        qualification,
+                        'pipeline_create_allowed',
+                        side_effect=lambda ns, user: profiles[ns] == user):
             qualification.verify_profile_authorization(directory)
             evidence = json.loads(
                 (Path(directory) / 'profile-authorization.json').read_text())
             self.assertEqual(len(evidence), 6)
             self.assertEqual(sum(item['allowed'] for item in evidence), 3)
         with tempfile.TemporaryDirectory() as directory, patch.object(
-                qualification, 'kube', side_effect=binding), patch.object(
-                    qualification, 'pipeline_create_allowed',
-                    return_value=True):
+                qualification, 'profile_authorization_state'), patch.object(
+                    qualification, 'kube', side_effect=binding), patch.object(
+                        qualification,
+                        'pipeline_create_allowed',
+                        return_value=True):
             with self.assertRaises(AssertionError):
                 qualification.verify_profile_authorization(directory)
+
+    def test_owner_permission_timeout_preserves_diagnostics(self):
+        with patch.object(
+                qualification, 'pipeline_create_allowed',
+                return_value=False), patch.object(
+                    qualification.time, 'monotonic',
+                    side_effect=[0, 121]), patch.object(
+                        qualification,
+                        'profile_authorization_state') as snapshot:
+            with self.assertRaises(AssertionError):
+                qualification.verify_profile_authorization('/report')
+            snapshot.assert_called_once_with(
+                '/report',
+                {namespace: False for namespace in qualification.PROFILES})
 
     def test_runtime_index_requires_one_verified_child_image(self):
         expected = {
