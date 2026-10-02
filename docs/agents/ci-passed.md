@@ -1,12 +1,161 @@
 # CI merge gate
 
-CI Check is the sole publisher of the `ci-passed` commit status. The label with
-the same name is informational. Tide remains the merge authority; human PRs
-still require review. Automatic Dependabot creation holds remain configured for every ecosystem;
-existing PR-specific holds remain separate maintainer decisions and are never
-removed by the publisher. Removing creation holds remains a separate change
-after the deployed merge policy has been verified. Required `ci-passed` protection is intended for
-`master` only: older release branches do not publish this commit status.
+CI Check is the intended publisher of the `ci-passed` and `ci-passed-release`
+commit statuses. The `ci-passed` label is informational. Tide remains the
+merge authority on `master` and branches without a GitHub merge queue;
+human PRs still require review. Automatic Dependabot creation holds remain
+configured for every ecosystem; existing PR-specific holds remain separate
+maintainer decisions and are never removed by the publisher. Removing creation
+holds remains a separate change after the deployed merge policy is verified.
+Required `ci-passed` protection is intended for `master`; release-2.18 uses
+the distinct release context and rollout described below.
+
+## Release 2.18 merge queue
+
+The release rule requires `ci-passed-release` on both PR heads and GitHub's
+temporary merge-group SHA. Its separate name prevents a stale `ci-passed`
+success from another base branch from admitting a PR immediately after a
+retarget. CI Check also keeps publishing the legacy `ci-passed` context on
+release PR heads for Tide while the queue uses only `ci-passed-release`. It
+uses the existing repository `GITHUB_TOKEN`; no new organization App or Tide
+change is needed. The `ci-passed` label still serves Tide and remains
+informational for this queue.
+
+GitHub runs `merge_group` workflows on a temporary commit containing PR code.
+The documented read-only token downgrade for fork-origin `pull_request`
+events does not apply to `merge_group`. Before reporting release PR-head
+success, CI Check resolves a fork PR's merge base from the exact current base
+and head SHAs, then checks the complete `.github/workflows` tree at every
+PR-only commit and every parent. Ordinary fork commits cannot change that tree.
+A merge commit may import a trusted release ancestor's workflow tree only when
+that ancestor is its own merge base with the current release branch. This
+allows a fork PR to merge newer release commits without a false CI rejection,
+while rejecting fork-authored workflow changes, change-then-revert histories,
+and rollback to an older release workflow version. The final PR head must
+still match its merge base's workflow tree. Incomplete or mismatched API
+evidence blocks the PR. The queue publisher repeats the check against the
+current base for every included fork PR; the PR-head success description is
+also stamped with its checked base SHA. A fork PR with more than 100 ahead
+commits, 256 unique compared revisions, or eight trusted workflow imports
+remains blocked until its history is reduced or the guard is expanded. Review
+the baseline `merge_group` **and queue-ref `push`** workflows for write
+permissions and exposed credentials
+before activation. Repository writers can create their own privileged
+workflows and status writers, so this guard relies on the existing trust in
+people with write access. Fork authors who need to change release workflows
+must work with a maintainer on a same-repository branch.
+
+The trusted default-branch CI Check publisher requires the release PR's `lgtm` and
+`approved` labels (with the existing exact Dependabot exception), eligible
+author, and absence of Tide's exclusion labels before reporting PR-head
+success. It maps a queue entry's exact head commit to its queue position and
+checks every current PR
+through that position. Later temporary commits can contain PRs ahead of them
+in the queue. The queue must use `ALLGREEN`, build concurrency `1`, and merge
+at most one PR per operation. GitHub defines build concurrency as the maximum
+number of `merge_group` webhooks dispatched at once; it does not promise that
+only one completed entry retains a `headCommit`. The publisher rejects more
+than one visible built head before reading workflow runs. Merge limits do not
+limit a temporary commit to one PR's changes.
+The publisher checks every enabled release workflow against the trusted release
+branch's trigger inventory. `build-tools-images` and `runtime-base-images` use separate
+read-only queue workflows. Missing, running, cancelled, or failing runs cannot
+produce success; workflow start and completion events, relevant PR events, and
+a scheduled sweep reconcile late or changed results. A PR label event
+discovers every cumulative queue commit that includes that PR; a bounded
+per-SHA invalidation matrix marks all affected statuses pending before the
+validation matrix starts. The queue remains blocked if the entry or
+workflow evidence cannot be verified. If the current PR lookup fails after
+discovery identifies affected queue SHAs, discovery attempts to retire every
+known affected status before reporting the read failure, even if an earlier
+status write fails. Every matching workflow run must
+have valid run IDs, attempt numbers, and timestamps before latest-run selection;
+malformed competing evidence cannot be ignored in favor of an older success.
+
+An `in_progress` workflow event writes a pending `ci-passed-release` marker with its
+run ID and attempt from the discovery job before per-SHA validation. Later
+validation sees its own pending marker in commit-status history, verifies
+every fenced attempt through the exact-attempt API, and compares selected
+workflow runs with their current attempts. A stale Actions run listing or
+delayed status read leaves the queue pending. A later successful attempt can
+supersede a completed failed attempt. The publisher reserves one write before
+GitHub's 1,000-status limit per SHA and context so it can revoke success. A
+stalled entry near that limit must be recreated. An undelivered webhook or a
+merge decision made before invalidation starts remains a canary risk.
+With one visible built head, a green reconciliation makes `N + 4F` direct
+Actions run lookups, where `N` is the number of expected workflows and `F`
+is the number of distinct fenced run attempts in status history. The current
+31-lane inventory normally creates at least one fence per lane, so a green
+reconciliation makes 155 direct lookups. Both recovery sweeps run hourly;
+workflow and PR events still trigger immediate reconciliation. Rerunning all 31 lanes once
+raises a green queue reconciliation to 279 direct lookups. These figures
+exclude queue, PR, branch, inventory, workflow-list, and status-history
+reads, plus event-driven reconciliations.
+GitHub's [`GITHUB_TOKEN` REST limit](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api#primary-rate-limit-for-github_token-in-github-actions)
+is 1,000 requests per hour per repository. Before activation, measure the
+complete API budget with a live canary, including events and shared-token use.
+Stop if remaining capacity or the number of visible built heads falls outside
+the verified envelope. A failed status write can leave an earlier success on
+the queue SHA, so rate exhaustion during a rerun or label change is a merge
+risk; an hourly sweep only lowers routine demand. Keep strict protection until
+the canary demonstrates enough headroom for event bursts, then monitor the
+token budget during queue operation.
+
+The release PR dequeue helper runs in CI Check's release queue discovery job.
+Its `pull-requests: write` token still needs a live canary to confirm GitHub
+accepts `dequeuePullRequest` before queue enforcement is enabled. It must mark
+every known affected queue SHA pending with a durable retired marker before
+removing an ineligible PR, then read back that PR's absent `mergeQueueEntry`.
+A later queued entry may have no `headCommit` yet; the missing required status
+blocks it while the earlier known SHA is retired. A retired SHA cannot return
+to green, even if the PR regains eligibility before the dequeue mutation.
+Remove and re-enqueue it to obtain a fresh queue SHA. Mutation denial or
+readback failure keeps known SHAs pending and needs maintainer intervention.
+
+Maintainers enqueue release PRs through GitHub. Tide remains configured and
+may report direct-merge failures after queue enforcement; it does not enqueue
+PRs. GitHub's queue tests each PR with the latest release branch without
+rewriting contributor heads. Label revocation is event-driven and cannot be
+atomic with GitHub's merge decision, so observe this window during rollout.
+
+Roll out in this order:
+
+1. Land all release workflow `merge_group` triggers or read-only equivalents
+   on `release-2.18`, then land the trusted publisher on the default branch.
+   The workflow PR changes `.github/workflows` from a fork, so merge it under
+   the existing strict rule before the new release guard runs. Keep current
+   branch protection while any workflow is missing.
+2. Confirm a live release PR-head `ci-passed-release` status comes from CI
+   Check after the publisher lands. Test a fork PR that changes a workflow:
+   it must remain non-successful. Confirm the repository's Actions event
+   policy permits CI Check's trusted `pull_request_target` path, and audit
+   queue-ref `push` workflows alongside `merge_group` permissions. GitHub's
+   documented default policy for public repositories changes on 2026-11-02;
+   configure an explicit repository-level Actions event policy before then
+   so the publisher keeps receiving `pull_request_target` events.
+3. Configure `ALLGREEN`, build concurrency `1`, and at most one PR merged per
+   operation. Enable the queue and require `ci-passed-release` from GitHub
+   Actions in the exact `release-2.18` branch rule while keeping the
+   up-to-date head requirement active. Preserve DCO, pre-commit, conversation
+   resolution, and linear history requirements.
+4. Enqueue a controlled canary PR. Verify its
+   `workflow_run.head_branch`, GraphQL
+   `mergeQueue.entries.headCommit.oid`, and published `ci-passed-release` SHA
+   agree.
+   Queue A and B together: confirm A has the only built head while B waits
+   with a null `headCommit`, then verify the next build and any cumulative
+   commit. If two heads remain visible, the publisher fails closed. Revoking
+   A's label must retire its known SHA and dequeue it. Confirm the token can
+   perform that mutation and read back the absent entry. Check missing/failed
+   CI, rerun start, and label/hold revocation. Confirm that the existing DCO
+   App reports its required `DCO` check on the queue SHA, and measure remaining
+   API budget during this run. Only after those checks pass, remove the
+   up-to-date head requirement and begin normal queue use.
+
+If queue validation fails, restore the previous strict branch rule while the
+queue remains active, then disable the queue. Only afterward remove the new
+required context if rolling back fully. Keep the publisher and merge-group
+workflows available until protection is restored.
 
 ## Contract and enforcement
 
@@ -72,7 +221,8 @@ coverage. A successful status records a bounded fingerprint of its validated
 base branch and SHA. Scheduled recovery revisits older successes without that
 stamp and successes for a different base branch or SHA; publication also rechecks
 the base before and after writing success. Branch
-protection must continue to require an up-to-date base as described above.
+protection on `master` must continue to require an up-to-date base. The release
+queue rollout changes that setting only after queue enforcement is active.
 
 When changing workflow names, event triggers, or the checked-in upgrade pause,
 regenerate the inventory:
@@ -100,8 +250,9 @@ their own workflow timeouts remain authoritative.
 
 ## External-check recovery
 
-A scheduled sweep every 15 minutes selects eligible open PRs without a successful
-`ci-passed` status for their current base branch and SHA, and runs the same reconciler for
+A scheduled sweep every hour selects eligible open PRs without a successful
+status for their current base branch and SHA (`ci-passed` normally,
+`ci-passed-release` on release-2.18), and runs the same reconciler for
 each captured number/head pair, with at most four jobs running in parallel.
 Successes from a different base, or legacy successes without a base stamp, are
 revalidated. Green PRs with a matching base stamp rely on event-driven
@@ -141,7 +292,7 @@ paginated jobs lookup per relevant rerun attempt; it adds no waiting loop or run
 held for the suite's duration. A queued candidate that is now successful is still
 invalidated before revalidation. Status lookup traverses all combined-status pages.
 
-GitHub can delay or drop scheduled executions, so 15 minutes is a requested
+GitHub can delay or drop scheduled executions, so one hour is a requested
 cadence, not a recovery SLA. More than 256 recovery candidates fails the discovery job
 explicitly rather than silently omitting PRs. Investigate failed or missing
 scheduled runs; manually rerunning CI Check remains the fallback. Do not rely

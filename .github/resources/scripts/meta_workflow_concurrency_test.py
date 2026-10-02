@@ -178,7 +178,7 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         jobs = _mapping_block(workflow, 'jobs', 0)
         writer = _mapping_block(jobs, 'check_ci_status', 2)
         discovery = _mapping_block(jobs, 'recovery_candidates', 2)
-        self.assertIn("cron: '7,22,37,52 * * * *'", workflow)
+        self.assertIn("cron: '7 * * * *'", workflow)
         self.assertIn("github.event_name == 'schedule'", discovery)
         self.assertNotIn('concurrency:', discovery)
         self.assertIn(

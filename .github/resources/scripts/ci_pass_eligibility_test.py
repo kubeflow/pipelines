@@ -28,26 +28,33 @@ def exercise(options=None):
 const gate = require(process.argv[1]);
 const options = JSON.parse(process.argv[2]);
 const root = process.argv[3];
-const calls = [], outputs = {}, descriptions = [], targetUrls = [];
+const calls = [], outputs = {}, descriptions = [], statusContexts = [], targetUrls = [];
 const workflowName = options.workflowName || 'frontend.yml';
 let cycle = 0;
 let pr = {
   number: 7, state: 'open', changed_files: 1,
-  head: {sha: 'head', ref: 'feature', repo: {full_name: 'contributor/pipelines'}},
+  head: {sha: 'head', ref: 'feature', repo: {full_name: 'contributor/pipelines',
+    name: 'pipelines', owner: {login: 'contributor'}}},
   base: {sha: 'b'.repeat(40), ref: 'master', repo: {full_name: 'kubeflow/pipelines'}},
   user: {login: 'dependabot[bot]'}, author_association: 'NONE', labels: [],
   ...options.pr,
 };
+if (pr.base.ref === 'release-2.18') pr.head.sha = 'a'.repeat(40);
 const eventPR = structuredClone(pr);
 if (options.oldHead) eventPR.head.sha = 'old-head';
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
   eventName: options.schedule ? 'schedule' : options.workflowRun ? 'workflow_run' : 'pull_request_target',
   payload: {pull_request: eventPR, action: options.action || 'opened',
-    workflow_run: {event: 'pull_request', head_sha: 'head', head_branch: 'feature',
-      head_repository: {owner: {login: 'contributor'}, full_name: 'contributor/pipelines'}}}};
+    workflow_run: {event: 'pull_request', head_sha: pr.head.sha, head_branch: 'feature',
+      head_repository: {owner: {login: pr.head.repo.full_name.split('/')[0]},
+        full_name: pr.head.repo.full_name}}}};
 let published = false;
-let status = options.initialStatus;
-let description = options.initialDescription;
+const statuses = new Map();
+const initialContext = options.initialStatusContext ||
+  (pr.base.ref === 'release-2.18' ? 'ci-passed-release' : 'ci-passed');
+if (options.initialStatus) statuses.set(initialContext, options.initialStatus);
+const statusDescriptions = new Map();
+if (options.initialDescription) statusDescriptions.set(initialContext, options.initialDescription);
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
 const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
 methods.runs = async () => ({data: {total_count: 0, workflow_runs: []}});
@@ -55,6 +62,20 @@ const statusHistory = options.statusHistory || [];
 if (options.initialStatus) statusHistory.push({context: 'ci-passed',
   created_at: options.registrationStartedAt || new Date().toISOString()});
 const github = {graphql: async (query, variables) => {
+  if (query.includes('query ReleaseWorkflowTrees')) {
+    calls.push(['workflow-trees', query]);
+    if (options.workflowTreeError) throw Error('Workflow tree unavailable');
+    const repository = {nameWithOwner: pr.head.repo.full_name};
+    for (const [, alias, sha] of query.matchAll(/(r\d+): object\(expression: "([0-9a-f]{40}):\.github\/workflows"\)/g)) {
+      const changed = options.workflowChange && sha === pr.head.sha ||
+        options.workflowChangeReverted && sha === '8'.repeat(40) ||
+        options.mergeSecondParentChanged && sha === '6'.repeat(40);
+      repository[alias] = options.workflowTreeMissing ? null :
+        {oid: options.workflowOids?.[sha] ||
+          (changed ? '2'.repeat(40) : '1'.repeat(40))};
+    }
+    return {repository};
+  }
   calls.push(['base-workflows', variables]);
   if (options.inventoryFailure) throw Error('Workflow tree unavailable');
   const content = `name: Frontend
@@ -74,7 +95,10 @@ jobs:
         isBinary: false, isTruncated: false}}))}}};
 }, rest: {
   pulls: {listFiles: methods.files, list: methods.pulls,
-    get: async () => ({data: structuredClone(pr)})},
+    get: async () => {
+      if (options.prReadFailureAfterPrepare && outputs.pr_number) throw Error('PR read unavailable');
+      return {data: structuredClone(pr)};
+    }},
   actions: {listWorkflowRunsForRepo: methods.runs},
   checks: {listForRef: async () => {
     if (options.checkApiFailure) throw Error('Checks API unavailable');
@@ -84,7 +108,7 @@ jobs:
       published && options.drift === 'external-failure' ? 'failure' :
       options.pollPassed === false && !(options.recoverLast && cycle === options.cycles - 1) ? 'failure' : 'success';
     return {data: {total_count: 1, check_runs: [{id: 700, name: 'DCO',
-      head_sha: 'head', app: {id: 1861, slug: 'dco'}, status, conclusion,
+      head_sha: pr.head.sha, app: {id: 1861, slug: 'dco'}, status, conclusion,
       started_at: '2026-09-07T11:00:00Z', completed_at: status === 'completed' ? '2026-09-07T12:00:00Z' : null,
       check_suite: {id: 900}}]}};
   }},
@@ -94,12 +118,37 @@ jobs:
       calls.push(['remove-label', request.name]);
       if (options.removeLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
     }},
-  repos: {getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses, createCommitStatus: async request => {
-    statusHistory.push({context: 'ci-passed', created_at: options.registrationStartedAt || new Date().toISOString()});
-    status = request.state;
-    description = request.description;
-    descriptions.push(description);
+  repos: {getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses,
+    compareCommitsWithBasehead: async request => {
+      calls.push(['compare', request.basehead]);
+      if (options.compareError) throw Error('Compare unavailable');
+      const comparedHead = request.basehead.split(':').at(-1);
+      const prefix = options.prefixComparisons?.[comparedHead];
+      const mergeBase = prefix?.mergeBaseSha || options.mergeBaseSha || pr.base.sha;
+      const commits = prefix?.commits || options.commits || (options.workflowChangeReverted ? [
+        {sha: '8'.repeat(40), parents: [{sha: mergeBase}]},
+        {sha: pr.head.sha, parents: [{sha: '8'.repeat(40)}]},
+      ] : options.mergeSecondParentChanged ? [
+        {sha: '6'.repeat(40), parents: [{sha: mergeBase}]},
+        {sha: pr.head.sha, parents: [{sha: mergeBase}, {sha: '6'.repeat(40)}]},
+      ] : [{sha: pr.head.sha,
+        parents: options.parentMissing ? [] : [{sha: mergeBase}]}]);
+      return {data: {
+        base_commit: {sha: options.compareBaseDrift ? '0'.repeat(40) : pr.base.sha},
+        merge_base_commit: options.mergeBaseMissing ? null : {sha: mergeBase},
+        commits, ahead_by: commits.length,
+        total_commits: options.historyTruncated ? commits.length + 1 : commits.length,
+      }};
+    },
+    createCommitStatus: async request => {
+    if (options.legacyWriteError && request.context === 'ci-passed' &&
+        pr.base.ref === 'release-2.18') throw Error('Legacy status write unavailable');
+    statusHistory.push({context: request.context, created_at: options.registrationStartedAt || new Date().toISOString()});
+    statuses.set(request.context, request.state);
+    descriptions.push(request.description);
+    statusDescriptions.set(request.context, request.description);
     targetUrls.push(request.target_url);
+    statusContexts.push(request.context);
     calls.push(['status', request.state, request.sha]);
     if (request.state === 'success') {
       published = true;
@@ -121,8 +170,8 @@ jobs:
   if (method === methods.runs) {
     if (options.missing) return [];
     const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusions?.[cycle] || options.conclusion || 'success');
-    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: 1, event: 'pull_request', head_sha: 'head', head_branch: 'feature',
-      head_repository: {full_name: 'contributor/pipelines'},
+    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: 1, event: 'pull_request', head_sha: pr.head.sha, head_branch: 'feature',
+      head_repository: {full_name: pr.head.repo.full_name},
       status: options.runStatus || 'completed', conclusion: options.runStatus && options.runStatus !== 'completed' ? null : conclusion,
       created_at: options.fresh ? '2026-09-07T12:01:00Z' : '2026-09-07T11:00:00Z',
       run_started_at: '2026-09-07T12:02:00Z', pull_requests: [], ...options.runPatch}];
@@ -131,7 +180,7 @@ jobs:
 }};
 github.paginate.iterator = async function* () {
   if (options.statusReadFailure) throw Error('Status read unavailable');
-  yield {data: {statuses: status ? [{context: 'ci-passed', state: status, description}] : []}};
+  yield {data: {statuses: [...statuses].map(([name, state]) => ({context: name, state, description: statusDescriptions.get(name)}))}};
 };
 (async () => {
   let error;
@@ -147,7 +196,9 @@ github.paginate.iterator = async function* () {
       pollPassed: outputs.ready === 'true' && !options.checkerFailure && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
   } catch (e) {error = e.message;}
   }
-  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls}));
+  console.log(JSON.stringify({calls, outputs, error,
+    status: statuses.get(pr.base.ref === 'release-2.18' ? 'ci-passed-release' : 'ci-passed'),
+    descriptions, statusContexts, targetUrls, statuses: Object.fromEntries(statuses)}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run([
@@ -167,7 +218,10 @@ class CIPassedTest(unittest.TestCase):
     def assert_last_status(self, result, state):
         statuses = [call for call in result['calls'] if call[0] == 'status']
         self.assertTrue(statuses, result)
-        self.assertEqual(statuses[-1], ['status', state, 'head'], result)
+        self.assertEqual(
+            statuses[-1],
+            ['status', state, result['outputs'].get('head_sha', 'head')],
+            result)
 
     def test_eligibility_truth_table(self):
         script = """
@@ -194,10 +248,459 @@ console.log(JSON.stringify(result));
                                       in {'MEMBER', 'OWNER', 'COLLABORATOR'})
             self.assertEqual(actual, expected, (author, association, ok, needs))
 
+    def test_release_admission_requires_tide_labels_and_rejects_holds(self):
+        release = {
+            'base': {
+                'sha': 'b' * 40,
+                'ref': 'release-2.18',
+                'repo': {
+                    'full_name': 'kubeflow/pipelines'
+                }
+            },
+            'user': {
+                'login': 'human'
+            },
+            'author_association': 'MEMBER'
+        }
+        for names, expected in [(['lgtm', 'approved'], 'success'),
+                                (['lgtm'], 'failure'),
+                                (['approved'], 'failure'),
+                                (['lgtm', 'approved',
+                                  'do-not-merge/hold'], 'failure'),
+                                (['lgtm', 'approved',
+                                  'needs-rebase'], 'failure')]:
+            with self.subTest(names=names):
+                pr = {**release, 'labels': [{'name': name} for name in names]}
+                self.assert_last_status(exercise({'pr': pr}), expected)
+        self.assert_last_status(
+            exercise({
+                'pr': {
+                    **release, 'draft': True,
+                    'labels': [{
+                        'name': 'lgtm'
+                    }, {
+                        'name': 'approved'
+                    }]
+                }
+            }), 'failure')
+        # The existing Tide Dependabot query admits this exact account without
+        # human approval labels; author eligibility and holds still apply.
+        self.assert_last_status(
+            exercise({
+                'pr': {
+                    **release, 'user': {
+                        'login': 'dependabot[bot]'
+                    },
+                    'labels': []
+                }
+            }), 'success')
+
+    def test_retarget_to_release_revokes_old_master_status(self):
+        release = {
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            }
+        }
+        result = exercise({
+            **release, 'initialStatus': 'success',
+            'initialStatusContext': 'ci-passed',
+            'action': 'edited'
+        })
+        self.assert_last_status(result, 'success')
+        self.assertEqual(result['statusContexts'], [
+            'ci-passed-release', 'ci-passed', 'ci-passed-release', 'ci-passed'
+        ])
+        self.assertIn(['compare', 'b' * 40 + '...contributor:' + 'a' * 40],
+                      result['calls'])
+
+    def test_fork_release_pr_cannot_change_workflows(self):
+        release = {
+            'sha': 'b' * 40,
+            'ref': 'release-2.18',
+            'repo': {
+                'full_name': 'kubeflow/pipelines'
+            }
+        }
+        for option in [
+                'workflowChange', 'workflowChangeReverted',
+                'mergeSecondParentChanged', 'workflowTreeMissing',
+                'compareBaseDrift', 'mergeBaseMissing', 'historyTruncated',
+                'parentMissing'
+        ]:
+            with self.subTest(option=option):
+                changed = {'pr': {'base': release}, option: True}
+                result = exercise(changed)
+                self.assert_last_status(result, 'failure')
+                self.assertFalse(
+                    any(call[0] == 'status' and call[1] == 'success'
+                        for call in result['calls']))
+                self.assertEqual(result['statusContexts'], [
+                    'ci-passed-release', 'ci-passed', 'ci-passed-release',
+                    'ci-passed'
+                ])
+        good = exercise({'pr': {'base': release, 'merge_commit_sha': None}})
+        self.assert_last_status(good, 'success')
+        self.assertEqual(
+            len([call for call in good['calls'] if call[0] == 'workflow-trees'
+                ]), 3)
+        guard_calls = [
+            call for call in good['calls']
+            if call[0] in ('compare', 'workflow-trees')
+        ]
+        self.assertEqual(guard_calls[0],
+                         ['compare', 'b' * 40 + '...contributor:' + 'a' * 40])
+        self.assertIn('b' * 40 + ':.github/workflows', guard_calls[1][1])
+        self.assertIn('a' * 40 + ':.github/workflows', guard_calls[1][1])
+
+        advanced = exercise({
+            'mergeBaseSha': 'b' * 40,
+            'pr': {
+                'base': {
+                    'sha': 'd' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            }
+        })
+        self.assert_last_status(advanced, 'success')
+        self.assertIn(['compare', 'd' * 40 + '...contributor:' + 'a' * 40],
+                      advanced['calls'])
+
+    def test_fork_release_merge_imports_trusted_workflow_change(self):
+        base, old_base, feature, imported, head = ('b' * 40, '9' * 40, '8' * 40,
+                                                   '7' * 40, 'a' * 40)
+        # The release base changed its workflows after the fork branched.
+        # Merging that base into the fork preserves the trusted base tree.
+        commits = [{
+            'sha': feature,
+            'parents': [{
+                'sha': old_base
+            }]
+        }, {
+            'sha': imported,
+            'parents': [{
+                'sha': feature
+            }, {
+                'sha': base
+            }]
+        }, {
+            'sha': head,
+            'parents': [{
+                'sha': imported
+            }]
+        }]
+        result = exercise({
+            'pr': {
+                'base': {
+                    'sha': base,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+            'commits': commits,
+            'prefixComparisons': {
+                imported: {
+                    'mergeBaseSha': base,
+                    'commits': commits[:2],
+                }
+            },
+            'workflowOids': {
+                old_base: '1' * 40,
+                feature: '1' * 40,
+                base: '2' * 40,
+                imported: '2' * 40,
+                head: '2' * 40,
+            }
+        })
+        self.assert_last_status(result, 'success')
+        self.assertIn(['compare', f'{base}...contributor:{imported}'],
+                      result['calls'])
+        queries = [
+            call[1] for call in result['calls'] if call[0] == 'workflow-trees'
+        ]
+        self.assertTrue(
+            any(f'{old_base}:.github/workflows' in query for query in queries))
+
+    def test_fork_release_merge_cannot_launder_side_branch_workflow_edit(self):
+        base, feature, edited, reverted, head = ('b' * 40, '8' * 40, '6' * 40,
+                                                 '7' * 40, 'a' * 40)
+        # The side branch returns to the original tree before merging, but
+        # its intermediate workflow edit must still block admission.
+        result = exercise({
+            'pr': {
+                'base': {
+                    'sha': base,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+            'commits': [{
+                'sha': feature,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': edited,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': reverted,
+                'parents': [{
+                    'sha': edited
+                }]
+            }, {
+                'sha': head,
+                'parents': [{
+                    'sha': feature
+                }, {
+                    'sha': reverted
+                }]
+            }],
+            'workflowOids': {
+                edited: '2' * 40,
+            }
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertFalse(
+            any(call[0] == 'status' and call[1] == 'success'
+                for call in result['calls']))
+        queries = [
+            call[1] for call in result['calls'] if call[0] == 'workflow-trees'
+        ]
+        self.assertTrue(
+            any(f'{edited}:.github/workflows' in query for query in queries))
+
+    def test_fork_release_merge_cannot_reimport_stale_base_workflows(self):
+        base, stale, feature, imported, head = ('b' * 40, '5' * 40, '8' * 40,
+                                                '7' * 40, 'a' * 40)
+        # A stale release ancestor is a merge parent, but the current base is
+        # already in this fork's history. The stale parent cannot authorize a
+        # workflow rollback followed by a clean final tree.
+        commits = [{
+            'sha': feature,
+            'parents': [{
+                'sha': base
+            }]
+        }, {
+            'sha': imported,
+            'parents': [{
+                'sha': feature
+            }, {
+                'sha': stale
+            }]
+        }, {
+            'sha': head,
+            'parents': [{
+                'sha': imported
+            }, {
+                'sha': base
+            }]
+        }]
+        result = exercise({
+            'pr': {
+                'base': {
+                    'sha': base,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+            'commits': commits,
+            'prefixComparisons': {
+                imported: {
+                    'mergeBaseSha': base,
+                    'commits': commits[:2],
+                }
+            },
+            'workflowOids': {
+                stale: '2' * 40,
+                imported: '2' * 40,
+            }
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertIn(['compare', f'{base}...contributor:{imported}'],
+                      result['calls'])
+        self.assertFalse(
+            any(call[0] == 'status' and call[1] == 'success'
+                for call in result['calls']))
+
+    def test_fork_release_merge_cannot_hide_workflow_conflict_resolution(self):
+        base, feature, side, resolved, head = ('b' * 40, '8' * 40, '6' * 40,
+                                               '7' * 40, 'a' * 40)
+        # Neither parent changed workflows. The merge resolution did, then a
+        # later merge restored the final tree to the trusted release base.
+        result = exercise({
+            'pr': {
+                'base': {
+                    'sha': base,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+            'commits': [{
+                'sha': feature,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': side,
+                'parents': [{
+                    'sha': base
+                }]
+            }, {
+                'sha': resolved,
+                'parents': [{
+                    'sha': feature
+                }, {
+                    'sha': side
+                }]
+            }, {
+                'sha': head,
+                'parents': [{
+                    'sha': resolved
+                }, {
+                    'sha': base
+                }]
+            }],
+            'workflowOids': {
+                resolved: '2' * 40,
+            }
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertFalse(
+            any(call[0] == 'status' and call[1] == 'success'
+                for call in result['calls']))
+
+    def test_same_repository_release_workflow_change_uses_writer_trust(self):
+        result = exercise({
+            'workflowChange': True,
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                },
+                'head': {
+                    'sha': 'head',
+                    'ref': 'feature',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines',
+                        'name': 'pipelines',
+                        'owner': {
+                            'login': 'kubeflow'
+                        }
+                    }
+                },
+            }
+        })
+        self.assert_last_status(result, 'success')
+        self.assertFalse(any(call[0] == 'compare' for call in result['calls']))
+
+    def test_release_invalidation_survives_legacy_status_write_failure(self):
+        result = exercise({
+            'legacyWriteError': True,
+            'initialStatus': 'success',
+            'initialStatusContext': 'ci-passed-release',
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            }
+        })
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertEqual(result['statusContexts'],
+                         ['ci-passed-release', 'ci-passed-release'])
+
+    def test_release_guard_failure_wins_over_pending_checks(self):
+        result = exercise({
+            'workflowChange': True,
+            'checkStatus': 'in_progress',
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+        })
+        self.assertEqual(result['statuses'], {
+            'ci-passed-release': 'failure',
+            'ci-passed': 'failure'
+        }, result)
+        self.assertNotIn(
+            'success',
+            [call[1] for call in result['calls'] if call[0] == 'status'])
+
+    def test_unknown_base_on_pr_lookup_failure_revokes_both_contexts(self):
+        result = exercise({
+            'prReadFailureAfterPrepare': True,
+            'initialStatus': 'success',
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+        })
+        self.assertEqual(result['error'], 'PR read unavailable')
+        self.assertEqual(result['statusContexts'][-2:],
+                         ['ci-passed-release', 'ci-passed'])
+        self.assertEqual(result['statuses'], {
+            'ci-passed-release': 'failure',
+            'ci-passed': 'failure'
+        }, result)
+
+    def test_release_rerun_recovers_both_failure_contexts_to_pending(self):
+        result = exercise({
+            'initialStatus': 'failure',
+            'runStatus': 'in_progress',
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    }
+                }
+            },
+        })
+        self.assertEqual(result['statuses'], {
+            'ci-passed-release': 'pending',
+            'ci-passed': 'pending'
+        }, result)
+
     def test_complete_ci_publishes_pending_then_success(self):
         result = exercise()
         self.assertEqual(result['calls'][0], ['status', 'pending', 'head'])
         self.assert_last_status(result, 'success')
+        self.assertEqual(result['statusContexts'], ['ci-passed', 'ci-passed'])
 
     def test_failed_poll_blocks_otherwise_complete_workflows(self):
         result = exercise({'pollPassed': False})
@@ -264,6 +767,41 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
             'success', 'failure', 'pending', 'missing', 'stale-success',
             'legacy-success', 'retarget-success'
         ])
+
+    def test_release_recovery_requires_both_status_contexts(self):
+        script = r"""
+const {recoveryCandidates} = require(process.argv[1]);
+const crypto = require('node:crypto');
+const pr = {number: 7, state: 'open', draft: false,
+  head: {sha: 'a'.repeat(40)}, base: {sha: 'b'.repeat(40), ref: 'release-2.18'},
+  user: {login: 'human'}, author_association: 'MEMBER',
+  labels: ['lgtm', 'approved'].map(name => ({name}))};
+const stamp = crypto.createHash('sha256').update(JSON.stringify([
+  'release-2.18', pr.base.sha, 'release-workflow-guard-v4',
+])).digest('hex');
+const description = `Expected CI and all checks passed; base policy ${stamp}.`;
+const statuses = ['ci-passed-release', 'ci-passed'].map(context =>
+  ({context, state: 'success', description}));
+const github = {paginate: async () => [pr], rest: {pulls: {list: {}},
+  repos: {getCombinedStatusForRef: {}}}};
+github.paginate.iterator = async function* () {yield {data: {statuses: github.visible}};};
+(async () => {
+  const results = [];
+  for (const visible of [statuses, statuses.slice(0, 1), statuses.slice(1)]) {
+    github.visible = visible;
+    results.push(await recoveryCandidates({github,
+      context: {repo: {owner: 'kubeflow', repo: 'pipelines'}}}));
+  }
+  console.log(JSON.stringify(results));
+})().catch(error => {console.error(error); process.exit(1);});
+"""
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
+        candidate = [{'number': 7, 'head': 'a' * 40}]
+        self.assertEqual(json.loads(result.stdout), [[], candidate, candidate])
 
     def test_success_records_the_validated_base_policy(self):
         result = exercise()
@@ -395,6 +933,27 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
                 self.assertEqual(
                     result['targetUrls'],
                     ['https://github.com/kubeflow/pipelines/actions/runs/99'])
+
+    def test_release_failure_reason_refreshes_both_contexts_without_churn(self):
+        result = exercise({
+            'schedule': True,
+            'conclusion': 'skipped',
+            'cycles': 6,
+            'pr': {
+                'base': {
+                    'sha': 'b' * 40,
+                    'ref': 'release-2.18',
+                    'repo': {
+                        'full_name': 'kubeflow/pipelines'
+                    },
+                },
+            },
+        })
+        reason = '.github/workflows/frontend.yml: latest run is completed/skipped'
+        self.assertEqual(result['statusContexts'],
+                         ['ci-passed-release', 'ci-passed'] * 2)
+        self.assertEqual(result['descriptions'][-2:], [reason, reason])
+        self.assertEqual(result['status'], 'failure')
 
     def test_repeated_label_failure_preserves_workflow_reason_without_churn(
             self):

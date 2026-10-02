@@ -5,7 +5,8 @@
       "path": ".github/workflows/ai-analyzer.lock.yml",
       "name": "AI issue quality analyzer",
       "header_sha256": "7a649a210577c581138fcaa18fd99c004823fe360b5aa60658342064018e8c2c",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/api-server-tests.yml",
@@ -30,7 +31,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/arm64-presubmit.yml",
@@ -63,13 +65,15 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/build-and-push.yml",
       "name": "Build and Push images",
       "header_sha256": "69c2fd667ef7aed48863a2273eb0ff65c101642a38f734aace901bf79aea32fb",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/build-tools-images.yml",
@@ -80,7 +84,8 @@
           "master",
           "release-*"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/check-requirements-txt.yml",
@@ -96,7 +101,8 @@
           ".github/workflows/check-requirements-txt.yml",
           "release/kfpr/steps.py"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/check-uv-lock.yml",
@@ -108,19 +114,22 @@
           "uv.lock",
           ".github/workflows/check-uv-lock.yml"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "55518d8ecf1b26ffc5858b7442a5a7000f6b4f3ed0da9686a7cddd062d2d1f56",
-      "pull_request": null
+      "header_sha256": "0eb12ad97d8765be67221d62da12e99d82167cfce81c0c80eb22171cd915b14d",
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/ci-health-report.yml",
       "name": "CI Health Report",
       "header_sha256": "c8e4449ebad6fbfb532f414c0d822cce0c6ea3548b8727fceef74003b5df3e3f",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
@@ -207,13 +216,15 @@
           "third_party/argo/VERSION",
           "test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/codeql.yml",
       "name": "CodeQL",
       "header_sha256": "41315d3dfd001f65cea8ee9ba6f42c94cd3dc1843f1cb263a44dc4bd9bab9181",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/compiler-tests.yml",
@@ -230,19 +241,22 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/contributor-report.yml",
       "name": "Contributor Report",
       "header_sha256": "243a51f5c27753f09cf5e4d5ca9f35554496583c254a14f162cb15f2a9b09adb",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/create-manifest.yml",
       "name": "Create Multi-Arch Manifest",
       "header_sha256": "f1ddea9fd34af652d5e55e8df405c60c404ec261329c70c73e427d4bb9d2ac28",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/docs-freshness.yml",
@@ -256,7 +270,8 @@
           "third_party/**",
           "README.md"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/docs.yml",
@@ -272,7 +287,8 @@
           ".readthedocs.yml",
           ".github/workflows/docs.yml"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/e2e-test-frontend.yml",
@@ -293,7 +309,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/e2e-test.yml",
@@ -327,7 +344,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/frontend.yml",
@@ -348,13 +366,15 @@
           "!**/OWNERS",
           "backend/src/apiserver/config/sample_config.json"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/gh-workflow-approve.yml",
       "name": "Approve Workflow Runs",
       "header_sha256": "a33f86d80ac847b03bcbd24568aa42b65103d5dd193d8c5660dc524240f7704e",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/go-image-digests.yml",
@@ -368,25 +388,29 @@
           "**/Dockerfile*",
           "**/Containerfile*"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/image-builds-master.yml",
       "name": "Build and Push for master",
       "header_sha256": "9859de028fdf59b3e2e4fd1f78abdc1f878954d9d9a0db5ce9cf13be392dd40a",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/image-builds-release.yml",
       "name": "Build and Push for Release",
       "header_sha256": "f30533b8b5b7ba1f3bdbb0a86dd071384b1d7c84753fe71fba80d1dcd20253d7",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/image-builds.yml",
       "name": "Build Images",
       "header_sha256": "b17f9692bc07773917c49b6df66109a047d7222dcaeab8f08d1efcd75587c3f2",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/kfp-kubernetes-library-test.yml",
@@ -404,7 +428,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/kfp-kubernetes-native-migration-tests.yaml",
@@ -428,7 +453,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/kfp-sdk-client-tests.yml",
@@ -450,7 +476,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/kfp-sdk-tests.yml",
@@ -470,7 +497,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/kfp-sdk-unit-tests.yml",
@@ -488,7 +516,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/kfp-webhooks.yml",
@@ -505,7 +534,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
@@ -519,7 +549,8 @@
           "!**/OWNERS",
           "docs/operator-guides/server-config.md"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/legacy-v2-api-integration-tests.yml",
@@ -543,19 +574,22 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/osv-scanner.yml",
       "name": "OSV-Scanner Vulnerability Scan",
       "header_sha256": "1f4a31bf78499730b30cbc64047d44eead6a0e34390719c0439a5d777b6b6206",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/pr-gate.yml",
       "name": "PR Gate",
       "header_sha256": "0d392e071f5a72b0840838c4bed410902be8d91ae6211172246f9752eb660c8f",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/pre-commit.yml",
@@ -565,7 +599,8 @@
         "branches": [
           "master"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/presubmit-backend.yml",
@@ -580,13 +615,15 @@
           "backend/**",
           "test/presubmit-backend-test.sh"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/publish-packages.yml",
       "name": "Publish Python Packages",
       "header_sha256": "a88257f1a5fb99eb258ddd181b078935a6f2b9de047928273f9118597001db03",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/python-syntax.yml",
@@ -597,7 +634,8 @@
           "**/*.py",
           ".github/workflows/python-syntax.yml"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/readthedocs-builds.yml",
@@ -615,7 +653,8 @@
           ".github/actions/setup-python/**",
           ".readthedocs.yml"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/runtime-base-images.yml",
@@ -634,7 +673,8 @@
           ".github/resources/scripts/runtime_base_image_artifacts.py",
           "test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/sdk-docformatter.yml",
@@ -651,7 +691,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/sdk-isort.yml",
@@ -669,7 +710,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/sdk-upgrade.yml",
@@ -686,7 +728,8 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/sdk-yapf.yml",
@@ -704,13 +747,15 @@
           "!**/*.md",
           "!**/OWNERS"
         ]
-      }
+      },
+      "merge_group": null
     },
     {
       "path": ".github/workflows/stale.yml",
       "name": "Mark stale issues and pull requests",
       "header_sha256": "8ed5e6b29dad78ca14bebe3f08006c01c1732ce9554497332229d6a33b4b1a5f",
-      "pull_request": null
+      "pull_request": null,
+      "merge_group": null
     },
     {
       "path": ".github/workflows/upgrade-test.yml",
@@ -735,6 +780,7 @@
           "!**/OWNERS"
         ]
       },
+      "merge_group": null,
       "disabled_for_migration": true
     },
     {
@@ -775,7 +821,8 @@
           "!**/OWNERS",
           "VERSION"
         ]
-      }
+      },
+      "merge_group": null
     }
   ]
 }

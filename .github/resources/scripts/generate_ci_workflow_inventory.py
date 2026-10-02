@@ -134,6 +134,8 @@ def build_inventory(records):
                 hashlib.sha256(header).hexdigest(),
             'pull_request': (events['pull_request'] or {})
                             if 'pull_request' in events else None,
+            'merge_group': (events['merge_group'] or {})
+                           if 'merge_group' in events else None,
         }
         if upgrade_paused(path, definition):
             workflow['disabled_for_migration'] = True

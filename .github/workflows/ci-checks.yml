@@ -3,14 +3,17 @@ name: CI Check
 
 on:
   schedule:
-    - cron: '7,22,37,52 * * * *'
+    # Scheduled PR-head and release queue recovery share the repository's
+    # hourly GITHUB_TOKEN API budget; event-driven validation remains prompt.
+    - cron: '7 * * * *'
   pull_request_target:
-    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed, ready_for_review, converted_to_draft]
   workflow_run:
     # Explicit constituents prevent CI Check from recursively triggering itself.
     workflows:
       - 'API Server Tests'
       - 'Build tools images'
+      - 'Build tools images merge group'
       - 'CI Scripts Tests'
       - 'Check uv.lock and requirements.txt sync'
       - 'Check uv.lock sync'
@@ -30,11 +33,14 @@ on:
       - 'KFP Manifests'
       - 'KFP Kubernetes Native Migration Tests'
       - 'KFP API Integration V2 (Legacy)'
+      - 'KFP API Integration v1 tests'
       - 'pre-commit'
       - 'KFP Backend Tests'
+      - 'KFP backend visualization tests'
       - 'Python Syntax'
       - 'KFP Readthedocs Release Readiness'
       - 'Runtime Base Images'
+      - 'Runtime Base Images Merge Group'
       - 'KFP SDK Docformatter Test'
       - 'KFP SDK Isort Test'
       - 'KFP SDK Upgrade Test'
@@ -69,6 +75,53 @@ jobs:
             const {recoveryCandidates} = require('./.github/resources/scripts/ci_passed.js');
             return await recoveryCandidates({github, context});
 
+  queue_candidates:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_run' &&
+        github.event.workflow_run.event == 'merge_group') ||
+      (github.event_name == 'pull_request_target' &&
+        (github.event.pull_request.base.ref == 'release-2.18' ||
+         (github.event.action == 'edited' &&
+          github.event.changes.base.ref.from == 'release-2.18')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    outputs:
+      candidates: ${{ steps.list.outputs.result }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/heads/${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - id: list
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {queueEventCandidates, queueHeads, queueRecoveryCandidates, queueStatus,
+              queueInvalidationDescription} =
+              require('./.github/resources/scripts/ci_passed.js');
+            if (context.eventName === 'schedule') {
+              return await queueRecoveryCandidates({github, context});
+            }
+            if (context.eventName === 'pull_request_target') {
+              return await queueEventCandidates({github, context});
+            }
+            const heads = await queueHeads({github, context});
+            if (context.eventName === 'workflow_run' &&
+                ['requested', 'in_progress'].includes(context.payload.action)) {
+              // This job has no concurrency group. Record the rerun before a
+              // replaceable per-SHA validation job can be queued behind it.
+              for (const sha of heads) {
+                await queueStatus(github, context, sha, 'pending',
+                  queueInvalidationDescription(context));
+              }
+            }
+            return heads.map(sha => ({sha}));
+
   check_ci_status:
     name: check_ci_status
     needs: recovery_candidates
@@ -83,7 +136,13 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
       (github.event_name == 'pull_request_target' &&
         ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
-         github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')))
+         github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test' ||
+         github.event.label.name == 'lgtm' || github.event.label.name == 'approved' ||
+         github.event.label.name == 'do-not-merge' ||
+         github.event.label.name == 'do-not-merge/hold' ||
+         github.event.label.name == 'do-not-merge/invalid-owners-file' ||
+         github.event.label.name == 'do-not-merge/work-in-progress' ||
+         github.event.label.name == 'needs-rebase')))
     concurrency:
       # GitHub can replace pending runs. Each survivor reads current PR, CI,
       # and durable retarget history; correctness never depends on event order.
@@ -178,3 +237,93 @@ jobs:
               before: process.env.CI_PR_SNAPSHOT,
               pollPassed: process.env.CI_POLL_PASSED === 'true',
               pollSkipped: process.env.CI_POLL_SKIPPED === 'true'});
+
+  invalidate_queue_status:
+    name: invalidate_queue_status
+    needs: queue_candidates
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        candidate: ${{ fromJSON(needs.queue_candidates.outputs.candidates || '[{"sha":""}]') }}
+    if: >-
+      always() && !cancelled() && needs.queue_candidates.result == 'success' &&
+      needs.queue_candidates.outputs.candidates != '[]' &&
+      !(github.event_name == 'workflow_run' &&
+        (github.event.action == 'requested' || github.event.action == 'in_progress'))
+    concurrency:
+      group: release-2.18-queue-ci-${{ matrix.candidate.sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Check out trusted default-branch publisher code
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}
+          ref: refs/heads/${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Revoke prior success for this queue SHA
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          CI_QUEUE_SHA: ${{ matrix.candidate.sha }}
+        with:
+          script: |
+            const {queueStatus, queueInvalidationDescription} =
+              require('./.github/resources/scripts/ci_passed.js');
+            await queueStatus(github, context, process.env.CI_QUEUE_SHA,
+              'pending', queueInvalidationDescription(context));
+
+  check_queue_status:
+    name: check_queue_status
+    needs: [queue_candidates, invalidate_queue_status]
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        candidate: ${{ fromJSON(needs.queue_candidates.outputs.candidates || '[{"sha":""}]') }}
+    if: >-
+      always() && !cancelled() && needs.queue_candidates.result == 'success' &&
+      needs.invalidate_queue_status.result == 'success' &&
+      needs.queue_candidates.outputs.candidates != '[]'
+    concurrency:
+      # Each matrix job writes one SHA. Per-SHA locks allow all scheduled
+      # candidates to run without replacing siblings in a global pending slot.
+      group: release-2.18-queue-ci-${{ matrix.candidate.sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      statuses: write
+      pull-requests: read
+    steps:
+      - name: Check out trusted default-branch publisher code
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}
+          ref: refs/heads/${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Set up trusted workflow inventory parser
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install trusted workflow parser dependencies
+        run: python -m pip install -r .github/scripts/requirements.txt
+
+      - name: Reconcile release merge-group CI on the exact queue SHA
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          CI_QUEUE_SHA: ${{ matrix.candidate.sha }}
+        with:
+          script: |
+            const {reconcileQueue} = require('./.github/resources/scripts/ci_passed.js');
+            await reconcileQueue({github, context, core,
+              recovery: {sha: process.env.CI_QUEUE_SHA}, alreadyPending: true});

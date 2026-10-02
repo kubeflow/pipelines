@@ -302,5 +302,5 @@ function loadLocalInventory(root) {
   return {inventory, workflowFiles};
 }
 
-module.exports = {globRegex, matchesPatterns, applicable, validateInventory,
+module.exports = {globRegex, matchesPatterns, applicable, validateInventory, invalidRunMetadata,
   verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, triggerHeader};
