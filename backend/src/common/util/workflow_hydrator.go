@@ -34,6 +34,11 @@ import (
 
 var workflowHydrator hydrator.Interface = hydratorfake.Noop
 
+// CurrentWorkflowHydrator returns the process-wide workflow hydrator.
+func CurrentWorkflowHydrator() hydrator.Interface {
+	return workflowHydrator
+}
+
 // SetWorkflowHydrator replaces the hydrator used to restore and persist Argo node status.
 // Passing nil restores the no-op hydrator.
 func SetWorkflowHydrator(h hydrator.Interface) {
