@@ -53,8 +53,11 @@ recreating the deleted run or workflow, and still requires the normal permission
 Metadata-only acknowledgements and retained static workflows do not require the
 original pipeline version to remain available. Retained workflows that need the
 V2 compiler-patch exception must still establish their authoritative V2 source,
-as described below. A follow-latest schedule resolves the current version again
-for its next tick.
+as described below. A schedule without a pipeline version ID resolves the
+pipeline's default version again for its next tick. SQL storage selects the newest
+ready version; Kubernetes-native storage honors the pipeline's configured default
+version, falling back to the newest version when no default is configured.
+Already-claimed ticks retain their selected version even if the default changes.
 Recurring-run request keys (the run display names) must contain at most 255
 characters so the run and its scheduling state can both be stored.
 
@@ -195,8 +198,8 @@ scheduling-state rows or reset counters directly in the database to bypass revie
 Repeat the inventory after recreation and remove obsolete disabled schedules
 through the API when their history is no longer needed.
 
-A follow-latest schedule intentionally executes future versions of its referenced
-pipeline. Trust publishers of that pipeline to supply code running under the
+A schedule without a pipeline version ID can execute future default versions of
+its referenced pipeline. Trust publishers of that pipeline to supply code running under the
 schedule's approved account, or pin a reviewed version instead. Users who can
 create arbitrary Kubernetes Workflows or Pods may already be able to execute as
 other accounts; this API control does not replace Kubernetes admission policies

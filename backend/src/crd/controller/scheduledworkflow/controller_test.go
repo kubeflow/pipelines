@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
@@ -161,11 +160,12 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_PipelineVersionReference(t *test
 		},
 	})
 
-	submitted, workflowName, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+	submitted, workflowName, scheduledEpoch, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
 	require.NoError(t, err)
 	assert.True(t, submitted)
+	assert.Equal(t, int64(100), scheduledEpoch)
 	// No Argo workflow may be created directly; the run must go through the CreateRun
 	// API so the referenced pipeline is resolved and compiled at trigger time.
 	assert.Nil(t, executionClient.createdWorkflow)
