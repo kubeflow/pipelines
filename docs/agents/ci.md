@@ -3,6 +3,7 @@
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
 - Update this guide when changing workflows, CI matrices, commands, generated outputs, or common failure handling.
+- `upgrade-readiness.yml` compares main-account predictions with the immutable backend revision in `schedule_policy.POLICY_SOURCE`. Conformance asserts exact SubjectAccessReview counts and blocking behavior for transport/evaluation failures, including in audit mode. It does not establish final-release compatibility or live upgrade success; keep the workflow reference and policy pin synchronized.
 - `build-tools-images.yml` builds `kfp-api-generator` and its child `kfp-release` on native AMD64 and ARM64 runners. The release image inherits the same job's locally built generator through the Docker daemon, not a mutable registry tag. Each lane executes both images' API/Swagger/Python-package generation plus release manifest/changelog preparation in a disposable source archive; source inventories must match between images and architectures before shared branch tags are promoted. Only packaging artifacts and the synthetic changelog heading's date are excluded from comparison. PRs never publish. Push/manual runs stage uniquely named per-attempt native indexes, then reuse `publish_image_index.py` to verify both platforms and promote shared tags without changing `latest`. Rerun the whole workflow after a failure so artifact attempts match. Existing 2.x branches retain their own tooling workflow; native maintainer-host support is independent of runtime architecture support.
 - `pr-gate.yml` skips PRs authored by `dependabot[bot]` or `copybara-service[bot]`, regardless of the event actor. For other PRs, membership comes exclusively from the `admins` and `members` lists in `kubeflow/internal-acls/github-orgs/kubeflow/org.yaml`, using a case-insensitive username match rather than GitHub's `author_association`. The gate and contributor report share `.github/scripts/kubeflow_membership.py`, which reads the ACL from `master` through the authenticated `gh` CLI and raises on lookup errors instead of returning a negative result. Both workflows check out the helper and `.github/scripts/requirements.txt` only from `github.workflow_sha`; the gate also checks out `.github/scripts/pr_gate_issue.py` from that trusted commit. The helper uses a PyYAML `SafeLoader` subclass that rejects duplicate mapping keys (including merge overrides) and validates the membership lists; lookup failures, malformed YAML, or invalid membership data fail the workflow without closing the PR. The gate, report, and CI Scripts Tests install the shared pinned requirements using Python 3.13. Authors absent from the ACL must reference an issue in this repository with the exact `ready` label. The gate uses GitHub's closing issue links and, for non-default-branch PRs where GitHub does not create a link from a closing keyword, accepts an explicit closing reference on its own line in the PR body. It closes PRs without an eligible issue. Both closure paths use the same contribution-focused message with a direct link to the [external-contributor admission guidelines](../../CONTRIBUTING.md#pull-request-admission-for-external-contributors). This author-specific exemption does not approve other workflow runs or bypass merge requirements.
 - After admitting an external contributor, `pr-gate.yml` adds `ok-to-test`, removes any existing `needs-ok-to-test`, and approves pending `pull_request` runs for that PR's current head through the Actions API. It checks the live PR state and labels, requires the fork repository, branch, and SHA to identify exactly one open PR, and filters runs to that head. The gate cannot rely on its `GITHUB_TOKEN` label change to trigger `gh-workflow-approve.yml`; GitHub suppresses that labeled event. The separate approval workflow still handles trusted authors and labels applied by maintainers, with the same unique-head guard, and sweeps admitted open PRs every 15 minutes for runs that appear after the gate's polling window. A later conflicting `needs-ok-to-test` label blocks automatic approval until fresh admission or maintainer review. CI Check reconciles `ci-passed` when the approved workflows complete.
@@ -57,6 +58,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 The Python visualization service is retired. Image builds, CI artifact inventories, and Kustomize overlays exclude it; v2 artifact viewers and the TensorBoard viewer controller remain supported. See [artifact migration and deployment cleanup](../concepts/output-artifact.md#migrating-from-the-python-visualization-server).
 
+- `upgrade-readiness.yml` runs dependency-free unittest coverage for `tools/upgrade-readiness` on changes to the tool or its workflow. It tests Python 3.11 and 3.13 with synthetic inventories and subprocesses, never cluster credentials.
+
 ## Common CI failures
 
 - Kubernetes-backed API lists can lag a successful create while the informer synchronizes. Native name-filter tests use the existing bounded informer wait and retain exact filter/pipeline-ID assertions; do not replace them with fixed sleeps or weaken the expected result.
@@ -67,7 +70,7 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 
 - `sdk-upgrade.yml` uses a fresh virtual environment to install the latest published SDK before upgrading to source-built wheels. Install the SDK, pipeline-spec, and server API wheels together in one pip transaction so unpublished dependency versions resolve locally; never run the upgrade against the already-installed uv workspace.
 
-- Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
+- Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove all checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
 
 - SDK imports must pass both isort 5.10.1 from the uv lint extra and isort 9.0.1 from pre-commit. These versions wrap long imports differently; prefer short module imports and verify both checks after SDK import changes.
 - Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Dependabot ignores only v1.7.8, and the configuration smoke test includes the updater and SDK structures files. Verify formatter upgrades by running the full hook chain twice on these files.
@@ -75,3 +78,22 @@ The Python visualization service is retired. Image builds, CI artifact inventori
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+- The readiness workflow also runs `tools/upgrade-readiness/conformance.py` against the exact backend revision in `schedule_policy.POLICY_SOURCE`. A Go overlay adds the fixture test without editing that checkout. This compares Python predictions with real backend main-account policy code under controlled SAR responses; it is not live RBAC, schedule firing, or upgrade validation. The pinned revision and policy contract must be reviewed together when the modeled policy changes.
+
+- `upgrade-test.yml` includes paused `readiness-schedules` scaffolding for a
+  future release-2.18 acceptance lane. All upgrade jobs retain checked-in false
+  conditions; neither dispatch inputs nor repository variables enable them.
+  Activation requires a reviewed branch-specific change after the scheduling
+  prerequisites are integrated, with the workflow inventory and pause tests updated
+  together. The lane uses a disposable `kfp-readiness` cluster, source 2.17.2 and
+  same-run candidate images. The separate fixture script mutates only this test
+  installation; the operator readiness scanner remains read-only. Preserve source
+  success checks, disabled-schedule draining, pre-upgrade predictions and both
+  enforce/audit phases. Upload only sanitized `reports/*.json`, never fixture tokens
+  or raw collection files. A skipped lane or passing mocked helper tests do not
+  satisfy live upgrade acceptance.
+
+- Readiness policy conformance uses the managed Go setup action and a separately
+  pinned backend checkout. Upgrade gate regression tests require every upgrade job
+  to retain its checked-in pause; run the CI scripts suite and `make check-go-version`
+  when changing these workflows.
