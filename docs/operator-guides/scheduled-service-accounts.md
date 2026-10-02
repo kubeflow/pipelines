@@ -237,11 +237,25 @@ plugin-parent annotations would not establish trusted provenance. Restrict direc
 Workflow/Pod permissions and apply admission policy where that boundary is
 required. Stronger execution provenance is a separate follow-up.
 
-The unit concurrency tests use SQLite with a single connection. General MySQL and
-PostgreSQL integration success does not prove competing-claim locking. Dedicated
-multi-connection races on both production databases remain required follow-up
-validation, including identical and competing request keys and visibility of the
-preceding committed run when enforcing maximum concurrency.
+The backend presubmit runs dedicated MySQL 8.0 and PostgreSQL 16 transaction
+regressions with twelve independent connections. They cover identical and competing
+request keys, duplicate persistence, atomic rollback and reporter recovery, and
+completed-request tombstones. Database-observed lock waits verify that a blocked
+claim sees a newly committed active run or schedule disable before proceeding.
+The harness verifies MySQL REPEATABLE READ and PostgreSQL READ COMMITTED isolation.
+
+To repeat this coverage against disposable local databases, set
+`KFP_RECURRING_MYSQL_TEST_DSN` and `KFP_RECURRING_POSTGRES_TEST_DSN`, then run:
+
+```bash
+go test ./backend/src/apiserver/storage -run '^TestRecurringRunProductionDatabases$' -count=5
+```
+
+The tests create and remove only their uniquely named databases/schemas. The test
+roles need database/schema and trigger DDL privileges, plus access to MySQL
+`performance_schema.data_lock_waits`/`threads` or PostgreSQL session lock metadata.
+Without a DSN, that database's cases are skipped. These storage tests do not replace
+live schedule firing, coordinated rollout, or populated-cluster upgrade acceptance.
 
 ## Scheduling regression test
 
