@@ -1,0 +1,17 @@
+[
+  {
+    "path": "hosted-protocol.json",
+    "bytes": 14325,
+    "sha256": "42837c8f0fd0b71d6cb4b6c5fc746af05d32c3acb1d3b2d0cbe8c7085afd224c"
+  },
+  {
+    "path": "performance-audit.json",
+    "bytes": 3353,
+    "sha256": "07b9558007d506e7dc2cc6a9f08cc5ec806802833a4af17a1d9946a52b944292"
+  },
+  {
+    "path": "performance.json",
+    "bytes": 2946098,
+    "sha256": "b2caecb81adb8b3b7a5e77604b4d4e9ebca4838a7bef76a5d65dd89d9e362ec4"
+  }
+]
