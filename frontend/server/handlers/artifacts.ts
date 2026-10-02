@@ -432,7 +432,17 @@ export function getArtifactsHandler({
     if (source !== 'minio' && source !== 's3') {
       setArtifactFilename(false);
     }
-    if (!isAllowedResourceName(bucket)) {
+    const isHttpArtifact = source === 'http' || source === 'https';
+    if (isHttpArtifact && !http.baseUrl.trim()) {
+      sendArtifactError(
+        res,
+        400,
+        'HTTP artifact base URL is not configured. Set HTTP_BASE_URL to an approved artifact base.',
+      );
+      return;
+    }
+    const absoluteHttpBase = isHttpArtifact && http.baseUrl.includes('://');
+    if (!absoluteHttpBase && !isAllowedResourceName(bucket)) {
       sendArtifactError(res, 500, 'Invalid bucket name');
       return;
     }
@@ -640,13 +650,19 @@ export function getArtifactsHandler({
           sendArtifactError(
             res,
             400,
-            http.baseUrl.trim()
-              ? 'Invalid HTTP artifact path'
-              : 'HTTP artifact base URL is not configured',
+            absoluteHttpBase
+              ? 'Invalid HTTP artifact URL. Check HTTP_BASE_URL and the artifact origin/path.'
+              : 'Invalid HTTP artifact path',
           );
           return;
         }
-        await getHttpArtifactsHandler(allowedDomain, httpUrl, http.auth, peek)(req, res);
+        await getHttpArtifactsHandler(
+          allowedDomain,
+          httpUrl,
+          http.auth,
+          peek,
+          absoluteHttpBase ? new URL(http.baseUrl.trim()) : undefined,
+        )(req, res);
         break;
       }
       case 'volume':
@@ -821,27 +837,73 @@ function isArtifactSource(source: string): source is ArtifactSource {
  * @param key path to the artifact.
  */
 function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, key: string) {
-  const configuredBaseUrl = baseUrl.trim().replace(/^\/+/, '');
+  const configuredBaseUrl = baseUrl.includes('://')
+    ? baseUrl.trim()
+    : baseUrl.trim().replace(/^\/+/, '');
   if (!configuredBaseUrl) {
     return undefined;
   }
   try {
-    const artifactUrl = new URL(`${source}://${configuredBaseUrl}`);
+    const absoluteBase = configuredBaseUrl.includes('://');
+    const base = new URL(absoluteBase ? configuredBaseUrl : `${source}://${configuredBaseUrl}`);
+    if (
+      !['http:', 'https:'].includes(base.protocol) ||
+      base.username ||
+      base.password ||
+      base.search ||
+      base.hash
+    ) {
+      return undefined;
+    }
+    let artifactUrl: URL;
     if (
       key.includes('\\') ||
       key.split('/').some((segment) => segment === '.' || segment === '..')
     ) {
       return undefined;
     }
-    const escapedKey = key.replace(/%/g, '%25');
-    artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
-      .filter(Boolean)
-      .join('/');
+    // The release UI preserves URI escapes when parsing persisted HTTP URLs.
+    // Gateway mode retains the existing storage-key encoding contract.
+    const escapedKey = absoluteBase ? key : key.replace(/%/g, '%25');
+    if (absoluteBase) {
+      if (/[\\/?#@\s]/.test(bucket)) {
+        return undefined;
+      }
+      artifactUrl = new URL(`${source}://${bucket}/`);
+      artifactUrl.pathname = `/${escapedKey}`;
+      if (!isWithinHttpArtifactBase(artifactUrl, base)) {
+        return undefined;
+      }
+    } else {
+      artifactUrl = base;
+      artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
+        .filter(Boolean)
+        .join('/');
+    }
     artifactUrl.search = '';
     artifactUrl.hash = '';
     return artifactUrl.toString();
   } catch {
     return undefined;
+  }
+}
+
+// Validate every redirect against the configured origin and path, in addition to
+// the release branch's existing allowlist and credential-origin checks.
+function isWithinHttpArtifactBase(url: URL, base: URL): boolean {
+  try {
+    const path = decodeURIComponent(url.pathname);
+    const prefix = decodeURIComponent(base.pathname).replace(/\/$/, '');
+    return (
+      url.origin === base.origin &&
+      !url.username &&
+      !url.password &&
+      !path.includes('\\') &&
+      !path.split('/').some((segment) => segment === '.' || segment === '..') &&
+      (path === prefix || path.startsWith(`${prefix}/`))
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -853,6 +915,7 @@ function getHttpArtifactsHandler(
     defaultValue: string;
   } = { key: '', defaultValue: '' },
   peek: number = 0,
+  approvedBase?: URL,
 ) {
   return async (req: Request, res: Response) => {
     const headers: Record<string, string> = {};
@@ -878,6 +941,14 @@ function getHttpArtifactsHandler(
       const allowedUrl = parseAllowedHttpArtifactUrl(currentUrl, allowedDomain);
       if (!allowedUrl) {
         sendArtifactError(res, 500, 'Domain not allowed.');
+        return;
+      }
+      if (approvedBase && !isWithinHttpArtifactBase(new URL(allowedUrl), approvedBase)) {
+        sendArtifactError(
+          res,
+          400,
+          'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.',
+        );
         return;
       }
       if (new URL(allowedUrl).origin !== credentialOrigin) {

@@ -23,7 +23,6 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { loadConfigs, type ProcessEnv } from '../configs.js';
 import { getArtifactsHandler } from '../handlers/artifacts.js';
 import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
-import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
 
 vi.mock('minio');
 vi.mock('../k8s-helper.js', () => ({
@@ -65,7 +64,6 @@ describe('profile-generated custom artifact endpoint configuration', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    launcherConfigTestOnly.clearLauncherConfigurationCache();
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
     vi.mocked(getK8sSecret).mockImplementation(async (_name, key) => `tenant-${key}`);

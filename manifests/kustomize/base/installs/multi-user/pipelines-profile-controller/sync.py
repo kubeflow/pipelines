@@ -37,7 +37,7 @@ def _normalize_domain(domain):
 
 
 def artifact_server_environment(namespace, cluster_domain,
-                                allowed_artifact_endpoints):
+                                allowed_artifact_endpoints, http_base_url=""):
     return [
         {
             "name": "MINIO_ACCESS_KEY",
@@ -74,6 +74,10 @@ def artifact_server_environment(namespace, cluster_domain,
             "value": cluster_domain,
         },
         {
+            "name": "HTTP_BASE_URL",
+            "value": http_base_url,
+        },
+        {
             "name": "ALLOWED_ARTIFACT_ENDPOINTS",
             "value": allowed_artifact_endpoints,
         },
@@ -106,7 +110,8 @@ def get_settings_from_env(controller_port=None,
                           allowed_artifact_endpoints=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
-                          object_store_host=None):
+                          object_store_host=None,
+                          http_base_url=None):
     """Returns a dict of settings from environment variables relevant to the
     controller.
 
@@ -131,6 +136,8 @@ def get_settings_from_env(controller_port=None,
     settings["artifacts_proxy_enabled"] = \
         artifacts_proxy_enabled or \
         os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+
+    settings["http_base_url"] = http_base_url if http_base_url is not None else os.environ.get("HTTP_BASE_URL", "")
 
     settings["allowed_artifact_endpoints"] = \
         allowed_artifact_endpoints if allowed_artifact_endpoints is not None \
@@ -172,7 +179,8 @@ def server_factory(frontend_image,
                    cluster_domain=".svc.cluster.local",
                    object_store_host="seaweedfs",
                    url="",
-                   controller_port=8080):
+                   controller_port=8080,
+                   http_base_url=""):
     """Returns an HTTPServer populated with Handler with customized
     settings."""
 
@@ -488,6 +496,7 @@ def server_factory(frontend_image,
                                                 namespace,
                                                 cluster_domain,
                                                 allowed_artifact_endpoints,
+                                                http_base_url,
                                             ),
                                         "resources": {
                                             "requests": {
