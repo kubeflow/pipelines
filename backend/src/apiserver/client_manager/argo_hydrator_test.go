@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	hydratorfake "github.com/argoproj/argo-workflows/v4/workflow/hydrator/fake"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
@@ -25,8 +27,22 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
+
+type stubKubernetesCore struct {
+	client kubernetes.Interface
+}
+
+func (s stubKubernetesCore) PodClient(namespace string) v1.PodInterface {
+	return s.client.CoreV1().Pods(namespace)
+}
+
+func (s stubKubernetesCore) GetClientSet() kubernetes.Interface {
+	return s.client
+}
 
 func TestLoadArgoPersistConfig(t *testing.T) {
 	t.Cleanup(viper.Reset)
@@ -164,4 +180,46 @@ func TestLoadArgoPersistConfig_MissingConfigMap(t *testing.T) {
 
 	_, _, err := loadArgoPersistConfig(context.Background(), k8sfake.NewClientset())
 	require.Error(t, err)
+}
+
+func TestInitWorkflowHydrator_InstallsLazyWhenConfigMapMissing(t *testing.T) {
+	t.Cleanup(viper.Reset)
+	viper.Reset()
+	viper.Set(common.PodNamespace, "kubeflow-pipelines")
+	viper.Set(common.ArgoWorkflowControllerConfigMap, "workflow-controller-configmap")
+	viper.AutomaticEnv()
+
+	previous := util.CurrentWorkflowHydrator()
+	util.SetWorkflowHydrator(hydratorfake.Noop)
+	t.Cleanup(func() {
+		util.SetWorkflowHydrator(previous)
+	})
+
+	cm := &ClientManager{
+		k8sCoreClient: stubKubernetesCore{client: k8sfake.NewClientset()},
+	}
+	cm.initWorkflowHydrator(context.Background())
+
+	h := util.CurrentWorkflowHydrator()
+	require.NotSame(t, hydratorfake.Noop, h)
+
+	wf := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: workflowapi.Nodes{
+				"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+			},
+		},
+	}
+	require.NoError(t, h.Hydrate(context.Background(), wf))
+
+	offloaded := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	}
+	err := h.Hydrate(context.Background(), offloaded)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not ready")
 }

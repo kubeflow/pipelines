@@ -21,11 +21,14 @@ import (
 	"sync/atomic"
 	"testing"
 
+	argoconfig "github.com/argoproj/argo-workflows/v4/config"
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/workflow/hydrator"
+	"github.com/argoproj/argo-workflows/v4/workflow/packer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestLazyOffloadHydrator_InitFailureThenSuccess(t *testing.T) {
@@ -71,6 +74,146 @@ func TestLazyOffloadHydrator_InitFailureThenSuccess(t *testing.T) {
 	assert.Equal(t, workflowapi.NodeSucceeded, wf.Status.Nodes["ok"].Phase)
 }
 
+func TestLazyOffloadHydrator_HydrateInlineWithoutInit(t *testing.T) {
+	var initCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		initCalls.Add(1)
+		return nil, errors.New("db unavailable")
+	})
+
+	wf := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: workflowapi.Nodes{
+				"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+			},
+		},
+	}
+
+	require.NoError(t, lazy.Hydrate(context.Background(), wf))
+	assert.Equal(t, int32(0), initCalls.Load())
+	assert.Equal(t, workflowapi.NodeSucceeded, wf.Status.Nodes["ok"].Phase)
+}
+
+func TestLazyOffloadHydrator_HydrateCompressedWithoutInit(t *testing.T) {
+	cleanup := packer.SetMaxWorkflowSize(230)
+	t.Cleanup(cleanup)
+
+	ctx := withArgoLogger(context.Background())
+	wf := &workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: workflowapi.Nodes{
+				"foo": {},
+				"bar": {},
+			},
+		},
+	}
+	require.NoError(t, packer.CompressWorkflowIfNeeded(ctx, wf))
+	require.NotEmpty(t, wf.Status.CompressedNodes)
+	require.Empty(t, wf.Status.Nodes)
+
+	var initCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		initCalls.Add(1)
+		return nil, errors.New("db unavailable")
+	})
+
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.Equal(t, int32(0), initCalls.Load())
+	assert.Len(t, wf.Status.Nodes, 2)
+}
+
+func TestLazyOffloadHydrator_DehydrateSmallWithoutInit(t *testing.T) {
+	cleanup := packer.SetMaxWorkflowSize(230)
+	t.Cleanup(cleanup)
+
+	var initCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		initCalls.Add(1)
+		return nil, errors.New("db unavailable")
+	})
+
+	wf := &workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: workflowapi.Nodes{
+				"foo": {},
+				"bar": {},
+			},
+		},
+	}
+
+	require.NoError(t, lazy.Dehydrate(withArgoLogger(context.Background()), wf))
+	assert.Equal(t, int32(0), initCalls.Load())
+	assert.NotEmpty(t, wf.Status.CompressedNodes)
+	assert.Empty(t, wf.Status.Nodes)
+}
+
+func TestLazyOffloadHydrator_HydrateWithNodesLocal(t *testing.T) {
+	var initCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		initCalls.Add(1)
+		return nil, errors.New("db unavailable")
+	})
+
+	wf := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	}
+	nodes := workflowapi.Nodes{
+		"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+	}
+
+	lazy.HydrateWithNodes(wf, nodes)
+	assert.Equal(t, int32(0), initCalls.Load())
+	assert.Equal(t, nodes, wf.Status.Nodes)
+	assert.Empty(t, wf.Status.CompressedNodes)
+	assert.Empty(t, wf.Status.OffloadNodeStatusVersion)
+}
+
+func TestNewLazyOffloadHydrator_PersistLoaderRetries(t *testing.T) {
+	var loadCalls atomic.Int32
+	failLoad := true
+	persistYAML := []byte(`nodeStatusOffLoad: true
+postgresql:
+  host: postgres.example.invalid
+  port: 5432
+  database: argo
+  tableName: argo_workflows
+`)
+
+	lazy := NewLazyOffloadHydrator(k8sfake.NewClientset(), func(ctx context.Context) (*argoconfig.PersistConfig, string, error) {
+		loadCalls.Add(1)
+		if failLoad {
+			return nil, "", errors.New("configmap not found")
+		}
+		persist, err := ParseArgoPersistConfig(persistYAML)
+		if err != nil {
+			return nil, "", err
+		}
+		return persist, "ns", nil
+	})
+
+	wf := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	}
+
+	err := lazy.Hydrate(context.Background(), wf)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not ready")
+	assert.Equal(t, int32(1), loadCalls.Load())
+
+	failLoad = false
+	err = lazy.Hydrate(context.Background(), wf)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not ready")
+	assert.Equal(t, int32(2), loadCalls.Load())
+}
+
 func TestLazyOffloadHydrator_ConcurrentInit(t *testing.T) {
 	repo := NewMemoryOffloadNodeStatusRepo()
 	inner := NewMemoryWorkflowHydrator(repo)
@@ -90,8 +233,11 @@ func TestLazyOffloadHydrator_ConcurrentInit(t *testing.T) {
 			defer wg.Done()
 			wf := &workflowapi.Workflow{
 				ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+				Status: workflowapi.WorkflowStatus{
+					OffloadNodeStatusVersion: "offload-hash",
+				},
 			}
-			_ = lazy.IsHydrated(wf)
+			_ = lazy.Hydrate(context.Background(), wf)
 		}()
 	}
 	close(start)
