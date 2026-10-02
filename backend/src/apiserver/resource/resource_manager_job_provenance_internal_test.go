@@ -15,6 +15,7 @@
 package resource
 
 import (
+	"context"
 	"testing"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
@@ -78,6 +79,7 @@ func TestChangeJobMode_UsesSelectedPipelineProvenance(t *testing.T) {
 				DisplayName: "source-job", Enabled: true, ExperimentId: experiment.UUID, PipelineSpec: pipelineSpec,
 			})
 			require.NoError(t, err)
+			seedHistoricalEmbeddedSchedule(t, manager, job)
 			require.NoError(t, manager.ChangeJobMode(ctx, job.UUID, false))
 			if !test.v2 && test.pinned {
 				_, err = store.db.Exec(`UPDATE "pipeline_versions" SET "PipelineSpec" = ? WHERE "UUID" = ?`, manifest, job.PipelineVersionId)
@@ -163,4 +165,20 @@ func TestChangeJobMode_UsesSelectedPipelineProvenance(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Historical schedules can retain compiled workflows even though new multi-user
+// schedules are generic. Seed that representation explicitly for migration checks.
+func seedHistoricalEmbeddedSchedule(t *testing.T, manager *ResourceManager, job *model.Job) {
+	t.Helper()
+	tmpl, _, err := manager.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
+	require.NoError(t, err)
+	rendered, err := tmpl.ScheduledWorkflow(job)
+	require.NoError(t, err)
+	client := manager.swfClient.ScheduledWorkflow(job.Namespace)
+	schedule, err := client.Get(context.Background(), job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	schedule.Spec.Workflow = rendered.Spec.Workflow
+	_, err = client.Update(context.Background(), schedule)
+	require.NoError(t, err)
 }

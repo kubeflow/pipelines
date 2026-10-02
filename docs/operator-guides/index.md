@@ -9,6 +9,7 @@ installation
 supported-platforms
 gcp-inverse-proxy-removal
 server-config
+scheduled-service-accounts
 multi-user
 rbac-migration-2.18
 configure-object-store
