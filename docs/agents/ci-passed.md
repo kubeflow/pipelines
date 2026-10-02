@@ -12,8 +12,8 @@ after the deployed merge policy has been verified. Required `ci-passed` protecti
 
 | Condition | Required behavior | Enforcement |
 | --- | --- | --- |
-| `needs-ok-to-test` present | No success, regardless of author | Publisher eligibility and Tide query exclusions |
-| No `ok-to-test` | Only exact Dependabot or MEMBER/OWNER/COLLABORATOR authors eligible | Publisher eligibility |
+| `needs-ok-to-test` present | No success, regardless of author | Explicit publisher veto; current Tide queries rely on this protection |
+| Any author, membership, or bot status; no `ok-to-test` | Assess the same current-head CI evidence | Author-independent publisher and recovery |
 | Expected workflow queued, running, or waiting | Pending; no success label | Trusted PR base workflow definitions and current Actions run state |
 | Expected workflow absent | Pending for 15 minutes from the first status on this SHA (or a later base retarget), then failure | Durable status history and PR timeline |
 | Expected workflow cancelled or unsuccessful | Failure, even while other work is pending | Current Actions run state |
@@ -23,7 +23,7 @@ after the deployed merge policy has been verified. Required `ci-passed` protecti
 | Base retargets | Old workflow executions cannot authorize the new base | Durable PR timeline cutoff; original run creation must follow the retarget |
 | Same-SHA rerun | Reconcile current run attempts, including unsuccessful terminal outcomes | requested/in_progress/completed events, current Actions state, and Tide contexts |
 | PR or CI changes during publication | Undo stale success | Full PR snapshot, workflow evidence, and external checks reread |
-| Fresh complete CI for an eligible open PR | Recover to success | Same reconciliation path for all events |
+| Fresh complete CI for an open PR without the explicit hold | Recover to success | Same reconciliation path for all events |
 
 Publishing a commit status is not atomic with PR or CI updates. Tide must still
 reject pending/failing constituent contexts and honor strict branch protection.
@@ -39,6 +39,19 @@ out the base repository's fully qualified default branch: after a fork PR merges
 its trusted event SHA is also the PR merge SHA that checkout's safety guard
 rejects. Neither path checks out a PR ref or disables the guard. Current PR/head
 validation still governs status and label changes after checkout.
+
+CI result reporting does not authorize workflow execution. The publisher does not
+read author identity, GitHub `author_association`, or organization membership, and
+does not require `ok-to-test`. A contributor whose current-head workflows all
+pass receives the same result as a member or bot. Missing, unapproved, pending,
+failed, and stale workflows still cannot produce success. Workflow approval
+remains owned by `gh-workflow-approve.yml` and the existing admission mechanisms.
+
+The explicit `needs-ok-to-test` veto remains because current Tide queries do not
+independently exclude that label on every merge path. Removing this veto requires
+coordinated protection in every overlapping Tide query. The publisher never
+removes this label, `do-not-merge`, or `do-not-merge/hold`; reviews and merge policy
+remain independent requirements.
 
 ## Expected workflow inventory
 
@@ -100,7 +113,7 @@ their own workflow timeouts remain authoritative.
 
 ## External-check recovery
 
-A scheduled sweep every 15 minutes selects eligible open PRs without a successful
+A scheduled sweep every 15 minutes selects open PRs without `needs-ok-to-test` or a successful
 `ci-passed` status for their current base branch and SHA, and runs the same reconciler for
 each captured number/head pair, with at most four jobs running in parallel.
 Successes from a different base, or legacy successes without a base stamp, are
@@ -109,7 +122,7 @@ invalidation and do not allocate recovery runners.
 Each job holds the same SHA-scoped writer lock as event-driven reconciliation
 only while checking and publishing; no sleep or long poll holds that lock.
 A late external check such as DCO can therefore recover after the final
-constituent workflow event. Every sweep rechecks eligibility, head, retarget
+constituent workflow event. Every sweep rechecks the explicit hold, head, retarget
 history, expected workflows, and discovered checks. Stale sweep entries do not
 write to newer heads; existing holds are never removed by the publisher.
 Preliminary invalidation preserves existing non-success on every event. The final
