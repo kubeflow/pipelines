@@ -343,8 +343,10 @@ Specifying default values ensures that the caller task always succeeds, regardle
 ## Task retries in 2.18
 
 Use `task.set_retry(num_retries=3, policy='OnError')` to select which failures
-Argo retries. Supported policies are `Always`, `OnFailure` (the default),
-`OnError`, and `OnTransientError`. The policy must be a compile-time string.
+Argo retries. Supported policies are `Always`, `OnFailure`,
+`OnError`, and `OnTransientError`. An explicit policy must be a compile-time
+string. Omitting it uses the deployment's Argo configuration; KFP's bundled
+manifests set `OnError`.
 
 When any task configures `set_retry`, the backend disables retries on all
 generated DAG templates so an enclosing DAG cannot retry a task beyond its
