@@ -340,6 +340,18 @@ Note that the component used for the caller task (`cleanup_op` in the example ab
 The default value is applied if the upstream task fails to produce the outputs that are passed to the caller task. 
 Specifying default values ensures that the caller task always succeeds, regardless of the status of the upstream task.
 
+## Task retries in 2.18
+
+Use `task.set_retry(num_retries=3, policy='OnError')` to select which failures
+Argo retries. Supported policies are `Always`, `OnFailure` (the default),
+`OnError`, and `OnTransientError`. The policy must be a compile-time string.
+
+When any task configures `set_retry`, the backend disables retries on all
+generated DAG templates so an enclosing DAG cannot retry a task beyond its
+configured limit. Pod-level retry settings remain intact. Pipelines without
+`set_retry` retain their existing retry behavior. Review pipelines that relied
+on enclosing DAG retries before upgrading.
+
 [data-passing]: ../components/compose-components-into-pipelines.md#data-passing-and-task-dependencies
 [pipeline-basics]: ../components/compose-components-into-pipelines.md
 [dsl-condition]: https://kubeflow-pipelines.readthedocs.io/en/latest/source/dsl.html#kfp.dsl.Condition
