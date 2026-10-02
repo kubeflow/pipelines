@@ -24,12 +24,18 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
+// defaultImagePullFailureCheckTimeout bounds a single image pull failure check,
+// including its termination request, so a stalled API server connection cannot
+// hold a persistence worker indefinitely.
+const defaultImagePullFailureCheckTimeout = 30 * time.Second
+
 // WorkflowSaver provides a function to persist a workflow to a database.
 type WorkflowSaver struct {
 	client                        client.WorkflowClientInterface
 	pipelineClient                client.PipelineClientInterface
 	ttlSecondsAfterWorkflowFinish int64
 	imagePullFailureChecker       ImagePullFailureChecker
+	imagePullFailureCheckTimeout  time.Duration
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
@@ -38,6 +44,7 @@ func NewWorkflowSaver(client client.WorkflowClientInterface,
 		client:                        client,
 		pipelineClient:                pipelineClient,
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
+		imagePullFailureCheckTimeout:  defaultImagePullFailureCheckTimeout,
 	}
 }
 
@@ -79,12 +86,14 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	}
 
 	// Check for image pull failures on workflows that are still running, and
-	// drop any tracking state once the workflow has finished.
+	// drop any tracking state once the workflow has finished. The check is
+	// bounded by a timeout so a stalled termination request cannot block
+	// reporting; errors are logged and reporting proceeds regardless.
 	if s.imagePullFailureChecker != nil {
 		if wf.ExecutionStatus().IsInFinalState() {
 			s.imagePullFailureChecker.Forget(namespace, name)
-		} else if checkErr := s.imagePullFailureChecker.CheckAndTerminate(context.Background(), namespace, name, wf.ExecutionObjectMeta().UID); checkErr != nil {
-			log.Warnf("Workflow (%v): error checking image pull failures: %v", name, checkErr)
+		} else {
+			s.checkImagePullFailures(wf)
 		}
 	}
 
@@ -108,4 +117,12 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
 	return nil
+}
+
+func (s *WorkflowSaver) checkImagePullFailures(wf util.ExecutionSpec) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.imagePullFailureCheckTimeout)
+	defer cancel()
+	if err := s.imagePullFailureChecker.CheckAndTerminate(ctx, wf.ExecutionObjectMeta()); err != nil {
+		log.Warnf("Workflow (%v): error checking image pull failures: %v", wf.ExecutionName(), err)
+	}
 }
