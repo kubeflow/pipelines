@@ -30,6 +30,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -44,11 +45,15 @@ const (
 // ImagePullFailureChecker checks workflow pods for image pull failures
 // and terminates the workflow if the grace period has elapsed.
 type ImagePullFailureChecker interface {
-	// CheckAndTerminate inspects the pods of a running workflow and terminates
-	// the workflow once a pod has been failing to pull an image for longer than
-	// the grace period. Only pods whose controller owner reference matches the
-	// workflow name and UID are considered, since pod labels are user-controlled.
-	CheckAndTerminate(ctx context.Context, namespace string, workflowName string, workflowUID types.UID) error
+	// CheckAndTerminate inspects the pods of the running workflow identified by
+	// the given metadata and terminates the workflow once a pod has been failing
+	// to pull an image for longer than the grace period. Only pods whose
+	// controller owner reference matches the workflow name and UID are
+	// considered, since pod labels are user-controlled. The termination patch
+	// is conditioned on the workflow UID and resource version the decision was
+	// made against, so a run that was retried or recreated in the meantime is
+	// left alone.
+	CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error
 	// Forget drops any failure tracking state held for the workflow. Callers
 	// should invoke it once a workflow reaches a final state or no longer exists
 	// so the checker does not retain state for workflows it will never check again.
@@ -108,7 +113,11 @@ type expiredImagePullFailure struct {
 // CheckAndTerminate lists pods for the given workflow and terminates the workflow
 // if any pod has been stuck in ImagePullBackOff or ErrImagePull longer than the
 // grace period (measured from when the failure was first observed).
-func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespace string, workflowName string, workflowUID types.UID) error {
+func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error {
+	if workflow == nil {
+		return fmt.Errorf("workflow metadata is required to check for image pull failures")
+	}
+	namespace, workflowName := workflow.Namespace, workflow.Name
 	selector, err := labels.Parse(fmt.Sprintf("%s=%s", ArgoWorkflowLabelKey, workflowName))
 	if err != nil {
 		return fmt.Errorf("failed to parse label selector for workflow %s/%s: %w", namespace, workflowName, err)
@@ -119,17 +128,20 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, namespa
 		return fmt.Errorf("failed to list pods for workflow %s/%s: %w", namespace, workflowName, err)
 	}
 
-	expired := c.trackFailures(namespace, workflowName, workflowUID, pods)
+	expired := c.trackFailures(namespace, workflowName, workflow.UID, pods)
 	if expired == nil {
 		return nil
 	}
 
 	log.Infof("Terminating workflow %s/%s: pod %s has image pull failure for %q (failing for %v exceeds grace period %v)",
 		namespace, workflowName, expired.podName, expired.failedImage, expired.elapsed.Round(time.Second), c.gracePeriod)
-	if err := c.terminateWorkflow(ctx, namespace, workflowName, expired.failedImage, expired.exitHandler); err != nil {
+	terminated, err := c.terminateWorkflow(ctx, workflow, expired.failedImage, expired.exitHandler)
+	if err != nil {
 		return err
 	}
-	c.Forget(namespace, workflowName)
+	if terminated {
+		c.Forget(namespace, workflowName)
+	}
 	return nil
 }
 
@@ -266,27 +278,43 @@ func imagePullFailureFromStatus(status corev1.ContainerStatus) string {
 }
 
 // terminateWorkflow terminates an Argo workflow and annotates it with the
-// failing image so the reason is visible to users.
+// failing image so the reason is visible to users. It returns true when the
+// workflow was terminated and false when the decision was discarded because
+// the workflow changed since it was inspected.
 //
 // The patch sets activeDeadlineSeconds to 0, which is how KFP marks a run as
 // terminated. Argo exempts exit-handler pods from the workflow deadline, so
 // healthy cleanup handlers still run after an ordinary task is terminated this
 // way. When the stuck pod is itself an exit handler, the deadline cannot stop
 // it, so the Terminate shutdown strategy is set as well.
-func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, namespace, workflowName, failedImage string, forceTerminate bool) error {
+//
+// The decision is made against informer caches, which can lag behind the API
+// server. A user may retry the run in between, and KFP retries reuse the
+// workflow name (updating or recreating the object). The patch therefore
+// carries the inspected UID and resource version: the API server rejects a
+// resource version mismatch with a Conflict and a UID change with an Invalid
+// (immutable field) error, so a stale decision can never hit the new attempt.
+func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, workflow *metav1.ObjectMeta, failedImage string, forceTerminate bool) (bool, error) {
+	namespace, workflowName := workflow.Namespace, workflow.Name
 	if c.executionClient == nil {
-		return fmt.Errorf("execution client not configured, cannot terminate workflow %s/%s", namespace, workflowName)
+		return false, fmt.Errorf("execution client not configured, cannot terminate workflow %s/%s", namespace, workflowName)
+	}
+	if workflow.UID == "" || workflow.ResourceVersion == "" {
+		return false, fmt.Errorf("workflow %s/%s has no UID or resource version, cannot terminate it safely", namespace, workflowName)
 	}
 
 	terminatePatch, ok := util.GetTerminatePatch(util.CurrentExecutionType()).(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("unsupported execution type for termination")
+		return false, fmt.Errorf("unsupported execution type for termination")
 	}
 
 	// Build a merged patch that terminates the workflow and annotates it with the
 	// image pull failure reason so users can see it in the workflow manifest.
+	// The uid and resourceVersion act as preconditions, see above.
 	patch := map[string]interface{}{
 		"metadata": map[string]interface{}{
+			"uid":             string(workflow.UID),
+			"resourceVersion": workflow.ResourceVersion,
 			"annotations": map[string]interface{}{
 				"pipelines.kubeflow.org/termination-reason": "ImagePullFailure",
 				"pipelines.kubeflow.org/failed-image":       failedImage,
@@ -307,15 +335,23 @@ func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, namespa
 
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
-		return fmt.Errorf("failed to marshal termination patch: %w", err)
+		return false, fmt.Errorf("failed to marshal termination patch: %w", err)
 	}
 
 	_, err = c.executionClient.Execution(namespace).Patch(
 		ctx, workflowName, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+	if apierrors.IsConflict(err) || apierrors.IsInvalid(err) {
+		// The workflow was updated, retried or recreated after it was inspected.
+		// Keep the tracking state so the next sync re-evaluates the refreshed
+		// workflow immediately instead of restarting the grace period.
+		log.Infof("Discarding stale termination decision for workflow %s/%s (uid %s, resourceVersion %s): %v",
+			namespace, workflowName, workflow.UID, workflow.ResourceVersion, err)
+		return false, nil
+	}
 	if err != nil {
-		return fmt.Errorf("failed to patch workflow %s/%s: %w", namespace, workflowName, err)
+		return false, fmt.Errorf("failed to patch workflow %s/%s: %w", namespace, workflowName, err)
 	}
 
 	log.Infof("Successfully terminated workflow %s/%s due to image pull failure", namespace, workflowName)
-	return nil
+	return true, nil
 }

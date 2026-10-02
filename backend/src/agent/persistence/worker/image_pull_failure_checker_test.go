@@ -17,32 +17,63 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	argocommon "github.com/argoproj/argo-workflows/v4/workflow/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
-// fakeExecutionInterface records Patch calls for testing.
+// fakeExecutionInterface records Patch calls for testing and can emulate the
+// API server's precondition checks and a stalled request.
 type fakeExecutionInterface struct {
 	util.ExecutionInterface
 	patchCount  int
 	patchedName string
 	patchData   []byte
+	// liveUID and liveResourceVersion, when set, emulate the API server
+	// rejecting a patch whose metadata.resourceVersion (Conflict) or
+	// metadata.uid (Invalid, immutable field) does not match the live object.
+	liveUID             types.UID
+	liveResourceVersion string
+	// blockUntilCanceled makes Patch hang until the context is done.
+	blockUntilCanceled bool
 }
 
 func (f *fakeExecutionInterface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (util.ExecutionSpec, error) {
 	f.patchCount++
 	f.patchedName = name
 	f.patchData = data
+	if f.blockUntilCanceled {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+	if f.liveUID != "" || f.liveResourceVersion != "" {
+		var patch struct {
+			Metadata metav1.ObjectMeta `json:"metadata"`
+		}
+		if err := json.Unmarshal(data, &patch); err != nil {
+			return nil, err
+		}
+		if patch.Metadata.ResourceVersion != f.liveResourceVersion {
+			return nil, apierrors.NewConflict(workflowapi.Resource("workflows"), name, fmt.Errorf("the object has been modified"))
+		}
+		if patch.Metadata.UID != f.liveUID {
+			return nil, apierrors.NewInvalid(workflowapi.SchemeGroupVersion.WithKind("Workflow").GroupKind(), name,
+				field.ErrorList{field.Invalid(field.NewPath("metadata", "uid"), patch.Metadata.UID, "field is immutable")})
+		}
+	}
 	return nil, nil
 }
 
@@ -99,6 +130,17 @@ func newTestChecker(podLister corelisters.PodLister, executionClient util.Execut
 // these tests.
 func testWorkflowUID(workflowName string) types.UID {
 	return types.UID(workflowName + "-uid")
+}
+
+// testWorkflowMeta returns the metadata of the workflow as the saver would
+// pass it from the informer cache.
+func testWorkflowMeta(workflowName string) *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Namespace:       "default",
+		Name:            workflowName,
+		UID:             testWorkflowUID(workflowName),
+		ResourceVersion: "100",
+	}
 }
 
 // newWorkflowPod builds a pod owned by workflowName (both labeled and with a
@@ -256,7 +298,7 @@ func TestCheckAndTerminate_NoPods(t *testing.T) {
 	podLister, _ := newTestPodLister()
 	checker, _ := newTestChecker(podLister, nil, 5*time.Minute)
 
-	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow"))
+	err := checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow"))
 	assert.NoError(t, err)
 }
 
@@ -264,7 +306,7 @@ func TestCheckAndTerminate_HealthyPods(t *testing.T) {
 	podLister, _ := newTestPodLister(newWorkflowPod("healthy-pod", "my-workflow", "good-image:latest", ""))
 	checker, _ := newTestChecker(podLister, nil, 5*time.Minute)
 
-	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow"))
+	err := checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow"))
 	assert.NoError(t, err)
 }
 
@@ -274,9 +316,9 @@ func TestCheckAndTerminate_ImagePullFailureWithinGracePeriod(t *testing.T) {
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	// First observation starts the clock; nothing should be terminated yet.
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(4 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 }
 
@@ -285,10 +327,10 @@ func TestCheckAndTerminate_ImagePullFailureExceedsGracePeriod(t *testing.T) {
 	// executionClient is nil so the termination will return an error.
 	checker, clock := newTestChecker(podLister, nil, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(5 * time.Minute)
 
-	err := checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow"))
+	err := checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "execution client not configured")
 }
@@ -303,11 +345,11 @@ func TestCheckAndTerminate_GracePeriodStartsAtFailureNotPodCreation(t *testing.T
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount, "old pod with a fresh failure must get the full grace period")
 
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 1, fakeExecInterface.patchCount)
 }
 
@@ -318,22 +360,22 @@ func TestCheckAndTerminate_RecoveryResetsGracePeriod(t *testing.T) {
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	// Failing for 4 minutes, then the pull recovers.
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(4 * time.Minute)
 	require.NoError(t, indexer.Update(newWorkflowPod("flaky-pod", "my-workflow", "flaky-image:latest", "")))
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 
 	// It fails again 2 minutes later: the clock restarts, so 4 more minutes is
 	// still inside the grace period.
 	clock.advance(2 * time.Minute)
 	require.NoError(t, indexer.Update(newWorkflowPod("flaky-pod", "my-workflow", "flaky-image:latest", "ImagePullBackOff")))
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(4 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 
 	clock.advance(1 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 1, fakeExecInterface.patchCount)
 }
 
@@ -354,9 +396,9 @@ func TestCheckAndTerminate_IgnoresTerminalPods(t *testing.T) {
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(time.Hour)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount, "terminal pods must not trigger termination")
 }
 
@@ -369,9 +411,9 @@ func TestCheckAndTerminate_MixedPods(t *testing.T) {
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	// Only the failing pod has issues but it is within grace -- should not terminate.
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 }
 
@@ -382,9 +424,9 @@ func TestCheckAndTerminate_OnlyListsPodsForWorkflow(t *testing.T) {
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
 	// Checking "my-workflow" should not see "other-workflow" pods.
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(time.Hour)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 }
 
@@ -394,9 +436,9 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 	fakeExecClient := &fakeExecutionClient{executionInterface: fakeExecInterface}
 	checker, clock := newTestChecker(podLister, fakeExecClient, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 
 	require.Equal(t, 1, fakeExecInterface.patchCount, "Patch should have been called to terminate the workflow")
 	assert.Equal(t, "my-workflow", fakeExecInterface.patchedName)
@@ -404,7 +446,9 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 
 	var patch struct {
 		Metadata struct {
-			Annotations map[string]string `json:"annotations"`
+			UID             string            `json:"uid"`
+			ResourceVersion string            `json:"resourceVersion"`
+			Annotations     map[string]string `json:"annotations"`
 		} `json:"metadata"`
 		Spec struct {
 			ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds"`
@@ -412,6 +456,10 @@ func TestCheckAndTerminate_SuccessfulTermination(t *testing.T) {
 		} `json:"spec"`
 	}
 	require.NoError(t, json.Unmarshal(fakeExecInterface.patchData, &patch))
+	// The inspected identity is carried as a precondition so a retried or
+	// recreated run under the same name is never terminated by a stale decision.
+	assert.Equal(t, string(testWorkflowUID("my-workflow")), patch.Metadata.UID)
+	assert.Equal(t, "100", patch.Metadata.ResourceVersion)
 	assert.Equal(t, "ImagePullFailure", patch.Metadata.Annotations["pipelines.kubeflow.org/termination-reason"])
 	assert.Equal(t, "bad-image:latest", patch.Metadata.Annotations["pipelines.kubeflow.org/failed-image"])
 	require.NotNil(t, patch.Spec.ActiveDeadlineSeconds)
@@ -437,9 +485,9 @@ func TestCheckAndTerminate_TerminatesExitHandlerPod(t *testing.T) {
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 
 	require.Equal(t, 1, fakeExecInterface.patchCount)
 	// Exit-handler pods are exempt from the workflow deadline, so the Terminate
@@ -460,9 +508,9 @@ func TestCheckAndTerminate_OrdinaryFailurePreservesHealthyExitHandler(t *testing
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 
 	require.Equal(t, 1, fakeExecInterface.patchCount)
 	assert.Contains(t, string(fakeExecInterface.patchData), `"activeDeadlineSeconds":0`)
@@ -478,9 +526,9 @@ func TestCheckAndTerminate_PrefersExitHandlerWhenBothExpired(t *testing.T) {
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 
 	require.Equal(t, 1, fakeExecInterface.patchCount)
 	assert.Contains(t, string(fakeExecInterface.patchData), `"shutdown":"Terminate"`)
@@ -503,9 +551,9 @@ func TestCheckAndTerminate_IgnoresPodWithSpoofedLabel(t *testing.T) {
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	clock.advance(time.Hour)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount, "pods not controlled by the workflow must be ignored")
 	assert.Empty(t, checker.failureStart, "ignored pods must not be tracked")
 }
@@ -526,7 +574,7 @@ func TestForget_ResetsGracePeriod(t *testing.T) {
 	fakeExecInterface := &fakeExecutionInterface{}
 	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Len(t, checker.failureStart, 1)
 
 	checker.Forget("default", "my-workflow")
@@ -534,7 +582,7 @@ func TestForget_ResetsGracePeriod(t *testing.T) {
 
 	// After Forget the next observation starts a fresh grace period.
 	clock.advance(5 * time.Minute)
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
 }
 
@@ -543,10 +591,99 @@ func TestCheckAndTerminate_DropsTrackingWhenPodsRecover(t *testing.T) {
 	podLister, indexer := newTestPodLister(pod)
 	checker, _ := newTestChecker(podLister, nil, 5*time.Minute)
 
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Len(t, checker.failureStart, 1)
 
 	require.NoError(t, indexer.Delete(pod))
-	require.NoError(t, checker.CheckAndTerminate(context.Background(), "default", "my-workflow", testWorkflowUID("my-workflow")))
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Empty(t, checker.failureStart, "no failing pods means no tracking state")
+}
+
+func TestCheckAndTerminate_RequiresWorkflowIdentity(t *testing.T) {
+	podLister, _ := newTestPodLister(newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff"))
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	meta := testWorkflowMeta("my-workflow")
+	meta.ResourceVersion = ""
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), meta))
+	clock.advance(5 * time.Minute)
+
+	err := checker.CheckAndTerminate(context.Background(), meta)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no UID or resource version")
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "no unconditional patch may be sent")
+}
+
+func TestCheckAndTerminate_RetriedRunBetweenDetectionAndPatch(t *testing.T) {
+	// The checker decides against a cached workflow (resourceVersion 100). By
+	// the time it patches, the user has retried the run, which KFP implements
+	// by updating the same workflow name (resourceVersion 101). The stale
+	// decision must be discarded and the refreshed workflow re-evaluated.
+	podLister, _ := newTestPodLister(newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff"))
+	fakeExecInterface := &fakeExecutionInterface{
+		liveUID:             testWorkflowUID("my-workflow"),
+		liveResourceVersion: "101",
+	}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	stale := testWorkflowMeta("my-workflow") // resourceVersion 100
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), stale))
+	clock.advance(5 * time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), stale), "a conflict is not an error, the decision is just discarded")
+	assert.Equal(t, 1, fakeExecInterface.patchCount)
+	assert.Len(t, checker.failureStart, 1, "tracking state is kept so the refreshed workflow is re-evaluated immediately")
+
+	// The next sync sees the refreshed workflow. The pod is still failing, so
+	// the termination now goes through against the current version.
+	refreshed := testWorkflowMeta("my-workflow")
+	refreshed.ResourceVersion = "101"
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), refreshed))
+	assert.Equal(t, 2, fakeExecInterface.patchCount)
+	assert.Empty(t, checker.failureStart)
+}
+
+func TestCheckAndTerminate_RecreatedRunBetweenDetectionAndPatch(t *testing.T) {
+	// A retry that recreates the workflow object yields a new UID. The API
+	// server rejects the UID change as an immutable-field error, which must be
+	// treated like a conflict.
+	podLister, _ := newTestPodLister(newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff"))
+	fakeExecInterface := &fakeExecutionInterface{
+		liveUID:             "recreated-uid",
+		liveResourceVersion: "100",
+	}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	stale := testWorkflowMeta("my-workflow")
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), stale))
+	clock.advance(5 * time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), stale))
+	assert.Equal(t, 1, fakeExecInterface.patchCount)
+	assert.Len(t, checker.failureStart, 1)
+}
+
+func TestCheckAndTerminate_StalledPatchIsCanceledByContext(t *testing.T) {
+	podLister, _ := newTestPodLister(newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff"))
+	fakeExecInterface := &fakeExecutionInterface{blockUntilCanceled: true}
+	checker, clock := newTestChecker(podLister, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	clock.advance(5 * time.Minute)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- checker.CheckAndTerminate(ctx, testWorkflowMeta("my-workflow")) }()
+
+	select {
+	case err := <-done:
+		require.Error(t, err)
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	case <-time.After(5 * time.Second):
+		t.Fatal("CheckAndTerminate did not return after the context deadline")
+	}
+	assert.Equal(t, 1, fakeExecInterface.patchCount)
+	assert.Len(t, checker.failureStart, 1, "a failed termination keeps the tracking state for the next attempt")
 }
