@@ -123,10 +123,16 @@ The runner separately needs its normal pipeline execution permissions.
 
 ## Upgrade and revocation
 
-Upgrade the API server and the ScheduledWorkflow controller together, apply the
-release RBAC, and wait for old controller pods to stop before adding custom-account
-grants. The release controller also needs the documented pipeline-read grants;
-apply the complete release manifests rather than only changing images.
+Before upgrading, block recurring-run creation and recreation for all clients.
+Keep this block until every old API server replica has stopped and its in-flight
+persistence-agent reports have drained. During a rolling upgrade, an old API can
+still overwrite a new schedule's stored inputs from its editable Kubernetes CR,
+even when the schedule is disabled and already has API-owned scheduling state.
+
+Upgrade the API server and the ScheduledWorkflow controller together and apply
+the complete release manifests, including the controller's pipeline-read grants.
+Also wait for old controller pods to stop before adding custom-account grants or
+enabling replacement schedules.
 
 Review existing schedules before granting controller access to an account.
 Schedules created before service-account authorization, or whose inputs were
@@ -190,10 +196,16 @@ requires recreation. The SQL result alone cannot inventory CR-only schedules.
 Before the first upgraded API startup, all existing jobs require review; the new
 state table does not exist yet.
 
-Disable the old schedule through the API, review its intended inputs and account,
-and recreate it through the API using native IR. Keep the replacement disabled
-until the old controller pods have stopped and existing executions have been
-accounted for. Disabling a schedule does not terminate its runs. Do not insert
+Also review and recreate every schedule created or recreated while old and new
+API replicas overlapped, including disabled schedules. Use the rollout window and
+creation records to identify them. The startup logs and SQL inventory above omit
+those that already have scheduling-state rows.
+
+After all old API replicas and their in-flight reports have drained, resume
+creation. Disable the old schedule through the API, review its intended inputs
+and account, and recreate it through the API using native IR. Keep the replacement
+disabled until the old controller pods have stopped and existing executions have
+been accounted for. Disabling a schedule does not terminate its runs. Do not insert
 scheduling-state rows or reset counters directly in the database to bypass review.
 Repeat the inventory after recreation and remove obsolete disabled schedules
 through the API when their history is no longer needed.

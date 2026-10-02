@@ -10,6 +10,10 @@ Changelog
   enumerate affected jobs. See the [migration inventory and procedure](docs/operator-guides/scheduled-service-accounts.md#inventory-before-completing-the-upgrade).
   Upgrade the API and controller together and apply the multi-user RBAC; generic
   schedules alone do not replace an upgraded controller in multi-user mode.
+  Block recurring-run creation and recreation until all old API replicas and their
+  in-flight reports have drained. Schedules created during mixed-version API
+  operation also require review and recreation, even if they have scheduling
+  state and are omitted from the migration inventory.
 - **Recurring-run parameters:** API-path schedules now expand scheduling macros
   inside nested list/struct parameters and support `[[Index]]`, matching embedded
   workflow scheduling. Review nested values containing literal `[[…]]` or
