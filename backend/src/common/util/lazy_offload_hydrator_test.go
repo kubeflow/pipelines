@@ -24,6 +24,7 @@ import (
 	argoconfig "github.com/argoproj/argo-workflows/v4/config"
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/workflow/hydrator"
+	hydratorfake "github.com/argoproj/argo-workflows/v4/workflow/hydrator/fake"
 	"github.com/argoproj/argo-workflows/v4/workflow/packer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -212,6 +213,49 @@ postgresql:
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not ready")
 	assert.Equal(t, int32(2), loadCalls.Load())
+}
+
+func TestLazyOffloadHydrator_DisabledOffloadReloadable(t *testing.T) {
+	repo := NewMemoryOffloadNodeStatusRepo()
+	repo.Put("wf-uid", "offload-hash", workflowapi.Nodes{
+		"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+	})
+	inner := NewMemoryWorkflowHydrator(repo)
+
+	offloadEnabled := false
+	var loadCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		loadCalls.Add(1)
+		if !offloadEnabled {
+			return hydratorfake.Noop, nil
+		}
+		return inner, nil
+	})
+
+	ctx := context.Background()
+	require.NoError(t, TryInitLazyOffloadHydrator(lazy, ctx))
+	assert.Equal(t, int32(1), loadCalls.Load())
+
+	wf := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	}
+
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.Equal(t, "offload-hash", wf.Status.OffloadNodeStatusVersion)
+	assert.Empty(t, wf.Status.Nodes)
+	assert.Equal(t, int32(2), loadCalls.Load())
+
+	offloadEnabled = true
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.Equal(t, int32(3), loadCalls.Load())
+	assert.Empty(t, wf.Status.OffloadNodeStatusVersion)
+	assert.Equal(t, workflowapi.NodeSucceeded, wf.Status.Nodes["ok"].Phase)
+
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.Equal(t, int32(3), loadCalls.Load())
 }
 
 func TestLazyOffloadHydrator_ConcurrentInit(t *testing.T) {
