@@ -97,6 +97,53 @@ When configured via the ConfigMap, every value must be a JSON string. Write `"tr
 
 Note: Labels and annotations with the prefix `pipelines.kubeflow.org/` are reserved and will be filtered out to prevent overriding system metadata. Changes to driver pod configuration require an API server restart.
 
+### Compiled V2 Workflow Istio Injection Default
+
+`WORKFLOW_ISTIO_SIDECAR_INJECT` controls the fallback
+`sidecar.istio.io/inject` annotation on newly compiled V2 workflow templates,
+including DAG/container drivers, task execution, and importer templates.
+For environment values, only the exact string `"true"` enables the fallback.
+In `config.json`, Viper also converts JSON boolean `true` to that string.
+Unset, empty, `"false"`,
+wrong-case, and invalid values retain the default `"false"`.
+
+Set the variable on the API server container in the `ml-pipeline` Deployment
+through your installation's Deployment overlay:
+
+```yaml
+env:
+  - name: WORKFLOW_ISTIO_SIDECAR_INJECT
+    value: "true"
+```
+
+The API server loads environment variables through its existing Viper
+configuration. Alternatively, set `"WORKFLOW_ISTIO_SIDECAR_INJECT": "true"`
+in its `config.json`. This setting is not wired to `pipeline-install-config`:
+adding a ConfigMap key alone does not pass it to the API server. Apply the
+Deployment overlay to the API server for either the standard or PostgreSQL
+installation, and verify the resulting container environment.
+
+Restart the API server after changing configuration. The setting applies to
+both new one-off runs and newly created recurring-run workflow specifications.
+Existing pods and stored recurring-run workflow specifications retain their
+annotations; recreate a recurring run to compile it with the new fallback.
+Legacy/precompiled Argo workflows and SDK/API schemas are unchanged.
+
+This is a fallback, not an enforcement policy. Explicit template annotations,
+task pod metadata, and existing `DRIVER_POD_ANNOTATIONS` take priority over it.
+`DRIVER_POD_LABELS` remains the existing way to configure driver injection
+labels. The fallback adds no label and does not rewrite existing labels;
+label/annotation conflicts are decided by the deployed Istio injector. Prefer
+consistent values and check your deployed Istio version's injection policy.
+Argo applies template metadata after workflow-level `spec.podMetadata`, so a
+workflow-level default does not replace a template's injection annotation.
+
+This option does not configure Istio, namespace injection, mTLS, proxy startup,
+or proxy shutdown. Before enabling it, validate one-off and recurring pipelines
+with your KFP, Argo, Kubernetes, and Istio versions: inspect driver/task sidecar
+injection, connectivity to protected services, and successful pod completion.
+Compiler tests alone do not establish live mesh compatibility.
+
 ## API Server Development
 
 ### Run the KFP Backend Locally With a Kind Cluster

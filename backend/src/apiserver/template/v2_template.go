@@ -196,8 +196,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 // WorkflowIstioSidecarInject names the installation setting that decides the istio sidecar
 // injection default written into every compiled workflow template that does not set its own
 // value. Upstream behaviour ("false") is preserved unless the installation sets exactly "true".
-// A control plane that requires STRICT mTLS has to set it, because a workflow pod with no
-// sidecar has no peer identity and cannot open a connection to the API server.
+// Existing driver configuration and explicit task metadata can override this fallback.
 const WorkflowIstioSidecarInject string = "WORKFLOW_ISTIO_SIDECAR_INJECT"
 
 func istioSidecarInjectDefault() string {

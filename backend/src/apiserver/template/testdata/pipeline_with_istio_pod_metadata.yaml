@@ -1,0 +1,69 @@
+components:
+  comp-injected:
+    executorLabel: exec-injected
+  comp-opted-out:
+    executorLabel: exec-opted-out
+  comp-default:
+    executorLabel: exec-default
+deploymentSpec:
+  executors:
+    exec-injected:
+      container:
+        image: python:3.11
+        command: [echo, injected]
+    exec-opted-out:
+      container:
+        image: python:3.11
+        command: [echo, opted-out]
+    exec-default:
+      container:
+        image: python:3.11
+        command: [echo, default]
+pipelineInfo:
+  name: pipeline-with-istio-pod-metadata
+root:
+  dag:
+    tasks:
+      injected:
+        componentRef:
+          name: comp-injected
+        taskInfo:
+          name: injected
+      opted-out:
+        componentRef:
+          name: comp-opted-out
+        taskInfo:
+          name: opted-out
+      default:
+        componentRef:
+          name: comp-default
+        taskInfo:
+          name: default
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-injected:
+          podMetadata:
+            annotations:
+              sidecar.istio.io/inject: "true"
+              team: ml
+            labels:
+              sidecar.istio.io/inject: "false"
+              tier: gold
+        exec-opted-out:
+          podMetadata:
+            annotations:
+              sidecar.istio.io/inject: "false"
+              owner: alice
+              cost-center: "42"
+        exec-default:
+          podMetadata:
+            annotations:
+              note: plain
+            labels:
+              app: demo
+              env: test

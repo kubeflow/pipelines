@@ -353,7 +353,7 @@ func loadYaml(t *testing.T, path string) string {
 	if err != nil {
 		t.Error(err)
 	}
-	return string(res)
+	return strings.ReplaceAll(string(res), "\r\n", "\n")
 }
 
 func TestIsPlatformSpecWithKubernetesConfig(t *testing.T) {
@@ -814,8 +814,9 @@ func TestSetDefaultServiceAccount_WorkflowEmbeddedSAPreserved(t *testing.T) {
 
 func TestSetDefaultServiceAccount_ConfiguredDefaultApplied(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
+	previous := viper.Get(common.DefaultPipelineRunnerServiceAccountFlag)
+	t.Cleanup(func() { viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, previous) })
 	viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, "my-custom-runner")
-	defer viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, "")
 	wf := util.NewWorkflow(unmarshalWf(awfTemplate))
 	setDefaultServiceAccount(wf, "")
 	assert.Equal(t, "my-custom-runner", wf.ServiceAccount())
