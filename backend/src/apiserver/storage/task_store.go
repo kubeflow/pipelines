@@ -555,22 +555,40 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	if task == nil {
 		return nil, util.NewInvalidInputError("Failed to create task: task cannot be nil")
 	}
-	generation, tagged, err := taskRetryGeneration(task)
+	fence, err := parseDriverTaskFence(task)
 	if err != nil {
 		return nil, err
 	}
-	if !tagged {
-		return s.createTaskWithExecutor(s.db, task)
+	if fence.sourceTaskID != "" {
+		return nil, util.NewInvalidInputError("Driver retry source fences cannot claim tasks; create the originating driver task first")
+	}
+	if !fence.tagged {
+		created, err := s.createTaskWithExecutor(s.db, task)
+		if err != nil {
+			return nil, err
+		}
+		stored, err := parseDriverTaskFence(created)
+		if err != nil {
+			return nil, err
+		}
+		if stored.claimed {
+			return nil, staleDriverAttempt(created.UUID)
+		}
+		return created, nil
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to start transaction for driver task creation")
 	}
 	defer tx.Rollback()
-	if err := s.lockRunForDriverTaskWrite(tx, task.RunUUID, generation); err != nil {
+	if err := s.lockRunForDriverTaskWrite(tx, task.RunUUID, fence.generation); err != nil {
 		return nil, err
 	}
 	created, err := s.createTaskWithExecutor(tx, task)
+	if err != nil {
+		return nil, err
+	}
+	created, err = s.claimDriverTaskAttempt(tx, created, fence)
 	if err != nil {
 		return nil, err
 	}
@@ -1141,10 +1159,11 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	if new.UUID == "" {
 		return nil, util.NewInvalidInputError("Failed to update task: task ID cannot be empty")
 	}
-	generation, tagged, err := taskRetryGeneration(new)
+	fence, err := parseDriverTaskFence(new)
 	if err != nil {
 		return nil, err
 	}
+	generation, tagged := fence.generation, fence.tagged
 
 	// Start a transaction to ensure atomic read-merge-write with row locking
 	tx, err := s.db.Begin()
@@ -1170,6 +1189,10 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	}
 	if tagged && lockedOld.RunUUID != new.RunUUID {
 		return nil, util.NewInvalidInputError("Driver task run ID does not match the stored task; use the task's original run ID")
+	}
+	new, err = s.validateDriverTaskAttempt(tx, new, lockedOld, fence)
+	if err != nil {
+		return nil, err
 	}
 
 	// Use the locked version for merging instead of the 'old' parameter

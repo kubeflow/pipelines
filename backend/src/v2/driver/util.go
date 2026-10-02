@@ -30,6 +30,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -440,6 +441,13 @@ func updateTaskAttemptLocalFieldsAfterCreate(
 	createdTask.State = attemptTask.GetState()
 	createdTask.EndTime = attemptTask.GetEndTime()
 	recoveryProperties := driverRecoveryProperties(createdTask)
+	// CreateTask can be followed by a newer claim before its response arrives.
+	// Preserve recovered data, but never adopt another attempt's write authority.
+	for _, key := range []string{util.DriverRetryGenerationKey, util.DriverRetryAttemptKey} {
+		if value, present := attemptTask.GetStatusMetadata().GetCustomProperties()[key]; present {
+			recoveryProperties[key] = proto.Clone(value).(*structpb.Value)
+		}
+	}
 	createdTask.StatusMetadata = attemptTask.GetStatusMetadata()
 	if len(recoveryProperties) > 0 {
 		metadata := driverRecoveryMetadata(createdTask)
@@ -449,6 +457,9 @@ func updateTaskAttemptLocalFieldsAfterCreate(
 	}
 	if attemptTask.TypeAttributes != nil {
 		createdTask.TypeAttributes = attemptTask.TypeAttributes
+	}
+	if _, claimed := recoveryProperties[util.DriverRetryAttemptKey]; claimed {
+		return updateDriverTask(ctx, kfpAPI, createdTask)
 	}
 	updatedTask, err := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 		TaskId: createdTask.GetTaskId(),

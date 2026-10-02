@@ -45,3 +45,33 @@ func TestCopyDriverRetryGeneration(t *testing.T) {
 	CopyDriverRetryGeneration(nil, source)
 	CopyDriverRetryGeneration(target, nil)
 }
+
+func TestCopyDriverRetryGenerationFencesSourceWithoutReplacingTargetClaim(t *testing.T) {
+	source := &api.PipelineTask{TaskId: "child", StatusMetadata: &api.PipelineTask_StatusMetadata{
+		CustomProperties: map[string]*structpb.Value{
+			DriverRetryGenerationKey: structpb.NewStringValue("7"),
+			DriverRetryAttemptKey:    structpb.NewStringValue("2"),
+		},
+	}}
+	target := &api.PipelineTask{TaskId: "parent", StatusMetadata: &api.PipelineTask_StatusMetadata{
+		CustomProperties: map[string]*structpb.Value{
+			DriverRetryGenerationKey: structpb.NewStringValue("7"),
+			DriverRetryAttemptKey:    structpb.NewStringValue("0"),
+			"_kfp_driver_checkpoint": structpb.NewStringValue("parent-handoff"),
+		},
+	}}
+	CopyDriverRetryGeneration(target, source)
+	properties := target.GetStatusMetadata().GetCustomProperties()
+	assert.Equal(t, "child", properties[DriverRetrySourceTaskKey].GetStringValue())
+	assert.Equal(t, "2", properties[DriverRetrySourceAttemptKey].GetStringValue())
+	assert.Equal(t, "0", properties[DriverRetryAttemptKey].GetStringValue())
+	assert.Equal(t, "parent-handoff", properties["_kfp_driver_checkpoint"].GetStringValue())
+	properties[DriverRetrySourceAttemptKey].Kind = &structpb.Value_StringValue{StringValue: "3"}
+	assert.Equal(t, "2", source.GetStatusMetadata().GetCustomProperties()[DriverRetryAttemptKey].GetStringValue())
+
+	delete(source.StatusMetadata.CustomProperties, DriverRetryAttemptKey)
+	CopyDriverRetryGeneration(target, source)
+	assert.NotContains(t, properties, DriverRetrySourceTaskKey)
+	assert.NotContains(t, properties, DriverRetrySourceAttemptKey)
+	assert.Equal(t, "0", properties[DriverRetryAttemptKey].GetStringValue())
+}

@@ -21,7 +21,8 @@ import (
 )
 
 // CopyDriverRetryGeneration carries the originating attempt's fence onto a
-// dependent task write without copying task-specific recovery checkpoints.
+// dependent task write without copying task-specific recovery checkpoints or
+// replacing the target's own attempt claim.
 func CopyDriverRetryGeneration(target, source *api.PipelineTask) {
 	value, present := source.GetStatusMetadata().GetCustomProperties()[DriverRetryGenerationKey]
 	if target == nil || !present {
@@ -37,4 +38,13 @@ func CopyDriverRetryGeneration(target, source *api.PipelineTask) {
 		value = proto.Clone(value).(*structpb.Value)
 	}
 	target.StatusMetadata.CustomProperties[DriverRetryGenerationKey] = value
+	delete(target.StatusMetadata.CustomProperties, DriverRetrySourceTaskKey)
+	delete(target.StatusMetadata.CustomProperties, DriverRetrySourceAttemptKey)
+	if attempt, present := source.GetStatusMetadata().GetCustomProperties()[DriverRetryAttemptKey]; present {
+		target.StatusMetadata.CustomProperties[DriverRetrySourceTaskKey] = structpb.NewStringValue(source.GetTaskId())
+		if attempt != nil {
+			attempt = proto.Clone(attempt).(*structpb.Value)
+		}
+		target.StatusMetadata.CustomProperties[DriverRetrySourceAttemptKey] = attempt
+	}
 }

@@ -167,6 +167,7 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 			require.NoError(t, err)
 			properties := map[string]*structpb.Value{
 				util.DriverRetryGenerationKey: structpb.NewStringValue("7"),
+				util.DriverRetryAttemptKey:    structpb.NewStringValue("2"),
 				"plugins.mlflow.run_id":       structpb.NewStringValue("existing-plugin-run"),
 			}
 			task := &apiv2beta1.PipelineTask{

@@ -82,10 +82,14 @@ func TestOutputPropagationDriverRetryGenerationSurvivesRefresh(t *testing.T) {
 			Producer: &api.IOProducer{TaskName: "leaf"},
 		}}},
 	}
+	root.StatusMetadata.CustomProperties[util.DriverRetryAttemptKey] = structpb.NewStringValue("0")
+	middle.StatusMetadata.CustomProperties[util.DriverRetryAttemptKey] = structpb.NewStringValue("1")
+	leaf.StatusMetadata.CustomProperties[util.DriverRetryAttemptKey] = structpb.NewStringValue("2")
 	origin := proto.Clone(leaf).(*api.PipelineTask)
 	// Even the current task may already belong to a newer generation by the
 	// time this old invocation refreshes its outputs.
 	leaf.StatusMetadata = metadata("10", "newer-leaf-checkpoint")
+	leaf.StatusMetadata.CustomProperties[util.DriverRetryAttemptKey] = structpb.NewStringValue("3")
 	client := kfpapi.NewMockAPI()
 	client.AddRun(run)
 	for _, task := range []*api.PipelineTask{root, middle, leaf} {
@@ -102,6 +106,10 @@ func TestOutputPropagationDriverRetryGenerationSurvivesRefresh(t *testing.T) {
 		update := queued.taskUpdates[parent.TaskId]
 		require.NotNil(t, update)
 		require.Equal(t, "7", update.GetStatusMetadata().GetCustomProperties()[util.DriverRetryGenerationKey].GetStringValue())
+		require.Equal(t, "leaf", update.GetStatusMetadata().GetCustomProperties()[util.DriverRetrySourceTaskKey].GetStringValue())
+		require.Equal(t, "2", update.GetStatusMetadata().GetCustomProperties()[util.DriverRetrySourceAttemptKey].GetStringValue())
+		require.Equal(t, parent.GetStatusMetadata().GetCustomProperties()[util.DriverRetryAttemptKey].GetStringValue(),
+			update.GetStatusMetadata().GetCustomProperties()[util.DriverRetryAttemptKey].GetStringValue())
 		require.Equal(t, parent.GetStatusMetadata().GetCustomProperties()["_kfp_driver_checkpoint"].GetStringValue(),
 			update.GetStatusMetadata().GetCustomProperties()["_kfp_driver_checkpoint"].GetStringValue())
 		require.Len(t, update.GetOutputs().GetParameters(), 1)

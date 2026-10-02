@@ -85,7 +85,7 @@ func recoverDriver(ctx context.Context, opts common.Options, manager client_mana
 		applyInferredDAGTaskType(opts, task)
 	}
 	generation := strconv.FormatInt(opts.DriverRetryGeneration, 10)
-	driverRecoveryMetadata(task).CustomProperties[util.DriverRetryGenerationKey] = structpb.NewStringValue(generation)
+	setDriverRetryOwner(task, opts)
 	stored, err := manager.KFPAPIClient().CreateTask(ctx, &api.CreateTaskRequest{RunId: task.RunId, Task: task})
 	if err != nil {
 		return nil, fmt.Errorf("failed to recover logical driver task: %w", err)
@@ -107,7 +107,7 @@ func recoverDriver(ctx context.Context, opts common.Options, manager client_mana
 			return nil, fmt.Errorf("driver task belongs to retry generation %s, not %s; retry the run through the API", storedGeneration, generation)
 		}
 	}
-	metadata.CustomProperties[util.DriverRetryGenerationKey] = structpb.NewStringValue(generation)
+	setDriverRetryOwner(stored, opts)
 	if checkpoint := metadata.CustomProperties[driverCheckpointKey].GetStringValue(); checkpoint != "" {
 		execution, err := restoreDriverCheckpoint(checkpoint, stored.GetTaskId())
 		if err != nil {
@@ -139,7 +139,7 @@ func recoverDriver(ctx context.Context, opts common.Options, manager client_mana
 	}
 	latest = proto.Clone(latest).(*api.PipelineTask)
 	latestMetadata := driverRecoveryMetadata(latest)
-	latestMetadata.CustomProperties[util.DriverRetryGenerationKey] = structpb.NewStringValue(generation)
+	setDriverRetryOwner(latest, opts)
 	if driveErr != nil {
 		latest.State = api.PipelineTask_RUNNING
 		latest.EndTime = nil
@@ -173,13 +173,23 @@ func driverRecoveryMetadata(task *api.PipelineTask) *api.PipelineTask_StatusMeta
 	return task.StatusMetadata
 }
 
+func setDriverRetryOwner(task *api.PipelineTask, opts common.Options) {
+	properties := driverRecoveryMetadata(task).CustomProperties
+	properties[util.DriverRetryGenerationKey] = structpb.NewStringValue(strconv.FormatInt(opts.DriverRetryGeneration, 10))
+	properties[util.DriverRetryAttemptKey] = structpb.NewStringValue(strconv.Itoa(opts.DriverRetryAttempt))
+	delete(properties, util.DriverRetrySourceTaskKey)
+	delete(properties, util.DriverRetrySourceAttemptKey)
+}
+
 func isDriverRecoveryProperty(key string) bool {
-	return key == util.DriverRetryGenerationKey || key == driverCheckpointKey || key == driverCachedOutputsKey
+	return key == util.DriverRetryGenerationKey || key == util.DriverRetryAttemptKey ||
+		key == util.DriverRetrySourceTaskKey || key == util.DriverRetrySourceAttemptKey ||
+		key == driverCheckpointKey || key == driverCachedOutputsKey
 }
 
 func driverRecoveryProperties(task *api.PipelineTask) map[string]*structpb.Value {
 	properties := make(map[string]*structpb.Value)
-	for _, key := range []string{util.DriverRetryGenerationKey, driverCheckpointKey, driverCachedOutputsKey} {
+	for _, key := range []string{util.DriverRetryGenerationKey, util.DriverRetryAttemptKey, driverCheckpointKey, driverCachedOutputsKey} {
 		if value, ok := task.GetStatusMetadata().GetCustomProperties()[key]; ok {
 			properties[key] = proto.Clone(value).(*structpb.Value)
 		}
@@ -188,12 +198,22 @@ func driverRecoveryProperties(task *api.PipelineTask) map[string]*structpb.Value
 }
 
 func updateDriverTask(ctx context.Context, client kfpapi.API, task *api.PipelineTask) (*api.PipelineTask, error) {
+	properties := task.GetStatusMetadata().GetCustomProperties()
+	generation := properties[util.DriverRetryGenerationKey].GetStringValue()
+	attempt := properties[util.DriverRetryAttemptKey].GetStringValue()
 	updated, err := client.UpdateTask(ctx, &api.UpdateTaskRequest{RunId: task.RunId, TaskId: task.TaskId, Task: task})
 	if err != nil {
 		return nil, fmt.Errorf("failed to persist driver recovery state: %w", err)
 	}
 	if updated == nil || updated.GetTaskId() != task.GetTaskId() {
 		return nil, fmt.Errorf("driver recovery update returned an invalid task identity")
+	}
+	// The response may be hydrated after another attempt has claimed the task.
+	// Do not let a refreshed response transfer that attempt's write authority.
+	updatedProperties := updated.GetStatusMetadata().GetCustomProperties()
+	if attempt != "" && (updatedProperties[util.DriverRetryGenerationKey].GetStringValue() != generation ||
+		updatedProperties[util.DriverRetryAttemptKey].GetStringValue() != attempt) {
+		return nil, fmt.Errorf("driver task ownership changed during update; discard this stale driver attempt")
 	}
 	return updated, nil
 }
