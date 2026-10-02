@@ -23,33 +23,61 @@ before resuming submissions. Expect a cold cache, extra step executions, and
 additional resource use; pre-upgrade pods with old-format keys do not seed the new
 cache. Do not roll back to the vulnerable implementation to recover cache hits.
 
-### Optional legacy-cache fallback
+### Temporary cache audit mode
 
-Administrators can set `ALLOW_LEGACY_CACHE_FALLBACK=true` for a bounded upgrade
-period. The default is `false` when unset. After a namespaced cache miss, this
-option permits a lookup using the original template-only hash, restricted to
-legacy rows with `Namespace = ''`. Normal namespace validation, namespace-scoped
-reads and writes, cache expiry, and disabled-cache behavior remain enforced.
+Set `KFP_SECURITY_LEGACY_CACHE_MODE` on the **cache-server deployment**:
 
-Enabling this option accepts possible reuse of another tenant's historical
-outputs, including poisoned outputs, because legacy row ownership is unknown.
-The full namespace isolation guarantee applies only with the fallback disabled.
-Stopping old replicas before upgrading is still required.
+| Value | Behavior |
+| --- | --- |
+| Unset, empty, or `enforce` (default) | Reuse only namespace-scoped entries. Legacy entries with unknown ownership are not reused. |
+| `audit` | After a genuine namespaced cache miss, permit a lookup using the original template-only hash, restricted to legacy rows with `Namespace = ''`. Log each legacy reuse as `ownership_unknown`. |
+
+There is no `legacy` or `off` mode. Invalid values prevent startup. Audit mode
+accepts possible reuse of another tenant's historical outputs, including poisoned
+outputs. It does not establish that the entry belongs to the requesting namespace.
+The full namespace isolation guarantee requires `enforce`.
+
+Audit preserves namespace validation, scoped-hit precedence, namespace-scoped
+writes, expiry limits, and disabled-cache behavior. A database error never enables
+legacy fallback: the task executes normally without a cache hit, as before.
+Known entries in another namespace are never a fallback source. This setting does
+not affect native V2 caching or change authentication/authorization elsewhere.
+
+The server warns at startup when audit is active. Each legacy reuse emits a
+`security_audit` event with `control=legacy_cache`, `mode=audit`,
+`reason=ownership_unknown`, `operation=cache_lookup`, disposition, namespace, pod,
+and cache entry ID. Events do not include cached outputs, credentials, or
+pipeline inputs. These are findings about an unknown owner, not successful
+ownership checks. No background scan or automatic cache rebuild runs at startup.
 
 For a deployment in the `kubeflow` namespace (adjust `NAMESPACE` as needed):
 
 ```sh
 NAMESPACE=kubeflow
-kubectl set env deployment/cache-server -n "$NAMESPACE" ALLOW_LEGACY_CACHE_FALLBACK=true
+kubectl set env deployment/cache-server -n "$NAMESPACE" \
+  KFP_SECURITY_LEGACY_CACHE_MODE=audit
+kubectl rollout status deployment/cache-server -n "$NAMESPACE"
 ```
 
-Legacy hits do not populate the new namespaced cache, and no automatic promotion
-or backfill occurs. Turning off the option can therefore still cause cold-cache
-executions. Disable it after the planned upgrade period:
+Keep all cache-server replicas configured consistently and persist the setting in
+your deployment/GitOps configuration. A restart/rollout is required for environment
+changes. The coordinated initial upgrade described above still applies: stop old
+cache-server replicas before starting namespace-aware replicas.
+
+Legacy hits do not populate the new namespaced cache, and no promotion or backfill
+occurs. Return to enforcement after the migration period:
 
 ```sh
-kubectl set env deployment/cache-server -n "$NAMESPACE" ALLOW_LEGACY_CACHE_FALLBACK=false
+kubectl set env deployment/cache-server -n "$NAMESPACE" \
+  KFP_SECURITY_LEGACY_CACHE_MODE=enforce
+kubectl rollout status deployment/cache-server -n "$NAMESPACE"
 ```
+
+Tasks incur cold-cache executions as matching pipelines next run, not as a startup
+replay of historical runs. Successful executions warm the namespace-scoped cache.
+Plan for extra runtime/compute and possible queueing; historical run/artifact data
+is not deleted by disabling audit. We plan to remove audit mode in **3.0.0**, tracked in
+[#14367](https://github.com/kubeflow/pipelines/issues/14367).
 
 The migration/storage regression runs with SQLite in the normal cache test suite.
 To also exercise MySQL and PostgreSQL, set `KFP_CACHE_TEST_MYSQL_DSN` and

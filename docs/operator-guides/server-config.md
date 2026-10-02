@@ -256,3 +256,12 @@ To return to defaults, remove the overrides and roll out the deployment. Before
 lowering `MAX_PIPELINE_SPEC_BYTES`, check stored pipelines accepted under the higher
 limit: object-store specifications may no longer be readable for subsequent execution. This
 setting does not add a new size check to the existing direct database-spec read path.
+
+### Legacy V1 cache security mode
+
+On the cache-server deployment, `KFP_SECURITY_LEGACY_CACHE_MODE` accepts `enforce`
+(default) or `audit`. Audit permits legacy cache reuse after a scoped miss and
+reports `ownership_unknown`; it weakens isolation and is planned for removal in
+3.0.0. Invalid mode values are rejected at startup. See the [cache migration guide](https://github.com/kubeflow/pipelines/blob/release-2.18/backend/src/cache/README.md#temporary-cache-audit-mode)
+for configuration, rollout, and return-to-enforcement instructions. Native V2
+caching is unaffected.
