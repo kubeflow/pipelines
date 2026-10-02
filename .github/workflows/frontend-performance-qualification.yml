@@ -129,7 +129,7 @@ jobs:
           try {
             const report = JSON.parse(await readFile('performance-results/performance.json'));
             await appendFile(process.env.GITHUB_STEP_SUMMARY,
-              `Performance measurement: ${report.status}\n\nAcceptance: ${report.acceptance}\n\nBudget comparisons pass: ${report.proposedBudgetsPass ?? 'not evaluated'}\n\nSee retained raw samples and Chromium traces. First editor-open budget is pending results.\n`);
+              `Performance measurement: ${report.status}\n\nAcceptance: ${report.acceptance}\n\nBudget comparisons pass: ${report.proposedBudgetsPass ?? 'not evaluated'}\n\nSee retained raw samples and Chromium traces. First editor-open gates: display median at most 4 s; initialized worker median at most 5 s.\n`);
           } catch { await appendFile(process.env.GITHUB_STEP_SUMMARY, 'No complete performance report; inspect setup logs.\n'); }
           NODE
       - uses: actions/upload-artifact@v7
