@@ -322,18 +322,39 @@ def setup_mesh(args):
 
 
 def pipeline_create_allowed(namespace, user):
-    result = subprocess.run([
-        'kubectl', 'auth', 'can-i', 'create',
-        'pipelines.pipelines.kubeflow.org', '-n', namespace, '--as', user
-    ],
-                            capture_output=True,
-                            text=True,
-                            timeout=30)
-    answer = result.stdout.strip()
-    if (result.returncode, answer) not in ((0, 'yes'), (1, 'no')):
+    # Database-backed KFP uses virtual RBAC resources, absent from discovery.
+    # kubectl auth can-i drops the requested group on a discovery miss; submit
+    # the same explicit SubjectAccessReview attributes as KFP's upload handler.
+    review = {
+        'apiVersion': 'authorization.k8s.io/v1',
+        'kind': 'SubjectAccessReview',
+        'spec': {
+            'user': user,
+            'resourceAttributes': {
+                'group': 'pipelines.kubeflow.org',
+                'version': 'v1beta1',
+                'resource': 'pipelines',
+                'verb': 'create',
+                'namespace': namespace
+            }
+        }
+    }
+    result = json.loads(
+        command(
+            'kubectl',
+            'create',
+            '--raw',
+            '/apis/authorization.k8s.io/v1/subjectaccessreviews',
+            '-f',
+            '-',
+            payload=json.dumps(review),
+            timeout=30))
+    status = result.get('status', {})
+    if status.get('evaluationError') or not isinstance(
+            status.get('allowed'), bool):
         raise RuntimeError(
             'Could not verify namespace pipeline creation authorization')
-    return answer == 'yes'
+    return status['allowed']
 
 
 def profile_authorization_state(output, owner_access):

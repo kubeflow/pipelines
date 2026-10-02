@@ -208,28 +208,46 @@ class QualificationTest(unittest.TestCase):
                     invalid, expected, lambda _: self.fail(
                         'Invalid identity must not read content'))
 
-    def test_authorization_probe_rejects_command_failure_not_just_denial(self):
-        for code, answer, allowed in [(0, 'yes\n', True), (1, 'no\n', False)]:
+    def test_authorization_probe_uses_explicit_kfp_resource_attributes(self):
+        for allowed in (True, False):
             with patch.object(
-                    qualification.subprocess,
-                    'run',
-                    return_value=subprocess.CompletedProcess([],
-                                                             code,
-                                                             stdout=answer,
-                                                             stderr='')) as run:
+                    qualification,
+                    'command',
+                    return_value=json.dumps({'status': {
+                        'allowed': allowed
+                    }})) as command:
                 self.assertEqual(
                     qualification.pipeline_create_allowed(
                         'owner-space', 'owner@example.com'), allowed)
-                self.assertIn('pipelines.pipelines.kubeflow.org',
-                              run.call_args.args[0])
-        with patch.object(
-                qualification.subprocess,
-                'run',
-                return_value=subprocess.CompletedProcess([],
-                                                         1,
-                                                         stdout='',
-                                                         stderr='unavailable')):
-            with self.assertRaises(RuntimeError):
+                self.assertEqual(
+                    command.call_args.args,
+                    ('kubectl', 'create', '--raw',
+                     '/apis/authorization.k8s.io/v1/subjectaccessreviews', '-f',
+                     '-'))
+                review = json.loads(command.call_args.kwargs['payload'])
+                self.assertEqual(review['kind'], 'SubjectAccessReview')
+                self.assertEqual(
+                    review['spec'], {
+                        'user': 'owner@example.com',
+                        'resourceAttributes': {
+                            'group': 'pipelines.kubeflow.org',
+                            'version': 'v1beta1',
+                            'resource': 'pipelines',
+                            'verb': 'create',
+                            'namespace': 'owner-space'
+                        }
+                    })
+        for status in ({}, {
+                'allowed': 'true'
+        }, {
+                'allowed': True,
+                'evaluationError': 'backend unavailable'
+        }):
+            with patch.object(
+                    qualification,
+                    'command',
+                    return_value=json.dumps(
+                        {'status': status})), self.assertRaises(RuntimeError):
                 qualification.pipeline_create_allowed('owner-space',
                                                       'owner@example.com')
 
