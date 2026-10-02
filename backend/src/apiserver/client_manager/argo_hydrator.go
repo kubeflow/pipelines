@@ -33,20 +33,15 @@ func (c *ClientManager) initWorkflowHydrator(ctx context.Context) {
 		glog.Warning("Skipping Argo offload hydrator: Kubernetes client is unavailable")
 		return
 	}
-	persist, secretsNamespace, err := loadArgoPersistConfig(ctx, kube)
-	if err != nil {
-		glog.Warningf("Skipping Argo offload hydrator: %v. Retry of offloaded workflows will fail.", err)
-		return
-	}
-	if persist == nil || !persist.NodeStatusOffload {
-		glog.Info("Argo node status offload is disabled; using no-op workflow hydrator")
-		return
-	}
-	lazy := util.NewLazyOffloadHydrator(kube, persist, secretsNamespace)
+	lazy := util.NewLazyOffloadHydrator(kube, func(ctx context.Context) (*argoconfig.PersistConfig, string, error) {
+		return loadArgoPersistConfig(ctx, kube)
+	})
 	util.SetWorkflowHydrator(lazy)
 	if err := util.TryInitLazyOffloadHydrator(lazy, ctx); err != nil {
-		secretNames := util.ArgoPersistSecretNames(persist)
-		glog.Warningf("Failed to initialize Argo offload hydrator: %v. Grant get on Secret(s) %v in namespace %s. Hydrator will retry on demand.", err, secretNames, secretsNamespace)
+		glog.Warningf(
+			"Failed to initialize Argo offload hydrator: %v. ConfigMap and Secret access will be retried on demand.",
+			err,
+		)
 		return
 	}
 	glog.Info("Argo offload hydrator initialized")
