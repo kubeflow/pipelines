@@ -13,7 +13,7 @@ after the deployed merge policy has been verified. Required `ci-passed` protecti
 | Condition | Required behavior | Enforcement |
 | --- | --- | --- |
 | `needs-ok-to-test` present | No success, regardless of author | Publisher eligibility and Tide query exclusions |
-| No `ok-to-test` | Only exact Dependabot or MEMBER/OWNER/COLLABORATOR authors eligible | Publisher eligibility |
+| No `ok-to-test` | Only exact Dependabot or Kubeflow ACL admins/members eligible | Shared CI eligibility |
 | Expected workflow queued, running, or waiting | Pending; no success label | Trusted PR base workflow definitions and current Actions run state |
 | Expected workflow absent | Pending for 15 minutes from the first status on this SHA (or a later base retarget), then failure | Durable status history and PR timeline |
 | Expected workflow cancelled or unsuccessful | Failure, even while other work is pending | Current Actions run state |
@@ -39,6 +39,17 @@ out the base repository's fully qualified default branch: after a fork PR merges
 its trusted event SHA is also the PR merge SHA that checkout's safety guard
 rejects. Neither path checks out a PR ref or disables the guard. Current PR/head
 validation still governs status and label changes after checkout.
+
+CI publishing and workflow approval share `.github/resources/scripts/ci_eligibility.js`.
+Each job loads the `admins` and `members` lists from `kubeflow/internal-acls`
+through the trusted `.github/scripts/kubeflow_membership.py` helper once, then
+reuses its validated JSON export for all PRs and publication checks in that job.
+Membership is case-insensitive and never depends on GitHub's `author_association`,
+which can vary with the caller's access to private organization membership.
+`needs-ok-to-test` blocks all authors; `ok-to-test` explicitly admits external
+contributors. ACL fetch, parse, or export failures stop approval and recovery;
+the publisher revokes previous success and reports a membership lookup error.
+The next job fetches fresh membership instead of reusing a cross-run cache.
 
 ## Expected workflow inventory
 

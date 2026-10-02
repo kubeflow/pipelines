@@ -13,16 +13,11 @@
 
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 const {verifyCheckRuns} = require('./ci_check_runs');
+const {eligible, loadMembers} = require('./ci_eligibility');
+const MEMBERSHIP_FAILURE = 'Cannot verify Kubeflow ACL membership; inspect CI Check and retry.';
 
-function eligible(pr) {
-  const labels = new Set(pr.labels.map(label => label.name));
-  return !labels.has('needs-ok-to-test') && (labels.has('ok-to-test') ||
-    pr.user.login === 'dependabot[bot]' ||
-    ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(pr.author_association));
-}
-
-function snapshot(pr) {
-  return JSON.stringify([pr.number, pr.state, pr.head.sha, pr.base.ref, pr.base.sha, eligible(pr)]);
+function snapshot(pr, members) {
+  return JSON.stringify([pr.number, pr.state, pr.head.sha, pr.base.ref, pr.base.sha, eligible(pr, members)]);
 }
 
 async function readPR(github, context, number) {
@@ -50,12 +45,13 @@ function successDescription(pr) {
 }
 
 async function recoveryCandidates({github, context}) {
+  const members = loadMembers();
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', per_page: 100,
   });
   const candidates = [];
   for (const pr of prs) {
-    if (!eligible(pr)) continue;
+    if (!eligible(pr, members)) continue;
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
     const status = await currentStatus(github, context, pr.head.sha);
@@ -187,9 +183,16 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   // can fail closed if inventory loading or evidence retrieval fails.
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
-  core.setOutput('snapshot', snapshot(pr));
+  let members;
+  try {
+    members = loadMembers();
+  } catch (error) {
+    await publish(github, context, pr, 'failure', MEMBERSHIP_FAILURE);
+    throw error;
+  }
+  core.setOutput('snapshot', snapshot(pr, members));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
-  if (pr.state !== 'open' || !eligible(pr)) return;
+  if (pr.state !== 'open' || !eligible(pr, members)) return;
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
@@ -203,9 +206,12 @@ async function finalize({github, context, core, number, head, before, pollPassed
   try {
     const pr = await readPR(github, context, Number(number));
     original = {...pr, head: {...pr.head, sha: head}};
+    errorReason = MEMBERSHIP_FAILURE;
+    const members = loadMembers();
+    errorReason = 'Cannot verify CI evidence; inspect CI Check and retry.';
     let state = 'failure';
     let reason = 'PR changed or is ineligible; complete current-head CI and retry.';
-    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && eligible(pr)) {
+    if (pr.head.sha === head && pr.state === 'open' && snapshot(pr, members) === before && eligible(pr, members)) {
       const [workflows, checks] = await Promise.all([
         evidence(github, context, pr, root),
         verifyCheckRuns({github, ...context.repo, sha: head}),
@@ -232,7 +238,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {
       const after = await readPR(github, context, Number(number));
-      if (snapshot(after) !== before) {
+      if (snapshot(after, members) !== before) {
         errorReason = 'PR changed during publication; rerun CI on the current head.';
         await publish(github, context, original, 'failure', errorReason);
       } else {

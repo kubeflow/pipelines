@@ -15,6 +15,8 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import os
 import re
 import subprocess
@@ -64,14 +66,11 @@ def _parse_members(yaml_text: str) -> set[str]:
     return members
 
 
-def is_kubeflow_member(username: str) -> bool:
-    """Check the authoritative ACL, raising on lookup errors.
+def load_kubeflow_members() -> set[str]:
+    """Load the authoritative ACL, raising on lookup or schema errors.
 
     Requires gh authenticated through GH_TOKEN or GITHUB_TOKEN.
     """
-    if not re.fullmatch(LOGIN_PATTERN, username):
-        raise ValueError(
-            'Provide a valid GitHub username for membership lookup.')
     try:
         result = subprocess.run(
             [
@@ -87,10 +86,27 @@ def is_kubeflow_member(username: str) -> bool:
         raise RuntimeError(
             'Could not fetch Kubeflow internal-acls membership. Check GitHub access and rerun the workflow.'
         ) from error
-    return username.lower() in _parse_members(result.stdout)
+    return _parse_members(result.stdout)
 
 
-def main() -> int:
+def is_kubeflow_member(username: str) -> bool:
+    """Check the authoritative ACL, raising on lookup errors."""
+    if not re.fullmatch(LOGIN_PATTERN, username):
+        raise ValueError(
+            'Provide a valid GitHub username for membership lookup.')
+    return username.lower() in load_kubeflow_members()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        '--list-json',
+        action='store_true',
+        help='Print the normalized Kubeflow ACL membership as a JSON array.')
+    args = parser.parse_args(argv or [])
+    if args.list_json:
+        print(json.dumps(sorted(load_kubeflow_members())))
+        return 0
     is_member = is_kubeflow_member(os.environ['PR_AUTHOR'])
     # Do not emit a negative result when fetching or parsing the ACL fails.
     with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
@@ -101,7 +117,7 @@ def main() -> int:
 
 if __name__ == '__main__':
     try:
-        raise SystemExit(main())
+        raise SystemExit(main(sys.argv[1:]))
     except Exception as error:
         print(f'Membership lookup failed: {error}', file=sys.stderr)
         raise SystemExit(1)

@@ -36,39 +36,41 @@ jobs:
       # prior run cannot make the current commit's check rollup red.
       cancel-in-progress: ${{ github.event.action == 'synchronize' }}
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
-      - name: Check if author is a Kubeflow GitHub member
-        id: membership-check
-        env:
-          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          echo "::group::PR Information"
-          echo "PR Number: #$PR_NUMBER"
-          echo "PR Author: $PR_AUTHOR"
-          echo "Author Association: $AUTHOR_ASSOCIATION"
-          echo "::endgroup::"
+      - name: Checkout trusted membership helpers
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/kubeflow_membership.py
+            .github/scripts/requirements.txt
+            .github/resources/scripts/ci_eligibility.js
+          sparse-checkout-cone-mode: false
 
-          # MEMBER = org member, OWNER = org owner, COLLABORATOR = invited collaborator
-          if [[ "$AUTHOR_ASSOCIATION" == "MEMBER" || "$AUTHOR_ASSOCIATION" == "OWNER" || "$AUTHOR_ASSOCIATION" == "COLLABORATOR" ]]; then
-            echo "::notice::Author '$PR_AUTHOR' is a trusted contributor (association: $AUTHOR_ASSOCIATION). Auto-approving workflow runs."
-            echo "is_member=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Author '$PR_AUTHOR' is not a trusted contributor (association: $AUTHOR_ASSOCIATION). Checking for 'ok-to-test' label."
-            echo "is_member=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
+
+      - name: Load Kubeflow membership
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "KUBEFLOW_MEMBERS_FILE=$RUNNER_TEMP/kubeflow-members.json" >> "$GITHUB_ENV"
+          python3 .github/scripts/kubeflow_membership.py --list-json > "$RUNNER_TEMP/kubeflow-members.json"
 
       - name: Approve Pending Workflow Runs
-        if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
         uses: actions/github-script@v9
-        env:
-          IS_MEMBER: ${{ steps.membership-check.outputs.is_member }}
         with:
           retries: 3 # github-script level: retries the entire script on transient API errors
           script: |
+            const {eligible, loadMembers} = require('./.github/resources/scripts/ci_eligibility');
+            const members = loadMembers();
             // Poll for runs that may not exist yet due to race with workflow creation
             const maxAttempts = 7;
             const intervalMs = 10_000;
@@ -77,7 +79,6 @@ jobs:
             const headRepoId = head.repo.id;
             const headBranch = head.ref;
             const headOwner = head.repo.owner.login;
-            const isMember = process.env.IS_MEMBER === 'true';
 
             const matchesHead = run =>
               run.event === 'pull_request' &&
@@ -108,10 +109,8 @@ jobs:
                 core.notice('PR head changed or closed; skipping old-head approval.');
                 return;
               }
-              const labels = new Set(current.labels.map(label => label.name));
-              if (!isMember && (!labels.has('ok-to-test') ||
-                  labels.has('needs-ok-to-test'))) {
-                core.notice('PR approval label changed; skipping workflow approval.');
+              if (!eligible(current, members)) {
+                core.notice('PR is not eligible; skipping workflow approval.');
                 return;
               }
               const headPRs = await github.paginate(github.rest.pulls.list, {
@@ -180,18 +179,42 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Checkout trusted membership helpers
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts/kubeflow_membership.py
+            .github/scripts/requirements.txt
+            .github/resources/scripts/ci_eligibility.js
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
+
+      - name: Load Kubeflow membership
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "KUBEFLOW_MEMBERS_FILE=$RUNNER_TEMP/kubeflow-members.json" >> "$GITHUB_ENV"
+          python3 .github/scripts/kubeflow_membership.py --list-json > "$RUNNER_TEMP/kubeflow-members.json"
+
       - name: Approve pending runs for uniquely identified admitted PRs
         uses: actions/github-script@v9
         with:
           script: |
+            const {eligible, loadMembers} = require('./.github/resources/scripts/ci_eligibility');
+            const members = loadMembers();
             const repo = context.repo;
             const identity = pr => {
               if (!pr.head?.repo?.id || !pr.head.ref || !pr.head.sha) return null;
               return JSON.stringify([pr.head.repo.id, pr.head.ref, pr.head.sha]);
-            };
-            const admitted = pr => {
-              const labels = new Set(pr.labels.map(label => label.name));
-              return labels.has('ok-to-test') && !labels.has('needs-ok-to-test');
             };
 
             // Include every open PR in the uniqueness check, even unadmitted ones.
@@ -212,7 +235,7 @@ jobs:
                 continue;
               }
               const pr = matches[0];
-              if (!admitted(pr)) continue;
+              if (!eligible(pr, members)) continue;
 
               // Query by eligible SHA; a repository-wide pending query exceeds
               // the Actions API's 1,000-result cap in this repository.
@@ -234,7 +257,7 @@ jobs:
                   ...repo, pull_number: pr.number,
                 });
                 if (current.state !== 'open' || identity(current) !== key ||
-                    !admitted(current)) continue;
+                    !eligible(current, members)) continue;
 
                 // Another PR may have appeared since the initial list. The
                 // workflow run does not reliably identify a PR for forks.

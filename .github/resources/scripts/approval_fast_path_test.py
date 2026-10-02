@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -84,8 +85,10 @@ const core = {
 };
 const immediateTimeout = callback => callback();
 (async () => {
-  await new AsyncFunction('github', 'context', 'core', 'setTimeout', script)(
-    github, context, core, immediateTimeout);
+  try {
+    await new AsyncFunction('github', 'context', 'core', 'setTimeout', 'require', script)(
+      github, context, core, immediateTimeout, require);
+  } catch (error) { result.error = error.message; }
   process.stdout.write(JSON.stringify(result));
 })().catch(error => {
   process.stderr.write(error.stack || String(error));
@@ -113,10 +116,16 @@ def _pr(number=42,
         repo_id=700,
         branch='feature',
         state='open',
-        labels=('ok-to-test',)):
+        labels=('ok-to-test',),
+        author='contributor',
+        association='CONTRIBUTOR'):
     return {
         'number': number,
         'state': state,
+        'user': {
+            'login': author
+        },
+        'author_association': association,
         'head': {
             'sha': sha,
             'ref': branch,
@@ -165,7 +174,8 @@ class ApprovalFastPathTest(unittest.TestCase):
                      current_prs=None,
                      open_head_prs=None,
                      run_batches=None,
-                     is_member=False,
+                     members=('trusted-member',),
+                     allow_error=False,
                      fail_approvals=()):
         event_pr = event_pr or _pr()
         scenario = {
@@ -182,22 +192,30 @@ class ApprovalFastPathTest(unittest.TestCase):
             'failApprovals':
                 list(fail_approvals),
         }
-        completed = subprocess.run(
-            ['node', '-e', NODE_HARNESS],
-            input=json.dumps({
-                'script': _approval_script(),
-                'scenario': scenario,
-            }),
-            text=True,
-            capture_output=True,
-            check=False,
-            timeout=10,
-            env={
-                **os.environ, 'IS_MEMBER': str(is_member).lower()
-            },
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            members_file = Path(directory) / 'members.json'
+            if members is not None:
+                members_file.write_text(json.dumps(members), encoding='utf-8')
+            completed = subprocess.run(
+                ['node', '-e', NODE_HARNESS],
+                input=json.dumps({
+                    'script': _approval_script(),
+                    'scenario': scenario,
+                }),
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=10,
+                cwd=ROOT,
+                env={
+                    **os.environ, 'KUBEFLOW_MEMBERS_FILE': str(members_file)
+                },
+            )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        return json.loads(completed.stdout)
+        result = json.loads(completed.stdout)
+        if not allow_error:
+            self.assertIsNone(result.get('error'))
+        return result
 
     def test_live_label_is_required_for_external_author(self):
         for labels in ((), ('ok-to-test', 'needs-ok-to-test')):
@@ -263,7 +281,7 @@ class ApprovalFastPathTest(unittest.TestCase):
     def test_member_approves_run_registered_after_first_poll(self):
         result = self.run_approval(
             current_prs=[_pr(labels=())],
-            is_member=True,
+            members=('CONTRIBUTOR',),
             run_batches=[[], [_run()]],
         )
         self.assertEqual(result['approved'], [101])
@@ -273,6 +291,64 @@ class ApprovalFastPathTest(unittest.TestCase):
                 request for request in result['requests']
                 if request['kind'] == 'listRuns'
             ]), 2)
+
+    def test_association_does_not_approve_unlisted_author(self):
+        for association in ('MEMBER', 'OWNER', 'COLLABORATOR'):
+            with self.subTest(association=association):
+                result = self.run_approval(
+                    event_pr=_pr(labels=(), association=association),
+                    run_batches=[[_run()]],
+                )
+                self.assertEqual(result['approved'], [])
+                self.assertFalse(
+                    any(request['kind'] == 'listRuns'
+                        for request in result['requests']))
+
+    def test_needs_ok_to_test_blocks_members_and_dependabot(self):
+        for author in ('contributor', 'dependabot[bot]'):
+            with self.subTest(author=author):
+                result = self.run_approval(
+                    event_pr=_pr(
+                        author=author,
+                        labels=('ok-to-test', 'needs-ok-to-test')),
+                    members=('contributor',),
+                    run_batches=[[_run()]],
+                )
+                self.assertEqual(result['approved'], [])
+                self.assertFalse(
+                    any(request['kind'] == 'listRuns'
+                        for request in result['requests']))
+
+    def test_dependabot_without_label_is_approved(self):
+        result = self.run_approval(
+            event_pr=_pr(author='dependabot[bot]', labels=()),
+            run_batches=[[_run()]],
+        )
+        self.assertEqual(result['approved'], [101])
+
+    def test_live_needs_ok_to_test_stops_member_approval(self):
+        result = self.run_approval(
+            event_pr=_pr(labels=()),
+            current_prs=[_pr(labels=()),
+                         _pr(labels=('needs-ok-to-test',))],
+            members=('contributor',),
+            run_batches=[[], [_run()]],
+        )
+        self.assertEqual(result['approved'], [])
+        self.assertEqual(
+            len([
+                request for request in result['requests']
+                if request['kind'] == 'listRuns'
+            ]), 1)
+
+    def test_missing_or_invalid_membership_fails_before_approval(self):
+        for members in (None, {}, []):
+            with self.subTest(members=members):
+                result = self.run_approval(
+                    members=members, allow_error=True, run_batches=[[_run()]])
+                self.assertTrue(result.get('error'))
+                self.assertEqual(result['approved'], [])
+                self.assertEqual(result['requests'], [])
 
     def test_unresolved_action_required_run_fails(self):
         result = self.run_approval(

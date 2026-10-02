@@ -15,14 +15,15 @@
 """Exercise the scheduled approval workflow against mocked GitHub responses."""
 
 import json
+import os
 from pathlib import Path
 import subprocess
+import tempfile
 import textwrap
 import unittest
 
-WORKFLOW = (
-    Path(__file__).resolve().parents[2] / 'workflows' /
-    'gh-workflow-approve.yml')
+ROOT = Path(__file__).resolve().parents[3]
+WORKFLOW = ROOT / '.github/workflows/gh-workflow-approve.yml'
 
 
 def recovery_script():
@@ -31,15 +32,17 @@ def recovery_script():
     return textwrap.dedent(block.split('          script: |\n', 1)[1])
 
 
-def exercise(options=None):
+def exercise(options=None, members=('trusted-member',)):
     harness = r"""
 const script = process.argv[1];
 const options = JSON.parse(process.argv[2]);
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
-const execute = new AsyncFunction('github', 'context', 'core', script);
+const execute = new AsyncFunction('github', 'context', 'core', 'require', script);
 const calls = [];
 const pr = {
   number: 7, state: 'open', labels: [{name: 'ok-to-test'}],
+  user: {login: options.author || 'contributor'},
+  author_association: options.association || 'CONTRIBUTOR',
   head: {sha: 'head', ref: 'feature', repo: {
     id: 11, owner: {login: 'contributor'}}},
 };
@@ -62,7 +65,8 @@ const github = {
         calls.push(['get-pr']);
         return {data: {...pr, state: options.closed ? 'closed' : 'open',
           head: options.stale ? {...pr.head, sha: 'new-head'} : pr.head,
-          labels: options.revoked ? [] : pr.labels}};
+          labels: options.liveNeedsLabel ? [{name: 'needs-ok-to-test'}] :
+            options.revoked ? [] : pr.labels}};
       },
     },
     actions: {
@@ -93,17 +97,27 @@ const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}};
 const core = {info: () => {}};
 (async () => {
   let error;
-  try { await execute(github, context, core); } catch (caught) { error = caught.message; }
+  try { await execute(github, context, core, require); } catch (caught) { error = caught.message; }
   console.log(JSON.stringify({calls, error}));
 })().catch(error => { console.error(error); process.exit(1); });
 """
-    result = subprocess.run(
-        ['node', '-e', harness,
-         recovery_script(),
-         json.dumps(options or {})],
-        check=True,
-        capture_output=True,
-        text=True)
+    with tempfile.TemporaryDirectory() as directory:
+        members_file = Path(directory) / 'members.json'
+        if members is not None:
+            members_file.write_text(json.dumps(members), encoding='utf-8')
+        result = subprocess.run([
+            'node', '-e', harness,
+            recovery_script(),
+            json.dumps(options or {})
+        ],
+                                check=True,
+                                capture_output=True,
+                                text=True,
+                                cwd=ROOT,
+                                env={
+                                    **os.environ, 'KUBEFLOW_MEMBERS_FILE':
+                                        str(members_file)
+                                })
     return json.loads(result.stdout)
 
 
@@ -151,6 +165,46 @@ class ApprovalRecoveryTest(unittest.TestCase):
                 result = exercise(options)
                 self.assertFalse(
                     any(call[0] == 'list-runs' for call in result['calls']))
+
+    def test_acl_member_without_label_is_approved(self):
+        result = exercise({'noLabel': True}, members=('CONTRIBUTOR',))
+        self.assertEqual(result['calls'].count(['approve', 42]), 1)
+        self.assertIsNone(result.get('error'))
+
+    def test_association_does_not_approve_unlisted_author(self):
+        for association in ('MEMBER', 'OWNER', 'COLLABORATOR'):
+            with self.subTest(association=association):
+                result = exercise({'noLabel': True, 'association': association})
+                self.assertFalse(
+                    any(call[0] == 'list-runs' for call in result['calls']))
+                self.assertIsNone(result.get('error'))
+
+    def test_dependabot_without_label_is_approved(self):
+        result = exercise({'noLabel': True, 'author': 'dependabot[bot]'})
+        self.assertEqual(result['calls'].count(['approve', 42]), 1)
+        self.assertIsNone(result.get('error'))
+
+    def test_needs_ok_to_test_blocks_members_and_dependabot(self):
+        for author in ('contributor', 'dependabot[bot]'):
+            for label_option in ('needsLabel', 'liveNeedsLabel'):
+                with self.subTest(author=author, label_option=label_option):
+                    result = exercise(
+                        {
+                            'noLabel': True,
+                            'author': author,
+                            label_option: True
+                        },
+                        members=('contributor',))
+                    self.assertFalse(
+                        any(call[0] == 'approve' for call in result['calls']))
+                    self.assertIsNone(result.get('error'))
+
+    def test_missing_or_invalid_membership_fails_before_approval(self):
+        for members in (None, {}, []):
+            with self.subTest(members=members):
+                result = exercise(members=members)
+                self.assertTrue(result.get('error'))
+                self.assertEqual(result['calls'], [])
 
     def test_run_identity_and_explicit_association_must_match(self):
         for options in ({'wrongRepo': True}, {'wrongAssociation': True}):

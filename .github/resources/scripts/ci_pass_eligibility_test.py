@@ -15,12 +15,29 @@
 """Execute the production publisher with GitHub API fixtures."""
 
 import json
+import os
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / '.github/resources/scripts/ci_passed.js'
+
+
+def run_node(script, *args, membership='["acl-member"]'):
+    with tempfile.TemporaryDirectory() as directory:
+        members_file = Path(directory) / 'members.json'
+        if membership is not None:
+            members_file.write_text(membership, encoding='utf-8')
+        return subprocess.run(['node', '-e', script, *args],
+                              check=True,
+                              capture_output=True,
+                              text=True,
+                              env={
+                                  **os.environ, 'KUBEFLOW_MEMBERS_FILE':
+                                      str(members_file)
+                              })
 
 
 def exercise(options=None):
@@ -150,15 +167,13 @@ github.paginate.iterator = async function* () {
   console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
-    result = subprocess.run([
-        'node', '-e', script,
+    options = options or {}
+    result = run_node(
+        script,
         str(MODULE),
-        json.dumps(options or {}),
-        str(ROOT)
-    ],
-                            check=True,
-                            capture_output=True,
-                            text=True)
+        json.dumps(options),
+        str(ROOT),
+        membership=options.get('membership', '["acl-member"]'))
     return json.loads(result.stdout)
 
 
@@ -173,7 +188,7 @@ class CIPassedTest(unittest.TestCase):
         script = """
 const {eligible} = require(process.argv[1]);
 const result = [];
-for (const author of ['dependabot[bot]', 'renovate[bot]', 'human']) {
+for (const author of ['dependabot[bot]', 'renovate[bot]', 'human', 'Acl-Member']) {
   for (const association of ['NONE', 'CONTRIBUTOR', 'MEMBER', 'OWNER', 'COLLABORATOR']) {
     for (const ok of [false, true]) for (const needs of [false, true]) {
       const labels = [ok && 'ok-to-test', needs && 'needs-ok-to-test'].filter(Boolean).map(name => ({name}));
@@ -183,21 +198,70 @@ for (const author of ['dependabot[bot]', 'renovate[bot]', 'human']) {
 }
 console.log(JSON.stringify(result));
 """
-        result = subprocess.run(
-            ['node', '-e', script, str(MODULE)],
-            check=True,
-            capture_output=True,
-            text=True)
+        result = run_node(script, str(MODULE))
         for author, association, ok, needs, actual in json.loads(result.stdout):
-            expected = not needs and (ok or author == 'dependabot[bot]' or
-                                      association
-                                      in {'MEMBER', 'OWNER', 'COLLABORATOR'})
+            expected = not needs and (ok or author
+                                      in {'dependabot[bot]', 'Acl-Member'})
             self.assertEqual(actual, expected, (author, association, ok, needs))
 
     def test_complete_ci_publishes_pending_then_success(self):
         result = exercise()
         self.assertEqual(result['calls'][0], ['status', 'pending', 'head'])
         self.assert_last_status(result, 'success')
+
+    def test_acl_member_with_contributor_association_passes_without_label(self):
+        for schedule in [False, True]:
+            with self.subTest(schedule=schedule):
+                result = exercise({
+                    'schedule': schedule,
+                    'pr': {
+                        'user': {
+                            'login': 'Acl-Member'
+                        },
+                        'author_association': 'CONTRIBUTOR',
+                        'labels': [],
+                    }
+                })
+                self.assertEqual(result['outputs']['ready'], 'true')
+                self.assert_last_status(result, 'success')
+
+    def test_association_does_not_admit_nonmember(self):
+        result = exercise({
+            'pr': {
+                'user': {
+                    'login': 'outsider'
+                },
+                'author_association': 'MEMBER'
+            }
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertNotIn('ready', result['outputs'])
+
+    def test_acl_failure_revokes_previous_success_with_actionable_error(self):
+        for membership in [None, '', 'not json', '[]', '["bad login"]']:
+            with self.subTest(membership=membership):
+                result = exercise({
+                    'membership': membership,
+                    'initialStatus': 'success'
+                })
+                self.assert_last_status(result, 'failure')
+                self.assertNotIn(['status', 'success', 'head'], result['calls'])
+                self.assertNotIn('ready', result['outputs'])
+                self.assertIn('Kubeflow ACL membership',
+                              result['descriptions'][-1])
+                self.assertTrue(result['error'])
+
+    def test_acl_member_label_revocation_prevents_publication(self):
+        result = exercise({
+            'revokeBeforeFinal': True,
+            'pr': {
+                'user': {
+                    'login': 'Acl-Member'
+                },
+                'author_association': 'CONTRIBUTOR',
+            }
+        })
+        self.assert_last_status(result, 'failure')
 
     def test_failed_poll_blocks_otherwise_complete_workflows(self):
         result = exercise({'pollPassed': False})
@@ -214,9 +278,9 @@ console.log(JSON.stringify(result));
         script = r"""
 const {recoveryCandidates} = require(process.argv[1]);
 const requests = [];
-const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked', 'stale-success', 'legacy-success', 'retarget-success'].map((state, i) => ({
-  number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
-  labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: 'NONE',
+const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked', 'stale-success', 'legacy-success', 'retarget-success', 'acl-member'].map((state, i) => ({
+  number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : state === 'acl-member' ? 'Acl-Member' : 'dependabot[bot]'},
+  labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: state === 'untrusted' ? 'MEMBER' : 'CONTRIBUTOR',
 }));
 const github = {paginate: async () => prs, rest: {pulls: {list: {}}, repos: {
   getCombinedStatusForRef: async ({ref}) => {
@@ -235,11 +299,7 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
   console.log(JSON.stringify({result, requests}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
-        result = subprocess.run(
-            ['node', '-e', script, str(MODULE)],
-            check=True,
-            capture_output=True,
-            text=True)
+        result = run_node(script, str(MODULE))
         actual = json.loads(result.stdout)
         self.assertEqual(actual['result'], [{
             'number': 2,
@@ -259,11 +319,25 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
         }, {
             'number': 9,
             'head': 'retarget-success'
+        }, {
+            'number': 10,
+            'head': 'acl-member'
         }])
         self.assertEqual(actual['requests'], [
             'success', 'failure', 'pending', 'missing', 'stale-success',
-            'legacy-success', 'retarget-success'
+            'legacy-success', 'retarget-success', 'acl-member'
         ])
+
+    def test_recovery_acl_failure_is_not_an_empty_candidate_list(self):
+        script = r"""
+const {recoveryCandidates} = require(process.argv[1]);
+const github = {paginate: () => {throw Error('PR lookup must not run');}};
+recoveryCandidates({github, context: {}}).then(() => process.exit(1)).catch(error => {
+  console.log(JSON.stringify({error: error.message}));
+});
+"""
+        result = run_node(script, str(MODULE), membership=None)
+        self.assertIn('Kubeflow', json.loads(result.stdout)['error'])
 
     def test_success_records_the_validated_base_policy(self):
         result = exercise()

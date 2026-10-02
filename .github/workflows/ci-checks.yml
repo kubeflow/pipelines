@@ -62,6 +62,17 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install trusted membership parser dependencies
+        run: python -m pip install -r .github/scripts/requirements.txt
+      - name: Load authoritative Kubeflow membership
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "KUBEFLOW_MEMBERS_FILE=$RUNNER_TEMP/kubeflow-members.json" >> "$GITHUB_ENV"
+          python3 .github/scripts/kubeflow_membership.py --list-json > "$RUNNER_TEMP/kubeflow-members.json"
       - id: list
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
@@ -124,6 +135,13 @@ jobs:
 
       - name: Install trusted workflow parser dependencies
         run: python -m pip install -r .github/scripts/requirements.txt
+
+      - name: Load authoritative Kubeflow membership
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "KUBEFLOW_MEMBERS_FILE=$RUNNER_TEMP/kubeflow-members.json" >> "$GITHUB_ENV"
+          python3 .github/scripts/kubeflow_membership.py --list-json > "$RUNNER_TEMP/kubeflow-members.json"
 
       - name: Resolve PR and verify expected CI workflows
         # Invalidate earlier success even when parser setup failed. The poll
