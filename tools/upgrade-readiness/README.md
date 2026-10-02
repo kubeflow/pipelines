@@ -372,8 +372,10 @@ the current branch for the policy source.
 
 The upgrade workflow includes preparation for a populated **2.17.2 → release-2.18**
 installation. The release persistence upgrade lane uses a fixed 2.17.2 source and retains
-the release branch MLMD/V1 architecture. The schedule lane retains a checked-in
-false condition; activation requires a reviewed branch-specific change.
+the release branch MLMD/V1 architecture. The schedule lane is disabled unless the
+repository variable `KFP_218_READINESS_SCHEDULES` equals `enabled`. Set it only after
+the release scheduling policy is integrated and activation has been reviewed;
+its preflight also rejects a candidate missing those policy prerequisites.
 Preparation failures prevent target deployment.
 Those existing tests cover single-user resource persistence, not multi-user schedule
 firing. The final-candidate lane must still compare observed recurring-run execution

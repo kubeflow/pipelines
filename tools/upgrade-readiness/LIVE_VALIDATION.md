@@ -10,10 +10,10 @@ The release acceptance sequence is: prepare on 2.17.2, capture predictions and
 baselines, upgrade to the exact candidate, enable the prepared schedules, then
 compare actual controller behavior with the predictions. The `readiness-schedules`
 job contains scaffolding for a separate multi-user fixture lane alongside the
-single-user persistence tests. The schedule lane remains paused by a checked-in
-false condition. Activating that lane requires a reviewed branch-specific change
-after the scheduling prerequisites land; dispatch and repository settings cannot
-unpause it. Integration and an actual passing candidate run remain open in #14421.
+single-user persistence tests. The schedule lane is disabled unless the repository
+variable `KFP_218_READINESS_SCHEDULES` equals `enabled`. Enable it only after the
+scheduling prerequisites land and activation has been reviewed. Preflight rejects
+a candidate missing those prerequisites; workflow dispatch alone cannot enable it. Integration and an actual passing candidate run remain open in #14421.
 
 ## Fixture contract
 

@@ -35,7 +35,7 @@ class LiveCITests(unittest.TestCase):
         self.assertNotIn('releases/latest', text)
         self.assertIn('branches: [release-2.18]', text)
         lane = text.split('  readiness-schedules:', 1)[1]
-        self.assertIn('if: ${{ false }}', lane)
+        self.assertIn("vars.KFP_218_READINESS_SCHEDULES == 'enabled'", lane)
         self.assertIn("steps.prepare-upgrade.outcome == 'success'", text)
         self.assertNotIn('KFP_ENABLE_MLMD_UPGRADE_TESTS', text)
 

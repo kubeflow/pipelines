@@ -139,7 +139,7 @@ jobs:
 
   readiness-schedules:
     # Enable only after the release scheduling policy and live acceptance are reviewed.
-    if: ${{ false }}
+    if: ${{ vars.KFP_218_READINESS_SCHEDULES == 'enabled' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
