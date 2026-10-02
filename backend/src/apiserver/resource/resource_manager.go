@@ -1556,6 +1556,9 @@ func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowMan
 
 	logPath, err := r.logArchive.GetLogObjectKey(execSpec, nodeID)
 	if err != nil {
+		if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
+			return err
+		}
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeID)
 	}
 

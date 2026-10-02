@@ -264,7 +264,7 @@ func (a *LogArchive) GetLogObjectKey(workflow util.ExecutionSpec, nodeID string)
 	// it before use. readRunLogFromPod applies the equivalent guard on the pod
 	// read path.
 	if nodeID == ".." || strings.ContainsAny(nodeID, "/\\") {
-		return "", util.NewInvalidInputError("invalid node id %q", nodeID)
+		return "", util.NewInvalidInputError("invalid node id %q: use a single node ID without path separators or parent traversal", nodeID)
 	}
 	if archivedLogKey := workflow.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, archivedLogArtifactName); archivedLogKey != "" {
 		return archivedLogKey, nil

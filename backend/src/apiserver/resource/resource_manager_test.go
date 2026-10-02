@@ -9326,3 +9326,18 @@ func TestCreateRun_ServiceAccountSAR_EmbeddedSA_Unauthorized(t *testing.T) {
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not allowed")
 }
+
+func TestReadRunLogFromArchiveRejectsInvalidNodeBeforeStorage(t *testing.T) {
+	for _, nodeID := range []string{"..", "../other", "a/b", `a\b`} {
+		t.Run(nodeID, func(t *testing.T) {
+			objectStore := &readerOnlyObjectStore{}
+			manager := &ResourceManager{objectStore: objectStore, logArchive: archive.NewLogArchive("/logs", "main.log")}
+			var dst bytes.Buffer
+			err := manager.readRunLogFromArchive(context.Background(), testWorkflow.ToStringForStore(), nodeID, &dst)
+			require.Error(t, err)
+			require.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument))
+			require.Empty(t, objectStore.getFileReaderPaths)
+			require.Empty(t, dst.String())
+		})
+	}
+}

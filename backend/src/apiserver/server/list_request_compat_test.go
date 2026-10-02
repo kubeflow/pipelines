@@ -39,20 +39,14 @@ func legacyFilterTokens(t *testing.T) []legacyFilterToken {
 	require.NoError(t, err)
 	var fixtures []legacyFilterToken
 	require.NoError(t, json.Unmarshal(data, &fixtures))
-	v2Fixtures := make([]legacyFilterToken, 0, len(fixtures))
-	for _, fixture := range fixtures {
-		if fixture.Version == "v2" {
-			v2Fixtures = append(v2Fixtures, fixture)
-		}
-	}
-	require.NotEmpty(t, v2Fixtures)
-	return v2Fixtures
+	require.NotEmpty(t, fixtures)
+	return fixtures
 }
 
 func TestValidatedListOptions_LegacyFilteredTokens(t *testing.T) {
 	for _, fixture := range legacyFilterTokens(t) {
 		t.Run(fixture.Name, func(t *testing.T) {
-			fresh, err := validatedListOptions(&model.Experiment{}, "", 10, "", string(fixture.Filter))
+			fresh, err := validatedListOptions(&model.Experiment{}, "", 10, "", string(fixture.Filter), fixture.Version+"beta1")
 			require.NoError(t, err)
 			for _, repeat := range []bool{false, true} {
 				// Numeric filter comparison already fails on 2.17.2 (JSON float64 vs
@@ -64,7 +58,7 @@ func TestValidatedListOptions_LegacyFilteredTokens(t *testing.T) {
 				if repeat {
 					spec = string(fixture.Filter)
 				}
-				restored, err := validatedListOptions(&model.Experiment{}, fixture.Token, 10, "", spec)
+				restored, err := validatedListOptions(&model.Experiment{}, fixture.Token, 10, "", spec, fixture.Version+"beta1")
 				require.NoError(t, err, "repeat criteria: %v", repeat)
 				// Both token-only and repeated-filter requests use current, server-derived
 				// filtering semantics. Cursor values are preserved independently.
@@ -87,23 +81,37 @@ func TestValidatedListOptions_LegacyFilteredTokens(t *testing.T) {
 }
 
 func TestValidatedListOptions_LegacyFilterRejectsChangedCriteria(t *testing.T) {
-	fixture := legacyFilterTokens(t)[0]
+	var fixture legacyFilterToken
+	for _, candidate := range legacyFilterTokens(t) {
+		if candidate.Version == "v2" {
+			fixture = candidate
+			break
+		}
+	}
+	require.NotEmpty(t, fixture.Token)
 	for _, spec := range []string{
 		`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"other"}]}`,
 		`{"predicates":[{"key":"name","operation":"NOT_EQUALS","string_value":"alpha"}]}`,
 		`{"predicates":[{"key":"description","operation":"EQUALS","string_value":"alpha"}]}`,
 	} {
-		_, err := validatedListOptions(&model.Experiment{}, fixture.Token, 10, "", spec)
+		_, err := validatedListOptions(&model.Experiment{}, fixture.Token, 10, "", spec, fixture.Version+"beta1")
 		require.ErrorContains(t, err, "does not match")
 	}
-	_, err := validatedListOptions(&model.Experiment{}, fixture.Token, 10, "created_at desc", string(fixture.Filter))
+	_, err := validatedListOptions(&model.Experiment{}, fixture.Token, 10, "created_at desc", string(fixture.Filter), fixture.Version+"beta1")
 	require.ErrorContains(t, err, "does not match")
-	_, err = validatedListOptions(nil, fixture.Token, 10, "", "")
+	_, err = validatedListOptions(nil, fixture.Token, 10, "", "", fixture.Version+"beta1")
 	require.ErrorContains(t, err, "valid type")
 }
 
 func TestValidatedListOptions_TokenFilterMetadataIsNotAuthoritative(t *testing.T) {
-	fixture := legacyFilterTokens(t)[0]
+	var fixture legacyFilterToken
+	for _, candidate := range legacyFilterTokens(t) {
+		if candidate.Version == "v2" {
+			fixture = candidate
+			break
+		}
+	}
+	require.NotEmpty(t, fixture.Token)
 	decoded, err := base64.StdEncoding.DecodeString(fixture.Token)
 	require.NoError(t, err)
 	var token map[string]interface{}
@@ -116,7 +124,7 @@ func TestValidatedListOptions_TokenFilterMetadataIsNotAuthoritative(t *testing.T
 		return base64.StdEncoding.EncodeToString(data)
 	}
 	for _, spec := range []string{"", string(fixture.Filter)} {
-		opts, err := validatedListOptions(&model.Experiment{}, encode(), 10, "", spec)
+		opts, err := validatedListOptions(&model.Experiment{}, encode(), 10, "", spec, fixture.Version+"beta1")
 		require.NoError(t, err)
 		encoded, err := json.Marshal(opts.Filter)
 		require.NoError(t, err)
@@ -124,6 +132,6 @@ func TestValidatedListOptions_TokenFilterMetadataIsNotAuthoritative(t *testing.T
 		require.NotContains(t, string(encoded), `"experiments.UUID":{}`)
 	}
 	tokenFilter["EQ"] = map[string]interface{}{"experiments.Name;DROP TABLE experiments": []string{"alpha"}}
-	_, err = validatedListOptions(&model.Experiment{}, encode(), 10, "", "")
+	_, err = validatedListOptions(&model.Experiment{}, encode(), 10, "", "", fixture.Version+"beta1")
 	require.ErrorContains(t, err, "filter key")
 }
