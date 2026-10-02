@@ -597,11 +597,12 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       append(append(proxy.GetConfig().GetEnvVars(), commonEnvs...), mlPipelineAPIClientEnvVars()...),
+			TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+			Image:                    c.driverImage,
+			Command:                  c.driverCommand,
+			Args:                     args,
+			Resources:                driverResources,
+			Env:                      append(append(proxy.GetConfig().GetEnvVars(), commonEnvs...), mlPipelineAPIClientEnvVars()...),
 			VolumeMounts: []k8score.VolumeMount{
 				{
 					Name:      kfpTokenVolumeName,

@@ -35,12 +35,16 @@ repos:
         language: python
         entry: pycln --all
         exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
-  - repo: https://github.com/pycqa/isort
-    rev: 9.0.1
+  - repo: local
     hooks:
       - id: isort
         name: isort
         entry: isort --profile google
+        language: python
+        additional_dependencies: ['isort==5.10.1']
+        require_serial: true
+        types_or: [cython, pyi, python]
+        args: ['--filter-files']
         exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
   - repo: https://github.com/google/yapf
     rev: "v0.43.0"

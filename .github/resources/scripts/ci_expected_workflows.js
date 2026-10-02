@@ -94,11 +94,29 @@ function validateInventory(inventory, workflowFiles) {
   if (actual.size !== recorded.size) throw new Error('CI workflow inventory is incomplete; regenerate it');
 }
 
+function invalidRunMetadata(run) {
+  for (const field of ['id', 'run_attempt']) {
+    if (!Number.isSafeInteger(run[field]) || run[field] <= 0) return field;
+  }
+  const timestamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
+  if (!timestamp(run.created_at)) return 'created_at';
+  const unstarted = run.run_attempt === 1 && run.run_started_at === null &&
+    ['queued', 'requested', 'waiting', 'pending'].includes(run.status) && run.conclusion == null;
+  if (!unstarted && !timestamp(run.run_started_at)) return 'run_started_at';
+  return null;
+}
+
 async function verifyExpectedWorkflows({github, owner, repo, pullRequest, inventory,
-  workflowFiles, freshAfter = null}) {
+  workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now()}) {
   validateInventory(inventory, workflowFiles);
   const cutoff = freshAfter === null ? null : Date.parse(freshAfter);
   if (cutoff !== null && !Number.isFinite(cutoff)) throw new Error('Invalid CI freshness cutoff');
+  const registrationStart = registrationStartedAt === null ? null : Date.parse(registrationStartedAt);
+  if ((registrationStartedAt !== null && typeof registrationStartedAt !== 'string') ||
+      (registrationStart !== null && !Number.isFinite(registrationStart)) || !Number.isFinite(now)) {
+    throw new Error('Invalid CI registration timestamp; inspect CI Check and retry');
+  }
+  const registrationExpired = registrationStart !== null && now - registrationStart >= 15 * 60 * 1000;
   const files = await github.paginate(github.rest.pulls.listFiles, {
     owner, repo, pull_number: pullRequest.number, per_page: 100,
   });
@@ -117,8 +135,10 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, invent
     workflow.disabled_for_migration === true)
     .map(workflow => ({path: workflow.path, reason: 'Upgrade workflow is paused in the trusted base pending #14029'}));
   const expected = applicableWorkflows.filter(workflow => !disabled.some(item => item.path === workflow.path));
-  const reasons = [];
-  if (expected.length === 0) reasons.push('No expected PR workflows; CI coverage cannot be established');
+  const failures = [];
+  const pending = [];
+  const missing = [];
+  if (expected.length === 0) failures.push('No expected PR workflows; CI coverage cannot be established');
   // Fetch one head-scoped snapshot for all lanes, rather than one request
   // series per workflow on every constituent completion event.
   const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
@@ -129,34 +149,51 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, invent
     const matching = runs.filter(run => run.path === workflow.path && run.event === 'pull_request' &&
       run.head_sha === pullRequest.head.sha && run.head_branch === pullRequest.head.ref &&
       run.head_repository?.full_name === pullRequest.head.repo.full_name);
+    // Invalid metadata can change which execution sorts latest. Reject the
+    // workflow instead of discarding a malformed run and reusing an old pass.
+    const invalidField = matching.map(invalidRunMetadata).find(field => field !== null);
+    if (invalidField) {
+      failures.push(`${workflow.path}: invalid workflow run ${invalidField}; inspect CI Check and retry`);
+      continue;
+    }
     // A rerun updates an existing ID. Order by attempt start as well as run
     // creation so rerunning an older execution cannot hide behind a newer
     // run's prior success. Creation remains the separate base-freshness proof.
-    const attemptTime = run => Math.max(Date.parse(run.created_at) || 0,
-      Date.parse(run.run_started_at) || 0);
+    const attemptTime = run => run.run_started_at === null ? Date.parse(run.created_at) :
+      Math.max(Date.parse(run.created_at), Date.parse(run.run_started_at));
     matching.sort((left, right) => attemptTime(right) - attemptTime(left) || right.id - left.id);
     const run = matching[0];
     if (!run) {
-      reasons.push(`${workflow.path}: expected workflow has not registered`);
+      missing.push(workflow.path);
+      if (registrationExpired) {
+        failures.push(`${workflow.path}: expected workflow has not registered after 15 minutes; inspect its trigger and approval state`);
+      } else {
+        pending.push(`${workflow.path}: expected workflow has not registered`);
+      }
       continue;
     }
-    if (run.status !== 'completed' || run.conclusion !== 'success') {
-      reasons.push(`${workflow.path}: latest run is ${run.status}/${run.conclusion}`);
+    const waiting = ['queued', 'requested', 'waiting', 'in_progress', 'pending'].includes(run.status);
+    if (waiting && run.conclusion == null) {
+      pending.push(`${workflow.path}: latest run is ${run.status}`);
+    } else if (run.status !== 'completed' || run.conclusion !== 'success') {
+      failures.push(`${workflow.path}: latest run is ${run.status}/${run.conclusion}`);
     }
     // Rerunning an old run retains its original GITHUB_SHA/GITHUB_REF. Only
     // a new run created after retargeting can establish fresh base evidence.
     if (cutoff !== null && !(Date.parse(run.created_at) > cutoff)) {
-      reasons.push(`${workflow.path}: trigger a new CI run after the base changed`);
+      failures.push(`${workflow.path}: trigger a new CI run after the base changed`);
     }
     // When GitHub supplies base evidence, reject a different base. Some real
     // PR runs have an empty pull_requests array; the durable retarget cutoff
     // supplied by the caller covers that case.
     const association = (run.pull_requests || []).find(pr => pr.number === pullRequest.number);
     if (association?.base?.ref && association.base.ref !== pullRequest.base.ref) {
-      reasons.push(`${workflow.path}: workflow ran for a different base branch`);
+      failures.push(`${workflow.path}: workflow ran for a different base branch`);
     }
   }
-  return {passed: reasons.length === 0, reasons, expected: expected.map(workflow => workflow.path), disabled};
+  const state = failures.length ? 'failure' : pending.length ? 'pending' : 'success';
+  return {state, passed: state === 'success', reasons: [...failures, ...pending],
+    expected: expected.map(workflow => workflow.path), disabled, missing};
 }
 
 async function loadBaseInventory({github, owner, repo, pullRequest, root}) {

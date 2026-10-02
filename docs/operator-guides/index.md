@@ -7,6 +7,7 @@ Documentation for operators deploying and configuring Kubeflow Pipelines.
 
 installation
 supported-platforms
+gcp-inverse-proxy-removal
 server-config
 multi-user
 rbac-migration-2.18
