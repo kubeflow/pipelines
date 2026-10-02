@@ -113,7 +113,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "55518d8ecf1b26ffc5858b7442a5a7000f6b4f3ed0da9686a7cddd062d2d1f56",
+      "header_sha256": "016e1e2fd58e2a8d41dbcf80ff95e19b7f370afa3bd4fae3fb67a661669c5cdc",
       "pull_request": null
     },
     {
@@ -125,7 +125,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "b0ff1829b2fa57f442e8788dd333f60b40bae8b8ba6cf9d5de609bcbad5c0ad4",
+      "header_sha256": "ce56d3436f0ba96bde0b89bf0b762ec89120340716d45520452638afcaa5ee6d",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -169,6 +169,8 @@
           ".github/workflows/check-requirements-txt.yml",
           ".github/workflows/check-uv-lock.yml",
           ".github/workflows/publish-packages.yml",
+          ".github/workflows/upgrade-test.yml",
+          ".github/workflows/upgrade-readiness.yml",
           ".github/workflows/pre-commit.yml",
           ".github/workflows/pr-gate.yml",
           ".github/workflows/gh-workflow-approve.yml",
@@ -713,9 +715,21 @@
       "pull_request": null
     },
     {
+      "path": ".github/workflows/upgrade-readiness.yml",
+      "name": "Upgrade readiness tool",
+      "header_sha256": "0652b2596807586e5aa4b1b051fe57981b22b673f8c0dd620ceaddb8c3688d6d",
+      "pull_request": {
+        "paths": [
+          "tools/upgrade-readiness/**",
+          ".github/workflows/upgrade-readiness.yml",
+          ".github/resources/scripts/readiness-schedules.sh"
+        ]
+      }
+    },
+    {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
-      "header_sha256": "d4181ca07f2ebe92228ae568938392576bd99da397bbbc7f15c2ddb30ec77354",
+      "header_sha256": "c39e060326906eb10c5b699fa0b667ddcc38910032bac4d8335ca9f07d19e5d9",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -726,6 +740,7 @@
           ".github/actions/deploy/**",
           ".github/actions/test-and-report/**",
           ".github/resources/**",
+          "tools/upgrade-readiness/**",
           "backend/api/v2beta1/**",
           "backend/src/**",
           "backend/test/v2/api/**",
