@@ -51,3 +51,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - A branch cut is not a release. Do not publish `2.18.0`, move `latest`, update documentation defaults, or sync the 2.18 version back to a divergent master as part of stabilization.
 
 - Release merge-group runtime-image consumers retain exact queue SHA, branch, upstream repository, and successful producer-workflow validation. After three unsuccessful lookups or a failed download, they use the shared archive builder on the queued checkout. Queue and regular producers fingerprint the same generation inputs, including that builder; queue jobs remain read-only and do not publish images or prune caches.
+
+- The release-2.18 upgrade workflow always upgrades from 2.17.2, including merge-group runs, and fails before target deployment if source preparation fails. The independent readiness schedule lane remains disabled pending scheduling-policy integration and live acceptance in #14421. It does not introduce master MLMD-to-native migration.
+- `upgrade-readiness.yml` runs standalone preview tests and conformance against the explicitly pinned proposed scheduling policy; neither substitutes for a populated candidate upgrade run.
+- CI Scripts Tests installs PyYAML 6.0.3 for Dependabot configuration validation. Argo dependency updates use `third_party/argo/Makefile` and the coordinated updater; update both runtime slots only after checking compatibility, module major version, and manifest downloads.
