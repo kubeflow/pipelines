@@ -734,6 +734,19 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	// Caller-supplied IDs can refer to imported history. Reject them before
+	// creating a workflow or invoking plugins, rather than at the SQL insert.
+	if run.UUID != "" {
+		existing, err := r.runStore.GetRun(run.UUID, false)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return nil, util.Wrapf(err, "Failed to check supplied run ID %s before creation", run.UUID)
+		}
+		if err == nil {
+			if err := importedRunMutationError(existing); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if !common.IsMultiUserMode() && run.RecurringRunId != "" && run.DisplayName != "" {
 		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
 		if err != nil {

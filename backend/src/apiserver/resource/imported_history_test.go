@@ -71,11 +71,13 @@ func newImportedHistoryManager() (*ResourceManager, *importedHistoryRunStore) {
 }
 
 func TestImportedHistoryRejectsRuntimeMutations(t *testing.T) {
-	for _, operation := range []string{"retry", "terminate", "create task", "update task", "move task", "report running", "report terminal", "report loaded"} {
+	for _, operation := range []string{"create run", "retry", "terminate", "create task", "update task", "move task", "report running", "report terminal", "report loaded"} {
 		t.Run(operation, func(t *testing.T) {
 			manager, store := newImportedHistoryManager()
 			var err error
 			switch operation {
+			case "create run":
+				_, err = manager.CreateRun(context.Background(), &model.Run{UUID: store.run.UUID})
 			case "retry":
 				err = manager.RetryRun(context.Background(), store.run.UUID)
 			case "terminate":
