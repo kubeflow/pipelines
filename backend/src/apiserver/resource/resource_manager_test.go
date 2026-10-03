@@ -46,6 +46,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	swfclientv1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -61,8 +62,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type duplicateRecurringRunStore struct {
@@ -265,6 +268,7 @@ func testWorkflowWithoutStatus() *util.Workflow {
 }
 
 type retryDuringTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	manager  *ResourceManager
 	runID    string
 	retryErr error
@@ -288,6 +292,7 @@ func (d *retryDuringTerminalReportDispatcher) PluginsRegistered() bool {
 }
 
 type countingTerminalReportDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunEndCalls int
 }
 
@@ -1547,10 +1552,10 @@ func TestGetPipelineByNameAndNamespace(t *testing.T) {
 }
 
 // Tests GetPipelineLatestTemplate (from PipelineSpec)
-func TestGetLatestPipelineVersion(t *testing.T) {
+func TestGetDefaultPipelineVersion(t *testing.T) {
 	store, manager, p, pv := initWithPipeline(t)
 	defer store.Close()
-	actualTemplate, err := manager.GetLatestPipelineVersion(p.UUID)
+	actualTemplate, err := manager.GetDefaultPipelineVersion(p.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, pv, actualTemplate)
 
@@ -1570,7 +1575,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 	pv2.UUID = pv2expected.UUID
 	pv2.CreatedAtInSec = pv2expected.CreatedAtInSec
 	pv2.Status = model.PipelineVersionReady
-	actualTemplate2, err := manager.GetLatestPipelineVersion(p.UUID)
+	actualTemplate2, err := manager.GetDefaultPipelineVersion(p.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, pv2, actualTemplate2)
 }
@@ -3531,9 +3536,8 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		DisplayName: "j1",
 		K8SName:     "job-",
 		Namespace:   "ns1",
-		// Since there is no pipeline version or service account specified, the API server will select the service
-		// account when compiling the run, not within the ScheduledWorkflow.
-		ServiceAccount: "",
+		// Persist the effective account authorized when the follow-latest schedule is created.
+		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
 		CreatedAtInSec: 4,
 		UpdatedAtInSec: 4,
@@ -7390,6 +7394,9 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 
+	retainedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	retainedWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
+
 	// Pre-create a run as if it was already submitted for this recurring run trigger.
 	// This simulates a race where one replica already persisted the run.
 	preExistingRun := &model.Run{
@@ -7403,7 +7410,7 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 		RunDetails: model.RunDetails{
 			CreatedAtInSec:          1,
 			State:                   model.RuntimeStatePending,
-			WorkflowRuntimeManifest: model.LargeText(v2SpecHelloWorld),
+			WorkflowRuntimeManifest: model.LargeText(retainedWorkflow.ToStringForStore()),
 		},
 	}
 	_, err := manager.runStore.CreateRun(preExistingRun)
@@ -7418,7 +7425,7 @@ func TestCreateRun_IdempotentFromRecurringRun(t *testing.T) {
 		PipelineSpec:   job.PipelineSpec,
 	}
 	returned, err := manager.CreateRun(context.Background(), duplicateRun)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "pre-existing-run-uuid", returned.UUID, "should return existing run, not create a new one")
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no new Argo Workflow should be submitted")
 }
@@ -7692,6 +7699,7 @@ func TestRetryRun_ExpiredClaimWithoutWorkflowIsTakenOver(t *testing.T) {
 }
 
 type retryHookCountingDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
 	onRunRetryCalls int
 }
 
@@ -8569,4 +8577,71 @@ func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Argo Workflow pipelines are no longer supported")
 	assert.Contains(t, err.Error(), "rewrite the pipeline with the KFP v2 SDK and upload compiled PipelineSpec IR YAML")
+}
+
+// The guard must refuse whether or not the default version resolves.
+func TestDeletePipeline_DanglingDefaultVersionStillBlocksNonCascade(t *testing.T) {
+	initEnvVars()
+	viper.Set(common.PodNamespace, "ns")
+	defer viper.Set(common.PodNamespace, "")
+
+	const pipelineID = "3d0f7b3a-0000-4000-8000-00000000000d"
+
+	scheme := k8sruntime.NewScheme()
+	require.NoError(t, k8sapi.AddToScheme(scheme))
+
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&k8sapi.Pipeline{
+			ObjectMeta: v1.ObjectMeta{UID: pipelineID, Name: "p", Namespace: "ns"},
+			Spec:       k8sapi.PipelineSpec{DefaultVersionName: "deleted-version"},
+		},
+		&k8sapi.PipelineVersion{
+			ObjectMeta: v1.ObjectMeta{
+				UID: "3d0f7b3a-0000-4000-8000-00000000000e", Name: "p-v1", Namespace: "ns",
+				Labels: map[string]string{"pipelines.kubeflow.org/pipeline-id": pipelineID},
+				OwnerReferences: []v1.OwnerReference{{
+					APIVersion: k8sapi.GroupVersion.String(), Kind: "Pipeline", Name: "p", UID: pipelineID,
+				}},
+			},
+			Spec: k8sapi.PipelineVersionSpec{
+				VersionName: "v1", PipelineName: "p",
+				PipelineSpec: k8sapi.IRSpec{Value: map[string]interface{}{
+					"pipelineInfo":  map[string]interface{}{"name": "p"},
+					"root":          map[string]interface{}{"dag": map[string]interface{}{"tasks": map[string]interface{}{}}},
+					"schemaVersion": "2.1.0",
+					"sdkVersion":    "kfp-2.13.0",
+				}},
+			},
+		},
+		&k8sapi.PipelineVersion{
+			ObjectMeta: v1.ObjectMeta{
+				UID: "3d0f7b3a-0000-4000-8000-00000000000f", Name: "p-v2", Namespace: "ns",
+				Labels: map[string]string{"pipelines.kubeflow.org/pipeline-id": pipelineID},
+				OwnerReferences: []v1.OwnerReference{{
+					APIVersion: k8sapi.GroupVersion.String(), Kind: "Pipeline", Name: "p", UID: pipelineID,
+				}},
+			},
+			Spec: k8sapi.PipelineVersionSpec{
+				VersionName: "v2", PipelineName: "p",
+				PipelineSpec: k8sapi.IRSpec{Value: map[string]interface{}{
+					"pipelineInfo":  map[string]interface{}{"name": "p"},
+					"root":          map[string]interface{}{"dag": map[string]interface{}{"tasks": map[string]interface{}{}}},
+					"schemaVersion": "2.1.0",
+					"sdkVersion":    "kfp-2.13.0",
+				}},
+			},
+		},
+	).Build()
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.pipelineStore = storage.NewPipelineStoreKubernetes(k8sClient, k8sClient)
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	err := manager.DeletePipeline(pipelineID, false)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Set cascade=true")
+
+	_, err = manager.GetPipeline(pipelineID)
+	assert.NoError(t, err, "the pipeline must survive a refused delete")
 }
