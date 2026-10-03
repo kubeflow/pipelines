@@ -620,8 +620,18 @@ class PipelineTask:
                   policy: Optional[str] = None) -> 'PipelineTask':
         """Sets task retry parameters.
 
+        On the KFP backend with Argo Workflows, eligible container and nested
+        pipeline drivers and container executors each receive these retry
+        settings. Each phase has an independent ``num_retries`` budget;
+        driver retries do not consume executor retries. Setting
+        ``num_retries=0`` disables retries for both eligible phases.
+
+        The root pipeline driver and native Kubernetes PVC operations retain
+        their deployment retry policy. Enabled task plugins disable
+        task-configured driver retries while preserving executor retries.
+
         Args:
-            num_retries : Number of times to retry on failure.
+            num_retries : Number of retries allowed for each eligible phase.
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
             backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
             backoff_max_duration: Maximum duration during which the task will be retried. Defaults to ``'3600s'``.
@@ -634,9 +644,9 @@ class PipelineTask:
                 ``'OnTransientError'`` retries either when the failure message
                 matches the controller's transient-error pattern; ``'Always'``
                 retries both.
-                Defaults to ``None``, which omits the policy so the
-                deployment's Argo configuration applies; KFP's bundled
-                manifests set ``'OnError'``.
+                Defaults to ``None``, which selects ``'Always'`` for eligible
+                drivers and leaves the executor policy to the deployment's
+                Argo configuration; KFP's bundled manifests set ``'OnError'``.
 
         Returns:
             Self return to allow chained setting calls.

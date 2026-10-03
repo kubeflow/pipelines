@@ -212,6 +212,9 @@ func (k *clientAdapter) UpdateStatuses(ctx context.Context, run *gc.Run, pipelin
 // or when we have reached Root.
 // This function is separated from UpdateStatuses so that it can be used by the mock api client in tests.
 func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipelineSpec *structpb.Struct, currentTask *gc.PipelineTask) error {
+	// Keep the originating attempt across refreshed ancestor snapshots. A late
+	// update must not acquire a newer generation and bypass the storage fence.
+	generationSource := currentTask
 	// Create a map of task IDs to tasks for quick lookup
 	taskMap := taskMapByID(run)
 
@@ -225,7 +228,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// If current task has no parent, we've reached the root
 		if currentTask.ParentTaskId == nil || *currentTask.ParentTaskId == "" {
 			// Evaluate the root task's status based on its children
-			if err := evaluateAndUpdateParentStatus(ctx, run, currentTask, kfpAPIClient); err != nil {
+			if err := evaluateAndUpdateParentStatus(ctx, run, currentTask, generationSource, kfpAPIClient); err != nil {
 				return fmt.Errorf("failed to evaluate root task %s status: %w", currentTask.GetTaskId(), err)
 			}
 			break
@@ -285,7 +288,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// propagation — fail-fast means some siblings may never reach a terminal
 		// state after a definitive failure.
 		if anyFailed {
-			if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
+			if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, generationSource, kfpAPIClient); err != nil {
 				return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
 			}
 			// Stop traversal after updating a root parent to avoid a redundant
@@ -317,7 +320,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		}
 
 		// Evaluate and update parent's status based on its children
-		if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
+		if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, generationSource, kfpAPIClient); err != nil {
 			return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
 		}
 		// Stop traversal after updating a root parent to avoid a redundant
@@ -366,6 +369,7 @@ func evaluateAndUpdateParentStatus(
 	ctx context.Context,
 	run *gc.Run,
 	parentTask *gc.PipelineTask,
+	generationSource *gc.PipelineTask,
 	kfpAPIClient API,
 ) error {
 	// Collect all direct children of this parent
@@ -420,6 +424,7 @@ func evaluateAndUpdateParentStatus(
 	// Update the parent task status
 	parentTask.State = newStatus
 	parentTask.EndTime = timestamppb.New(time.Now())
+	util.CopyDriverRetryGeneration(parentTask, generationSource)
 	_, err := kfpAPIClient.UpdateTask(ctx, &gc.UpdateTaskRequest{
 		TaskId: parentTask.GetTaskId(),
 		Task:   parentTask,

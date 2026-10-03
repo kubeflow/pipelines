@@ -70,7 +70,10 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 		}
 
 		tasks, err := c.task(taskName, kfpTask, taskInputs{
-			parentDagID: inputParameter(paramParentDagTaskID),
+			parentDagID:    inputParameter(paramParentDagTaskID),
+			iterationIndex: inputParameter(paramIterationIndex),
+			exitTaskName:   inputParameter(paramExitTaskName),
+			exitTaskStatus: inputParameter(paramExitTaskStatus),
 		})
 		if err != nil {
 			return err
@@ -91,6 +94,9 @@ func (c *workflowCompiler) DAG(name string, componentSpec *pipelinespec.Componen
 			Inputs: wfapi.Inputs{
 				Parameters: []wfapi.Parameter{
 					{Name: paramParentDagTaskID},
+					{Name: paramExitTaskName},
+					{Name: paramExitTaskStatus},
+					{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 				},
 			},
 			DAG: &wfapi.DAGTemplate{
@@ -202,6 +208,8 @@ func (c *workflowCompiler) dagTask(name string, componentName string, inputs dag
 }
 
 type taskInputs struct {
+	exitTaskName   string
+	exitTaskStatus string
 	parentDagID    string
 	iterationIndex string
 	// if provided, this will be the template the Argo Workflow exit lifecycle hook will execute.
@@ -215,6 +223,9 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			err = fmt.Errorf("compiling task %q: %w", name, err)
 		}
 	}()
+	if err := validateDriverRetryPolicy(task.GetRetryPolicy()); err != nil {
+		return nil, err
+	}
 	componentName := task.GetComponentRef().GetName()
 	componentSpec, found := c.spec.Components[componentName]
 	if !found {
@@ -230,8 +241,11 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 	case *pipelinespec.ComponentSpec_Dag:
 		driverTaskName := name + "-driver"
 		driver, driverOutputs, err := c.dagDriverTask(driverTaskName, dagDriverInputs{
+			task:           task,
 			parentTaskID:   inputs.parentDagID,
 			iterationIndex: inputs.iterationIndex,
+			exitTaskName:   inputs.exitTaskName,
+			exitTaskStatus: inputs.exitTaskStatus,
 			taskName:       name,
 		})
 		if err != nil {
@@ -263,9 +277,18 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			driverTaskName := name + "-driver"
 			// The following call will return an empty string for tasks without kubernetes-specific annotation.
 			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
+			driverTaskSpec := task
+			// PVC operations allocate external resources without a replay-safe
+			// identity. Keep their existing deployment retry policy.
+			if dummyImages[e.Container.GetImage()] {
+				driverTaskSpec = nil
+			}
 			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
+				task:             driverTaskSpec,
 				parentDagID:      inputs.parentDagID,
 				iterationIndex:   inputs.iterationIndex,
+				exitTaskName:     inputs.exitTaskName,
+				exitTaskStatus:   inputs.exitTaskStatus,
 				kubernetesConfig: kubernetesConfigPlaceholder,
 				taskName:         name,
 			})
@@ -379,6 +402,7 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 	// Set up Iteration (Single  Task) Template
 	driverArgoName := name + "-driver"
 	driverInputs := dagDriverInputs{
+		task:         task,
 		parentTaskID: parentDagID,
 		taskName:     taskName, // Pass the task key for proper input resolution
 	}
@@ -447,12 +471,27 @@ func (c *workflowCompiler) propagateIterationIndexToNestedDAGTemplates(templateN
 		case "system-dag-driver", "system-container-driver", "system-importer", "system-importer-workspace":
 			shouldPropagate = true
 		}
+		if childExists && childTemplate != nil && childTemplate.Metadata.Annotations[util.AnnotationKeyRuntimeRole] == string(util.ExecutionRuntimeRoleDriver) {
+			shouldPropagate = true
+		}
 
 		if shouldPropagate {
 			task.Arguments.Parameters = appendParameterIfMissing(task.Arguments.Parameters, wfapi.Parameter{
 				Name:  paramIterationIndex,
 				Value: wfapi.AnyStringPtr(inputParameter(paramIterationIndex)),
 			})
+		}
+
+		for event, hook := range task.Hooks {
+			hookTemplate := c.templates[hook.Template]
+			if hookTemplate == nil || hookTemplate.DAG == nil {
+				continue
+			}
+			hook.Arguments.Parameters = setParameterValue(hook.Arguments.Parameters, paramIterationIndex, inputParameter(paramIterationIndex))
+			task.Hooks[event] = hook
+			if err := c.propagateIterationIndexToNestedDAGTemplates(hook.Template, visited); err != nil {
+				return err
+			}
 		}
 
 		if childExists && childTemplate != nil && childTemplate.DAG != nil {
@@ -482,6 +521,9 @@ type dagDriverOutputs struct {
 }
 
 type dagDriverInputs struct {
+	exitTaskName   string
+	exitTaskStatus string
+	task           *pipelinespec.PipelineTaskSpec
 	parentTaskID   string                                  // parent DAG Task ID. optional, the root DAG does not have parent
 	taskName       string                                  // optional, the name of the task, used for input resolving
 	runtimeConfig  *pipelinespec.PipelineJob_RuntimeConfig // optional, only root DAG needs this
@@ -489,7 +531,7 @@ type dagDriverInputs struct {
 }
 
 func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*wfapi.DAGTask, *dagDriverOutputs, error) {
-	params := []wfapi.Parameter{}
+	params := c.getDriverRetryParametersWithValues(inputs.task)
 	if inputs.iterationIndex != "" {
 		params = append(params, wfapi.Parameter{
 			Name:  paramIterationIndex,
@@ -523,11 +565,12 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 	}
 	t := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addDAGDriverTemplate(),
+		Template: c.addTaskRetryDriverTemplate(c.addDAGDriverTemplate(), inputs.task),
 		Arguments: wfapi.Arguments{
 			Parameters: params,
 		},
 	}
+	c.configureExitDriver(t, inputs.exitTaskName, inputs.exitTaskStatus)
 	return t, &dagDriverOutputs{
 		taskID:         taskOutputParameter(name, paramParentDagTaskIDPath),
 		iterationCount: taskOutputParameter(name, paramIterationCount),

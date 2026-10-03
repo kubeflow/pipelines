@@ -510,7 +510,16 @@ func writeOptionalInt64(buffer *bytes.Buffer, value *int64) error {
 	return binary.Write(buffer, binary.BigEndian, *value)
 }
 
+type taskWriteExecutor interface {
+	QueryRow(query string, args ...any) *sql.Row
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
 func (s *TaskStore) findTaskByLogicalKey(logicalKey string) (*model.Task, error) {
+	return s.findTaskByLogicalKeyWithExecutor(s.db, logicalKey)
+}
+
+func (s *TaskStore) findTaskByLogicalKeyWithExecutor(db taskWriteExecutor, logicalKey string) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	rowSQL, rowArgs, err := qb.
@@ -521,7 +530,7 @@ func (s *TaskStore) findTaskByLogicalKey(logicalKey string) (*model.Task, error)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create logical task key query: %v", err.Error())
 	}
-	task, err := scanTaskRow(s.db.QueryRow(rowSQL, rowArgs...))
+	task, err := scanTaskRow(db.QueryRow(rowSQL, rowArgs...))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -543,22 +552,125 @@ func (s *TaskStore) FindTaskByLogicalIdentity(task *model.Task) (*model.Task, er
 }
 
 func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-	existingTask, err := s.FindTaskByLogicalIdentity(task)
+	if task == nil {
+		return nil, util.NewInvalidInputError("Failed to create task: task cannot be nil")
+	}
+	fence, err := parseDriverTaskFence(task)
 	if err != nil {
 		return nil, err
 	}
-	if existingTask != nil {
-		return existingTask, nil
+	if fence.sourceTaskID != "" {
+		return nil, util.NewInvalidInputError("Driver retry source fences cannot claim tasks; create the originating driver task first")
+	}
+	if !fence.tagged {
+		created, err := s.createTaskWithExecutor(s.db, task)
+		if err != nil {
+			return nil, err
+		}
+		stored, err := parseDriverTaskFence(created)
+		if err != nil {
+			return nil, err
+		}
+		if stored.claimed {
+			return nil, staleDriverAttempt(created.UUID)
+		}
+		return created, nil
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to start transaction for driver task creation")
+	}
+	defer tx.Rollback()
+	if err := s.lockRunForDriverTaskWrite(tx, task.RunUUID, fence.generation); err != nil {
+		return nil, err
+	}
+	created, err := s.createTaskWithExecutor(tx, task)
+	if err != nil {
+		return nil, err
+	}
+	created, err = s.claimDriverTaskAttempt(tx, created, fence)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to commit driver task creation")
+	}
+	return created, nil
+}
+
+func taskRetryGeneration(task *model.Task) (int64, bool, error) {
+	properties, ok := task.StatusMetadata["customProperties"].(map[string]interface{})
+	if !ok {
+		return 0, false, nil
+	}
+	value, tagged := properties[util.DriverRetryGenerationKey]
+	if !tagged {
+		return 0, false, nil
+	}
+	text, ok := value.(string)
+	generation, err := strconv.ParseInt(text, 10, 64)
+	if !ok || err != nil || generation < 0 || strconv.FormatInt(generation, 10) != text {
+		return 0, true, util.NewInvalidInputError("Driver retry generation must be a nonnegative decimal string; resubmit the task with the current run retry generation")
+	}
+	return generation, true, nil
+}
+
+// Lock the run before the task, matching RetryRun and terminal finalization.
+// Holding this lock through the task write fences stale driver processes.
+func (s *TaskStore) lockRunForDriverTaskWrite(tx *sql.Tx, runID string, generation int64) error {
+	if runID == "" {
+		return util.NewInvalidInputError("Driver task writes require a run ID; include the task's run ID")
+	}
+	q := s.dbDialect.QuoteIdentifier
+	query, args, err := s.dbDialect.QueryBuilder().
+		Select(q("State"), q("Conditions"), q("RetryGeneration")).
+		From(q("run_details")).
+		Where(sq.Eq{q("UUID"): runID}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build run lock query for driver task write")
+	}
+	var state, conditions sql.NullString
+	var currentGeneration int64
+	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(query), args...).Scan(&state, &conditions, &currentGeneration); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return util.NewResourceNotFoundError("Run", runID)
+		}
+		return util.NewInternalServerError(err, "Failed to lock run %s for driver task write", runID)
+	}
+	if generation != currentGeneration {
+		return util.NewFailedPreconditionError(
+			fmt.Errorf("driver generation %d does not match run generation %d", generation, currentGeneration),
+			"Run %s has a different retry generation; discard this stale driver attempt", runID)
+	}
+	if terminalRunStateValues[state.String] || (state.String == "" && terminalRunStateValues[conditions.String]) {
+		return util.NewFailedPreconditionError(
+			fmt.Errorf("run is already terminal"),
+			"Run %s has finished; discard this driver attempt", runID)
+	}
+	return nil
+}
+
+func (s *TaskStore) createTaskWithExecutor(db taskWriteExecutor, task *model.Task) (*model.Task, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	logicalKey, err := taskLogicalKey(task)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to build logical task identity")
+	}
+	if logicalKey != nil {
+		existingTask, err := s.findTaskByLogicalKeyWithExecutor(db, *logicalKey)
+		if err != nil {
+			return nil, err
+		}
+		if existingTask != nil {
+			return existingTask, nil
+		}
 	}
 
 	// Set up UUID for task.
 	newTask := *task
-	newTask.LogicalKey, err = taskLogicalKey(task)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to build logical task identity")
-	}
+	newTask.LogicalKey = logicalKey
 	id, err := s.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create an task id")
@@ -666,10 +778,10 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert task to task table: %v",
 			err.Error())
 	}
-	_, err = s.db.Exec(sql, args...)
+	_, err = db.Exec(sql, args...)
 	if err != nil {
 		if newTask.LogicalKey != nil {
-			existingTask, findErr := s.findTaskByLogicalKey(*newTask.LogicalKey)
+			existingTask, findErr := s.findTaskByLogicalKeyWithExecutor(db, *newTask.LogicalKey)
 			if findErr == nil && existingTask != nil {
 				return existingTask, nil
 			}
@@ -1047,6 +1159,11 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	if new.UUID == "" {
 		return nil, util.NewInvalidInputError("Failed to update task: task ID cannot be empty")
 	}
+	fence, err := parseDriverTaskFence(new)
+	if err != nil {
+		return nil, err
+	}
+	generation, tagged := fence.generation, fence.tagged
 
 	// Start a transaction to ensure atomic read-merge-write with row locking
 	tx, err := s.db.Begin()
@@ -1058,10 +1175,22 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 			glog.Warningf("Failed to rollback task update transaction for %s: %v", new.UUID, rbErr)
 		}
 	}()
+	if tagged {
+		if err := s.lockRunForDriverTaskWrite(tx, new.RunUUID, generation); err != nil {
+			return nil, err
+		}
+	}
 
 	// Get the current task state with a row-level lock (SELECT ... FOR UPDATE)
 	// This prevents other concurrent updates from reading the same old state
 	lockedOld, err := s.getTaskForUpdate(tx, new.UUID)
+	if err != nil {
+		return nil, err
+	}
+	if tagged && lockedOld.RunUUID != new.RunUUID {
+		return nil, util.NewInvalidInputError("Driver task run ID does not match the stored task; use the task's original run ID")
+	}
+	new, err = s.validateDriverTaskAttempt(tx, new, lockedOld, fence)
 	if err != nil {
 		return nil, err
 	}
@@ -1135,7 +1264,8 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	if new.StartedInSec != 0 {
 		setMap[q("StartedInSec")] = new.StartedInSec
 	}
-	if new.FinishedInSec != 0 {
+	// A recovered driver reopens its logical task without the failed attempt's end time.
+	if new.FinishedInSec != 0 || (tagged && new.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING)) {
 		setMap[q("FinishedInSec")] = new.FinishedInSec
 	}
 

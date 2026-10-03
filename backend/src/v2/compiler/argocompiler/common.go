@@ -232,6 +232,9 @@ func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {
 			Template: exitTemplate,
 			Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
 				{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(parentDagID)},
+				{Name: paramExitTaskName, Value: wfapi.AnyStringPtr(task.Name)},
+				{Name: paramExitTaskStatus, Value: wfapi.AnyStringPtr("{{tasks." + task.Name + ".status}}")},
+				{Name: paramIterationIndex, Value: wfapi.AnyStringPtr("-1")},
 			}},
 		},
 	}

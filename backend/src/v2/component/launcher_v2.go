@@ -103,6 +103,9 @@ type OutputPropagationOptions struct {
 	ParentTask   *apiV2beta1.PipelineTask
 	ScopePath    util.ScopePath
 	PipelineSpec *structpb.Struct
+	// GenerationSource overrides Task when a current driver republishes outputs
+	// from a successful child preserved from an earlier run retry generation.
+	GenerationSource *apiV2beta1.PipelineTask
 }
 
 // NewLauncherV2 is a factory function that returns an instance of LauncherV2.
@@ -293,9 +296,10 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) error {
 	if executionErr != nil {
 		l.options.Task.State = apiV2beta1.PipelineTask_FAILED
-		l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
-			Message: executionErr.Error(),
+		if l.options.Task.StatusMetadata == nil {
+			l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
 		}
+		l.options.Task.StatusMetadata.Message = executionErr.Error()
 	}
 	l.options.Task.EndTime = timestamppb.New(time.Now())
 	l.batchUpdater.QueueTaskUpdate(l.options.Task)
@@ -346,9 +350,10 @@ func (l *LauncherV2) persistFailedTaskAfterFinalizationError(
 ) error {
 	l.options.Task.State = apiV2beta1.PipelineTask_FAILED
 	executionErr = errors.Join(executionErr, finalizationErr)
-	l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
-		Message: finalizationErr.Error(),
+	if l.options.Task.StatusMetadata == nil {
+		l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
 	}
+	l.options.Task.StatusMetadata.Message = finalizationErr.Error()
 	_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 		TaskId: l.options.Task.GetTaskId(),
 		Task:   l.options.Task,
@@ -1203,6 +1208,10 @@ func propagateOutputsUpDAG(
 	if opts.ParentTask == nil {
 		return nil
 	}
+	generationSource := opts.GenerationSource
+	if generationSource == nil {
+		generationSource = opts.Task
+	}
 
 	currentTask := opts.Task
 	if currentTask.GetTaskId() != "" {
@@ -1475,6 +1484,7 @@ func propagateOutputsUpDAG(
 
 		// Queue parent task update if we modified it with parameters
 		if len(newPropagatedParameters) > 0 {
+			util.CopyDriverRetryGeneration(currentParentTask, generationSource)
 			batchUpdater.QueueTaskUpdate(currentParentTask)
 		}
 

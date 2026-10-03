@@ -859,6 +859,40 @@ func upsertEnvVars(existing []corev1.EnvVar, toAdd []corev1.EnvVar) []corev1.Env
 	return existing
 }
 
+// DisableTaskDriverRetries removes task-derived driver retry overrides when a
+// runtime plugin cannot safely replay, preserving deployment retry defaults.
+func (w *Workflow) DisableTaskDriverRetries() int {
+	if w == nil || w.Workflow == nil {
+		return 0
+	}
+	disabled := 0
+	for i := range w.Spec.Templates {
+		tmpl := &w.Spec.Templates[i]
+		if tmpl.Container == nil ||
+			tmpl.Metadata.Annotations[AnnotationKeyRuntimeRole] != string(ExecutionRuntimeRoleDriver) ||
+			tmpl.Metadata.Annotations[AnnotationKeyTaskDriverRetry] != "true" {
+			continue
+		}
+		// Restore the same deployment recovery policy as unconfigured drivers.
+		tmpl.RetryStrategy = nil
+		delete(tmpl.Metadata.Annotations, AnnotationKeyTaskDriverRetry)
+		for j, arg := range tmpl.Container.Args {
+			switch {
+			case strings.HasPrefix(arg, "--driver_retry_enabled="):
+				tmpl.Container.Args[j] = "--driver_retry_enabled=false"
+			case strings.HasPrefix(arg, "--driver_retry_attempt="):
+				tmpl.Container.Args[j] = "--driver_retry_attempt=0"
+			case arg == "--driver_retry_enabled" && j+1 < len(tmpl.Container.Args):
+				tmpl.Container.Args[j+1] = "false"
+			case arg == "--driver_retry_attempt" && j+1 < len(tmpl.Container.Args):
+				tmpl.Container.Args[j+1] = "0"
+			}
+		}
+		disabled++
+	}
+	return disabled
+}
+
 // SetOwnerReferences sets owner references on a Workflow.
 func (w *Workflow) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
 	w.OwnerReferences = []metav1.OwnerReference{

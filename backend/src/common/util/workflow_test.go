@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
 )
@@ -2481,6 +2482,72 @@ func TestWorkflow_CanRetryRejectsLegacyFormats(t *testing.T) {
 	}
 	workflow := NewWorkflow(&workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{PodMetadata: &workflowapi.Metadata{Annotations: map[string]string{"pipelines.kubeflow.org/v2_component": "true"}}}})
 	assert.NoError(t, workflow.CanRetry())
+}
+
+func TestDisableTaskDriverRetries_OnlyMarkedDrivers(t *testing.T) {
+	marked := annotatedTemplate("task-driver", ExecutionRuntimeRoleDriver)
+	marked.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+	marked.Container.Args = []string{
+		"--task_name=task", "--driver_retry_enabled=true", "--driver_retry_attempt={{retries}}",
+	}
+	marked.Inputs.Parameters = []workflowapi.Parameter{{Name: "task-name", Default: workflowapi.AnyStringPtr("task")}}
+	limit := intstr.FromInt32(3)
+	marked.RetryStrategy = &workflowapi.RetryStrategy{Limit: &limit, RetryPolicy: workflowapi.RetryPolicyAlways}
+	root := annotatedTemplate("root-driver", ExecutionRuntimeRoleDriver)
+	legacy := annotatedTemplate("legacy-driver", ExecutionRuntimeRoleDriver)
+	legacy.RetryStrategy = marked.RetryStrategy.DeepCopy()
+	launcher := annotatedTemplate("launcher", ExecutionRuntimeRoleLauncher)
+	launcher.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+	launcher.RetryStrategy = marked.RetryStrategy.DeepCopy()
+	dag := dagTemplate("dag")
+	dag.Metadata.Annotations = map[string]string{
+		AnnotationKeyRuntimeRole: string(ExecutionRuntimeRoleDriver), AnnotationKeyTaskDriverRetry: "true",
+	}
+	unknown := annotatedTemplate("unknown-role", "unknown")
+	unknown.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+	ignored := annotatedTemplate("disabled-marker", ExecutionRuntimeRoleDriver)
+	ignored.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "false"
+	w := workflowWithTemplates(marked, root, legacy, launcher, dag, unknown, ignored)
+	defaultLimit := intstr.FromInt32(2)
+	w.Spec.TemplateDefaults = &workflowapi.Template{RetryStrategy: &workflowapi.RetryStrategy{
+		Limit: &defaultLimit, RetryPolicy: workflowapi.RetryPolicyOnError,
+	}}
+	before := w.DeepCopy()
+
+	assert.Equal(t, 1, w.DisableTaskDriverRetries())
+	changed := w.Spec.Templates[0]
+	assert.Nil(t, changed.RetryStrategy, "marked drivers must inherit deployment retry defaults like unconfigured drivers")
+	assert.NotContains(t, changed.Metadata.Annotations, AnnotationKeyTaskDriverRetry)
+	assert.Equal(t, []string{
+		"--task_name=task", "--driver_retry_enabled=false", "--driver_retry_attempt=0",
+	}, changed.Container.Args)
+	assert.Equal(t, before.Spec.Templates[0].Inputs, changed.Inputs)
+	assert.Equal(t, before.Spec.Templates[1:], w.Spec.Templates[1:])
+	assert.Equal(t, before.Spec.TemplateDefaults, w.Spec.TemplateDefaults)
+
+	after := w.DeepCopy()
+	assert.Zero(t, w.DisableTaskDriverRetries())
+	assert.Equal(t, after, w.Workflow)
+}
+
+func TestDisableTaskDriverRetries_SeparateFlagValues(t *testing.T) {
+	driver := annotatedTemplate("task-driver", ExecutionRuntimeRoleDriver)
+	driver.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+	driver.Container.Args = []string{
+		"--driver_retry_enabled", "true", "--task_name", "task", "--driver_retry_attempt", "{{retries}}",
+	}
+	w := workflowWithTemplates(driver)
+
+	assert.Equal(t, 1, w.DisableTaskDriverRetries())
+	assert.Equal(t, []string{
+		"--driver_retry_enabled", "false", "--task_name", "task", "--driver_retry_attempt", "0",
+	}, w.Spec.Templates[0].Container.Args)
+}
+
+func TestDisableTaskDriverRetries_EmptyWorkflow(t *testing.T) {
+	for _, workflow := range []*Workflow{nil, {}, NewWorkflow(&workflowapi.Workflow{})} {
+		assert.Zero(t, workflow.DisableTaskDriverRetries())
+	}
 }
 
 func TestWorkflow_ServiceAccountsCollectsPodIdentities(t *testing.T) {

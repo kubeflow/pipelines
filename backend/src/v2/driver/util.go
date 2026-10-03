@@ -23,12 +23,14 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -426,13 +428,39 @@ func updateTaskAttemptLocalFieldsAfterCreate(
 	if createdTask == nil || attemptTask == nil {
 		return nil, fmt.Errorf("created task and attempt task are required")
 	}
-	createdTask.Pods = attemptTask.GetPods()
+	if _, retrying := createdTask.GetStatusMetadata().GetCustomProperties()[util.DriverRetryGenerationKey]; retrying {
+		for _, pod := range attemptTask.GetPods() {
+			createdTask.Pods = appendDriverPod(createdTask.GetPods(), pod)
+		}
+	} else {
+		createdTask.Pods = attemptTask.GetPods()
+	}
 	createdTask.Inputs = attemptTask.GetInputs()
 	createdTask.Outputs = attemptTask.GetOutputs()
 	createdTask.CacheFingerprint = attemptTask.GetCacheFingerprint()
 	createdTask.State = attemptTask.GetState()
 	createdTask.EndTime = attemptTask.GetEndTime()
+	recoveryProperties := driverRecoveryProperties(createdTask)
+	// CreateTask can be followed by a newer claim before its response arrives.
+	// Preserve recovered data, but never adopt another attempt's write authority.
+	for _, key := range []string{util.DriverRetryGenerationKey, util.DriverRetryAttemptKey} {
+		if value, present := attemptTask.GetStatusMetadata().GetCustomProperties()[key]; present {
+			recoveryProperties[key] = proto.Clone(value).(*structpb.Value)
+		}
+	}
 	createdTask.StatusMetadata = attemptTask.GetStatusMetadata()
+	if len(recoveryProperties) > 0 {
+		metadata := driverRecoveryMetadata(createdTask)
+		for key, value := range recoveryProperties {
+			metadata.CustomProperties[key] = value
+		}
+	}
+	if attemptTask.TypeAttributes != nil {
+		createdTask.TypeAttributes = attemptTask.TypeAttributes
+	}
+	if _, claimed := recoveryProperties[util.DriverRetryAttemptKey]; claimed {
+		return updateDriverTask(ctx, kfpAPI, createdTask)
+	}
 	updatedTask, err := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 		TaskId: createdTask.GetTaskId(),
 		Task:   createdTask,

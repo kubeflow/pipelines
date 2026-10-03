@@ -477,8 +477,17 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	pluginDispatcher := newPluginDispatcher()
+	pluginDispatcher, err := pluginDispatcherForDriver(*driverFlagValues.DriverRetryEnabled)
+	if err != nil {
+		return err
+	}
 	options := drivercommon.Options{
+		ExitTaskName:               *driverFlagValues.ExitTaskName,
+		ExitTaskStatus:             *driverFlagValues.ExitTaskStatus,
+		DriverRetryEnabled:         *driverFlagValues.DriverRetryEnabled,
+		DriverRetryAttempt:         *driverFlagValues.DriverRetryAttempt,
+		DriverRetryMaxCount:        *driverFlagValues.DriverRetryMaxCount,
+		DriverRetryGeneration:      *driverFlagValues.DriverRetryGeneration,
 		PipelineName:               *pipelineName,
 		Run:                        run,
 		RunName:                    *runName,
@@ -570,6 +579,20 @@ func parseOptionalBoolFlag(flagName, value string) (*bool, error) {
 		return nil, fmt.Errorf("invalid %s value %q: %w", flagName, value, err)
 	}
 	return &v, nil
+}
+
+func pluginDispatcherForDriver(retryEnabled bool) (plugins.TaskPluginDispatcher, error) {
+	if !retryEnabled {
+		return newPluginDispatcher(), nil
+	}
+	dispatcher, err := plugins.GetPluginDispatcher()
+	if err != nil {
+		return nil, fmt.Errorf("cannot initialize plugins for driver retries: %w", err)
+	}
+	if err := plugins.ValidateDriverRetry(dispatcher); err != nil {
+		return nil, err
+	}
+	return dispatcher, nil
 }
 
 // newPluginDispatcher initializes the task plugin dispatcher, falling back to

@@ -31,11 +31,19 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func DAG(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, err error) {
+func DAG(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (*Execution, error) {
+	if !opts.DriverRetryEnabled {
+		return dag(ctx, opts, clientManager)
+	}
+	return recoverDriver(ctx, opts, clientManager, dag)
+}
+
+func dag(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.DAG(%s) failed: %w", opts.Info(), err)
@@ -97,9 +105,12 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 	// of the logical key).
 	applyInferredDAGTaskType(opts, taskToCreate)
 
+	if opts.DriverRetryTask != nil {
+		taskToCreate.StatusMetadata = proto.Clone(opts.DriverRetryTask.GetStatusMetadata()).(*gc.PipelineTask_StatusMetadata)
+	}
 	taskCreated := false
 	defer func() {
-		if err == nil {
+		if err == nil || opts.DriverRetryEnabled {
 			return
 		}
 		failedEndTime := timestamppb.New(time.Now())
@@ -238,9 +249,11 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		if statusMetadata == nil {
 			statusMetadata = &gc.PipelineTask_StatusMetadata{}
 		}
-		clonedProperties := make(map[string]*structpb.Value, len(parentProperties))
+		clonedProperties := driverRecoveryProperties(taskToCreate)
 		for key, value := range parentProperties {
-			clonedProperties[key] = value
+			if !isDriverRecoveryProperty(key) {
+				clonedProperties[key] = value
+			}
 		}
 		statusMetadata.CustomProperties = clonedProperties
 		taskToCreate.StatusMetadata = statusMetadata
@@ -319,6 +332,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		State:            taskToCreate.GetState(),
 		EndTime:          taskToCreate.GetEndTime(),
 		StatusMetadata:   taskToCreate.GetStatusMetadata(),
+		TypeAttributes:   taskToCreate.GetTypeAttributes(),
 	}
 	createdTask, err := clientManager.KFPAPIClient().CreateTask(ctx, &gc.CreateTaskRequest{
 		Task:  taskToCreate,
