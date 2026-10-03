@@ -1712,6 +1712,7 @@ func TestWorkflow_GenerateRetryExecution_WithTerminatedDeadline(t *testing.T) {
 		Spec: workflowapi.WorkflowSpec{
 			Entrypoint:            "main",
 			ActiveDeadlineSeconds: &zero,
+			Shutdown:              workflowapi.ShutdownStrategyTerminate,
 		},
 		Status: workflowapi.WorkflowStatus{
 			Phase: workflowapi.WorkflowFailed,
@@ -1734,6 +1735,8 @@ func TestWorkflow_GenerateRetryExecution_WithTerminatedDeadline(t *testing.T) {
 	retryWorkflow := retryExec.(*Workflow)
 	// ActiveDeadlineSeconds should be unset (was 0 indicating termination)
 	assert.Nil(t, retryWorkflow.Spec.ActiveDeadlineSeconds)
+	// The shutdown strategy should be cleared so the retry can run.
+	assert.Equal(t, workflowapi.ShutdownStrategyNone, retryWorkflow.Spec.Shutdown)
 }
 
 func TestWorkflow_GenerateRetryExecution_OnExitNode(t *testing.T) {

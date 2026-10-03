@@ -15,6 +15,7 @@
 package worker
 
 import (
+	"context"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -23,11 +24,18 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
+// defaultImagePullFailureCheckTimeout bounds a single image pull failure check,
+// including its termination request, so a stalled API server connection cannot
+// hold a persistence worker indefinitely.
+const defaultImagePullFailureCheckTimeout = 30 * time.Second
+
 // WorkflowSaver provides a function to persist a workflow to a database.
 type WorkflowSaver struct {
 	client                        client.WorkflowClientInterface
 	pipelineClient                client.PipelineClientInterface
 	ttlSecondsAfterWorkflowFinish int64
+	imagePullFailureChecker       ImagePullFailureChecker
+	imagePullFailureCheckTimeout  time.Duration
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
@@ -36,7 +44,15 @@ func NewWorkflowSaver(client client.WorkflowClientInterface,
 		client:                        client,
 		pipelineClient:                pipelineClient,
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
+		imagePullFailureCheckTimeout:  defaultImagePullFailureCheckTimeout,
 	}
+}
+
+// SetImagePullFailureChecker sets the optional image pull failure checker.
+// When set, running workflows will be checked for pods stuck in
+// ImagePullBackOff/ErrImagePull and terminated after the grace period.
+func (s *WorkflowSaver) SetImagePullFailureChecker(checker ImagePullFailureChecker) {
+	s.imagePullFailureChecker = checker
 }
 
 func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch int64) error {
@@ -46,6 +62,9 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	if err != nil && isNotFound {
 		// Permanent failure.
 		// The Workflow may no longer exist, we stop processing and do not retry.
+		if s.imagePullFailureChecker != nil {
+			s.imagePullFailureChecker.Forget(namespace, name)
+		}
 		return util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT,
 			"Workflow (%s) in work queue no longer exists: %v", key, err)
 	}
@@ -64,6 +83,18 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		// and the workflow hasn't being passing the TTL
 		log.Infof("Skip syncing Workflow (%v): workflow marked as persisted.", name)
 		return nil
+	}
+
+	// Check for image pull failures on workflows that are still running, and
+	// drop any tracking state once the workflow has finished. The check is
+	// bounded by a timeout so a stalled termination request cannot block
+	// reporting; errors are logged and reporting proceeds regardless.
+	if s.imagePullFailureChecker != nil {
+		if wf.ExecutionStatus().IsInFinalState() {
+			s.imagePullFailureChecker.Forget(namespace, name)
+		} else {
+			s.checkImagePullFailures(wf)
+		}
 	}
 
 	// Save this Workflow to the database.
@@ -86,4 +117,12 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
 	return nil
+}
+
+func (s *WorkflowSaver) checkImagePullFailures(wf util.ExecutionSpec) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.imagePullFailureCheckTimeout)
+	defer cancel()
+	if err := s.imagePullFailureChecker.CheckAndTerminate(ctx, wf.ExecutionObjectMeta()); err != nil {
+		log.Warnf("Workflow (%v): error checking image pull failures: %v", wf.ExecutionName(), err)
+	}
 }
