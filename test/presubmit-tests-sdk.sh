@@ -36,4 +36,5 @@ else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
 fi
 
-uv run python -m pytest sdk/python/test -v -s -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
+# Keep pytest capture enabled: xdist cannot forward worker stdout/stderr with -s.
+uv run python -m pytest sdk/python/test -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"

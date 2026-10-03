@@ -69,7 +69,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: 3.9
+          python-version: 3.11
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -207,4 +207,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}-db-${{ matrix.db_type }}-${{ matrix.test_group }}
-          path: /tmp/tmp*/*
+          path: |
+            /tmp/tmp*/*
+            ${{ runner.temp }}/go-test-output.log

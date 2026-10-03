@@ -86,7 +86,7 @@ jobs:
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python
         with:
-          python-version: '3.9'
+          python-version: '3.11'
 
       - name: Set up Docker Buildx with caching
         shell: bash

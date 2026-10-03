@@ -45,9 +45,6 @@ describe('ViewerContainer', () => {
       url: 'http://test/url',
       namespace: 'test-ns',
     },
-    [PlotType.VISUALIZATION_CREATOR]: {
-      type: PlotType.VISUALIZATION_CREATOR,
-    },
     [PlotType.WEB_APP]: {
       type: PlotType.WEB_APP,
       htmlContent: '<div>test</div>',

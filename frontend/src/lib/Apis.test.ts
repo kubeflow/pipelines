@@ -65,10 +65,6 @@ describe('Apis', () => {
     }
   });
 
-  it('hosts a singleton visualizationServiceApi', () => {
-    expect(Apis.visualizationServiceApi).toBe(Apis.visualizationServiceApi);
-  });
-
   it('getPodLogs', async () => {
     const spy = fetchSpy('http://some/address');
     expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns', '')).toEqual(
@@ -546,19 +542,4 @@ describe('Apis', () => {
     expect(ready).toBe(false);
     expect(spy).toHaveBeenCalledWith('apps/tensorboard/proxy/test-token/', { method: 'HEAD' });
   });
-});
-
-it('creates visualizations through the v2 schema and endpoint', async () => {
-  const fetch = vi
-    .spyOn(window, 'fetch')
-    .mockResolvedValue(new Response(JSON.stringify({ html: '<p>native viewer</p>' })));
-  const config = await Apis.buildPythonVisualizationConfig(
-    { type: 'TFMA', source: 'gs://bucket/model' },
-    'user-ns',
-  );
-  expect(fetch).toHaveBeenCalledWith(
-    expect.stringContaining('/apis/v2beta1/visualizations/user-ns'),
-    expect.objectContaining({ method: 'POST' }),
-  );
-  expect(config.htmlContent).toBe('<p>native viewer</p>');
 });

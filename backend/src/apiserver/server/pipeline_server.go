@@ -206,7 +206,7 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 		return nil, nil, util.NewInvalidInputError("error fetching pipeline spec from %v - request returned %v", pipelineURL.String(), resp.Status)
 	}
 	defer resp.Body.Close()
-	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
+	pipelineFile, err := ReadPipelineFileWithConfiguredLimits(pipelineFileName, resp.Body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -462,21 +462,6 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2beta1
 	return &emptypb.Empty{}, nil
 }
 
-// Fetches the latest pipeline version for a given pipeline id.
-func (s *BasePipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineId string) (*model.PipelineVersion, error) {
-	if pipelineId == "" {
-		return nil, util.NewInvalidInputError("Failed to get the latest pipeline version as pipeline id is empty")
-	}
-	// Check authorization
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbGet,
-	}
-	if err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes); err != nil {
-		return nil, util.Wrapf(err, "Failed to get the latest pipeline version due authorization error for pipeline id %v", pipelineId)
-	}
-	return s.resourceManager.GetLatestPipelineVersion(pipelineId)
-}
-
 // Validates a pipeline version before creating a record in the DB.
 // Requires Name and PipelineId to be non-empty and presence of PipelineSpec or a valid URI to the pipeline spec.
 func (s *BasePipelineServer) validatePipelineVersionBeforeCreating(p *model.PipelineVersion) error {
@@ -588,7 +573,7 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 	}
 	defer resp.Body.Close()
 	pipelineFileName := path.Base(pipelineUrl.String())
-	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
+	pipelineFile, err := ReadPipelineFileWithConfiguredLimits(pipelineFileName, resp.Body)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due error reading the pipeline spec")
 	}

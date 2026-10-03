@@ -4,7 +4,7 @@ env:
   NUMBER_OF_PARALLEL_NODES: 10
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
   USER_NAMESPACE: "kubeflow-user-example-com"
   CA_CERT_PATH: ""
   AWS_ACCESS_KEY_ID: 'minio'
@@ -278,18 +278,16 @@ jobs:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
+        db_type: ["mysql", "pgx"]
         test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
+        exclude:
+          # PostgreSQL has no cache-disabled multi-user overlay.
+          - db_type: "pgx"
+            cache_enabled: "false"
         include:
-          # PostgreSQL lane — cache_enabled=true, artifact_proxy disabled
-          # (no pgx overlay for cache-disabled or artifact-proxy).
-          # TODO: expand when multiuser/postgresql/cache-disabled and
-          # multiuser/postgresql/artifact-proxy overlays exist.
-          - k8s_version: "v1.36.1"
-            cache_enabled: "true"
-            multi_user: "true"
-            db_type: "pgx"
+          # Keep both PostgreSQL shards on the supported non-proxy overlay.
+          - db_type: "pgx"
             artifact_proxy: "false"
-            test_label: "E2ECritical"
       fail-fast: false
     name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy || matrix.cache_enabled }} dbType=${{ matrix.db_type }}
     steps:
@@ -379,7 +377,7 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2EMultiUser${{ matrix.test_label }}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+          report_name: "E2EMultiUser${{ matrix.test_label }}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_dbType=${{ matrix.db_type }}"
 
 
   end-to-end-critical-mlflow-tests:
@@ -452,7 +450,7 @@ jobs:
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@4abf9eabe15727ba3a8c1c8d7d07e9d35b0dd5d7
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@b952a53c4b9066d0c1a8e369ec2b48ffcfb4d451
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'

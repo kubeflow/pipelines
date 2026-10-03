@@ -32,7 +32,6 @@ import { getAuthorizeFn } from './helpers/auth.js';
 import { getPodLogsHandler } from './handlers/pod-logs.js';
 import { getPodInfoHandlers } from './handlers/pod-info.js';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata.js';
-import { getAllowCustomVisualizationsHandler } from './handlers/vis.js';
 import { getIndexHTMLHandler } from './handlers/index-html.js';
 
 import { IncomingMessage, Server } from 'http';
@@ -322,13 +321,6 @@ function createUIServer(options: UIConfigs) {
   /** Cluster metadata (GKE only) */
   registerHandler(app.get, '/system/cluster-name', getClusterNameHandler(options.gkeMetadata));
   registerHandler(app.get, '/system/project-id', getProjectIdHandler(options.gkeMetadata));
-
-  /** Visualization */
-  registerHandler(
-    app.get,
-    '/visualizations/allowed',
-    getAllowCustomVisualizationsHandler(options.visualizations.allowCustomVisualizations),
-  );
 
   registerHandler(
     app.use,

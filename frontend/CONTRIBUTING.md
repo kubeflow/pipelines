@@ -191,7 +191,7 @@ There are a few types of tests during pre-submit:
   behavior as `npm start`.
 * UI node server unit tests (Vitest), you can run locally with
   `npm run test:server:coverage` or `cd server && npm test -- --coverage`.
-  Server integration tests also require `python3` (3.9+) on `PATH` to run the
+  Server integration tests also require `python3` (3.11+) on `PATH` to run the
   profile-controller archived-log regression. It uses only the Python standard library.
 
 There is a special type of unit test called

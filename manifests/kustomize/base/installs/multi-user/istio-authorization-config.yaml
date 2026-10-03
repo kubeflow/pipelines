@@ -47,26 +47,6 @@ spec:
     - key: request.headers[kubeflow-userid]
       notValues: ['*']
 ---
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: ml-pipeline-visualizationserver
-  namespace: kubeflow
-spec:
-  selector:
-    matchLabels:
-      app: ml-pipeline-visualizationserver
-  rules:
-  - from:
-    - source:
-        principals:
-        - cluster.local/ns/kubeflow/sa/ml-pipeline
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-ui
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-persistenceagent
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-scheduledworkflow
-        - cluster.local/ns/kubeflow/sa/ml-pipeline-viewer-crd-service-account
-
----
 apiVersion: "networking.istio.io/v1alpha3"
 kind: DestinationRule
 metadata:
@@ -83,16 +63,6 @@ metadata:
   name: ml-pipeline
 spec:
   host: ml-pipeline.kubeflow.svc.cluster.local
-  trafficPolicy:
-    tls:
-      mode: ISTIO_MUTUAL
----
-apiVersion: "networking.istio.io/v1alpha3"
-kind: DestinationRule
-metadata:
-  name: ml-pipeline-visualizationserver
-spec:
-  host: ml-pipeline-visualizationserver.kubeflow.svc.cluster.local
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL

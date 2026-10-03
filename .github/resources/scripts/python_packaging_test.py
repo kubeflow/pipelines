@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -438,39 +439,6 @@ class PythonPackagingTest(unittest.TestCase):
                 self.assertEqual(build[-2:],
                                  [docs_path, '$READTHEDOCS_OUTPUT/html'])
 
-    def test_visualization_updater_retains_its_shared_helper(self) -> None:
-        """Exercise the retained requirements workflow without running
-        Docker."""
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            path = Path('backend/src/apiserver/visualization')
-            destination = root / path
-            destination.mkdir(parents=True)
-            shutil.copy(ROOT / path / 'update_requirements.sh', destination)
-            (root / 'hack').mkdir()
-            shutil.copy(ROOT / 'hack/update-requirements.sh', root / 'hack')
-            (destination / 'requirements.in').write_text('test-package==1.0\n')
-            (destination / 'requirements.txt').write_text('old\n')
-            fake_bin = root / 'bin'
-            fake_bin.mkdir()
-            docker = fake_bin / 'docker'
-            docker.write_text('#!/bin/sh\ncat\n')
-            docker.chmod(0o755)
-            result = subprocess.run(
-                ['bash', 'update_requirements.sh'],
-                cwd=destination,
-                env={
-                    **os.environ, 'PATH':
-                        f'{fake_bin}{os.pathsep}{os.environ["PATH"]}'
-                },
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual((destination / 'requirements.txt').read_text(),
-                             'test-package==1.0\n')
-
     def test_server_generator_uses_sdk_version_and_rejects_v1(self) -> None:
         """Regenerate v2 metadata from the SDK and reject removed v1 APIs."""
         for api_version in ('v2beta1', 'v1beta1'):
@@ -504,7 +472,8 @@ class PythonPackagingTest(unittest.TestCase):
                     (models / '__init__.py').touch()
                     (models.parent / '__init__.py').write_text(
                         '__version__ = ' + repr(config['packageVersion']) + '\\n')
-                    for name in ('README.md', 'setup.py', 'tox.ini', 'test-requirements.txt'):
+                    (output / 'README.md').write_text('Python 2.7 and 3.4+\\n')
+                    for name in ('setup.py', 'tox.ini', 'test-requirements.txt'):
                         (output / name).touch()
                 '''))
                 java.chmod(0o755)
@@ -536,6 +505,12 @@ class PythonPackagingTest(unittest.TestCase):
                     '2.17.0')
                 self.assertEqual(
                     package_version(output / 'pyproject.toml'), '2.17.0')
+                metadata = tomllib.loads(
+                    (output / 'pyproject.toml').read_text())
+                self.assertEqual(metadata['project']['requires-python'],
+                                 '>=3.11')
+                self.assertEqual((output / 'README.md').read_text(),
+                                 'Python 3.11 or later\n')
 
 
 if __name__ == '__main__':

@@ -27,8 +27,6 @@ const COMPONENTS = [
   {
     name: 'apiserver',
     paths: ['backend/src/apiserver/'],
-    // Exclude visualization subdirectory — it's a separate component
-    excludePaths: ['backend/src/apiserver/visualization/'],
     makeTarget: 'image_apiserver',
     imageTag: 'apiserver',
     deployment: 'ml-pipeline',
@@ -53,13 +51,6 @@ const COMPONENTS = [
     makeTarget: 'image_viewer',
     imageTag: 'viewercontroller',
     deployment: 'ml-pipeline-viewer-crd',
-  },
-  {
-    name: 'visualization',
-    paths: ['backend/src/apiserver/visualization/'],
-    makeTarget: 'image_visualization',
-    imageTag: 'visualization',
-    deployment: 'ml-pipeline-visualizationserver',
   },
   {
     name: 'driver',

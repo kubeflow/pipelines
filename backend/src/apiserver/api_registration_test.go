@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -39,24 +38,17 @@ func TestAPIRegistration_V2Only(t *testing.T) {
 	t.Cleanup(viper.Reset)
 	viper.Set(common.PodNamespace, "ns1")
 	viper.Set(common.MultiUserMode, false)
-	visualization := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("<html>visualization</html>"))
-	}))
-	t.Cleanup(visualization.Close)
-	host, port, err := net.SplitHostPort(strings.TrimPrefix(visualization.URL, "http://"))
-	require.NoError(t, err)
-	viper.Set(cm.VisualizationServiceHost, host)
-	viper.Set(cm.VisualizationServicePort, port)
 	clients := resource.NewFakeClientManagerOrFatalV2()
 	t.Cleanup(func() { require.NoError(t, clients.Close()) })
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{})
 	rpc := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor))
 	registerRPCServices(rpc, manager)
-	require.Len(t, rpc.GetServiceInfo(), 8)
+	require.Len(t, rpc.GetServiceInfo(), 7)
+	require.NotContains(t, rpc.GetServiceInfo(), "kubeflow.pipelines.backend.api.v2beta1.VisualizationService")
 	for name := range rpc.GetServiceInfo() {
 		require.True(t, strings.HasPrefix(name, "kubeflow.pipelines.backend.api.v2beta1."), name)
 	}
-	for _, service := range []string{"AuthService", "VisualizationService", "ReportService", "ArtifactService"} {
+	for _, service := range []string{"AuthService", "ReportService", "ArtifactService"} {
 		require.Contains(t, rpc.GetServiceInfo(), "kubeflow.pipelines.backend.api.v2beta1."+service)
 	}
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -80,7 +72,7 @@ func TestAPIRegistration_V2Only(t *testing.T) {
 		return recorder
 	}
 	request(http.MethodGet, "/apis/v2beta1/auth?namespace=ns1&resources=VIEWERS&verb=GET", "", http.StatusOK)
-	request(http.MethodPost, "/apis/v2beta1/visualizations/ns1", `{"type":"CUSTOM","arguments":"{}"}`, http.StatusOK)
+	request(http.MethodPost, "/apis/v2beta1/visualizations/ns1", `{"type":"CUSTOM","arguments":"{}"}`, http.StatusNotFound)
 	// Report routes reach validation, rather than an unregistered-route 404.
 	request(http.MethodPost, "/apis/v2beta1/workflows", `"invalid"`, http.StatusBadRequest)
 	request(http.MethodPost, "/apis/v2beta1/scheduledworkflows", `"invalid"`, http.StatusBadRequest)

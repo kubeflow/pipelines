@@ -53,10 +53,6 @@ const SPEC_TARGETS = {
     spec: 'backend/api/v2beta1/swagger/filter.swagger.json',
     output: 'frontend/src/apisv2beta1/filter',
   },
-  'v2beta1:visualization': {
-    spec: 'backend/api/v2beta1/swagger/visualization.swagger.json',
-    output: 'frontend/src/apisv2beta1/visualization',
-  },
   'v2beta1:auth': {
     spec: 'backend/api/v2beta1/swagger/auth.swagger.json',
     output: 'frontend/server/src/generated/apisv2beta1/auth',

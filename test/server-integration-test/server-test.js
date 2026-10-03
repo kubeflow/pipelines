@@ -321,17 +321,6 @@ async function testArtifactEndpoints() {
   });
 }
 
-async function testVisualizationEndpoints() {
-  log('\n📊 Visualization Endpoints', 'cyan');
-
-  await test('GET /visualizations/allowed returns config', async () => {
-    const res = await request('GET', '/visualizations/allowed');
-    assertEqual(res.status, 200, 'Status code');
-    // Returns boolean indicating if custom visualizations are allowed
-    assertTrue(res.body === 'true' || res.body === 'false', 'Should return boolean');
-  });
-}
-
 // ============================================================================
 // Main
 // ============================================================================
@@ -364,7 +353,6 @@ async function main() {
   await testSystemEndpoints();
   await testK8sIntegration();
   await testArtifactEndpoints();
-  await testVisualizationEndpoints();
 
   // Summary
   console.log('\n' + '═'.repeat(60));

@@ -199,6 +199,65 @@ describe('/apps/tensorboard', () => {
       expect(k8sDeleteCustomObjectSpy).not.toHaveBeenCalled();
     },
   );
+  describe('namespace permissions', () => {
+    it.each([
+      { method: 'get' as const, verb: 'GET', allowed: true },
+      { method: 'post' as const, verb: 'CREATE', allowed: true },
+      { method: 'delete' as const, verb: 'DELETE', allowed: true },
+      { method: 'get' as const, verb: 'GET', allowed: false },
+      { method: 'post' as const, verb: 'CREATE', allowed: false },
+      { method: 'delete' as const, verb: 'DELETE', allowed: false },
+    ])('$method checks $verb on viewers (allowed=$allowed)', async ({ method, verb, allowed }) => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const receivedQueries: unknown[] = [];
+      const receivedIdentities: unknown[] = [];
+      kfpApiServer = express()
+        .get('/apis/v2beta1/auth', (req, res) => {
+          receivedQueries.push(req.query);
+          receivedIdentities.push(req.headers['x-kubeflow-userid']);
+          // A reader may get viewers, but cannot create or delete them.
+          const grantedVerbs = allowed ? [verb] : method === 'get' ? [] : ['GET'];
+          if (grantedVerbs.includes(req.query.verb as string)) {
+            res.status(200).send('{}');
+          } else {
+            res.status(403).json({ error: 'Permission denied' });
+          }
+        })
+        .listen(3001);
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: 'true',
+          KUBEFLOW_USERID_HEADER: 'x-kubeflow-userid',
+          ML_PIPELINE_SERVICE_PORT: '3001',
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+        }),
+      );
+      k8sGetCustomObjectSpy.mockResolvedValue(newGetTensorboardResponse());
+      if (method === 'post') {
+        k8sGetCustomObjectSpy.mockRejectedValueOnce('Not found');
+      }
+      k8sCreateCustomObjectSpy.mockResolvedValue(undefined);
+      k8sDeleteCustomObjectSpy.mockResolvedValue(undefined);
+
+      const response = await requests(app.app)
+        [method]('/apps/tensorboard?logdir=some-log-dir&namespace=test-ns&tfversion=2.0.0')
+        .set('x-kubeflow-userid', 'reader@example.com')
+        .expect(allowed ? 200 : 401);
+
+      expect(receivedQueries).toEqual([{ namespace: 'test-ns', resources: 'VIEWERS', verb }]);
+      expect(receivedIdentities).toEqual(['reader@example.com']);
+      expect(k8sCreateCustomObjectSpy).toHaveBeenCalledTimes(allowed && method === 'post' ? 1 : 0);
+      expect(k8sDeleteCustomObjectSpy).toHaveBeenCalledTimes(
+        allowed && method === 'delete' ? 1 : 0,
+      );
+      if (!allowed) {
+        expect(k8sGetCustomObjectSpy).not.toHaveBeenCalled();
+        expect(response.text).toBe(
+          `User is not authorized to ${verb} VIEWERS in namespace test-ns: Permission denied`,
+        );
+      }
+    });
+  });
 
   describe('get', () => {
     it('requires logdir for get tensorboard', async () => {

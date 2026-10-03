@@ -5,6 +5,10 @@ Use Kubeflow Pipelines to compose a multi-step workflow ([pipeline](https://www.
 
 ## Installation
 
+The KFP SDK requires Python 3.11 or later, including in component runtime images
+that install the SDK. Generic container components that do not install the SDK
+can use other runtimes.
+
 To install `kfp`, run:
 
 ```sh

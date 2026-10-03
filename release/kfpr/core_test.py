@@ -59,6 +59,10 @@ class TestReleaseMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             ReleaseMetadata.from_version('major', '1.0')
 
+    def test_prerelease_versions_remain_outside_cli_contract(self):
+        with self.assertRaises(ValueError):
+            ReleaseMetadata.from_version('major', '3.0.0-rc.1')
+
     def test_from_version_major_not_x_0_0(self):
         with self.assertRaises(ValueError):
             ReleaseMetadata.from_version('major', '1.1.0')
@@ -168,6 +172,39 @@ class GithubCommandTest(unittest.TestCase):
                          ['gh', 'workflow', 'run', 'image-builds-release.yml'])
         self.assertIn('src_branch=release-3.2', command)
         self.assertIn('target_tag=3.2.1', command)
+
+    def test_image_workflow_dispatch_preserves_release_branch_contract(self):
+        for version, release_type, branch in (('2.18.0', 'minor',
+                                               'release-2.18'),
+                                              ('2.18.1', 'patch',
+                                               'release-2.18'),
+                                              ('3.0.0', 'major', 'release-3.0'),
+                                              ('3.0.1', 'patch',
+                                               'release-3.0')):
+            with self.subTest(version=version):
+                metadata = core.ReleaseMetadata.from_version(
+                    release_type, version)
+                self.assertEqual(
+                    core.image_workflow_command(metadata), [
+                        'gh',
+                        'workflow',
+                        'run',
+                        'image-builds-release.yml',
+                        '--ref',
+                        branch,
+                        '-f',
+                        f'src_branch={branch}',
+                        '-f',
+                        f'target_tag={version}',
+                        '-f',
+                        'overwrite_imgs=false',
+                        '-f',
+                        'set_latest=true',
+                        '-f',
+                        'add_sha_tag=true',
+                        '-f',
+                        'dry_run=false',
+                    ])
 
     def test_sdk_workflow_command(self):
         metadata = core.ReleaseMetadata.from_version('minor', '3.2.0')
@@ -325,6 +362,27 @@ class GithubCommandTest(unittest.TestCase):
             1)
         self.assertNotIn('done-job:', output.getvalue())
 
+    def test_watch_pr_ci_waits_for_pending_ci_passed_status(self):
+        runner = mock.Mock(dry_run=False)
+        runner.capture.side_effect = [
+            '[{"context":"ci-passed","state":"PENDING"},'
+            '{"name":"unit-tests","status":"IN_PROGRESS"}]',
+            '[{"context":"ci-passed","state":"PENDING"},'
+            '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]',
+            '[{"context":"ci-passed","state":"SUCCESS"},'
+            '{"name":"unit-tests","status":"COMPLETED","conclusion":"SUCCESS"}]',
+        ]
+
+        with contextlib.redirect_stdout(
+                io.StringIO()) as output, mock.patch('time.sleep') as sleep:
+            core.watch_pr_ci(runner,
+                             'https://github.com/kubeflow/pipelines/pull/1')
+
+        self.assertEqual(runner.capture.call_count, 3)
+        self.assertEqual(sleep.call_args_list, [mock.call(60), mock.call(60)])
+        self.assertIn('All PR CI gates completed successfully (2/2)',
+                      output.getvalue())
+
     def test_watch_pr_ci_fails_fast_on_failed_status_context(self):
 
         class FailingStatusRunner:
@@ -388,7 +446,8 @@ class GithubCommandTest(unittest.TestCase):
                 'time.time', return_value=1783537500), mock.patch('time.sleep'):
             core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main')
 
-        self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '12345'])
+        self.assertEqual(runner.commands[-1],
+                         ['gh', 'run', 'watch', '12345', '--exit-status'])
         self.assertNotIn(['gh', 'run', 'watch', ''], runner.commands)
 
     def test_watch_latest_workflow_run_ignores_runs_created_before_dispatch(
@@ -417,7 +476,8 @@ class GithubCommandTest(unittest.TestCase):
                 'time.time', return_value=1783537500), mock.patch('time.sleep'):
             core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main')
 
-        self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '222'])
+        self.assertEqual(runner.commands[-1],
+                         ['gh', 'run', 'watch', '222', '--exit-status'])
         self.assertNotIn(['gh', 'run', 'watch', '111'], runner.commands)
 
     def test_watch_latest_workflow_run_can_resume_existing_run(self):
@@ -441,7 +501,8 @@ class GithubCommandTest(unittest.TestCase):
             core.watch_latest_workflow_run(
                 runner, 'test-workflow.yml', 'main', fresh_only=False)
 
-        self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '111'])
+        self.assertEqual(runner.commands[-1],
+                         ['gh', 'run', 'watch', '111', '--exit-status'])
 
     def test_watch_latest_workflow_run_prints_run_url(self):
 
@@ -470,7 +531,8 @@ class GithubCommandTest(unittest.TestCase):
         self.assertIn(
             'Workflow run: \033[4mhttps://github.com/kubeflow/pipelines/actions/runs/12345\033[0m',
             output)
-        self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '12345'])
+        self.assertEqual(runner.commands[-1],
+                         ['gh', 'run', 'watch', '12345', '--exit-status'])
 
     def test_watch_latest_workflow_run_supports_python_without_datetime_utc(
             self):

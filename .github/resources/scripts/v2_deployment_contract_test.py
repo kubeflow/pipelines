@@ -69,6 +69,35 @@ class V2DeploymentContractTest(unittest.TestCase):
             workflow.index(forwarding),
             workflow.index('- name: API integration tests v2'))
 
+    def test_visualization_service_is_not_deployed_or_generated(self):
+        for root in ('manifests/kustomize', '.github/resources/manifests'):
+            for path in (ROOT / root).rglob('kustomization.yaml'):
+                with self.subTest(path=path):
+                    text = path.read_text()
+                    for identifier in ('ml-pipeline-visualization',
+                                       'kfp-visualization-server',
+                                       'Dockerfile.visualization',
+                                       'visualizationserver.yaml'):
+                        self.assertNotIn(identifier, text)
+        for path in ('backend/api/v2beta1/visualization.proto',
+                     'backend/Dockerfile.visualization',
+                     'backend/src/apiserver/visualization/server.py',
+                     'frontend/src/apisv2beta1/visualization'):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists())
+        for path in (
+                'backend/api/v2beta1/swagger/kfp_api_single_file.swagger.json',
+                'docs/_static/kfp_api_single_file.swagger.json'):
+            with self.subTest(path=path):
+                text = (ROOT / path).read_text()
+                self.assertNotIn('VisualizationService', text)
+                self.assertNotIn('/visualizations/', text)
+        pipeline = (
+            ROOT /
+            'manifests/kustomize/base/pipeline/kustomization.yaml').read_text()
+        self.assertIn('ml-pipeline-viewer-crd-deployment.yaml', pipeline)
+        self.assertIn('ml-pipeline-ui-deployment.yaml', pipeline)
+
     def test_v2_caching_is_configured_without_admission_webhook(self):
         self.assertFalse(
             (ROOT /

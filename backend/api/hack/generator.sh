@@ -33,7 +33,9 @@ KFP_VERSION=$(cat VERSION)
 # Delete currently generated code.
 rm -r -f backend/api/${API_VERSION}/go_http_client/*
 rm -r -f backend/api/${API_VERSION}/go_client/*
-# Cannot delete backend/api/${API_VERSION}/swagger/*, because there are manually maintained definition files too.
+# Keep only the manually maintained upload definition. Remove obsolete generated
+# specs (including the merged spec) before regenerating and merging them.
+find backend/api/${API_VERSION}/swagger -name '*.swagger.json' ! -name 'pipeline.upload.swagger.json' -delete
 
 # Create directories if they don't exist
 mkdir -p backend/api/${API_VERSION}/go_http_client
@@ -132,13 +134,6 @@ swagger generate client \
     --principal models.Principal \
     -c pipeline_upload_client \
     -m pipeline_upload_model \
-    -t backend/api/${API_VERSION}/go_http_client
-swagger generate client \
-    -f backend/api/${API_VERSION}/swagger/visualization.swagger.json \
-    -A visualization \
-    --principal models.Principal \
-    -c visualization_client \
-    -m visualization_model \
     -t backend/api/${API_VERSION}/go_http_client
 swagger generate client \
     -f backend/api/${API_VERSION}/swagger/healthz.swagger.json \

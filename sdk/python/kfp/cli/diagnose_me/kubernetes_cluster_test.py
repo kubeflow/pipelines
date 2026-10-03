@@ -57,19 +57,18 @@ class KubernetesClusterTest(unittest.TestCase):
             self.assertNotIn('\t', dkc._command_string[command])
             self.assertNotIn('\n', dkc._command_string[command])
 
-    @mock.patch.object(utility, 'ExecutorResponse', autospec=True)
-    def test_execute_kubectl_command(self, mock_executor_response):
-        """Test execute_gsutil_command."""
+    @mock.patch.object(utility, 'execute_command', autospec=True)
+    def test_execute_kubectl_command(self, mock_execute_command):
+        """Test execute_kubectl_command."""
         dkc.execute_kubectl_command(
             [dkc._command_string[dkc.Commands.GET_KUBECTL_VERSION]])
-        mock_executor_response().execute_command.assert_called_once_with(
+        mock_execute_command.assert_called_once_with(
             ['kubectl', 'version', '-o', 'json'])
 
         dkc.execute_kubectl_command(
             [dkc._command_string[dkc.Commands.GET_KUBECTL_VERSION]],
             human_readable=True)
-        mock_executor_response().execute_command.assert_called_with(
-            ['kubectl', 'version'])
+        mock_execute_command.assert_called_with(['kubectl', 'version'])
 
 
 if __name__ == '__main__':

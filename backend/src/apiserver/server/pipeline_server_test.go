@@ -377,7 +377,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 				assert.Equal(t, tt.want, got)
-				pv, err := resourceManager.GetLatestPipelineVersion(got.GetPipelineId())
+				pv, err := resourceManager.GetDefaultPipelineVersion(got.GetPipelineId())
 				assert.Nil(t, err)
 				assert.NotEmpty(t, pv.PipelineSpec)
 				assert.NotEmpty(t, pv.PipelineSpecURI)

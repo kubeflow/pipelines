@@ -13,11 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from fnmatch import fnmatchcase
 from pathlib import Path
 from pathlib import PurePosixPath
 import re
 import subprocess
 import unittest
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEPENDABOT_PATH = REPOSITORY_ROOT / '.github/dependabot.yml'
@@ -117,9 +120,9 @@ class DependabotConfigTest(unittest.TestCase):
             ecosystem for ecosystem, _ in self.update_blocks()
         ]
 
-        self.assertCountEqual(
-            configured_ecosystems,
-            ('gomod', 'docker', 'npm', 'pip', 'github-actions', 'pre-commit'))
+        self.assertCountEqual(configured_ecosystems,
+                              ('gomod', 'docker', 'npm', 'pip', 'uv',
+                               'github-actions', 'pre-commit'))
         self.assertEqual(
             len(configured_ecosystems), len(set(configured_ecosystems)))
 
@@ -130,6 +133,7 @@ class DependabotConfigTest(unittest.TestCase):
             'docker': 'docker',
             'npm': 'javascript',
             'pip': 'python',
+            'uv': 'python:uv',
             'github-actions': 'github_actions',
             'pre-commit': 'pre_commit',
         }
@@ -144,6 +148,30 @@ class DependabotConfigTest(unittest.TestCase):
                     self.configured_labels(ecosystem),
                     ['dependencies', ecosystem_label, 'do-not-merge/hold'],
                 )
+
+    def test_argo_updates_remain_visible_outside_bulk_go_group(self):
+        config = yaml.safe_load(self.config)
+        gomod = next(update for update in config['updates']
+                     if update['package-ecosystem'] == 'gomod')
+        bulk = gomod['groups']['go-minor-and-patch']
+
+        def grouped(dependency):
+            return (any(
+                fnmatchcase(dependency, pattern)
+                for pattern in bulk['patterns']) and not any(
+                    fnmatchcase(dependency, pattern)
+                    for pattern in bulk.get('exclude-patterns', [])))
+
+        for dependency in ('github.com/argoproj/argo-workflows/v3',
+                           'github.com/argoproj/argo-workflows/v4'):
+            with self.subTest(dependency=dependency):
+                self.assertFalse(grouped(dependency))
+                self.assertFalse(
+                    any(
+                        fnmatchcase(dependency, rule['dependency-name'])
+                        for rule in gomod.get('ignore', [])))
+        self.assertNotIn('allow', gomod)
+        self.assertTrue(grouped('github.com/stretchr/testify'))
 
     def test_all_go_modules_are_covered(self):
         module_directories = {
@@ -202,6 +230,20 @@ class DependabotConfigTest(unittest.TestCase):
 
         self.assertEqual(self.configured_directories('pip'), python_directories)
 
+    def test_all_uv_lockfiles_are_covered(self):
+        tracked_locks = subprocess.check_output(
+            ['git', 'ls-files', '-z', '--', 'uv.lock', '**/uv.lock'],
+            cwd=REPOSITORY_ROOT,
+            text=True,
+        )
+        lock_directories = {
+            repository_directory(REPOSITORY_ROOT / path)
+            for path in tracked_locks.split('\0')
+            if path
+        }
+        self.assertTrue(lock_directories)
+        self.assertEqual(self.configured_directories('uv'), lock_directories)
+
     def test_workflows_and_reusable_actions_are_covered(self):
         configured_directories = self.configured_directories('github-actions')
         self.assertIn('/', configured_directories)
@@ -226,7 +268,7 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(self.configured_directories('pre-commit'), {'/'})
 
     def test_new_ecosystems_use_bounded_weekly_updates(self):
-        for ecosystem in ('npm', 'pip', 'github-actions', 'pre-commit'):
+        for ecosystem in ('npm', 'pip', 'uv', 'github-actions', 'pre-commit'):
             with self.subTest(ecosystem=ecosystem):
                 block = self.update_block(ecosystem)
                 self.assertIn('      interval: weekly', block)
@@ -242,6 +284,7 @@ class DependabotConfigTest(unittest.TestCase):
                 '**/requirements*.txt',
                 '**/setup.py',
                 '**/pyproject.toml',
+                '**/uv.lock',
                 '**/action.yml',
                 '**/action.yaml',
                 '.pre-commit-config.yaml',

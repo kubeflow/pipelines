@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "Kubernetes platform configuration library and generated protos."
 readme = "README.md"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [
   { name = "The Kubeflow Authors" }
 ]
