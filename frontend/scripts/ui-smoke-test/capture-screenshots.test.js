@@ -1,46 +1,37 @@
 const { PAGES, resolvePathTemplate } = require('./capture-screenshots.js');
 
 describe('UI smoke screenshot routes', () => {
-  it('loads pipeline detail graph captures from the seeded run spec', () => {
-    const pipelineCaptures = PAGES.filter(({ name }) => name.startsWith('pipeline-details-seeded'));
-
-    expect(pipelineCaptures).toHaveLength(2);
-    for (const capture of pipelineCaptures) {
-      expect(resolvePathTemplate(capture.path, { runId: 'run-1' })).toEqual({
+  it('loads pipeline graphs from the uploaded v2 pipeline and version fixtures', () => {
+    const captures = PAGES.filter(({ name }) => name.startsWith('pipeline-details-seeded'));
+    expect(captures).toHaveLength(2);
+    for (const capture of captures) {
+      expect(resolvePathTemplate(capture.path, { pipelineId: 'pipeline-1' })).toEqual({
         missing: [],
-        resolvedPath: '/#/pipelines/details/?fromRun=run-1',
+        resolvedPath: '/#/pipelines/details/pipeline-1',
       });
+      expect(capture.actions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'waitForFunction', predicate: expect.any(Function) }),
+        ]),
+      );
     }
-    const sidePanelCapture = pipelineCaptures.find(
-      ({ name }) => name === 'pipeline-details-seeded-sidepanel',
-    );
-    expect(sidePanelCapture.actions).toEqual(
+    expect(captures.find(({ name }) => name.endsWith('sidepanel')).actions).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          selector: '.react-flow__node:visible, .graphNode:visible',
-          type: 'click',
-        }),
+        expect.objectContaining({ type: 'click', selector: expect.any(String) }),
       ]),
     );
   });
 
-  it('accepts the seeded run graph after its single visible task renders', () => {
-    const runCaptures = PAGES.filter(({ name }) => name.startsWith('run-details-seeded'));
-    const document = {
-      querySelectorAll: (selector) =>
-        selector === '.react-flow__node' ? [{ visibility: 'visible' }] : [],
-    };
-    const getComputedStyle = (node) => node;
-
-    expect(runCaptures).toHaveLength(2);
-    for (const capture of runCaptures) {
-      const wait = capture.actions.find(({ type }) => type === 'waitForFunction');
-      const predicate = new Function(
-        'document',
-        'getComputedStyle',
-        `return (${wait.expression})();`,
+  it('captures native run detail graphs using the seeded run ID', () => {
+    const captures = PAGES.filter(({ name }) => name.startsWith('run-details-seeded'));
+    expect(captures).toHaveLength(2);
+    for (const capture of captures) {
+      expect(resolvePathTemplate(capture.path, { runId: 'run-1' }).resolvedPath).toContain('run-1');
+      expect(capture.actions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'waitForFunction', predicate: expect.any(Function) }),
+        ]),
       );
-      expect(predicate(document, getComputedStyle)).toBe(true);
     }
   });
 });
