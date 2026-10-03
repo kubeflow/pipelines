@@ -29,13 +29,14 @@ env:
     value: "audit"
 ```
 
-Audit mode still enforces the workflow's main service account, including Kubernetes'
-`default` account if the main field is empty. Failures involving
+This mode does not relax the workflow's main service account, including Kubernetes'
+`default` account if the main field is empty. Main-account policy is controlled
+independently by `KFP_SECURITY_SERVICE_ACCOUNT_MODE`, which defaults to `enforce`. Failures involving
 other accounts, including accounts introduced by plugins or retained retry state,
 produce structured `security_audit control=workflow_identity mode=audit` warning logs and execution continues for policy denials and incomplete local identity inspection. Authentication failures, authorization transport errors, and SubjectAccessReview evaluation errors remain blocking, even if another policy violation was audited.
 These accounts can therefore run without passing the expanded policy while audit
 mode is enabled. Use this option temporarily to assess compatibility, then unset
-it or set it to `"enforce"` to enforce the checks. It applies to both V1 and V2.
+it or set it to `"enforce"` to enforce the checks. It applies to native v2 executions and retained historical workflow identities.
 
 Fail-closed evaluation handling applies to the API server's shared multi-user
 authorization checks, not only to workflow service accounts. A non-empty
@@ -64,27 +65,28 @@ payloads. Logs may repeat across lifecycle operations and the post-plugin check.
 Audit mode does not bypass ordinary workflow validation: fresh submissions still
 reject external template references and discard caller-supplied workflow status.
 On retained workflows checked during retry or re-enable, an external reference
-instead produces an `inspection_incomplete` warning in audit mode. Existing enabled
-embedded schedules are not automatically inspected; re-enabling them triggers the
-check. Running workloads are not retroactively reauthorized.
+instead produces an `inspection_incomplete` warning in audit mode. In multi-user mode, scheduled ticks pass through the API and inspect the restored
+execution inputs. Re-enabling an embedded schedule also triggers inspection.
+Single-user embedded execution paths that do not call the API are not retroactively
+inspected. Running workloads are not retroactively reauthorized. See the
+[combined mode matrix](scheduled-service-accounts.md#combining-main-account-and-workflow-identity-modes).
 
-### V1 and V2 compatibility
+### Native execution and historical compatibility
 
-**V1 / raw Argo workflows:** this is the main compatibility change. Enforcement
-requires literal service-account names and canonical `serviceAccountName` or
-`serviceAccount` fields in pod patches. Dynamic `podSpecPatch` expressions are
-rejected even when they only affect resources. Every declared template is checked,
-including unused templates and overridden settings. External templates must be
-inlined. Submitted workflow status is ignored, so entrypoints must be defined in
-the submitted spec. Audit mode can help identify additional-account and patch
-inspection failures, but the validation and status rules still apply.
+Fresh runs and recurring runs require native PipelineSpec IR; raw Argo workflow
+submissions are rejected regardless of audit mode. Historical execution records
+remain readable, and acknowledgement or retry checks inspect their retained
+identities. For historical static workflows, enforcement requires literal
+service-account names and canonical `serviceAccountName` or `serviceAccount`
+fields in pod patches. Dynamic patches without validated compiler provenance
+remain subject to workflow-identity enforcement or audit policy.
 
 **V2 / compiler-generated workflows:** the compiler's exact
 `{{inputs.parameters.pod-spec-patch}}` placeholder remains supported because the
 KFP driver constructs the runtime patch without selecting a service account.
 Literal accounts elsewhere in the workflow are still checked. V2 creation,
 plugin processing, retries and recurring runs use the same enforcement or audit
-mode as V1. V2 recurring runs remain retryable when their persisted records contain
+policy. V2 recurring runs remain retryable when their persisted records contain
 both the source pipeline spec and the compiled workflow manifest. Audit mode is
 not normally needed solely for the compiler-generated patch.
 
@@ -175,6 +177,12 @@ scheme selects the original-URI behavior above; it is not a cosmetic change to a
 gateway setting. Neither form permits fetching an arbitrary request-selected
 host with an unset base.
 
+Both forms validate the configured path before URL normalization. Use a base
+without raw or percent-encoded `.`/`..` path segments, backslashes, invalid
+percent encoding, or embedded ASCII control characters (literal or percent-encoded).
+Correct these values in the installation configuration; they are rejected with
+HTTP 400 on artifact requests, without preventing server startup.
+
 The base is read at process startup. After applying the ConfigMap, restart
 `ml-pipeline-ui`. Authenticated multi-user HTTP requests are fetched by the shared
 UI even when namespace artifact proxies are enabled. Configure any HTTP
@@ -185,11 +193,22 @@ use `https://files.example:9443/private-artifacts/` as the base for namespace-sc
 URIs; the `/reports/` example above applies to standalone deployments.
 
 The installation also propagates the base to profile proxies for their direct
-HTTP serving configuration. To update those processes, restart
-`kubeflow-pipelines-profile-controller`, wait for profile reconciliation, and
-verify the generated `ml-pipeline-ui-artifact` Deployments complete their rollouts.
-This propagation does not change the shared UI's authenticated HTTP serving path.
-Preserve the setting in your installation manifests for later upgrades.
+HTTP serving configuration. Restart `kubeflow-pipelines-profile-controller` and
+wait for its rollout to finish. The controller watches enabled Namespace objects;
+restarting its webhook does not enqueue them. Wait for the next hourly resync or
+change an annotation on each affected Namespace, as shown in the
+[profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
+Confirm each generated `ml-pipeline-ui-artifact` pod template contains the expected
+`HTTP_BASE_URL` before checking its rollout status, which could otherwise report
+the previous rollout's completion. This propagation does not change the shared
+UI's authenticated HTTP serving path. Preserve the setting in your installation
+manifests for later upgrades.
+
+When upgrading from manifests that did not emit `HTTP_BASE_URL` into profile
+proxy pods, the first reconciliation adds the entry even when its value is empty.
+With `ARTIFACTS_PROXY_ENABLED=true`, this changes existing artifact-proxy pod
+templates and causes a one-time rollout. Subsequent resyncs do not roll unchanged
+templates.
 
 Test an existing artifact preview and download after rollout. A missing base
 returns HTTP 400 naming `HTTP_BASE_URL`; an invalid base, mismatched origin/path,
@@ -414,3 +433,17 @@ To return to defaults, remove the overrides and roll out the deployment. Before
 lowering `MAX_PIPELINE_SPEC_BYTES`, check stored pipelines accepted under the higher
 limit: object-store specifications may no longer be readable for subsequent execution. This
 setting does not add a new size check to the existing direct database-spec read path.
+## Recurring runs and custom service accounts
+
+See [Service accounts for recurring runs](scheduled-service-accounts.md) for
+`ALLOWEDSERVICEACCOUNTS`, scoped controller grants, multi-user upgrade requirements,
+and revoking scheduled execution.
+
+### Service-account authorization migration mode
+
+`KFP_SECURITY_SERVICE_ACCOUNT_MODE` accepts `enforce` (default, including upgrades)
+or `audit`. Audit temporarily allows service-account policy denials and logs
+warnings, restoring the associated security exposure. It does not disable
+existing authentication or namespace authorization. See the
+[scope, rollout, and migration instructions](scheduled-service-accounts.md#temporary-audit-mode-for-migration).
+Audit mode is planned for removal in 3.0.0 ([#14367](https://github.com/kubeflow/pipelines/issues/14367)).
