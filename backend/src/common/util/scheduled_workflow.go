@@ -129,9 +129,13 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 		paramsMap := make(map[string]*structpb.Value, 0)
 		for _, param := range s.ScheduledWorkflow.Spec.Workflow.Parameters {
 			var protoValue structpb.Value
-			err := json.Unmarshal([]byte(param.Value), &protoValue)
-			if err != nil {
-				return "", err
+			if err := json.Unmarshal([]byte(param.Value), &protoValue); err != nil {
+				// v1 parameters are plain strings (e.g. "enabled"), not valid JSON.
+				// The persistence agent forces v2beta1 on all SWFs (swf_saver.go:57),
+				// so v1 values reach this path. Treat them as string literals.
+				protoValue = structpb.Value{
+					Kind: &structpb.Value_StringValue{StringValue: param.Value},
+				}
 			}
 			paramsMap[param.Name] = &protoValue
 		}
