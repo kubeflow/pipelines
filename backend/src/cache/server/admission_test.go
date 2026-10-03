@@ -16,6 +16,8 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -111,4 +113,44 @@ func TestDoServeAdmitFuncWithEmptyAdmissionRequest(t *testing.T) {
 	patchOperations, err := doServeAdmitFunc(rr, req, fakeAdmitFunc, fakeClientManager)
 	assert.Nil(t, patchOperations)
 	assert.Contains(t, err.Error(), "Malformed admission review request: request body is nil")
+}
+
+type failingAdmissionBody struct{}
+
+func (failingAdmissionBody) Read([]byte) (int, error) { return 0, errors.New("read failed") }
+func (failingAdmissionBody) Close() error             { return nil }
+
+func TestServeAdmitFuncBodyLimit(t *testing.T) {
+	body, err := json.Marshal(fakeAdmissionReview)
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name   string
+		size   int
+		status int
+		called bool
+	}{
+		{"at limit", 32 << 20, http.StatusOK, true},
+		{"over limit", (32 << 20) + 1, http.StatusRequestEntityTooLarge, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", io.MultiReader(strings.NewReader(string(body)), strings.NewReader(strings.Repeat(" ", tc.size-len(body)))))
+			req.Header.Set(ContentType, JsonContentType)
+			recorder := httptest.NewRecorder()
+			called := false
+			serveAdmitFunc(recorder, req, func(*v1beta1.AdmissionRequest, ClientManagerInterface) ([]patchOperation, error) {
+				called = true
+				return nil, nil
+			}, fakeClientManager)
+			require.Equal(t, tc.status, recorder.Code)
+			require.Equal(t, tc.called, called)
+		})
+	}
+	t.Run("read error", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
+		req.Body = failingAdmissionBody{}
+		req.Header.Set(ContentType, JsonContentType)
+		recorder := httptest.NewRecorder()
+		serveAdmitFunc(recorder, req, fakeAdmitFunc, fakeClientManager)
+		require.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
 }

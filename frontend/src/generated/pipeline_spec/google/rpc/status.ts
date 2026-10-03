@@ -1,9 +1,9 @@
 /* eslint-disable */
-import Long from 'long';
-import _m0 from 'protobufjs/minimal';
-import { Any } from '../../google/protobuf/any';
+import Long from "long";
+import _m0 from "protobufjs/minimal";
+import { Any } from "../../google/protobuf/any";
 
-export const protobufPackage = 'google.rpc';
+export const protobufPackage = "google.rpc";
 
 /**
  * The `Status` type defines a logical error model that is suitable for
@@ -15,12 +15,16 @@ export const protobufPackage = 'google.rpc';
  * [API Design Guide](https://cloud.google.com/apis/design/errors).
  */
 export interface Status {
-  /** The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code]. */
+  /**
+   * The status code, which should be an enum value of
+   * [google.rpc.Code][google.rpc.Code].
+   */
   code: number;
   /**
    * A developer-facing error message, which should be in English. Any
    * user-facing error message should be localized and sent in the
-   * [google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client.
+   * [google.rpc.Status.details][google.rpc.Status.details] field, or localized
+   * by the client.
    */
   message: string;
   /**
@@ -30,14 +34,17 @@ export interface Status {
   details: Any[];
 }
 
-const baseStatus: object = { code: 0, message: '' };
+const baseStatus: object = { code: 0, message: "" };
 
 export const Status = {
-  encode(message: Status, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: Status,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     if (message.code !== 0) {
       writer.uint32(8).int32(message.code);
     }
-    if (message.message !== '') {
+    if (message.message !== "") {
       writer.uint32(18).string(message.message);
     }
     for (const v of message.details) {
@@ -73,9 +80,14 @@ export const Status = {
 
   fromJSON(object: any): Status {
     const message = { ...baseStatus } as Status;
-    message.code = object.code !== undefined && object.code !== null ? Number(object.code) : 0;
+    message.code =
+      object.code !== undefined && object.code !== null
+        ? Number(object.code)
+        : 0;
     message.message =
-      object.message !== undefined && object.message !== null ? String(object.message) : '';
+      object.message !== undefined && object.message !== null
+        ? String(object.message)
+        : "";
     message.details = (object.details ?? []).map((e: any) => Any.fromJSON(e));
     return message;
   },
@@ -95,13 +107,20 @@ export const Status = {
   fromPartial<I extends Exact<DeepPartial<Status>, I>>(object: I): Status {
     const message = { ...baseStatus } as Status;
     message.code = object.code ?? 0;
-    message.message = object.message ?? '';
+    message.message = object.message ?? "";
     message.details = object.details?.map((e) => Any.fromPartial(e)) || [];
     return message;
   },
 };
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined;
 
 export type DeepPartial<T> = T extends Builtin
   ? T
@@ -116,7 +135,10 @@ export type DeepPartial<T> = T extends Builtin
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin
   ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<Exclude<keyof I, KeysOfUnion<P>>, never>;
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
+        Exclude<keyof I, KeysOfUnion<P>>,
+        never
+      >;
 
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;

@@ -278,8 +278,9 @@ export interface ComponentInputsSpec_ParameterSpec {
    */
   description: string;
   /**
-   * The list of allowed values for this parameter.
-   * If this list is non-empty, the value must be one of the values in the list.
+   * Optional field. If non-empty, specifies that this parameter accepts
+   * only the values in this list (Literal parameter constraint).
+   * The parameter value must match one of these literal values exactly.
    */
   literals: any[];
 }
@@ -745,6 +746,8 @@ export enum TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum {
    * (e.g. dsl.Model) that is created by the external workload.
    */
   KUBERNETES_VOLUMES = 6,
+  /** KUBERNETES_RESOURCE_CLAIMS - Indicates that DRA resource claims should be passed through to the external workload. */
+  KUBERNETES_RESOURCE_CLAIMS = 7,
   UNRECOGNIZED = -1,
 }
 
@@ -773,6 +776,9 @@ export function taskConfigPassthroughType_TaskConfigPassthroughTypeEnumFromJSON(
     case 6:
     case 'KUBERNETES_VOLUMES':
       return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_VOLUMES;
+    case 7:
+    case 'KUBERNETES_RESOURCE_CLAIMS':
+      return TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_RESOURCE_CLAIMS;
     case -1:
     case 'UNRECOGNIZED':
     default:
@@ -798,6 +804,8 @@ export function taskConfigPassthroughType_TaskConfigPassthroughTypeEnumToJSON(
       return 'KUBERNETES_NODE_SELECTOR';
     case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_VOLUMES:
       return 'KUBERNETES_VOLUMES';
+    case TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.KUBERNETES_RESOURCE_CLAIMS:
+      return 'KUBERNETES_RESOURCE_CLAIMS';
     default:
       return 'UNKNOWN';
   }
@@ -846,7 +854,11 @@ export interface PipelineTaskSpec_CachingOptions {
   enableCache: boolean;
   /**
    * Customized cache key for this task. If set, the cache_key will be used
-   * as the key for the task's cache.
+   * as the key for the task's cache. The customized cache key is combined
+   * with component reference identity (e.g. name) to prevent cross-component
+   * cache collisions. When a custom cache key is provided, all automatic
+   * inputs, base image, command, arguments, and PVC names are ignored during
+   * cache key generation.
    */
   cacheKey: string;
 }
@@ -947,10 +959,70 @@ export interface PipelineTaskSpec_RetryPolicy {
   backoffFactor: number;
   /**
    * The maximum duration during which the task will be retried according to
-   * the backoff strategy. Max allowed is 1 hour - higher value will be capped
-   * to this limit. If unspecified, will set to 1 hour.
+   * the backoff strategy. If unspecified, will set to 1 hour.
    */
   backoffMaxDuration: Duration | undefined;
+  policy: PipelineTaskSpec_RetryPolicy_Policy;
+}
+
+/**
+ * The retry policy controls which failure types trigger a retry attempt.
+ * Maps directly to Argo Workflows retryStrategy.retryPolicy.
+ * POLICY_UNSPECIFIED omits the field, so the deployment's Argo
+ * configuration decides; KFP's bundled manifests set OnError.
+ */
+export enum PipelineTaskSpec_RetryPolicy_Policy {
+  POLICY_UNSPECIFIED = 0,
+  POLICY_ALWAYS = 1,
+  POLICY_ON_FAILURE = 2,
+  POLICY_ON_ERROR = 3,
+  POLICY_ON_TRANSIENT_ERROR = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function pipelineTaskSpec_RetryPolicy_PolicyFromJSON(
+  object: any,
+): PipelineTaskSpec_RetryPolicy_Policy {
+  switch (object) {
+    case 0:
+    case 'POLICY_UNSPECIFIED':
+      return PipelineTaskSpec_RetryPolicy_Policy.POLICY_UNSPECIFIED;
+    case 1:
+    case 'POLICY_ALWAYS':
+      return PipelineTaskSpec_RetryPolicy_Policy.POLICY_ALWAYS;
+    case 2:
+    case 'POLICY_ON_FAILURE':
+      return PipelineTaskSpec_RetryPolicy_Policy.POLICY_ON_FAILURE;
+    case 3:
+    case 'POLICY_ON_ERROR':
+      return PipelineTaskSpec_RetryPolicy_Policy.POLICY_ON_ERROR;
+    case 4:
+    case 'POLICY_ON_TRANSIENT_ERROR':
+      return PipelineTaskSpec_RetryPolicy_Policy.POLICY_ON_TRANSIENT_ERROR;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return PipelineTaskSpec_RetryPolicy_Policy.UNRECOGNIZED;
+  }
+}
+
+export function pipelineTaskSpec_RetryPolicy_PolicyToJSON(
+  object: PipelineTaskSpec_RetryPolicy_Policy,
+): string {
+  switch (object) {
+    case PipelineTaskSpec_RetryPolicy_Policy.POLICY_UNSPECIFIED:
+      return 'POLICY_UNSPECIFIED';
+    case PipelineTaskSpec_RetryPolicy_Policy.POLICY_ALWAYS:
+      return 'POLICY_ALWAYS';
+    case PipelineTaskSpec_RetryPolicy_Policy.POLICY_ON_FAILURE:
+      return 'POLICY_ON_FAILURE';
+    case PipelineTaskSpec_RetryPolicy_Policy.POLICY_ON_ERROR:
+      return 'POLICY_ON_ERROR';
+    case PipelineTaskSpec_RetryPolicy_Policy.POLICY_ON_TRANSIENT_ERROR:
+      return 'POLICY_ON_TRANSIENT_ERROR';
+    default:
+      return 'UNKNOWN';
+  }
 }
 
 /** Iterator related settings. */
@@ -1328,7 +1400,9 @@ export interface PipelineDeploymentConfig_ResolverSpec {
    * the keys in the [PipelineTaskOutputsSpec.artifacts][] map.
    * At least one output must be defined.
    */
-  outputArtifactQueries: { [key: string]: PipelineDeploymentConfig_ResolverSpec_ArtifactQuerySpec };
+  outputArtifactQueries: {
+    [key: string]: PipelineDeploymentConfig_ResolverSpec_ArtifactQuerySpec;
+  };
 }
 
 /** The query to fetch artifacts. */
@@ -1805,15 +1879,36 @@ export interface KubernetesWorkspaceConfig {
 /** Spec for pipeline-level config options. See PipelineConfig DSL class. */
 export interface PipelineConfig {
   /**
-   * Time to live configuration after the pipeline run is completed for
-   * ephemeral resources created by the pipeline run.
+   * Seconds to retain the Argo Workflow object after the run completes,
+   * regardless of success or failure.  Maps to Argo's
+   * TTLStrategy.secondsAfterCompletion.  A value of 0 or unset means no TTL
+   * is applied by this field.
    */
-  resourceTtl: number;
+  resourceTtlOnCompletion: number;
   /**
    * Configuration for a shared storage workspace that persists for the duration of the pipeline run.
    * The workspace can be configured with size and Kubernetes-specific settings to override default PVC configurations.
    */
   workspace?: WorkspaceConfig | undefined;
+  /**
+   * Seconds to retain the Argo Workflow object after a *successful* run.
+   * Maps to Argo's TTLStrategy.secondsAfterSuccess.  Takes precedence over
+   * resource_ttl_on_completion for successful runs when both are set.
+   */
+  resourceTtlOnSuccess: number;
+  /**
+   * Seconds to retain the Argo Workflow object after a *failed* run.
+   * Maps to Argo's TTLStrategy.secondsAfterFailure.  Takes precedence over
+   * resource_ttl_on_completion for failed runs when both are set.
+   */
+  resourceTtlOnFailure: number;
+  /**
+   * Maximum number of seconds a workflow is allowed to run before it is
+   * forcibly terminated.  Maps to Argo's activeDeadlineSeconds.  A value
+   * of 0 (proto default) means no deadline is applied.  Set a positive
+   * value to enforce a maximum execution time.
+   */
+  activeDeadlineSeconds: number;
 }
 
 const basePipelineJob: object = { name: '', displayName: '' };
@@ -1881,13 +1976,12 @@ export const PipelineJob = {
         : '';
     message.pipelineSpec =
       typeof object.pipelineSpec === 'object' ? object.pipelineSpec : undefined;
-    message.labels = Object.entries(object.labels ?? {}).reduce<{ [key: string]: string }>(
-      (acc, [key, value]) => {
-        acc[key] = String(value);
-        return acc;
-      },
-      {},
-    );
+    message.labels = Object.entries(object.labels ?? {}).reduce<{
+      [key: string]: string;
+    }>((acc, [key, value]) => {
+      acc[key] = String(value);
+      return acc;
+    }, {});
     message.runtimeConfig =
       object.runtimeConfig !== undefined && object.runtimeConfig !== null
         ? PipelineJob_RuntimeConfig.fromJSON(object.runtimeConfig)
@@ -1918,15 +2012,14 @@ export const PipelineJob = {
     message.name = object.name ?? '';
     message.displayName = object.displayName ?? '';
     message.pipelineSpec = object.pipelineSpec ?? undefined;
-    message.labels = Object.entries(object.labels ?? {}).reduce<{ [key: string]: string }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = String(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.labels = Object.entries(object.labels ?? {}).reduce<{
+      [key: string]: string;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = String(value);
+      }
+      return acc;
+    }, {});
     message.runtimeConfig =
       object.runtimeConfig !== undefined && object.runtimeConfig !== null
         ? PipelineJob_RuntimeConfig.fromPartial(object.runtimeConfig)
@@ -1951,7 +2044,9 @@ export const PipelineJob_LabelsEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineJob_LabelsEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineJob_LabelsEntry } as PipelineJob_LabelsEntry;
+    const message = {
+      ...basePipelineJob_LabelsEntry,
+    } as PipelineJob_LabelsEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -1970,7 +2065,9 @@ export const PipelineJob_LabelsEntry = {
   },
 
   fromJSON(object: any): PipelineJob_LabelsEntry {
-    const message = { ...basePipelineJob_LabelsEntry } as PipelineJob_LabelsEntry;
+    const message = {
+      ...basePipelineJob_LabelsEntry,
+    } as PipelineJob_LabelsEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value = object.value !== undefined && object.value !== null ? String(object.value) : '';
     return message;
@@ -1986,7 +2083,9 @@ export const PipelineJob_LabelsEntry = {
   fromPartial<I extends Exact<DeepPartial<PipelineJob_LabelsEntry>, I>>(
     object: I,
   ): PipelineJob_LabelsEntry {
-    const message = { ...basePipelineJob_LabelsEntry } as PipelineJob_LabelsEntry;
+    const message = {
+      ...basePipelineJob_LabelsEntry,
+    } as PipelineJob_LabelsEntry;
     message.key = object.key ?? '';
     message.value = object.value ?? '';
     return message;
@@ -2020,7 +2119,9 @@ export const PipelineJob_RuntimeConfig = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineJob_RuntimeConfig {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineJob_RuntimeConfig } as PipelineJob_RuntimeConfig;
+    const message = {
+      ...basePipelineJob_RuntimeConfig,
+    } as PipelineJob_RuntimeConfig;
     message.parameters = {};
     message.parameterValues = {};
     while (reader.pos < end) {
@@ -2053,14 +2154,15 @@ export const PipelineJob_RuntimeConfig = {
   },
 
   fromJSON(object: any): PipelineJob_RuntimeConfig {
-    const message = { ...basePipelineJob_RuntimeConfig } as PipelineJob_RuntimeConfig;
-    message.parameters = Object.entries(object.parameters ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        acc[key] = Value.fromJSON(value);
-        return acc;
-      },
-      {},
-    );
+    const message = {
+      ...basePipelineJob_RuntimeConfig,
+    } as PipelineJob_RuntimeConfig;
+    message.parameters = Object.entries(object.parameters ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      acc[key] = Value.fromJSON(value);
+      return acc;
+    }, {});
     message.gcsOutputDirectory =
       object.gcsOutputDirectory !== undefined && object.gcsOutputDirectory !== null
         ? String(object.gcsOutputDirectory)
@@ -2096,16 +2198,17 @@ export const PipelineJob_RuntimeConfig = {
   fromPartial<I extends Exact<DeepPartial<PipelineJob_RuntimeConfig>, I>>(
     object: I,
   ): PipelineJob_RuntimeConfig {
-    const message = { ...basePipelineJob_RuntimeConfig } as PipelineJob_RuntimeConfig;
-    message.parameters = Object.entries(object.parameters ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = Value.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    const message = {
+      ...basePipelineJob_RuntimeConfig,
+    } as PipelineJob_RuntimeConfig;
+    message.parameters = Object.entries(object.parameters ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = Value.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.gcsOutputDirectory = object.gcsOutputDirectory ?? '';
     message.parameterValues = Object.entries(object.parameterValues ?? {}).reduce<{
       [key: string]: any | undefined;
@@ -2266,7 +2369,11 @@ export const PipelineJob_RuntimeConfig_ParameterValuesEntry = {
   },
 };
 
-const basePipelineSpec: object = { sdkVersion: '', schemaVersion: '', defaultPipelineRoot: '' };
+const basePipelineSpec: object = {
+  sdkVersion: '',
+  schemaVersion: '',
+  defaultPipelineRoot: '',
+};
 
 export const PipelineSpec = {
   encode(message: PipelineSpec, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
@@ -2437,7 +2544,9 @@ export const PipelineSpec_RuntimeParameter = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineSpec_RuntimeParameter {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineSpec_RuntimeParameter } as PipelineSpec_RuntimeParameter;
+    const message = {
+      ...basePipelineSpec_RuntimeParameter,
+    } as PipelineSpec_RuntimeParameter;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -2456,7 +2565,9 @@ export const PipelineSpec_RuntimeParameter = {
   },
 
   fromJSON(object: any): PipelineSpec_RuntimeParameter {
-    const message = { ...basePipelineSpec_RuntimeParameter } as PipelineSpec_RuntimeParameter;
+    const message = {
+      ...basePipelineSpec_RuntimeParameter,
+    } as PipelineSpec_RuntimeParameter;
     message.type =
       object.type !== undefined && object.type !== null
         ? primitiveType_PrimitiveTypeEnumFromJSON(object.type)
@@ -2479,7 +2590,9 @@ export const PipelineSpec_RuntimeParameter = {
   fromPartial<I extends Exact<DeepPartial<PipelineSpec_RuntimeParameter>, I>>(
     object: I,
   ): PipelineSpec_RuntimeParameter {
-    const message = { ...basePipelineSpec_RuntimeParameter } as PipelineSpec_RuntimeParameter;
+    const message = {
+      ...basePipelineSpec_RuntimeParameter,
+    } as PipelineSpec_RuntimeParameter;
     message.type = object.type ?? 0;
     message.defaultValue =
       object.defaultValue !== undefined && object.defaultValue !== null
@@ -2508,7 +2621,9 @@ export const PipelineSpec_ComponentsEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineSpec_ComponentsEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineSpec_ComponentsEntry } as PipelineSpec_ComponentsEntry;
+    const message = {
+      ...basePipelineSpec_ComponentsEntry,
+    } as PipelineSpec_ComponentsEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -2527,7 +2642,9 @@ export const PipelineSpec_ComponentsEntry = {
   },
 
   fromJSON(object: any): PipelineSpec_ComponentsEntry {
-    const message = { ...basePipelineSpec_ComponentsEntry } as PipelineSpec_ComponentsEntry;
+    const message = {
+      ...basePipelineSpec_ComponentsEntry,
+    } as PipelineSpec_ComponentsEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -2547,7 +2664,9 @@ export const PipelineSpec_ComponentsEntry = {
   fromPartial<I extends Exact<DeepPartial<PipelineSpec_ComponentsEntry>, I>>(
     object: I,
   ): PipelineSpec_ComponentsEntry {
-    const message = { ...basePipelineSpec_ComponentsEntry } as PipelineSpec_ComponentsEntry;
+    const message = {
+      ...basePipelineSpec_ComponentsEntry,
+    } as PipelineSpec_ComponentsEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -2734,13 +2853,12 @@ export const DagSpec = {
 
   fromJSON(object: any): DagSpec {
     const message = { ...baseDagSpec } as DagSpec;
-    message.tasks = Object.entries(object.tasks ?? {}).reduce<{ [key: string]: PipelineTaskSpec }>(
-      (acc, [key, value]) => {
-        acc[key] = PipelineTaskSpec.fromJSON(value);
-        return acc;
-      },
-      {},
-    );
+    message.tasks = Object.entries(object.tasks ?? {}).reduce<{
+      [key: string]: PipelineTaskSpec;
+    }>((acc, [key, value]) => {
+      acc[key] = PipelineTaskSpec.fromJSON(value);
+      return acc;
+    }, {});
     message.outputs =
       object.outputs !== undefined && object.outputs !== null
         ? DagOutputsSpec.fromJSON(object.outputs)
@@ -2763,15 +2881,14 @@ export const DagSpec = {
 
   fromPartial<I extends Exact<DeepPartial<DagSpec>, I>>(object: I): DagSpec {
     const message = { ...baseDagSpec } as DagSpec;
-    message.tasks = Object.entries(object.tasks ?? {}).reduce<{ [key: string]: PipelineTaskSpec }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = PipelineTaskSpec.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.tasks = Object.entries(object.tasks ?? {}).reduce<{
+      [key: string]: PipelineTaskSpec;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = PipelineTaskSpec.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.outputs =
       object.outputs !== undefined && object.outputs !== null
         ? DagOutputsSpec.fromPartial(object.outputs)
@@ -3113,7 +3230,9 @@ export const DagOutputsSpec_ArtifactsEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): DagOutputsSpec_ArtifactsEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseDagOutputsSpec_ArtifactsEntry } as DagOutputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseDagOutputsSpec_ArtifactsEntry,
+    } as DagOutputsSpec_ArtifactsEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3132,7 +3251,9 @@ export const DagOutputsSpec_ArtifactsEntry = {
   },
 
   fromJSON(object: any): DagOutputsSpec_ArtifactsEntry {
-    const message = { ...baseDagOutputsSpec_ArtifactsEntry } as DagOutputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseDagOutputsSpec_ArtifactsEntry,
+    } as DagOutputsSpec_ArtifactsEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -3154,7 +3275,9 @@ export const DagOutputsSpec_ArtifactsEntry = {
   fromPartial<I extends Exact<DeepPartial<DagOutputsSpec_ArtifactsEntry>, I>>(
     object: I,
   ): DagOutputsSpec_ArtifactsEntry {
-    const message = { ...baseDagOutputsSpec_ArtifactsEntry } as DagOutputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseDagOutputsSpec_ArtifactsEntry,
+    } as DagOutputsSpec_ArtifactsEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -3598,7 +3721,9 @@ export const DagOutputsSpec_ParametersEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): DagOutputsSpec_ParametersEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseDagOutputsSpec_ParametersEntry } as DagOutputsSpec_ParametersEntry;
+    const message = {
+      ...baseDagOutputsSpec_ParametersEntry,
+    } as DagOutputsSpec_ParametersEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3617,7 +3742,9 @@ export const DagOutputsSpec_ParametersEntry = {
   },
 
   fromJSON(object: any): DagOutputsSpec_ParametersEntry {
-    const message = { ...baseDagOutputsSpec_ParametersEntry } as DagOutputsSpec_ParametersEntry;
+    const message = {
+      ...baseDagOutputsSpec_ParametersEntry,
+    } as DagOutputsSpec_ParametersEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -3639,7 +3766,9 @@ export const DagOutputsSpec_ParametersEntry = {
   fromPartial<I extends Exact<DeepPartial<DagOutputsSpec_ParametersEntry>, I>>(
     object: I,
   ): DagOutputsSpec_ParametersEntry {
-    const message = { ...baseDagOutputsSpec_ParametersEntry } as DagOutputsSpec_ParametersEntry;
+    const message = {
+      ...baseDagOutputsSpec_ParametersEntry,
+    } as DagOutputsSpec_ParametersEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -3784,7 +3913,9 @@ export const ComponentInputsSpec_ArtifactSpec = {
   decode(input: _m0.Reader | Uint8Array, length?: number): ComponentInputsSpec_ArtifactSpec {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseComponentInputsSpec_ArtifactSpec } as ComponentInputsSpec_ArtifactSpec;
+    const message = {
+      ...baseComponentInputsSpec_ArtifactSpec,
+    } as ComponentInputsSpec_ArtifactSpec;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -3809,7 +3940,9 @@ export const ComponentInputsSpec_ArtifactSpec = {
   },
 
   fromJSON(object: any): ComponentInputsSpec_ArtifactSpec {
-    const message = { ...baseComponentInputsSpec_ArtifactSpec } as ComponentInputsSpec_ArtifactSpec;
+    const message = {
+      ...baseComponentInputsSpec_ArtifactSpec,
+    } as ComponentInputsSpec_ArtifactSpec;
     message.artifactType =
       object.artifactType !== undefined && object.artifactType !== null
         ? ArtifactTypeSchema.fromJSON(object.artifactType)
@@ -3844,7 +3977,9 @@ export const ComponentInputsSpec_ArtifactSpec = {
   fromPartial<I extends Exact<DeepPartial<ComponentInputsSpec_ArtifactSpec>, I>>(
     object: I,
   ): ComponentInputsSpec_ArtifactSpec {
-    const message = { ...baseComponentInputsSpec_ArtifactSpec } as ComponentInputsSpec_ArtifactSpec;
+    const message = {
+      ...baseComponentInputsSpec_ArtifactSpec,
+    } as ComponentInputsSpec_ArtifactSpec;
     message.artifactType =
       object.artifactType !== undefined && object.artifactType !== null
         ? ArtifactTypeSchema.fromPartial(object.artifactType)
@@ -4240,7 +4375,10 @@ export const ComponentOutputsSpec = {
   },
 };
 
-const baseComponentOutputsSpec_ArtifactSpec: object = { isArtifactList: false, description: '' };
+const baseComponentOutputsSpec_ArtifactSpec: object = {
+  isArtifactList: false,
+  description: '',
+};
 
 export const ComponentOutputsSpec_ArtifactSpec = {
   encode(
@@ -4412,7 +4550,9 @@ export const ComponentOutputsSpec_ArtifactSpec = {
   },
 };
 
-const baseComponentOutputsSpec_ArtifactSpec_PropertiesEntry: object = { key: '' };
+const baseComponentOutputsSpec_ArtifactSpec_PropertiesEntry: object = {
+  key: '',
+};
 
 export const ComponentOutputsSpec_ArtifactSpec_PropertiesEntry = {
   encode(
@@ -4489,7 +4629,9 @@ export const ComponentOutputsSpec_ArtifactSpec_PropertiesEntry = {
   },
 };
 
-const baseComponentOutputsSpec_ArtifactSpec_CustomPropertiesEntry: object = { key: '' };
+const baseComponentOutputsSpec_ArtifactSpec_CustomPropertiesEntry: object = {
+  key: '',
+};
 
 export const ComponentOutputsSpec_ArtifactSpec_CustomPropertiesEntry = {
   encode(
@@ -4934,7 +5076,9 @@ export const TaskInputsSpec_InputArtifactSpec = {
   decode(input: _m0.Reader | Uint8Array, length?: number): TaskInputsSpec_InputArtifactSpec {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseTaskInputsSpec_InputArtifactSpec } as TaskInputsSpec_InputArtifactSpec;
+    const message = {
+      ...baseTaskInputsSpec_InputArtifactSpec,
+    } as TaskInputsSpec_InputArtifactSpec;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -4954,7 +5098,9 @@ export const TaskInputsSpec_InputArtifactSpec = {
   },
 
   fromJSON(object: any): TaskInputsSpec_InputArtifactSpec {
-    const message = { ...baseTaskInputsSpec_InputArtifactSpec } as TaskInputsSpec_InputArtifactSpec;
+    const message = {
+      ...baseTaskInputsSpec_InputArtifactSpec,
+    } as TaskInputsSpec_InputArtifactSpec;
     message.taskOutputArtifact =
       object.taskOutputArtifact !== undefined && object.taskOutputArtifact !== null
         ? TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec.fromJSON(
@@ -4982,7 +5128,9 @@ export const TaskInputsSpec_InputArtifactSpec = {
   fromPartial<I extends Exact<DeepPartial<TaskInputsSpec_InputArtifactSpec>, I>>(
     object: I,
   ): TaskInputsSpec_InputArtifactSpec {
-    const message = { ...baseTaskInputsSpec_InputArtifactSpec } as TaskInputsSpec_InputArtifactSpec;
+    const message = {
+      ...baseTaskInputsSpec_InputArtifactSpec,
+    } as TaskInputsSpec_InputArtifactSpec;
     message.taskOutputArtifact =
       object.taskOutputArtifact !== undefined && object.taskOutputArtifact !== null
         ? TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec.fromPartial(
@@ -5073,7 +5221,9 @@ export const TaskInputsSpec_InputArtifactSpec_TaskOutputArtifactSpec = {
   },
 };
 
-const baseTaskInputsSpec_InputParameterSpec: object = { parameterExpressionSelector: '' };
+const baseTaskInputsSpec_InputParameterSpec: object = {
+  parameterExpressionSelector: '',
+};
 
 export const TaskInputsSpec_InputParameterSpec = {
   encode(
@@ -5302,7 +5452,9 @@ export const TaskInputsSpec_InputParameterSpec_TaskOutputParameterSpec = {
   },
 };
 
-const baseTaskInputsSpec_InputParameterSpec_TaskFinalStatus: object = { producerTask: '' };
+const baseTaskInputsSpec_InputParameterSpec_TaskFinalStatus: object = {
+  producerTask: '',
+};
 
 export const TaskInputsSpec_InputParameterSpec_TaskFinalStatus = {
   encode(
@@ -5385,7 +5537,9 @@ export const TaskInputsSpec_ParametersEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): TaskInputsSpec_ParametersEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseTaskInputsSpec_ParametersEntry } as TaskInputsSpec_ParametersEntry;
+    const message = {
+      ...baseTaskInputsSpec_ParametersEntry,
+    } as TaskInputsSpec_ParametersEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -5404,7 +5558,9 @@ export const TaskInputsSpec_ParametersEntry = {
   },
 
   fromJSON(object: any): TaskInputsSpec_ParametersEntry {
-    const message = { ...baseTaskInputsSpec_ParametersEntry } as TaskInputsSpec_ParametersEntry;
+    const message = {
+      ...baseTaskInputsSpec_ParametersEntry,
+    } as TaskInputsSpec_ParametersEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -5426,7 +5582,9 @@ export const TaskInputsSpec_ParametersEntry = {
   fromPartial<I extends Exact<DeepPartial<TaskInputsSpec_ParametersEntry>, I>>(
     object: I,
   ): TaskInputsSpec_ParametersEntry {
-    const message = { ...baseTaskInputsSpec_ParametersEntry } as TaskInputsSpec_ParametersEntry;
+    const message = {
+      ...baseTaskInputsSpec_ParametersEntry,
+    } as TaskInputsSpec_ParametersEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -5455,7 +5613,9 @@ export const TaskInputsSpec_ArtifactsEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): TaskInputsSpec_ArtifactsEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseTaskInputsSpec_ArtifactsEntry } as TaskInputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseTaskInputsSpec_ArtifactsEntry,
+    } as TaskInputsSpec_ArtifactsEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -5474,7 +5634,9 @@ export const TaskInputsSpec_ArtifactsEntry = {
   },
 
   fromJSON(object: any): TaskInputsSpec_ArtifactsEntry {
-    const message = { ...baseTaskInputsSpec_ArtifactsEntry } as TaskInputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseTaskInputsSpec_ArtifactsEntry,
+    } as TaskInputsSpec_ArtifactsEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -5496,7 +5658,9 @@ export const TaskInputsSpec_ArtifactsEntry = {
   fromPartial<I extends Exact<DeepPartial<TaskInputsSpec_ArtifactsEntry>, I>>(
     object: I,
   ): TaskInputsSpec_ArtifactsEntry {
-    const message = { ...baseTaskInputsSpec_ArtifactsEntry } as TaskInputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseTaskInputsSpec_ArtifactsEntry,
+    } as TaskInputsSpec_ArtifactsEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -5749,7 +5913,9 @@ export const TaskOutputsSpec_OutputArtifactSpec = {
   },
 };
 
-const baseTaskOutputsSpec_OutputArtifactSpec_PropertiesEntry: object = { key: '' };
+const baseTaskOutputsSpec_OutputArtifactSpec_PropertiesEntry: object = {
+  key: '',
+};
 
 export const TaskOutputsSpec_OutputArtifactSpec_PropertiesEntry = {
   encode(
@@ -5826,7 +5992,9 @@ export const TaskOutputsSpec_OutputArtifactSpec_PropertiesEntry = {
   },
 };
 
-const baseTaskOutputsSpec_OutputArtifactSpec_CustomPropertiesEntry: object = { key: '' };
+const baseTaskOutputsSpec_OutputArtifactSpec_CustomPropertiesEntry: object = {
+  key: '',
+};
 
 export const TaskOutputsSpec_OutputArtifactSpec_CustomPropertiesEntry = {
   encode(
@@ -5983,7 +6151,9 @@ export const TaskOutputsSpec_ParametersEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): TaskOutputsSpec_ParametersEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseTaskOutputsSpec_ParametersEntry } as TaskOutputsSpec_ParametersEntry;
+    const message = {
+      ...baseTaskOutputsSpec_ParametersEntry,
+    } as TaskOutputsSpec_ParametersEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -6002,7 +6172,9 @@ export const TaskOutputsSpec_ParametersEntry = {
   },
 
   fromJSON(object: any): TaskOutputsSpec_ParametersEntry {
-    const message = { ...baseTaskOutputsSpec_ParametersEntry } as TaskOutputsSpec_ParametersEntry;
+    const message = {
+      ...baseTaskOutputsSpec_ParametersEntry,
+    } as TaskOutputsSpec_ParametersEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -6024,7 +6196,9 @@ export const TaskOutputsSpec_ParametersEntry = {
   fromPartial<I extends Exact<DeepPartial<TaskOutputsSpec_ParametersEntry>, I>>(
     object: I,
   ): TaskOutputsSpec_ParametersEntry {
-    const message = { ...baseTaskOutputsSpec_ParametersEntry } as TaskOutputsSpec_ParametersEntry;
+    const message = {
+      ...baseTaskOutputsSpec_ParametersEntry,
+    } as TaskOutputsSpec_ParametersEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -6053,7 +6227,9 @@ export const TaskOutputsSpec_ArtifactsEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): TaskOutputsSpec_ArtifactsEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseTaskOutputsSpec_ArtifactsEntry } as TaskOutputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseTaskOutputsSpec_ArtifactsEntry,
+    } as TaskOutputsSpec_ArtifactsEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -6072,7 +6248,9 @@ export const TaskOutputsSpec_ArtifactsEntry = {
   },
 
   fromJSON(object: any): TaskOutputsSpec_ArtifactsEntry {
-    const message = { ...baseTaskOutputsSpec_ArtifactsEntry } as TaskOutputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseTaskOutputsSpec_ArtifactsEntry,
+    } as TaskOutputsSpec_ArtifactsEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -6094,7 +6272,9 @@ export const TaskOutputsSpec_ArtifactsEntry = {
   fromPartial<I extends Exact<DeepPartial<TaskOutputsSpec_ArtifactsEntry>, I>>(
     object: I,
   ): TaskOutputsSpec_ArtifactsEntry {
-    const message = { ...baseTaskOutputsSpec_ArtifactsEntry } as TaskOutputsSpec_ArtifactsEntry;
+    const message = {
+      ...baseTaskOutputsSpec_ArtifactsEntry,
+    } as TaskOutputsSpec_ArtifactsEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -6190,7 +6370,9 @@ export const TaskConfigPassthroughType = {
   decode(input: _m0.Reader | Uint8Array, length?: number): TaskConfigPassthroughType {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseTaskConfigPassthroughType } as TaskConfigPassthroughType;
+    const message = {
+      ...baseTaskConfigPassthroughType,
+    } as TaskConfigPassthroughType;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -6203,7 +6385,9 @@ export const TaskConfigPassthroughType = {
   },
 
   fromJSON(_: any): TaskConfigPassthroughType {
-    const message = { ...baseTaskConfigPassthroughType } as TaskConfigPassthroughType;
+    const message = {
+      ...baseTaskConfigPassthroughType,
+    } as TaskConfigPassthroughType;
     return message;
   },
 
@@ -6215,7 +6399,9 @@ export const TaskConfigPassthroughType = {
   fromPartial<I extends Exact<DeepPartial<TaskConfigPassthroughType>, I>>(
     _: I,
   ): TaskConfigPassthroughType {
-    const message = { ...baseTaskConfigPassthroughType } as TaskConfigPassthroughType;
+    const message = {
+      ...baseTaskConfigPassthroughType,
+    } as TaskConfigPassthroughType;
     return message;
   },
 };
@@ -6504,7 +6690,10 @@ export const PipelineTaskSpec = {
   },
 };
 
-const basePipelineTaskSpec_CachingOptions: object = { enableCache: false, cacheKey: '' };
+const basePipelineTaskSpec_CachingOptions: object = {
+  enableCache: false,
+  cacheKey: '',
+};
 
 export const PipelineTaskSpec_CachingOptions = {
   encode(
@@ -6523,7 +6712,9 @@ export const PipelineTaskSpec_CachingOptions = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineTaskSpec_CachingOptions {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineTaskSpec_CachingOptions } as PipelineTaskSpec_CachingOptions;
+    const message = {
+      ...basePipelineTaskSpec_CachingOptions,
+    } as PipelineTaskSpec_CachingOptions;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -6542,7 +6733,9 @@ export const PipelineTaskSpec_CachingOptions = {
   },
 
   fromJSON(object: any): PipelineTaskSpec_CachingOptions {
-    const message = { ...basePipelineTaskSpec_CachingOptions } as PipelineTaskSpec_CachingOptions;
+    const message = {
+      ...basePipelineTaskSpec_CachingOptions,
+    } as PipelineTaskSpec_CachingOptions;
     message.enableCache =
       object.enableCache !== undefined && object.enableCache !== null
         ? Boolean(object.enableCache)
@@ -6562,14 +6755,19 @@ export const PipelineTaskSpec_CachingOptions = {
   fromPartial<I extends Exact<DeepPartial<PipelineTaskSpec_CachingOptions>, I>>(
     object: I,
   ): PipelineTaskSpec_CachingOptions {
-    const message = { ...basePipelineTaskSpec_CachingOptions } as PipelineTaskSpec_CachingOptions;
+    const message = {
+      ...basePipelineTaskSpec_CachingOptions,
+    } as PipelineTaskSpec_CachingOptions;
     message.enableCache = object.enableCache ?? false;
     message.cacheKey = object.cacheKey ?? '';
     return message;
   },
 };
 
-const basePipelineTaskSpec_TriggerPolicy: object = { condition: '', strategy: 0 };
+const basePipelineTaskSpec_TriggerPolicy: object = {
+  condition: '',
+  strategy: 0,
+};
 
 export const PipelineTaskSpec_TriggerPolicy = {
   encode(
@@ -6588,7 +6786,9 @@ export const PipelineTaskSpec_TriggerPolicy = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineTaskSpec_TriggerPolicy {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineTaskSpec_TriggerPolicy } as PipelineTaskSpec_TriggerPolicy;
+    const message = {
+      ...basePipelineTaskSpec_TriggerPolicy,
+    } as PipelineTaskSpec_TriggerPolicy;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -6607,7 +6807,9 @@ export const PipelineTaskSpec_TriggerPolicy = {
   },
 
   fromJSON(object: any): PipelineTaskSpec_TriggerPolicy {
-    const message = { ...basePipelineTaskSpec_TriggerPolicy } as PipelineTaskSpec_TriggerPolicy;
+    const message = {
+      ...basePipelineTaskSpec_TriggerPolicy,
+    } as PipelineTaskSpec_TriggerPolicy;
     message.condition =
       object.condition !== undefined && object.condition !== null ? String(object.condition) : '';
     message.strategy =
@@ -6628,14 +6830,20 @@ export const PipelineTaskSpec_TriggerPolicy = {
   fromPartial<I extends Exact<DeepPartial<PipelineTaskSpec_TriggerPolicy>, I>>(
     object: I,
   ): PipelineTaskSpec_TriggerPolicy {
-    const message = { ...basePipelineTaskSpec_TriggerPolicy } as PipelineTaskSpec_TriggerPolicy;
+    const message = {
+      ...basePipelineTaskSpec_TriggerPolicy,
+    } as PipelineTaskSpec_TriggerPolicy;
     message.condition = object.condition ?? '';
     message.strategy = object.strategy ?? 0;
     return message;
   },
 };
 
-const basePipelineTaskSpec_RetryPolicy: object = { maxRetryCount: 0, backoffFactor: 0 };
+const basePipelineTaskSpec_RetryPolicy: object = {
+  maxRetryCount: 0,
+  backoffFactor: 0,
+  policy: 0,
+};
 
 export const PipelineTaskSpec_RetryPolicy = {
   encode(
@@ -6654,13 +6862,18 @@ export const PipelineTaskSpec_RetryPolicy = {
     if (message.backoffMaxDuration !== undefined) {
       Duration.encode(message.backoffMaxDuration, writer.uint32(34).fork()).ldelim();
     }
+    if (message.policy !== 0) {
+      writer.uint32(40).int32(message.policy);
+    }
     return writer;
   },
 
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineTaskSpec_RetryPolicy {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineTaskSpec_RetryPolicy } as PipelineTaskSpec_RetryPolicy;
+    const message = {
+      ...basePipelineTaskSpec_RetryPolicy,
+    } as PipelineTaskSpec_RetryPolicy;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -6676,6 +6889,9 @@ export const PipelineTaskSpec_RetryPolicy = {
         case 4:
           message.backoffMaxDuration = Duration.decode(reader, reader.uint32());
           break;
+        case 5:
+          message.policy = reader.int32() as any;
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -6685,7 +6901,9 @@ export const PipelineTaskSpec_RetryPolicy = {
   },
 
   fromJSON(object: any): PipelineTaskSpec_RetryPolicy {
-    const message = { ...basePipelineTaskSpec_RetryPolicy } as PipelineTaskSpec_RetryPolicy;
+    const message = {
+      ...basePipelineTaskSpec_RetryPolicy,
+    } as PipelineTaskSpec_RetryPolicy;
     message.maxRetryCount =
       object.maxRetryCount !== undefined && object.maxRetryCount !== null
         ? Number(object.maxRetryCount)
@@ -6702,6 +6920,10 @@ export const PipelineTaskSpec_RetryPolicy = {
       object.backoffMaxDuration !== undefined && object.backoffMaxDuration !== null
         ? Duration.fromJSON(object.backoffMaxDuration)
         : undefined;
+    message.policy =
+      object.policy !== undefined && object.policy !== null
+        ? pipelineTaskSpec_RetryPolicy_PolicyFromJSON(object.policy)
+        : 0;
     return message;
   },
 
@@ -6717,13 +6939,17 @@ export const PipelineTaskSpec_RetryPolicy = {
       (obj.backoffMaxDuration = message.backoffMaxDuration
         ? Duration.toJSON(message.backoffMaxDuration)
         : undefined);
+    message.policy !== undefined &&
+      (obj.policy = pipelineTaskSpec_RetryPolicy_PolicyToJSON(message.policy));
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<PipelineTaskSpec_RetryPolicy>, I>>(
     object: I,
   ): PipelineTaskSpec_RetryPolicy {
-    const message = { ...basePipelineTaskSpec_RetryPolicy } as PipelineTaskSpec_RetryPolicy;
+    const message = {
+      ...basePipelineTaskSpec_RetryPolicy,
+    } as PipelineTaskSpec_RetryPolicy;
     message.maxRetryCount = object.maxRetryCount ?? 0;
     message.backoffDuration =
       object.backoffDuration !== undefined && object.backoffDuration !== null
@@ -6734,6 +6960,7 @@ export const PipelineTaskSpec_RetryPolicy = {
       object.backoffMaxDuration !== undefined && object.backoffMaxDuration !== null
         ? Duration.fromPartial(object.backoffMaxDuration)
         : undefined;
+    message.policy = object.policy ?? 0;
     return message;
   },
 };
@@ -6754,7 +6981,9 @@ export const PipelineTaskSpec_IteratorPolicy = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineTaskSpec_IteratorPolicy {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineTaskSpec_IteratorPolicy } as PipelineTaskSpec_IteratorPolicy;
+    const message = {
+      ...basePipelineTaskSpec_IteratorPolicy,
+    } as PipelineTaskSpec_IteratorPolicy;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -6770,7 +6999,9 @@ export const PipelineTaskSpec_IteratorPolicy = {
   },
 
   fromJSON(object: any): PipelineTaskSpec_IteratorPolicy {
-    const message = { ...basePipelineTaskSpec_IteratorPolicy } as PipelineTaskSpec_IteratorPolicy;
+    const message = {
+      ...basePipelineTaskSpec_IteratorPolicy,
+    } as PipelineTaskSpec_IteratorPolicy;
     message.parallelismLimit =
       object.parallelismLimit !== undefined && object.parallelismLimit !== null
         ? Number(object.parallelismLimit)
@@ -6788,7 +7019,9 @@ export const PipelineTaskSpec_IteratorPolicy = {
   fromPartial<I extends Exact<DeepPartial<PipelineTaskSpec_IteratorPolicy>, I>>(
     object: I,
   ): PipelineTaskSpec_IteratorPolicy {
-    const message = { ...basePipelineTaskSpec_IteratorPolicy } as PipelineTaskSpec_IteratorPolicy;
+    const message = {
+      ...basePipelineTaskSpec_IteratorPolicy,
+    } as PipelineTaskSpec_IteratorPolicy;
     message.parallelismLimit = object.parallelismLimit ?? 0;
     return message;
   },
@@ -6878,7 +7111,9 @@ export const ArtifactIteratorSpec_ItemsSpec = {
   decode(input: _m0.Reader | Uint8Array, length?: number): ArtifactIteratorSpec_ItemsSpec {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseArtifactIteratorSpec_ItemsSpec } as ArtifactIteratorSpec_ItemsSpec;
+    const message = {
+      ...baseArtifactIteratorSpec_ItemsSpec,
+    } as ArtifactIteratorSpec_ItemsSpec;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -6894,7 +7129,9 @@ export const ArtifactIteratorSpec_ItemsSpec = {
   },
 
   fromJSON(object: any): ArtifactIteratorSpec_ItemsSpec {
-    const message = { ...baseArtifactIteratorSpec_ItemsSpec } as ArtifactIteratorSpec_ItemsSpec;
+    const message = {
+      ...baseArtifactIteratorSpec_ItemsSpec,
+    } as ArtifactIteratorSpec_ItemsSpec;
     message.inputArtifact =
       object.inputArtifact !== undefined && object.inputArtifact !== null
         ? String(object.inputArtifact)
@@ -6911,7 +7148,9 @@ export const ArtifactIteratorSpec_ItemsSpec = {
   fromPartial<I extends Exact<DeepPartial<ArtifactIteratorSpec_ItemsSpec>, I>>(
     object: I,
   ): ArtifactIteratorSpec_ItemsSpec {
-    const message = { ...baseArtifactIteratorSpec_ItemsSpec } as ArtifactIteratorSpec_ItemsSpec;
+    const message = {
+      ...baseArtifactIteratorSpec_ItemsSpec,
+    } as ArtifactIteratorSpec_ItemsSpec;
     message.inputArtifact = object.inputArtifact ?? '';
     return message;
   },
@@ -7004,7 +7243,9 @@ export const ParameterIteratorSpec_ItemsSpec = {
   decode(input: _m0.Reader | Uint8Array, length?: number): ParameterIteratorSpec_ItemsSpec {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseParameterIteratorSpec_ItemsSpec } as ParameterIteratorSpec_ItemsSpec;
+    const message = {
+      ...baseParameterIteratorSpec_ItemsSpec,
+    } as ParameterIteratorSpec_ItemsSpec;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7023,7 +7264,9 @@ export const ParameterIteratorSpec_ItemsSpec = {
   },
 
   fromJSON(object: any): ParameterIteratorSpec_ItemsSpec {
-    const message = { ...baseParameterIteratorSpec_ItemsSpec } as ParameterIteratorSpec_ItemsSpec;
+    const message = {
+      ...baseParameterIteratorSpec_ItemsSpec,
+    } as ParameterIteratorSpec_ItemsSpec;
     message.raw = object.raw !== undefined && object.raw !== null ? String(object.raw) : undefined;
     message.inputParameter =
       object.inputParameter !== undefined && object.inputParameter !== null
@@ -7042,7 +7285,9 @@ export const ParameterIteratorSpec_ItemsSpec = {
   fromPartial<I extends Exact<DeepPartial<ParameterIteratorSpec_ItemsSpec>, I>>(
     object: I,
   ): ParameterIteratorSpec_ItemsSpec {
-    const message = { ...baseParameterIteratorSpec_ItemsSpec } as ParameterIteratorSpec_ItemsSpec;
+    const message = {
+      ...baseParameterIteratorSpec_ItemsSpec,
+    } as ParameterIteratorSpec_ItemsSpec;
     message.raw = object.raw ?? undefined;
     message.inputParameter = object.inputParameter ?? undefined;
     return message;
@@ -7319,7 +7564,9 @@ export const ValueOrRuntimeParameter = {
   decode(input: _m0.Reader | Uint8Array, length?: number): ValueOrRuntimeParameter {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseValueOrRuntimeParameter } as ValueOrRuntimeParameter;
+    const message = {
+      ...baseValueOrRuntimeParameter,
+    } as ValueOrRuntimeParameter;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -7341,7 +7588,9 @@ export const ValueOrRuntimeParameter = {
   },
 
   fromJSON(object: any): ValueOrRuntimeParameter {
-    const message = { ...baseValueOrRuntimeParameter } as ValueOrRuntimeParameter;
+    const message = {
+      ...baseValueOrRuntimeParameter,
+    } as ValueOrRuntimeParameter;
     message.constantValue =
       object.constantValue !== undefined && object.constantValue !== null
         ? Value.fromJSON(object.constantValue)
@@ -7366,7 +7615,9 @@ export const ValueOrRuntimeParameter = {
   fromPartial<I extends Exact<DeepPartial<ValueOrRuntimeParameter>, I>>(
     object: I,
   ): ValueOrRuntimeParameter {
-    const message = { ...baseValueOrRuntimeParameter } as ValueOrRuntimeParameter;
+    const message = {
+      ...baseValueOrRuntimeParameter,
+    } as ValueOrRuntimeParameter;
     message.constantValue =
       object.constantValue !== undefined && object.constantValue !== null
         ? Value.fromPartial(object.constantValue)
@@ -7393,7 +7644,9 @@ export const PipelineDeploymentConfig = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineDeploymentConfig {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineDeploymentConfig } as PipelineDeploymentConfig;
+    const message = {
+      ...basePipelineDeploymentConfig,
+    } as PipelineDeploymentConfig;
     message.executors = {};
     while (reader.pos < end) {
       const tag = reader.uint32();
@@ -7413,7 +7666,9 @@ export const PipelineDeploymentConfig = {
   },
 
   fromJSON(object: any): PipelineDeploymentConfig {
-    const message = { ...basePipelineDeploymentConfig } as PipelineDeploymentConfig;
+    const message = {
+      ...basePipelineDeploymentConfig,
+    } as PipelineDeploymentConfig;
     message.executors = Object.entries(object.executors ?? {}).reduce<{
       [key: string]: PipelineDeploymentConfig_ExecutorSpec;
     }>((acc, [key, value]) => {
@@ -7437,7 +7692,9 @@ export const PipelineDeploymentConfig = {
   fromPartial<I extends Exact<DeepPartial<PipelineDeploymentConfig>, I>>(
     object: I,
   ): PipelineDeploymentConfig {
-    const message = { ...basePipelineDeploymentConfig } as PipelineDeploymentConfig;
+    const message = {
+      ...basePipelineDeploymentConfig,
+    } as PipelineDeploymentConfig;
     message.executors = Object.entries(object.executors ?? {}).reduce<{
       [key: string]: PipelineDeploymentConfig_ExecutorSpec;
     }>((acc, [key, value]) => {
@@ -8076,7 +8333,10 @@ export const PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_Acceler
   },
 };
 
-const basePipelineDeploymentConfig_PipelineContainerSpec_EnvVar: object = { name: '', value: '' };
+const basePipelineDeploymentConfig_PipelineContainerSpec_EnvVar: object = {
+  name: '',
+  value: '',
+};
 
 export const PipelineDeploymentConfig_PipelineContainerSpec_EnvVar = {
   encode(
@@ -8338,7 +8598,9 @@ export const PipelineDeploymentConfig_ImporterSpec = {
   },
 };
 
-const basePipelineDeploymentConfig_ImporterSpec_PropertiesEntry: object = { key: '' };
+const basePipelineDeploymentConfig_ImporterSpec_PropertiesEntry: object = {
+  key: '',
+};
 
 export const PipelineDeploymentConfig_ImporterSpec_PropertiesEntry = {
   encode(
@@ -9179,13 +9441,12 @@ export const RuntimeArtifact = {
         ? ArtifactTypeSchema.fromJSON(object.type)
         : undefined;
     message.uri = object.uri !== undefined && object.uri !== null ? String(object.uri) : '';
-    message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        acc[key] = Value.fromJSON(value);
-        return acc;
-      },
-      {},
-    );
+    message.properties = Object.entries(object.properties ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      acc[key] = Value.fromJSON(value);
+      return acc;
+    }, {});
     message.customProperties = Object.entries(object.customProperties ?? {}).reduce<{
       [key: string]: Value;
     }>((acc, [key, value]) => {
@@ -9231,15 +9492,14 @@ export const RuntimeArtifact = {
         ? ArtifactTypeSchema.fromPartial(object.type)
         : undefined;
     message.uri = object.uri ?? '';
-    message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = Value.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.properties = Object.entries(object.properties ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = Value.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.customProperties = Object.entries(object.customProperties ?? {}).reduce<{
       [key: string]: Value;
     }>((acc, [key, value]) => {
@@ -9273,7 +9533,9 @@ export const RuntimeArtifact_PropertiesEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): RuntimeArtifact_PropertiesEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseRuntimeArtifact_PropertiesEntry } as RuntimeArtifact_PropertiesEntry;
+    const message = {
+      ...baseRuntimeArtifact_PropertiesEntry,
+    } as RuntimeArtifact_PropertiesEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9292,7 +9554,9 @@ export const RuntimeArtifact_PropertiesEntry = {
   },
 
   fromJSON(object: any): RuntimeArtifact_PropertiesEntry {
-    const message = { ...baseRuntimeArtifact_PropertiesEntry } as RuntimeArtifact_PropertiesEntry;
+    const message = {
+      ...baseRuntimeArtifact_PropertiesEntry,
+    } as RuntimeArtifact_PropertiesEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -9312,7 +9576,9 @@ export const RuntimeArtifact_PropertiesEntry = {
   fromPartial<I extends Exact<DeepPartial<RuntimeArtifact_PropertiesEntry>, I>>(
     object: I,
   ): RuntimeArtifact_PropertiesEntry {
-    const message = { ...baseRuntimeArtifact_PropertiesEntry } as RuntimeArtifact_PropertiesEntry;
+    const message = {
+      ...baseRuntimeArtifact_PropertiesEntry,
+    } as RuntimeArtifact_PropertiesEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -9583,13 +9849,12 @@ export const ExecutorInput_Inputs = {
 
   fromJSON(object: any): ExecutorInput_Inputs {
     const message = { ...baseExecutorInput_Inputs } as ExecutorInput_Inputs;
-    message.parameters = Object.entries(object.parameters ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        acc[key] = Value.fromJSON(value);
-        return acc;
-      },
-      {},
-    );
+    message.parameters = Object.entries(object.parameters ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      acc[key] = Value.fromJSON(value);
+      return acc;
+    }, {});
     message.artifacts = Object.entries(object.artifacts ?? {}).reduce<{
       [key: string]: ArtifactList;
     }>((acc, [key, value]) => {
@@ -9632,15 +9897,14 @@ export const ExecutorInput_Inputs = {
     object: I,
   ): ExecutorInput_Inputs {
     const message = { ...baseExecutorInput_Inputs } as ExecutorInput_Inputs;
-    message.parameters = Object.entries(object.parameters ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = Value.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.parameters = Object.entries(object.parameters ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = Value.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.artifacts = Object.entries(object.artifacts ?? {}).reduce<{
       [key: string]: ArtifactList;
     }>((acc, [key, value]) => {
@@ -9895,7 +10159,9 @@ export const ExecutorInput_OutputParameter = {
   decode(input: _m0.Reader | Uint8Array, length?: number): ExecutorInput_OutputParameter {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseExecutorInput_OutputParameter } as ExecutorInput_OutputParameter;
+    const message = {
+      ...baseExecutorInput_OutputParameter,
+    } as ExecutorInput_OutputParameter;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -9911,7 +10177,9 @@ export const ExecutorInput_OutputParameter = {
   },
 
   fromJSON(object: any): ExecutorInput_OutputParameter {
-    const message = { ...baseExecutorInput_OutputParameter } as ExecutorInput_OutputParameter;
+    const message = {
+      ...baseExecutorInput_OutputParameter,
+    } as ExecutorInput_OutputParameter;
     message.outputFile =
       object.outputFile !== undefined && object.outputFile !== null
         ? String(object.outputFile)
@@ -9928,7 +10196,9 @@ export const ExecutorInput_OutputParameter = {
   fromPartial<I extends Exact<DeepPartial<ExecutorInput_OutputParameter>, I>>(
     object: I,
   ): ExecutorInput_OutputParameter {
-    const message = { ...baseExecutorInput_OutputParameter } as ExecutorInput_OutputParameter;
+    const message = {
+      ...baseExecutorInput_OutputParameter,
+    } as ExecutorInput_OutputParameter;
     message.outputFile = object.outputFile ?? '';
     return message;
   },
@@ -10265,13 +10535,12 @@ export const ExecutorOutput = {
 
   fromJSON(object: any): ExecutorOutput {
     const message = { ...baseExecutorOutput } as ExecutorOutput;
-    message.parameters = Object.entries(object.parameters ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        acc[key] = Value.fromJSON(value);
-        return acc;
-      },
-      {},
-    );
+    message.parameters = Object.entries(object.parameters ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      acc[key] = Value.fromJSON(value);
+      return acc;
+    }, {});
     message.artifacts = Object.entries(object.artifacts ?? {}).reduce<{
       [key: string]: ArtifactList;
     }>((acc, [key, value]) => {
@@ -10312,15 +10581,14 @@ export const ExecutorOutput = {
 
   fromPartial<I extends Exact<DeepPartial<ExecutorOutput>, I>>(object: I): ExecutorOutput {
     const message = { ...baseExecutorOutput } as ExecutorOutput;
-    message.parameters = Object.entries(object.parameters ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = Value.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.parameters = Object.entries(object.parameters ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = Value.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.artifacts = Object.entries(object.artifacts ?? {}).reduce<{
       [key: string]: ArtifactList;
     }>((acc, [key, value]) => {
@@ -10360,7 +10628,9 @@ export const ExecutorOutput_ParametersEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): ExecutorOutput_ParametersEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseExecutorOutput_ParametersEntry } as ExecutorOutput_ParametersEntry;
+    const message = {
+      ...baseExecutorOutput_ParametersEntry,
+    } as ExecutorOutput_ParametersEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10379,7 +10649,9 @@ export const ExecutorOutput_ParametersEntry = {
   },
 
   fromJSON(object: any): ExecutorOutput_ParametersEntry {
-    const message = { ...baseExecutorOutput_ParametersEntry } as ExecutorOutput_ParametersEntry;
+    const message = {
+      ...baseExecutorOutput_ParametersEntry,
+    } as ExecutorOutput_ParametersEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -10399,7 +10671,9 @@ export const ExecutorOutput_ParametersEntry = {
   fromPartial<I extends Exact<DeepPartial<ExecutorOutput_ParametersEntry>, I>>(
     object: I,
   ): ExecutorOutput_ParametersEntry {
-    const message = { ...baseExecutorOutput_ParametersEntry } as ExecutorOutput_ParametersEntry;
+    const message = {
+      ...baseExecutorOutput_ParametersEntry,
+    } as ExecutorOutput_ParametersEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -10428,7 +10702,9 @@ export const ExecutorOutput_ArtifactsEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): ExecutorOutput_ArtifactsEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseExecutorOutput_ArtifactsEntry } as ExecutorOutput_ArtifactsEntry;
+    const message = {
+      ...baseExecutorOutput_ArtifactsEntry,
+    } as ExecutorOutput_ArtifactsEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10447,7 +10723,9 @@ export const ExecutorOutput_ArtifactsEntry = {
   },
 
   fromJSON(object: any): ExecutorOutput_ArtifactsEntry {
-    const message = { ...baseExecutorOutput_ArtifactsEntry } as ExecutorOutput_ArtifactsEntry;
+    const message = {
+      ...baseExecutorOutput_ArtifactsEntry,
+    } as ExecutorOutput_ArtifactsEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -10467,7 +10745,9 @@ export const ExecutorOutput_ArtifactsEntry = {
   fromPartial<I extends Exact<DeepPartial<ExecutorOutput_ArtifactsEntry>, I>>(
     object: I,
   ): ExecutorOutput_ArtifactsEntry {
-    const message = { ...baseExecutorOutput_ArtifactsEntry } as ExecutorOutput_ArtifactsEntry;
+    const message = {
+      ...baseExecutorOutput_ArtifactsEntry,
+    } as ExecutorOutput_ArtifactsEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -10578,7 +10858,9 @@ export const PipelineTaskFinalStatus = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PipelineTaskFinalStatus {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePipelineTaskFinalStatus } as PipelineTaskFinalStatus;
+    const message = {
+      ...basePipelineTaskFinalStatus,
+    } as PipelineTaskFinalStatus;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10609,7 +10891,9 @@ export const PipelineTaskFinalStatus = {
   },
 
   fromJSON(object: any): PipelineTaskFinalStatus {
-    const message = { ...basePipelineTaskFinalStatus } as PipelineTaskFinalStatus;
+    const message = {
+      ...basePipelineTaskFinalStatus,
+    } as PipelineTaskFinalStatus;
     message.state = object.state !== undefined && object.state !== null ? String(object.state) : '';
     message.error =
       object.error !== undefined && object.error !== null
@@ -10651,7 +10935,9 @@ export const PipelineTaskFinalStatus = {
   fromPartial<I extends Exact<DeepPartial<PipelineTaskFinalStatus>, I>>(
     object: I,
   ): PipelineTaskFinalStatus {
-    const message = { ...basePipelineTaskFinalStatus } as PipelineTaskFinalStatus;
+    const message = {
+      ...basePipelineTaskFinalStatus,
+    } as PipelineTaskFinalStatus;
     message.state = object.state ?? '';
     message.error =
       object.error !== undefined && object.error !== null
@@ -10793,7 +11079,9 @@ export const PlatformSpec_PlatformsEntry = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PlatformSpec_PlatformsEntry {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePlatformSpec_PlatformsEntry } as PlatformSpec_PlatformsEntry;
+    const message = {
+      ...basePlatformSpec_PlatformsEntry,
+    } as PlatformSpec_PlatformsEntry;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -10812,7 +11100,9 @@ export const PlatformSpec_PlatformsEntry = {
   },
 
   fromJSON(object: any): PlatformSpec_PlatformsEntry {
-    const message = { ...basePlatformSpec_PlatformsEntry } as PlatformSpec_PlatformsEntry;
+    const message = {
+      ...basePlatformSpec_PlatformsEntry,
+    } as PlatformSpec_PlatformsEntry;
     message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -10832,7 +11122,9 @@ export const PlatformSpec_PlatformsEntry = {
   fromPartial<I extends Exact<DeepPartial<PlatformSpec_PlatformsEntry>, I>>(
     object: I,
   ): PlatformSpec_PlatformsEntry {
-    const message = { ...basePlatformSpec_PlatformsEntry } as PlatformSpec_PlatformsEntry;
+    const message = {
+      ...basePlatformSpec_PlatformsEntry,
+    } as PlatformSpec_PlatformsEntry;
     message.key = object.key ?? '';
     message.value =
       object.value !== undefined && object.value !== null
@@ -10953,7 +11245,9 @@ export const PlatformDeploymentConfig = {
   decode(input: _m0.Reader | Uint8Array, length?: number): PlatformDeploymentConfig {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePlatformDeploymentConfig } as PlatformDeploymentConfig;
+    const message = {
+      ...basePlatformDeploymentConfig,
+    } as PlatformDeploymentConfig;
     message.executors = {};
     while (reader.pos < end) {
       const tag = reader.uint32();
@@ -10973,7 +11267,9 @@ export const PlatformDeploymentConfig = {
   },
 
   fromJSON(object: any): PlatformDeploymentConfig {
-    const message = { ...basePlatformDeploymentConfig } as PlatformDeploymentConfig;
+    const message = {
+      ...basePlatformDeploymentConfig,
+    } as PlatformDeploymentConfig;
     message.executors = Object.entries(object.executors ?? {}).reduce<{
       [key: string]: { [key: string]: any } | undefined;
     }>((acc, [key, value]) => {
@@ -10997,7 +11293,9 @@ export const PlatformDeploymentConfig = {
   fromPartial<I extends Exact<DeepPartial<PlatformDeploymentConfig>, I>>(
     object: I,
   ): PlatformDeploymentConfig {
-    const message = { ...basePlatformDeploymentConfig } as PlatformDeploymentConfig;
+    const message = {
+      ...basePlatformDeploymentConfig,
+    } as PlatformDeploymentConfig;
     message.executors = Object.entries(object.executors ?? {}).reduce<{
       [key: string]: { [key: string]: any } | undefined;
     }>((acc, [key, value]) => {
@@ -11155,7 +11453,9 @@ export const KubernetesWorkspaceConfig = {
   decode(input: _m0.Reader | Uint8Array, length?: number): KubernetesWorkspaceConfig {
     const reader = input instanceof _m0.Reader ? input : new _m0.Reader(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseKubernetesWorkspaceConfig } as KubernetesWorkspaceConfig;
+    const message = {
+      ...baseKubernetesWorkspaceConfig,
+    } as KubernetesWorkspaceConfig;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -11171,7 +11471,9 @@ export const KubernetesWorkspaceConfig = {
   },
 
   fromJSON(object: any): KubernetesWorkspaceConfig {
-    const message = { ...baseKubernetesWorkspaceConfig } as KubernetesWorkspaceConfig;
+    const message = {
+      ...baseKubernetesWorkspaceConfig,
+    } as KubernetesWorkspaceConfig;
     message.pvcSpecPatch =
       typeof object.pvcSpecPatch === 'object' ? object.pvcSpecPatch : undefined;
     return message;
@@ -11186,21 +11488,37 @@ export const KubernetesWorkspaceConfig = {
   fromPartial<I extends Exact<DeepPartial<KubernetesWorkspaceConfig>, I>>(
     object: I,
   ): KubernetesWorkspaceConfig {
-    const message = { ...baseKubernetesWorkspaceConfig } as KubernetesWorkspaceConfig;
+    const message = {
+      ...baseKubernetesWorkspaceConfig,
+    } as KubernetesWorkspaceConfig;
     message.pvcSpecPatch = object.pvcSpecPatch ?? undefined;
     return message;
   },
 };
 
-const basePipelineConfig: object = { resourceTtl: 0 };
+const basePipelineConfig: object = {
+  resourceTtlOnCompletion: 0,
+  resourceTtlOnSuccess: 0,
+  resourceTtlOnFailure: 0,
+  activeDeadlineSeconds: 0,
+};
 
 export const PipelineConfig = {
   encode(message: PipelineConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.resourceTtl !== 0) {
-      writer.uint32(8).int32(message.resourceTtl);
+    if (message.resourceTtlOnCompletion !== 0) {
+      writer.uint32(8).int32(message.resourceTtlOnCompletion);
     }
     if (message.workspace !== undefined) {
       WorkspaceConfig.encode(message.workspace, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.resourceTtlOnSuccess !== 0) {
+      writer.uint32(24).int32(message.resourceTtlOnSuccess);
+    }
+    if (message.resourceTtlOnFailure !== 0) {
+      writer.uint32(32).int32(message.resourceTtlOnFailure);
+    }
+    if (message.activeDeadlineSeconds !== 0) {
+      writer.uint32(40).int32(message.activeDeadlineSeconds);
     }
     return writer;
   },
@@ -11213,10 +11531,19 @@ export const PipelineConfig = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.resourceTtl = reader.int32();
+          message.resourceTtlOnCompletion = reader.int32();
           break;
         case 2:
           message.workspace = WorkspaceConfig.decode(reader, reader.uint32());
+          break;
+        case 3:
+          message.resourceTtlOnSuccess = reader.int32();
+          break;
+        case 4:
+          message.resourceTtlOnFailure = reader.int32();
+          break;
+        case 5:
+          message.activeDeadlineSeconds = reader.int32();
           break;
         default:
           reader.skipType(tag & 7);
@@ -11228,32 +11555,54 @@ export const PipelineConfig = {
 
   fromJSON(object: any): PipelineConfig {
     const message = { ...basePipelineConfig } as PipelineConfig;
-    message.resourceTtl =
-      object.resourceTtl !== undefined && object.resourceTtl !== null
-        ? Number(object.resourceTtl)
+    message.resourceTtlOnCompletion =
+      object.resourceTtlOnCompletion !== undefined && object.resourceTtlOnCompletion !== null
+        ? Number(object.resourceTtlOnCompletion)
         : 0;
     message.workspace =
       object.workspace !== undefined && object.workspace !== null
         ? WorkspaceConfig.fromJSON(object.workspace)
         : undefined;
+    message.resourceTtlOnSuccess =
+      object.resourceTtlOnSuccess !== undefined && object.resourceTtlOnSuccess !== null
+        ? Number(object.resourceTtlOnSuccess)
+        : 0;
+    message.resourceTtlOnFailure =
+      object.resourceTtlOnFailure !== undefined && object.resourceTtlOnFailure !== null
+        ? Number(object.resourceTtlOnFailure)
+        : 0;
+    message.activeDeadlineSeconds =
+      object.activeDeadlineSeconds !== undefined && object.activeDeadlineSeconds !== null
+        ? Number(object.activeDeadlineSeconds)
+        : 0;
     return message;
   },
 
   toJSON(message: PipelineConfig): unknown {
     const obj: any = {};
-    message.resourceTtl !== undefined && (obj.resourceTtl = Math.round(message.resourceTtl));
+    message.resourceTtlOnCompletion !== undefined &&
+      (obj.resourceTtlOnCompletion = Math.round(message.resourceTtlOnCompletion));
     message.workspace !== undefined &&
       (obj.workspace = message.workspace ? WorkspaceConfig.toJSON(message.workspace) : undefined);
+    message.resourceTtlOnSuccess !== undefined &&
+      (obj.resourceTtlOnSuccess = Math.round(message.resourceTtlOnSuccess));
+    message.resourceTtlOnFailure !== undefined &&
+      (obj.resourceTtlOnFailure = Math.round(message.resourceTtlOnFailure));
+    message.activeDeadlineSeconds !== undefined &&
+      (obj.activeDeadlineSeconds = Math.round(message.activeDeadlineSeconds));
     return obj;
   },
 
   fromPartial<I extends Exact<DeepPartial<PipelineConfig>, I>>(object: I): PipelineConfig {
     const message = { ...basePipelineConfig } as PipelineConfig;
-    message.resourceTtl = object.resourceTtl ?? 0;
+    message.resourceTtlOnCompletion = object.resourceTtlOnCompletion ?? 0;
     message.workspace =
       object.workspace !== undefined && object.workspace !== null
         ? WorkspaceConfig.fromPartial(object.workspace)
         : undefined;
+    message.resourceTtlOnSuccess = object.resourceTtlOnSuccess ?? 0;
+    message.resourceTtlOnFailure = object.resourceTtlOnFailure ?? 0;
+    message.activeDeadlineSeconds = object.activeDeadlineSeconds ?? 0;
     return message;
   },
 };
@@ -11274,12 +11623,12 @@ type Builtin = Date | Function | Uint8Array | string | number | boolean | undefi
 export type DeepPartial<T> = T extends Builtin
   ? T
   : T extends Array<infer U>
-  ? Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U>
-  ? ReadonlyArray<DeepPartial<U>>
-  : T extends {}
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+    ? Array<DeepPartial<U>>
+    : T extends ReadonlyArray<infer U>
+      ? ReadonlyArray<DeepPartial<U>>
+      : T extends {}
+        ? { [K in keyof T]?: DeepPartial<T[K]> }
+        : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin
