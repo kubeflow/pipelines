@@ -62,6 +62,8 @@ var runColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"ImportedFrom",
+	"ImportDigest",
 }
 
 // runListColumns is a lightweight version of runColumns for List endpoints.
@@ -101,6 +103,8 @@ var runListColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"ImportedFrom",
+	"ImportDigest",
 }
 
 // terminalRunStateStrings lists every raw value that a terminal run can carry
@@ -642,7 +646,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
-		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
+		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, importedFrom, importDigest sql.NullString
 
 		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
@@ -678,6 +682,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&retryGeneration,
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
+			&importedFrom,
+			&importDigest,
 			&resourceReferencesInString,
 		}
 
@@ -728,6 +734,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			ServiceAccount: serviceAccount,
 			Description:    description,
 			RecurringRunId: jID,
+			ImportedFrom:   importedFrom.String,
+			ImportDigest:   importDigest.String,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
 				ScheduledAtInSec:        scheduledAtInSec.Int64,
@@ -841,6 +849,8 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			q("PipelineRoot"):            r.PipelineSpec.RuntimeConfig.PipelineRoot,
 			q("PipelineVersionId"):       r.PipelineSpec.PipelineVersionId,
 			q("JobUUID"):                 r.RecurringRunId,
+			q("ImportedFrom"):            r.ImportedFrom,
+			q("ImportDigest"):            r.ImportDigest,
 			q("State"):                   r.RunDetails.State.ToString(),
 			q("StateHistory"):            stateHistoryString,
 			q("PluginsInput"):            largeTextToNullableSQL(r.RunDetails.PluginsInputString),
