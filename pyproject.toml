@@ -109,7 +109,7 @@ legacy-shared = [
   "python-dateutil>=2.5.3",
   "PyYAML>=5.3,<7",
   "six>=1.10",
-  "urllib3>=1.15.1,<3.0.0",
+  "urllib3>=2.8.0,<3.0.0",
 ]
 
 # Legacy backend v2 test helpers
