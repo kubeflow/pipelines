@@ -53,6 +53,17 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 
 	// Replace macros
 	formatter := util.NewRunParameterFormatter(options.RunID, options.RunAt)
+	if modelRun.RecurringRunId != "" {
+		scheduledAt := options.RunAt
+		if modelRun.ScheduledAtInSec > 0 {
+			scheduledAt = modelRun.ScheduledAtInSec
+		}
+		index := int64(-1)
+		if options.RecurringRunIndex != nil {
+			index = *options.RecurringRunIndex
+		}
+		formatter = util.NewSWFParameterFormatter(options.RunID, scheduledAt, options.RunAt, index)
+	}
 	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
 	workflow.OverrideParameters(formattedParams)
 

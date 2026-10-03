@@ -30,8 +30,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
+	authzv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// Permit schedule submission while continuing to deny every service-account grant.
+type workflowStatusRunCreateReview struct{ namespace string }
+
+func (c workflowStatusRunCreateReview) Create(_ context.Context, review *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+	attributes := review.Spec.ResourceAttributes
+	allowed := attributes != nil && *attributes == (authzv1.ResourceAttributes{
+		Namespace: c.namespace, Verb: common.RbacResourceVerbCreate,
+		Group: common.RbacPipelinesGroup, Version: common.RbacPipelinesVersion, Resource: common.RbacResourceTypeRuns,
+	})
+	return &authzv1.SubjectAccessReview{Status: authzv1.SubjectAccessReviewStatus{Allowed: allowed}}, nil
+}
 
 func statusWithCachedServiceAccount(storedSpec bool) v1alpha1.WorkflowStatus {
 	tmpl := *testWorkflow.Spec.Templates[0].DeepCopy()
@@ -83,7 +96,13 @@ func TestCreateRunAndJob_DiscardCallerWorkflowStatus(t *testing.T) {
 						require.NoError(t, err)
 						schedule, err := store.SwfClient().ScheduledWorkflow(job.Namespace).Get(context.Background(), job.K8SName, metav1.GetOptions{})
 						require.NoError(t, err)
-						executionSpec, err = util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, schedule.Spec.Workflow)
+						require.Nil(t, schedule.Spec.Workflow, "multi-user schedules defer execution to the API")
+						manager.subjectAccessReviewClient = workflowStatusRunCreateReview{namespace: job.Namespace}
+						run := &model.Run{DisplayName: "scheduled-tick", RecurringRunId: job.UUID}
+						require.NoError(t, manager.PrepareRecurringRun(multiUserContext(), run))
+						run, err = manager.CreateRun(multiUserContext(), run)
+						require.NoError(t, err)
+						executionSpec, err = store.ExecClient().Execution(run.Namespace).Get(context.Background(), run.K8SName, metav1.GetOptions{})
 						require.NoError(t, err)
 					} else {
 						run, err := manager.CreateRun(multiUserContext(), &model.Run{

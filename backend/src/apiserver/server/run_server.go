@@ -140,6 +140,9 @@ func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.R
 	if run.DisplayName == "" {
 		return nil, util.Wrapf(util.NewInvalidInputError("The run name is empty. Please specify a valid name"), "Failed to create a run due to invalid name")
 	}
+	if err := s.resourceManager.PrepareRecurringRun(ctx, run); err != nil {
+		return nil, util.Wrap(err, "Failed to prepare the recurring run")
+	}
 	experimentId, namespace, err := s.resourceManager.GetValidExperimentNamespacePair(run.ExperimentId, run.Namespace)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to create a run due to invalid experimentId and namespace combination")
@@ -160,8 +163,23 @@ func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.R
 	if err := validateRecurringRunNamespace(s.resourceManager, run); err != nil {
 		return nil, util.Wrap(err, "Failed to create a run for the referenced recurring run")
 	}
-	if err := canAccessReferencedPipeline(ctx, s.resourceManager, &run.PipelineSpec, run.Namespace); err != nil {
+	replay, err := s.resourceManager.GetRecurringRunReplay(ctx, run)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to acknowledge the recurring run")
+	}
+	pipelineSpec := run.PipelineSpec
+	if replay != nil && pipelineSpec.PipelineId != "" {
+		// Preparation restored this parent from the authorized job. A completed
+		// tick needs pipeline access, but not the deleted version's source.
+		pipelineSpec = model.PipelineSpec{PipelineId: pipelineSpec.PipelineId}
+	}
+	if err := canAccessReferencedPipeline(ctx, s.resourceManager, &pipelineSpec, run.Namespace); err != nil {
 		return nil, util.Wrap(err, "Failed to create a run due to authorization error on the referenced pipeline")
+	}
+	if replay != nil {
+		// Return this exact snapshot: state may advance during authorization,
+		// so never re-enter a path that could create another execution.
+		return replay, nil
 	}
 	return s.resourceManager.CreateRun(ctx, run)
 }

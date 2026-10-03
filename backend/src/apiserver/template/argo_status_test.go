@@ -63,3 +63,28 @@ func TestArgoFreshWorkflowsDiscardSubmittedStatus(t *testing.T) {
 	assert.Empty(t, scheduled.Status)
 	assert.Equal(t, original, wf)
 }
+
+func TestArgoScheduledRunParametersThroughAPI(t *testing.T) {
+	for _, tc := range []struct {
+		name, recurringID, want string
+		scheduledAt             int64
+	}{
+		{"scheduled", "job", "run-id/19700101000140/19700101000320/3", 100},
+		{"schedule-time-fallback", "job", "run-id/19700101000320/19700101000320/3", 0},
+		{"ordinary", "", "run-id/[[ScheduledTime]]/19700101000320/[[Index]]", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			value := workflowapi.AnyString("[[RunUUID]]/[[ScheduledTime]]/[[CurrentTime]]/[[Index]]")
+			wf := &workflowapi.Workflow{Spec: workflowapi.WorkflowSpec{
+				Entrypoint: "main", Templates: []workflowapi.Template{{Name: "main", Container: &corev1.Container{Image: "alpine"}}},
+				Arguments: workflowapi.Arguments{Parameters: []workflowapi.Parameter{{Name: "macros", Value: &value}}},
+			}}
+			tmpl, err := template.NewArgoTemplateFromWorkflow(wf)
+			require.NoError(t, err)
+			index := int64(3)
+			execution, err := tmpl.RunWorkflow(&model.Run{RecurringRunId: tc.recurringID, RunDetails: model.RunDetails{ScheduledAtInSec: tc.scheduledAt}}, template.RunWorkflowOptions{RunID: "run-id", RunAt: 200, RecurringRunIndex: &index})
+			require.NoError(t, err)
+			require.Equal(t, tc.want, execution.(*util.Workflow).GetWorkflowParametersAsMap()["macros"])
+		})
+	}
+}
