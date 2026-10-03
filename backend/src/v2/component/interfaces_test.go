@@ -74,7 +74,7 @@ func TestResolveArtifactBucketConfig_PreservesExplicitProviderQueryString(t *tes
 			Namespace: "kubeflow",
 		},
 		Data: map[string]string{
-			"defaultPipelineRoot": "minio://mlpipeline/v2/artifacts?endpoint=seaweedfs.kubeflow:9000&region=minio&disableSSL=true",
+			"defaultPipelineRoot": "minio://mlpipeline/v2/artifacts?endpoint=seaweedfs.kubeflow:9000&region=minio&disableSSL=false",
 		},
 	})
 
@@ -88,7 +88,7 @@ func TestResolveArtifactBucketConfig_PreservesExplicitProviderQueryString(t *tes
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		"minio://mlpipeline/v2/artifacts/run-1/system-container/executor-logs?endpoint=seaweedfs.kubeflow:9000&region=minio&disableSSL=true",
+		"minio://mlpipeline/v2/artifacts/run-1/system-container/executor-logs?endpoint=seaweedfs.kubeflow:9000&region=minio&disableSSL=false",
 		sessionLookupPath,
 	)
 	assert.NotContains(t, sessionLookupPath, "prefix=")

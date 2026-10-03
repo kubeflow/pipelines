@@ -53,6 +53,14 @@ func OpenBucket(
 	if sessionInfo != nil {
 		switch sessionInfo.Provider {
 		case "minio", "s3":
+			// When admin policy resolved structured S3 settings (endpoint,
+			// region, etc.), the URI's own query string must not be honored —
+			// it could redirect the client to an attacker-controlled endpoint.
+			// Strip it so we always enter createS3BucketSession below.
+			if config.QueryString != "" && sessionInfo != nil && HasStructuredS3Settings(sessionInfo.Params) {
+				glog.V(4).Infof("OpenBucket: stripping query string from URI for bucket %q — admin-resolved session takes precedence", config.BucketName)
+				config.QueryString = ""
+			}
 			if config.QueryString == "" {
 				s3Client, err1 := createS3BucketSession(ctx, namespace, sessionInfo, k8sClient)
 				if err1 != nil {
