@@ -28,7 +28,6 @@ import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter
 import { PipelineTaskTaskType } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import ArtifactPreview from 'src/components/ArtifactPreview';
-import NativeArtifactLineage from 'src/components/NativeArtifactLineage';
 import Banner from 'src/components/Banner';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import DetailsTable from 'src/components/DetailsTable';
@@ -59,11 +58,10 @@ import { classes } from 'typestyle';
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
   RELATED_TASKS = 1,
-  LINEAGE_EXPLORER = 2,
 }
 
 const RELATED_TASKS_PATH = 'lineage';
-const TAB_NAMES = ['Overview', 'Related tasks', 'Lineage Explorer'];
+const TAB_NAMES = ['Overview', 'Related tasks'];
 const LEGACY_KEY_RECONCILIATION_INTERVAL_MS = 10_000;
 const LEGACY_KEY_RECONCILIATION_ATTEMPTS = 4;
 const LEGACY_KEY_RECONCILIATION_WINDOW_MS = 60_000;
@@ -84,7 +82,7 @@ interface ArtifactDetailsState {
   visualizationRefreshGeneration: number;
 }
 
-export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, ArtifactDetailsState> {
+export class ArtifactDetailsPage extends Page<{}, ArtifactDetailsState> {
   private relationshipsTableRef = React.createRef<CustomTable>();
 
   public state: ArtifactDetailsState = { visualizationRefreshGeneration: 0 };
@@ -114,22 +112,6 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
     return (
       <div className={commonCss.page}>
         <Routes>
-          <Route
-            path='explorer'
-            element={
-              <>
-                <ArtifactTabs
-                  selectedTab={ArtifactDetailsTab.LINEAGE_EXPLORER}
-                  onSwitch={this.switchTab}
-                />
-                <NativeArtifactLineage
-                  key={this.id}
-                  artifactId={this.id}
-                  namespace={artifact.namespace}
-                />
-              </>
-            }
-          />
           <Route
             index
             element={
@@ -169,16 +151,7 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
         visualizationRefreshGeneration: state.visualizationRefreshGeneration + 1,
       }));
     }
-    await Promise.all([
-      this.load(),
-      this.relationshipsTableRef.current?.reload(),
-      this.props.queryClient?.invalidateQueries({
-        predicate: (query) =>
-          ['native-lineage', 'native-lineage-artifact', 'native-lineage-task'].includes(
-            String(query.queryKey[0]),
-          ),
-      }),
-    ]);
+    await Promise.all([this.load(), this.relationshipsTableRef.current?.reload()]);
   }
 
   private load = async (): Promise<void> => {
@@ -201,9 +174,6 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
   private switchTab = (selectedTab: number) => {
     const artifactPath = RoutePageFactory.artifactDetails(encodeURIComponent(this.id));
     switch (selectedTab) {
-      case ArtifactDetailsTab.LINEAGE_EXPLORER:
-        this.props.navigate(`${artifactPath}/explorer`);
-        return;
       case ArtifactDetailsTab.RELATED_TASKS:
         this.props.navigate(`${artifactPath}/${RELATED_TASKS_PATH}`);
         return;
@@ -589,10 +559,7 @@ function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): st
 }
 
 const EnhancedArtifactDetails = (props: PageProps) => {
-  const queryClient = useQueryClient();
-  return (
-    <ArtifactDetailsPage {...props} queryClient={queryClient} key={props.params[RouteParams.ID]} />
-  );
+  return <ArtifactDetailsPage {...props} key={props.params[RouteParams.ID]} />;
 };
 
 export default EnhancedArtifactDetails;

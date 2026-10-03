@@ -37,7 +37,7 @@ import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import EnhancedArtifactDetails, { ArtifactDetailsPage } from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
-import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import { testBestPractices } from 'src/TestUtils';
 
 vi.mock('src/components/ArtifactPreview', () => ({ default: () => <div>Artifact preview</div> }));
 
@@ -866,7 +866,6 @@ describe('ArtifactDetails', () => {
   });
 
   it('navigates native artifact tabs, browser Back, and encoded resource IDs', async () => {
-    mockResizeObserver();
     function RoutedArtifactDetails() {
       const location = useLocation();
       const navigate = useNavigate();
@@ -895,15 +894,11 @@ describe('ArtifactDetails', () => {
       fireEvent.click(screen.getByText('Related tasks'));
       await screen.findByText('Produced as dataset');
       expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
-      fireEvent.click(screen.getByText('Lineage Explorer'));
-      await waitFor(() =>
-        expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}/explorer`),
-      );
-      fireEvent.click(await screen.findByText('Overview'));
+      fireEvent.click(screen.getByText('Overview'));
       await screen.findByText('Artifact details');
       expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}`);
       await act(() => router.navigate(-1));
-      expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}/explorer`);
+      expect(router.state.location.pathname).toBe(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
       expect(screen.queryByText('Artifact details')).not.toBeInTheDocument();
       const artifactId = 'artifact/with space';
       await act(() => router.navigate(`/artifacts/${encodeURIComponent(artifactId)}`));
@@ -922,14 +917,11 @@ describe('ArtifactDetails', () => {
   });
 
   it('keeps the old lineage bookmark path but labels it as related tasks', async () => {
-    renderPage();
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('Producing and consuming tasks');
     await screen.findByText('Related tasks');
-
-    fireEvent.click(screen.getByText('Related tasks'));
-
-    expect(navigateSpy).toHaveBeenCalledWith(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
-    fireEvent.click(screen.getByText('Lineage Explorer'));
-    expect(navigateSpy).toHaveBeenCalledWith(`/artifacts/${TEST_ARTIFACT_ID}/explorer`);
+    expect(screen.queryByText('Lineage Explorer')).not.toBeInTheDocument();
   });
 
   it('shows a page error when the native service fails', async () => {
