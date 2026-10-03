@@ -1332,7 +1332,7 @@ exports[`Trigger > renders all week days enabled 1`] = `
             disabled=""
             id="_r_1e_"
             type="text"
-            value="0 0 0 ? *"
+            value="0 0 0 ? * *"
           />
           <fieldset
             aria-hidden="true"

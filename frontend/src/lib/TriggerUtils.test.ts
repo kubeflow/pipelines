@@ -110,10 +110,10 @@ describe('TriggerUtils', () => {
       return new Array(7).fill(false).map((_, i) => (selected.has(i) ? true : false));
     }
 
-    it('adds no days when building weekly cron with no selected days, no star date', () => {
-      expect(buildCron(undefined, PeriodicInterval.WEEK, setToSelectedDays(new Set()))).toBe(
-        '0 0 0 ? *',
-      );
+    it('builds a valid six-field weekly cron for every day when no day is selected, no start date', () => {
+      const cron = buildCron(undefined, PeriodicInterval.WEEK, setToSelectedDays(new Set()));
+      expect(cron).toBe('0 0 0 ? * *');
+      expect(cron.split(' ')).toHaveLength(6);
     });
 
     it('adds all days when building weekly cron, all days selected, no star date', () => {
