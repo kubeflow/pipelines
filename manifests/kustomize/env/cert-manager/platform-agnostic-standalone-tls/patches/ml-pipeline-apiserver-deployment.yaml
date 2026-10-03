@@ -17,7 +17,7 @@ spec:
             - "--tlsCertKeyPath=/etc/pki/tls/certs/tls.key"
           env:
             - name: CABUNDLE_SECRET_NAME
-              value: "kfp-api-tls-cert"
+              value: "argo-workflows-agent-ca-certificates"
             - name: METADATA_TLS_ENABLED
               value: "true"
             - name: ML_PIPELINE_SERVICE_HOST
@@ -53,4 +53,4 @@ spec:
       volumes:
         - name: tls-certs
           secret:
-            secretName: kfp-api-tls-cert
+            secretName: argo-workflows-agent-ca-certificates

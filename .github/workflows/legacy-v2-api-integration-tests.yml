@@ -108,9 +108,9 @@ jobs:
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true' }}
         run: |
-          echo "Waiting for kfp-api-tls-cert secret to be created by cert-manager..."
-          kubectl wait --for=jsonpath='{.data.ca\.crt}' --timeout=300s secret/kfp-api-tls-cert -n kubeflow
-          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          echo "Waiting for argo-workflows-agent-ca-certificates secret to be created by cert-manager..."
+          kubectl wait --for=jsonpath='{.data.ca\.crt}' --timeout=300s secret/argo-workflows-agent-ca-certificates -n kubeflow
+          kubectl get secret argo-workflows-agent-ca-certificates -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
       - name: Port-forward API server

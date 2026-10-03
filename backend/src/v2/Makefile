@@ -72,7 +72,11 @@ image-dev: image-launcher-v2-dev image-driver-dev
 configure-dev-runtime: image-dev
 	@test -n "$(strip $(DEV_KUBE_CONTEXT))" || { echo 'Set DEV_KUBE_CONTEXT to a development cluster' >&2; exit 1; }
 	kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" set env deployment/$(DEV_API_DEPLOYMENT) --containers=ml-pipeline-api-server \
-		V2_DRIVER_IMAGE="$$(cat build/driver-image.txt)" V2_LAUNCHER_IMAGE="$$(cat build/launcher-v2-image.txt)"
+		V2_LAUNCHER_IMAGE="$$(cat build/launcher-v2-image.txt)"
+	@set -e; driver_image="$$(cat build/driver-image.txt)"; \
+	patch="$$(kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" get configmap/ml-pipeline-driver-agent -o json | \
+		DRIVER_IMAGE="$$driver_image" python3 -c 'import json, os, re, sys; config = json.load(sys.stdin); sidecar, count = re.subn(r"(?m)^(\s*image:\s*)\S+\s*$$", lambda match: match.group(1) + os.environ["DRIVER_IMAGE"], config["data"]["sidecar.container"], count=1); assert count == 1, "driver image not found in plugin ConfigMap"; print(json.dumps({"data": {"sidecar.container": sidecar}}))')"; \
+	kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" patch configmap/ml-pipeline-driver-agent --type=merge --patch "$$patch"
 	kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" rollout status deployment/$(DEV_API_DEPLOYMENT) --timeout=180s
 
 # Install v2 backend compiler to ~/bin.
@@ -116,7 +120,7 @@ pipeline/%: build/compiler configure-dev-runtime
 	&& trap 'rm -rf "$$tmp"' EXIT \
 	&& mkdir -p "$$(dirname $${tmp}/$*)" \
 	&& echo "SDK Compiling to $${tmp}/$*-spec.yaml" && kfp dsl compile --py $(PIPELINE_SOURCES)/$*.py --output "$${tmp}/$*-spec.yaml" \
-	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*-spec.yaml" --driver "$$(cat build/driver-image.txt)" --launcher "$$(cat build/launcher-v2-image.txt)" > "$${tmp}/$*.yaml" \
+	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*-spec.yaml" --launcher "$$(cat build/launcher-v2-image.txt)" > "$${tmp}/$*.yaml" \
 	&& echo "Linting..." && if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
 	&& echo "Running the pipeline..." && kfp run submit -f "$${tmp}/$*-spec.yaml" -e default -r "$*_$${RANDOM}"
 
@@ -130,6 +134,12 @@ image-%-dev: FORCE
 	@mkdir -p build
 	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)$* ko publish ./cmd/$* --bare > build/$*-image.txt
 	@cat build/$*-image.txt
+build/driver: FORCE
+	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/backend/src/driver
+image-driver-dev: FORCE
+	@mkdir -p build
+	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)driver ko publish ../driver --bare > build/driver-image.txt
+	@cat build/driver-image.txt
 install-ko: FORCE
 	go install github.com/google/ko@$(KO_VERSION)
 
