@@ -1,0 +1,77 @@
+{
+  "sourceCommit": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+  "capturedAt": "2026-09-26",
+  "node": "24.14.0",
+  "npm": "11.17.0",
+  "ui": {
+    "command": "CI=true npm run test:ui:coverage -- --maxWorkers 2 --exclude scripts/visual-compare.test.mjs",
+    "testFiles": 127,
+    "tests": 1618,
+    "scope": "Unchanged application suite; new visual harness tested separately. Original Vitest coverage inclusion/exclusion configuration retained.",
+    "coverage": {
+      "lines": {
+        "total": 11620,
+        "covered": 5922,
+        "skipped": 0,
+        "pct": 50.96
+      },
+      "statements": {
+        "total": 11846,
+        "covered": 6075,
+        "skipped": 0,
+        "pct": 51.28
+      },
+      "functions": {
+        "total": 2678,
+        "covered": 1557,
+        "skipped": 0,
+        "pct": 58.14
+      },
+      "branches": {
+        "total": 9762,
+        "covered": 4247,
+        "skipped": 0,
+        "pct": 43.5
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    }
+  },
+  "server": {
+    "command": "CI=true KUBECONFIG=<test-only-kubeconfig> npm run test:server:coverage",
+    "testFiles": 29,
+    "tests": 1056,
+    "scope": "Includes four new mock task lookup regressions. Credential-free loopback kubeconfig initializes mocked Kubernetes clients; no live cluster used.",
+    "coverage": {
+      "lines": {
+        "covered": 2687,
+        "total": 3304,
+        "pct": 81.32
+      },
+      "statements": {
+        "covered": 2744,
+        "total": 3386,
+        "pct": 81.03
+      },
+      "functions": {
+        "covered": 439,
+        "total": 594,
+        "pct": 73.9
+      },
+      "branches": {
+        "covered": 2087,
+        "total": 2651,
+        "pct": 78.72
+      }
+    }
+  },
+  "captureHarness": {
+    "command": "npx vitest run scripts/visual-compare.test.mjs --maxWorkers 1",
+    "testFiles": 1,
+    "tests": 27
+  }
+}

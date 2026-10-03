@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "02cbc725ac9ddcd950f4400d8355dd78bfcd6c57",
+  "harnessCommit": "4699581fa9b4e2951105200724aa56e92c841791",
+  "sourceInputSha256": "e596a52adb4f74587371d4e35e77cfbce711ca5edd40683c2f2a5980648fc21b",
+  "sampleId": "run-task-navigation",
+  "sampleCount": 1,
+  "settings": {
+    "browser": "Chrome 154.0.0.0 (HeadlessChrome, reported by user agent)",
+    "chromeDevToolsMcp": "1.10.1",
+    "cpuSlowdownMultiplier": 4,
+    "networkPreset": "Fast 4G",
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "deviceScaleFactor": 1,
+      "isMobile": false,
+      "hasTouch": false,
+      "isLandscape": false
+    },
+    "colorScheme": "light",
+    "serving": "Production build via Vite preview and native mock API.",
+    "cacheMethod": "Existing warm document after the third valid filter trial; no reload between the two clicks. No cold-load claim."
+  },
+  "methodology": {
+    "actions": "Trusted Chrome DevTools MCP clicks: filtered run link, then the Chicago taxi trips dataset graph task.",
+    "measurement": "Ephemeral click listener marks start at click-handler execution. MutationObserver detects the readiness predicate, then two requestAnimationFrame callbacks precede the ready mark and performance.measure. Durations exclude MCP round-trip and idle time between actions; they are not input-to-next-paint measurements.",
+    "run-open": "Click the filtered run link to the XGBoost run. Readiness requires the known Chicago taxi trips dataset node in DagCanvas, followed by two animation frames. This does not assert that all async run resources have finished.",
+    "task-open": "Click the Chicago taxi trips dataset node. Readiness requires the panel containing the Task Details button, followed by two animation frames. This measures panel shell readiness, not logs or Task Details tab data.",
+    "durationPrecision": "Browser performance.measure durations and raw trace begin/end timestamp differences are preserved separately; their sub-millisecond clock differences are not hidden.",
+    "labInp": "135 ms is the tool-rounded observed INP for the two-click trace; the selected raw EventTiming duration is 134.52 ms. It does not describe full asynchronous route completion or field INP.",
+    "scope": "Single exploratory sample. No percentile, run-to-run stability, performance budget, production deployment or browser support qualification is established."
+  },
+  "postconditions": {
+    "route": "#/runs/details/e0115ac1-0479-4194-a22d-01e65e09a32b",
+    "taskDetailsVisible": true
+  },
+  "measures": [
+    {
+      "name": "run-open",
+      "browserMeasure": {
+        "name": "run-open",
+        "entryType": "measure",
+        "startTime": 91270.90000009537,
+        "duration": 589.3999998569489,
+        "navigationId": 2282
+      },
+      "browserDurationRoundedMs": 589.4,
+      "traceStartTsUs": 1277932435935,
+      "traceEndTsUs": 1277933025321,
+      "traceDurationMs": 589.386
+    },
+    {
+      "name": "task-open",
+      "browserMeasure": {
+        "name": "task-open",
+        "entryType": "measure",
+        "startTime": 129353.5,
+        "duration": 121.29999995231628,
+        "navigationId": 2282
+      },
+      "browserDurationRoundedMs": 121.3,
+      "traceStartTsUs": 1277970518513,
+      "traceEndTsUs": 1277970639830,
+      "traceDurationMs": 121.317
+    }
+  ],
+  "inpReportedMs": 135,
+  "inpTraceTimestampUs": 1277970505573,
+  "inpRawEventTimingDurationMs": 134.52,
+  "clsReported": "0.00",
+  "clsDefinition": "Tool-rounded trace summary value; 0.00 is not proof of no layout shift.",
+  "network": {
+    "responseCount": 5,
+    "statusCounts": {
+      "200": 5
+    },
+    "failedRequests": 0,
+    "resources": [
+      {
+        "url": "/static/favicon.ico",
+        "requestId": "17342.81",
+        "statusCode": 200,
+        "fromCache": false,
+        "fromServiceWorker": false,
+        "didFail": false
+      },
+      {
+        "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b",
+        "requestId": "17342.82",
+        "statusCode": 200,
+        "fromCache": false,
+        "fromServiceWorker": false,
+        "didFail": false
+      },
+      {
+        "url": "/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks?page_size=200&order_by=create_time%20asc",
+        "requestId": "17342.83",
+        "statusCode": 200,
+        "fromCache": false,
+        "fromServiceWorker": false,
+        "didFail": false
+      },
+      {
+        "url": "/apis/v2beta1/experiments/275ea11d-ac63-4ce3-bc33-ec81981ed56b",
+        "requestId": "17342.84",
+        "statusCode": 200,
+        "fromCache": false,
+        "fromServiceWorker": false,
+        "didFail": false
+      },
+      {
+        "url": "/artifacts/get?source=s3&peek=256&bucket=mlpipeline&key=private-artifacts%2Fkubeflow-user-example-com%2Fmock-run%2Fmock-dataset&keyEncoding=storage",
+        "requestId": "17342.85",
+        "statusCode": 200,
+        "fromCache": false,
+        "fromServiceWorker": false,
+        "didFail": false
+      }
+    ]
+  },
+  "validation": {
+    "rawTraceExists": true,
+    "browserAndTraceMeasureDurationsAgreeWithinMs": 0.1,
+    "reportedInpMatchesRoundedSelectedEventTiming": true,
+    "allTraceResponses200": true,
+    "failedTraceRequests": 0,
+    "consoleMessages": "Not assessed by this trace extraction."
+  },
+  "devToolsSummaryExcerpt": "## insight set id: NO_NAVIGATION\n\nURL: /\nBounds: {min: 1277929374780µs, max: 1277976196450µs}\nMetrics (lab / observed):\n  - INP: 135 ms, event: (eventKey: s-18133, ts: 1277970505573)\n  - CLS: 0.00\nMetrics (field / real users): n/a – no data for this page in CrUX",
+  "originalTrace": {
+    "fileName": "run-task-navigation.json.gz",
+    "gzipSha256": "93f98fdc1595043776ac658687bbb8e2362517fa1b8d5e228e5bf2875282d110",
+    "jsonSha256": "204946d3e97d17eeb777ea73ec2f6663799219eb2f3f0ce8c2d434ea5c88147f",
+    "gzipBytes": 1703566,
+    "jsonBytes": 9824345,
+    "traceEventCount": 18848
+  },
+  "filteredTraceArtifact": {
+    "path": "performance-navigation-trace.json.gz",
+    "gzipSha256": "9348d2eb5ea383109220bbe989da2538119b00eef096981924f3bc66738e1c23",
+    "jsonSha256": "2d67a71c04121822fb8b972821d83dbe94328adfbb1d3e0138b8e7803b217b88",
+    "gzipBytes": 6389,
+    "jsonBytes": 71628,
+    "retainedTraceEvents": 267,
+    "filterPolicy": {
+      "retainedEventNames": [
+        "EventDispatch",
+        "EventTiming",
+        "LayoutShift",
+        "MarkDOMContent",
+        "MarkLoad",
+        "ResourceChangePriority",
+        "ResourceFinish",
+        "ResourceReceiveResponse",
+        "ResourceSendRequest",
+        "ResourceWillSendRequest",
+        "Responsiveness.Renderer.UserInteraction",
+        "UserTiming::Measure",
+        "commitNavigationEnd",
+        "domComplete",
+        "domContentLoadedEventEnd",
+        "domContentLoadedEventStart",
+        "domInteractive",
+        "domLoading",
+        "fetchStart",
+        "firstContentfulPaint",
+        "firstPaint",
+        "largestContentfulPaint::Candidate",
+        "loadEventEnd",
+        "loadEventStart",
+        "navigationStart",
+        "responseEnd",
+        "run-open",
+        "run-open-ready",
+        "run-open-start",
+        "task-open",
+        "task-open-ready",
+        "task-open-start",
+        "unloadEventEnd",
+        "unloadEventStart"
+      ],
+      "retainedTopLevelEventFields": [
+        "cat",
+        "dur",
+        "id",
+        "id2",
+        "name",
+        "ph",
+        "pid",
+        "s",
+        "tdur",
+        "tid",
+        "ts",
+        "tts"
+      ],
+      "retainedArgsFields": ["callTime", "data", "frame", "startTime"],
+      "retainedDataFields": [
+        "callTime",
+        "cancelable",
+        "candidateIndex",
+        "commitFinishTime",
+        "connectionReused",
+        "cumulative_score",
+        "decodedBodyLength",
+        "didFail",
+        "documentLoaderURL",
+        "duration",
+        "encodedDataLength",
+        "enqueuedToMainThreadTime",
+        "fetchPriorityHint",
+        "finishTime",
+        "frame",
+        "fromCache",
+        "fromServiceWorker",
+        "had_recent_input",
+        "headers",
+        "interactionId",
+        "interactionOffset",
+        "interactionType",
+        "isLinkPreload",
+        "isLoadingMainFrame",
+        "isMainFrame",
+        "isOutermostMainFrame",
+        "is_main_frame",
+        "last_input_timestamp",
+        "maxDuration",
+        "mimeType",
+        "navigationId",
+        "nodeId",
+        "page",
+        "performanceTimelineNavigationId",
+        "priority",
+        "processingEnd",
+        "processingStart",
+        "protocol",
+        "renderBlocking",
+        "requestId",
+        "requestMethod",
+        "resourceType",
+        "score",
+        "size",
+        "startTime",
+        "statusCode",
+        "timeStamp",
+        "timing",
+        "type",
+        "url",
+        "weighted_score_delta"
+      ],
+      "retainedResponseHeaderNames": [
+        "cache-control",
+        "content-encoding",
+        "content-length",
+        "content-type",
+        "transfer-encoding",
+        "vary"
+      ],
+      "timingFields": "Numeric response timing fields are preserved.",
+      "urlNormalization": "The local preview origin is removed; URL path, query and fragment are preserved. about:blank is retained.",
+      "timestamps": "Original monotonic trace timestamps are preserved in microseconds. EventTiming and User Timing args retain their original browser-relative millisecond clocks.",
+      "excluded": "All unlisted events and fields are omitted, including CPU profiles, screenshots, netlog events, trace metadata, command lines, stack traces, initiator stacks, debug names and geometry, unlisted headers and local filesystem paths.",
+      "limits": "This filtered extract is not a full DevTools recording. Original tool event keys do not index this subset. It supports the reported custom timing, interaction and resource observations, not a CPU-profile or full critical-path analysis."
+    }
+  }
+}

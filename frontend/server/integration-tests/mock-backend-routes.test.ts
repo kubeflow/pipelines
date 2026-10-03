@@ -192,6 +192,31 @@ describe('mock backend routes', () => {
       );
     });
 
+    it('fetches a native task by run and task id for artifact lineage', async () => {
+      const response = await request
+        .get('/apis/v2beta1/runs/e0115ac1-0479-4194-a22d-01e65e09a32b/tasks/mock-task-producer')
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        run_id: 'e0115ac1-0479-4194-a22d-01e65e09a32b',
+        task_id: 'mock-task-producer',
+        display_name: 'Chicago taxi trips dataset',
+        outputs: {
+          artifacts: [{ artifact_key: 'table', artifacts: [{ artifact_id: 'mock-artifact-1' }] }],
+        },
+      });
+    });
+
+    it.each([
+      ['e0115ac1-0479-4194-a22d-01e65e09a32b', 'does-not-exist'],
+      ['mock-run-0', 'mock-task-producer'],
+      ['does-not-exist', 'mock-task-producer'],
+    ])('returns 404 for unavailable task %s/%s', async (runId, taskId) => {
+      await request
+        .get(`/apis/v2beta1/runs/${runId}/tasks/${taskId}`)
+        .expect(404, `No task was found with ID: ${taskId} in run: ${runId}`);
+    });
+
     it('lists and fetches a native artifact by id', async () => {
       const listResponse = await request.get('/apis/v2beta1/artifacts').expect(200);
 
