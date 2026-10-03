@@ -1269,11 +1269,11 @@ def test_run(backend, test_case, caplog):
             },
         ),
         TestCase(
-            name='pipeline filter removes non-matching runs',
+            name='pipeline filter sent to server',
             config={'scenario': 'pipeline_filter'},
             expected_output={
-                'count': 1,
-                'run_id': 'r-1'
+                'count': 2,
+                'pipeline_id': 'pid-1'
             },
         ),
         TestCase(
@@ -1319,24 +1319,28 @@ def test_list_runs(backend, test_case):
                 'next_page_token']
 
     elif scenario == 'pipeline_filter':
-        run_match = Mock(
-            run_id='r-1',
-            pipeline_version_reference=Mock(pipeline_id='pid-1'),
-        )
-        run_other = Mock(
-            run_id='r-2',
-            pipeline_version_reference=Mock(pipeline_id='pid-other'),
-        )
-        response = Mock(runs=[run_match, run_other], next_page_token='')
+        response = Mock(
+            runs=[Mock(run_id='r-1'), Mock(run_id='r-2')], next_page_token='')
         with patch.object(
                 backend, '_get_pipeline_id_by_name', return_value='pid-1'):
             with patch.object(
                     backend.run_api, 'run_service_list_runs',
-                    return_value=response):
+                    return_value=response) as mock_list:
                 result = backend.list_runs(pipeline='my-pipe')
+
+                predicates = json.loads(
+                    mock_list.call_args[1]['filter'])['predicates']
+                pipeline_predicates = [
+                    p for p in predicates if p['key'] == 'pipeline_id'
+                ]
+                assert len(pipeline_predicates) == 1
+                assert pipeline_predicates[0]['operation'] == 'EQUALS'
+                assert (pipeline_predicates[0]['stringValue'] ==
+                        test_case.expected_output['pipeline_id'])
+
+                # The server has already filtered; pruning here would
+                # shorten pages again.
                 assert len(result.runs) == test_case.expected_output['count']
-                assert result.runs[0].run_id == test_case.expected_output[
-                    'run_id']
 
     elif scenario == 'pipeline_not_found':
         with patch.object(

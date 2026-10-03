@@ -1,7 +1,7 @@
 from kfp import dsl
 
 
-@dsl.component(base_image="public.ecr.aws/docker/library/python:3.12")
+@dsl.component(base_image="docker.io/library/python:3.12")
 def comp(env_var: str) -> str:
     import os
 
