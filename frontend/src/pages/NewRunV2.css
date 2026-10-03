@@ -1,0 +1,101 @@
+.kfp-theme .kfp-run-form {
+  display: grid;
+  grid-template-columns: minmax(0, 760px) minmax(250px, 330px);
+  align-items: start;
+  gap: 24px;
+  padding: 0 32px 32px;
+}
+.kfp-theme .kfp-new-run-fields,
+.kfp-theme .kfp-run-form-summary {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.kfp-theme .kfp-new-run-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.kfp-theme .kfp-run-form h2,
+.kfp-theme .kfp-run-form h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.kfp-theme .kfp-run-form h3 {
+  margin-top: 8px;
+}
+.kfp-theme .kfp-run-form-summary {
+  position: sticky;
+  top: 16px;
+}
+.kfp-theme .kfp-run-form-summary dl {
+  margin: 20px 0;
+}
+.kfp-theme .kfp-run-form-summary dl > div {
+  margin: 16px 0;
+}
+.kfp-theme .kfp-run-form-summary dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.kfp-theme .kfp-run-form-summary dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-run-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.kfp-theme .kfp-run-form-validation {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--status-failed);
+}
+.kfp-theme .kfp-run-form input[type='radio'] {
+  accent-color: var(--primary);
+}
+@media (max-width: 1100px) {
+  .kfp-theme .kfp-run-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kfp-theme .kfp-run-form-summary {
+    position: static;
+  }
+}
+@media (max-width: 599px) {
+  .kfp-theme .kfp-run-form {
+    padding: 0 16px 16px;
+    gap: 16px;
+  }
+  .kfp-theme .kfp-new-run-fields,
+  .kfp-theme .kfp-run-form-summary {
+    padding: 16px;
+  }
+}
+
+.kfp-theme .kfp-new-run-pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.kfp-theme .kfp-new-run-mode {
+  /* Native fieldset layout keeps WebKit radio bounds stable during pointer activation. */
+  display: block;
+  padding: 0;
+  margin: 8px 0 0;
+  border: 0;
+}
+.kfp-theme .kfp-new-run-mode legend {
+  padding: 0;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.kfp-new-run-clone-link {
+  padding-top: 10px;
+}

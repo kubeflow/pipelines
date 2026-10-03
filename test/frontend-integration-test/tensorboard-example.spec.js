@@ -14,7 +14,7 @@
 
 const assert = require('assert');
 const {
-  buildTableRowSelector,
+  selectPipelineCard,
   clearDefaultInput,
   getValueFromDetailsTable,
   isSelectorDisplayed,
@@ -46,7 +46,7 @@ async function waitForTensorboardControls() {
     await waitForCondition(
       async () =>
         (await isSelectorDisplayed('button=Start Tensorboard')) ||
-        (await isSelectorDisplayed('button=Open Tensorboard')) ||
+        (await isSelectorDisplayed('a=Open Tensorboard')) ||
         (await isSelectorDisplayed('button=Stop Tensorboard')),
       {
         timeout: tensorboardControlTimeout,
@@ -79,7 +79,16 @@ async function waitForRunToSucceed() {
   }
 }
 
+async function closeNodeInspector() {
+  const closeButton = await $('.kfp-inspector-panel button[aria-label="close"]');
+  if (await closeButton.isDisplayed()) {
+    await closeButton.click();
+    await closeButton.waitForDisplayed({ timeout: uiTimeout, reverse: true });
+  }
+}
+
 async function openTensorboardVisualizations() {
+  await closeNodeInspector();
   await $('button=Graph').waitForDisplayed({ timeout: uiTimeout });
   await $('button=Graph').click();
   await waitForGraphNodeCount(1, { timeout: uiTimeout });
@@ -91,14 +100,14 @@ async function openTensorboardVisualizations() {
   await waitForTensorboardControls();
 }
 
-async function waitForOpenTensorboardButton() {
+async function waitForOpenTensorboardLink() {
   try {
     await waitForCondition(
-      async () => isSelectorDisplayed('button=Open Tensorboard'),
+      async () => isSelectorDisplayed('a=Open Tensorboard'),
       {
         timeout: tensorboardLaunchTimeout,
         interval: 2000,
-        timeoutMsg: 'timed out waiting for Open Tensorboard button to appear',
+        timeoutMsg: 'timed out waiting for Open Tensorboard link to appear',
       },
     );
   } catch (error) {
@@ -108,12 +117,11 @@ async function waitForOpenTensorboardButton() {
 }
 
 async function openTensorboardApp() {
-  const openTensorboardButton = await $('button=Open Tensorboard');
-  await openTensorboardButton.waitForDisplayed({ timeout: uiTimeout });
+  const openTensorboardLink = await $('a=Open Tensorboard');
+  await openTensorboardLink.waitForDisplayed({ timeout: uiTimeout });
 
-  const anchor = await openTensorboardButton.$('..');
-  const href = await anchor.getAttribute('href');
-  assert(href, 'expected Open Tensorboard button to link to a tensorboard URL');
+  const href = await openTensorboardLink.getAttribute('href');
+  assert(href, 'expected Open Tensorboard link to link to a tensorboard URL');
 
   await browser.url(href);
 
@@ -156,7 +164,7 @@ async function stopTensorboardIfRunning() {
     await stopButton.waitForDisplayed({ timeout: uiTimeout });
     await stopButton.click();
 
-    const dialog = await $('[role="dialog"]');
+    const dialog = await $('.kfp-page-dialog[role="dialog"]');
     await dialog.waitForDisplayed({ timeout: uiTimeout });
     await dialog.$('button=Stop').click();
 
@@ -184,25 +192,12 @@ async function deleteUploadedPipeline() {
   }
 
   try {
+    await closeNodeInspector();
     await $('#pipelinesBtn').waitForDisplayed({ timeout: uiTimeout });
     await $('#pipelinesBtn').click();
     await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
 
-    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
-    await $('#tableFilterBox').click();
-    await clearDefaultInput();
-    await browser.keys(pipelineName);
-
-    const pipelineRowSelector = buildTableRowSelector(pipelineName);
-    await waitForCondition(
-      async () => (await $(pipelineRowSelector).isExisting()),
-      {
-        timeout: uiTimeout,
-        timeoutMsg: `expected pipeline row for ${pipelineName} after filtering`,
-      },
-    );
-
-    await $(pipelineRowSelector).click();
+    await selectPipelineCard(pipelineName, { timeout: uiTimeout });
     await $('#deletePipelinesAndPipelineVersionsBtn').waitForDisplayed({ timeout: uiTimeout });
     await $('#deletePipelinesAndPipelineVersionsBtn').click();
 
@@ -294,7 +289,7 @@ describe('deploy tensorboard example run', () => {
       tensorboardStarted = true;
 
       // "Open Tensorboard" means the pod address exists; the app can still be warming up.
-      await waitForOpenTensorboardButton();
+      await waitForOpenTensorboardLink();
     });
 
     await runPhase('open tensorboard app', async () => {

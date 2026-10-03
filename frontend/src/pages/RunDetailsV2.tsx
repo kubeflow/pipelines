@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { NavigationProps } from 'src/lib/Navigation';
+import { Link } from 'react-router';
 import {
   MouseEvent as ReactMouseEvent,
   useCallback,
@@ -31,20 +32,23 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import { preserveDeepEqualData } from 'src/lib/v2/QueryUtils';
 import {
   PipelineTaskTaskType,
+  PipelineTaskTaskState,
   V2beta1PipelineTask,
   V2beta1Run,
   V2beta1RuntimeState,
   V2beta1RunStorageState,
 } from 'src/apisv2beta1/run';
-import MD2Tabs from 'src/atoms/MD2Tabs';
-import Banner from 'src/components/Banner';
-import DetailsTable from 'src/components/DetailsTable';
+import { InspectionTabs } from 'src/components/modernization/InspectionTabs';
+import { InspectionNotice as Banner } from 'src/components/modernization/InspectionNotice';
+import { InspectionFields as DetailsTable } from 'src/components/modernization/InspectionFields';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
-import SidePanel from 'src/components/SidePanel';
+import { InspectionPanel } from 'src/components/modernization/InspectionPanel';
+import { RunStatus } from 'src/components/modernization/RunStatus';
+import { Alert } from 'src/components/ui/alert';
+import { Button } from 'src/components/ui/button';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss, padding } from 'src/Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { Apis } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { KeyValue } from 'src/lib/DetailsTableTypes';
@@ -68,10 +72,8 @@ import {
   PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { classes } from 'typestyle';
 
 import { PageProps } from './Page';
-import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
@@ -168,6 +170,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [flowElements, setFlowElements] = useState(initialElements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedTaskTab, setSelectedTaskTab] = useState(0);
   const [selectedNodeState, setSelectedNodeState] = useState<SelectedNodeState | null>(null);
   const [layerNavigationError, setLayerNavigationError] = useState<string | null>(null);
   const [, forceUpdate] = useState();
@@ -302,6 +305,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const experimentId = run.experiment_id || null;
   const {
     data: experiment,
+    isPending: experimentIsPending,
     isError: experimentIsError,
     error: experimentError,
   } = useQuery<V2beta1Experiment, Error>({
@@ -309,6 +313,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     queryFn: () => getExperiment(experimentId),
   });
   const namespace = experiment?.namespace || selectedNamespace;
+  const namespacePending = !!experimentId && experimentIsPending && !namespace;
   const linkedTaskId = new URLParser(props).get(QUERY_PARAMS.taskId);
   const { location, navigate } = props;
   const clearLinkedTaskQuery = useCallback(() => {
@@ -374,6 +379,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         clearLinkedTaskQuery();
         setLayerNavigationError(null);
         setSelectedNodeState(null);
+        setSelectedTaskTab(0);
         setLayers(layers);
         setFlowElements(nextElements);
       } catch (error) {
@@ -496,6 +502,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
     const restoredFallbackGraph = restoreFallbackGraph();
     clearLinkedTaskQuery();
+    if (activeSelectedNode?.type !== element.type) setSelectedTaskTab(0);
     if (!restoredFallbackGraph) {
       setLayerNavigationError(null);
       setSelectedNodeState({ element });
@@ -503,6 +510,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   };
 
   const closeNodeDetails = () => {
+    setSelectedTaskTab(0);
     const restoredFallbackGraph = restoreFallbackGraph();
     clearLinkedTaskQuery();
     if (!restoredFallbackGraph) {
@@ -536,8 +544,43 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     );
   }, [buttons, runIdFromParams, run, runIsTerminal, updateToolbar, onRetryStarted]);
 
+  // listAllRunTasks resolves only after every page is loaded. Structural ROOT/DAG/LOOP
+  // records are intentionally excluded from this explicitly named runtime-task summary.
+  const runtimeTasks = tasks?.filter((task) => task.type === PipelineTaskTaskType.RUNTIME);
+  const failedTasks =
+    runtimeTasks?.filter((task) => task.state === PipelineTaskTaskState.FAILED) || [];
+  const failedTask = run.state === V2beta1RuntimeState.FAILED ? failedTasks[0] : undefined;
+  const failedTaskMessage =
+    failedTask?.status_metadata?.message ||
+    failedTask?.state_history
+      ?.slice()
+      .reverse()
+      .find((entry) => entry.state === PipelineTaskTaskState.FAILED)?.error?.message;
+  const pipelineId = run.pipeline_version_reference?.pipeline_id;
+  const pipelineVersionId = run.pipeline_version_reference?.pipeline_version_id;
+  const pipelineName = pipelineSpec.pipelineInfo?.name || pipelineId || 'Embedded pipeline';
+  const pipelineUrl =
+    pipelineId && pipelineVersionId
+      ? RoutePage.PIPELINE_DETAILS.replace(
+          ':' + RouteParams.pipelineId,
+          encodeURIComponent(pipelineId),
+        ).replace(':' + RouteParams.pipelineVersionId, encodeURIComponent(pipelineVersionId))
+      : undefined;
+
+  const openFailedTaskLogs = () => {
+    if (!failedTask?.task_id) return;
+    setSelectedTab(0);
+    setSelectedTaskTab(2);
+    const search = new URLSearchParams(location.search);
+    search.set(QUERY_PARAMS.taskId, failedTask.task_id);
+    navigate(
+      { pathname: location.pathname, search: `?${search}`, hash: location.hash },
+      { state: location.state },
+    );
+  };
+
   return (
-    <>
+    <div className='kfp-run-inspection'>
       {props.runRefreshError && (
         <Banner
           message='Unable to refresh this run. The last known run state is still shown. Refresh the page to try again.'
@@ -552,69 +595,131 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           mode='warning'
         />
       )}
-      <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs selectedTab={selectedTab} tabs={TAB_NAMES} onSwitch={setSelectedTab} />
-        {/* DAG tab */}
+      <dl className='kfp-run-summary' aria-label='Run summary'>
+        <div>
+          <dt>Pipeline</dt>
+          <dd>{pipelineUrl ? <Link to={pipelineUrl}>{pipelineName}</Link> : pipelineName}</dd>
+        </div>
+        <div>
+          <dt>Started</dt>
+          <dd>{formatDateString(getActualStartTime(run))}</dd>
+        </div>
+        <div>
+          <dt>Elapsed</dt>
+          <dd className='kfp-run-summary-code'>{getRunDurationV2(run)}</dd>
+        </div>
+        <div>
+          <dt>Runtime tasks</dt>
+          <dd>
+            {runtimeTasks ? (
+              <>
+                {
+                  runtimeTasks.filter(
+                    (task) =>
+                      task.state === PipelineTaskTaskState.SUCCEEDED ||
+                      task.state === PipelineTaskTaskState.CACHED,
+                  ).length
+                }{' '}
+                done · {failedTasks.length} failed ·{' '}
+                {runtimeTasks.filter((task) => task.state === PipelineTaskTaskState.RUNNING).length}{' '}
+                running ·{' '}
+                {runtimeTasks.filter((task) => task.state === PipelineTaskTaskState.SKIPPED).length}{' '}
+                skipped
+              </>
+            ) : isError ? (
+              'Unavailable'
+            ) : (
+              'Loading…'
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Run ID</dt>
+          <dd className='kfp-run-summary-code'>{run.run_id || runId}</dd>
+        </div>
+      </dl>
+      {failedTask && (
+        <Alert className='kfp-run-failure'>
+          <div>
+            <strong>Task {getTaskDisplayName(failedTask)} failed</strong>
+            {failedTaskMessage && <p>{failedTaskMessage}</p>}
+            {failedTasks.length > 1 && (
+              <span>{failedTasks.length - 1} other failed runtime tasks</span>
+            )}
+          </div>
+          {failedTask.task_id && (
+            <Button variant='destructive' onClick={openFailedTaskLogs}>
+              View logs
+            </Button>
+          )}
+        </Alert>
+      )}
+      <InspectionTabs
+        selectedTab={selectedTab}
+        tabs={TAB_NAMES}
+        onSwitch={(tab) => {
+          setSelectedTab(tab);
+          setSelectedTaskTab(0);
+        }}
+        ariaLabel='Run inspection'
+      >
         {selectedTab === 0 && (
-          <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-            <DagCanvas
-              layers={layers}
-              onLayersUpdate={layerChange}
-              elements={dynamicFlowElements}
-              selectedNodeId={activeSelectedNode?.id}
-              focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
-              onElementClick={onElementSelection}
-              setFlowElements={(elems) => setFlowElements(elems)}
-            ></DagCanvas>
-
-            {/* Side panel for Execution, Artifact, Sub-DAG. */}
-            <div className='z-20'>
-              <SidePanel
-                isOpen={!!activeSelectedNode}
-                title={getNodeName(activeSelectedNode)}
-                onClose={closeNodeDetails}
-                defaultWidth={'50%'}
-              >
-                <RuntimeNodeDetailsV2
-                  layers={activeLayers}
-                  onLayerChange={layerChange}
-                  pipelineJobString={pipelineJobStr}
-                  runId={runId}
-                  element={activeSelectedNode}
-                  elementRuntimeInfo={selectedNodeRuntimeInfo}
-                  namespace={namespace}
-                  sourceFinished={runIsTerminal}
-                ></RuntimeNodeDetailsV2>
-              </SidePanel>
+          <div className='kfp-run-graph'>
+            <div className='kfp-inspection-legacy kfp-run-graph-canvas'>
+              <DagCanvas
+                layers={layers}
+                onLayersUpdate={layerChange}
+                elements={dynamicFlowElements}
+                selectedNodeId={activeSelectedNode?.id}
+                focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
+                onElementClick={onElementSelection}
+                setFlowElements={(elems) => setFlowElements(elems)}
+              />
+            </div>
+            <InspectionPanel
+              isOpen={!!activeSelectedNode}
+              title={getNodeName(activeSelectedNode)}
+              onClose={closeNodeDetails}
+            >
+              <RuntimeNodeDetailsV2
+                layers={activeLayers}
+                onLayerChange={layerChange}
+                pipelineJobString={pipelineJobStr}
+                runId={runId}
+                element={activeSelectedNode}
+                elementRuntimeInfo={selectedNodeRuntimeInfo}
+                namespace={namespace}
+                namespacePending={namespacePending}
+                sourceFinished={runIsTerminal}
+                selectedTaskTab={selectedTaskTab}
+                onTaskTabChange={setSelectedTaskTab}
+              />
+            </InspectionPanel>
+          </div>
+        )}
+        {selectedTab === 1 && (
+          <div className='kfp-inspection-scroll'>
+            <div className='kfp-inspection-details-card'>
+              <DetailsTable title='Run details' fields={getDetailsFields(run)} />
+              {!!run.runtime_config?.parameters && (
+                <DetailsTable
+                  title='Run parameters'
+                  fields={Object.entries(run.runtime_config?.parameters).map((param) => [
+                    param[0],
+                    param[1],
+                  ])}
+                />
+              )}
             </div>
           </div>
         )}
-
-        {/* Run details tab */}
-        {selectedTab === 1 && (
-          <div className={padding()}>
-            <DetailsTable title='Run details' fields={getDetailsFields(run)} />
-
-            {!!run.runtime_config?.parameters && (
-              <DetailsTable
-                title='Run parameters'
-                fields={Object.entries(run.runtime_config?.parameters).map((param) => [
-                  param[0],
-                  param[1],
-                ])}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Pipeline Spec tab */}
         {selectedTab === 2 && (
-          <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
+          <div className='kfp-inspection-legacy kfp-inspection-spec' data-testid='spec-ir'>
             <PipelineSpecTabContent templateString={pipelineJobStr || ''} />
           </div>
         )}
-      </div>
-    </>
+      </InspectionTabs>
+    </div>
   );
 }
 
@@ -644,9 +749,9 @@ function updateToolBar(
   const runMetadata = run;
   if (runMetadata) {
     const pageTitle = (
-      <div className={commonCss.flex}>
-        {statusToIcon(runMetadata.state, runMetadata.created_at)}
-        <span style={{ marginLeft: 10 }}>{runMetadata.display_name || 'Run name unknown'}</span>
+      <div className='kfp-inspection-run-title'>
+        <RunStatus state={runMetadata.state} />
+        <span>{runMetadata.display_name || 'Run name unknown'}</span>
       </div>
     );
 

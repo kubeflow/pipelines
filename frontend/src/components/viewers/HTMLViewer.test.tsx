@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import HTMLViewer, { HTMLViewerConfig } from './HTMLViewer';
 import { PlotType } from './Viewer';
 import { flushPromisesInAct } from '../../TestUtils';
@@ -50,13 +50,22 @@ describe('HTMLViewer', () => {
     expect(iframe?.src).toEqual('about:blank');
   });
 
-  it('cannot be accessed from main frame of the other way around (no allow-same-origin)', async () => {
-    const { container } = render(<HTMLViewer configs={[config]} />);
-    await flushPromisesInAct();
-    const iframe = container.querySelector('iframe') as HTMLIFrameElement | null;
-    expect(iframe).not.toBeNull();
-    expect((iframe as any)?.window).toBeUndefined();
-    expect((iframe as any)?.document).toBeUndefined();
+  it('keeps scripts inside an opaque-origin sandbox', () => {
+    render(<HTMLViewer configs={[config]} />);
+    expect(screen.getByTitle('HTML report')).toHaveAttribute('sandbox', 'allow-scripts');
+  });
+
+  it('renders, updates, and clears asynchronous report configs', () => {
+    const { rerender } = render(<HTMLViewer configs={[]} />);
+    expect(screen.queryByTitle('HTML report')).not.toBeInTheDocument();
+    rerender(<HTMLViewer configs={[config]} maxDimension={100} />);
+    expect(screen.getByTitle('HTML report')).toHaveAttribute('srcdoc', html);
+    expect(screen.getByTitle('HTML report')).toHaveStyle({ height: '100px', minHeight: '100px' });
+    rerender(<HTMLViewer configs={[{ ...config, htmlContent: '<p>Updated</p>' }]} />);
+    expect(screen.getByTitle('HTML report')).toHaveAttribute('srcdoc', '<p>Updated</p>');
+    expect(screen.getByTitle('HTML report')).toHaveStyle({ minHeight: '600px' });
+    rerender(<HTMLViewer configs={[]} />);
+    expect(screen.queryByTitle('HTML report')).not.toBeInTheDocument();
   });
 
   it('returns a user friendly display name', () => {

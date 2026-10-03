@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Button } from '@mui/material';
+import { Button } from '../ui/button';
 import {
   ComponentSpec,
   ParameterType_ParameterTypeEnum,
@@ -31,15 +31,9 @@ import {
   PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import DetailsTable from '../DetailsTable';
+import { InspectionFields } from '../modernization/InspectionFields';
 
-const NODE_INFO_UNKNOWN = (
-  <div className='relative flex flex-col h-screen'>
-    <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'>
-      Unable to retrieve node info
-    </div>
-  </div>
-);
+const NODE_INFO_UNKNOWN = <p className='kfp-pipeline-loading'>Unable to retrieve node info</p>;
 
 interface StaticNodeDetailsV2Props {
   templateString: string;
@@ -126,40 +120,38 @@ function TaskNodeDetail({
     <div>
       {componentDag && (
         <div>
-          <Button variant='contained' onClick={onSubDagOpenClick}>
-            Open Sub-DAG
-          </Button>
+          <Button onClick={onSubDagOpenClick}>Open Sub-DAG</Button>
         </div>
       )}
       {inputArtifacts && (
         <div>
-          <DetailsTable title='Input Artifacts' fields={inputArtifacts} />
+          <InspectionFields title='Input Artifacts' fields={inputArtifacts} />
         </div>
       )}
       {inputParameters && (
         <div>
-          <DetailsTable title='Input Parameters' fields={inputParameters} />
+          <InspectionFields title='Input Parameters' fields={inputParameters} />
         </div>
       )}
       {outputArtifacts && (
         <div>
-          <DetailsTable title='Output Artifacts' fields={outputArtifacts} />
+          <InspectionFields title='Output Artifacts' fields={outputArtifacts} />
         </div>
       )}
       {outputParameters && (
         <div>
-          <DetailsTable title='Output Parameters' fields={outputParameters} />
+          <InspectionFields title='Output Parameters' fields={outputParameters} />
         </div>
       )}
       {image && (
         <div>
-          <div className='text-xl font-bold pt-6'>Image</div>
-          <div className='font-mono '>{image}</div>
+          <h3>Image</h3>
+          <pre>{image}</pre>
         </div>
       )}
       {command && (
         <div>
-          <div className='text-xl font-bold pt-6'>Command</div>
+          <h3>Command</h3>
           <div className='font-mono'>
             {command.map((cmd, index) => {
               return (
@@ -173,7 +165,7 @@ function TaskNodeDetail({
       )}
       {args && (
         <div>
-          <div className='text-xl font-bold pt-6'>Arguments</div>
+          <h3>Arguments</h3>
           <div className='font-mono'>
             {args.map((arg, index) => {
               return (
@@ -213,7 +205,7 @@ function ArtifactNodeDetail({ pipelineSpec, element, layers }: ArtifactNodeDetai
     <div>
       {artifactInfo && (
         <div>
-          <DetailsTable title='Artifact Info' fields={artifactInfo} />
+          <InspectionFields title='Artifact Info' fields={artifactInfo} />
         </div>
       )}
     </div>

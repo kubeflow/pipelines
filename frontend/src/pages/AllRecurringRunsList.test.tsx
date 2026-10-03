@@ -21,7 +21,7 @@ import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { AllRecurringRunsList } from './AllRecurringRunsList';
 import { PageProps } from './Page';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 
 let lastRecurringRunListProps: any = null;
 

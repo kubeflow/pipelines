@@ -26,8 +26,8 @@ import { Description } from 'src/components/Description';
 import { Apis, ListRequest, PipelineVersionSortKeys } from 'src/lib/Apis';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { commonCss } from 'src/Css';
-import { Tooltip } from '@mui/material';
+import { ResourceTable } from 'src/components/modernization/ResourceTable';
+import 'src/components/modernization/Pipelines.css';
 
 export interface PipelineVersionListProps extends NavigationProps {
   pipelineId?: string;
@@ -36,23 +36,23 @@ export interface PipelineVersionListProps extends NavigationProps {
   disableSorting?: boolean;
   noFilterBox?: boolean;
   onError: (message: string, error: Error) => void;
+  onLoadSuccess?: () => void;
   onSelectionChange?: (selectedIds: string[]) => void;
   selectedIds?: string[];
 }
 
 interface PipelineVersionListState {
   pipelineVersions: V2beta1PipelineVersion[];
+  loadError: boolean;
 }
 
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
 ) => {
   return (
-    <Tooltip title={props.value || ''} enterDelay={300} placement='bottom-start'>
-      <span>
-        <Description description={props.value || ''} forceInline={true} />
-      </span>
-    </Tooltip>
+    <span title={props.value || ''}>
+      <Description description={props.value || ''} forceInline={true} />
+    </span>
   );
 };
 class PipelineVersionList extends React.PureComponent<
@@ -60,47 +60,40 @@ class PipelineVersionList extends React.PureComponent<
   PipelineVersionListState
 > {
   private _tableRef = React.createRef<CustomTable>();
+  private _loadGeneration = 0;
+  private _isMounted = false;
 
   constructor(props: any) {
     super(props);
 
     this.state = {
       pipelineVersions: [],
+      loadError: false,
     };
+  }
+
+  public componentDidMount(): void {
+    this._isMounted = true;
+  }
+  public componentWillUnmount(): void {
+    this._isMounted = false;
   }
 
   public _nameCustomRenderer: React.FC<
     CustomRendererProps<{ display_name?: string; name: string }>
-  > = (props) => {
-    return (
-      <Tooltip
-        title={'Name: ' + (props.value?.name || '')}
-        enterDelay={300}
-        placement='bottom-start'
-      >
-        {this.props.pipelineId ? (
-          <Link
-            className={commonCss.link}
-            onClick={(e) => e.stopPropagation()}
-            to={RoutePage.PIPELINE_DETAILS.replace(
-              ':' + RouteParams.pipelineId,
-              this.props.pipelineId,
-            ).replace(':' + RouteParams.pipelineVersionId, props.id)}
-          >
-            {props.value?.display_name || props.value?.name}
-          </Link>
-        ) : (
-          <Link
-            className={commonCss.link}
-            onClick={(e) => e.stopPropagation()}
-            to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineVersionId, props.id)}
-          >
-            {props.value?.display_name || props.value?.name}
-          </Link>
-        )}
-      </Tooltip>
-    );
-  };
+  > = (props) => (
+    <Link
+      className='kfp-pipeline-version-link'
+      title={'Name: ' + (props.value?.name || '')}
+      onClick={(event) => event.stopPropagation()}
+      to={RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId,
+        encodeURIComponent(this.props.pipelineId || ''),
+      ).replace(':' + RouteParams.pipelineVersionId, encodeURIComponent(props.id))}
+    >
+      {props.value?.display_name || props.value?.name}
+    </Link>
+  );
 
   public render(): React.JSX.Element {
     const columns: Column[] = [
@@ -117,6 +110,7 @@ class PipelineVersionList extends React.PureComponent<
     const rows: Row[] = this.state.pipelineVersions.map((v) => {
       const row = {
         id: v.pipeline_version_id!,
+        error: v.error?.message,
         otherFields: [
           { display_name: v.display_name, name: v.name },
           v.description,
@@ -129,6 +123,21 @@ class PipelineVersionList extends React.PureComponent<
     return (
       <div>
         <CustomTable
+          renderTable={(table) => (
+            <ResourceTable
+              table={table}
+              label='Pipeline versions'
+              singular='version'
+              plural='versions'
+              getRowLabel={(row) => {
+                const value = row.otherFields[0] as { display_name?: string; name?: string };
+                return value.display_name || value.name || row.id;
+              }}
+            />
+          )}
+          errorMessage={
+            this.state.loadError ? 'Unable to load pipeline versions. Try Refresh.' : undefined
+          }
           columns={columns}
           rows={rows}
           selectedIds={this.props.selectedIds}
@@ -147,29 +156,28 @@ class PipelineVersionList extends React.PureComponent<
   }
 
   protected async _loadPipelineVersions(request: ListRequest): Promise<string> {
-    let response: V2beta1ListPipelineVersionsResponse | null = null;
-
-    if (this.props.pipelineId) {
-      try {
-        response = await Apis.pipelineServiceApiV2.listPipelineVersions(
+    const generation = ++this._loadGeneration;
+    if (!this.props.pipelineId) return '';
+    try {
+      const response: V2beta1ListPipelineVersionsResponse =
+        await Apis.pipelineServiceApiV2.listPipelineVersions(
           this.props.pipelineId,
           request.pageToken,
           request.pageSize,
           request.sortBy,
           request.filter,
         );
-      } catch (err) {
-        const error = new Error(await errorToMessage(err));
-        this.props.onError('Error: failed to fetch runs.', error);
-        // No point in continuing if we couldn't retrieve any runs.
-        return '';
-      }
-
-      this.setState({
-        pipelineVersions: response.pipeline_versions || [],
-      });
+      if (!this._isMounted || generation !== this._loadGeneration) return '';
+      this.setState({ pipelineVersions: response.pipeline_versions || [], loadError: false });
+      this.props.onLoadSuccess?.();
+      return response.next_page_token || '';
+    } catch (err) {
+      const error = new Error(await errorToMessage(err));
+      if (!this._isMounted || generation !== this._loadGeneration) return '';
+      this.setState({ loadError: true });
+      this.props.onError('Error: failed to fetch pipeline versions.', error);
+      return '';
     }
-    return response ? response.next_page_token || '' : '';
   }
 }
 

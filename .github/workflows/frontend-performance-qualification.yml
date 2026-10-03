@@ -1,0 +1,142 @@
+name: Frontend Performance Qualification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/workflows/frontend-performance-qualification.yml'
+      - 'frontend/src/**'
+      - 'frontend/scripts/**'
+      - 'frontend/mock-backend/**'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+      - 'frontend/.nvmrc'
+      - 'frontend/vite.config.mts'
+      - 'frontend/docs/ui-modernization/layout-stability/protocol.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build performance / ${{ matrix.variant }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: legacy
+            ref: '02cbc725ac9ddcd950f4400d8355dd78bfcd6c57'
+          - variant: checkpoint
+            ref: 'e79f8d423e6b118e5df94815ee2f36f68570a9a9'
+          - variant: candidate
+            ref: ''
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.ref || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Set up source-pinned npm
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci
+      - name: Build immutable source
+        run: npm run build
+      - name: Record source and every emitted asset
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { createHash } from 'node:crypto';
+          import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+          import { resolve } from 'node:path';
+          const root = resolve('build');
+          const assets = await Promise.all((await readdir(root, {recursive:true, withFileTypes:true}))
+            .filter(item => item.isFile()).map(item => resolve(item.parentPath, item.name)).sort()
+            .map(async path => { const bytes = await readFile(path); return {
+              path: path.slice(root.length+1), bytes: bytes.length,
+              sha256: createHash('sha256').update(bytes).digest('hex')
+            }; }));
+          if (!assets.length) throw new Error('Build is empty');
+          await mkdir('performance-build', {recursive:true});
+          await cp('build', 'performance-build/build', {recursive:true});
+          await writeFile('performance-build/provenance.json', JSON.stringify({
+            sourceSha: execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(), assets
+          },null,2)+'\n');
+          NODE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: performance-build-${{ matrix.variant }}
+          path: frontend/performance-build
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  measure:
+    name: Matched hosted performance
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      CI: 'true'
+      KFP_PERFORMANCE_PR_HEAD: ${{ github.event.pull_request.head.sha }}
+      KFP_PERFORMANCE_BUILDS: ${{ github.workspace }}/performance-builds
+      KFP_PERFORMANCE_OUTPUT: ${{ github.workspace }}/frontend/performance-results
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Set up pinned npm
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix mock-backend --ignore-scripts
+      - name: Verify performance evidence helpers without browsers
+        run: node --test scripts/performance-evidence.check.mjs
+      - uses: actions/download-artifact@v8
+        with:
+          name: performance-build-legacy
+          path: performance-builds/legacy
+      - uses: actions/download-artifact@v8
+        with:
+          name: performance-build-checkpoint
+          path: performance-builds/checkpoint
+      - uses: actions/download-artifact@v8
+        with:
+          name: performance-build-candidate
+          path: performance-builds/candidate
+      - name: Install locked Playwright Chromium on hosted runner
+        run: npx playwright install --with-deps chromium
+      - name: Measure matched builds and evaluate performance budgets
+        run: node scripts/run-performance-qualification.mjs
+      - name: Summarize measurements and configured budget status
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile, appendFile } from 'node:fs/promises';
+          try {
+            const report = JSON.parse(await readFile('performance-results/performance.json'));
+            await appendFile(process.env.GITHUB_STEP_SUMMARY,
+              `Performance measurement: ${report.status}\n\nAcceptance: ${report.acceptance}\n\nBudget comparisons pass: ${report.proposedBudgetsPass ?? 'not evaluated'}\n\nSee retained raw samples and Chromium traces. First editor-open gates: display median at most 4 s; initialized worker median at most 5 s.\n`);
+          } catch { await appendFile(process.env.GITHUB_STEP_SUMMARY, 'No complete performance report; inspect setup logs.\n'); }
+          NODE
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: frontend-performance-evidence
+          path: frontend/performance-results
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 7

@@ -15,17 +15,17 @@
  */
 
 import React from 'react';
-import { Button, CircularProgress } from '@mui/material';
+import { LoaderCircle } from 'lucide-react';
+import { Button } from './ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
-import { color } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import { StoragePath } from 'src/lib/StoragePath';
 import { parseArtifactFileLocation } from 'src/lib/v2/ArtifactFileUtils';
-import { stylesheet } from 'typestyle';
-import Banner from './Banner';
-import { ValueComponentProps } from './DetailsTable';
+import { InspectionNotice } from './modernization/InspectionNotice';
+import './ArtifactPreview.css';
+import type { ValueComponentProps } from 'src/lib/DetailsTableTypes';
 import { logger } from 'src/lib/Utils';
 
 export type ArtifactPreviewValue =
@@ -33,45 +33,6 @@ export type ArtifactPreviewValue =
   | {
       uri: string;
     };
-
-const css = stylesheet({
-  root: {
-    minWidth: 0,
-    width: '100%',
-  },
-  preview: {
-    maxHeight: 250,
-    overflowY: 'auto',
-    padding: 3,
-    backgroundColor: color.lightGrey,
-  },
-  topDiv: {
-    display: 'flex',
-    minWidth: 0,
-  },
-  downloadLink: {
-    display: 'block',
-    minWidth: 0,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  fullUri: {
-    fontSize: '0.85em',
-    $nest: {
-      '& summary': { cursor: 'pointer', color: color.theme },
-    },
-  },
-  uriText: {
-    display: 'block',
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: color.lightGrey,
-    whiteSpace: 'pre-wrap',
-    overflowWrap: 'anywhere',
-    userSelect: 'text',
-  },
-});
 
 function FullArtifactUri({ uri }: { uri: string }) {
   const [copyStatus, setCopyStatus] = React.useState('');
@@ -85,10 +46,10 @@ function FullArtifactUri({ uri }: { uri: string }) {
   };
 
   return (
-    <details className={css.fullUri}>
+    <details className='kfp-artifact-preview-fullUri'>
       <summary>Full URI</summary>
-      <code className={css.uriText}>{uri}</code>
-      <Button size='small' onClick={copyUri}>
+      <code className='kfp-artifact-preview-uriText'>{uri}</code>
+      <Button variant='secondary' size='sm' onClick={copyUri}>
         Copy URI
       </Button>
       <span role='status'>{copyStatus}</span>
@@ -142,7 +103,10 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
 
   if (!storage) {
     return (
-      <Banner message={'Can not retrieve storage path from artifact uri: ' + rawUri} mode='info' />
+      <InspectionNotice
+        message={'Can not retrieve storage path from artifact uri: ' + rawUri}
+        mode='info'
+      />
     );
   }
 
@@ -155,29 +119,44 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   });
 
   return (
-    <div className={css.root}>
-      <div className={css.topDiv}>
-        <ExternalLink className={css.downloadLink} download href={artifactDownloadUrl} title={uri}>
+    <div className='kfp-artifact-preview-root'>
+      <div className='kfp-artifact-preview-topDiv'>
+        <ExternalLink
+          className='kfp-artifact-preview-downloadLink'
+          download
+          href={artifactDownloadUrl}
+          title={uri}
+        >
           {linkText}
         </ExternalLink>
       </div>
       {uri && <FullArtifactUri key={uri} uri={uri} />}
       {!previewRequested && (
-        <Button size='small' onClick={() => setPreviewRequestedFor(previewRequestKey)}>
+        <Button
+          variant='secondary'
+          size='sm'
+          onClick={() => setPreviewRequestedFor(previewRequestKey)}
+        >
           Preview file contents
         </Button>
       )}
       {previewRequested && isFetching && (
-        <CircularProgress aria-label='Loading artifact preview' size={20} />
+        <span
+          role='progressbar'
+          aria-label='Loading artifact preview'
+          className='kfp-artifact-preview-loading'
+        >
+          <LoaderCircle size={20} aria-hidden='true' /> Loading preview…
+        </span>
       )}
       {previewRequested && isError && !isFetching && (
         <>
-          <Banner
+          <InspectionNotice
             message='Error in retrieving artifact preview.'
             mode='error'
             additionalInfo={error ? error.message : 'No error message'}
           />
-          <Button size='small' onClick={() => void refetch()}>
+          <Button variant='secondary' size='sm' onClick={() => void refetch()}>
             Retry preview
           </Button>
         </>
@@ -186,7 +165,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
         isSuccess &&
         !isFetching &&
         (data ? (
-          <div className={css.preview}>
+          <div className='kfp-artifact-preview-preview'>
             <small>
               <pre>{data}</pre>
             </small>

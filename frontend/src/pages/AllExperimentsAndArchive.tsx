@@ -17,12 +17,11 @@
 import type * as React from 'react';
 import ExperimentsPage from './ExperimentList';
 import ArchivedExperimentsPage from './ArchivedExperiments';
-import MD2Tabs from '../atoms/MD2Tabs';
+import { InspectionTabs } from '../components/modernization/InspectionTabs';
+import '../components/modernization/ExperimentWorkflows.css';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 
 export enum AllExperimentsAndArchiveTab {
   EXPERIMENTS = 0,
@@ -47,15 +46,17 @@ class AllExperimentsAndArchive extends Page<
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs
+      <div className='kfp-workflow-page'>
+        <InspectionTabs
           tabs={['Active', 'Archived']}
           selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)}
-        />
-        {this.props.view === 0 && <ExperimentsPage {...this.props} />}
+          ariaLabel='Experiments'
+        >
+          {this.props.view === 0 && <ExperimentsPage {...this.props} />}
 
-        {this.props.view === 1 && <ArchivedExperimentsPage {...this.props} />}
+          {this.props.view === 1 && <ArchivedExperimentsPage {...this.props} />}
+        </InspectionTabs>
       </div>
     );
   }

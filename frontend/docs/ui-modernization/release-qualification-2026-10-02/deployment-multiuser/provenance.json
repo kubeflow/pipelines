@@ -1,0 +1,17 @@
+{
+  "workflowRun": "https://github.com/kubeflow/pipelines/actions/runs/37064291781",
+  "runId": "37064291781",
+  "runAttempt": 1,
+  "jobId": 111028129134,
+  "headSha": "71543eb922a82b8716cb58f139618052866eece7",
+  "testedMergeSha": "00d243a9d92888c2746a7084bec45f36850ced5f",
+  "verifiedMergeParents": [
+    "463f15ff9df3be4b5720a3d9473d033a19509a65",
+    "71543eb922a82b8716cb58f139618052866eece7"
+  ],
+  "artifactId": 11252577191,
+  "artifactZipSha256": "9c4903e0eb302728b91d14949a5c86d4fc5293c6fa2d870f7e1628ded050aaca",
+  "fullStaticFilesIndependentlyHashed": true,
+  "retainedArtifact": "frontend-deployment-multiuser",
+  "scope": "Real Dex/OAuth2 Proxy and embedded Dashboard UI-only baseline, upgrade and rollback; namespace-scoped owners and other-owner denials."
+}

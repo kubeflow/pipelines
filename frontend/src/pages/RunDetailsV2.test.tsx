@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
@@ -40,6 +40,7 @@ import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PageProps } from './Page';
 import { RunDetailsV2 } from './RunDetailsV2';
+import { ThemeProvider } from 'src/components/modernization/ThemeProvider';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { readFileSync } from 'node:fs';
 
@@ -201,6 +202,10 @@ describe('RunDetailsV2', () => {
 
   beforeEach(() => {
     mockResizeObserver();
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+    );
 
     updateBannerSpy = vi.fn();
     updateDialogSpy = vi.fn();
@@ -212,7 +217,10 @@ describe('RunDetailsV2', () => {
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
   });
 
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it.each(['kubeflow', ''])(
     'renders TensorBoard controls with artifact namespace %j',
@@ -653,6 +661,92 @@ describe('RunDetailsV2', () => {
     );
   });
 
+  it('waits for the experiment namespace before reading logs while task details remain available', async () => {
+    const pendingExperiment = deferred<V2beta1Experiment>();
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockReturnValue(
+      pendingExperiment.promise,
+    );
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({
+      tasks: TEST_TASKS.map((task) =>
+        task.name === 'preprocess'
+          ? { ...task, pods: [{ name: 'preprocess-pod', type: PipelineTaskTaskPodType.EXECUTOR }] }
+          : task,
+      ),
+    });
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('resolved namespace logs');
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(await screen.findByText('preprocess'));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Task Details', exact: true }));
+    expect(await screen.findByText('preprocess-task')).toBeVisible();
+    fireEvent.click(screen.getByRole('tab', { name: 'Logs', exact: true }));
+    expect(await screen.findByText('Loading experiment namespace…')).toBeVisible();
+    expect(getPodLogsSpy).not.toHaveBeenCalled();
+
+    await act(async () => pendingExperiment.resolve({ ...TEST_EXPERIMENT, namespace: 'team-a' }));
+    expect(await screen.findByText('resolved namespace logs')).toBeVisible();
+    expect(getPodLogsSpy).toHaveBeenCalledExactlyOnceWith(
+      RUN_ID,
+      'preprocess-pod',
+      'team-a',
+      expect.any(String),
+    );
+    expect(screen.queryByText('Loading experiment namespace…')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    'selected namespace',
+    'no experiment',
+    'empty experiment namespace',
+    'failed experiment',
+  ])('preserves log fallback for %s', async (scenario) => {
+    const pendingExperiment = deferred<V2beta1Experiment>();
+    const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
+    if (scenario === 'selected namespace')
+      getExperimentSpy.mockReturnValue(pendingExperiment.promise);
+    else if (scenario === 'failed experiment')
+      getExperimentSpy.mockRejectedValue(new Error('Experiment unavailable'));
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({
+      tasks: TEST_TASKS.map((task) =>
+        task.name === 'preprocess'
+          ? { ...task, pods: [{ name: 'preprocess-pod', type: PipelineTaskTaskPodType.EXECUTOR }] }
+          : task,
+      ),
+    });
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('fallback logs');
+    render(
+      <NamespaceContext.Provider value={scenario === 'selected namespace' ? 'team-a' : undefined}>
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={
+              scenario === 'no experiment' ? { ...TEST_RUN, experiment_id: undefined } : TEST_RUN
+            }
+            {...generateProps()}
+          />
+        </CommonTestWrapper>
+      </NamespaceContext.Provider>,
+    );
+    fireEvent.click(await screen.findByText('preprocess'));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Logs', exact: true }));
+    expect(await screen.findByText('fallback logs')).toBeVisible();
+    expect(getPodLogsSpy).toHaveBeenCalledExactlyOnceWith(
+      RUN_ID,
+      'preprocess-pod',
+      scenario === 'selected namespace' ? 'team-a' : '',
+      expect.any(String),
+    );
+    expect(screen.queryByText('Loading experiment namespace…')).not.toBeInTheDocument();
+    if (scenario === 'no experiment') expect(getExperimentSpy).not.toHaveBeenCalled();
+    if (scenario === 'selected namespace') {
+      await act(async () => pendingExperiment.resolve({ ...TEST_EXPERIMENT, namespace: 'team-a' }));
+      expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+    }
+  });
+
   it('uses the selected namespace for pod logs when experiment lookup fails', async () => {
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
       new Error('Experiment not found'),
@@ -763,12 +857,14 @@ describe('RunDetailsV2', () => {
     const props = generateProps();
     const view = render(
       <CommonTestWrapper>
-        <RunDetailsV2
-          pipeline_job={v2YamlTemplateString}
-          run={TEST_RUN}
-          runRefreshError={new Error('Run service unavailable')}
-          {...props}
-        />
+        <ThemeProvider>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={TEST_RUN}
+            runRefreshError={new Error('Run service unavailable')}
+            {...props}
+          />
+        </ThemeProvider>
       </CommonTestWrapper>,
     );
 
@@ -780,7 +876,9 @@ describe('RunDetailsV2', () => {
 
     view.rerender(
       <CommonTestWrapper>
-        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+        <ThemeProvider>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+        </ThemeProvider>
       </CommonTestWrapper>,
     );
 
@@ -1342,6 +1440,87 @@ describe('RunDetailsV2', () => {
     expect(tasksSpy).toHaveBeenCalledTimes(4);
   });
 
+  it('summarizes runtime tasks only after all task pages load', async () => {
+    const nextPage = deferred<{ tasks: V2beta1PipelineTask[] }>();
+    vi.mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValueOnce({ tasks: [TEST_TASKS[0]], next_page_token: 'page-2' })
+      .mockReturnValueOnce(nextPage.promise);
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    const summary = screen.getByLabelText('Run summary');
+    await waitFor(() => expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2));
+    expect(summary).toHaveTextContent('Loading…');
+    await act(async () => nextPage.resolve({ tasks: TEST_TASKS.slice(1) }));
+    expect(summary).toHaveTextContent('2 done · 0 failed · 0 running · 0 skipped');
+  });
+
+  it('opens logs for a failed runtime task while preserving the existing navigation context', async () => {
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+      tasks: TEST_TASKS.map((task) => ({
+        ...task,
+        state: PipelineTaskTaskState.FAILED,
+        status_metadata: { message: 'Native task failed' },
+      })),
+    });
+    const props = generateProps();
+    props.location = {
+      pathname: '/runs/details/1',
+      search: '?view=graph',
+      hash: '#inspect',
+      state: { from: 'runs' },
+    } as any;
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          {...props}
+        />
+      </CommonTestWrapper>,
+    );
+    const failure = await screen.findByRole('alert');
+    expect(failure).toHaveTextContent('Task preprocess failed');
+    expect(failure).toHaveTextContent('Native task failed');
+    expect(failure).toHaveTextContent('1 other failed runtime tasks');
+    await userEvent.click(within(failure).getByRole('button', { name: 'View logs' }));
+    expect(navigateSpy).toHaveBeenLastCalledWith(
+      { pathname: '/runs/details/1', search: '?view=graph&task=preprocess-task', hash: '#inspect' },
+      { state: { from: 'runs' } },
+    );
+  });
+
+  it('does not offer runtime logs for a structural failure or a task that recovered', async () => {
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+      tasks: [
+        { ...TEST_TASKS[0], state: PipelineTaskTaskState.FAILED },
+        {
+          ...TEST_TASKS[1],
+          state: PipelineTaskTaskState.SUCCEEDED,
+          state_history: [
+            { state: PipelineTaskTaskState.FAILED, error: { message: 'Old failure' } },
+          ],
+        },
+      ],
+    });
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          {...generateProps()}
+        />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText('Run summary')).toHaveTextContent('1 done · 0 failed'),
+    );
+    expect(screen.queryByRole('button', { name: 'View logs' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Old failure')).not.toBeInTheDocument();
+  });
+
   describe('topbar tabs', () => {
     it('switches to Detail tab', async () => {
       render(
@@ -1354,17 +1533,18 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      const details = within(screen.getByRole('region', { name: 'Run details' }));
 
-      screen.getByText('Run details');
-      screen.getByText('Run ID');
-      screen.getByText('Workflow name');
-      screen.getByText('Status');
-      screen.getByText('Description');
-      screen.getByText('Created at');
-      screen.getByText('Started at');
-      screen.getByText('Finished at');
-      screen.getByText('Duration');
+      details.getByText('Run details');
+      details.getByText('Run ID');
+      details.getByText('Workflow name');
+      details.getByText('Status');
+      details.getByText('Description');
+      details.getByText('Created at');
+      details.getByText('Started at');
+      details.getByText('Finished at');
+      details.getByText('Duration');
     });
 
     it('shows content in Detail tab', async () => {
@@ -1378,15 +1558,16 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      const details = within(screen.getByRole('region', { name: 'Run details' }));
 
-      screen.getByText('test-run-id'); // 'Run ID'
-      screen.getByText('test run'); // 'Workflow name'
-      screen.getByText('test run description'); // 'Description'
-      screen.getByText('9/5/2018, 4:03:02 AM'); //'Created at'
-      screen.getByText('9/6/2018, 4:03:02 AM'); // 'Started at'
-      screen.getByText('9/7/2018, 4:03:02 AM'); // 'Finished at'
-      screen.getByText('48:00:00'); // 'Duration'
+      details.getByText('test-run-id'); // 'Run ID'
+      details.getByText('test run'); // 'Workflow name'
+      details.getByText('test run description'); // 'Description'
+      details.getByText('9/5/2018, 4:03:02 AM'); //'Created at'
+      details.getByText('9/6/2018, 4:03:02 AM'); // 'Started at'
+      details.getByText('9/7/2018, 4:03:02 AM'); // 'Finished at'
+      details.getByText('48:00:00'); // 'Duration'
     });
 
     it('handles no creation time', async () => {
@@ -1410,9 +1591,10 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      const details = within(screen.getByRole('region', { name: 'Run details' }));
 
-      expect(screen.getAllByText('-').length).toEqual(2); // create time and duration are empty.
+      expect(details.getAllByText('-').length).toEqual(2); // create time and duration are empty.
     });
 
     it('handles no finish time', async () => {
@@ -1436,9 +1618,10 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      const details = within(screen.getByRole('region', { name: 'Run details' }));
 
-      expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
+      expect(details.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
     });
 
     it('shows actual retry start time from state_history when RUNNING entry has update_time', async () => {
@@ -1462,10 +1645,11 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      const details = within(screen.getByRole('region', { name: 'Run details' }));
 
-      screen.getByText(retryTime.toLocaleString());
-      screen.getByText('Scheduled at');
+      details.getByText(retryTime.toLocaleString());
+      details.getByText('Scheduled at');
     });
 
     it('falls back to scheduled_at when RUNNING entry has no update_time', async () => {
@@ -1485,10 +1669,11 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      const details = within(screen.getByRole('region', { name: 'Run details' }));
 
-      screen.getByText(scheduledTime.toLocaleString());
-      expect(screen.queryByText('Scheduled at')).toBeNull();
+      details.getByText(scheduledTime.toLocaleString());
+      expect(details.queryByText('Scheduled at')).toBeNull();
     });
 
     it('does not show Scheduled at row when actual start equals scheduled_at', async () => {
@@ -1508,9 +1693,10 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      await userEvent.click(screen.getByText('Detail'));
+      await userEvent.click(screen.getByRole('tab', { name: 'Detail' }));
+      const details = within(screen.getByRole('region', { name: 'Run details' }));
 
-      expect(screen.queryByText('Scheduled at')).toBeNull();
+      expect(details.queryByText('Scheduled at')).toBeNull();
     });
 
     it('shows run parameters', async () => {

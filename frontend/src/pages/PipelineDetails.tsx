@@ -15,7 +15,6 @@
  */
 
 import type * as React from 'react';
-import { CircularProgress } from '@mui/material';
 import * as JsYaml from 'js-yaml';
 import { Apis } from 'src/lib/Apis';
 import {
@@ -25,15 +24,14 @@ import {
 } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
-import { classes } from 'typestyle';
 import {
   V2beta1ListPipelineVersionsResponse,
   V2beta1Pipeline,
   V2beta1PipelineVersion,
 } from 'src/apisv2beta1/pipeline';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss, padding } from 'src/Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
+import 'src/components/modernization/Pipelines.css';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
 import { logger } from 'src/lib/Utils';
@@ -152,12 +150,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     };
 
     return (
-      <div className={classes(commonCss.page, padding(20, 't'))}>
+      <div className='kfp-pipeline-detail'>
         {this.state.graphIsLoading && (
-          <div style={{ textAlign: 'center', paddingTop: 40 }}>
-            <CircularProgress />
-            <div>Currently loading pipeline information</div>
-          </div>
+          <p className='kfp-pipeline-loading' role='status'>
+            Currently loading pipeline information
+          </p>
         )}
         {!this.state.graphIsLoading && (
           <PipelineDetailsV2
@@ -415,7 +412,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       const selectedVersionPipelineTemplate = await this._getTemplateString(v2SelectedVersion);
       this.props.navigate(
         {
-          pathname: `/pipelines/details/${this.state.v2Pipeline.pipeline_id}/version/${versionId}`,
+          pathname: `/pipelines/details/${encodeURIComponent(this.state.v2Pipeline.pipeline_id || '')}/version/${encodeURIComponent(versionId)}`,
         },
         { replace: true },
       );

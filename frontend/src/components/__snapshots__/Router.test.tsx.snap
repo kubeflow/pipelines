@@ -3,489 +3,649 @@
 exports[`Router > initial render 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk"
+    class="kfp-theme kfp-application-theme"
+    data-theme="light"
   >
     <div
-      class="flexGrow_fr87ocy"
+      class="kfp-shell"
     >
-      <div
-        class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
-        data-testid="sideNav"
-        id="sideNav"
+      <a
+        class="kfp-shell-skip-link"
+        href="#_r_0_"
+      >
+        Skip to main content
+      </a>
+      <aside
+        aria-label="Pipelines sidebar"
+        class="kfp-shell-sidebar"
+        data-collapsed="false"
       >
         <div
-          style="flex-grow: 1;"
+          class="kfp-shell-brand"
         >
-          <div
-            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-          />
-          <a
-            aria-label="Pipeline List"
-            class="unstyled_f1ikaigl"
-            data-discover="true"
-            data-mui-internal-clone-element="true"
-            href="/pipelines"
-            id="pipelinesBtn"
+          <span
+            aria-hidden="true"
+            class="kfp-shell-brand-mark"
           >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-              tabindex="0"
-              type="button"
+            <svg
+              height="36px"
+              style="width: 18px; height: 18px;"
+              version="1.1"
+              viewBox="0 0 36 36"
+              width="36px"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
             >
-              <div
-                class="flex flex-row flex-shrink-0"
+              <g
+                fill="none"
+                fill-rule="evenodd"
+                id="Symbols"
+                stroke="none"
+                stroke-width="1"
               >
-                <div
-                  class="alignItems"
+                <g
+                  fill="var(--primary-foreground)"
+                  transform="translate(-19.000000, -20.000000)"
                 >
-                  <svg
-                    height="20px"
-                    version="1.1"
-                    viewBox="0 0 20 20"
-                    width="20px"
-                    xmlns="http://www.w3.org/2000/svg"
-                    xmlns:xlink="http://www.w3.org/1999/xlink"
+                  <g
+                    id="Group"
+                    transform="translate(16.000000, 20.000000)"
                   >
                     <g
-                      fill="none"
-                      fill-rule="evenodd"
-                      id="Symbols"
-                      stroke="none"
-                      stroke-width="1"
+                      id="Group-3"
+                      transform="translate(2.000000, 0.000000)"
                     >
                       <g
-                        transform="translate(-2.000000, -4.000000)"
+                        id="Group-31"
                       >
-                        <polygon
-                          id="Shape"
-                          points="0 0 24 0 24 24 0 24"
+                        <path
+                          d="M13.280615,28.2895445 L25.6611429,12.4910476 C25.8744762,12.2190476
+                           26.187619,12.043619 26.5310476,12.004 C26.875619,11.9641905
+                           27.219619,12.063619 27.4893333,12.28 L33.8839688,17.4104681
+                           C34.3147453,17.7560836 34.9441354,17.687047 35.2897509,17.2562705
+                           C35.4883656,17.0087164 35.5576731,16.6815774 35.4765096,16.3747496
+                           L33.6378449,9.42392156 C33.5041843,8.91863559 33.0039542,8.60151087
+                           32.489937,8.69619653 L11.6932298,12.5270996 C11.2025358,12.617489
+                           10.8535518,13.0557544 10.8753433,13.5542281 L11.494463,27.7164017
+                           C11.5185839,28.2681595 11.9854258,28.6958937 12.5371835,28.6717728
+                           C12.8289153,28.6590193 13.1004979,28.5193877 13.280615,28.2895445 Z"
+                          id="Fill-1"
                         />
                         <path
-                          d="M12.7244079,9.74960425 L17.4807112,9.74960425 C17.7675226,9.74960425
-                      18,9.51894323 18,9.23437272 L18,4.51523153 C18,4.23066102 17.7675226,4
-                      17.4807112,4 L12.7244079,4 C12.4375965,4 12.2051191,4.23066102
-                      12.2051191,4.51523153 L12.2051191,6.06125154 L9.98218019,6.06125154
-                      C9.52936032,6.06125154 9.16225043,6.42549311 9.16225043,6.87477501
-                      L9.16225043,11.2135669 L7.05995053,11.2135669 C6.71661861,10.189612
-                      5.74374462,9.45093267 4.59644424,9.45093267 C3.16249641,9.45093267
-                      2,10.6043462 2,12.0270903 C2,13.4498886 3.16249641,14.603248
-                      4.59644424,14.603248 C5.74379928,14.603248 6.71661861,13.8645687
-                      7.06000519,12.8406138 L9.16225043,12.8406138 L9.16225043,17.1794057
-                      C9.16225043,17.6286875 9.52936032,17.9929291 9.98218019,17.9929291
-                      L12.2051191,17.9929291 L12.2051191,19.4847685 C12.2051191,19.769339
-                      12.4375965,20 12.7244079,20 L17.4807112,20 C17.7675226,20 18,19.769339
-                      18,19.4847685 L18,14.7656273 C18,14.4810568 17.7675226,14.2503957
-                      17.4807112,14.2503957 L12.7244079,14.2503957 C12.4375965,14.2503957
-                      12.2051191,14.4810568 12.2051191,14.7656273 L12.2051191,16.3658822
-                      L10.80211,16.3658822 L10.80211,7.68829848 L12.2051191,7.68829848
-                      L12.2051191,9.23437272 C12.2051191,9.51894323 12.4375965,9.74960425
-                      12.7244079,9.74960425 Z"
-                          fill="#9aa0a6"
-                          id="Path"
+                          d="M23.7498017,32.7771547 L19.891889,29.5691687 C19.0425842,28.8629428
+                           17.7815773,28.9789311 17.0753514,29.8282359 C17.0566259,29.8507551
+                           17.0383974,29.8736828 17.020679,29.8970026 L13.7939072,34.1438508
+                           C13.4597836,34.5836006 13.5454106,35.2109489 13.9851603,35.5450725
+                           C14.1976017,35.7064863 14.4657379,35.776312 14.7299252,35.7390176
+                           L23.2502146,34.5362384 C23.7970773,34.4590398 24.1778152,33.9531381
+                           24.1006166,33.4062754 C24.0658889,33.1602706 23.9408305,32.9360017
+                           23.7498017,32.7771547 Z"
+                          id="Fill-2"
+                        />
+                        <path
+                          d="M21.4634549,25.9842193 L27.212891,30.4118587 C27.6364506,30.7380419
+                           28.2416494,30.6733984 28.5867577,30.2651111 L34.4465587,23.3325537
+                           C34.8030826,22.9107609 34.7501716,22.2798106 34.3283788,21.9232867
+                           C34.3167911,21.9134922 34.3049821,21.9039626 34.2929607,21.8947054
+                           L28.4845193,17.4218334 C28.0584482,17.0937314 27.4491884,17.1613382
+                           27.1054127,17.5748667 L21.304617,24.5526566 C20.9515571,24.9773532
+                           21.0096301,25.6078493 21.4343266,25.9609092 C21.4438902,25.9688597
+                           21.4536014,25.9766311 21.4634549,25.9842193 Z"
+                          id="Fill-3"
+                        />
+                        <path
+                          d="M10.9598921,2.32339463 L4.75822604,5.30992315 C3.66146381,5.83808955
+                           2.86490023,6.83694834 2.59402821,8.02374044 L1.06234161,14.7346349
+                           C0.939449081,15.2730733 1.27631553,15.8091879 1.8147539,15.9320804
+                           C2.18925077,16.0175551 2.57960826,15.8809608 2.81910588,15.5806364
+                           L7.53619048,9.66552381 L12.1756045,3.84785346 C12.5199474,3.41605902
+                           12.4490539,2.78687542 12.0172594,2.44253256 C11.7169385,2.20303583
+                           11.3059768,2.15673107 10.9598921,2.32339463 Z"
+                          id="Fill-4"
+                        />
+                        <path
+                          d="M8.21352315,30.9427621 L7.69054913,17.8213507 C7.66855444,17.2695041
+                           7.20336415,16.8399743 6.65151754,16.8619689 C6.36136678,16.8735334
+                           6.09057161,17.010649 5.90951901,17.2376757 L1.43617766,22.8469201
+                           C0.854379027,23.5764532 0.854372924,24.6113612 1.43616296,25.3409012
+                           L6.43248567,31.6060776 C6.77683005,32.0378709 7.4060139,32.1087622
+                           7.83780713,31.7644178 C8.0866848,31.565944 8.22620048,31.2608363
+                           8.21352315,30.9427621 Z"
+                          id="Fill-5"
+                        />
+                        <path
+                          d="M18.3667207,1.33231144 L13.9567062,6.86234847 C13.6123643,7.2941437
+                           13.6832593,7.92332714 14.1150545,8.267669 C14.3414298,8.44819552
+                           14.6349388,8.52174106 14.9196922,8.46928975 L27.7120482,6.11294919
+                           C28.2551955,6.01290195 28.6143991,5.49148974 28.5143518,4.94834244
+                           C28.4565321,4.63444455 28.2523431,4.36700464 27.9647717,4.22852098
+                           L20.7981397,0.777337579 C19.9574387,0.372487253 18.9484977,0.602779078
+                           18.3667207,1.33231144 Z"
+                          id="Fill-6"
                         />
                       </g>
                     </g>
-                  </svg>
-                </div>
+                  </g>
+                </g>
+              </g>
+            </svg>
+          </span>
+          <div
+            class="kfp-shell-brand-copy"
+          >
+            <span
+              class="kfp-shell-brand-title"
+            >
+              Pipelines
+            </span>
+          </div>
+        </div>
+        <div
+          class="kfp-shell-search-container"
+        >
+          <button
+            aria-keyshortcuts="Control+k Meta+k"
+            aria-label="Search"
+            class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground h-[34px] px-3 kfp-shell-search"
+            data-slot="button"
+            tabindex="0"
+            title="Search (Ctrl/Cmd+K)"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-search"
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m21 21-4.34-4.34"
+              />
+              <circle
+                cx="11"
+                cy="11"
+                r="8"
+              />
+            </svg>
+            <span>
+              Search
+            </span>
+            <kbd
+              aria-hidden="true"
+            >
+              Ctrl / ⌘ K
+            </kbd>
+          </button>
+        </div>
+        <nav
+          aria-label="Pipeline navigation"
+          class="kfp-shell-navigation"
+        >
+          <ul
+            class="kfp-shell-nav-list"
+          >
+            <li>
+              <a
+                aria-label="Pipelines"
+                class="kfp-shell-nav-link"
+                data-discover="true"
+                href="/pipelines"
+                id="pipelinesBtn"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-workflow"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    height="8"
+                    rx="2"
+                    width="8"
+                    x="3"
+                    y="3"
+                  />
+                  <path
+                    d="M7 11v4a2 2 0 0 0 2 2h4"
+                  />
+                  <rect
+                    height="8"
+                    rx="2"
+                    width="8"
+                    x="13"
+                    y="13"
+                  />
+                </svg>
                 <span
-                  class="label_f15zusur"
+                  class="kfp-shell-nav-label"
                 >
                   Pipelines
                 </span>
-              </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </a>
-          <div
-            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-          />
-          <a
-            aria-label="Experiment List"
-            class="unstyled_f1ikaigl"
-            data-discover="true"
-            data-mui-internal-clone-element="true"
-            href="/experiments"
-            id="experimentsBtn"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-              tabindex="0"
-              type="button"
-            >
-              <div
-                class="flex flex-row flex-shrink-0"
+              </a>
+            </li>
+            <li>
+              <a
+                aria-label="Experiments"
+                class="kfp-shell-nav-link"
+                data-discover="true"
+                href="/experiments"
               >
-                <div
-                  class="alignItems"
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-flask-conical"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
+                  viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <svg
-                    height="20"
-                    viewBox="0 0 20 12"
-                    width="20"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <g
-                      fill="none"
-                      fill-rule="evenodd"
-                      id="Symbols"
-                    >
-                      <g
-                        transform="translate(-26 -72)"
-                      >
-                        <g
-                          transform="translate(0 12)"
-                        >
-                          <g
-                            transform="translate(0 44)"
-                          >
-                            <g
-                              id="Group-3"
-                            >
-                              <g
-                                transform="translate(26 12)"
-                              >
-                                <polygon
-                                  points="0 0 20 0 20 20 0 20"
-                                />
-                                <path
-                                  d="M15,5.83333333 L13.825,4.65833333 L8.54166667,9.94166667
-                      L9.71666667,11.1166667 L15,5.83333333 Z M18.5333333,4.65833333
-                      L9.71666667,13.475 L6.23333333,10 L5.05833333,11.175 L9.71666667,15.8333333
-                      L19.7166667,5.83333333 L18.5333333,4.65833333 Z M0.341666667,11.175
-                      L5,15.8333333 L6.175,14.6583333 L1.525,10 L0.341666667,11.175 Z"
-                                  fill="#9aa0a6"
-                                  fill-rule="nonzero"
-                                />
-                              </g>
-                            </g>
-                          </g>
-                        </g>
-                      </g>
-                    </g>
-                  </svg>
-                </div>
+                  <path
+                    d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"
+                  />
+                  <path
+                    d="M6.453 15h11.094"
+                  />
+                  <path
+                    d="M8.5 2h7"
+                  />
+                </svg>
                 <span
-                  class="label_f15zusur"
+                  class="kfp-shell-nav-label"
                 >
                   Experiments
                 </span>
-              </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </a>
-          <div
-            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-          />
-          <a
-            aria-label="Runs List"
-            class="unstyled_f1ikaigl"
-            data-discover="true"
-            data-mui-internal-clone-element="true"
-            href="/runs"
-            id="runsBtn"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-              tabindex="0"
-              type="button"
-            >
-              <div
-                class="flex flex-row flex-shrink-0"
+              </a>
+            </li>
+            <li>
+              <a
+                aria-label="Runs"
+                class="kfp-shell-nav-link"
+                data-discover="true"
+                href="/runs"
+                id="runsBtn"
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="DirectionsRunIcon"
-                  focusable="false"
+                  class="lucide lucide-circle-play lucide-play-circle"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
                   viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2m-3.6 13.9 1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2z"
+                    d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
                   />
                 </svg>
                 <span
-                  class="label_f15zusur"
+                  class="kfp-shell-nav-label"
                 >
                   Runs
                 </span>
-              </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </a>
-          <div
-            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-          />
-          <a
-            aria-label="Recurring Runs List"
-            class="unstyled_f1ikaigl"
-            data-discover="true"
-            data-mui-internal-clone-element="true"
-            href="/recurringruns"
-            id="recurringRunsBtn"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-              tabindex="0"
-              type="button"
-            >
-              <div
-                class="flex flex-row flex-shrink-0"
+              </a>
+            </li>
+            <li>
+              <a
+                aria-label="Recurring runs"
+                class="kfp-shell-nav-link"
+                data-discover="true"
+                href="/recurringruns"
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="AlarmIcon"
-                  focusable="false"
+                  class="lucide lucide-repeat"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
                   viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
-                    d="m22 5.72-4.6-3.86-1.29 1.53 4.6 3.86zM7.88 3.39 6.6 1.86 2 5.71l1.29 1.53zM12.5 8H11v6l4.75 2.85.75-1.23-4-2.37zM12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9m0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7"
+                    d="m17 2 4 4-4 4"
+                  />
+                  <path
+                    d="M3 11v-1a4 4 0 0 1 4-4h14"
+                  />
+                  <path
+                    d="m7 22-4-4 4-4"
+                  />
+                  <path
+                    d="M21 13v1a4 4 0 0 1-4 4H3"
                   />
                 </svg>
                 <span
-                  class="label_f15zusur"
+                  class="kfp-shell-nav-label"
                 >
-                  Recurring Runs
+                  Recurring runs
                 </span>
-              </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </a>
-          <div
-            class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-          />
-          <a
-            aria-label="Artifacts List"
-            class="unstyled_f1ikaigl"
-            data-discover="true"
-            data-mui-internal-clone-element="true"
-            href="/artifacts"
-            id="artifactsBtn"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-              tabindex="0"
-              type="button"
-            >
-              <div
-                class="flex flex-row flex-shrink-0"
+              </a>
+            </li>
+            <li>
+              <a
+                aria-label="Artifacts"
+                class="kfp-shell-nav-link"
+                data-discover="true"
+                href="/artifacts"
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-                  data-testid="BubbleChartIcon"
-                  focusable="false"
+                  class="lucide lucide-package"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
                   viewBox="0 0 24 24"
+                  width="18"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <circle
-                    cx="7.2"
-                    cy="14.4"
-                    r="3.2"
+                  <path
+                    d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"
                   />
-                  <circle
-                    cx="14.8"
-                    cy="18"
-                    r="2"
+                  <path
+                    d="M12 22V12"
                   />
-                  <circle
-                    cx="15.2"
-                    cy="8.8"
-                    r="4.8"
+                  <polyline
+                    points="3.29 7 12 12 20.71 7"
+                  />
+                  <path
+                    d="m7.5 4.27 9 5.15"
                   />
                 </svg>
                 <span
-                  class="label_f15zusur"
+                  class="kfp-shell-nav-label"
                 >
                   Artifacts
                 </span>
-              </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </a>
-          <hr
-            class="separator_furuwhr"
-          />
-          <a
-            aria-label="Documentation"
-            class="unstyled_f1ikaigl"
-            data-mui-internal-clone-element="true"
-            href="https://www.kubeflow.org/docs/pipelines/"
-            rel="noopener noreferrer"
-            target="_blank"
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <footer
+          class="kfp-shell-footer"
+        >
+          <label
+            class="kfp-shell-theme-control"
+            for="_r_1_"
           >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-              tabindex="0"
-              type="button"
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-monitor"
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
+              viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              <div
-                class="flex flex-row flex-shrink-0"
-              >
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1e8lhs7 css-i4bv87-MuiSvgIcon-root"
-                  data-testid="DescriptionIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z"
-                  />
-                </svg>
-                <span
-                  class="label_f15zusur"
-                >
-                  Documentation
-                </span>
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium openInNewTabIcon_fiish9a css-i4bv87-MuiSvgIcon-root"
-                  data-testid="OpenInNewIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
-                  />
-                </svg>
-              </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+              <rect
+                height="14"
+                rx="2"
+                width="20"
+                x="2"
+                y="3"
               />
-            </button>
-          </a>
-          <a
-            aria-label="Github Repo"
-            class="unstyled_f1ikaigl"
-            data-mui-internal-clone-element="true"
-            href="https://github.com/kubeflow/pipelines"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-              tabindex="0"
-              type="button"
+              <line
+                x1="8"
+                x2="16"
+                y1="21"
+                y2="21"
+              />
+              <line
+                x1="12"
+                x2="12"
+                y1="17"
+                y2="21"
+              />
+            </svg>
+            <span>
+              Theme
+            </span>
+            <select
+              aria-label="Theme"
+              id="_r_1_"
             >
-              <div
-                class="flex flex-row flex-shrink-0"
+              <option
+                value="system"
               >
-                <img
-                  alt="Github"
-                  class="icon_f1e8lhs7 iconImage_f1w1k0by"
-                  src="/src/icons/GitHub-Mark-120px-plus.png"
-                />
-                <span
-                  class="label_f15zusur"
-                >
-                  Github Repo
-                </span>
-                <svg
-                  aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium openInNewTabIcon_fiish9a css-i4bv87-MuiSvgIcon-root"
-                  data-testid="OpenInNewIcon"
-                  focusable="false"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
-                  />
-                </svg>
-              </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
-            </button>
-          </a>
-          <hr
-            class="separator_furuwhr"
-          />
+                System
+              </option>
+              <option
+                value="light"
+              >
+                Light
+              </option>
+              <option
+                value="dark"
+              >
+                Dark
+              </option>
+            </select>
+          </label>
           <button
-            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
-            data-testid="chevron-toggle"
+            aria-expanded="true"
+            aria-label="Collapse navigation"
+            class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground h-[34px] px-3 kfp-shell-collapse"
+            data-slot="button"
             tabindex="0"
             type="button"
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="ChevronLeftIcon"
-              focusable="false"
+              class="lucide lucide-chevron-left"
+              fill="none"
+              height="18"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.6"
               viewBox="0 0 24 24"
+              width="18"
+              xmlns="http://www.w3.org/2000/svg"
             >
               <path
-                d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+                d="m15 18-6-6 6-6"
               />
             </svg>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
-          </button>
-        </div>
-        <div
-          class="infoVisible_f9kvncf"
-        >
-          <div
-            aria-label="Build date: unknown, Commit hash: unknown"
-            class="envMetadata_f15ayk27"
-            data-mui-internal-clone-element="true"
-          >
             <span>
-              Version: 
+              Collapse
             </span>
+          </button>
+          <div
+            class="kfp-shell-footer-links"
+          >
             <a
-              class="link_fvmzhfr unstyled_f1ikaigl"
-              href="https://www.github.com/kubeflow/pipelines"
-              rel="noopener"
+              aria-label="Documentation"
+              href="https://www.kubeflow.org/docs/pipelines/"
+              rel="noopener noreferrer"
+              target="_blank"
+              title="Documentation"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-book-open"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.6"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 5v16"
+                />
+                <path
+                  d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"
+                />
+              </svg>
+              <span
+                class="kfp-shell-visually-hidden"
+              >
+                Documentation
+              </span>
+            </a>
+            <a
+              aria-label="GitHub"
+              href="https://github.com/kubeflow/pipelines"
+              rel="noopener noreferrer"
+              target="_blank"
+              title="GitHub"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-code-xml lucide-code-2"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.6"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m18 16 4-4-4-4"
+                />
+                <path
+                  d="m6 8-4 4 4 4"
+                />
+                <path
+                  d="m14.5 4-5 16"
+                />
+              </svg>
+              <span
+                class="kfp-shell-visually-hidden"
+              >
+                GitHub
+              </span>
+            </a>
+            <a
+              aria-label="Report an issue"
+              href="https://github.com/kubeflow/pipelines/issues/new/choose"
+              rel="noopener noreferrer"
+              target="_blank"
+              title="Report an issue"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-message-square"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.6"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"
+                />
+              </svg>
+              <span
+                class="kfp-shell-visually-hidden"
+              >
+                Report an issue
+              </span>
+            </a>
+          </div>
+          <div
+            class="kfp-shell-metadata"
+            title="unknown · unknown"
+          >
+            <a
+              class="kfp-shell-metadata-version"
+              href="https://github.com/kubeflow/pipelines"
+              rel="noopener noreferrer"
               target="_blank"
             >
               unknown
             </a>
           </div>
-          <div
-            aria-label="Report an Issue"
-            class="envMetadata_f15ayk27"
-            data-mui-internal-clone-element="true"
-          >
-            <a
-              class="link_fvmzhfr unstyled_f1ikaigl"
-              href="https://github.com/kubeflow/pipelines/issues/new/choose"
-              rel="noopener"
-              target="_blank"
-            >
-              Report an Issue
-            </a>
-          </div>
-        </div>
-      </div>
-      <div
-        class="page_f1flacxk"
+        </footer>
+      </aside>
+      <main
+        class="kfp-shell-main"
+        id="_r_0_"
+        tabindex="-1"
       >
-        <div
-          style="margin: 100px auto; text-align: center;"
+        <section
+          aria-label="Pipeline workspace"
+          class="kfp-modern-page"
         >
           <div
-            style="color: rgb(170, 170, 170); font-size: 50px; font-weight: bold;"
+            class="kfp-modern-page-content"
           >
-            404
+            <section
+              class="kfp-secondary-page kfp-not-found"
+            >
+              <p
+                aria-hidden="true"
+                class="kfp-not-found-code"
+              >
+                404
+              </p>
+              <h1>
+                Page not found
+              </h1>
+              <p>
+                <code>
+                  /does-not-exist
+                </code>
+                 is not a Pipelines page.
+              </p>
+              <button
+                class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-primary text-primary-foreground hover:brightness-95 h-[34px] px-3"
+                data-slot="button"
+                tabindex="0"
+                type="button"
+              >
+                Go to pipelines
+              </button>
+            </section>
           </div>
-          <div
-            style="font-size: 16px;"
-          >
-            Page Not Found: /does-not-exist
-          </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   </div>
 </DocumentFragment>

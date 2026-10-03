@@ -15,13 +15,12 @@
  */
 
 import * as React from 'react';
-import { classes } from 'typestyle';
-import MD2Tabs from '../atoms/MD2Tabs';
+import { InspectionTabs } from 'src/components/modernization/InspectionTabs';
+import 'src/components/modernization/Pipelines.css';
 import { PageProps } from './Page';
 import PipelineList from './PipelineList';
 import { RoutePage } from '../components/Router';
 import { NamespaceContext } from '../lib/KubeflowClient';
-import { commonCss, padding } from '../Css';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 
 export enum PrivateAndSharedTab {
@@ -35,7 +34,7 @@ export interface PrivateAndSharedProps extends PageProps {
 
 const PrivatePipelineList: React.FC<PageProps> = (props) => {
   const namespace = React.useContext(NamespaceContext);
-  return <PipelineList {...props} namespace={namespace} />;
+  return <PipelineList key={namespace || 'private'} {...props} namespace={namespace} />;
 };
 
 export enum PipelineTabsHeaders {
@@ -61,26 +60,24 @@ const PrivateAndSharedPipelines: React.FC<PrivateAndSharedProps> = (props) => {
     return <PipelineList {...props} />;
   }
   return (
-    <div className={classes(commonCss.page, padding(20, 't'))}>
-      <MD2Tabs
-        tabs={[
-          {
-            header: PipelineTabsHeaders.PRIVATE,
-            tooltip: PipelineTabsTooltips.PRIVATE,
-          },
-          {
-            header: PipelineTabsHeaders.SHARED,
-            tooltip: PipelineTabsTooltips.SHARED,
-          },
-        ]}
-        selectedTab={props.view}
-        onSwitch={tabSwitched}
-      />
-
-      {props.view === PrivateAndSharedTab.PRIVATE && <PrivatePipelineList {...props} />}
-
-      {props.view === PrivateAndSharedTab.SHARED && <PipelineList {...props} />}
-    </div>
+    <InspectionTabs
+      className='kfp-pipelines-tabs'
+      ariaLabel='Pipeline visibility'
+      tabs={[PipelineTabsHeaders.PRIVATE, PipelineTabsHeaders.SHARED]}
+      selectedTab={props.view}
+      onSwitch={tabSwitched}
+    >
+      <p className='kfp-pipelines-scope'>
+        {props.view === PrivateAndSharedTab.PRIVATE
+          ? PipelineTabsTooltips.PRIVATE
+          : PipelineTabsTooltips.SHARED}
+      </p>
+      {props.view === PrivateAndSharedTab.PRIVATE ? (
+        <PrivatePipelineList {...props} />
+      ) : (
+        <PipelineList {...props} />
+      )}
+    </InspectionTabs>
   );
 };
 

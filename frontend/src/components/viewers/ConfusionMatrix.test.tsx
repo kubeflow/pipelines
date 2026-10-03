@@ -146,3 +146,21 @@ describe('ConfusionMatrix', () => {
     expect(ConfusionMatrix.prototype.getDisplayName()).toBe('Confusion matrix');
   });
 });
+
+it('keeps zero-valued matrices finite and visible', () => {
+  const { container } = render(
+    <ConfusionMatrix
+      configs={[
+        {
+          axes: ['Predicted', 'Actual'],
+          data: [[0]],
+          labels: ['Class'],
+          type: PlotType.CONFUSION_MATRIX,
+        },
+      ]}
+    />,
+  );
+  expect(container.querySelector('.kfp-confusion-cell')).toHaveTextContent('0');
+  expect(container.innerHTML).not.toContain('NaN');
+  expect(container.querySelector('.kfp-confusion-cell')?.getAttribute('style')).toContain('0%');
+});

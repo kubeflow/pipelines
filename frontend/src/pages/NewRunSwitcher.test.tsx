@@ -20,6 +20,7 @@ import * as JsYaml from 'js-yaml';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import { ThemeProvider } from 'src/components/modernization/ThemeProvider';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
@@ -79,13 +80,22 @@ describe('NewRunSwitcher', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('v2 run creation', () => {
+    // Keep the real router and both modal phases; their jsdom style work needs more time
+    // under coverage than the default unit-test budget.
     it('reloads the latest pipeline version after inline experiment creation', async () => {
       const olderVersion = {
         ...ORIGINAL_TEST_PIPELINE_VERSION,
@@ -161,12 +171,14 @@ describe('NewRunSwitcher', () => {
         ),
       );
       expect(await screen.findByDisplayValue(latestVersion.display_name)).toBeVisible();
-    });
+    }, 10_000);
 
     it('directs to new run v2 if no pipeline is selected (enter from run list)', () => {
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsNoPipelineDef(null)} />
+          <ThemeProvider>
+            <NewRunSwitcher {...generatePropsNoPipelineDef(null)} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -186,7 +198,9 @@ describe('NewRunSwitcher', () => {
 
         render(
           <CommonTestWrapper>
-            <NewRunSwitcher {...generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id)} />
+            <ThemeProvider>
+              <NewRunSwitcher {...generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id)} />
+            </ThemeProvider>
           </CommonTestWrapper>,
         );
 
@@ -207,7 +221,9 @@ describe('NewRunSwitcher', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsNewRun()} />
+          <ThemeProvider>
+            <NewRunSwitcher {...generatePropsNewRun()} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -229,7 +245,9 @@ describe('NewRunSwitcher', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsNewRun()} />
+          <ThemeProvider>
+            <NewRunSwitcher {...generatePropsNewRun()} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -260,7 +278,9 @@ describe('NewRunSwitcher', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsCloneRun()} />
+          <ThemeProvider>
+            <NewRunSwitcher {...generatePropsCloneRun()} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -297,7 +317,9 @@ describe('NewRunSwitcher', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsCloneRecurringRun()} />
+          <ThemeProvider>
+            <NewRunSwitcher {...generatePropsCloneRecurringRun()} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -340,7 +362,9 @@ describe('NewRunSwitcher', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsCloneRun()} />
+          <ThemeProvider>
+            <NewRunSwitcher {...generatePropsCloneRun()} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -379,7 +403,9 @@ describe('NewRunSwitcher', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...generatePropsCloneRecurringRun()} />
+          <ThemeProvider>
+            <NewRunSwitcher {...generatePropsCloneRecurringRun()} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -404,7 +430,9 @@ describe('NewRunSwitcher', () => {
       const props = generatePropsNewRun();
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...props} />
+          <ThemeProvider>
+            <NewRunSwitcher {...props} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -429,7 +457,9 @@ describe('NewRunSwitcher', () => {
       const props = generatePropsNewRun();
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...props} />
+          <ThemeProvider>
+            <NewRunSwitcher {...props} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -446,7 +476,9 @@ describe('NewRunSwitcher', () => {
       const props = generatePropsNoPipelineDef(NEW_EXPERIMENT.experiment_id);
       render(
         <CommonTestWrapper>
-          <NewRunSwitcher {...props} />
+          <ThemeProvider>
+            <NewRunSwitcher {...props} />
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 
@@ -508,9 +540,11 @@ describe('NewRunSwitcher', () => {
 
       render(
         <CommonTestWrapper>
-          <ErrorBoundary>
-            <NewRunSwitcher {...props} />
-          </ErrorBoundary>
+          <ThemeProvider>
+            <ErrorBoundary>
+              <NewRunSwitcher {...props} />
+            </ErrorBoundary>
+          </ThemeProvider>
         </CommonTestWrapper>,
       );
 

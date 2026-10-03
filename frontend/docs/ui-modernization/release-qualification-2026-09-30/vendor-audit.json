@@ -1,0 +1,712 @@
+{
+  "status": "failed",
+  "runId": "36734476076",
+  "headSha": "20d87a3fd2e52eb6b33f1fe7beead25efbf4cc95",
+  "sourceMergeSha": "da6ec8bebac0614fcb1939a92aff4a7e1672b9b6",
+  "mergeParentVerified": true,
+  "lanesPassed": 16,
+  "expectedLanes": 17,
+  "checksPassed": 405,
+  "expectedChecks": 420,
+  "sharedBuildFilesVerified": 22,
+  "screenshotsVerified": 187,
+  "lanes": [
+    {
+      "lane": "chrome-stable",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 48,
+      "fullBuildFilesVerified": 22,
+      "version": "154.0.8037.93"
+    },
+    {
+      "lane": "chrome-testing-current",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 48,
+      "fullBuildFilesVerified": 22,
+      "version": "154.0.8037.57"
+    },
+    {
+      "lane": "chrome-testing-previous",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 48,
+      "fullBuildFilesVerified": 22,
+      "version": "153.0.8010.52"
+    },
+    {
+      "lane": "edge-stable",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 48,
+      "fullBuildFilesVerified": 22,
+      "version": "154.0.4258.37"
+    },
+    {
+      "lane": "edge-previous",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 48,
+      "fullBuildFilesVerified": 22,
+      "version": "153.0.4234.48"
+    },
+    {
+      "lane": "firefox-stable",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "firefox",
+      "version": "157.0",
+      "gaps": []
+    },
+    {
+      "lane": "firefox-previous",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "firefox",
+      "version": "156.0.1",
+      "gaps": []
+    },
+    {
+      "lane": "firefox-esr",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "firefox",
+      "version": "153.4.0",
+      "gaps": []
+    },
+    {
+      "lane": "firefox-esr-overlap",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "firefox",
+      "version": "140.17.0",
+      "gaps": []
+    },
+    {
+      "lane": "firefox-stable-linux",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "firefox",
+      "version": "157.0",
+      "gaps": []
+    },
+    {
+      "lane": "firefox-esr-linux",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "firefox",
+      "version": "153.4.0",
+      "gaps": []
+    },
+    {
+      "lane": "apple-desktop-26",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "Safari",
+      "version": "26.6.2",
+      "gaps": [],
+      "textInput": {
+        "domain": "NSGlobalDomain",
+        "preferences": {
+          "NSAutomaticInlinePredictionEnabled": {
+            "configured": false,
+            "readback": "0"
+          },
+          "NSAutomaticSpellingCorrectionEnabled": {
+            "configured": false,
+            "readback": "0"
+          }
+        },
+        "excludedCoverage": [
+          "Native inline predictive text and automatic spelling correction are disabled.",
+          "IME composition and autocorrection compatibility remain unqualified."
+        ]
+      }
+    },
+    {
+      "lane": "apple-iphone-26",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "safari",
+      "version": "26.5",
+      "gaps": [
+        "Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.",
+        "Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.",
+        "Mobile text entry uses Appium WebDriver web typing atoms and input events; it does not establish physical keyboard typing."
+      ],
+      "filterViewportScale": {
+        "beforeInputScale": 1,
+        "afterInputScale": 1
+      },
+      "wdaBuild": {
+        "status": "passed",
+        "version": "16.12.11",
+        "simulator": "B8A4A765-2B2D-4D9A-B2BB-76712A64931C",
+        "derivedDataPath": "/Users/runner/work/_temp/kfp-apple-iphone-z8xgyv/wda-derived-data",
+        "packageSha256Reported": "2a2afeb669a969f293fb2ac552a0c866f4114d1e61c63d0a0f5bfadc3b5b3168",
+        "outputHashesReported": 4,
+        "buildLog": "15-build-wda.log",
+        "timeoutMs": 480000,
+        "usePrebuiltWDA": true,
+        "verification": "Reported build/session/command identities and hash formats verified; WDA package and output bytes were not uploaded and were not independently hashed."
+      },
+      "nativeIdleReadback": {
+        "requestedSeconds": 2,
+        "liveReadbackSeconds": 2,
+        "wdaUrl": "http://127.0.0.1:8100",
+        "activeWdaSession": "7E8B779C-DB00-4418-8CE9-47CBE719E4D5",
+        "liveWdaVersion": "16.12.11",
+        "quiescenceProvenance": "Enabled by the pinned XCUITest driver",
+        "verification": "Live owned-WDA settings match positive requested/session idle timeout. Quiescence enablement is driver/lifecycle provenance, not a separate live boolean readback."
+      },
+      "nativeActions": {
+        "startupCompletedAt": "2026-09-30T15:22:19.675Z",
+        "startupCommandTimeoutMs": 60000,
+        "nativeSafariRadioClicks": [
+          {
+            "startedAt": "2026-09-30T15:25:34.345Z",
+            "name": "Recurring",
+            "method": "native Radio element click",
+            "status": "passed"
+          },
+          {
+            "startedAt": "2026-09-30T15:25:55.974Z",
+            "name": "One-off",
+            "method": "native Radio element click",
+            "status": "passed"
+          }
+        ],
+        "nativeSafariLinkClicks": [
+          {
+            "startedAt": "2026-09-30T15:22:51.980Z",
+            "name": "v2-xgboost-ilbo",
+            "method": "native Link element click",
+            "status": "passed"
+          },
+          {
+            "startedAt": "2026-09-30T15:26:02.867Z",
+            "name": "mock-dataset",
+            "method": "native Link element click",
+            "status": "passed"
+          }
+        ]
+      },
+      "nativePreparationReadbacks": {
+        "tipDismissals": [
+          {
+            "name": "bookmarks/share/tabs",
+            "timeoutMs": 5000,
+            "visibleCounts": [
+              0
+            ]
+          }
+        ],
+        "geometryFallbacks": [],
+        "verification": "Native preparation outcomes and retained fallback XML independently checked."
+      }
+    },
+    {
+      "lane": "apple-ipad-26",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "safari",
+      "version": "26.5",
+      "gaps": [
+        "Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.",
+        "Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.",
+        "Mobile text entry uses Appium WebDriver web typing atoms and input events; it does not establish physical keyboard typing."
+      ],
+      "filterViewportScale": {
+        "beforeInputScale": 1,
+        "afterInputScale": 1
+      },
+      "wdaBuild": {
+        "status": "passed",
+        "version": "16.12.11",
+        "simulator": "E90AABAC-96B2-4B6F-B973-7E8E01FFFC46",
+        "derivedDataPath": "/Users/runner/work/_temp/kfp-apple-ipad-Upzk6R/wda-derived-data",
+        "packageSha256Reported": "2a2afeb669a969f293fb2ac552a0c866f4114d1e61c63d0a0f5bfadc3b5b3168",
+        "outputHashesReported": 4,
+        "buildLog": "15-build-wda.log",
+        "timeoutMs": 480000,
+        "usePrebuiltWDA": true,
+        "verification": "Reported build/session/command identities and hash formats verified; WDA package and output bytes were not uploaded and were not independently hashed."
+      },
+      "nativeIdleReadback": {
+        "requestedSeconds": 2,
+        "liveReadbackSeconds": 2,
+        "wdaUrl": "http://127.0.0.1:8100",
+        "activeWdaSession": "249C12B2-A2F9-450B-B4C7-8722619C81EC",
+        "liveWdaVersion": "16.12.11",
+        "quiescenceProvenance": "Enabled by the pinned XCUITest driver",
+        "verification": "Live owned-WDA settings match positive requested/session idle timeout. Quiescence enablement is driver/lifecycle provenance, not a separate live boolean readback."
+      },
+      "nativeActions": {
+        "startupCompletedAt": "2026-09-30T15:28:28.837Z",
+        "startupCommandTimeoutMs": 60000,
+        "nativeSafariRadioClicks": [
+          {
+            "startedAt": "2026-09-30T15:31:40.506Z",
+            "name": "Recurring",
+            "method": "native Radio element click",
+            "status": "passed"
+          },
+          {
+            "startedAt": "2026-09-30T15:32:21.972Z",
+            "name": "One-off",
+            "method": "native Radio element click",
+            "status": "passed"
+          }
+        ],
+        "nativeSafariLinkClicks": [
+          {
+            "startedAt": "2026-09-30T15:29:06.831Z",
+            "name": "v2-xgboost-ilbo",
+            "method": "native Link element click",
+            "status": "passed"
+          },
+          {
+            "startedAt": "2026-09-30T15:32:38.106Z",
+            "name": "mock-dataset",
+            "method": "native Link element click",
+            "status": "passed"
+          }
+        ]
+      },
+      "nativePreparationReadbacks": {
+        "tipDismissals": [
+          {
+            "name": "Start Page",
+            "timeoutMs": 5000,
+            "visibleCounts": [
+              0
+            ]
+          }
+        ],
+        "geometryFallbacks": [],
+        "verification": "Native preparation outcomes and retained fallback XML independently checked."
+      }
+    },
+    {
+      "lane": "apple-desktop-27",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "Safari",
+      "version": "27.0",
+      "gaps": [],
+      "textInput": {
+        "domain": "NSGlobalDomain",
+        "preferences": {
+          "NSAutomaticInlinePredictionEnabled": {
+            "configured": false,
+            "readback": "0"
+          },
+          "NSAutomaticSpellingCorrectionEnabled": {
+            "configured": false,
+            "readback": "0"
+          }
+        },
+        "excludedCoverage": [
+          "Native inline predictive text and automatic spelling correction are disabled.",
+          "IME composition and autocorrection compatibility remain unqualified."
+        ]
+      }
+    },
+    {
+      "lane": "apple-iphone-27",
+      "status": "passed",
+      "runAttempt": "1",
+      "checks": 15,
+      "screenshotsVerified": 17,
+      "entryAssets": {
+        "static/index-XjhrBkcW.js": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6",
+        "static/index-Cf7JTRXK.css": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+      },
+      "browser": "safari",
+      "version": "27.0",
+      "gaps": [
+        "Hardware keyboard Tab/Space/Escape focus containment is not exercised by the touch-only simulator lane.",
+        "Simulator Safari does not establish physical-device, VoiceOver, or pinch-zoom behavior.",
+        "Mobile text entry uses Appium WebDriver web typing atoms and input events; it does not establish physical keyboard typing."
+      ],
+      "filterViewportScale": {
+        "beforeInputScale": 1,
+        "afterInputScale": 1
+      },
+      "wdaBuild": {
+        "status": "passed",
+        "version": "16.12.11",
+        "simulator": "482486C2-4554-4898-8814-05A53ABB6EE5",
+        "derivedDataPath": "/Users/runner/work/_temp/kfp-apple-iphone-D3gpi2/wda-derived-data",
+        "packageSha256Reported": "2a2afeb669a969f293fb2ac552a0c866f4114d1e61c63d0a0f5bfadc3b5b3168",
+        "outputHashesReported": 4,
+        "buildLog": "15-build-wda.log",
+        "timeoutMs": 480000,
+        "usePrebuiltWDA": true,
+        "verification": "Reported build/session/command identities and hash formats verified; WDA package and output bytes were not uploaded and were not independently hashed."
+      },
+      "nativeIdleReadback": {
+        "requestedSeconds": 2,
+        "liveReadbackSeconds": 2,
+        "wdaUrl": "http://127.0.0.1:8100",
+        "activeWdaSession": "486F78E6-C33F-4640-A663-AA4323DEA720",
+        "liveWdaVersion": "16.12.11",
+        "quiescenceProvenance": "Enabled by the pinned XCUITest driver",
+        "verification": "Live owned-WDA settings match positive requested/session idle timeout. Quiescence enablement is driver/lifecycle provenance, not a separate live boolean readback."
+      },
+      "nativeActions": {
+        "startupCompletedAt": "2026-09-30T15:26:02.170Z",
+        "startupCommandTimeoutMs": 60000,
+        "nativeSafariRadioClicks": [
+          {
+            "startedAt": "2026-09-30T15:30:19.663Z",
+            "name": "Recurring",
+            "method": "native Radio element click",
+            "status": "passed"
+          },
+          {
+            "startedAt": "2026-09-30T15:30:53.175Z",
+            "name": "One-off",
+            "method": "native Radio element click",
+            "status": "passed"
+          }
+        ],
+        "nativeSafariLinkClicks": [
+          {
+            "startedAt": "2026-09-30T15:26:52.631Z",
+            "name": "v2-xgboost-ilbo",
+            "method": "native Link element click",
+            "status": "passed"
+          },
+          {
+            "startedAt": "2026-09-30T15:31:01.290Z",
+            "name": "mock-dataset",
+            "method": "native Link element click",
+            "status": "passed"
+          }
+        ]
+      },
+      "nativePreparationReadbacks": {
+        "tipDismissals": [],
+        "geometryFallbacks": [
+          {
+            "path": "safari-form-done-geometry-3.xml",
+            "sha256": "7fa2b0c5784bbb29c71c523edbb60a9a7f422f3f1b3d89f2e4b1515a6acff8e5",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-8.xml",
+            "sha256": "c209c5554d255c8958f675bf022dd97ef041a249340a08f094cc32cb89f8031d",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-11.xml",
+            "sha256": "d558b7940dbb7f1ac6048b72f4e4663fa331cdceb1f8e950d73e8e016b07783a",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-12.xml",
+            "sha256": "29f1d45498f65550ecb8d3f2353cfb286497ff77bb9b8dd91eac43a229427392",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-13.xml",
+            "sha256": "448f9d663e863977f6433f1c05e2e5bec7cb49b2f1569d1486014f72ae13f5b2",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-15.xml",
+            "sha256": "7e70a60d84d084878e61ea151786494cfe71e01835d8bbc0e7e7e01f0860fa73",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-16.xml",
+            "sha256": "92604d3698c2a142dff24a5725770121f0097fa1a6e61ce8ea35f49b20c9716a",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-17.xml",
+            "sha256": "6418f3b5e30f0b31bccb59b843e01ba3a23a3c52418906a2e45fa1dedcbc9a40",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-18.xml",
+            "sha256": "55e9a9cad9a086465957ca76b8aad2dce5d0765bede6c1e79304751d2531c5eb",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-19.xml",
+            "sha256": "489726ece3980b142c19d26033e0493fae05eebd1726b87152e817fa5bbc86d8",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-21.xml",
+            "sha256": "a09724b25dec6aaa35ede9c67c24e4b3d70779f65be084c2ac4cc3008cd4cb36",
+            "control": {
+              "x": 341.0,
+              "y": 519.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-30.xml",
+            "sha256": "594bc52fac62df20dcba403bbf39f994eb570da5c56fb282f41343023ad14030",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-31.xml",
+            "sha256": "7eeec0da4684b24e1ba62ef84a66e9f96c10388efadebc333df9116d7c96cf19",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-32.xml",
+            "sha256": "aea5ed63313528608511e360baba15ad859c6b0e7e0fb9968dacd94103f9c0b5",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-33.xml",
+            "sha256": "d96d554d668680163a4a79cf50766d2d1f2e54fec55abde7dc5eb0205609790d",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-36.xml",
+            "sha256": "7e32d67aec119e20136c353dd2cce65841d3f2afd97355c05322e9321ef2a326",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-37.xml",
+            "sha256": "bbb60ad43c22acb459e32e9d222e717159125dbeb4a30f4bd694df42506ceb48",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-38.xml",
+            "sha256": "d3dfbbe88a94ab6f89a26bc8378feb90e6717225063eb3032fdb8fdbe50627bd",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-39.xml",
+            "sha256": "746dfb82d5848a3a23d9fd63950218cd9c6bf9d9b28f6519413e4f5724181baf",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-40.xml",
+            "sha256": "c36bd0dbdf3d558d5e80243cd20ac2f657066c96291d33a0c1dc0c8665115e9d",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-41.xml",
+            "sha256": "11b231a807f16e4610576603db59890240856bde7c16ae20be2c64ee0b14598e",
+            "control": {
+              "x": 341.0,
+              "y": 520.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          },
+          {
+            "path": "safari-form-done-geometry-42.xml",
+            "sha256": "b75cb30ced42b746bae8ef04f4e37fb02acb0c1d8a7c6062c331c83d4a06e643",
+            "control": {
+              "x": 341.0,
+              "y": 519.0,
+              "width": 40.0,
+              "height": 38.0,
+              "reportedVisible": "false"
+            }
+          }
+        ],
+        "verification": "Native preparation outcomes and retained fallback XML independently checked."
+      }
+    }
+  ],
+  "errors": [
+    {
+      "lane": "apple-ipad-27",
+      "runAttempt": "1",
+      "error": "Apple workflow status: failure",
+      "observed": {
+        "verification": "diagnostic observations, no completed browser suite",
+        "setupStatus": "failed",
+        "error": "AssertionError [ERR_ASSERTION]: install-appium failed; see 12-install-appium.log"
+      }
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "sourceSha": "da6ec8bebac0614fcb1939a92aff4a7e1672b9b6",
+  "startedAt": "2026-09-30T15:15:28.270Z",
+  "platform": "darwin",
+  "release": "25.6.0",
+  "arch": "arm64",
+  "node": "v24.14.0",
+  "engine": "chromium",
+  "channel": null,
+  "executablePath": "/Users/runner/work/_temp/kfp-qualified-browsers/edge-previous/read-only-volume/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+  "files": [
+    "scripts/production-bundle.smoke.mjs",
+    "scripts/ui-modernization-runs.smoke.mjs",
+    "scripts/ui-modernization-run-details.smoke.mjs",
+    "scripts/ui-modernization-pipelines.smoke.mjs",
+    "scripts/ui-modernization-workflows.smoke.mjs",
+    "scripts/ui-modernization-artifacts.smoke.mjs",
+    "scripts/ui-modernization-comparison.smoke.mjs",
+    "scripts/ui-modernization-graph.smoke.mjs"
+  ],
+  "status": "passed",
+  "browserVersion": "153.0.4234.48",
+  "playwrightVersion": "1.58.0",
+  "assets": [
+    {
+      "path": "fonts/jetbrains-mono/OFL.txt",
+      "sha256": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b"
+    },
+    {
+      "path": "fonts/public-sans/OFL.txt",
+      "sha256": "705a497c781f6463ff819abb513bb495f3fb05256f1d20321e3275813c0bafa5"
+    },
+    {
+      "path": "index.html",
+      "sha256": "0b7d10aef9de65d8d97b630dfcbeb2b59af7960941918243858b7443d158c272"
+    },
+    {
+      "path": "static/Editor-Av_7v3Pg.css",
+      "sha256": "2d41880e43279b1925c8c1c9bd4161bcef6c4533477045f62dd4f9e8712447e0"
+    },
+    {
+      "path": "static/Editor-CiEMRP2l.js",
+      "sha256": "79a05d91a034fb3b76bbf3f88c6f0967184875692273dfd98e3763b7b0f47fa3"
+    },
+    {
+      "path": "static/Editor-CiEMRP2l.js.map",
+      "sha256": "e8f4af4752664abb62b31d533facf7d1648bbc3ccd76b9e5d3233db82b6c604a"
+    },
+    {
+      "path": "static/favicon.ico",
+      "sha256": "792f3f1737b381689c7cf3618fa30492cdf8cfd5ccbd1e5112d6c08db5419efd"
+    },
+    {
+      "path": "static/index-Cf7JTRXK.css",
+      "sha256": "562752a32267b5ef5f0892aa584c2badae4473589f9808acef4075c0a90712df"
+    },
+    {
+      "path": "static/index-XjhrBkcW.js",
+      "sha256": "187a16fa95cfdf3f1ed0ff03ef6f1b9fdbcb34fe5c1a05a274e97c8ce25ce0e6"
+    },
+    {
+      "path": "static/index-XjhrBkcW.js.map",
+      "sha256": "683790173ec26d4e41bcdcc78004195bc1f49a3b50679c05fca723ab65378133"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-400-normal-6-qcROiO.woff",
+      "sha256": "658b9ee07b0249cf910a8d6f3d812d46c962bae81d7379a0355b1db35c61586f"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+      "sha256": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
+      "sha256": "cb182feeed4d798ff6961d3c79f7026279448fca0676438aaecb21f3fc39553a"
+    },
+    {
+      "path": "static/jetbrains-mono-latin-500-normal-CJOVTJB7.woff",
+      "sha256": "a270dd0bf13d91053b8999b7c120ffadb59680cfd63fe1a6b388a13bf2809fe1"
+    },
+    {
+      "path": "static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+      "sha256": "36274b5787b4f03b27e65ae971d6c808a96838ccd60c9dabaee154889b6bba82"
+    },
+    {
+      "path": "static/public-sans-latin-400-normal-SBbinRkI.woff",
+      "sha256": "edb388a938d470f8b44a273d7b4af7078e731f336afac02fc9376bdf0482193d"
+    },
+    {
+      "path": "static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+      "sha256": "55e866a00caa197bc9fafa52c907f4dfe88e51bbb3f585c777931d03eb961e96"
+    },
+    {
+      "path": "static/public-sans-latin-500-normal-vCxiVFAq.woff",
+      "sha256": "4e0f621591a48e65bb3692b35d3106cdcd28ec7924157b9e6e9a4f082ac92853"
+    },
+    {
+      "path": "static/public-sans-latin-600-normal-BR59oU-I.woff",
+      "sha256": "78ed7ab77673accbd667176aea231d3194e7309a3de9b544ad97efef6dbb139b"
+    },
+    {
+      "path": "static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+      "sha256": "c7842f97346df1b3b470e9d71acde90f132dd858508ec5ae6606401e5d0938f7"
+    },
+    {
+      "path": "static/worker-json-8CDXFfik.js",
+      "sha256": "a529115d6321a4385a2f67c1a0285e9e9a8aed98707925a2bc3f36226a798c61"
+    },
+    {
+      "path": "static/worker-yaml-crtWQpDN.js",
+      "sha256": "3d5074049e4cb2e21fcd1d75e38005707816ad733482b2c9b9a2fb12c197fd24"
+    }
+  ],
+  "exitCode": 0,
+  "signal": null,
+  "finishedAt": "2026-09-30T15:21:40.471Z"
+}

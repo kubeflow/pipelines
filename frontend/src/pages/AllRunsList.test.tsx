@@ -22,7 +22,7 @@ import { ButtonKeys } from 'src/lib/Buttons';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 
 const refreshSpy = vi.fn();
 let lastRunListProps: any = null;
@@ -86,7 +86,14 @@ describe('AllRunsList', () => {
   it('renders all runs', () => {
     renderAllRunsList();
     expect(lastRunListProps).toBeTruthy();
-    expect(renderResult!.asFragment()).toMatchSnapshot();
+    expect(renderResult!.container.querySelector('[data-testid="run-list"]')).not.toBeNull();
+  });
+
+  it('clears the page banner when a filter or paging load recovers', () => {
+    renderAllRunsList();
+    updateBannerSpy.mockClear();
+    lastRunListProps.onLoadSuccess();
+    expect(updateBannerSpy).toHaveBeenCalledExactlyOnceWith({});
   });
 
   it('lists all runs in namespace', () => {

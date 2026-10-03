@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { SnackbarProps } from '@mui/material/Snackbar';
+import type { SnackbarProps, BannerProps, ToolbarProps } from 'src/lib/PageChromeTypes';
 import * as React from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, matchPath } from 'react-router';
 import { NavigationProps } from 'src/lib/Navigation';
@@ -22,9 +22,6 @@ import Page404 from 'src/pages/404';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
-import { classes, stylesheet } from 'typestyle';
-import Banner, { BannerProps } from 'src/components/Banner';
-import { commonCss } from 'src/Css';
 import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
 import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
@@ -43,19 +40,21 @@ import PrivateAndSharedPipelines, {
   PrivateAndSharedTab,
 } from 'src/pages/PrivateAndSharedPipelines';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
-import SideNavigation from './SideNav';
-import Toolbar, { ToolbarProps } from './Toolbar';
-import { BuildInfoContext } from 'src/lib/BuildInfo';
-
 import {
-  Alert,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Snackbar,
-} from '@mui/material';
+  BookOpen,
+  FlaskConical,
+  Info,
+  Package,
+  PlayCircle,
+  Repeat,
+  Workflow,
+  X,
+} from 'lucide-react';
+import { ApplicationShell } from './modernization/ApplicationShell';
+import type { AppShellNavItem } from './modernization/AppShell';
+import { ModernPageChrome } from './modernization/ModernPageChrome';
+import { Button as ModernButton } from './ui/button';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 
 export type RouteConfig = {
   path: string;
@@ -63,12 +62,6 @@ export type RouteConfig = {
   view?: any;
   notExact?: boolean;
 };
-
-const css = stylesheet({
-  dialog: {
-    minWidth: 250,
-  },
-});
 
 export enum QUERY_PARAMS {
   cloneFromRun = 'cloneFromRun',
@@ -136,7 +129,7 @@ export const RoutePageFactory = {
     return RoutePage.ARTIFACT_DETAILS.replace(`:${RouteParams.ID}`, '' + artifactId);
   },
   runDetails: (runId: string) => {
-    return RoutePage.RUN_DETAILS.replace(`:${RouteParams.runId}`, runId);
+    return RoutePage.RUN_DETAILS.replace(`:${RouteParams.runId}`, encodeURIComponent(runId));
   },
   runDetailsTask: (runId: string, taskId: string) => {
     const search = new URLSearchParams({ [QUERY_PARAMS.taskId]: taskId });
@@ -180,9 +173,6 @@ export interface RouterProps {
   configs?: RouteConfig[]; // only used in tests
 }
 
-const DEFAULT_ROUTE =
-  KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
-
 const RemovedExecutionRoute = ({ params }: NavigationProps) => {
   return (
     <Navigate
@@ -199,7 +189,7 @@ const LegacyRunExecutionRoute = ({ location, params }: NavigationProps) => {
     <Navigate
       replace
       to={{
-        pathname: RoutePageFactory.runDetails(encodeURIComponent(params[RouteParams.runId]!)),
+        pathname: RoutePageFactory.runDetails(params[RouteParams.runId]!),
         search: `?${query}`,
         hash: location.hash,
       }}
@@ -214,28 +204,37 @@ const ExecutionRedirectNotice = () => {
   const query = new URLSearchParams(location.search);
   const reason = query.get(QUERY_PARAMS.executionRedirect);
   if (reason !== 'list' && reason !== 'detail') return null;
-  return (
-    <Alert
-      severity='info'
-      onClose={() => {
-        query.delete(QUERY_PARAMS.executionRedirect);
-        navigate(
-          { ...location, search: query.size ? `?${query}` : '' },
-          { replace: true, state: location.state },
-        );
-      }}
-    >
+  const closeNotice = () => {
+    query.delete(QUERY_PARAMS.executionRedirect);
+    navigate(
+      { ...location, search: query.size ? `?${query}` : '' },
+      { replace: true, state: location.state },
+    );
+  };
+  const message = (
+    <>
       Execution pages have moved to Runs and task details. Open a run and select a task to view its
       inputs, outputs, status, and logs.
       {reason === 'detail' &&
         ' This legacy execution link cannot select the corresponding task automatically.'}
-    </Alert>
+    </>
+  );
+  return (
+    <div role='alert' className='kfp-navigation-notice'>
+      <Info size={18} aria-hidden='true' />
+      <p>{message}</p>
+      <ModernButton variant='ghost' size='icon' aria-label='Close' onClick={closeNotice}>
+        <X size={16} aria-hidden='true' />
+      </ModernButton>
+    </div>
   );
 };
 
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const buildInfo = React.useContext(BuildInfoContext);
+  const defaultRoute =
+    KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
 
   let routes: RouteConfig[] = configs || [
     { path: RoutePage.START, Component: GettingStarted },
@@ -288,10 +287,10 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   }
 
   return (
-    // There will be only one instance of SideNav, throughout UI usage.
-    <SideNavLayout>
+    // Keep the shell mounted across route changes.
+    <ApplicationLayout>
       <Routes>
-        <Route path='/' element={<Navigate replace to={DEFAULT_ROUTE} />} />
+        <Route path='/' element={<Navigate replace to={defaultRoute} />} />
         {routes.map((route) => (
           <Route
             key={route.path}
@@ -301,7 +300,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
         ))}
         <Route path='*' element={<RoutePageElement />} />
       </Routes>
-    </SideNavLayout>
+    </ApplicationLayout>
   );
 };
 
@@ -342,7 +341,7 @@ class RoutedPage extends React.Component<
 > {
   private childProps = {
     toolbarProps: {
-      breadcrumbs: [{ displayName: '', href: '' }],
+      breadcrumbs: [],
       actions: {},
       pageTitle: '',
     } as ToolbarProps,
@@ -359,7 +358,7 @@ class RoutedPage extends React.Component<
       bannerProps: {},
       dialogProps: { open: false },
       snackbarProps: { autoHideDuration: 5000, open: false },
-      toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: [], ...props },
+      toolbarProps: { breadcrumbs: [], actions: [], ...props },
     };
   }
 
@@ -368,61 +367,28 @@ class RoutedPage extends React.Component<
     const { route, location, navigate, params } = this.props;
     const Component = route?.Component ?? Page404;
     const navigation = { location, navigate, params };
+    const navigationNotice =
+      route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS ? (
+        <ExecutionRedirectNotice />
+      ) : undefined;
+    const page = <Component {...navigation} {...this.childProps} view={route?.view} />;
 
     return (
-      <div className={classes(commonCss.page)}>
-        <Toolbar {...this.state.toolbarProps} navigate={navigate} />
-        {(route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS) && (
-          <ExecutionRedirectNotice />
-        )}
-        {this.state.bannerProps.message && (
-          <Banner
-            message={this.state.bannerProps.message}
-            mode={this.state.bannerProps.mode}
-            additionalInfo={this.state.bannerProps.additionalInfo}
-            refresh={this.state.bannerProps.refresh}
-            showTroubleshootingGuideLink={true}
-          />
-        )}
-        <Component {...navigation} {...this.childProps} view={route?.view} />
-
-        <Snackbar
-          autoHideDuration={this.state.snackbarProps.autoHideDuration}
-          message={this.state.snackbarProps.message}
-          open={this.state.snackbarProps.open}
-          onClose={this._handleSnackbarClose.bind(this)}
-        />
-
-        <Dialog
-          open={this.state.dialogProps.open !== false}
-          classes={{ paper: css.dialog }}
-          className='dialog'
-          onClose={() => this._handleDialogClosed()}
-        >
-          {this.state.dialogProps.title && (
-            <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
-          )}
-          {this.state.dialogProps.content && (
-            <DialogContent className={commonCss.prewrap}>
-              {this.state.dialogProps.content}
-            </DialogContent>
-          )}
-          {this.state.dialogProps.buttons && (
-            <DialogActions>
-              {this.state.dialogProps.buttons.map((b, i) => (
-                <Button
-                  key={i}
-                  onClick={() => this._handleDialogClosed(b.onClick)}
-                  className='dialogButton'
-                  color='secondary'
-                >
-                  {b.text}
-                </Button>
-              ))}
-            </DialogActions>
-          )}
-        </Dialog>
-      </div>
+      <ModernPageChrome
+        toolbarProps={{ ...this.state.toolbarProps, navigate }}
+        bannerProps={this.state.bannerProps}
+        dialogProps={this.state.dialogProps}
+        snackbarProps={this.state.snackbarProps}
+        onDialogClose={this._handleDialogClosed}
+        onSnackbarClose={this._handleSnackbarClose}
+        navigationNotice={navigationNotice}
+        showThemeControl={KFP_FLAGS.HIDE_SIDENAV}
+        reserveBreadcrumbHeader={
+          route?.path === RoutePage.RUN_DETAILS || route?.path === RoutePage.COMPARE
+        }
+      >
+        {page}
+      </ModernPageChrome>
     );
   }
 
@@ -449,7 +415,7 @@ class RoutedPage extends React.Component<
     this.setState({ snackbarProps });
   }
 
-  private _handleDialogClosed(onClick?: () => void): void {
+  private _handleDialogClosed = (onClick?: () => void): void => {
     this.setState({ dialogProps: { open: false } });
     if (onClick) {
       onClick();
@@ -457,24 +423,76 @@ class RoutedPage extends React.Component<
     if (this.state.dialogProps.onClose) {
       this.state.dialogProps.onClose();
     }
-  }
-  private _handleSnackbarClose(): void {
+  };
+  private _handleSnackbarClose = (): void => {
     this.setState({ snackbarProps: { open: false, message: '' } });
-  }
+  };
 }
 
 // TODO: loading/error experience until backend is reachable
 
 export default Router;
 
-const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
+const ApplicationLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { pathname } = useLocation();
+  const items: AppShellNavItem[] = [
+    {
+      id: 'pipelines',
+      elementId: 'pipelinesBtn',
+      label: 'Pipelines',
+      href: RoutePage.PIPELINES,
+      icon: Workflow,
+      active:
+        pathname.startsWith(RoutePage.PIPELINES) || pathname.startsWith(RoutePage.PIPELINES_SHARED),
+    },
+    {
+      id: 'experiments',
+      label: 'Experiments',
+      href: RoutePage.EXPERIMENTS,
+      icon: FlaskConical,
+      active:
+        pathname.startsWith(RoutePage.EXPERIMENTS) || pathname === RoutePage.ARCHIVED_EXPERIMENTS,
+    },
+    {
+      id: 'runs',
+      elementId: 'runsBtn',
+      label: 'Runs',
+      href: RoutePage.RUNS,
+      icon: PlayCircle,
+      active:
+        pathname.startsWith(RoutePage.RUNS) ||
+        pathname.startsWith(RoutePage.COMPARE) ||
+        pathname === RoutePage.ARCHIVED_RUNS,
+    },
+    {
+      id: 'recurring-runs',
+      label: 'Recurring runs',
+      href: RoutePage.RECURRING_RUNS,
+      icon: Repeat,
+      active:
+        pathname.startsWith(RoutePage.RECURRING_RUNS) ||
+        pathname.startsWith(RoutePrefix.RECURRING_RUN),
+    },
+    {
+      id: 'artifacts',
+      label: 'Artifacts',
+      href: RoutePage.ARTIFACTS,
+      icon: Package,
+      active: pathname.startsWith(RoutePrefix.ARTIFACT),
+    },
+  ];
+  if (KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE) {
+    items.unshift({
+      id: 'getting-started',
+      label: 'Getting Started',
+      href: RoutePage.START,
+      icon: BookOpen,
+      active: pathname.startsWith(RoutePage.START),
+    });
+  }
   return (
-    <div className={classes(commonCss.page)}>
-      <div className={classes(commonCss.flexGrow)}>
-        <SideNavigation page={location.pathname} />
-        {children}
-      </div>
-    </div>
+    <ApplicationShell items={items} currentPath={pathname}>
+      {children}
+    </ApplicationShell>
   );
 };

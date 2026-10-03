@@ -54,13 +54,13 @@ describe('ExperimentsAndArchive', () => {
     props.navigate = spy;
     const { rerender } = render(<AllExperimentsAndArchive {...(props as any)} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Archived' }));
     expect(spy).toHaveBeenCalledWith('/archive/experiments');
 
     rerender(
       <AllExperimentsAndArchive {...(props as any)} view={AllExperimentsAndArchiveTab.ARCHIVE} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Active' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Active' }));
     expect(spy).toHaveBeenCalledWith('/experiments');
   });
 });

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Button } from '@mui/material';
+import { Button } from '../ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import {
@@ -24,14 +24,13 @@ import {
   PipelineTaskTaskState,
   V2beta1PipelineTask,
 } from 'src/apisv2beta1/run';
-import MD2Tabs from 'src/atoms/MD2Tabs';
+import { InspectionTabs } from '../modernization/InspectionTabs';
 import { buildRuntimeArtifactRows, RuntimeArtifactValue } from 'src/components/RuntimeArtifactRows';
-import Banner from 'src/components/Banner';
-import DetailsTable from 'src/components/DetailsTable';
+import { InspectionNotice as Banner } from '../modernization/InspectionNotice';
+import { InspectionFields as DetailsTable } from '../modernization/InspectionFields';
 import LogViewer from 'src/components/LogViewer';
 import { RuntimeInputOutputTab } from 'src/components/tabs/RuntimeInputOutputTab';
 import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
-import { commonCss, padding } from 'src/Css';
 import {
   KubernetesExecutorConfig,
   PvcMount,
@@ -62,19 +61,15 @@ export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
 
 const NODE_INFO_UNKNOWN = (
-  <div className='relative flex flex-col h-screen'>
-    <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'>
-      Unable to retrieve node info.
-    </div>
-  </div>
+  <p className='kfp-inspection-empty' role='status'>
+    Unable to retrieve node info.
+  </p>
 );
 
 const NODE_STATE_UNAVAILABLE = (
-  <div className='relative flex flex-col h-screen'>
-    <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'>
-      Content is not available yet.
-    </div>
-  </div>
+  <p className='kfp-inspection-empty' role='status'>
+    Content is not available yet.
+  </p>
 );
 
 interface RuntimeNodeDetailsV2Props {
@@ -85,7 +80,10 @@ interface RuntimeNodeDetailsV2Props {
   element?: PipelineFlowElement | null;
   elementRuntimeInfo?: NodeRuntimeInfo | null;
   namespace?: string;
+  namespacePending?: boolean;
   sourceFinished?: boolean;
+  selectedTaskTab?: number;
+  onTaskTabChange?: (tab: number) => void;
 }
 
 export function RuntimeNodeDetailsV2({
@@ -96,7 +94,10 @@ export function RuntimeNodeDetailsV2({
   element,
   elementRuntimeInfo,
   namespace,
+  namespacePending = false,
   sourceFinished,
+  selectedTaskTab,
+  onTaskTabChange,
 }: RuntimeNodeDetailsV2Props) {
   if (!element) {
     return NODE_INFO_UNKNOWN;
@@ -110,7 +111,10 @@ export function RuntimeNodeDetailsV2({
         task={elementRuntimeInfo?.task}
         layers={layers}
         namespace={namespace}
+        namespacePending={namespacePending}
         sourceFinished={sourceFinished}
+        selectedTaskTab={selectedTaskTab}
+        onTaskTabChange={onTaskTabChange}
       />
     );
   }
@@ -120,6 +124,7 @@ export function RuntimeNodeDetailsV2({
         task={elementRuntimeInfo?.task}
         artifactGroup={elementRuntimeInfo?.artifactGroup}
         namespace={namespace}
+        namespacePending={namespacePending}
         sourceFinished={sourceFinished}
       />
     );
@@ -132,6 +137,7 @@ export function RuntimeNodeDetailsV2({
         layers={layers}
         onLayerChange={onLayerChange}
         namespace={namespace}
+        namespacePending={namespacePending}
       />
     );
   }
@@ -139,12 +145,15 @@ export function RuntimeNodeDetailsV2({
 }
 
 interface TaskNodeDetailProps {
+  selectedTaskTab?: number;
+  onTaskTabChange?: (tab: number) => void;
   pipelineJobString?: string;
   runId?: string;
   element?: PipelineFlowElement | null;
   task?: V2beta1PipelineTask;
   layers: string[];
   namespace?: string;
+  namespacePending?: boolean;
   sourceFinished?: boolean;
 }
 
@@ -168,9 +177,14 @@ function TaskNodeDetail({
   task,
   layers,
   namespace,
+  namespacePending = false,
   sourceFinished,
+  selectedTaskTab,
+  onTaskTabChange,
 }: TaskNodeDetailProps) {
-  const [selectedTab, setSelectedTab] = useState(0);
+  const [localTab, setLocalTab] = useState(0);
+  const selectedTab = selectedTaskTab ?? localTab;
+  const setSelectedTab = onTaskTabChange ?? setLocalTab;
   const executorPod = getLatestTaskPod(task, PipelineTaskTaskPodType.EXECUTOR);
   const driverPod = getLatestTaskPod(task, PipelineTaskTaskPodType.DRIVER);
   const executorLogsArtifact = task
@@ -200,7 +214,8 @@ function TaskNodeDetail({
       }
       return getLogsInfo(task, runId, namespace);
     },
-    enabled: !!task && selectedTab === 2,
+    // Experiment metadata may still be resolving the namespace used by pod and artifact reads.
+    enabled: !!task && selectedTab === 2 && !namespacePending,
     // Pod/artifact identity changes identify a new attempt or a newly available log source. Keep
     // the last readable output visible while that source is fetched instead of blanking the tab.
     placeholderData: (previousLogs, previousQuery) => {
@@ -220,47 +235,58 @@ function TaskNodeDetail({
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
 
   return (
-    <div className={commonCss.page}>
-      <MD2Tabs
+    <div className='kfp-inspection-column'>
+      <InspectionTabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
         onSwitch={setSelectedTab}
-      />
-      <div className={commonCss.page}>
-        {selectedTab === 0 &&
-          (task ? (
-            <RuntimeInputOutputTab task={task} namespace={namespace} />
-          ) : (
-            NODE_STATE_UNAVAILABLE
-          ))}
-        {selectedTab === 1 && (
-          <div className={padding(20)}>
-            <RuntimeTaskDetails element={element} task={task} />
-            <TaskPodsDetails pods={task?.pods} />
-            <TaskVolumeMountsDetails
-              element={element}
-              layers={layers}
-              pipelineJobString={pipelineJobString}
-            />
-          </div>
-        )}
-        {selectedTab === 2 && (
-          <div className={commonCss.page}>
-            {logsBannerMessage && (
-              <Banner
-                message={logsBannerMessage}
-                additionalInfo={logsBannerAdditionalInfo}
-                mode={logsDetails ? 'info' : 'error'}
+        ariaLabel='Task inspection'
+      >
+        <div className='kfp-inspection-column'>
+          {selectedTab === 0 &&
+            (task ? (
+              <RuntimeInputOutputTab
+                task={task}
+                namespace={namespace}
+                namespacePending={namespacePending}
               />
-            )}
-            {logsDetails && (
-              <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
-                <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+            ) : (
+              NODE_STATE_UNAVAILABLE
+            ))}
+          {selectedTab === 1 && (
+            <div className='kfp-inspection-scroll'>
+              <RuntimeTaskDetails element={element} task={task} />
+              <TaskPodsDetails pods={task?.pods} />
+              <TaskVolumeMountsDetails
+                element={element}
+                layers={layers}
+                pipelineJobString={pipelineJobString}
+              />
+            </div>
+          )}
+          {selectedTab === 2 && (
+            <div className='kfp-inspection-column'>
+              {namespacePending && (
+                <p className='kfp-inspection-empty' role='status'>
+                  Loading experiment namespace…
+                </p>
+              )}
+              {logsBannerMessage && (
+                <Banner
+                  message={logsBannerMessage}
+                  additionalInfo={logsBannerAdditionalInfo}
+                  mode={logsDetails ? 'info' : 'error'}
+                />
+              )}
+              {logsDetails && (
+                <div className='kfp-inspection-log-window' data-testid='logs-view-window'>
+                  <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </InspectionTabs>
     </div>
   );
 }
@@ -319,8 +345,8 @@ function TaskPodsDetails({ pods = [] }: { pods?: PipelineTaskTaskPod[] }) {
   // The API preserves pod order but exposes no attempt number. Keep that order
   // without inferring retry numbers from potentially missing driver/executor pods.
   return (
-    <details>
-      <summary className={commonCss.header2}>Pods ({pods.length})</summary>
+    <details className='kfp-inspection-pods'>
+      <summary>Pods ({pods.length})</summary>
       {pods.map((pod, index) => (
         <DetailsTable
           key={pod.uid || `${pod.type}-${pod.name}-${index}`}
@@ -349,10 +375,8 @@ function RuntimeTaskDetails({
         fields={getTaskDetailsFields(element, task).filter(([name]) => name !== 'State history')}
       />
       {!!task?.state_history?.length && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 16 }}>
-          <caption className={commonCss.header2} style={{ textAlign: 'left' }}>
-            State history
-          </caption>
+        <table className='kfp-inspection-history'>
+          <caption>State history</caption>
           <thead>
             <tr>
               <th style={{ textAlign: 'left', padding: 8 }}>State</th>
@@ -525,6 +549,7 @@ interface ArtifactNodeDetailProps {
   task?: V2beta1PipelineTask;
   artifactGroup?: InputOutputsIOArtifact;
   namespace?: string;
+  namespacePending?: boolean;
   sourceFinished?: boolean;
 }
 
@@ -532,6 +557,7 @@ function ArtifactNodeDetail({
   task,
   artifactGroup,
   namespace,
+  namespacePending = false,
   sourceFinished,
 }: ArtifactNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -541,8 +567,8 @@ function ArtifactNodeDetail({
     return NODE_STATE_UNAVAILABLE;
   }
   return (
-    <div className={commonCss.page}>
-      <MD2Tabs
+    <div className='kfp-inspection-column'>
+      <InspectionTabs
         tabs={['Artifact Info', 'Visualization']}
         selectedTab={selectedTab}
         onSwitch={(tab) => {
@@ -551,22 +577,33 @@ function ArtifactNodeDetail({
             setHasOpenedVisualization(true);
           }
         }}
-      />
-      <div className={padding(20)}>
-        <div hidden={selectedTab !== 0}>
-          <ArtifactInfo task={task} artifactGroup={artifactGroup} namespace={namespace} />
-        </div>
-        {(selectedTab === 1 || hasOpenedVisualization) && (
-          <div hidden={selectedTab !== 1}>
-            <RuntimeMetricsVisualizations
-              artifacts={artifacts}
-              artifactKey={artifactGroup.artifact_key}
+        ariaLabel='Artifact inspection'
+      >
+        <div className='kfp-inspection-scroll'>
+          <div hidden={selectedTab !== 0}>
+            <ArtifactInfo
+              task={task}
+              artifactGroup={artifactGroup}
               namespace={namespace}
-              sourceFinished={sourceFinished || isTaskFinished(task.state)}
+              namespacePending={namespacePending}
             />
           </div>
-        )}
-      </div>
+          {(selectedTab === 1 || hasOpenedVisualization) && (
+            <div hidden={selectedTab !== 1} className='kfp-inspection-legacy'>
+              {namespacePending ? (
+                <p role='status'>Loading experiment namespace…</p>
+              ) : (
+                <RuntimeMetricsVisualizations
+                  artifacts={artifacts}
+                  artifactKey={artifactGroup.artifact_key}
+                  namespace={namespace}
+                  sourceFinished={sourceFinished || isTaskFinished(task.state)}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </InspectionTabs>
     </div>
   );
 }
@@ -575,8 +612,9 @@ function ArtifactInfo({
   task,
   artifactGroup,
   namespace,
+  namespacePending,
 }: Required<Pick<ArtifactNodeDetailProps, 'task' | 'artifactGroup'>> &
-  Pick<ArtifactNodeDetailProps, 'namespace'>) {
+  Pick<ArtifactNodeDetailProps, 'namespace' | 'namespacePending'>) {
   const artifactEntries = flattenArtifactGroups([artifactGroup]);
   const uriRows = buildRuntimeArtifactRows([artifactGroup]);
   const firstArtifact = artifactEntries[0].artifact;
@@ -597,7 +635,7 @@ function ArtifactInfo({
         title='Artifact Value'
         fields={uriRows}
         valueComponent={RuntimeArtifactValue}
-        valueComponentProps={{ namespace }}
+        valueComponentProps={{ namespace, namespacePending }}
       />
     </div>
   );
@@ -609,6 +647,7 @@ interface SubDAGNodeDetailProps {
   layers: string[];
   onLayerChange: (layers: string[]) => void;
   namespace?: string;
+  namespacePending?: boolean;
 }
 
 function SubDAGNodeDetail({
@@ -617,35 +656,42 @@ function SubDAGNodeDetail({
   layers,
   onLayerChange,
   namespace,
+  namespacePending = false,
 }: SubDAGNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
   const taskKey = getTaskKeyFromNodeKey(element.id);
   return (
-    <div className={commonCss.page}>
-      <div className={padding(20, 'blr')}>
-        <Button variant='contained' onClick={() => onLayerChange([...layers, taskKey])}>
+    <div className='kfp-inspection-column'>
+      <div className='kfp-inspection-subdag-action'>
+        <Button variant='secondary' onClick={() => onLayerChange([...layers, taskKey])}>
           Open Sub-DAG
         </Button>
       </div>
-      <MD2Tabs
+      <InspectionTabs
         tabs={['Input/Output', 'Task Details']}
         selectedTab={selectedTab}
         onSwitch={setSelectedTab}
-      />
-      <div className={commonCss.page}>
-        {selectedTab === 0 &&
-          (task ? (
-            <RuntimeInputOutputTab task={task} namespace={namespace} />
-          ) : (
-            NODE_STATE_UNAVAILABLE
-          ))}
-        {selectedTab === 1 && (
-          <div className={padding(20)}>
-            <RuntimeTaskDetails element={element} task={task} />
-            <TaskPodsDetails pods={task?.pods} />
-          </div>
-        )}
-      </div>
+        ariaLabel='Sub-DAG inspection'
+      >
+        <div className='kfp-inspection-column'>
+          {selectedTab === 0 &&
+            (task ? (
+              <RuntimeInputOutputTab
+                task={task}
+                namespace={namespace}
+                namespacePending={namespacePending}
+              />
+            ) : (
+              NODE_STATE_UNAVAILABLE
+            ))}
+          {selectedTab === 1 && (
+            <div className='kfp-inspection-scroll'>
+              <RuntimeTaskDetails element={element} task={task} />
+              <TaskPodsDetails pods={task?.pods} />
+            </div>
+          )}
+        </div>
+      </InspectionTabs>
     </div>
   );
 }

@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { range } from 'lodash';
 import ResourceSelector, { BaseResource, ResourceSelectorProps } from './ResourceSelector';
 import TestUtils from '../TestUtils';
@@ -23,10 +23,17 @@ import { CommonTestWrapper } from '../TestWrapper';
 import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { logger } from '../lib/Utils';
 import { vi } from 'vitest';
+import { ListRequest } from '../lib/Apis';
+
+class TestResourceSelector extends ResourceSelector {
+  public load(request: ListRequest) {
+    return this._load(request);
+  }
+}
 
 describe('ResourceSelector', () => {
   let renderResult: ReturnType<typeof render> | null = null;
-  let resourceSelectorRef: React.RefObject<ResourceSelector> | null = null;
+  let resourceSelectorRef: React.RefObject<TestResourceSelector> | null = null;
 
   const updateDialogSpy = vi.fn();
   const selectionChangedCbSpy = vi.fn();
@@ -87,11 +94,11 @@ describe('ResourceSelector', () => {
   async function renderResourceSelector(
     customProps?: Partial<ResourceSelectorProps>,
   ): Promise<void> {
-    resourceSelectorRef = React.createRef<ResourceSelector>();
+    resourceSelectorRef = React.createRef<TestResourceSelector>();
     const props = { ...generateProps(), ...customProps } as ResourceSelectorProps;
     renderResult = render(
       <CommonTestWrapper>
-        <ResourceSelector ref={resourceSelectorRef} {...props} />
+        <TestResourceSelector ref={resourceSelectorRef} {...props} />
       </CommonTestWrapper>,
     );
     await waitFor(() => {
@@ -169,12 +176,51 @@ describe('ResourceSelector', () => {
     expect(getResourceSelectorState()).toHaveProperty('selectedIds', []);
 
     const row = getRowById(RESOURCES[1].id!);
-    row.click();
+    act(() => row.click());
 
     await waitFor(() => {
       expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(RESOURCES[1].id!);
       expect(getResourceSelectorState()).toHaveProperty('selectedIds', [RESOURCES[1].id]);
     });
+  });
+
+  it('keeps newer filter results when an older list response finishes later', async () => {
+    let finishOld!: (response: { resources: BaseResource[]; nextPageToken: string }) => void;
+    listResourceSpy.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishOld = resolve;
+        }),
+    );
+    await renderResourceSelector();
+    listResourceSpy.mockResolvedValueOnce({ resources: [RESOURCES[1]], nextPageToken: '' });
+    await act(async () => {
+      await resourceSelectorRef!.current!.load({ filter: 'new-filter' });
+      finishOld({ resources: [RESOURCES[0]], nextPageToken: 'old-token' });
+    });
+    expect(screen.getByText('test-2 name')).toBeInTheDocument();
+    expect(screen.queryByText('test-1 name')).not.toBeInTheDocument();
+  });
+
+  it.each(['newer request', 'unmount'])('ignores an old list error after %s', async (reason) => {
+    let failOld!: (error: Error) => void;
+    listResourceSpy.mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          failOld = reject;
+        }),
+    );
+    await renderResourceSelector();
+    if (reason === 'unmount') renderResult!.unmount();
+    else {
+      await act(async () => {
+        await resourceSelectorRef!.current!.load({ filter: 'new-filter' });
+      });
+    }
+    await act(async () => {
+      failOld(new Error('Outdated list failure'));
+    });
+    expect(updateDialogSpy).not.toHaveBeenCalled();
   });
 
   it('logs error if more than one resource is selected', async () => {

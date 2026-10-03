@@ -1,0 +1,34 @@
+/* The outer error boundary can render before or outside the application's theme provider. */
+.kfp-error-boundary {
+  margin: 20px;
+  padding: 16px;
+  border: 1px solid var(--status-failed, #c9302c);
+  border-radius: 10px;
+  color: var(--foreground, #15171e);
+  background: var(--status-failed-soft, #fbe8e7);
+  font-family: var(--kfp-font-sans, system-ui, sans-serif);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.kfp-error-boundary > p {
+  margin: 0 0 12px;
+  color: var(--status-failed, #c9302c);
+  font-weight: 600;
+}
+.kfp-error-boundary summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 600;
+}
+.kfp-error-boundary summary:focus-visible {
+  outline: 2px solid var(--primary, #2563d9);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.kfp-error-boundary pre {
+  margin: 12px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--kfp-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+}

@@ -1,0 +1,74 @@
+{
+  "run": {
+    "id": "36734476457",
+    "attempt": "1",
+    "testedSource": "da6ec8bebac0614fcb1939a92aff4a7e1672b9b6",
+    "pullRequestHead": "20d87a3fd2e52eb6b33f1fe7beead25efbf4cc95"
+  },
+  "matchedSamples": 84,
+  "scalingSamples": 28,
+  "traces": 84,
+  "traceBytes": 28528958,
+  "traceEvents": 2236523,
+  "allComparisonsPass": true,
+  "browser": "145.0.7632.6",
+  "editor": {
+    "legacy": {
+      "samples": [
+        278.3999999999651,
+        280.9000000000233,
+        278.89999999990687,
+        295.70000000006985,
+        307.19999999995343,
+        307.5,
+        290.60000000009313
+      ],
+      "medianMs": 290.60000000009313,
+      "minMs": 278.3999999999651,
+      "maxMs": 307.5
+    },
+    "candidate": {
+      "samples": [
+        3656.2000000000116,
+        3637.2000000000116,
+        3639.5,
+        3637.5999999999767,
+        3652.6999999999534,
+        3638.7999999998137,
+        3620
+      ],
+      "medianMs": 3638.7999999998137,
+      "minMs": 3620,
+      "maxMs": 3656.2000000000116
+    },
+    "candidateWorker": {
+      "samples": [
+        4445.799999999988,
+        4434.400000000023,
+        4439,
+        4441.20000000007,
+        4447.399999999907,
+        4432.799999999814,
+        4432.300000000047
+      ],
+      "medianMs": 4439,
+      "minMs": 4432.300000000047,
+      "maxMs": 4447.399999999907
+    }
+  },
+  "speedups": {
+    "runs": 22.625861806604554,
+    "run-details": 21.373157257230847,
+    "compare": 21.82392729056899,
+    "filter": 20.8116119799584,
+    "run-open": 7.8090692124149435,
+    "task-open": 54.055366682872254,
+    "graph-graphReadyMs": -0.7215860202020252,
+    "graph-selectInspectorReadyMs": -0.007585830707390606,
+    "graph-fitSettledMs": 13.361744897374795,
+    "comparison-contentReadyMs": -1.0529213278938299,
+    "comparison-chartReadyMs": -0.017880462333774716,
+    "comparison-addCurveReadyMs": -0.04171785716040599,
+    "comparison-expandChartReadyMs": -1.4273585166872271
+  }
+}

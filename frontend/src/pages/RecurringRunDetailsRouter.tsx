@@ -16,7 +16,7 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CircularProgress } from '@mui/material';
+import 'src/components/modernization/ExperimentWorkflows.css';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { errorToMessage } from 'src/lib/Utils';
 import { RouteParams } from 'src/components/Router';
@@ -78,9 +78,10 @@ export default function RecurringRunDetailsRouter(props: PageProps) {
 
   if (recurringRunIsLoading) {
     return (
-      <div style={{ textAlign: 'center', paddingTop: 40 }}>
-        <CircularProgress />
-        <div>Currently loading recurring run information</div>
+      <div className='kfp-workflow-loading'>
+        <div role='progressbar' aria-label='Loading recurring run'>
+          Currently loading recurring run information
+        </div>
       </div>
     );
   }

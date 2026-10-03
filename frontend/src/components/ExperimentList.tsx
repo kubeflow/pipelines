@@ -17,6 +17,7 @@
 import { NavigationProps } from 'src/lib/Navigation';
 import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
+import { ResourceTable } from 'src/components/modernization/ResourceTable';
 import { Link } from 'react-router';
 import {
   V2beta1ListExperimentsResponse,
@@ -25,13 +26,12 @@ import {
 } from 'src/apisv2beta1/experiment';
 import { errorToMessage } from 'src/lib/Utils';
 import { RoutePage, RouteParams } from './Router';
-import { commonCss } from 'src/Css';
 import { Apis, ExperimentSortKeys, ListRequest } from 'src/lib/Apis';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import RunList from 'src/pages/RunList';
 import { produce as immerProduce } from 'immer';
-import { Tooltip } from '@mui/material';
+import 'src/components/modernization/ExperimentWorkflows.css';
 
 export interface ExperimentListProps extends NavigationProps {
   namespace?: string;
@@ -85,6 +85,14 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     return (
       <div>
         <CustomTable
+          renderTable={(table) => (
+            <ResourceTable
+              table={table}
+              label='Archived experiments'
+              singular='experiment'
+              plural='experiments'
+            />
+          )}
           columns={columns}
           rows={rows}
           ref={this._tableRef}
@@ -110,15 +118,17 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value ?? ''} enterDelay={300} placement='top-start'>
-        <Link
-          className={commonCss.link}
-          onClick={(e) => e.stopPropagation()}
-          to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
-        >
-          {props.value}
-        </Link>
-      </Tooltip>
+      <Link
+        className='kfp-workflow-link'
+        title={props.value || ''}
+        onClick={(e) => e.stopPropagation()}
+        to={RoutePage.EXPERIMENT_DETAILS.replace(
+          ':' + RouteParams.experimentId,
+          encodeURIComponent(props.id),
+        )}
+      >
+        {props.value}
+      </Link>
     );
   };
 

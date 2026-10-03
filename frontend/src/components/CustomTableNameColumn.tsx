@@ -16,7 +16,6 @@
 
 import { CustomRendererProps } from './CustomTable';
 import React from 'react';
-import { Tooltip } from '@mui/material';
 
 /**
  * Common name custom renderer that shows a tooltip when hovered. The tooltip helps if there isn't
@@ -29,8 +28,8 @@ export const NameWithTooltip: React.FC<
   }>
 > = (props: CustomRendererProps<{ display_name?: string; name?: string }>) => {
   return (
-    <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
-      <span>{props.value?.display_name || props.value?.name || ''}</span>
-    </Tooltip>
+    <span title={'Name: ' + (props.value?.name || '')}>
+      {props.value?.display_name || props.value?.name || ''}
+    </span>
   );
 };

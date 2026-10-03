@@ -15,21 +15,22 @@
  */
 
 import * as React from 'react';
-import { classes } from 'typestyle';
-import { padding, commonCss } from 'src/Css';
 import ResourceSelector from 'src/pages/ResourceSelector';
 import { Apis, PipelineSortKeys } from 'src/lib/Apis';
 import { Column } from './CustomTable';
 import { V2beta1Pipeline } from 'src/apisv2beta1/pipeline';
 import Buttons from 'src/lib/Buttons';
 import { PageProps } from 'src/pages/Page';
-import MD2Tabs from 'src/atoms/MD2Tabs';
-import Toolbar, { ToolbarActionMap } from 'src/components/Toolbar';
+import { InspectionTabs } from './modernization/InspectionTabs';
+import type { ToolbarActionMap } from 'src/lib/PageChromeTypes';
+import { ModernToolbar } from './modernization/ModernPageChrome';
 import { PipelineTabsHeaders, PipelineTabsTooltips } from 'src/pages/PrivateAndSharedPipelines';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { convertPipelineToResource } from 'src/lib/ResourceConverter';
 
-import { Button, Dialog, DialogActions, DialogContent } from '@mui/material';
+import { Button } from './ui/button';
+import { ModalDialog } from './ui/dialog';
+import { errorToMessage } from 'src/lib/Utils';
 
 enum NamespacedAndSharedTab {
   NAMESPACED = 0,
@@ -38,14 +39,26 @@ enum NamespacedAndSharedTab {
 
 export interface PipelinesDialogV2Props extends PageProps {
   open: boolean;
-  selectorDialog: string;
+  selectorDialog?: string;
   onClose: (confirmed: boolean, selectedPipeline?: V2beta1Pipeline) => void;
   namespace: string | undefined; // use context or make it optional?
   pipelineSelectorColumns: Column[];
   toolbarActionMap?: ToolbarActionMap;
 }
 
-const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): React.JSX.Element | null => {
+function PipelinesDialogV2(props: PipelinesDialogV2Props) {
+  return <PipelineSelectionSession key={props.namespace || ''} {...props} />;
+}
+
+function PipelineSelectionSession(props: PipelinesDialogV2Props) {
+  const selectionGeneration = React.useRef(0);
+  // External sync: invalidate pending selection reads when this namespace session unmounts.
+  React.useEffect(
+    () => () => {
+      selectionGeneration.current++;
+    },
+    [],
+  );
   const buildInfo = React.useContext(BuildInfoContext);
   const [view, setView] = React.useState(NamespacedAndSharedTab.NAMESPACED);
   const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] =
@@ -55,6 +68,7 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): React.JSX.E
     return (
       <ResourceSelector
         {...props}
+        key={view}
         filterLabel='Filter pipelines'
         listApi={async (
           page_token?: string,
@@ -80,8 +94,21 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): React.JSX.E
         emptyMessage='No pipelines found. Upload a pipeline and then try again.'
         initialSortColumn={PipelineSortKeys.CREATED_AT}
         selectionChanged={async (selectedId: string) => {
-          const selectedPipeline = await Apis.pipelineServiceApiV2.getPipeline(selectedId);
-          setUnconfirmedSelectedPipeline(selectedPipeline);
+          const generation = ++selectionGeneration.current;
+          setUnconfirmedSelectedPipeline(undefined);
+          try {
+            const selectedPipeline = await Apis.pipelineServiceApiV2.getPipeline(selectedId);
+            if (generation === selectionGeneration.current)
+              setUnconfirmedSelectedPipeline(selectedPipeline);
+          } catch (error) {
+            const message = await errorToMessage(error);
+            if (generation === selectionGeneration.current)
+              props.updateDialog({
+                title: 'Unable to select pipeline',
+                content: message,
+                buttons: [{ text: 'Dismiss' }],
+              });
+          }
         }}
       />
     );
@@ -89,33 +116,38 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): React.JSX.E
 
   function getTabs(): React.JSX.Element | null {
     if (!buildInfo?.apiServerMultiUser) {
-      return null;
+      return getPipelinesList();
     }
 
     return (
-      <MD2Tabs
+      <InspectionTabs
         tabs={[
           {
-            header: PipelineTabsHeaders.PRIVATE,
+            label: PipelineTabsHeaders.PRIVATE,
             tooltip: PipelineTabsTooltips.PRIVATE,
           },
           {
-            header: PipelineTabsHeaders.SHARED,
+            label: PipelineTabsHeaders.SHARED,
             tooltip: PipelineTabsTooltips.SHARED,
           },
         ]}
         selectedTab={view}
         onSwitch={tabSwitched}
-      />
+        ariaLabel='Pipeline scope'
+      >
+        {getPipelinesList()}
+      </InspectionTabs>
     );
   }
 
   function tabSwitched(newTab: NamespacedAndSharedTab): void {
+    selectionGeneration.current++;
     setUnconfirmedSelectedPipeline(undefined);
     setView(newTab);
   }
 
   function closeAndResetState(): void {
+    selectionGeneration.current++;
     props.onClose(false);
     setUnconfirmedSelectedPipeline(undefined);
     setView(NamespacedAndSharedTab.NAMESPACED);
@@ -126,44 +158,44 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): React.JSX.E
     if (props.toolbarActionMap) {
       actions = props.toolbarActionMap;
     }
-    return <Toolbar actions={actions} breadcrumbs={[]} pageTitle={'Choose a pipeline'} />;
+    return (
+      <ModernToolbar actions={actions} breadcrumbs={[]} pageTitle='' topLevelToolbar={false} />
+    );
   };
 
-  return (
-    <Dialog
-      open={props.open}
-      classes={{ paper: props.selectorDialog }}
-      onClose={() => closeAndResetState()}
-      PaperProps={{ id: 'pipelineSelectorDialog' }}
-    >
-      <DialogContent>
-        {getToolbar()}
-        <div className={classes(commonCss.page, padding(20, 't'))}>
-          {getTabs()}
+  if (!props.open) return null;
 
-          {view === NamespacedAndSharedTab.NAMESPACED && getPipelinesList()}
-          {view === NamespacedAndSharedTab.SHARED && getPipelinesList()}
-        </div>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          id='cancelPipelineSelectionBtn'
-          onClick={() => closeAndResetState()}
-          color='secondary'
-        >
-          Cancel
-        </Button>
-        <Button
-          id='usePipelineBtn'
-          onClick={() => props.onClose(true, unconfirmedSelectedPipeline)}
-          color='secondary'
-          disabled={!unconfirmedSelectedPipeline}
-        >
-          Use this pipeline
-        </Button>
-      </DialogActions>
-    </Dialog>
+  return (
+    <ModalDialog
+      open={props.open}
+      id='pipelineSelectorDialog'
+      size='lg'
+      title='Choose a pipeline'
+      onClose={closeAndResetState}
+      actions={
+        <>
+          <Button id='cancelPipelineSelectionBtn' variant='secondary' onClick={closeAndResetState}>
+            Cancel
+          </Button>
+          <Button
+            id='usePipelineBtn'
+            onClick={() => {
+              selectionGeneration.current++;
+              props.onClose(true, unconfirmedSelectedPipeline);
+              setUnconfirmedSelectedPipeline(undefined);
+              setView(NamespacedAndSharedTab.NAMESPACED);
+            }}
+            disabled={!unconfirmedSelectedPipeline}
+          >
+            Use this pipeline
+          </Button>
+        </>
+      }
+    >
+      {getToolbar()}
+      {getTabs()}
+    </ModalDialog>
   );
-};
+}
 
 export default PipelinesDialogV2;

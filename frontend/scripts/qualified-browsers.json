@@ -1,0 +1,263 @@
+{
+  "resolvedAt": "2026-10-02",
+  "runner": "macos-26",
+  "architecture": "arm64",
+  "notes": [
+    "Exact versions are a dated snapshot; review rolling policy channels before release.",
+    "Chrome for Testing rows supplement policy coverage and do not qualify a different vendor patch.",
+    "Chrome stable URL is mutable; strict signature and version validation fails if the channel changes.",
+    "Chrome stable refreshed to 154.0.8037.98 after the vendor download changed; Google Version History records full ARM64 stable rollout from 2026-10-02T00:57:44.230753Z. Earlier .58 and .93 qualification remains historical evidence. Other browser entries retain their existing dated versions and were not refreshed by this change.",
+    "No vendor SHA-256 is published in the Chrome download metadata; record the acquired hash and verify the signed app.",
+    "The two supplementary Mac Chrome for Testing archives have linker ad-hoc signatures, no vendor TeamIdentifier and no resource seal. Their reviewed SHA-256 pins agree across two hosted downloads; CI also verifies pinned Google Storage generation, size and vendor MD5. This is archive integrity, not Developer ID signature qualification."
+  ],
+  "browsers": [
+    {
+      "id": "chrome-stable",
+      "browser": "chromium",
+      "slot": "Chrome current stable",
+      "version": "154.0.8037.98",
+      "kind": "dmg",
+      "url": "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg",
+      "sha256": null,
+      "checksumSource": null,
+      "platform": "darwin",
+      "architecture": "arm64",
+      "appName": "Google Chrome.app",
+      "executable": "Google Chrome",
+      "teamId": "EQHXZ8M8AV",
+      "qualification": "policy",
+      "source": "https://versionhistory.googleapis.com/v1/chrome/platforms/mac_arm64/channels/stable/versions/154.0.8037.98/releases"
+    },
+    {
+      "id": "chrome-testing-current",
+      "browser": "chromium",
+      "slot": "Supplementary Chrome for Testing; not exact Mac policy patch",
+      "version": "154.0.8037.57",
+      "kind": "zip",
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.57/mac-arm64/chrome-mac-arm64.zip",
+      "sha256": "0e6b3439469c1b8b95b2e89c72ea29f7af00fb2c28a8878358a0b6002b6d3a64",
+      "checksumSource": null,
+      "platform": "darwin",
+      "architecture": "arm64",
+      "appName": "Google Chrome for Testing.app",
+      "executable": "Google Chrome for Testing",
+      "teamId": null,
+      "qualification": "supplementary",
+      "source": "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json",
+      "verification": "cft-archive",
+      "sha256Source": [
+        "https://github.com/kubeflow/pipelines/actions/runs/36577337982",
+        "https://github.com/kubeflow/pipelines/actions/runs/36579511088"
+      ],
+      "archiveObject": {
+        "bucket": "chrome-for-testing-public",
+        "name": "154.0.8037.57/mac-arm64/chrome-mac-arm64.zip",
+        "generation": "1790048159653596",
+        "size": "191429663",
+        "md5Hash": "TsIlmo+9Ym7Xr8cEuw69TQ==",
+        "metadataSource": "https://storage.googleapis.com/storage/v1/b/chrome-for-testing-public/o/154.0.8037.57%2Fmac-arm64%2Fchrome-mac-arm64.zip?generation=1790048159653596"
+      }
+    },
+    {
+      "id": "chrome-testing-previous",
+      "browser": "chromium",
+      "slot": "Supplementary Chrome for Testing; not exact Mac policy patch",
+      "version": "153.0.8010.52",
+      "kind": "zip",
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/153.0.8010.52/mac-arm64/chrome-mac-arm64.zip",
+      "sha256": "6f67faa4b34dd551b53abb6fee24edeae470ab695b0b100ddc4885ff0be6724a",
+      "checksumSource": null,
+      "platform": "darwin",
+      "architecture": "arm64",
+      "appName": "Google Chrome for Testing.app",
+      "executable": "Google Chrome for Testing",
+      "teamId": null,
+      "qualification": "supplementary",
+      "source": "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json",
+      "verification": "cft-archive",
+      "sha256Source": [
+        "https://github.com/kubeflow/pipelines/actions/runs/36577337982",
+        "https://github.com/kubeflow/pipelines/actions/runs/36579511088"
+      ],
+      "archiveObject": {
+        "bucket": "chrome-for-testing-public",
+        "name": "153.0.8010.52/mac-arm64/chrome-mac-arm64.zip",
+        "generation": "1789628161734392",
+        "size": "191015853",
+        "md5Hash": "yx+IWXOwGckiD27X2zhI2g==",
+        "metadataSource": "https://storage.googleapis.com/storage/v1/b/chrome-for-testing-public/o/153.0.8010.52%2Fmac-arm64%2Fchrome-mac-arm64.zip?generation=1789628161734392"
+      }
+    },
+    {
+      "id": "edge-stable",
+      "browser": "chromium",
+      "slot": "Edge current stable",
+      "version": "154.0.4258.37",
+      "kind": "pkg",
+      "url": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/548d966b-8596-4ddf-83fa-cc29fc355933/MicrosoftEdge-154.0.4258.37.pkg",
+      "sha256": "d104a5c2f288b3f8d8db964bba26e8545f645ea88b0d64ece1215b63a742a9a5",
+      "checksumSource": "https://edgeupdates.microsoft.com/api/products?view=enterprise",
+      "platform": "darwin",
+      "architecture": "arm64",
+      "appName": "Microsoft Edge.app",
+      "executable": "Microsoft Edge",
+      "teamId": "UBF8T346G9",
+      "qualification": "policy",
+      "source": "https://edgeupdates.microsoft.com/api/products?view=enterprise"
+    },
+    {
+      "id": "edge-previous",
+      "browser": "chromium",
+      "slot": "Edge previous stable",
+      "version": "153.0.4234.48",
+      "kind": "pkg",
+      "url": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8aa4efa6-ccfc-45df-9f57-bf678d2faf18/MicrosoftEdge-153.0.4234.48.pkg",
+      "sha256": "b9302cbc5e0adb22a82568d62a18d34050192d11c4b1344575dc6b5c264b58af",
+      "checksumSource": "https://edgeupdates.microsoft.com/api/products?view=enterprise",
+      "platform": "darwin",
+      "architecture": "arm64",
+      "appName": "Microsoft Edge.app",
+      "executable": "Microsoft Edge",
+      "teamId": "UBF8T346G9",
+      "qualification": "policy",
+      "source": "https://edgeupdates.microsoft.com/api/products?view=enterprise"
+    },
+    {
+      "id": "firefox-stable",
+      "browser": "firefox",
+      "slot": "Firefox current stable",
+      "version": "157.0",
+      "kind": "dmg",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/157.0/mac/en-US/Firefox%20157.0.dmg",
+      "sha256": "df6d8c79b6126bcf24cb70ebab9371916a662028e2d706e462d432e78fdf396c",
+      "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/157.0/SHA256SUMS",
+      "platform": "darwin",
+      "architecture": "arm64",
+      "archiveVersion": "157.0",
+      "appName": "Firefox.app",
+      "executable": "firefox",
+      "teamId": "43AQ936H96",
+      "qualification": "policy",
+      "source": "https://product-details.mozilla.org/1.0/firefox_versions.json"
+    },
+    {
+      "id": "firefox-previous",
+      "browser": "firefox",
+      "slot": "Firefox previous stable",
+      "version": "156.0.1",
+      "kind": "dmg",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/156.0.1/mac/en-US/Firefox%20156.0.1.dmg",
+      "sha256": "7eda94829670b892524eddfee575d16fe74b9329d3d0795367cce035207d34a4",
+      "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/156.0.1/SHA256SUMS",
+      "platform": "darwin",
+      "architecture": "arm64",
+      "archiveVersion": "156.0.1",
+      "appName": "Firefox.app",
+      "executable": "firefox",
+      "teamId": "43AQ936H96",
+      "qualification": "policy",
+      "source": "https://product-details.mozilla.org/1.0/firefox_versions.json"
+    },
+    {
+      "id": "firefox-esr",
+      "browser": "firefox",
+      "slot": "Firefox current ESR",
+      "version": "153.4.0",
+      "kind": "dmg",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/153.4.0esr/mac/en-US/Firefox%20153.4.0esr.dmg",
+      "sha256": "2a880889b07fb7abdf0f295960f7091c6360c75d9c06a3e95fde37ba5a88575c",
+      "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/153.4.0esr/SHA256SUMS",
+      "platform": "darwin",
+      "architecture": "arm64",
+      "archiveVersion": "153.4.0esr",
+      "appName": "Firefox.app",
+      "executable": "firefox",
+      "teamId": "43AQ936H96",
+      "qualification": "policy",
+      "source": "https://product-details.mozilla.org/1.0/firefox_versions.json"
+    },
+    {
+      "id": "firefox-esr-overlap",
+      "browser": "firefox",
+      "slot": "Firefox outgoing ESR supported overlap",
+      "version": "140.17.0",
+      "kind": "dmg",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/140.17.0esr/mac/en-US/Firefox%20140.17.0esr.dmg",
+      "sha256": "e4684afe6f2d343ff7cbc019eeff383a930836e116a6407b92b0941b96494a97",
+      "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/140.17.0esr/SHA256SUMS",
+      "platform": "darwin",
+      "architecture": "arm64",
+      "archiveVersion": "140.17.0esr",
+      "appName": "Firefox.app",
+      "executable": "firefox",
+      "teamId": "43AQ936H96",
+      "qualification": "policy",
+      "source": "https://product-details.mozilla.org/1.0/firefox_versions.json"
+    }
+  ],
+  "geckodriver": {
+    "version": "0.37.1",
+    "url": "https://github.com/mozilla/geckodriver/releases/download/v0.37.1/geckodriver-v0.37.1-macos-aarch64.tar.gz",
+    "sha256": "d02b3f7003f999caf90974a2ef5da0286c05d01cee19112c86846d759fdba4f5",
+    "source": "https://api.github.com/repos/mozilla/geckodriver/releases/tags/v0.37.1"
+  },
+  "gaps": [
+    {
+      "id": "chrome-previous-policy",
+      "slot": "Chrome previous stable Mac patch",
+      "target": "153.0.8010.53 or later vendor Mac patch",
+      "reason": "No exact pinned official Mac stable archive resolved; CfT 153.0.8010.52 is supplementary only.",
+      "source": "https://versionhistory.googleapis.com/v1/chrome/platforms/mac_arm64/channels/stable/versions/all/releases?filter=version%3E%3D153,version%3C154"
+    },
+    {
+      "id": "chrome-extended-stable",
+      "slot": "Chrome Extended Stable",
+      "target": "152.0.7977.140",
+      "reason": "Exact Extended Stable Mac distribution is absent from the Chrome for Testing catalog; enterprise or device-service access remains unresolved.",
+      "source": "https://chromereleases.googleblog.com/2026/09/"
+    },
+    {
+      "id": "edge-extended-stable",
+      "slot": "Edge Extended Stable on macOS",
+      "target": null,
+      "reason": "Current macOS Extended Stable package identity unresolved; Windows 152.0.4191.100 does not establish a Mac package.",
+      "source": "https://edgeupdates.microsoft.com/api/products?view=enterprise"
+    }
+  ],
+  "linuxBrowsers": [
+    {
+      "id": "firefox-stable-linux",
+      "browser": "firefox",
+      "version": "157.0",
+      "archiveVersion": "157.0",
+      "platform": "linux",
+      "architecture": "x64",
+      "runner": "ubuntu-24.04",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/157.0/linux-x86_64/en-US/firefox-157.0.tar.xz",
+      "sha256": "42f2c62a562316982ef5a796738c57602bf84a984f5c616e80bcff4627f78fff",
+      "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/157.0/SHA256SUMS",
+      "qualification": "policy",
+      "resolvedAt": "2026-09-30"
+    },
+    {
+      "id": "firefox-esr-linux",
+      "browser": "firefox",
+      "version": "153.4.0",
+      "archiveVersion": "153.4.0esr",
+      "platform": "linux",
+      "architecture": "x64",
+      "runner": "ubuntu-24.04",
+      "url": "https://archive.mozilla.org/pub/firefox/releases/153.4.0esr/linux-x86_64/en-US/firefox-153.4.0esr.tar.xz",
+      "sha256": "1832c20dd8c5f69cee933debe62372f5c997845413c8eff846317f6463172032",
+      "checksumSource": "https://archive.mozilla.org/pub/firefox/releases/153.4.0esr/SHA256SUMS",
+      "qualification": "policy",
+      "resolvedAt": "2026-09-30"
+    }
+  ],
+  "linuxGeckodriver": {
+    "version": "0.37.1",
+    "url": "https://github.com/mozilla/geckodriver/releases/download/v0.37.1/geckodriver-v0.37.1-linux64.tar.gz",
+    "sha256": "e815130ea95983e162ae91843b48d3a3ce991735635fce83a647afde21e09f7e",
+    "source": "https://api.github.com/repos/mozilla/geckodriver/releases/tags/v0.37.1"
+  }
+}

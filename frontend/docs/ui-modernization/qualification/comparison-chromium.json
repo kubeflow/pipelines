@@ -1,0 +1,97 @@
+{
+  "applicationSource": "b358c3b4dc6bcf1b47c2ae399b5e85dfc3df0269",
+  "harnessSha256": "8c7ee6d0d46dca4d1da185bd39c66e994629f4952e36cdcf144f4ef4d002f0c9",
+  "indexSha256": "69d5985707bdca5737fb4e67c3b72aa2060a70c97775a897c216597bbb207e17",
+  "fixtureSha256": "fec0f664c115101ba64fdc201e131dad8f211f61c94e83058541699f68f9d249",
+  "browser": {
+    "engine": "chromium",
+    "version": "145.0.7632.6",
+    "channel": null
+  },
+  "runtime": {
+    "node": "v24.14.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "settings": {
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "deviceScaleFactor": 1,
+    "locale": "en-US",
+    "timezoneId": "UTC",
+    "theme": "light",
+    "reducedMotion": "reduce",
+    "cpuThrottle": "none",
+    "networkThrottle": "none"
+  },
+  "method": "Fresh context per sample in one warm browser process; local route fixtures and file/OS caches stay warm. Automation timings include Playwright overhead. Initial readiness requires populated parameter/scalar tables and fonts; chart and selection readiness require actual curve paths/provenance; expansion requires increased rendered chart height. Each endpoint also waits two frames. No field INP, backend load, or baseline speedup claim.",
+  "fixture": {
+    "runs": 2,
+    "classificationArtifacts": 111,
+    "initialVisibleCurves": 3,
+    "selectedVisibleCurves": 4,
+    "pageSizes": [100, 11]
+  },
+  "assets": [
+    {
+      "path": "/static/index-BB6Gh9sf.css",
+      "bytes": 95566,
+      "sha256": "872fed3daa914cb73dd3272d200481097fabde285213f18666cc43c7ac1c6338"
+    },
+    {
+      "path": "/static/index-CMs0YGmE.js",
+      "bytes": 2046158,
+      "sha256": "d5e8a5dc6a56c0bcaa8bb2c678a9834ed82d209b3b32516e3b0c776c561c29cd"
+    },
+    {
+      "path": "/static/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+      "bytes": 21168,
+      "sha256": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb"
+    },
+    {
+      "path": "/static/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
+      "bytes": 21832,
+      "sha256": "cb182feeed4d798ff6961d3c79f7026279448fca0676438aaecb21f3fc39553a"
+    },
+    {
+      "path": "/static/public-sans-latin-400-normal-8Rpg0ruU.woff2",
+      "bytes": 14632,
+      "sha256": "36274b5787b4f03b27e65ae971d6c808a96838ccd60c9dabaee154889b6bba82"
+    },
+    {
+      "path": "/static/public-sans-latin-500-normal-NlrCPXnF.woff2",
+      "bytes": 14656,
+      "sha256": "55e866a00caa197bc9fafa52c907f4dfe88e51bbb3f585c777931d03eb961e96"
+    },
+    {
+      "path": "/static/public-sans-latin-600-normal-Fru-LXNs.woff2",
+      "bytes": 14592,
+      "sha256": "c7842f97346df1b3b470e9d71acde90f132dd858508ec5ae6606401e5d0938f7"
+    }
+  ],
+  "samples": [
+    {
+      "sample": 1,
+      "contentReadyMs": 332.865042,
+      "chartReadyMs": 148.491667,
+      "addCurveReadyMs": 70.13458300000002,
+      "expandChartReadyMs": 92.769
+    },
+    {
+      "sample": 2,
+      "contentReadyMs": 208.74295800000027,
+      "chartReadyMs": 133.28224999999975,
+      "addCurveReadyMs": 55.42837499999996,
+      "expandChartReadyMs": 94.57945900000004
+    },
+    {
+      "sample": 3,
+      "contentReadyMs": 194.34229200000027,
+      "chartReadyMs": 132.59812499999998,
+      "addCurveReadyMs": 87.24679199999991,
+      "expandChartReadyMs": 93.54387499999984
+    }
+  ]
+}

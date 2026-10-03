@@ -14,6 +14,10 @@
 
 import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 
+// Keep rendered node boxes and Dagre's layout inputs in the same coordinate space.
+export const GRAPH_NODE_WIDTH = 200;
+export const GRAPH_NODE_HEIGHT = 56;
+
 // Being used as the base interace for Node and Edge in Reactflow.
 export type FlowElementDataBase = {
   label: string;

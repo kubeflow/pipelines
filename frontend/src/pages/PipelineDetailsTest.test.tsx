@@ -113,7 +113,7 @@ it('preserves the selected tab on refresh and resets graph state only on version
   const ref = createRef<PipelineDetails>();
   renderSpec(spec, ref);
   await screen.findByTestId('DagCanvas');
-  fireEvent.click(screen.getByRole('button', { name: 'Pipeline Spec' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Pipeline Spec' }));
   expect(screen.queryByTestId('DagCanvas')).toBeNull();
   await act(async () => {
     await ref.current!.refresh();
@@ -123,4 +123,28 @@ it('preserves the selected tab on refresh and resets graph state only on version
     await ref.current!.handleVersionSelected('version-2');
   });
   expect(screen.getByTestId('DagCanvas')).toBeInTheDocument();
+});
+
+it('encodes pipeline and version identities once when switching versions', async () => {
+  const spec = load(template) as object;
+  const pipelineId = 'pipeline/a%value';
+  const versionId = 'version/b%value';
+  vi.mocked(Apis.pipelineServiceApiV2.getPipeline).mockResolvedValue({ pipeline_id: pipelineId });
+  vi.mocked(Apis.pipelineServiceApiV2.listPipelineVersions).mockResolvedValue({
+    pipeline_versions: [
+      { pipeline_id: pipelineId, pipeline_version_id: versionId, pipeline_spec: spec },
+    ],
+  });
+  const ref = createRef<PipelineDetails>();
+  const props = renderSpec(spec, ref);
+  await screen.findByTestId('DagCanvas');
+  await act(async () => {
+    await ref.current!.handleVersionSelected(versionId);
+  });
+  expect(props.navigate).toHaveBeenCalledWith(
+    {
+      pathname: `/pipelines/details/${encodeURIComponent(pipelineId)}/version/${encodeURIComponent(versionId)}`,
+    },
+    { replace: true },
+  );
 });

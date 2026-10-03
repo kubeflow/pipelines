@@ -15,14 +15,32 @@
  */
 
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as renderWithoutTheme, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
+import { ThemeProvider } from 'src/components/modernization/ThemeProvider';
 import { NewPipelineVersion } from './NewPipelineVersion';
 import { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
+
+function render(element: React.ReactElement) {
+  return renderWithoutTheme(<ThemeProvider defaultTheme='light'>{element}</ThemeProvider>);
+}
+beforeEach(() => {
+  localStorage.clear();
+  vi.stubGlobal('matchMedia', (media: string) => ({
+    matches: false,
+    media,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
 // Exposes protected drop handlers for testing (JSDOM lacks DataTransfer/FileList support).
 class TestNewPipelineVersion extends NewPipelineVersion {
@@ -398,6 +416,36 @@ describe('NewPipelineVersion', () => {
         name: 'test pipeline name',
         display_name: 'test pipeline name',
       });
+    });
+
+    it('uses the newly created pipeline ID for its URL-imported version', async () => {
+      const createdId = 'new/pipeline%id';
+      createPipelineSpy.mockResolvedValue({ pipeline_id: createdId });
+      createPipelineVersionSpy.mockResolvedValue({
+        ...MOCK_PIPELINE_VERSION,
+        pipeline_id: createdId,
+      });
+      await renderNewPipelineVersion('', { buildInfo: { apiServerMultiUser: false } });
+      fireEvent.change(screen.getByLabelText(/Pipeline Name/), {
+        target: { value: 'new pipeline' },
+      });
+      fireEvent.change(screen.getByLabelText(/Package Url/), {
+        target: { value: 'https://example.test/pipeline.yaml' },
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create', exact: true }));
+      await waitFor(() => expect(createPipelineVersionSpy).toHaveBeenCalledTimes(1));
+      expect(createPipelineVersionSpy).toHaveBeenCalledWith(
+        createdId,
+        expect.objectContaining({
+          pipeline_id: createdId,
+          package_url: { pipeline_url: 'https://example.test/pipeline.yaml' },
+        }),
+      );
+      await waitFor(() => expect(navigateSpy).toHaveBeenCalledTimes(1));
+      expect(new URL(navigateSpy.mock.calls[0][0], 'http://kfp.test').pathname).toBe(
+        `/pipelines/details/${encodeURIComponent(createdId)}/version/original-run-pipeline-version-id`,
+      );
     });
 
     it('creates private pipeline from url in multi user mode', async () => {

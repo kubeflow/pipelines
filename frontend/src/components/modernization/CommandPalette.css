@@ -1,0 +1,112 @@
+.kfp-theme .kfp-command-palette {
+  color: var(--foreground);
+  font-family: var(--kfp-font-sans);
+  font-size: 13px;
+  white-space: normal;
+}
+
+.kfp-theme .kfp-command-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kfp-theme .kfp-command-search > svg {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+.kfp-theme .kfp-command-scope {
+  margin: 10px 0 16px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.kfp-theme .kfp-command-results {
+  max-height: min(440px, 50dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.kfp-theme .kfp-command-results section + section {
+  margin-top: 16px;
+}
+
+.kfp-theme .kfp-command-results h3 {
+  margin: 0 0 6px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.kfp-theme .kfp-command-results ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kfp-theme .kfp-command-result {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.kfp-theme .kfp-command-result:hover,
+.kfp-theme .kfp-command-result:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  background: var(--primary-soft);
+}
+
+.kfp-theme .kfp-command-result svg {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+.kfp-theme .kfp-command-result-name {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.kfp-theme .kfp-command-archived {
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.kfp-theme .kfp-command-status:empty {
+  display: none;
+}
+
+.kfp-theme .kfp-command-status,
+.kfp-theme .kfp-command-error {
+  padding: 10px 0;
+  color: var(--muted-foreground);
+}
+
+.kfp-theme .kfp-command-error p {
+  margin: 0 0 8px;
+  color: var(--status-failed);
+}
+
+.kfp-theme .kfp-command-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 11px;
+}

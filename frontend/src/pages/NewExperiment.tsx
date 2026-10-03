@@ -15,23 +15,20 @@
  */
 
 import * as React from 'react';
-import BusyButton from 'src/atoms/BusyButton';
-import Input from 'src/atoms/Input';
+import { TextField } from 'src/components/ui/text-field';
+import { Button } from 'src/components/ui/button';
+import 'src/components/modernization/ExperimentWorkflows.css';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from 'src/pages/Page';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
-import { TextFieldProps } from '@mui/material/TextField';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { URLParser } from 'src/lib/URLParser';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, fontsize } from 'src/Css';
 import { logger, errorToMessage } from 'src/lib/Utils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { getLatestVersion } from 'src/pages/NewRunV2';
 import { NewExperimentFC } from 'src/pages/functional_components/NewExperimentFC';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
-import { Button } from '@mui/material';
 
 interface NewExperimentState {
   description: string;
@@ -40,16 +37,6 @@ interface NewExperimentState {
   experimentName: string;
   pipelineId?: string;
 }
-
-const css = stylesheet({
-  errorMessage: {
-    color: 'red',
-  },
-  // TODO: move to Css.tsx and probably rename.
-  explanation: {
-    fontSize: fontsize.small,
-  },
-});
 
 export class NewExperiment extends Page<{ namespace?: string }, NewExperimentState> {
   private _experimentNameRef = React.createRef<HTMLInputElement>();
@@ -77,51 +64,51 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
     const { description, experimentName, isbeingCreated, validationError } = this.state;
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
-          <div className={commonCss.header}>Experiment details</div>
+      <div className='kfp-workflow-page'>
+        <div className='kfp-workflow-form'>
+          <h2>Experiment details</h2>
           {/* TODO: this description needs work. */}
-          <div className={css.explanation}>
+          <div className='kfp-workflow-description'>
             Think of an Experiment as a space that contains the history of all pipelines and their
             associated runs
           </div>
 
-          <Input
+          <TextField
             id='experimentName'
             label='Experiment name'
-            inputRef={this._experimentNameRef}
+            ref={this._experimentNameRef}
             required={true}
             onChange={this.handleChange('experimentName')}
+            error={validationError}
             value={experimentName}
             autoFocus={true}
-            variant='outlined'
           />
-          <Input
+          <TextField
             id='experimentDescription'
             label='Description'
             multiline={true}
             onChange={this.handleChange('description')}
             required={false}
             value={description}
-            variant='outlined'
           />
 
-          <div className={commonCss.flex}>
-            <BusyButton
+          <div className='kfp-workflow-actions'>
+            <Button
               id='createExperimentBtn'
-              disabled={!!validationError}
-              busy={isbeingCreated}
-              className={commonCss.buttonAction}
-              title={'Next'}
+              disabled={!!validationError || isbeingCreated}
+              aria-busy={isbeingCreated}
               onClick={this._create.bind(this)}
-            />
+            >
+              Next
+            </Button>
+            {isbeingCreated && <span role='status'>Creating experiment…</span>}
             <Button
               id='cancelNewExperimentBtn'
+              variant='secondary'
               onClick={() => this.props.navigate(RoutePage.EXPERIMENTS)}
             >
               Cancel
             </Button>
-            <div className={css.errorMessage}>{validationError}</div>
           </div>
         </div>
       </div>
@@ -144,7 +131,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
   }
 
   public handleChange = (name: string) => (event: any) => {
-    const value = (event.target as TextFieldProps).value;
+    const value = (event.target as HTMLInputElement | HTMLTextAreaElement).value;
     this.setState({ [name]: value } as any, this._validate.bind(this));
   };
 

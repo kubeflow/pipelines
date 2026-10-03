@@ -17,9 +17,8 @@
 import * as React from 'react';
 import Buttons from '../lib/Buttons';
 import { Page, PageProps } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
+import '../components/modernization/ExperimentWorkflows.css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import RecurringRunList from './RecurringRunList';
 
@@ -52,7 +51,7 @@ export class AllRecurringRunsList extends Page<{ namespace?: string }, AllRecurr
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-workflow-page'>
         <RecurringRunList
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}

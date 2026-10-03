@@ -1,0 +1,343 @@
+{
+  "recordedAt": "2026-09-28T16:55:13.845Z",
+  "status": "passed",
+  "qualificationStage": "performance and accessibility candidate",
+  "build": {
+    "entryPaths": ["static/index-CMs0YGmE.js", "static/index-BB6Gh9sf.css"],
+    "indexHtmlSha256": "69d5985707bdca5737fb4e67c3b72aa2060a70c97775a897c216597bbb207e17",
+    "assets": [
+      {
+        "path": "static/Editor-Av_7v3Pg.css",
+        "sha256": "2d41880e43279b1925c8c1c9bd4161bcef6c4533477045f62dd4f9e8712447e0"
+      },
+      {
+        "path": "static/Editor-BI3Cx9-H.js",
+        "sha256": "5263c7a428c1b9d405a8f5577ba445665f07e992e8bf41e4b3776fc338f7a578"
+      },
+      {
+        "path": "static/index-BB6Gh9sf.css",
+        "sha256": "872fed3daa914cb73dd3272d200481097fabde285213f18666cc43c7ac1c6338"
+      },
+      {
+        "path": "static/index-CMs0YGmE.js",
+        "sha256": "d5e8a5dc6a56c0bcaa8bb2c678a9834ed82d209b3b32516e3b0c776c561c29cd"
+      },
+      {
+        "path": "static/worker-json-8CDXFfik.js",
+        "sha256": "a529115d6321a4385a2f67c1a0285e9e9a8aed98707925a2bc3f36226a798c61"
+      },
+      {
+        "path": "static/worker-yaml-crtWQpDN.js",
+        "sha256": "3d5074049e4cb2e21fcd1d75e38005707816ad733482b2c9b9a2fb12c197fd24"
+      }
+    ]
+  },
+  "runtime": {
+    "node": "24.14.0",
+    "playwright": "1.58.0",
+    "platform": "darwin",
+    "architecture": "arm64"
+  },
+  "engines": {
+    "chromium": "145.0.7632.6",
+    "firefox": "146.0.1",
+    "webkit": "26.0"
+  },
+  "viewportUnits": "CSS pixels; top-level browser viewports",
+  "mode": "bounded mocked HTTP, actual production bundle, one file and browser engine at a time",
+  "guardScope": [
+    "strict uncaught browser page errors",
+    "fixture HTTP contracts",
+    "scenario assertions"
+  ],
+  "totalCases": 132,
+  "applicationSourceCommit": "b358c3b4dc6bcf1b47c2ae399b5e85dfc3df0269",
+  "harnessSourceCommit": "b358c3b4dc6bcf1b47c2ae399b5e85dfc3df0269",
+  "qualificationStatus": "scoped production browser matrix passed",
+  "scope": "Current Playwright engines, bounded HTTP fixtures and production assets. Does not establish actual browser floors, Safari/iOS, assistive technology or live deployment qualification.",
+  "rawResultSha256": "9eb62c3b4931f345c26ddfa97a88697c065e6878ca9c074accc2aef2c6692c61",
+  "results": [
+    {
+      "engine": "chromium",
+      "harness": "startup",
+      "expectedCases": 1,
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1280, 720]]
+    },
+    {
+      "engine": "chromium",
+      "harness": "runs",
+      "expectedCases": 6,
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [375, 812]
+      ]
+    },
+    {
+      "engine": "chromium",
+      "harness": "run-details",
+      "expectedCases": 9,
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [600, 900],
+        [780, 437]
+      ]
+    },
+    {
+      "engine": "chromium",
+      "harness": "artifacts",
+      "expectedCases": 8,
+      "tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [600, 900]
+      ]
+    },
+    {
+      "engine": "chromium",
+      "harness": "comparison",
+      "expectedCases": 3,
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 1000]]
+    },
+    {
+      "engine": "chromium",
+      "harness": "pipelines",
+      "expectedCases": 8,
+      "tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 900]]
+    },
+    {
+      "engine": "chromium",
+      "harness": "graph",
+      "expectedCases": 2,
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 900]]
+    },
+    {
+      "engine": "chromium",
+      "harness": "workflows",
+      "expectedCases": 7,
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 960],
+        [390, 844],
+        [600, 900]
+      ]
+    },
+    {
+      "engine": "firefox",
+      "harness": "startup",
+      "expectedCases": 1,
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1280, 720]]
+    },
+    {
+      "engine": "firefox",
+      "harness": "runs",
+      "expectedCases": 6,
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [375, 812]
+      ]
+    },
+    {
+      "engine": "firefox",
+      "harness": "run-details",
+      "expectedCases": 9,
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [600, 900],
+        [780, 437]
+      ]
+    },
+    {
+      "engine": "firefox",
+      "harness": "artifacts",
+      "expectedCases": 8,
+      "tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [600, 900]
+      ]
+    },
+    {
+      "engine": "firefox",
+      "harness": "comparison",
+      "expectedCases": 3,
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 1000]]
+    },
+    {
+      "engine": "firefox",
+      "harness": "pipelines",
+      "expectedCases": 8,
+      "tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 900]]
+    },
+    {
+      "engine": "firefox",
+      "harness": "graph",
+      "expectedCases": 2,
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 900]]
+    },
+    {
+      "engine": "firefox",
+      "harness": "workflows",
+      "expectedCases": 7,
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 960],
+        [390, 844],
+        [600, 900]
+      ]
+    },
+    {
+      "engine": "webkit",
+      "harness": "startup",
+      "expectedCases": 1,
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1280, 720]]
+    },
+    {
+      "engine": "webkit",
+      "harness": "runs",
+      "expectedCases": 6,
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [375, 812]
+      ]
+    },
+    {
+      "engine": "webkit",
+      "harness": "run-details",
+      "expectedCases": 9,
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [600, 900],
+        [780, 437]
+      ]
+    },
+    {
+      "engine": "webkit",
+      "harness": "artifacts",
+      "expectedCases": 8,
+      "tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 900],
+        [600, 900]
+      ]
+    },
+    {
+      "engine": "webkit",
+      "harness": "comparison",
+      "expectedCases": 3,
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 1000]]
+    },
+    {
+      "engine": "webkit",
+      "harness": "pipelines",
+      "expectedCases": 8,
+      "tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 900]]
+    },
+    {
+      "engine": "webkit",
+      "harness": "graph",
+      "expectedCases": 2,
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [[1440, 900]]
+    },
+    {
+      "engine": "webkit",
+      "harness": "workflows",
+      "expectedCases": 7,
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "result": "pass",
+      "viewports": [
+        [1440, 960],
+        [390, 844],
+        [600, 900]
+      ]
+    }
+  ]
+}

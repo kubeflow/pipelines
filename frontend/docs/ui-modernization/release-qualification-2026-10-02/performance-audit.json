@@ -1,0 +1,119 @@
+{
+  "run": {
+    "id": "37064291277",
+    "attempt": "1",
+    "testedSource": "00d243a9d92888c2746a7084bec45f36850ced5f",
+    "pullRequestHead": "71543eb922a82b8716cb58f139618052866eece7"
+  },
+  "sourceMergeParents": [
+    "463f15ff9df3be4b5720a3d9473d033a19509a65",
+    "71543eb922a82b8716cb58f139618052866eece7"
+  ],
+  "assetCounts": {
+    "legacy": 6,
+    "checkpoint": 22,
+    "candidate": 22
+  },
+  "matchedSamples": 84,
+  "scalingSamples": 28,
+  "traces": 84,
+  "traceBytes": 28506265,
+  "traceEvents": 2231074,
+  "protocolSha256": "42837c8f0fd0b71d6cb4b6c5fc746af05d32c3acb1d3b2d0cbe8c7085afd224c",
+  "allComparisonsPass": true,
+  "comparisons": {
+    "runs": {
+      "baselineMedianMs": 17090.400000000023,
+      "candidateMedianMs": 13246,
+      "limitMs": 18799.440000000024
+    },
+    "run-details": {
+      "baselineMedianMs": 16965.300000000047,
+      "candidateMedianMs": 13358.699999999953,
+      "limitMs": 18661.830000000053
+    },
+    "compare": {
+      "baselineMedianMs": 17167.399999999907,
+      "candidateMedianMs": 13421.90000000014,
+      "limitMs": 18884.139999999898
+    },
+    "filter": {
+      "baselineMedianMs": 982.0999999999767,
+      "candidateMedianMs": 778.2000000001863,
+      "limitMs": 1080.3099999999745
+    },
+    "run-open": {
+      "baselineMedianMs": 1048.2000000000116,
+      "candidateMedianMs": 977.5,
+      "limitMs": 1153.0200000000127
+    },
+    "task-open": {
+      "baselineMedianMs": 213.19999999995343,
+      "candidateMedianMs": 137.10000000009313,
+      "limitMs": 263.19999999995343
+    },
+    "editor-display": {
+      "samples": [
+        3356.3000000000466,
+        3352.6999999999534,
+        3369.5999999999767,
+        3354.29999999993,
+        3351.399999999907,
+        3349.3000000000466,
+        3354.600000000093
+      ],
+      "candidateMedianMs": 3354.29999999993,
+      "limitMs": 4000
+    },
+    "editor-worker-ready": {
+      "samples": [
+        3705,
+        3707.8000000000466,
+        3715.8000000000466,
+        3706.29999999993,
+        3714.5,
+        3705.399999999907,
+        3706.3000000000466
+      ],
+      "candidateMedianMs": 3706.3000000000466,
+      "limitMs": 5000
+    },
+    "graph-graphReadyMs": {
+      "baselineMedianMs": 1471.5919729999987,
+      "candidateMedianMs": 1459.015680999999,
+      "limitMs": 1618.7511702999986
+    },
+    "graph-selectInspectorReadyMs": {
+      "baselineMedianMs": 129.55167600000095,
+      "candidateMedianMs": 128.82482200000004,
+      "limitMs": 179.55167600000095
+    },
+    "graph-fitSettledMs": {
+      "baselineMedianMs": 164.01180600000043,
+      "candidateMedianMs": 158.75724099999934,
+      "limitMs": 214.01180600000043
+    },
+    "comparison-contentReadyMs": {
+      "baselineMedianMs": 416.1355659999999,
+      "candidateMedianMs": 413.8417589999999,
+      "limitMs": 466.1355659999999
+    },
+    "comparison-chartReadyMs": {
+      "baselineMedianMs": 183.1769059999997,
+      "candidateMedianMs": 166.72910600000023,
+      "limitMs": 233.1769059999997
+    },
+    "comparison-addCurveReadyMs": {
+      "baselineMedianMs": 92.33096300000034,
+      "candidateMedianMs": 91.20642199999929,
+      "limitMs": 142.33096300000034
+    },
+    "comparison-expandChartReadyMs": {
+      "baselineMedianMs": 120.7540240000003,
+      "candidateMedianMs": 120.81790199999978,
+      "limitMs": 170.7540240000003
+    }
+  },
+  "entryGzipRatio": 0.7596266564162224,
+  "legacyEditorMedianMs": 291.5999999999767
+}

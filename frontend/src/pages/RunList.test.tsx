@@ -184,6 +184,49 @@ describe('RunList', () => {
     vi.resetAllMocks();
   });
 
+  it('loads experiment metadata while the run response is pending', async () => {
+    await renderRunList();
+    listExperimentsSpy.mockClear();
+    let finishRuns!: (value: { runs: V2beta1Run[] }) => void;
+    listRunsSpy.mockImplementationOnce(() => new Promise((resolve) => (finishRuns = resolve)));
+    let pending!: Promise<string>;
+    act(() => {
+      pending = getRunListInstance()._loadRuns({});
+    });
+    expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('link', { name: 'Concurrent run' })).not.toBeInTheDocument();
+    await act(async () => {
+      finishRuns({ runs: [{ run_id: 'concurrent', display_name: 'Concurrent run' }] });
+      await pending;
+    });
+    expect(await screen.findByRole('link', { name: 'Concurrent run' })).toBeInTheDocument();
+  });
+
+  it('ignores stale metadata when a newer run load completes first', async () => {
+    await renderRunList();
+    let finishExperiments!: (value: { experiments: [] }) => void;
+    listExperimentsSpy.mockImplementationOnce(
+      () => new Promise((resolve) => (finishExperiments = resolve)),
+    );
+    listRunsSpy.mockResolvedValueOnce({
+      runs: [{ run_id: 'old', display_name: 'Old response' }],
+    });
+    let pending!: Promise<string>;
+    act(() => {
+      pending = getRunListInstance()._loadRuns({});
+    });
+    listRunsSpy.mockResolvedValueOnce({
+      runs: [{ run_id: 'new', display_name: 'New response' }],
+    });
+    await callLoadRuns({});
+    await act(async () => {
+      finishExperiments({ experiments: [] });
+      await pending;
+    });
+    expect(screen.getByRole('link', { name: 'New response' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Old response' })).not.toBeInTheDocument();
+  });
+
   it('renders the empty experience', async () => {
     await renderRunList();
     await waitForRunListLoad();
@@ -353,7 +396,7 @@ describe('RunList', () => {
   });
 
   it('calls error callback when loading runs fails', async () => {
-    TestUtils.makeErrorResponseOnce(listRunsSpy as any, 'bad stuff happened');
+    listRunsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const props = generateProps();
     await renderRunList(props);
     await waitFor(() => {
@@ -368,7 +411,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const props = generateProps();
 
     await renderRunList(props);
@@ -598,13 +641,9 @@ describe('RunList', () => {
 
     expect(screen.getAllByText('shared pipeline version')).toHaveLength(2);
 
-    // CustomTable's reload() overlaps under React Strict Mode in tests (see the
-    // isBusy comment in CustomTable.tsx), so the list loads twice here, one
-    // getPipelineVersion call per load. The property under test is that it's one
-    // call per load per unique (pipeline, version), not one call per run: two runs
-    // referencing the same version never produce more calls than two loads' worth
-    // of unique versions.
-    expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
+    // A superseded Strict Mode load stops before enrichment; the current load
+    // fetches this shared version once for both rows.
+    expect(getPipelineVersionSpy).toHaveBeenCalledTimes(1);
     expect(getPipelineVersionSpy).toHaveBeenCalledWith(sharedPipelineId, sharedVersionId);
     expect(listPipelineVersionsSpy).not.toHaveBeenCalled();
   });
@@ -673,7 +712,7 @@ describe('RunList', () => {
     await renderRunList(props);
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-      expect(listExperimentsSpy).toHaveBeenCalled();
+      expect(listExperimentsSpy).not.toHaveBeenCalled();
     });
 
     expect(screen.queryByText('test experiment')).toBeNull();
@@ -771,7 +810,7 @@ describe('RunList', () => {
     expect(link).toHaveTextContent('');
   });
 
-  it('renders status as icon', () => {
+  it('renders status by name', () => {
     const instance = createRunListInstance();
     renderRenderer(
       instance._statusCustomRenderer({
@@ -779,7 +818,7 @@ describe('RunList', () => {
         id: 'run-id',
       }),
     );
-    expect(screen.getByTestId('node-status-sign')).toBeInTheDocument();
+    expect(screen.getByText('Succeeded')).toBeVisible();
   });
 
   it('renders pipeline version name as link to its details page', () => {

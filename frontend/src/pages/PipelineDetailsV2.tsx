@@ -15,14 +15,14 @@
  */
 import { useState } from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import MD2Tabs from 'src/atoms/MD2Tabs';
+import { InspectionTabs } from 'src/components/modernization/InspectionTabs';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
-import SidePanel from 'src/components/SidePanel';
+import { InspectionPanel } from 'src/components/modernization/InspectionPanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
 import { getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 
-import { commonCss, padding } from 'src/Css';
+import 'src/components/modernization/Pipelines.css';
 import DagCanvas from './v2/DagCanvas';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
@@ -57,52 +57,57 @@ function PipelineDetailsV2({
   };
 
   return (
-    <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
-      <MD2Tabs selectedTab={selectedTab} onSwitch={setSelectedTab} tabs={TAB_NAMES} />
-      {selectedTab === 0 && (
-        <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-          <DagCanvas
-            layers={layers}
-            onLayersUpdate={layerChange}
-            elements={pipelineFlowElements}
-            onElementClick={(_event, element) => setSelectedNode(element)}
-            setFlowElements={() => {}}
-            nodesDraggable={false}
-          ></DagCanvas>
-          <PipelineVersionCard
-            pipeline={pipeline}
-            selectedVersion={selectedVersion}
-            versions={versions}
-            handleVersionSelected={handleVersionSelected}
-          />
-          {templateString && (
-            <div className='z-20'>
-              <SidePanel
-                isOpen={!!selectedNode}
-                title={getNodeName(selectedNode)}
-                onClose={() => setSelectedNode(null)}
-                defaultWidth={'50%'}
-              >
-                <div className={commonCss.page}>
-                  <div className={padding(20, 'lr')}>
-                    <StaticNodeDetailsV2
-                      templateString={templateString}
-                      layers={layers}
-                      onLayerChange={layerChange}
-                      element={selectedNode}
-                    />
+    <div className='kfp-pipeline-detail' data-testid='pipeline-detail-v2'>
+      <InspectionTabs
+        selectedTab={selectedTab}
+        onSwitch={setSelectedTab}
+        tabs={TAB_NAMES}
+        ariaLabel='Pipeline details'
+      >
+        {selectedTab === 0 && (
+          <div className='kfp-pipeline-graph'>
+            <DagCanvas
+              layers={layers}
+              onLayersUpdate={layerChange}
+              elements={pipelineFlowElements}
+              onElementClick={(_event, element) => setSelectedNode(element)}
+              setFlowElements={() => {}}
+              nodesDraggable={false}
+            ></DagCanvas>
+            <PipelineVersionCard
+              pipeline={pipeline}
+              selectedVersion={selectedVersion}
+              versions={versions}
+              handleVersionSelected={handleVersionSelected}
+            />
+            {templateString && (
+              <div className='z-20'>
+                <InspectionPanel
+                  isOpen={!!selectedNode}
+                  title={getNodeName(selectedNode)}
+                  onClose={() => setSelectedNode(null)}
+                >
+                  <div className='kfp-pipeline-node-details'>
+                    <div>
+                      <StaticNodeDetailsV2
+                        templateString={templateString}
+                        layers={layers}
+                        onLayerChange={layerChange}
+                        element={selectedNode}
+                      />
+                    </div>
                   </div>
-                </div>
-              </SidePanel>
-            </div>
-          )}
-        </div>
-      )}
-      {selectedTab === 1 && (
-        <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
-          <PipelineSpecTabContent templateString={templateString || ''} />
-        </div>
-      )}
+                </InspectionPanel>
+              </div>
+            )}
+          </div>
+        )}
+        {selectedTab === 1 && (
+          <div className='kfp-pipeline-spec' data-testid='spec-ir'>
+            <PipelineSpecTabContent templateString={templateString || ''} />
+          </div>
+        )}
+      </InspectionTabs>
     </div>
   );
 }

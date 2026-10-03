@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -22,13 +29,17 @@ import {
   Controls,
   Edge,
   MiniMap,
+  Panel,
   Node,
   OnNodeDrag,
+  OnNodesChange,
   ReactFlowInstance,
 } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
-import { color } from 'src/Css';
+import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { getTaskStatus } from 'src/components/graph/ExecutionNode';
+import 'src/components/graph/Graph.css';
 import {
   getTaskKeyFromNodeKey,
   isNode,
@@ -62,6 +73,46 @@ export default function DagCanvas({
 }: DagCanvasProps) {
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
+  const sourceNodes = useMemo(() => elements.filter(isNode), [elements]);
+  const measurementScope = JSON.stringify(layers);
+  const [measurements, setMeasurements] = useState<{
+    scope: string;
+    nodes: Map<string, { type?: string; width: number; height: number }>;
+  }>(() => ({ scope: measurementScope, nodes: new Map() }));
+  // External widget synchronization: retain actual ResizeObserver measurements across
+  // controlled node updates. ReactFlow also needs these to preserve its handle bounds.
+  const onNodesChange = useCallback<OnNodesChange<PipelineNode>>(
+    (changes) => {
+      const nodeTypes = new Map(sourceNodes.map(({ id, type }) => [id, type]));
+      const dimensions = changes.filter(
+        (change) => change.type === 'dimensions' && change.dimensions && nodeTypes.has(change.id),
+      );
+      if (!dimensions.length) return;
+      setMeasurements((previous) => {
+        const next = previous.scope === measurementScope ? new Map(previous.nodes) : new Map();
+        let changed = previous.scope !== measurementScope;
+        for (const [id, measurement] of next) {
+          if (!nodeTypes.has(id) || nodeTypes.get(id) !== measurement.type) {
+            next.delete(id);
+            changed = true;
+          }
+        }
+        for (const change of dimensions) {
+          if (change.type !== 'dimensions' || !change.dimensions) continue;
+          const current = next.get(change.id);
+          if (
+            current?.width !== change.dimensions.width ||
+            current?.height !== change.dimensions.height
+          ) {
+            next.set(change.id, { type: nodeTypes.get(change.id), ...change.dimensions });
+            changed = true;
+          }
+        }
+        return changed ? { scope: measurementScope, nodes: next } : previous;
+      });
+    },
+    [measurementScope, sourceNodes],
+  );
   const subDagExpand = useCallback(
     (nodeKey: string) => {
       const newLayers = [...layers, getTaskKeyFromNodeKey(nodeKey)];
@@ -72,15 +123,50 @@ export default function DagCanvas({
 
   const nodes = useMemo(
     () =>
-      elements.filter(isNode).map((node) => {
-        const selectedNode = { ...node, selected: node.id === selectedNodeId };
+      sourceNodes.map((node) => {
+        const measured =
+          measurements.scope === measurementScope ? measurements.nodes.get(node.id) : undefined;
+        const selectedNode = {
+          ...node,
+          ...(measured?.type === node.type && measured
+            ? { measured: { width: measured.width, height: measured.height } }
+            : {}),
+          selected: node.id === selectedNodeId,
+        };
         return selectedNode.type === NodeTypeNames.SUB_DAG && selectedNode.data
           ? { ...selectedNode, data: { ...selectedNode.data, expand: subDagExpand } }
           : selectedNode;
       }),
-    [elements, selectedNodeId, subDagExpand],
+    [measurementScope, measurements, sourceNodes, selectedNodeId, subDagExpand],
   );
-  const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
+  const edges = useMemo(() => {
+    const states = new Map(elements.filter(isNode).map((node) => [node.id, node.data.state]));
+    return elements
+      .filter((element): element is Edge => !isNode(element))
+      .map((edge) => {
+        const state = states.get(edge.target);
+        const tone =
+          state === 'FAILED' || state === 'SKIPPED'
+            ? 'failed'
+            : state === 'SUCCEEDED' || state === 'CACHED'
+              ? 'succeeded'
+              : state === 'RUNNING'
+                ? 'running'
+                : 'neutral';
+        return {
+          ...edge,
+          className: `${edge.className || ''} kfp-graph-edge-${tone}`,
+          style: { ...edge.style, strokeWidth: 1.5 },
+        };
+      });
+  }, [elements]);
+  const visibleStates = [
+    ...new Set(
+      nodes
+        .map((node) => node.data.state as PipelineTaskTaskState | undefined)
+        .filter((state): state is PipelineTaskTaskState => state !== undefined),
+    ),
+  ];
 
   const onNodeDragStop = useCallback<OnNodeDrag<PipelineNode>>(
     (_event, draggedNode) => {
@@ -124,19 +210,25 @@ export default function DagCanvas({
   }, [fitCurrentView, focusNodeId]);
 
   return (
-    <>
-      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
-      <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
+    <div className='kfp-graph-workspace'>
+      <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate} />
+      <div data-testid='DagCanvas' className='kfp-graph-canvas'>
         <ReactFlowProvider>
-          {/* onNodesChange/onEdgesChange are intentionally omitted: this DAG viewer
-              does not need keyboard deletion, multi-select, or internal selection
-              tracking. Drag persistence is handled via onNodeDragStop only. */}
+          {/* Only dimension changes are synchronized. Native buttons own keyboard
+              activation; selection comes from the page, and drag persistence uses
+              onNodeDragStop. Removal and internal selection changes are ignored. */}
           <ReactFlow<PipelineNode, Edge>
-            style={{ background: color.lightGrey }}
+            aria-label='Pipeline graph'
+            ariaLabelConfig={{
+              'node.a11yDescription.default':
+                'Press Enter or Space to inspect a node. Use the expand button to open a nested pipeline.',
+              'edge.a11yDescription.default': 'Connection between pipeline nodes.',
+            }}
             nodes={nodes}
             edges={edges}
             snapToGrid={true}
             nodesDraggable={nodesDraggable}
+            nodesFocusable={false}
             onInit={(instance) => {
               reactFlowInstance.current = instance;
               lastFocusedNodeId.current = focusNodeId || null;
@@ -144,16 +236,32 @@ export default function DagCanvas({
             }}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
+            onNodesChange={onNodesChange}
             onNodeClick={handleNodeClick}
             onEdgeClick={handleEdgeClick}
             onNodeDragStop={nodesDraggable ? onNodeDragStop : undefined}
           >
-            <MiniMap />
-            <Controls />
-            <Background />
+            <MiniMap position='top-right' />
+            <Controls position='bottom-right' />
+            <Background gap={22} size={1} />
+            {visibleStates.length > 0 && (
+              <Panel position='bottom-left' className='kfp-graph-legend'>
+                <ul aria-label='Task states in this graph'>
+                  {visibleStates.map((state) => {
+                    const status = getTaskStatus(state);
+                    return (
+                      <li key={state} data-tone={status.tone}>
+                        <span className='kfp-graph-state-dot' aria-hidden='true' />
+                        {status.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Panel>
+            )}
           </ReactFlow>
         </ReactFlowProvider>
       </div>
-    </>
+    </div>
   );
 }

@@ -17,7 +17,6 @@
 import { produce as immerProduce } from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router';
-import { classes } from 'typestyle';
 import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
 import CustomTable, {
   Column,
@@ -27,14 +26,13 @@ import CustomTable, {
 } from 'src/components/CustomTable';
 import { Description } from 'src/components/Description';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss, padding } from 'src/Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
-import { Tooltip } from '@mui/material';
+import { PipelineCards } from 'src/components/modernization/PipelineCards';
 
 interface DisplayPipeline extends V2beta1Pipeline {
   expandState?: ExpandState;
@@ -43,6 +41,7 @@ interface DisplayPipeline extends V2beta1Pipeline {
 interface PipelineListState {
   displayPipelines: DisplayPipeline[];
   selectedIds: string[];
+  loadError: boolean;
 
   // selectedVersionIds is a map from string to string array.
   // For each pipeline, there is a list of selected version ids.
@@ -57,12 +56,14 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
 
 class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   private _tableRef = React.createRef<CustomTable>();
+  private _loadGeneration = 0;
 
   constructor(props: any) {
     super(props);
 
     this.state = {
       displayPipelines: [],
+      loadError: false,
       selectedIds: [],
       selectedVersionIds: {},
     };
@@ -102,6 +103,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       return {
         expandState: p.expandState,
         id: p.pipeline_id!,
+        error: p.error?.message,
         otherFields: [
           { display_name: p.display_name, name: p.name },
           p.description!,
@@ -111,9 +113,11 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     });
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-pipelines-page'>
         <CustomTable
           ref={this._tableRef}
+          renderTable={(table) => <PipelineCards table={table} />}
+          errorMessage={this.state.loadError ? 'Unable to load pipelines. Try Refresh.' : undefined}
           columns={columns}
           rows={rows}
           initialSortColumn={PipelineSortKeys.CREATED_AT}
@@ -151,7 +155,8 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     return (
       <PipelineVersionList
         pipelineId={pipeline.pipeline_id}
-        onError={() => null}
+        onError={(message, error) => this.showPageError(message, error)}
+        onLoadSuccess={() => this.clearBanner()}
         {...this.props}
         selectedIds={this.state.selectedVersionIds[pipeline.pipeline_id!] || []}
         noFilterBox={true}
@@ -163,70 +168,69 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   }
 
   private async _reload(request: ListRequest): Promise<string> {
-    let response: V2beta1ListPipelinesResponse | null = null;
-    let displayPipelines: DisplayPipeline[];
+    const generation = ++this._loadGeneration;
     try {
-      response = await Apis.pipelineServiceApiV2.listPipelines(
+      const response: V2beta1ListPipelinesResponse = await Apis.pipelineServiceApiV2.listPipelines(
         this.props.namespace,
         request.pageToken,
         request.pageSize,
         request.sortBy,
         request.filter,
       );
-      displayPipelines = response.pipelines || [];
-      displayPipelines.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
+      if (!this._isMounted || generation !== this._loadGeneration) return '';
+      this.setStateSafe({
+        displayPipelines: (response.pipelines || []).map((pipeline) => ({
+          ...pipeline,
+          expandState: ExpandState.COLLAPSED,
+        })),
+        loadError: false,
+      });
       this.clearBanner();
+      return response.next_page_token || '';
     } catch (err) {
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      if (!this._isMounted || generation !== this._loadGeneration) return '';
+      this.setStateSafe({ loadError: true });
       await this.showPageError('Error: failed to retrieve list of pipelines.', error);
+      return '';
     }
-
-    this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
-
-    return response ? response.next_page_token || '' : '';
   }
 
   private _nameCustomRenderer: React.FC<
     CustomRendererProps<{ display_name?: string; name: string }>
-  > = (props: CustomRendererProps<{ display_name?: string; name: string }>) => {
-    return (
-      <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
-        <Link
-          onClick={(e) => e.stopPropagation()}
-          className={commonCss.link}
-          to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
-        >
-          {props.value?.display_name || props.value?.name}
-        </Link>
-      </Tooltip>
-    );
-  };
+  > = (props) => (
+    <Link
+      onClick={(event) => event.stopPropagation()}
+      title={'Name: ' + (props.value?.name || '')}
+      to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
+        ':' + RouteParams.pipelineId,
+        encodeURIComponent(props.id),
+      )}
+    >
+      {props.value?.display_name || props.value?.name}
+    </Link>
+  );
 
   // selection changes passed in via "selectedIds" can be
   // (1) changes of selected pipeline ids, and will be stored in "this.state.selectedIds" or
   // (2) changes of selected pipeline version ids, and will be stored in "selectedVersionIds" with key "pipelineId"
   private _selectionChanged(pipelineId: string | undefined, selectedIds: string[]): void {
-    if (pipelineId) {
-      // Update selected pipeline version ids.
-      this.setStateSafe({
-        selectedVersionIds: {
-          ...this.state.selectedVersionIds,
-          ...{ [pipelineId!]: selectedIds || [] },
-        },
-      });
-      const actions = this.props.toolbarProps.actions;
-      actions[ButtonKeys.DELETE_RUN].disabled =
-        (this.state.selectedIds?.length || 0) < 1 && (selectedIds?.length || 0) < 1;
-      this.props.updateToolbar({ actions });
-    } else {
-      // Update selected pipeline ids.
-      this.setStateSafe({ selectedIds: selectedIds || [] });
-      const selectedVersionIdsCt = this._deepCountDictionary(this.state.selectedVersionIds || {});
-      const actions = this.props.toolbarProps.actions;
-      actions[ButtonKeys.DELETE_RUN].disabled =
-        (selectedIds?.length || 0) < 1 && selectedVersionIdsCt < 1;
-      this.props.updateToolbar({ actions });
-    }
+    if (!this._isMounted) return;
+    this.setState(
+      (current) => ({
+        selectedIds: pipelineId ? current.selectedIds : selectedIds || [],
+        selectedVersionIds: pipelineId
+          ? { ...current.selectedVersionIds, [pipelineId]: selectedIds || [] }
+          : current.selectedVersionIds,
+      }),
+      () => {
+        const actions = this.props.toolbarProps.actions;
+        actions[ButtonKeys.DELETE_RUN].disabled =
+          this.state.selectedIds.length === 0 &&
+          this._deepCountDictionary(this.state.selectedVersionIds) === 0;
+        this.props.updateToolbar({ actions });
+      },
+    );
   }
 
   private _deepCountDictionary(dict: { [pipelineId: string]: string[] }): number {

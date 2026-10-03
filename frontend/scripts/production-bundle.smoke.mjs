@@ -17,19 +17,67 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { chromium } from 'playwright';
+import { resolve } from 'node:path';
+import { startupDiagnostics } from './production-bundle-diagnostics.mjs';
+import { chromium, firefox, webkit } from 'playwright';
 
 // Vitest transforms imports differently from the production bundler. Load the
 // emitted bundle in a browser to catch startup failures such as Ace import order.
-test('production bundle renders the pipeline upload control', { timeout: 30000 }, async () => {
-  const browser = await chromium.launch({
-    channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+test('production bundle renders the pipeline upload control', { timeout: 30000 }, async (t) => {
+  const directory = resolve(process.env.KFP_BROWSER_REPORT_DIR || 'browser-results');
+  const diagnostic = startupDiagnostics(directory, {
+    sourceSha: process.env.GITHUB_SHA || null,
+    timeoutMs: 30000,
   });
+  let page;
+  const capture = async () => {
+    if (page && !page.isClosed()) {
+      try {
+        await page.screenshot({
+          path: resolve(directory, 'production-startup-failure.png'),
+          timeout: 2000,
+        });
+      } catch (error) {
+        diagnostic.report.screenshotError = String(error);
+        diagnostic.fail(diagnostic.report.failure?.error || error);
+      }
+    }
+  };
+  const aborted = () => {
+    diagnostic.fail(t.signal.reason);
+    void capture();
+  };
+  t.signal.addEventListener('abort', aborted, { once: true });
+  const engineName = process.env.KFP_BROWSER || 'chromium';
+  const engine = { chromium, firefox, webkit }[engineName];
+  assert.ok(engine, `Unsupported KFP_BROWSER: ${engineName}`);
+  diagnostic.stage('launch');
+  let browser;
   try {
-    const page = await browser.newPage();
+    browser = await engine.launch({
+      ...(process.env.KFP_BROWSER_EXECUTABLE_PATH
+        ? { executablePath: process.env.KFP_BROWSER_EXECUTABLE_PATH }
+        : {
+            channel:
+              engineName === 'chromium' ? process.env.PLAYWRIGHT_CHANNEL || undefined : undefined,
+          }),
+    });
+    diagnostic.stage('version');
+    if (process.env.KFP_EXPECTED_BROWSER_VERSION) {
+      assert.equal(
+        browser.version(),
+        process.env.KFP_EXPECTED_BROWSER_VERSION,
+        'Browser version must match KFP_EXPECTED_BROWSER_VERSION; select the intended browser binary',
+      );
+    }
+    diagnostic.stage('new-page');
+    page = await browser.newPage();
     const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
-    await page.route('**/*', async route => {
+    page.on('pageerror', (error) => {
+      errors.push(error.message);
+      diagnostic.pageError(error.message);
+    });
+    await page.route('**/*', async (route) => {
       const url = new URL(route.request().url());
       if (url.origin !== 'http://kfp.test') {
         await route.abort();
@@ -51,7 +99,9 @@ test('production bundle renders the pipeline upload control', { timeout: 30000 }
       // Startup only: empty API responses, without a backend or external network.
       await route.fulfill({ contentType: 'application/json', body: '{}' });
     });
+    diagnostic.stage('navigation');
     await page.goto('http://kfp.test/');
+    diagnostic.stage('upload-control-ready');
     try {
       await page.locator('#createPipelineVersionBtn').waitFor({ state: 'visible', timeout: 10000 });
     } catch (error) {
@@ -59,7 +109,19 @@ test('production bundle renders the pipeline upload control', { timeout: 30000 }
       throw error;
     }
     assert.deepEqual(errors, [], 'production bundle must initialize without uncaught errors');
+  } catch (error) {
+    diagnostic.fail(error);
+    await capture();
+    throw error;
   } finally {
-    await browser.close();
+    diagnostic.stage('browser-close');
+    try {
+      await browser?.close();
+    } catch (error) {
+      diagnostic.fail(error);
+      throw error;
+    }
   }
+  t.signal.removeEventListener('abort', aborted);
+  diagnostic.pass();
 });

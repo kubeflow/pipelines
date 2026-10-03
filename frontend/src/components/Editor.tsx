@@ -16,10 +16,17 @@
 
 // ReactAce initializes the Ace global before its extensions execute.
 import AceEditor from 'react-ace';
-import 'ace-builds/src-noconflict/ext-language_tools';
+import { config } from 'ace-builds';
+import yamlWorkerUrl from 'ace-builds/src-min-noconflict/worker-yaml.js?url';
+import jsonWorkerUrl from 'ace-builds/src-min-noconflict/worker-json.js?url';
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/mode-yaml';
 import 'ace-builds/src-noconflict/theme-github';
+import './Editor.css';
+
+// Explicit asset URLs let Vite package workers and preserve prefixed deployments.
+config.setModuleUrl('ace/mode/yaml_worker', yamlWorkerUrl);
+config.setModuleUrl('ace/mode/json_worker', jsonWorkerUrl);
 
 // Modified AceEditor that supports HTML within provided placeholder. This is
 // important because it allows for the usage of multi-line placeholders.

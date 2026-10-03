@@ -1,0 +1,212 @@
+{
+  "phase": "candidate",
+  "resources": {
+    "Deployment/kubeflow/ml-pipeline": {
+      "uid": "7a0e15f6-1067-41a4-adb5-475d563d3c11",
+      "contentSha256": "44b3f19cabac03debd88b584f15915a1085337250b6bf4850dc3741acb7493c7"
+    },
+    "Deployment/kubeflow/ml-pipeline-persistenceagent": {
+      "uid": "ea44e3d6-b907-404d-8777-f0bb6393e612",
+      "contentSha256": "9eb28ff4fb64c0e4408fc6894fd8ad5a1c1bb25f5f1ea7c23a5fb02aff1568bf"
+    },
+    "Deployment/kubeflow/ml-pipeline-scheduledworkflow": {
+      "uid": "ae75540c-2deb-428a-b49e-ec10b7dda05b",
+      "contentSha256": "d4ea834a8d15eec17f8e8c15f78538030a7eb0e88580c189989bb6f1be1bb4de"
+    },
+    "Deployment/kubeflow/ml-pipeline-viewer-crd": {
+      "uid": "ef64817a-b97f-47bc-8cd5-4c88593c7ba6",
+      "contentSha256": "a5a99df3cf3db91c4ced4e076c53b2464f84643e7f723b002f14098cbca5d729"
+    },
+    "Deployment/kubeflow/mysql": {
+      "uid": "ab14cbaf-a15c-4de1-895f-3ffea1f22513",
+      "contentSha256": "52d971feae4a18031f5e497737a93fcf3ecc6d96b79cf5b139bdf66a724cef87"
+    },
+    "Deployment/kubeflow/seaweedfs": {
+      "uid": "7b3ba74a-f3d3-4fea-958e-ffa6e02593a9",
+      "contentSha256": "5ccfc5f92eb200fbf3f1e22f0267ed005691a11a0b4b889e8c8ab5972b371bc9"
+    },
+    "Deployment/kubeflow/viewer-86f51bef648affc92caad8147c9579b5eb478c35-deployment": {
+      "uid": "edd5d8ca-8f06-4142-b612-56bd3329378b",
+      "contentSha256": "848e379528037477e9ba728b634f1d32202a4318b0d8f74a3673eeca9c196676"
+    },
+    "Deployment/kubeflow/workflow-controller": {
+      "uid": "8cb0e6ff-2d60-4a8a-bc6d-c67ee995f833",
+      "contentSha256": "7944b2a53ea9b910e2e10cca1d4af4553bb4c951b95a0594b6beb1f05a6cfef5"
+    },
+    "ConfigMap/kubeflow/dns-config": {
+      "uid": "4d6859e4-f6eb-45ea-949a-249f9233d36b",
+      "contentSha256": "fbc02b7ba33f2e0994d4a234a760e952332bbe49005e70acb53e975d5dc55f4a"
+    },
+    "ConfigMap/kubeflow/kfp-cluster-scoped-params": {
+      "uid": "c0133ea1-e37a-49fc-b81c-2fe83ebb8848",
+      "contentSha256": "008766da260629f4c3fb24a6a260fb9461a79ecf2bb136e234556e23c6fe7bd1"
+    },
+    "ConfigMap/kubeflow/kfp-launcher": {
+      "uid": "6d983e20-29a6-46c3-a7c2-2506d7d511af",
+      "contentSha256": "2383f1d2734879530db702a4ca180f2c72f88279435b8cf3f7e10e978fe9b37e"
+    },
+    "ConfigMap/kubeflow/kubeflow-pipelines-public": {
+      "uid": "0700f2a8-39af-4f5c-a472-308e92b3e553",
+      "contentSha256": "da0ec9bf11facf0998d96f191ea661f82af983ead04c93493a4f0da2d7299e3d"
+    },
+    "ConfigMap/kubeflow/ml-pipeline-ui-configmap": {
+      "uid": "99d85e62-5f8c-45a4-aa78-8819b37677ad",
+      "contentSha256": "34ab20741d0f5b84c3983867e7be46f8b4e64e36aeb6396e6c6ac4a154a4a470"
+    },
+    "ConfigMap/kubeflow/ml-pipeline-ui-signing-key-init-5mgh4487ch": {
+      "uid": "4b6ccff3-3704-4c56-9606-cb8155db3384",
+      "contentSha256": "2cbdcefea11c779baf82a1bf9f0d2df602e69d75285f2197dc94741c640fd4d6"
+    },
+    "ConfigMap/kubeflow/pipeline-install-config": {
+      "uid": "34caf69b-ca4e-42b4-8817-dc5a2369f9f4",
+      "contentSha256": "3f0de4c5e9030d372a71196a4f508581b70a1477b8da85b778a802327d571254"
+    },
+    "ConfigMap/kubeflow/workflow-controller-configmap": {
+      "uid": "75fea378-0e18-481b-ae80-2f632cbfaa99",
+      "contentSha256": "71aaf6fefcc28a43676a0e1ed3e49de13900979a9701c290c8e1d2e9d32a1176"
+    },
+    "ServiceAccount/kubeflow/argo": {
+      "uid": "283dc27d-8c48-48bc-8f4e-5d4dfcae26ab",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/default": {
+      "uid": "ea636611-a1a0-4482-9f0b-b89e5fa09413",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/kubeflow-pipelines-container-builder": {
+      "uid": "fc81d690-864b-4dca-968b-bfc3f0444e35",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/kubeflow-pipelines-viewer": {
+      "uid": "104b8dbb-90a4-4882-956f-b21a0fd9a74b",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline": {
+      "uid": "636d8c86-7212-471f-965a-dd56e65f2252",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-persistenceagent": {
+      "uid": "4e49cc32-0ede-427a-85b4-94046659dc4b",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-scheduledworkflow": {
+      "uid": "8d454e55-7dc3-4ac5-a039-dfb6d9a43708",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-ui": {
+      "uid": "d49cab39-b04f-4fdf-a163-08861450a0fd",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-ui-signing-key-init": {
+      "uid": "fb97122a-5ac3-450c-9a48-f244b193baa0",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/ml-pipeline-viewer-crd-service-account": {
+      "uid": "800a0986-017d-4a7d-b8b1-17c5ebfd3cac",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/mysql": {
+      "uid": "b50cac2e-122e-45c6-9f18-1d7cee0feba6",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/pipeline-runner": {
+      "uid": "736df47c-6bdd-40d0-a390-d48680f75877",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "ServiceAccount/kubeflow/seaweedfs": {
+      "uid": "1cddc1fd-740a-40ca-aab0-b6b913d6a91c",
+      "contentSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "Role/kubeflow/argo-role": {
+      "uid": "d4fda0c3-b054-414c-aa3c-78d64b14ae43",
+      "contentSha256": "9daefa5f47746b1cb4a2f1cda6f918cebef51a121dced53bdcc50443f31dcd96"
+    },
+    "Role/kubeflow/kubeflow-pipelines-public": {
+      "uid": "722cd789-16a2-4b7f-b272-7122205de3ed",
+      "contentSha256": "88a88ec6bc5948907ae7de805751a37486cc1666a4decd192733879010ce646d"
+    },
+    "Role/kubeflow/ml-pipeline": {
+      "uid": "470e1a96-1e62-4b27-bc07-f0754aa89b5e",
+      "contentSha256": "e3bfe08b49cd8f9a3a6699e974e50a9568e8a5b271ef1f17f40948f522d66193"
+    },
+    "Role/kubeflow/ml-pipeline-persistenceagent-role": {
+      "uid": "9fac68fa-d5de-4d80-b430-87e9bade1c6a",
+      "contentSha256": "7b294132232829f55db0df6225809475b88d461fecb251cd87499740a8ffffad"
+    },
+    "Role/kubeflow/ml-pipeline-scheduledworkflow-role": {
+      "uid": "66a6e79c-b6a8-4528-a061-776f9f667acb",
+      "contentSha256": "27a4621003e2673828fc1f1e02657b8ac94f9a1daf559de743377a44f0534c23"
+    },
+    "Role/kubeflow/ml-pipeline-ui": {
+      "uid": "7f3514ec-f350-4b76-9805-78e7cdc1fa0e",
+      "contentSha256": "3ebc4616d31aac851816147a95b3db7f68af8ed25aad4e74d2eda338ca840da9"
+    },
+    "Role/kubeflow/ml-pipeline-ui-signing-key-init": {
+      "uid": "e505ea7e-1765-4274-adbb-73e772c0c90f",
+      "contentSha256": "bb651c0e1dba4c0750948e136b64f17e3a39625b2b450c7150df0e8cbd2c97ed"
+    },
+    "Role/kubeflow/ml-pipeline-viewer-controller-role": {
+      "uid": "691effd1-b210-4592-9bf5-f48f79ecc263",
+      "contentSha256": "d6e1deb2c3bea6f7251321a419bff36447d81b7327baeb61b87661290692cbee"
+    },
+    "Role/kubeflow/pipeline-runner": {
+      "uid": "ff9b5446-d170-4294-b5bb-b5c12987c166",
+      "contentSha256": "75e4a63e455d583c7f5775c7d6f387ee6c07789083debde28fe0a8c392dee4ba"
+    },
+    "RoleBinding/kubeflow/argo-binding": {
+      "uid": "84c9ab88-c4b2-4505-b27e-b03954812d8a",
+      "contentSha256": "8e901842c92d9228d97f3278203ec3b4669106b8356095c6a8d238d313d40555"
+    },
+    "RoleBinding/kubeflow/kubeflow-pipelines-public": {
+      "uid": "8321e3ff-acb3-4d9f-81f8-3ec22ab66660",
+      "contentSha256": "2cdff6e6dda7312faab5b646bf980d6134f902bb01e85bf08c6037c0c7bff1dd"
+    },
+    "RoleBinding/kubeflow/ml-pipeline": {
+      "uid": "b20aed70-8e79-4d9a-948a-1f4c614ef5b0",
+      "contentSha256": "78b17da843eb5547c4dd794d459b40a0d0dda8e34a36a08c2bddcd63bc7bc2cf"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-persistenceagent-binding": {
+      "uid": "1d1c925c-01ec-464c-8a27-efd9d6547c66",
+      "contentSha256": "441ecf96ac5ba49940db67563e1188e8b80c79dcd58a2f286b0ddfc50d87763c"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-scheduledworkflow-binding": {
+      "uid": "ee4cb837-d801-47bd-b1c3-8bf332910151",
+      "contentSha256": "7a7e879c59e81b0c9d941e9c4082dcab140c4603fe66e45d4caa45812aba0b46"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-ui": {
+      "uid": "4724a5cd-a3e2-4e0e-81fe-250497527a8e",
+      "contentSha256": "2138b10275be4eaca4d0ad9aaf679ed44595d7551884b80cbafcbcabbed59a32"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-ui-signing-key-init": {
+      "uid": "b7f52269-6cad-429a-9edd-9be31ca020c6",
+      "contentSha256": "622ec355570ee56afafeccca7136cc8b49091a0334ac16a5135a7bb0143ce068"
+    },
+    "RoleBinding/kubeflow/ml-pipeline-viewer-crd-binding": {
+      "uid": "0dcf5053-7f85-4a13-94d1-408ae4ddfd38",
+      "contentSha256": "db816c6037ba064d067857c7fa81e0b76551b4d4bfd62f339d264124b11f2f8b"
+    },
+    "RoleBinding/kubeflow/pipeline-runner-binding": {
+      "uid": "6bf57dda-9ffd-40f9-a735-fae2085d68dc",
+      "contentSha256": "59d68f7a7d2a5b1d17eedabbf61a8fb0fd7ec213db6b9887759875d6b91bc6f9"
+    },
+    "NetworkPolicy/kubeflow/seaweedfs": {
+      "uid": "6d218ca3-4618-4411-9b37-b53190a9e795",
+      "contentSha256": "db820906e368b51e72aeb0c425faba479516f1780922cf117ba7576df2612569"
+    }
+  },
+  "backendPodUids": {
+    "kubeflow/ml-pipeline-7dc45c74dd-w9cvv": "c3ffdebe-0d16-4015-83e0-a6d4777e443c",
+    "kubeflow/ml-pipeline-persistenceagent-6458b5b597-9bcpn": "acfeec52-ace4-436a-a10d-1772a43ad056",
+    "kubeflow/ml-pipeline-scheduledworkflow-5969b8dbdb-s7tnl": "477efef5-cbde-42cc-8433-001696169100",
+    "kubeflow/ml-pipeline-viewer-crd-85d9b9468c-4bts7": "58cee95f-d4f7-4a54-9cb2-f465e86b626e",
+    "kubeflow/mysql-7c486d86f9-vqrwh": "915516d4-c653-4d8c-800b-8490467723e9",
+    "kubeflow/seaweedfs-64564b8f86-9v5x8": "baa9fe43-775f-4c42-b632-9a67f421137c",
+    "kubeflow/viewer-86f51bef648affc92caad8147c9579b5eb478c35-deploymentdjffm": "857d3a4b-6ccb-4809-9385-088b17b3b6c8",
+    "kubeflow/workflow-controller-7c47c58dbb-jlm2p": "75a63e74-e97f-4faf-9a15-c81ca65f715b"
+  },
+  "readyMeshPods": {},
+  "signingSecretPreserved": true,
+  "signingSecretPresent": true,
+  "preserved": true,
+  "authenticationSecretsPreserved": null
+}

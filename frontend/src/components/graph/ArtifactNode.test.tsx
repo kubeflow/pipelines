@@ -36,9 +36,9 @@ describe('ArtifactNode', () => {
       <ArtifactNode id='artifact-1' data={{ label: 'live-artifact', hasArtifact: true }} />,
     );
     expect(screen.getByText('live-artifact')).toBeInTheDocument();
-    const liveIcon = screen.getByTestId('artifact-icon-live');
-    expect(liveIcon).toBeInTheDocument();
-    expect(liveIcon).toHaveClass('text-mui-yellow-800');
+    expect(screen.getByRole('button', { name: 'live-artifact' })).toHaveAccessibleDescription(
+      'Artifact available',
+    );
   });
 
   it('renders with undefined state and default icon', () => {
@@ -46,9 +46,9 @@ describe('ArtifactNode', () => {
       <ArtifactNode id='artifact-1' data={{ label: 'unknown-artifact', hasArtifact: false }} />,
     );
     expect(screen.getByText('unknown-artifact')).toBeInTheDocument();
-    const defaultIcon = screen.getByTestId('artifact-icon-default');
-    expect(defaultIcon).toBeInTheDocument();
-    expect(defaultIcon).toHaveClass('text-mui-grey-300-dark');
+    expect(screen.getByRole('button', { name: 'unknown-artifact' })).toHaveAccessibleDescription(
+      'Artifact',
+    );
   });
 
   it('sets the title attribute on the button', () => {

@@ -17,7 +17,9 @@
 import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
-import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
+import type { ToolbarActionMap } from 'src/lib/PageChromeTypes';
+import { ModernToolbar } from '../components/modernization/ModernPageChrome';
+import { ResourceTable } from '../components/modernization/ResourceTable';
 import { ListRequest } from '../lib/Apis';
 
 import { logger, errorToMessage, formatDateString } from '../lib/Utils';
@@ -46,6 +48,7 @@ export interface ResourceSelectorProps extends NavigationProps {
   initialSortColumn: any;
   selectionChanged: (selectedId: string) => void;
   title?: string;
+  hideTitle?: boolean;
   toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
 }
@@ -59,6 +62,7 @@ interface ResourceSelectorState {
 
 class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSelectorState> {
   protected _isMounted = true;
+  private _loadGeneration = 0;
 
   constructor(props: any) {
     super(props);
@@ -77,9 +81,27 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
     return (
       <React.Fragment>
-        {title && <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />}
+        {title && (
+          <ModernToolbar
+            actions={toolbarActionMap}
+            breadcrumbs={[]}
+            pageTitle={this.props.hideTitle ? '' : title}
+            topLevelToolbar={false}
+          />
+        )}
 
         <CustomTable
+          renderTable={(table) => (
+            <ResourceTable
+              table={table}
+              label={title || 'Resource choices'}
+              singular='resource'
+              plural='resources'
+              getRowLabel={(row) =>
+                row.otherFields[0]?.display_name || row.otherFields[0]?.name || row.id
+              }
+            />
+          )}
           columns={columns}
           rows={rows}
           selectedIds={selectedIds}
@@ -100,6 +122,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
   public componentWillUnmount(): void {
     this._isMounted = false;
+    this._loadGeneration++;
   }
 
   protected setStateSafe(newState: Partial<ResourceSelectorState>, cb?: () => void): void {
@@ -118,6 +141,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   }
 
   protected async _load(request: ListRequest): Promise<string> {
+    const generation = ++this._loadGeneration;
     let nextPageToken = '';
     try {
       const response = await this.props.listApi(
@@ -127,6 +151,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
         request.filter,
       );
 
+      if (!this._isMounted || generation !== this._loadGeneration) return '';
       this.setStateSafe({
         resources: response.resources,
         rows: this._resourcesToRow(response.resources),
@@ -135,6 +160,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       nextPageToken = response.nextPageToken;
     } catch (err) {
       const errorMessage = await errorToMessage(err);
+      if (!this._isMounted || generation !== this._loadGeneration) return '';
       this.props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
         content: 'List request failed with:\n' + errorMessage,

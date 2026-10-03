@@ -1,6 +1,6 @@
 # Frontend
 
-The frontend is React 19, TypeScript, MUI, TanStack Query, Vitest, Prettier, and ESLint. Use the Node version in `frontend/.nvmrc` and the npm version pinned by `frontend/package.json`.
+The frontend is React 19, TypeScript, Tailwind CSS 4, Base UI, TanStack Query, Vitest, Prettier, and ESLint. Use the Node version in `frontend/.nvmrc` and the npm version pinned by `frontend/package.json`.
 
 ```bash
 cd frontend

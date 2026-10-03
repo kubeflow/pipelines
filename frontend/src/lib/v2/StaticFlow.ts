@@ -15,7 +15,12 @@
 import dagre from 'dagre';
 import { Edge, MarkerType, Node, Position } from '@xyflow/react';
 import ArtifactNode from 'src/components/graph/ArtifactNode';
-import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
+import {
+  ArtifactFlowElementData,
+  FlowElementDataBase,
+  GRAPH_NODE_WIDTH,
+  GRAPH_NODE_HEIGHT,
+} from 'src/components/graph/Constants';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
 import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
@@ -39,8 +44,8 @@ export function getNodeName(element: PipelineFlowElement | null): string {
   return 'unknown';
 }
 
-const nodeWidth = 224;
-const nodeHeight = 48;
+const nodeWidth = GRAPH_NODE_WIDTH;
+const nodeHeight = GRAPH_NODE_HEIGHT;
 
 export enum NodeTypeNames {
   EXECUTION = 'EXECUTION',
