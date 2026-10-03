@@ -570,7 +570,7 @@
     {
       "path": ".github/workflows/presubmit-backend.yml",
       "name": "KFP Backend Tests",
-      "header_sha256": "80eebdb054c5dbf5430feb4870891cc361c99677c26db49334c95b08a2753ed4",
+      "header_sha256": "3c4c09bb579883dd3599992e417d45ac6a92759e93a3e601d9b19a417474a731",
       "pull_request": {
         "paths": [
           ".github/workflows/presubmit-backend.yml",
@@ -578,6 +578,7 @@
           "go.mod",
           "go.sum",
           "backend/**",
+          "tools/run-history/**",
           "test/presubmit-backend-test.sh"
         ]
       }
