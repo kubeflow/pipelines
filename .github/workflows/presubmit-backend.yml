@@ -11,6 +11,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'
+      - 'tools/run-history/**'
       - 'test/presubmit-backend-test.sh'
 
 
@@ -57,6 +58,8 @@ jobs:
 
     - name: Run Backend Tests
       env:
+        KFP_HISTORY_MYSQL_TEST_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
+        KFP_HISTORY_POSTGRES_TEST_DSN: postgres://kfp_test:kfp_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/kfp_native_test?sslmode=disable
         KFP_RECURRING_MYSQL_TEST_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
         KFP_RECURRING_POSTGRES_TEST_DSN: postgres://kfp_test:kfp_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/kfp_native_test?sslmode=disable
         KFP_NATIVE_POSTGRES_TEST_DSN: postgres://kfp_test:kfp_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/kfp_native_test?sslmode=disable
