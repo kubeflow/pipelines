@@ -48,8 +48,9 @@ func (r *runIDs) Set(value string) error {
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-	if err := run(ctx, os.Args[1:], os.Stdout); err != nil {
+	err := run(ctx, os.Args[1:], os.Stdout)
+	cancel()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "run-history:", err)
 		os.Exit(1)
 	}

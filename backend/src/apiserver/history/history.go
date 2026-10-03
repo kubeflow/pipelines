@@ -87,7 +87,7 @@ func models() []any {
 // schemaSignature rejects schema drift instead of silently discarding columns
 // unknown to this binary. The importer does not run migrations or create tables.
 func schemaSignature(db *gorm.DB) (string, error) {
-	shape := []string{db.Dialector.Name()}
+	shape := []string{db.Name()}
 	for _, value := range models() {
 		stmt := &gorm.Statement{DB: db}
 		if err := stmt.Parse(value); err != nil {
@@ -483,6 +483,42 @@ func insertOrCheck[T any](db *gorm.DB, row *T) error {
 	}
 }
 
+// insertHistoryArtifact never joins imported history to a destination-local artifact.
+// Shared artifacts may already exist after an earlier run from the same source
+// was imported, but matching contents alone do not establish that provenance.
+func insertHistoryArtifact(db *gorm.DB, artifact *model.Artifact, source string) error {
+	var existing int64
+	if err := db.Model(&model.Artifact{}).Where(clause.Eq{Column: "UUID", Value: artifact.UUID}).Count(&existing).Error; err != nil {
+		return err
+	}
+	if existing == 0 {
+		return createRecord(db, artifact)
+	}
+	var owners []string
+	if err := db.Model(&model.ArtifactTask{}).
+		Where(clause.Eq{Column: "ArtifactID", Value: artifact.UUID}).
+		Distinct("RunUUID").Pluck("RunUUID", &owners).Error; err != nil {
+		return err
+	}
+	conflict := fmt.Errorf("artifact %s conflicts with destination lineage; existing artifacts must belong only to history imported from source %s", artifact.UUID, source)
+	if len(owners) == 0 {
+		return conflict
+	}
+	var runs []model.Run
+	if err := find(db, "UUID", owners, &runs); err != nil {
+		return err
+	}
+	if len(runs) != len(owners) {
+		return conflict
+	}
+	for _, run := range runs {
+		if run.ImportedFrom != source {
+			return conflict
+		}
+	}
+	return insertOrCheck(db, artifact)
+}
+
 func requireSame(table string, wanted, actual map[string]any, names ...string) error {
 	for _, name := range names {
 		if !reflect.DeepEqual(wanted[name], actual[name]) {
@@ -501,7 +537,7 @@ func insertAll[T any](db *gorm.DB, values []T) error {
 	return nil
 }
 
-var dryRunRollback = errors.New("history dry-run rollback")
+var errDryRunRollback = errors.New("history dry-run rollback")
 
 // Import atomically merges a bundle. All conflicts roll back the entire bundle.
 // Its database credentials must be restricted to the intended destination.
@@ -627,7 +663,7 @@ func Import(ctx context.Context, db *gorm.DB, bundle *Bundle, opts ImportOptions
 				// History must not register a reusable external-artifact identity
 				// or collide with an independently registered destination object.
 				artifact.IdentityKey = nil
-				if err := insertOrCheck(tx, &artifact); err != nil {
+				if err := insertHistoryArtifact(tx, &artifact, bundle.Source); err != nil {
 					return err
 				}
 			}
@@ -640,11 +676,11 @@ func Import(ctx context.Context, db *gorm.DB, bundle *Bundle, opts ImportOptions
 			result.Imported++
 		}
 		if opts.DryRun {
-			return dryRunRollback
+			return errDryRunRollback
 		}
 		return nil
 	})
-	if errors.Is(err, dryRunRollback) {
+	if errors.Is(err, errDryRunRollback) {
 		return result, nil
 	}
 	if err != nil {

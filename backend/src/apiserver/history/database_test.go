@@ -108,6 +108,8 @@ func TestHistoryDatabaseEngines(t *testing.T) {
 			require.Zero(t, links[0].Iteration)
 			var artifacts []model.Artifact
 			require.NoError(t, readRows(dest, &artifacts))
+			require.NoError(t, insertHistoryArtifact(dest, &artifacts[0], bundle.Source))
+			require.ErrorContains(t, insertHistoryArtifact(dest, &artifacts[0], "unrelated-source"), "conflicts")
 			raw, err := json.Marshal(artifacts[0].Metadata)
 			require.NoError(t, err)
 			require.Contains(t, string(raw), "9007199254740993")

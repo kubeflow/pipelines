@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -256,4 +257,69 @@ func TestExportTerminalRetriedRun(t *testing.T) {
 	// The successful retry path retains the claim timestamp as historical data.
 	require.NoError(t, source.Model(&model.Run{}).Where("UUID = ?", "run").Updates(map[string]any{"RetryGeneration": 2, "RetryClaimedAtInSec": 200}).Error)
 	exportFixture(t, source)
+}
+
+func TestImportRejectsArtifactUUIDFromUnrelatedLineage(t *testing.T) {
+	for _, ownership := range []struct {
+		name    string
+		sources []string
+	}{
+		{name: "unlinked"},
+		{name: "native", sources: []string{""}},
+		{name: "another source", sources: []string{"another-installation"}},
+		{name: "mixed native", sources: []string{"retired-a", ""}},
+		{name: "mixed sources", sources: []string{"retired-a", "another-installation"}},
+	} {
+		t.Run(ownership.name, func(t *testing.T) {
+			source, dest := database(t), database(t)
+			fixture(t, source)
+			bundle := exportFixture(t, source)
+			artifact := bundle.Entries[0].Artifacts[0]
+			create(t, dest, &artifact) // Identical content must not authorize reuse.
+			for i, owner := range ownership.sources {
+				id := fmt.Sprintf("destination-%d", i)
+				create(t, dest, &model.Run{UUID: id, ImportedFrom: owner, Namespace: "team"})
+				create(t, dest, &model.Task{UUID: id, RunUUID: id, Namespace: "team", Pods: model.JSONSlice{}, TypeAttrs: model.JSONData{}})
+				create(t, dest, &model.ArtifactTask{UUID: id, RunUUID: id, TaskID: id, ArtifactID: artifact.UUID})
+			}
+			_, err := Import(context.Background(), dest, bundle, ImportOptions{})
+			require.ErrorContains(t, err, "conflicts with destination lineage")
+			require.Equal(t, int64(len(ownership.sources)), count(t, dest, &model.Run{}))
+			require.Equal(t, int64(len(ownership.sources)), count(t, dest, &model.Task{}))
+			require.Equal(t, int64(len(ownership.sources)), count(t, dest, &model.ArtifactTask{}))
+			require.Equal(t, int64(1), count(t, dest, &model.Artifact{}))
+			require.Zero(t, count(t, dest, &model.Experiment{}))
+			require.Zero(t, count(t, dest, &model.Pipeline{}))
+		})
+	}
+}
+
+func TestImportSharedArtifactFromSameSource(t *testing.T) {
+	for _, together := range []bool{false, true} {
+		t.Run(fmt.Sprintf("same-bundle-%t", together), func(t *testing.T) {
+			source, dest := database(t), database(t)
+			fixture(t, source)
+			create(t, source, &model.Run{UUID: "run-2", Namespace: "team", ExperimentId: "experiment", StorageState: model.StorageStateAvailable,
+				RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded, FinishedAtInSec: 400}})
+			create(t, source, &model.Task{UUID: "task-2", Namespace: "team", RunUUID: "run-2", Pods: model.JSONSlice{}, TypeAttrs: model.JSONData{}})
+			create(t, source, &model.ArtifactTask{UUID: "link-2", RunUUID: "run-2", TaskID: "task-2", ArtifactID: "artifact"})
+			selections := [][]string{{"run"}, {"run-2"}}
+			if together {
+				selections = [][]string{{"run", "run-2"}}
+			}
+			for _, ids := range selections {
+				bundle, err := Export(context.Background(), source, "retired-a", ids)
+				require.NoError(t, err)
+				result, err := Import(context.Background(), dest, bundle, ImportOptions{})
+				require.NoError(t, err)
+				require.Equal(t, len(ids), result.Imported)
+				result, err = Import(context.Background(), dest, bundle, ImportOptions{})
+				require.NoError(t, err)
+				require.Equal(t, len(ids), result.Skipped)
+			}
+			require.Equal(t, int64(2), count(t, dest, &model.Run{}))
+			require.Equal(t, int64(1), count(t, dest, &model.Artifact{}))
+			require.Equal(t, int64(2), count(t, dest, &model.ArtifactTask{}))
+		})
+	}
 }
