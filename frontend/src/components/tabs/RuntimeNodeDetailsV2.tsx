@@ -15,7 +15,7 @@
  */
 
 import { Button } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import {
   InputOutputsIOArtifact,
@@ -43,6 +43,7 @@ import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { readArtifactFile } from 'src/lib/v2/ArtifactFileUtils';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
+import { getDebugPauseBarrier, requestDebugPauseResume } from 'src/lib/v2/DebugPauseUtils';
 import {
   EXECUTOR_LOGS_ARTIFACT_KEY,
   flattenArtifactGroups,
@@ -221,6 +222,7 @@ function TaskNodeDetail({
 
   return (
     <div className={commonCss.page}>
+      {runId && <DebugPauseResumeBanner runId={runId} task={task} />}
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
@@ -312,6 +314,68 @@ export function getTaskDetailsFields(
     details.push(['State history', stateHistory]);
   }
   return details;
+}
+
+interface DebugPauseResumeBannerProps {
+  runId: string;
+  task?: V2beta1PipelineTask;
+}
+
+// Shown at the top of a task's detail panel while it is parked at a
+// debug-pause barrier. Clicking Resume calls the existing UpdateTask RPC
+// directly (see DebugPauseUtils.ts) - nothing reaches into the running pod.
+// The launcher's own polling loop discovers the resume request on its own
+// next poll and continues by itself; this component does not (and cannot)
+// confirm that has happened, only that the request was recorded.
+function DebugPauseResumeBanner({ runId, task }: DebugPauseResumeBannerProps) {
+  const barrier = getDebugPauseBarrier(task);
+  const resumeMutation = useMutation({
+    mutationFn: () => {
+      if (!task) {
+        throw new Error('No task is available to resume.');
+      }
+      return requestDebugPauseResume(runId, task);
+    },
+  });
+
+  if (!barrier) {
+    return null;
+  }
+
+  const barrierDescription =
+    barrier === 'before'
+      ? 'before running'
+      : barrier === 'on_error'
+        ? 'after failing'
+        : 'after running';
+
+  return (
+    <div className={padding(20, 'lrt')}>
+      <Banner
+        mode='warning'
+        message={`This task is paused ${barrierDescription} for debugging.`}
+        additionalInfo={
+          resumeMutation.isError
+            ? `Failed to request resume: ${
+                resumeMutation.error instanceof Error
+                  ? resumeMutation.error.message
+                  : String(resumeMutation.error)
+              }`
+            : resumeMutation.isSuccess
+              ? 'Resume requested. The task will continue shortly.'
+              : undefined
+        }
+      />
+      <Button
+        variant='contained'
+        color='primary'
+        disabled={resumeMutation.isPending || resumeMutation.isSuccess}
+        onClick={() => resumeMutation.mutate()}
+      >
+        {resumeMutation.isPending ? 'Resuming...' : 'Resume'}
+      </Button>
+    </div>
+  );
 }
 
 function TaskPodsDetails({ pods = [] }: { pods?: PipelineTaskTaskPod[] }) {
