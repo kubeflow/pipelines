@@ -108,7 +108,8 @@ func (s *ScheduledWorkflow) lastIndex() int64 {
 	}
 }
 
-func (s *ScheduledWorkflow) nextIndex() int64 {
+// NextIndex returns the one-based index of the next run of this schedule.
+func (s *ScheduledWorkflow) NextIndex() int64 {
 	return s.lastIndex() + 1
 }
 
@@ -128,7 +129,7 @@ func (s *ScheduledWorkflow) isOneOffRun() bool {
 }
 
 func (s *ScheduledWorkflow) nextResourceID() string {
-	return s.Name + "-" + strconv.FormatInt(s.nextIndex(), 10)
+	return s.Name + "-" + strconv.FormatInt(s.NextIndex(), 10)
 }
 
 // NextResourceName creates a deterministic resource name for the next resource.
@@ -169,13 +170,13 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	execSpec.SetExecutionName(s.NextResourceName())
 
 	// Get the workflow parameters and format them.
-	formatter := commonutil.NewSWFParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.nextIndex())
+	formatter := commonutil.NewSWFParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.NextIndex())
 	formattedParams := formatter.FormatWorkflowParameters(s.getWorkflowParametersAsMap())
 
 	// Set the parameters.
 	execSpec.OverrideParameters(formattedParams)
 
-	execSpec.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
+	execSpec.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.NextIndex())
 	execSpec.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Pod pipeline/runid label is used by v2 compatible mode.
 	execSpec.SetPodMetadataLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
@@ -306,7 +307,7 @@ func (s *ScheduledWorkflow) UpdateStatus(submitted bool,
 
 	if submitted {
 		s.updateLastTriggeredTime(scheduledEpoch)
-		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
+		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.NextIndex())
 		nextTriggerTime := s.getNextScheduledEpoch(0, *location)
 		s.updateNextTriggeredTime(nextTriggerTime)
 	} else {

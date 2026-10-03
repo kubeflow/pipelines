@@ -1,5 +1,6 @@
 docker.io/alpine:3.23
 python:3.11
+docker.io/library/python:3.12@sha256:4d1caded1f729ae443eb803f26ffde7b61e696aeaef62f099abb6dd6b14257c7
 registry.access.redhat.com/ubi9/python-311:latest
 docker.io/library/mysql:8.4
 quay.io/argoproj/workflow-controller:v3.7.18

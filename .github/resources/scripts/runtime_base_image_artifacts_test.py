@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
 import tempfile
 import unittest
-from pathlib import Path
 
 import runtime_base_image_artifacts as artifacts
 
-
 SOURCE_SHA = 'current-source-sha'
+QUEUE_BRANCH = 'gh-readonly-queue/release-2.18/pr-123'
 
 
 def artifact(
@@ -34,11 +34,41 @@ def artifact(
     }
 
 
+def queue_run(
+    artifact_id: int,
+    *,
+    path:
+    str = '.github/workflows/runtime-base-images-merge-group.yml@release-2.18',
+    event: str = 'merge_group',
+    head_sha: str = SOURCE_SHA,
+    status: str = 'completed',
+    conclusion: str = 'success',
+) -> dict[str, object]:
+    return {
+        'id': artifact_id * 10,
+        'path': path,
+        'event': event,
+        'head_sha': head_sha,
+        'head_branch': QUEUE_BRANCH,
+        'status': status,
+        'conclusion': conclusion,
+        'repository': {
+            'id': 1
+        },
+        'head_repository': {
+            'id': 1
+        },
+    }
+
+
 class FingerprintTest(unittest.TestCase):
 
     def test_changes_when_any_generation_input_changes(self):
         with tempfile.TemporaryDirectory() as directory:
-            paths = [Path(directory) / name for name in ('images', 'helper', 'workflow')]
+            paths = [
+                Path(directory) / name
+                for name in ('images', 'helper', 'workflow')
+            ]
             for path in paths:
                 path.write_text(f'{path.name} contents')
             original = artifacts.fingerprint_files(paths)
@@ -46,7 +76,8 @@ class FingerprintTest(unittest.TestCase):
             for path in paths:
                 original_contents = path.read_text()
                 path.write_text(f'{original_contents} changed')
-                self.assertNotEqual(artifacts.fingerprint_files(paths), original)
+                self.assertNotEqual(
+                    artifacts.fingerprint_files(paths), original)
                 path.write_text(original_contents)
 
 
@@ -65,6 +96,152 @@ class ProducerSelectionTest(unittest.TestCase):
             artifacts.select_producer_run_id(payload, SOURCE_SHA),
             20,
         )
+
+    def test_merge_group_selects_exact_source_before_newer_master(self):
+        payload = {
+            'artifacts': [
+                artifact(
+                    1,
+                    '2026-07-16T00:00:00Z',
+                    head_sha=SOURCE_SHA,
+                    head_branch=QUEUE_BRANCH,
+                ),
+                artifact(2, '2026-07-16T01:00:00Z', head_branch='master'),
+            ]
+        }
+
+        self.assertEqual(
+            artifacts.select_producer_run_id(
+                payload,
+                SOURCE_SHA,
+                require_source_sha=True,
+                queue_runs={'workflow_runs': [queue_run(1)]}),
+            10,
+        )
+
+    def test_merge_group_waits_when_only_master_artifact_exists(self):
+        payload = {
+            'artifacts': [
+                artifact(1, '2026-07-16T00:00:00Z', head_branch='master'),
+            ]
+        }
+
+        self.assertIsNone(
+            artifacts.select_producer_run_id(
+                payload,
+                SOURCE_SHA,
+                require_source_sha=True,
+                queue_runs={'workflow_runs': []}))
+        self.assertEqual(
+            artifacts.select_producer_run_id(payload, SOURCE_SHA), 10)
+
+    def test_merge_group_rejects_fork_or_nonqueue_artifact_at_exact_sha(self):
+        payload = {
+            'artifacts': [
+                artifact(
+                    1,
+                    '2026-07-16T00:00:00Z',
+                    head_sha=SOURCE_SHA,
+                    head_branch=QUEUE_BRANCH,
+                    head_repository_id=2,
+                ),
+                artifact(
+                    2,
+                    '2026-07-16T01:00:00Z',
+                    head_sha=SOURCE_SHA,
+                    head_branch='feature',
+                ),
+                artifact(
+                    3,
+                    '2026-07-16T02:00:00Z',
+                    head_sha=SOURCE_SHA,
+                    head_branch='gh-readonly-queue/master/pr-123',
+                ),
+            ]
+        }
+
+        self.assertIsNone(
+            artifacts.select_producer_run_id(
+                payload,
+                SOURCE_SHA,
+                require_source_sha=True,
+                queue_runs={'workflow_runs': []}))
+        self.assertEqual(
+            artifacts.select_producer_run_id(payload, SOURCE_SHA), 30)
+
+    def test_merge_group_rejects_newer_same_sha_artifact_from_other_workflow(
+            self):
+        payload = {
+            'artifacts': [
+                artifact(
+                    1,
+                    '2026-07-16T00:00:00Z',
+                    head_sha=SOURCE_SHA,
+                    head_branch=QUEUE_BRANCH),
+                artifact(
+                    2,
+                    '2026-07-16T01:00:00Z',
+                    head_sha=SOURCE_SHA,
+                    head_branch=QUEUE_BRANCH),
+            ]
+        }
+        queue_runs = {
+            'workflow_runs': [
+                queue_run(1),
+                queue_run(2, path='.github/workflows/other.yml@release-2.18'),
+            ]
+        }
+
+        self.assertEqual(
+            artifacts.select_producer_run_id(
+                payload,
+                SOURCE_SHA,
+                require_source_sha=True,
+                queue_runs=queue_runs),
+            10,
+        )
+        self.assertIsNone(
+            artifacts.select_producer_run_id(
+                {'artifacts': [payload['artifacts'][1]]},
+                SOURCE_SHA,
+                require_source_sha=True,
+                queue_runs=queue_runs))
+
+    def test_merge_group_requires_successful_merge_group_run_at_exact_sha(self):
+        payload = {
+            'artifacts': [
+                artifact(
+                    1,
+                    '2026-07-16T00:00:00Z',
+                    head_sha=SOURCE_SHA,
+                    head_branch=QUEUE_BRANCH)
+            ]
+        }
+        for overrides in (
+            {
+                'event': 'push'
+            },
+            {
+                'head_sha': 'other-sha'
+            },
+            {
+                'status': 'in_progress',
+                'conclusion': None
+            },
+            {
+                'status': 'completed',
+                'conclusion': 'failure'
+            },
+        ):
+            with self.subTest(overrides=overrides):
+                self.assertIsNone(
+                    artifacts.select_producer_run_id(
+                        payload,
+                        SOURCE_SHA,
+                        require_source_sha=True,
+                        queue_runs={
+                            'workflow_runs': [queue_run(1, **overrides)]
+                        }))
 
     def test_rejects_newer_fork_branch_named_master(self):
         payload = {
@@ -114,8 +291,7 @@ class ProducerSelectionTest(unittest.TestCase):
             artifacts.select_producer_run_id(
                 {'artifacts': [candidate]},
                 SOURCE_SHA,
-            )
-        )
+            ))
 
     def test_ignores_expired_artifact(self):
         payload = {

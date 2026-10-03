@@ -136,6 +136,13 @@ func GetNamespace() string {
 // Equivalent to the Python function get_package_path
 func getPackagePath(subdir string) string {
 	repoName := *config.REPO_NAME
+	if os.Getenv("GITHUB_EVENT_NAME") == "merge_group" {
+		sha := os.Getenv("GITHUB_SHA")
+		if sha == "" {
+			panic("merge_group requires the queued commit SHA")
+		}
+		return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, sha, subdir)
+	}
 
 	pullNumber := *config.PULL_NUMBER
 	if pullNumber != "" {
@@ -252,12 +259,15 @@ func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 		return strings.TrimRight(fixtureBaseURL, "/") + "/" + strings.TrimLeft(path, "/"), nil
 	}
 
-	url := fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
-
 	pullNumber := os.Getenv("PULL_NUMBER")
-	if pullNumber != "" {
-		url = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/%s", repoName, pullNumber, path)
+	sha := ""
+	if os.Getenv("GITHUB_EVENT_NAME") == "merge_group" {
+		sha = os.Getenv("GITHUB_SHA")
+		if sha == "" {
+			return "", fmt.Errorf("merge_group requires the queued commit SHA")
+		}
 	}
+	url := repoRawURL(repoName, branch, path, pullNumber, sha)
 
 	// Verify the URL exists. Anonymous requests to raw.githubusercontent.com
 	// are rate limited per source IP, and CI runners share heavily-used egress
@@ -286,6 +296,16 @@ func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 	}
 
 	return url, nil
+}
+
+func repoRawURL(repoName, branch, path, pullNumber, mergeGroupSHA string) string {
+	if mergeGroupSHA != "" {
+		return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", repoName, mergeGroupSHA, path)
+	}
+	if pullNumber != "" {
+		return fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/%s", repoName, pullNumber, path)
+	}
+	return fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
 }
 
 // headWithGitHubAuthAndRetry issues a HEAD request, attaching a bearer token

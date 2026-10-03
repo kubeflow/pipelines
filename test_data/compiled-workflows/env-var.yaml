@@ -5,9 +5,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-5993ccc78137b54f60188169af3d4eed06dd024defc1904818d928e904ae14e6
+    - name: components-a30f96b28f77b2ae8c3eeeb69b5cdabc799c3173ca899bf0d5f23bc7d93d1582
       value: '{"executorLabel":"exec-comp","inputDefinitions":{"parameters":{"env_var":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-5993ccc78137b54f60188169af3d4eed06dd024defc1904818d928e904ae14e6
+    - name: implementations-a30f96b28f77b2ae8c3eeeb69b5cdabc799c3173ca899bf0d5f23bc7d93d1582
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -19,7 +19,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         comp(env_var: str) -\u003e str:\n    import os\n\n    value = os.getenv(env_var,
         \"\")\n\n    if value == \"\":\n        raise Exception(\"Env var is not set\")\n\n    return
-        value\n\n"],"image":"public.ecr.aws/docker/library/python:3.12"}'
+        value\n\n"],"image":"docker.io/library/python:3.12"}'
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"comp"}}}},"tasks":{"comp":{"cachingOptions":{},"componentRef":{"name":"comp-comp"},"inputs":{"parameters":{"env_var":{"componentInputParameter":"env_var"}}},"taskInfo":{"name":"comp"}}}},"inputDefinitions":{"parameters":{"env_var":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -119,6 +119,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
     inputs:
       parameters:
       - name: component
@@ -196,6 +197,7 @@ spec:
           - ALL
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -233,6 +235,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
       - mountPath: /kfp-launcher
         name: kfp-launcher
@@ -268,11 +271,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5993ccc78137b54f60188169af3d4eed06dd024defc1904818d928e904ae14e6}}'
+            value: '{{workflow.parameters.components-a30f96b28f77b2ae8c3eeeb69b5cdabc799c3173ca899bf0d5f23bc7d93d1582}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-comp"},"inputs":{"parameters":{"env_var":{"componentInputParameter":"env_var"}}},"taskInfo":{"name":"comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5993ccc78137b54f60188169af3d4eed06dd024defc1904818d928e904ae14e6}}'
+            value: '{{workflow.parameters.implementations-a30f96b28f77b2ae8c3eeeb69b5cdabc799c3173ca899bf0d5f23bc7d93d1582}}'
           - name: task-name
             value: comp
           - name: parent-dag-id
@@ -369,6 +372,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
     inputs:
       parameters:
       - name: component

@@ -1,6 +1,9 @@
 name: KFP Backend Tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
   push:
     branches:
       - master
@@ -10,6 +13,9 @@ on:
       - 'test/cache-deployer/**'
       - 'test/presubmit-backend-test.sh'
 
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -28,7 +34,7 @@ jobs:
 
     - name: Run Backend Tests
       env:
-        GIT_BRANCH: ${{ github.head_ref || github.ref_name }}
-        GIT_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        GIT_BRANCH: ${{ github.event_name == 'merge_group' && github.sha || github.head_ref || github.ref_name }}
+        GIT_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       run: |
         ./test/presubmit-backend-test.sh

@@ -15,15 +15,48 @@
 package testutil
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRepoRawURLUsesQueuedCommit(t *testing.T) {
+	const sha = "0123456789abcdef0123456789abcdef01234567"
+	got := repoRawURL("kubeflow/pipelines", "release-2.18", "fixture.yaml", "123", sha)
+	assert.Equal(t,
+		"https://raw.githubusercontent.com/kubeflow/pipelines/"+sha+"/fixture.yaml",
+		got,
+	)
+}
+
+func TestMergeGroupPackagePathUsesQueuedCommit(t *testing.T) {
+	const sha = "0123456789abcdef0123456789abcdef01234567"
+	t.Setenv("GITHUB_EVENT_NAME", "merge_group")
+	t.Setenv("GITHUB_SHA", sha)
+	got := getPackagePath("sdk/python")
+	assert.Equal(t,
+		fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=sdk/python", *config.REPO_NAME, sha),
+		got,
+	)
+}
+
+func TestMergeGroupURLsRequireQueuedCommit(t *testing.T) {
+	t.Setenv("KFP_TEST_FIXTURE_BASE_URL", "")
+	t.Setenv("GITHUB_EVENT_NAME", "merge_group")
+	t.Setenv("GITHUB_SHA", "")
+	_, err := GetRepoBranchURLRAW("kubeflow/pipelines", "release-2.18", "fixture.yaml")
+	require.EqualError(t, err, "merge_group requires the queued commit SHA")
+	assert.PanicsWithValue(t, "merge_group requires the queued commit SHA", func() {
+		getPackagePath("sdk/python")
+	})
+}
 
 func TestGetRepoBranchURLRAW_UsesTestFixtureBaseURL(t *testing.T) {
 	t.Setenv("KFP_TEST_FIXTURE_BASE_URL", "http://pipeline-test-fixtures.kubeflow.svc.cluster.local:8080/")

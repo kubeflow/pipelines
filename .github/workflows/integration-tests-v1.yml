@@ -1,6 +1,9 @@
 name: KFP API Integration v1 tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
   push:
     branches: [master]
 
@@ -20,12 +23,18 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
 
   initialization-integration-tests-v1:

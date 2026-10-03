@@ -1,6 +1,9 @@
 name: KFP Kubernetes Native Migration Tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
   push:
     branches: [master]
 
@@ -20,8 +23,14 @@ on:
       - "!**/*.md"
       - "!**/OWNERS"
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
 
   kfp-kubernetes-native-migration-tests:

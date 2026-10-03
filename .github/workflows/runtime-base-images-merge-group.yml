@@ -1,0 +1,65 @@
+name: Runtime Base Images Merge Group
+
+on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
+
+permissions:
+  contents: read
+
+jobs:
+  produce-runtime-base-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARTIFACTS_PATH: runtime-base-images-cache
+      MODELCAR_IMAGE_ARCHIVE: modelcar.tar
+      RUNTIME_BASE_IMAGE_ARCHIVE: runtime-base-images.tar
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
+      - name: Configure runtime base images
+        id: configure-runtime-base-images
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_fingerprint=$(python3 \
+            .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
+            .github/resources/runtime-base-images.txt \
+            .github/resources/scripts/helper-functions.sh \
+            .github/resources/scripts/build-runtime-base-images.sh \
+            .github/workflows/runtime-base-images.yml \
+            test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
+          {
+            echo "artifact-name=runtime-base-images-${archive_fingerprint}"
+            echo "cache-key=runtime-base-images-${archive_fingerprint}-$(date -u +%F)"
+          } >> "$GITHUB_OUTPUT"
+          mkdir -p "${ARTIFACTS_PATH}"
+
+      - name: Restore runtime base images from cache
+        id: cache-runtime-base-images
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+            ${{ env.ARTIFACTS_PATH }}/${{ env.MODELCAR_IMAGE_ARCHIVE }}
+          key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
+
+      - name: Build runtime base image archives
+        if: steps.cache-runtime-base-images.outputs.cache-hit != 'true'
+        shell: bash
+        run: bash .github/resources/scripts/build-runtime-base-images.sh "${ARTIFACTS_PATH}"
+
+      - name: Upload runtime base image producer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
+          path: ${{ env.ARTIFACTS_PATH }}
+          if-no-files-found: error
+          retention-days: 3
