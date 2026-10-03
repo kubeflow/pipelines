@@ -161,6 +161,20 @@ func (w *Workflow) ExecutionStatus() ExecutionStatus {
 	return w
 }
 
+// NewRetryPlaceholder creates a suspended Workflow for the first phase of retry recreation.
+// The retry-generation claim stays off this object so a create-only partial failure is not
+// mistaken for a completed activation when RetryRun re-reads the live Workflow.
+func (w *Workflow) NewRetryPlaceholder() ExecutionSpec {
+	placeholder := NewWorkflow(w.DeepCopy())
+	placeholder.ClearPersistedNodeStatus()
+	placeholder.SetVersion("")
+	placeholder.UID = ""
+	delete(placeholder.Annotations, AnnotationKeyRetryGeneration)
+	suspend := true
+	placeholder.Spec.Suspend = &suspend
+	return placeholder
+}
+
 // SetServiceAccount Set the service account to run the workflow.
 func (w *Workflow) SetServiceAccount(serviceAccount string) {
 	w.Spec.ServiceAccountName = serviceAccount
@@ -1016,7 +1030,10 @@ func (w *Workflow) CanRetry() error {
 		return NewInvalidInputError("Cannot retry an empty workflow; create a new run from pipeline IR")
 	}
 	if w.Workflow.Status.OffloadNodeStatusVersion != "" {
-		return NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
+		return NewBadRequestError(
+			errors.New("workflow cannot be retried"),
+			"Cannot retry workflow with offloaded node status. Hydrate node statuses from Argo offload storage, or clone the run instead of retrying",
+		)
 	}
 	// The IR compiler emits this format marker. It is not an authorization boundary.
 	metadata := w.Spec.PodMetadata

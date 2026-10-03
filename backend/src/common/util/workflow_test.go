@@ -34,6 +34,42 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+func TestWorkflow_NewRetryPlaceholder(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "retry-workflow",
+			UID:             "previous-uid",
+			ResourceVersion: "12",
+			Annotations: map[string]string{
+				AnnotationKeyRetryGeneration: "3",
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"retained": {ID: "retained", Phase: workflowapi.NodeSucceeded},
+			},
+		},
+	})
+
+	placeholder := workflow.NewRetryPlaceholder().(*Workflow)
+	require.NotNil(t, placeholder.Spec.Suspend)
+	assert.True(t, *placeholder.Spec.Suspend)
+	assert.Empty(t, placeholder.Status.Nodes)
+	assert.Empty(t, placeholder.Status.CompressedNodes)
+	assert.Empty(t, placeholder.Status.OffloadNodeStatusVersion)
+	assert.Empty(t, placeholder.UID)
+	assert.Empty(t, placeholder.ResourceVersion)
+	assert.Equal(t, "retry-workflow", placeholder.Name)
+	_, hasRetryGeneration := placeholder.Annotations[AnnotationKeyRetryGeneration]
+	assert.False(t, hasRetryGeneration,
+		"placeholder must not carry the claim marker before the activating update")
+
+	assert.Nil(t, workflow.Spec.Suspend)
+	assert.Contains(t, workflow.Status.Nodes, "retained")
+	assert.Equal(t, types.UID("previous-uid"), workflow.UID)
+	assert.Equal(t, "3", workflow.Annotations[AnnotationKeyRetryGeneration])
+}
+
 func TestWorkflow_NewWorkflowFromBytes(t *testing.T) {
 	// Error case
 	workflow, err := NewWorkflowFromBytes([]byte("this is invalid format"))

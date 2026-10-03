@@ -707,8 +707,15 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
 	syncWorkflowReportWithFakeCluster(t, store, updatedWorkflow)
-	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
-	assert.Nil(t, err)
+
+	// Persist an offloaded terminal snapshot without ReportWorkflowResource's
+	// hydrate-on-finalize gate so RetryRun tests can exercise hydrate-at-retry
+	// (and the CanRetry rejection when hydration is unavailable).
+	runDetail.WorkflowRuntimeManifest = model.LargeText(updatedWorkflow.ToStringForStore())
+	runDetail.Conditions = string(v1alpha1.WorkflowFailed)
+	runDetail.State = model.RuntimeStateFailed
+	runDetail.FinishedAtInSec = 1
+	require.NoError(t, manager.runStore.UpdateRun(runDetail))
 	return store, manager, runDetail
 }
 
@@ -722,6 +729,76 @@ func (c *retryWorkflowExecClient) Execution(namespace string) util.ExecutionInte
 
 func (c *retryWorkflowExecClient) Compare(old, new interface{}) bool {
 	return false
+}
+
+type recordingCreateWorkflowClient struct {
+	*client.FakeWorkflowClient
+	createdSpec                *v1alpha1.Workflow
+	serverCreationTimestamp    v1.Time
+	updateSawCreationTimestamp bool
+}
+
+func (c *recordingCreateWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	workflow, ok := execSpec.(*util.Workflow)
+	if !ok {
+		return nil, fmt.Errorf("expected Workflow create, got %T", execSpec)
+	}
+	c.createdSpec = workflow.DeepCopy()
+	created, err := c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+	if err != nil {
+		return nil, err
+	}
+	created.ExecutionObjectMeta().CreationTimestamp = c.serverCreationTimestamp
+	return created, nil
+}
+
+func (c *recordingCreateWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	c.updateSawCreationTimestamp = execSpec.ExecutionObjectMeta().CreationTimestamp.Equal(&c.serverCreationTimestamp)
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+type deleteOnFirstUpdateWorkflowClient struct {
+	*client.FakeWorkflowClient
+	deleteOnNextUpdate bool
+}
+
+func (c *deleteOnFirstUpdateWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.deleteOnNextUpdate {
+		c.deleteOnNextUpdate = false
+		if err := c.Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
+			return nil, err
+		}
+		return nil, apierrors.NewNotFound(
+			schema.GroupResource{Group: "argoproj.io", Resource: "workflows"},
+			execSpec.ExecutionName(),
+		)
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+type replaceOnFirstUpdateWorkflowClient struct {
+	*client.FakeWorkflowClient
+	replaceOnNextUpdate bool
+}
+
+func (c *replaceOnFirstUpdateWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.replaceOnNextUpdate {
+		c.replaceOnNextUpdate = false
+		if err := c.Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
+			return nil, err
+		}
+		_, err := c.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+			ObjectMeta: v1.ObjectMeta{Name: execSpec.ExecutionName(), Namespace: execSpec.ExecutionNamespace()},
+		}), v1.CreateOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return nil, apierrors.NewConflict(
+			schema.GroupResource{Group: "argoproj.io", Resource: "workflows"},
+			execSpec.ExecutionName(), errors.New("workflow replaced"),
+		)
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
 }
 
 type updateConflictWorkflowClient struct {
@@ -973,6 +1050,7 @@ func seedRetryWorkflow(t *testing.T, manager *ResourceManager, runID string, wor
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	require.NoError(t, err)
 	require.NoError(t, execSpec.Decompress())
+	require.NoError(t, execSpec.Hydrate(context.Background()))
 	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
 	require.NoError(t, err)
 	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
@@ -3276,7 +3354,239 @@ func TestRetryRun_FailedOffloadNodeStatus(t *testing.T) {
 	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithBadPodClient()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Cannot retry workflow with offloaded node status")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Internal))
+	assert.Contains(t, err.Error(), "OffloadNodeStatusVersion")
+	assert.Contains(t, err.Error(), "hydrating workflow node status")
+}
+
+func TestRetryRun_OffloadedNodeStatus_Hydrated(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
+	defer store.Close()
+
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	repo.Put(string(testWorkflow.UID), "offload-hash", map[string]v1alpha1.NodeStatus{
+		"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	})
+	util.SetWorkflowHydratorForTest(t, util.NewMemoryWorkflowHydrator(repo))
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	require.NoError(t, err)
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Contains(t, string(actualRunDetail.WorkflowRuntimeManifest), "Running")
+	assert.Equal(t, model.RuntimeStateRunning, actualRunDetail.State)
+}
+
+func TestRetryRun_OffloadedNodeStatus_RecreateUsesNewUID(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	// Consume the first server-assigned UID ("workflow1") so recreation cannot
+	// collide with testWorkflow.UID when the fake assigns workflowN.
+	_, err := workflowClient.Create(context.Background(), util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "seed-uid"},
+	}), v1.CreateOptions{})
+	require.NoError(t, err)
+	require.NoError(t, workflowClient.Delete(context.Background(), "seed-uid", v1.DeleteOptions{}))
+	recordingClient := &recordingCreateWorkflowClient{
+		FakeWorkflowClient:      workflowClient,
+		serverCreationTimestamp: v1.NewTime(time.Unix(1234, 0)),
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: recordingClient}
+
+	nodes := map[string]v1alpha1.NodeStatus{
+		"node1": {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	}
+	for i := 0; i < 32; i++ {
+		name := fmt.Sprintf("retained-%d", i)
+		nodes[name] = v1alpha1.NodeStatus{ID: name, Name: name, Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeSucceeded}
+	}
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	repo.Put(string(testWorkflow.UID), "offload-hash", nodes)
+	util.SetWorkflowHydratorForTest(t, util.NewAlwaysOffloadWorkflowHydrator(repo))
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+	require.NotNil(t, recordingClient.createdSpec)
+	require.NotNil(t, recordingClient.createdSpec.Spec.Suspend)
+	assert.True(t, *recordingClient.createdSpec.Spec.Suspend,
+		"the status-free create must remain inert until the retry status is installed")
+	assert.Empty(t, recordingClient.createdSpec.Status.Nodes)
+	assert.Empty(t, recordingClient.createdSpec.Status.OffloadNodeStatusVersion)
+	_, hasRetryGeneration := recordingClient.createdSpec.Annotations[util.AnnotationKeyRetryGeneration]
+	assert.False(t, hasRetryGeneration,
+		"placeholder must omit the claim marker so create-only failures are not treated as applied")
+	assert.True(t, recordingClient.updateSawCreationTimestamp,
+		"the activating update must carry the server-assigned creation timestamp")
+
+	retried, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(retried.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	workflow := execSpec.(*util.Workflow)
+	assert.NotEqual(t, string(testWorkflow.UID), string(workflow.UID))
+	assert.NotEmpty(t, workflow.Status.OffloadNodeStatusVersion)
+	assert.Empty(t, workflow.Status.Nodes)
+	offloaded, err := repo.Get(context.Background(), string(workflow.UID), workflow.Status.OffloadNodeStatusVersion)
+	require.NoError(t, err)
+	assert.Contains(t, offloaded, "retained-0")
+	assert.Contains(t, offloaded, "retained-31")
+	assert.NotContains(t, offloaded, "node1")
+}
+
+func TestRetryRun_OffloadedNodeStatus_RehydratesAfterUpdateNotFound(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
+	defer store.Close()
+
+	nodes := map[string]v1alpha1.NodeStatus{
+		"node1":    {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+		"retained": {ID: "retained", Name: "retained", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeSucceeded},
+	}
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	repo.Put(string(testWorkflow.UID), "offload-hash", nodes)
+	util.SetWorkflowHydratorForTest(t, util.NewAlwaysOffloadWorkflowHydrator(repo))
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	recreatingClient := &deleteOnFirstUpdateWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+		deleteOnNextUpdate: true,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: recreatingClient}
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+	assert.False(t, recreatingClient.deleteOnNextUpdate)
+
+	retried, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(retried.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	workflow := execSpec.(*util.Workflow)
+	assert.NotEqual(t, string(testWorkflow.UID), string(workflow.UID))
+	assert.NotEmpty(t, workflow.Status.OffloadNodeStatusVersion)
+	offloaded, err := repo.Get(context.Background(), string(workflow.UID), workflow.Status.OffloadNodeStatusVersion)
+	require.NoError(t, err)
+	assert.Contains(t, offloaded, "retained")
+	assert.NotContains(t, offloaded, "node1")
+}
+
+func TestRetryRun_OffloadedNodeStatus_RehydratesAfterConflictWithNewUID(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
+	defer store.Close()
+
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	repo.Put(string(testWorkflow.UID), "offload-hash", map[string]v1alpha1.NodeStatus{
+		"node1":    {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+		"retained": {ID: "retained", Name: "retained", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeSucceeded},
+	})
+	util.SetWorkflowHydratorForTest(t, util.NewAlwaysOffloadWorkflowHydrator(repo))
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	replacingClient := &replaceOnFirstUpdateWorkflowClient{
+		FakeWorkflowClient:  workflowClient,
+		replaceOnNextUpdate: true,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: replacingClient}
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+	assert.False(t, replacingClient.replaceOnNextUpdate)
+
+	retried, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(retried.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	workflow := execSpec.(*util.Workflow)
+	assert.NotEmpty(t, workflow.Status.OffloadNodeStatusVersion)
+	assert.Empty(t, workflow.Status.Nodes)
+	offloaded, err := repo.Get(context.Background(), string(workflow.UID), workflow.Status.OffloadNodeStatusVersion)
+	require.NoError(t, err, "retry status must be saved under the replacement Workflow UID")
+	assert.Contains(t, offloaded, "retained")
+	assert.NotContains(t, offloaded, "node1")
+}
+
+func TestRetryRun_OffloadedNodeStatus_SurvivesWorkflowAndOffloadGC(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	util.SetWorkflowHydratorForTest(t, util.NewMemoryWorkflowHydrator(repo))
+
+	terminalWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	terminalWorkflow.SetServiceAccount(runDetail.ServiceAccount)
+	terminalWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	terminalWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	terminalWorkflow.Status.Nodes = nil
+	terminalWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
+	syncWorkflowReportWithFakeCluster(t, store, terminalWorkflow)
+	repo.Put(string(terminalWorkflow.UID), "offload-hash", map[string]v1alpha1.NodeStatus{
+		"node1": {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	})
+
+	_, err := manager.ReportWorkflowResource(ctx, terminalWorkflow)
+	require.NoError(t, err)
+	persistedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Contains(t, string(persistedRun.WorkflowRuntimeManifest), "node1")
+	assert.NotContains(t, string(persistedRun.WorkflowRuntimeManifest), "offload-hash")
+
+	workflowClient := store.ExecClient().Execution(terminalWorkflow.ExecutionNamespace())
+	require.NoError(t, workflowClient.Delete(ctx, terminalWorkflow.ExecutionName(), v1.DeleteOptions{}))
+	require.NoError(t, repo.Delete(ctx, string(terminalWorkflow.UID), "offload-hash"))
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID),
+		"retry must use the hydrated terminal manifest after the Workflow and its offload row are gone")
+}
+
+func TestReportWorkflowResource_RecurringOffloadedTerminalHydratesBeforePersist(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	util.SetWorkflowHydratorForTest(t, util.NewMemoryWorkflowHydrator(repo))
+
+	const runID = "recurring-offloaded-run-id"
+	recurringWorkflow := testWorkflow.DeepCopy()
+	recurringWorkflow.Name = "recurring-offloaded-workflow"
+	recurringWorkflow.Namespace = job.Namespace
+	recurringWorkflow.UID = "recurring-offloaded-uid"
+	recurringWorkflow.Labels = map[string]string{
+		util.LabelKeyWorkflowRunId: runID,
+	}
+	recurringWorkflow.OwnerReferences = []v1.OwnerReference{{
+		APIVersion: "kubeflow.org/v1beta1",
+		Kind:       "ScheduledWorkflow",
+		Name:       job.K8SName,
+		UID:        types.UID(job.UUID),
+	}}
+	recurringWorkflow.Status = v1alpha1.WorkflowStatus{
+		Phase:                    v1alpha1.WorkflowFailed,
+		OffloadNodeStatusVersion: "offload-hash",
+	}
+	workflow := util.NewWorkflow(recurringWorkflow)
+	workflow.SetServiceAccount(job.ServiceAccount)
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	repo.Put(string(workflow.UID), "offload-hash", map[string]v1alpha1.NodeStatus{
+		"node1": {ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	})
+
+	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	createdRun, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	assert.Equal(t, job.UUID, createdRun.RecurringRunId)
+	assert.Contains(t, string(createdRun.WorkflowRuntimeManifest), "node1")
+	assert.NotContains(t, string(createdRun.WorkflowRuntimeManifest), "offload-hash")
+
+	require.NoError(t, store.ExecClient().Execution(job.Namespace).Delete(ctx, workflow.ExecutionName(), v1.DeleteOptions{}))
+	require.NoError(t, repo.Delete(ctx, string(workflow.UID), "offload-hash"))
+
+	require.NoError(t, manager.RetryRun(ctx, runID),
+		"retry must use the hydrated recurring-run manifest after Workflow and offload GC")
 }
 
 func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {

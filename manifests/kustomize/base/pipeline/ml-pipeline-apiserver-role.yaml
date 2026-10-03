@@ -78,6 +78,7 @@ rules:
   - configmaps
   resourceNames:
   - kfp-launcher
+  - workflow-controller-configmap
   verbs:
   - get
 - apiGroups:
@@ -88,7 +89,9 @@ rules:
   - kfp-mlflow-credentials
   verbs:
   - get
-# Leader election lease for the run garbage collector.
+# If Argo nodeStatusOffLoad is enabled, grant get on the Secret names from
+# workflow-controller-configmap persistence.{postgresql,mysql}.{userNameSecret,passwordSecret}
+# in a site overlay. Do not hard-code those names here.
 # create cannot be restricted by resourceNames per Kubernetes RBAC specification
 # (https://kubernetes.io/docs/reference/access-authn-authz/rbac/#referring-to-resources).
 - apiGroups:
