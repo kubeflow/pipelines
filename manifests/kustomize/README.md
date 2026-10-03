@@ -118,11 +118,24 @@ kubectl -n kubeflow rollout status deployment/ml-pipeline-ui
 kubectl -n kubeflow rollout status deployment/kubeflow-pipelines-profile-controller
 ```
 
-The controller must then reconcile the new environment into each enabled
-profile's `ml-pipeline-ui-artifact` Deployment. Confirm those pod templates contain
-the updated allowlist and their rollouts complete before testing a custom
-artifact preview or download. Standalone installations only need the UI restart.
-Preserve these settings in the manifests used for future upgrades.
+After the controller rollout completes, it must reconcile the new environment
+into each enabled Namespace's `ml-pipeline-ui-artifact` Deployment. The controller
+watches Namespace objects; restarting its webhook does not enqueue them. Wait for
+the next hourly resync or change an annotation on each affected Namespace. For
+example, use a fresh timestamp on the enabled Namespace named `tenant` (replace
+it with your profile namespace):
+
+```sh
+kubectl annotate namespace tenant \
+  pipelines.kubeflow.org/reconcile-at="$(date -u +%Y-%m-%dT%H:%M:%SZ)" --overwrite
+```
+
+Confirm each generated pod template contains the expected
+`ALLOWED_ARTIFACT_ENDPOINTS` value before checking that Deployment's rollout status;
+otherwise, the status may describe the previous completed rollout. Wait for the
+updated rollout to complete before testing a custom artifact preview or download.
+Standalone installations only need the UI restart. Preserve these settings in the
+manifests used for future upgrades.
 
 Archived logs have a separate credential constraint: for runs outside the UI
 server's namespace, the shared UI uses its own `MINIO_ACCESS_KEY` and

@@ -178,6 +178,12 @@ scheme selects the original-URI behavior above; it is not a cosmetic change to a
 gateway setting. Neither form permits fetching an arbitrary request-selected
 host with an unset base.
 
+Both forms validate the configured path before URL normalization. Use a base
+without raw or percent-encoded `.`/`..` path segments, backslashes, invalid
+percent encoding, or embedded ASCII control characters (literal or percent-encoded).
+Correct these values in the installation configuration; they are rejected with
+HTTP 400 on artifact requests, without preventing server startup.
+
 The base is read at process startup. After applying the ConfigMap, restart
 `ml-pipeline-ui`. Authenticated multi-user HTTP requests are fetched by the shared
 UI even when namespace artifact proxies are enabled. Configure any HTTP
@@ -188,11 +194,22 @@ use `https://files.example:9443/private-artifacts/` as the base for namespace-sc
 URIs; the `/reports/` example above applies to standalone deployments.
 
 The installation also propagates the base to profile proxies for their direct
-HTTP serving configuration. To update those processes, restart
-`kubeflow-pipelines-profile-controller`, wait for profile reconciliation, and
-verify the generated `ml-pipeline-ui-artifact` Deployments complete their rollouts.
-This propagation does not change the shared UI's authenticated HTTP serving path.
-Preserve the setting in your installation manifests for later upgrades.
+HTTP serving configuration. Restart `kubeflow-pipelines-profile-controller` and
+wait for its rollout to finish. The controller watches enabled Namespace objects;
+restarting its webhook does not enqueue them. Wait for the next hourly resync or
+change an annotation on each affected Namespace, as shown in the
+[profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
+Confirm each generated `ml-pipeline-ui-artifact` pod template contains the expected
+`HTTP_BASE_URL` before checking its rollout status, which could otherwise report
+the previous rollout's completion. This propagation does not change the shared
+UI's authenticated HTTP serving path. Preserve the setting in your installation
+manifests for later upgrades.
+
+When upgrading from manifests that did not emit `HTTP_BASE_URL` into profile
+proxy pods, the first reconciliation adds the entry even when its value is empty.
+With `ARTIFACTS_PROXY_ENABLED=true`, this changes existing artifact-proxy pod
+templates and causes a one-time rollout. Subsequent resyncs do not roll unchanged
+templates.
 
 Test an existing artifact preview and download after rollout. A missing base
 returns HTTP 400 naming `HTTP_BASE_URL`; an invalid base, mismatched origin/path,

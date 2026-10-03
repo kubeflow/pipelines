@@ -829,6 +829,13 @@ function isArtifactSource(source: string): source is ArtifactSource {
   return ARTIFACT_SOURCES.has(source as ArtifactSource);
 }
 
+function hasAsciiControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const codePoint = character.codePointAt(0) || 0;
+    return codePoint <= 0x1f || codePoint === 0x7f;
+  });
+}
+
 /**
  * Returns the http/https url to retrieve a kfp artifact (of the form: `${source}://${baseUrl}${bucket}/${key}`)
  * @param source "http" or "https".
@@ -840,12 +847,30 @@ function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, k
   const configuredBaseUrl = baseUrl.includes('://')
     ? baseUrl.trim()
     : baseUrl.trim().replace(/^\/+/, '');
-  if (!configuredBaseUrl) {
+  if (
+    !configuredBaseUrl ||
+    configuredBaseUrl.includes('\\') ||
+    hasAsciiControlCharacters(configuredBaseUrl)
+  ) {
     return undefined;
   }
   try {
     const absoluteBase = configuredBaseUrl.includes('://');
-    const base = new URL(absoluteBase ? configuredBaseUrl : `${source}://${configuredBaseUrl}`);
+    const baseUrlToParse = absoluteBase ? configuredBaseUrl : `${source}://${configuredBaseUrl}`;
+    const baseUrlMatch = /^https?:\/\/[^/?#]+(\/[^?#]*)?$/i.exec(baseUrlToParse);
+    if (!baseUrlMatch) {
+      return undefined;
+    }
+    // Decode once for validation; preserve the escaped path for fetching.
+    const decodedBasePath = decodeURIComponent(baseUrlMatch[1] || '');
+    if (
+      hasAsciiControlCharacters(decodedBasePath) ||
+      decodedBasePath.includes('\\') ||
+      decodedBasePath.split('/').some((segment) => segment === '.' || segment === '..')
+    ) {
+      return undefined;
+    }
+    const base = new URL(baseUrlToParse);
     if (
       !['http:', 'https:'].includes(base.protocol) ||
       base.username ||
