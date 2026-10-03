@@ -760,6 +760,17 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
 func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model.Run, error) {
+	if run.UUID != "" {
+		existing, err := r.GetRun(run.UUID)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return nil, util.Wrap(err, "Failed to check existing run before creating workflow")
+		}
+		if err == nil {
+			if err := validateRunRuntimeUpdate(existing); err != nil {
+				return nil, err
+			}
+		}
+	}
 	// Guard against duplicate runs from concurrent recurring-run controller replicas.
 	if run.RecurringRunId != "" && run.DisplayName != "" {
 		existingRunID, err := r.runStore.GetRunByRecurringRunIDAndDisplayName(run.RecurringRunId, run.DisplayName)
@@ -1072,22 +1083,24 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete run %v as it does not exist", runId)
 	}
-	if run.Namespace == "" {
-		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
-		if err != nil {
-			return util.Wrapf(err, "Failed to delete a run %v due to namespace fetching error", runId)
+	if run.ImportedFrom == nil {
+		if run.Namespace == "" {
+			namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
+			if err != nil {
+				return util.Wrapf(err, "Failed to delete a run %v due to namespace fetching error", runId)
+			}
+			run.Namespace = namespace
 		}
-		run.Namespace = namespace
-	}
-	k8sNamespace := run.Namespace
-	if k8sNamespace == "" {
-		k8sNamespace = common.GetPodNamespace()
-	}
-	err = r.getWorkflowClient(k8sNamespace).Delete(ctx, run.K8SName, v1.DeleteOptions{})
-	if err != nil {
-		// API won't need to delete the workflow CR
-		// once persistent agent sync the state to DB and set TTL for it.
-		glog.Warningf("Failed to delete run %v. Error: %v", run.K8SName, err.Error())
+		k8sNamespace := run.Namespace
+		if k8sNamespace == "" {
+			k8sNamespace = common.GetPodNamespace()
+		}
+		err = r.getWorkflowClient(k8sNamespace).Delete(ctx, run.K8SName, v1.DeleteOptions{})
+		if err != nil {
+			// API won't need to delete the workflow CR
+			// once persistent agent sync the state to DB and set TTL for it.
+			glog.Warningf("Failed to delete run %v. Error: %v", run.K8SName, err.Error())
+		}
 	}
 	err = r.runStore.DeleteRun(runId)
 	if err != nil {
@@ -1095,7 +1108,7 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	}
 	r.storedWorkflowIdentities.delete(runId)
 
-	if r.options.CollectMetrics {
+	if r.options.CollectMetrics && run.ImportedFrom == nil {
 		if run.Conditions == string(exec.ExecutionSucceeded) {
 			if util.GetMetricValue(workflowSuccessCounter) > 0 {
 				workflowSuccessCounter.WithLabelValues(run.Namespace, run.DisplayName).Dec()
@@ -1109,11 +1122,24 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 	return nil
 }
 
+// Imported history must never be promoted back into runtime or cache state.
+func validateRunRuntimeUpdate(run *model.Run) error {
+	if run.ImportedFrom != nil {
+		return util.NewFailedPreconditionError(
+			errors.New("imported runs have no local execution"),
+			"Cannot update imported historical run %s; create a new run from its pipeline instead", run.UUID)
+	}
+	return nil
+}
+
 // Creates a task entry.
 func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	run, err := r.GetRun(t.RunID)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunID)
+	}
+	if err := validateRunRuntimeUpdate(run); err != nil {
+		return nil, err
 	}
 	if run.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
@@ -1185,6 +1211,9 @@ func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error 
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate run %s due to error fetching the run", runId)
 	}
+	if run.ImportedFrom != nil {
+		return util.NewFailedPreconditionError(errors.New("imported runs have no local execution"), "Cannot terminate imported historical run %s; it has no execution in this cluster", runId)
+	}
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate run %s due to error fetching its namespace", runId)
@@ -1210,6 +1239,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run, err := r.GetRun(runId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to retry run %s due to error fetching the run", runId)
+	}
+	if run.ImportedFrom != nil {
+		return util.NewFailedPreconditionError(errors.New("imported runs have no local execution"), "Cannot retry imported historical run %s; create a new run from its pipeline instead", runId)
 	}
 	if run.StorageState.ToV2() == model.StorageStateArchived {
 		return storage.NewArchivedRunRetryError(runId)
@@ -1486,6 +1518,15 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	run, err := r.GetRun(runId)
 	if err != nil {
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to run fetching error", runId)
+	}
+	if run.ImportedFrom != nil {
+		if r.logArchive == nil {
+			return util.NewFailedPreconditionError(errors.New("imported runs have no local pods"), "Cannot read live logs for imported historical run %s; configure access to its archived logs", runId)
+		}
+		if err := r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst); err != nil {
+			return util.NewBadRequestError(err, "Failed to read archived logs for imported historical run %v", runId)
+		}
+		return nil
 	}
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
@@ -1859,6 +1900,9 @@ func (r *ResourceManager) CreateOrUpdateTasksForRun(
 	if run == nil {
 		return nil, util.NewInvalidInputError("Failed to report tasks: owning run is missing")
 	}
+	if err := validateRunRuntimeUpdate(run); err != nil {
+		return nil, err
+	}
 	runID := run.UUID
 	runNamespace, err := r.resolveWorkflowReportNamespace(
 		"run", runID, run.Namespace, run.ExperimentId, workflowNamespace)
@@ -1953,6 +1997,28 @@ func (r *ResourceManager) reportWorkflowResource(
 	if len(execSpec.ExecutionNamespace()) == 0 {
 		return nil, util.NewInvalidInputError("Failed to report a workflow. Namespace is empty")
 	}
+	// If run already exists, simply update it
+	var updateError error
+	if run == nil {
+		run, updateError = r.GetRun(runId)
+	} else if run.UUID != runId {
+		return nil, util.NewInvalidInputError(
+			"Failed to report workflow: provided run does not match the workflow run ID")
+	}
+	if updateError != nil && !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
+		// Fail closed: a transient run-store read error must not skip the
+		// generation fence below and fall through into the
+		// persisted-final-state deletion - with an empty-resourceVersion
+		// stale snapshot that would delete the live retried workflow.
+		// NotFound keeps its dedicated recovery paths (workflow GC and the
+		// grace-period handling further down).
+		return nil, util.Wrapf(updateError, "Failed to read run %s before applying workflow report", runId)
+	}
+	if updateError == nil {
+		if err := validateRunRuntimeUpdate(run); err != nil {
+			return nil, err
+		}
+	}
 	// Evaluate the effective status at return time because identity validation
 	// can replace a stale non-terminal snapshot with the terminal live workflow.
 	defer func() {
@@ -1982,23 +2048,6 @@ func (r *ResourceManager) reportWorkflowResource(
 				"workflow resource version changed before terminal report was persisted",
 			)
 		}
-	}
-	// If run already exists, simply update it
-	var updateError error
-	if run == nil {
-		run, updateError = r.GetRun(runId)
-	} else if run.UUID != runId {
-		return nil, util.NewInvalidInputError(
-			"Failed to report workflow: provided run does not match the workflow run ID")
-	}
-	if updateError != nil && !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
-		// Fail closed: a transient run-store read error must not skip the
-		// generation fence below and fall through into the
-		// persisted-final-state deletion - with an empty-resourceVersion
-		// stale snapshot that would delete the live retried workflow.
-		// NotFound keeps its dedicated recovery paths (workflow GC and the
-		// grace-period handling further down).
-		return nil, util.Wrapf(updateError, "Failed to read run %s before applying workflow report", runId)
 	}
 	var expectedWorkflowRuntimeManifest model.LargeText
 	var expectedPipelineRuntimeManifest model.LargeText
@@ -3285,7 +3334,14 @@ func (r *ResourceManager) CreateDefaultExperiment(namespace string) (string, err
 // Read metrics as ordinary artifacts instead.
 // Creates a run metric entry.
 func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
-	err := r.runStore.CreateMetric(metric)
+	run, err := r.GetRun(metric.RunUUID)
+	if err != nil {
+		return util.Wrap(err, "Failed to fetch run before reporting metric")
+	}
+	if err := validateRunRuntimeUpdate(run); err != nil {
+		return err
+	}
+	err = r.runStore.CreateMetric(metric)
 	if err != nil {
 		return util.Wrap(err, "Failed to report a run metric")
 	}
