@@ -163,6 +163,7 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
         component_spec = comp.pipeline_spec.components['comp-comp']
         param_spec = component_spec.input_definitions.parameters['name']
         self.assertEqual([], list(param_spec.literals))
+
     def test_to_protobuf_value_with_none(self):
         self.assertEqual(
             pipeline_spec_builder.to_protobuf_value(None),

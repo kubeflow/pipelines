@@ -19,7 +19,7 @@ import dataclasses
 from decimal import Decimal
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import uuid
 
 from google.protobuf import json_format
