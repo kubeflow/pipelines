@@ -154,6 +154,63 @@ describe('RunDetailsV2', () => {
     },
   ];
 
+  const LOOP_PIPELINE_SPEC = PipelineSpec.fromJSON({
+    root: {
+      dag: {
+        tasks: {
+          loop: { taskInfo: { name: 'loop' }, componentRef: { name: 'loop-component' } },
+        },
+      },
+    },
+    components: {
+      'loop-component': {
+        dag: {
+          tasks: {
+            'body-a': {
+              taskInfo: { name: 'body-a' },
+              componentRef: { name: 'body-component' },
+            },
+            'body-b': {
+              taskInfo: { name: 'body-b' },
+              componentRef: { name: 'body-component' },
+            },
+          },
+        },
+      },
+      'body-component': { executorLabel: 'exec' },
+    },
+  });
+  const LOOP_TASKS: V2beta1PipelineTask[] = [
+    { ...TEST_TASKS[0], state: PipelineTaskTaskState.RUNNING },
+    {
+      task_id: 'loop-task',
+      parent_task_id: 'root-task',
+      run_id: RUN_ID,
+      name: 'loop',
+      state: PipelineTaskTaskState.RUNNING,
+      type: PipelineTaskTaskType.LOOP,
+      type_attributes: { iteration_count: '1' },
+    },
+    {
+      task_id: 'body-a-0',
+      parent_task_id: 'loop-task',
+      run_id: RUN_ID,
+      name: 'body-a',
+      state: PipelineTaskTaskState.SUCCEEDED,
+      type: PipelineTaskTaskType.RUNTIME,
+      type_attributes: { iteration_index: '0' },
+    },
+    {
+      task_id: 'body-b-0',
+      parent_task_id: 'loop-task',
+      run_id: RUN_ID,
+      name: 'body-b',
+      state: PipelineTaskTaskState.SUCCEEDED,
+      type: PipelineTaskTaskType.RUNTIME,
+      type_attributes: { iteration_index: '0' },
+    },
+  ];
+
   function renderRunDetailsWithSearch(search: string) {
     const props = generateProps();
     const renderPage = (nextSearch: string) => (
@@ -213,6 +270,66 @@ describe('RunDetailsV2', () => {
   });
 
   afterEach(() => vi.useRealTimers());
+
+  it('keeps a late loop iteration running until both body tasks arrive through refetch', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks: [] });
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={{ ...TEST_RUN, state: V2beta1RuntimeState.RUNNING }}
+            {...generateProps()}
+            parsedPipelineSpec={LOOP_PIPELINE_SPEC}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual([]));
+    fireEvent.click(document.querySelector('[data-id="task.loop"] [data-testid="expand-button"]')!);
+    expect(document.querySelector('[data-id="task.body-a"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-id="task.body-b"]')).toBeInTheDocument();
+    const canvas = screen.getByTestId('DagCanvas');
+
+    const partialTasks = LOOP_TASKS.slice(0, 3);
+    tasksSpy.mockResolvedValue({ tasks: partialTasks });
+    await act(async () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.runTasks(RUN_ID), exact: true }),
+    );
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+    expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual(partialTasks);
+    await waitFor(() => {
+      const iteration = document.querySelector('[data-id="task.loop.0"]');
+      expect(iteration).toBeInTheDocument();
+      expect(iteration?.querySelector('[data-testid="RefreshIcon"]')).toBeInTheDocument();
+      expect(iteration?.querySelector('[data-testid="CheckCircleIcon"]')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+    expect(document.querySelector('[data-id="task.loop"]')).not.toBeInTheDocument();
+
+    tasksSpy.mockResolvedValue({ tasks: LOOP_TASKS });
+    await act(async () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.runTasks(RUN_ID), exact: true }),
+    );
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+    expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual(LOOP_TASKS);
+    await waitFor(() => {
+      const iteration = document.querySelector('[data-id="task.loop.0"]');
+      expect(iteration?.querySelector('[data-testid="CheckCircleIcon"]')).toBeInTheDocument();
+      expect(iteration?.querySelector('[data-testid="RefreshIcon"]')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+    expect(document.querySelector('[data-id="task.loop"]')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      document.querySelector('[data-id="task.loop.0"] [data-testid="expand-button"]')!,
+    );
+    for (const taskName of ['body-a', 'body-b']) {
+      const node = document.querySelector(`[data-id="task.${taskName}"]`);
+      expect(node?.querySelector('[data-testid="CheckCircleIcon"]')).toBeInTheDocument();
+    }
+  });
 
   it.each(['kubeflow', ''])(
     'renders TensorBoard controls with artifact namespace %j',
@@ -985,6 +1102,188 @@ describe('RunDetailsV2', () => {
     expect(tasksSpy).toHaveBeenCalledTimes(3);
   });
 
+  it('polls an empty terminal task snapshot and renders late loop rows without reopening', async () => {
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const terminalTasks = LOOP_TASKS.map((task) => ({
+      ...task,
+      state: PipelineTaskTaskState.SUCCEEDED,
+    }));
+    const tasksSpy = vi
+      .mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValueOnce({ tasks: [] })
+      .mockResolvedValue({ tasks: terminalTasks });
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={TEST_RUN}
+            {...generateProps()}
+            parsedPipelineSpec={LOOP_PIPELINE_SPEC}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual([]);
+    fireEvent.click(document.querySelector('[data-id="task.loop"] [data-testid="expand-button"]')!);
+    expect(document.querySelector('[data-id="task.body-a"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-id="task.body-b"]')).toBeInTheDocument();
+    const canvas = screen.getByTestId('DagCanvas');
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+    expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual(terminalTasks);
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    const iteration = document.querySelector('[data-id="task.loop.0"]');
+    expect(iteration?.querySelector('[data-testid="CheckCircleIcon"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-id="task.loop"]')).not.toBeInTheDocument();
+    expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['terminal mount', 'active-to-terminal'])(
+    'polls nonempty terminal ancestors and renders late descendants without reopening on %s',
+    async (transition) => {
+      vi.useFakeTimers();
+      const reconcileSpy = vi.spyOn(DynamicFlow, 'reconcileRuntimeFlowElements');
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const terminalTasks = LOOP_TASKS.map((task) => ({
+        ...task,
+        state: PipelineTaskTaskState.SUCCEEDED,
+      }));
+      const terminalAncestors = terminalTasks.slice(0, 2);
+      const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
+      const startsActive = transition === 'active-to-terminal';
+      if (startsActive) {
+        tasksSpy.mockResolvedValueOnce({ tasks: [] });
+      }
+      tasksSpy
+        .mockResolvedValueOnce({ tasks: terminalAncestors })
+        .mockResolvedValue({ tasks: terminalTasks });
+      const renderPage = (state: V2beta1RuntimeState) => (
+        <MemoryRouter>
+          <QueryClientProvider client={queryClient}>
+            <RunDetailsV2
+              pipeline_job={v2YamlTemplateString}
+              run={{ ...TEST_RUN, state }}
+              {...generateProps()}
+              parsedPipelineSpec={LOOP_PIPELINE_SPEC}
+            />
+          </QueryClientProvider>
+        </MemoryRouter>
+      );
+      const view = render(renderPage(startsActive ? V2beta1RuntimeState.RUNNING : TEST_RUN.state!));
+      await act(async () => vi.advanceTimersByTimeAsync(0));
+      expect(tasksSpy).toHaveBeenCalledTimes(1);
+      fireEvent.click(
+        document.querySelector('[data-id="task.loop"] [data-testid="expand-button"]')!,
+      );
+      const canvas = screen.getByTestId('DagCanvas');
+      if (startsActive) {
+        view.rerender(renderPage(TEST_RUN.state!));
+        await act(async () => vi.advanceTimersByTimeAsync(0));
+      }
+      const initialCallCount = startsActive ? 2 : 1;
+      expect(tasksSpy).toHaveBeenCalledTimes(initialCallCount);
+      expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual(terminalAncestors);
+      await act(async () => vi.advanceTimersByTimeAsync(1));
+      expect(
+        document.querySelector('[data-id="task.loop.0"] [data-testid="CheckCircleIcon"]'),
+      ).not.toBeInTheDocument();
+      const initialSnapshotIsTerminal = (
+        reconcileSpy.mock.lastCall?.[3] as { runIsTerminal?: boolean }
+      ).runIsTerminal;
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+      expect(tasksSpy).toHaveBeenCalledTimes(initialCallCount + 1);
+      expect(initialSnapshotIsTerminal).toBe(false);
+      expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual(terminalTasks);
+      await act(async () => vi.advanceTimersByTimeAsync(1));
+      const iteration = document.querySelector('[data-id="task.loop.0"]');
+      expect(iteration?.querySelector('[data-testid="CheckCircleIcon"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-id="task.loop"]')).not.toBeInTheDocument();
+      expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+      expect(screen.getByRole('button', { name: 'loop' })).toBeDisabled();
+      expect(updateBannerSpy).not.toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
+      expect((reconcileSpy.mock.lastCall?.[3] as { runIsTerminal?: boolean }).runIsTerminal).toBe(
+        false,
+      );
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+      expect(tasksSpy).toHaveBeenCalledTimes(initialCallCount + 2);
+      expect((reconcileSpy.mock.lastCall?.[3] as { runIsTerminal?: boolean }).runIsTerminal).toBe(
+        true,
+      );
+      await act(async () => vi.advanceTimersByTimeAsync(30_000));
+      expect(tasksSpy).toHaveBeenCalledTimes(initialCallCount + 2);
+    },
+  );
+
+  it('bounds terminal ancestors without assigning success to an iteration with no child rows', async () => {
+    vi.useFakeTimers();
+    const terminalAncestors = LOOP_TASKS.slice(0, 2).map((task) => ({
+      ...task,
+      state: PipelineTaskTaskState.SUCCEEDED,
+    }));
+    const tasksSpy = vi
+      .mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValue({ tasks: terminalAncestors });
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...generateProps()}
+          parsedPipelineSpec={LOOP_PIPELINE_SPEC}
+        />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    fireEvent.click(document.querySelector('[data-id="task.loop"] [data-testid="expand-button"]')!);
+    const canvas = screen.getByTestId('DagCanvas');
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+    const iteration = document.querySelector('[data-id="task.loop.0"]');
+    expect(iteration).toBeInTheDocument();
+    expect(iteration?.querySelector('[data-testid="CheckCircleIcon"]')).not.toBeInTheDocument();
+    expect(iteration?.querySelector('[data-testid="ErrorIcon"]')).not.toBeInTheDocument();
+    expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+    expect(screen.getByRole('button', { name: 'loop' })).toBeDisabled();
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('bounds terminal task reconciliation when every successful snapshot is empty', async () => {
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks: [] });
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...generateProps()} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual([]);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+    expect(queryClient.getQueryData(queryKeys.runTasks(RUN_ID))).toEqual([]);
+  });
+
   it('bounds terminal task reconciliation when every task request fails', async () => {
     vi.useFakeTimers();
     const tasksSpy = vi
@@ -1092,7 +1391,7 @@ describe('RunDetailsV2', () => {
     await act(async () => vi.advanceTimersByTimeAsync(10_000));
     expect(tasksSpy).toHaveBeenCalledTimes(2);
     await act(async () => vi.advanceTimersByTimeAsync(20_000));
-    expect(tasksSpy).toHaveBeenCalledTimes(2);
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
   });
 
   it('does not count a cancelled task request as an accepted reconciliation snapshot', async () => {
@@ -1138,6 +1437,10 @@ describe('RunDetailsV2', () => {
 
     await act(async () => vi.advanceTimersByTimeAsync(10_000));
     expect(tasksSpy).toHaveBeenCalledTimes(3);
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(4);
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(4);
   });
 
   it('refetches a fresh cached task snapshot when mounting a terminal run', async () => {
@@ -1224,7 +1527,7 @@ describe('RunDetailsV2', () => {
     expect(tasksSpy).toHaveBeenCalledTimes(2);
 
     await act(async () => vi.advanceTimersByTimeAsync(20_000));
-    expect(tasksSpy).toHaveBeenCalledTimes(2);
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
   });
 
   it('keeps cached task data in the graph when a background refresh fails', async () => {

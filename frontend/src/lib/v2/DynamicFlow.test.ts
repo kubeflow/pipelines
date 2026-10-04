@@ -757,6 +757,81 @@ describe('DynamicFlow', () => {
       ).toEqual(['task.loop.0', 'task.loop.1']);
     });
 
+    it('preserves the declared body count when loop rows arrive after opening the body', () => {
+      const pipelineSpec = PipelineSpec.fromJSON({
+        root: {
+          dag: {
+            tasks: {
+              loop: {
+                taskInfo: { name: 'loop' },
+                componentRef: { name: 'loop-component' },
+              },
+            },
+          },
+        },
+        components: {
+          'loop-component': {
+            dag: {
+              tasks: {
+                'body-a': {
+                  taskInfo: { name: 'body-a' },
+                  componentRef: { name: 'body-component' },
+                },
+                'body-b': {
+                  taskInfo: { name: 'body-b' },
+                  componentRef: { name: 'body-component' },
+                },
+              },
+            },
+          },
+          'body-component': { executorLabel: 'exec' },
+        },
+      });
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        state: PipelineTaskTaskState.RUNNING,
+        type: PipelineTaskTaskType.LOOP,
+        type_attributes: { iteration_count: '1' },
+      };
+      const bodyA: V2beta1PipelineTask = {
+        task_id: 'body-a-0',
+        parent_task_id: loopTask.task_id,
+        name: 'body-a',
+        state: PipelineTaskTaskState.SUCCEEDED,
+        type: PipelineTaskTaskType.RUNTIME,
+        type_attributes: { iteration_index: '0' },
+      };
+      const bodyB: V2beta1PipelineTask = { ...bodyA, task_id: 'body-b-0', name: 'body-b' };
+      const layers = ['root', 'loop'];
+      const preTaskElements = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, []);
+      expect(preTaskElements.map((element) => element.id)).toEqual(['task.body-a', 'task.body-b']);
+
+      const partialElements = reconcileRuntimeFlowElements(layers, preTaskElements, [
+        rootTask,
+        loopTask,
+        bodyA,
+      ]);
+      expect(partialElements).toHaveLength(1);
+      expect(partialElements[0]).toMatchObject({
+        id: 'task.loop.0',
+        data: { expectedTaskCount: 2, state: PipelineTaskTaskState.RUNNING },
+      });
+
+      const completeElements = reconcileRuntimeFlowElements(layers, partialElements, [
+        rootTask,
+        loopTask,
+        bodyA,
+        bodyB,
+      ]);
+      expect(completeElements[0]).toMatchObject({
+        id: 'task.loop.0',
+        data: { expectedTaskCount: 2, state: PipelineTaskTaskState.SUCCEEDED },
+      });
+      expect(partialElements[0].data?.state).toBe(PipelineTaskTaskState.RUNNING);
+    });
+
     it('keeps an iteration running until every declarative body task exists', () => {
       const loopTask: V2beta1PipelineTask = {
         task_id: 'loop-task',

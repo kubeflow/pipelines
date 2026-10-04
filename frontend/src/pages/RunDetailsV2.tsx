@@ -24,7 +24,6 @@ import {
   useState,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { isEqual } from 'lodash';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { queryKeys } from 'src/hooks/queryKeys';
@@ -58,7 +57,6 @@ import {
   getTaskRuntimeLayers,
   reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
-import { isTaskFinished } from 'src/lib/v2/RuntimeArtifactUtils';
 import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import {
   convertFlowElements,
@@ -107,9 +105,7 @@ interface TerminalTaskReconciliation {
 }
 
 interface TaskReconciliationQueryState {
-  data?: V2beta1PipelineTask[];
   dataUpdateCount: number;
-  error: unknown | null;
   errorUpdateCount: number;
 }
 
@@ -118,8 +114,7 @@ function evaluateTerminalTaskReconciliation(
   reconciliation: TerminalTaskReconciliation | null,
   runId: string,
   retryRefreshVersion: number,
-  preRetryTasks: V2beta1PipelineTask[] | undefined,
-): { completedAttemptCount: number; hasBaseline: boolean; needsReconciliation: boolean } {
+): { completedAttemptCount: number; hasBaseline: boolean } {
   const reconciliationMatchesCurrentQuery =
     reconciliation?.runId === runId && reconciliation.retryRefreshVersion === retryRefreshVersion;
   const dataUpdateBaseline = reconciliationMatchesCurrentQuery
@@ -133,19 +128,13 @@ function evaluateTerminalTaskReconciliation(
       ? 0
       : undefined;
   if (dataUpdateBaseline === undefined || errorUpdateBaseline === undefined) {
-    return { completedAttemptCount: 0, hasBaseline: false, needsReconciliation: true };
+    return { completedAttemptCount: 0, hasBaseline: false };
   }
   return {
     completedAttemptCount:
       Math.max(0, queryState.dataUpdateCount - dataUpdateBaseline) +
       Math.max(0, queryState.errorUpdateCount - errorUpdateBaseline),
     hasBaseline: true,
-    needsReconciliation:
-      queryState.error !== null ||
-      queryState.data === undefined ||
-      queryState.data.some((task) => !isTaskFinished(task.state)) ||
-      (retryRefreshVersion > 0 &&
-        (preRetryTasks === undefined || isEqual(queryState.data, preRetryTasks))),
   };
 }
 
@@ -173,7 +162,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [, forceUpdate] = useState();
   const runIsTerminal = hasFinishedV2(run.state);
   const retryRefreshVersion = props.retryTaskState?.version || 0;
-  const preRetryTasks = props.retryTaskState?.preRetryTasks;
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
   const appliedLinkedTaskId = useRef<string | null>(null);
   const fallbackGraphActive = useRef(false);
@@ -218,18 +206,15 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         terminalTaskReconciliation.current,
         runId,
         retryRefreshVersion,
-        preRetryTasks,
       );
       if (!evaluation.hasBaseline) {
         return false;
       }
       // Count accepted data and terminal errors. Cancelled requests update neither counter, while
       // persistent failures must still consume this bounded reconciliation budget.
-      if (evaluation.completedAttemptCount === 0) {
-        return QUERY_REFETCH_INTERVAL;
-      }
-      return evaluation.completedAttemptCount < MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS &&
-        evaluation.needsReconciliation
+      // Terminal ancestors can arrive before their descendants, even when every returned row is
+      // finished. Use the full bounded window rather than inferring completeness from task states.
+      return evaluation.completedAttemptCount < MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS
         ? QUERY_REFETCH_INTERVAL
         : false;
     },
@@ -258,18 +243,15 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         terminalTaskReconciliation.current,
         runId,
         retryRefreshVersion,
-        preRetryTasks,
       );
       if (!evaluation.hasBaseline) {
         return;
       }
       const reconciliationComplete =
-        evaluation.completedAttemptCount > 0 &&
-        (evaluation.completedAttemptCount >= MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS ||
-          !evaluation.needsReconciliation);
+        evaluation.completedAttemptCount >= MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS;
       setTerminalTaskSnapshot(reconciliationComplete ? { retryRefreshVersion, runId } : null);
     });
-  }, [preRetryTasks, queryClient, retryRefreshVersion, runId, runIsTerminal, taskQueryKey]);
+  }, [queryClient, retryRefreshVersion, runId, runIsTerminal, taskQueryKey]);
 
   const runtimeTaskSnapshotIsTerminal =
     runIsTerminal &&

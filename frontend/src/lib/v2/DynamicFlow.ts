@@ -120,11 +120,11 @@ export function convertSubDagToRuntimeFlowElements(
     }
   }
 
+  const expectedTaskCount = Object.keys(componentSpec.dag?.tasks || {}).length;
   if (
     runtimeContext.task?.type === PipelineTaskTaskType.LOOP &&
     runtimeContext.iterationIndex === undefined
   ) {
-    const expectedTaskCount = Object.keys(componentSpec.dag?.tasks || {}).length;
     return (
       buildParallelForDag(
         runtimeContext.task,
@@ -135,7 +135,7 @@ export function convertSubDagToRuntimeFlowElements(
       ) || annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
     );
   }
-  return buildDag(spec, componentSpec);
+  return annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount);
 }
 
 export function updateFlowElementsState(
