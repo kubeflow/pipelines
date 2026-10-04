@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
@@ -36,18 +35,6 @@ const (
 	defaultPageSize = 20
 	maxPageSize     = 200
 )
-
-func validateFilterV1(referenceKey *apiv1beta1.ResourceKey) (*model.FilterContext, error) {
-	filterContext := &model.FilterContext{}
-	if referenceKey != nil {
-		refType, err := toModelResourceTypeV1(referenceKey.Type)
-		if err != nil {
-			return nil, util.Wrap(err, "Unrecognized resource reference type")
-		}
-		filterContext.ReferenceKey = &model.ReferenceKey{Type: refType, ID: referenceKey.Id}
-	}
-	return filterContext, nil
-}
 
 func validatePagination(pageToken string, pageSize int, keyFieldName string, queryString string,
 	modelFieldByApiFieldMapping map[string]string,
@@ -136,7 +123,7 @@ func deserializePageToken(pageToken string) (*common.Token, error) {
 // parseAPIFilter attempts to decode a url-encoded JSON-stringified api
 // filter object. An empty string is considered valid input, and equivalent to
 // the nil filter, which trivially does nothing.
-func parseAPIFilter(encoded string, apiVersion string) (interface{}, error) {
+func parseAPIFilter(encoded string) (*apiv2beta1.Filter, error) {
 	if encoded == "" {
 		return nil, nil
 	}
@@ -151,33 +138,21 @@ func parseAPIFilter(encoded string, apiVersion string) (interface{}, error) {
 		return nil, err
 	}
 
-	switch apiVersion {
-	case "v2beta1":
-		f := &apiv2beta1.Filter{}
-		if err := protojson.Unmarshal([]byte(transformedJSON), f); err != nil {
-			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
-		}
-		return f, nil
-	case "v1beta1":
-		f := &apiv1beta1.Filter{}
-		if err := protojson.Unmarshal([]byte(transformedJSON), f); err != nil {
-			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
-		}
-		return f, nil
-	default:
-		return nil, util.NewUnknownApiVersionError("filter "+apiVersion, encoded)
+	f := &apiv2beta1.Filter{}
+	if err := protojson.Unmarshal([]byte(transformedJSON), f); err != nil {
+		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 	}
+	return f, nil
 }
 
 // Validates list options for a given resource and listing parameters.
-// apiVersion cat be set to "v1beta1" or "v2beta1". Depending on the value,
-// the corresponding API filter message will be used when parsing filterSpec.
-func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string, apiVersion string) (*list.Options, error) {
+// Filters are decoded using the v2beta1 schema.
+func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string) (*list.Options, error) {
 	defaultOpts := func() (*list.Options, error) {
 		if listable == nil {
 			return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs")
 		}
-		f, err := parseAPIFilter(filterSpec, apiVersion)
+		f, err := parseAPIFilter(filterSpec)
 		if err != nil {
 			return nil, err
 		}
@@ -196,6 +171,15 @@ func validatedListOptions(listable list.Listable, pageToken string, pageSize int
 	opts, err := list.NewOptionsFromToken(pageToken, pageSize)
 	if err != nil {
 		return nil, err
+	}
+
+	if listable == nil {
+		return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs")
+	}
+	if opts.Filter != nil {
+		// Comparison metadata is derived from the current model, not part of
+		// the user's criteria. Restore it even when only a token is supplied.
+		opts.Filter.SetCaseInsensitiveFields(listable.APIToModelFieldMap(), listable.GetModelName(), listable.CaseInsensitiveFields())
 	}
 
 	if sortBy != "" || filterSpec != "" {
@@ -231,4 +215,77 @@ func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
 		`"stringValues":`, `"string_values":`,
 	)
 	return replacer.Replace(jsonStr), nil
+}
+
+// validateFilterV2Beta1Artifact creates filter context for artifacts based on namespace
+func validateFilterV2Beta1Artifact(namespace string) (*model.FilterContext, error) {
+	filterContext := &model.FilterContext{}
+	if namespace != "" {
+		filterContext.ReferenceKey = &model.ReferenceKey{
+			Type: model.NamespaceResourceType,
+			ID:   namespace,
+		}
+	}
+	return filterContext, nil
+}
+
+// validateNonEmptyIDFilters rejects empty-string elements in ID filter lists.
+// Returns the input unchanged when every element is non-empty.
+func validateNonEmptyIDFilters(ids []string, fieldName string) error {
+	for _, id := range ids {
+		if id == "" {
+			return util.NewInvalidInputError("%s must not contain empty values", fieldName)
+		}
+	}
+	return nil
+}
+
+// validateFilterV2Beta1ArtifactTask creates filter contexts for artifact-task relationships.
+// Empty-string IDs are rejected. At least one real ID filter is required; an empty
+// FilterContext is never emitted because that would produce an unscoped store query.
+func validateFilterV2Beta1ArtifactTask(taskIds, runIds, artifactIds []string) ([]*model.FilterContext, error) {
+	if err := validateNonEmptyIDFilters(taskIds, "task_ids"); err != nil {
+		return nil, err
+	}
+	if err := validateNonEmptyIDFilters(runIds, "run_ids"); err != nil {
+		return nil, err
+	}
+	if err := validateNonEmptyIDFilters(artifactIds, "artifact_ids"); err != nil {
+		return nil, err
+	}
+
+	var filterContexts []*model.FilterContext
+
+	for _, taskID := range taskIds {
+		filterContexts = append(filterContexts, &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{
+				Type: model.TaskResourceType,
+				ID:   taskID,
+			},
+		})
+	}
+
+	for _, runID := range runIds {
+		filterContexts = append(filterContexts, &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{
+				Type: model.RunResourceType,
+				ID:   runID,
+			},
+		})
+	}
+
+	for _, artifactID := range artifactIds {
+		filterContexts = append(filterContexts, &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{
+				Type: model.ArtifactResourceType,
+				ID:   artifactID,
+			},
+		})
+	}
+
+	if len(filterContexts) == 0 {
+		return nil, util.NewInvalidInputError("At least one filter (task_ids, run_ids, or artifact_ids) is required")
+	}
+
+	return filterContexts, nil
 }

@@ -23,7 +23,7 @@ function log(msg, type = 'info') {
 }
 
 function unique(values) {
-  return Array.from(new Set(values.filter(Boolean).map(v => String(v))));
+  return Array.from(new Set(values.filter(Boolean).map((v) => String(v))));
 }
 
 function pickList(response, listKeys) {
@@ -37,7 +37,7 @@ function pickList(response, listKeys) {
 
 function extractIds(items, candidateKeys) {
   return unique(
-    items.map(item => {
+    items.map((item) => {
       for (const key of candidateKeys) {
         if (item && item[key]) {
           return item[key];
@@ -48,43 +48,90 @@ function extractIds(items, candidateKeys) {
   );
 }
 
+function selectComparableRunIds(runs) {
+  return extractIds(
+    runs.filter((run) => {
+      const pipelineSpec = run?.pipeline_spec || run?.pipelineSpec;
+      if (!pipelineSpec || typeof pipelineSpec !== 'object') return false;
+      const schemaVersion = pipelineSpec.schema_version || pipelineSpec.schemaVersion;
+      return (
+        typeof schemaVersion === 'string' &&
+        schemaVersion.startsWith('2.') &&
+        pipelineSpec.root !== null &&
+        typeof pipelineSpec.root === 'object'
+      );
+    }),
+    ['run_id', 'runId', 'id'],
+  );
+}
+
+async function listComparableRunIds(request = apiRequest, minimumRunCount = 2) {
+  let runIds = [];
+  let pageToken = '';
+  const seenPageTokens = new Set();
+  do {
+    const pageTokenQuery = pageToken ? `&page_token=${encodeURIComponent(pageToken)}` : '';
+    const response = await request('GET', `/apis/v2beta1/runs?page_size=20${pageTokenQuery}`);
+    runIds = unique([...runIds, ...selectComparableRunIds(pickList(response, ['runs']))]);
+    const nextPageToken = response.next_page_token || response.nextPageToken || '';
+    if (!nextPageToken || seenPageTokens.has(nextPageToken)) break;
+    seenPageTokens.add(nextPageToken);
+    pageToken = nextPageToken;
+  } while (runIds.length < minimumRunCount);
+  return runIds;
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function fetchResourceIds() {
-  const [pipelinesResp, experimentsResp, runsResp, recurringResp] = await Promise.all([
+  const [pipelinesResp, experimentsResp, runIds, recurringResp] = await Promise.all([
     apiRequest('GET', '/apis/v2beta1/pipelines?page_size=20'),
     apiRequest('GET', '/apis/v2beta1/experiments?page_size=20'),
-    apiRequest('GET', '/apis/v2beta1/runs?page_size=20'),
+    listComparableRunIds(),
     apiRequest('GET', '/apis/v2beta1/recurringruns?page_size=20'),
   ]);
 
   return {
-    experimentIds: extractIds(
-      pickList(experimentsResp, ['experiments']),
-      ['experiment_id', 'experimentId', 'id'],
-    ),
-    pipelineIds: extractIds(pickList(pipelinesResp, ['pipelines']), ['pipeline_id', 'pipelineId', 'id']),
+    experimentIds: extractIds(pickList(experimentsResp, ['experiments']), [
+      'experiment_id',
+      'experimentId',
+      'id',
+    ]),
+    pipelineIds: extractIds(pickList(pipelinesResp, ['pipelines']), [
+      'pipeline_id',
+      'pipelineId',
+      'id',
+    ]),
     recurringRunIds: extractIds(
       pickList(recurringResp, ['recurring_runs', 'recurringRuns', 'jobs']),
       ['recurring_run_id', 'recurringRunId', 'job_id', 'id'],
     ),
-    runIds: extractIds(pickList(runsResp, ['runs']), ['run_id', 'runId', 'id']),
+    runIds,
   };
 }
 
 function createdIds(created) {
   return {
     experimentIds: unique(
-      (created.experiments || []).map(e => e.experiment_id || e.experimentId || e.id),
+      (created.experiments || []).map((e) => e.experiment_id || e.experimentId || e.id),
     ),
-    pipelineIds: unique((created.pipelines || []).map(p => p.pipeline_id || p.pipelineId || p.id)),
+    pipelineIds: unique(
+      (created.pipelines || []).map((p) => p.pipeline_id || p.pipelineId || p.id),
+    ),
     recurringRunIds: unique(
-      (created.recurringRuns || []).map(r => r.recurring_run_id || r.recurringRunId || r.job_id || r.id),
+      (created.recurringRuns || []).map(
+        (r) => r.recurring_run_id || r.recurringRunId || r.job_id || r.id,
+      ),
     ),
-    runIds: unique((created.runs || []).map(r => r.run_id || r.runId || r.id)),
+    runIds: unique((created.runs || []).map((r) => r.run_id || r.runId || r.id)),
   };
 }
 
 function buildSeedManifest(resourceIds) {
   const defaults = {
+    artifactId: (resourceIds.artifactIds || [])[0] || null,
     compareRunlist: resourceIds.runIds.slice(0, 3).join(','),
     experimentId: resourceIds.experimentIds[0] || null,
     pipelineId: resourceIds.pipelineIds[0] || null,
@@ -98,6 +145,75 @@ function buildSeedManifest(resourceIds) {
     generatedAt: new Date().toISOString(),
     resources: resourceIds,
   };
+}
+
+async function createRelatedTaskArtifact(runId, request = apiRequest) {
+  if (!runId) {
+    throw new Error('A run is required to seed the native artifact/task relationship.');
+  }
+
+  const tasksResponse = await request(
+    'GET',
+    `/apis/v2beta1/runs/${encodeURIComponent(runId)}/tasks?page_size=200`,
+  );
+  const seededTasks = pickList(tasksResponse, ['tasks']).filter(
+    (task) => (task.name || '') === 'ui-smoke-related-task',
+  );
+  for (const seededTask of seededTasks) {
+    const taskId = seededTask.task_id || seededTask.taskId || seededTask.id;
+    if (!taskId) continue;
+    const relationshipPath = `/apis/v2beta1/artifact_tasks?task_ids=${encodeURIComponent(taskId)}&page_size=1`;
+    const relationshipResponse = await request('GET', relationshipPath);
+    const relationship = pickList(relationshipResponse, ['artifact_tasks', 'artifactTasks'])[0];
+    const artifactId = relationship?.artifact_id || relationship?.artifactId;
+    if (artifactId) {
+      log(`  ✓ Reusing related task artifact: ${artifactId}`);
+      return { artifactId, taskId };
+    }
+  }
+
+  log(`Creating native artifact/task relationship for run: ${runId}`);
+  const task = await request('POST', `/apis/v2beta1/runs/${encodeURIComponent(runId)}/tasks`, {
+    display_name: 'UI Smoke Related Task',
+    name: 'ui-smoke-related-task',
+    scope_path: 'root.ui-smoke-related-task',
+    state: 'SUCCEEDED',
+    type: 'RUNTIME',
+  });
+  const taskId = task.task_id || task.taskId || task.id;
+  if (!taskId) {
+    throw new Error('Task service returned a seeded task without an ID.');
+  }
+
+  const artifact = await request('POST', '/apis/v2beta1/artifacts', {
+    artifact: {
+      name: 'UI Smoke Related Tasks Artifact',
+      namespace: process.env.UI_SMOKE_NAMESPACE || 'kubeflow',
+      type: 'Dataset',
+      uri: `minio://mlpipeline/ui-smoke/${runId}/${taskId}/artifact.json`,
+    },
+    producer_key: 'ui_smoke_output',
+    run_id: runId,
+    task_id: taskId,
+  });
+  const artifactId = artifact.artifact_id || artifact.artifactId || artifact.id;
+  if (!artifactId) {
+    throw new Error('Artifact service returned a seeded artifact without an ID.');
+  }
+
+  const relationshipPath = `/apis/v2beta1/artifact_tasks?artifact_ids=${encodeURIComponent(artifactId)}&page_size=1`;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const response = await request('GET', relationshipPath);
+    const relationships = pickList(response, ['artifact_tasks', 'artifactTasks']);
+    if (relationships.some((link) => (link.artifact_id || link.artifactId) === artifactId)) {
+      log(`  ✓ Created related task artifact: ${artifactId}`);
+      return { artifactId, taskId };
+    }
+    await delay(500);
+  }
+  throw new Error(
+    `Artifact/task relationship for ${artifactId} was not observable after creation.`,
+  );
 }
 
 function writeSeedManifest(manifest) {
@@ -126,7 +242,7 @@ async function apiRequest(method, endpoint, body = null) {
     const protocol = url.protocol === 'https:' ? https : http;
     const req = protocol.request(options, (res) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
+      res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
@@ -189,15 +305,22 @@ async function createExperiment(name, description) {
 }
 
 /**
- * Upload a sample pipeline
+ * Build a minimal pipeline spec that can be submitted directly with runs.
  */
-async function uploadPipeline(name, description) {
-  log(`Creating pipeline: ${name}`);
+function normalizePipelineName(name) {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 63) || 'ui-smoke-pipeline'
+  );
+}
 
-  // Create a minimal pipeline spec
-  const pipelineSpec = {
+function buildPipelineSpec(name, description) {
+  return {
     pipelineInfo: {
-      name: name,
+      name: normalizePipelineName(name),
       description: description,
     },
     deploymentSpec: {
@@ -229,12 +352,19 @@ async function uploadPipeline(name, description) {
     schemaVersion: '2.1.0',
     sdkVersion: 'kfp-2.0.0',
   };
+}
+
+/**
+ * Create a sample pipeline. Runs use an embedded spec because this JSON-only smoke seeder does not
+ * upload a package for the pipeline-version API.
+ */
+async function uploadPipeline(name, description, request = apiRequest) {
+  log(`Creating pipeline: ${name}`);
 
   try {
-    const result = await apiRequest('POST', '/apis/v2beta1/pipelines', {
+    const result = await request('POST', '/apis/v2beta1/pipelines', {
       display_name: name,
       description: description,
-      pipeline_spec: pipelineSpec,
     });
     log(`  ✓ Created pipeline: ${result.pipeline_id || result.name}`);
     return result;
@@ -247,25 +377,23 @@ async function uploadPipeline(name, description) {
 /**
  * Create a pipeline run
  */
-async function createRun(name, pipelineId, experimentId) {
+async function createRun(name, _pipelineId, experimentId, request = apiRequest) {
   log(`Creating run: ${name}`);
   try {
     const body = {
       display_name: name,
       description: `Test run for ${name}`,
+      pipeline_spec: buildPipelineSpec(name, `Test run for ${name}`),
+      runtime_config: {
+        pipeline_root: `minio://mlpipeline/ui-smoke/${normalizePipelineName(name)}`,
+      },
     };
-
-    if (pipelineId) {
-      body.pipeline_version_reference = {
-        pipeline_id: pipelineId,
-      };
-    }
 
     if (experimentId) {
       body.experiment_id = experimentId;
     }
 
-    const result = await apiRequest('POST', '/apis/v2beta1/runs', body);
+    const result = await request('POST', '/apis/v2beta1/runs', body);
     log(`  ✓ Created run: ${result.run_id || result.name}`);
     return result;
   } catch (e) {
@@ -277,12 +405,16 @@ async function createRun(name, pipelineId, experimentId) {
 /**
  * Create a recurring run
  */
-async function createRecurringRun(name, pipelineId, experimentId) {
+async function createRecurringRun(name, _pipelineId, experimentId, request = apiRequest) {
   log(`Creating recurring run: ${name}`);
   try {
     const body = {
       display_name: name,
       description: `Scheduled run for ${name}`,
+      pipeline_spec: buildPipelineSpec(name, `Scheduled run for ${name}`),
+      runtime_config: {
+        pipeline_root: `minio://mlpipeline/ui-smoke/${normalizePipelineName(name)}`,
+      },
       mode: 'ENABLE',
       max_concurrency: '1',
       trigger: {
@@ -292,17 +424,11 @@ async function createRecurringRun(name, pipelineId, experimentId) {
       },
     };
 
-    if (pipelineId) {
-      body.pipeline_version_reference = {
-        pipeline_id: pipelineId,
-      };
-    }
-
     if (experimentId) {
       body.experiment_id = experimentId;
     }
 
-    const result = await apiRequest('POST', '/apis/v2beta1/recurringruns', body);
+    const result = await request('POST', '/apis/v2beta1/recurringruns', body);
     log(`  ✓ Created recurring run: ${result.recurring_run_id || result.name}`);
     return result;
   } catch (e) {
@@ -325,24 +451,40 @@ async function getExistingCounts() {
   try {
     const pipelines = await apiRequest('GET', '/apis/v2beta1/pipelines?page_size=1');
     counts.pipelines = pipelines.total_size || 0;
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
 
   try {
     const experiments = await apiRequest('GET', '/apis/v2beta1/experiments?page_size=1');
     counts.experiments = experiments.total_size || 0;
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
 
   try {
-    const runs = await apiRequest('GET', '/apis/v2beta1/runs?page_size=1');
-    counts.runs = runs.total_size || 0;
-  } catch (e) { /* ignore */ }
+    counts.runs = (await listComparableRunIds()).length;
+  } catch (e) {
+    /* ignore */
+  }
 
   try {
     const recurringRuns = await apiRequest('GET', '/apis/v2beta1/recurringruns?page_size=1');
     counts.recurringRuns = recurringRuns.total_size || 0;
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
 
   return counts;
+}
+
+function canReuseExistingData(existingCounts) {
+  return (
+    existingCounts.pipelines > 0 &&
+    existingCounts.experiments > 0 &&
+    existingCounts.runs >= 2 &&
+    existingCounts.recurringRuns > 0
+  );
 }
 
 /**
@@ -371,15 +513,23 @@ async function seedData(options = {}) {
   const existingCounts = await getExistingCounts();
   log(`Existing data: ${JSON.stringify(existingCounts)}`);
 
-  if (skipIfExists && (existingCounts.pipelines > 0 || existingCounts.experiments > 0)) {
+  if (skipIfExists && canReuseExistingData(existingCounts)) {
     log('Data already exists. Skipping seeding (use --force to override).');
     try {
       const resourceIds = await fetchResourceIds();
+      const relatedTaskArtifact = await createRelatedTaskArtifact(resourceIds.runIds[0]);
+      resourceIds.artifactIds = [relatedTaskArtifact.artifactId];
+      resourceIds.taskIds = [relatedTaskArtifact.taskId];
       writeSeedManifest(buildSeedManifest(resourceIds));
-      return { success: true, skipped: true, counts: existingCounts, seedManifestPath: SEED_MANIFEST_PATH };
+      return {
+        success: true,
+        skipped: true,
+        counts: existingCounts,
+        seedManifestPath: SEED_MANIFEST_PATH,
+      };
     } catch (error) {
       log(`Failed to write seed manifest from existing data: ${error.message}`, 'warn');
-      return { success: true, skipped: true, counts: existingCounts };
+      return { success: false, skipped: true, counts: existingCounts, error: error.message };
     }
   }
 
@@ -434,13 +584,14 @@ async function seedData(options = {}) {
   }
 
   // Create recurring runs
-  const recurringNames = [
-    'Daily Training',
-    'Hourly Data Sync',
-  ];
+  const recurringNames = ['Daily Training', 'Hourly Data Sync'];
 
   for (let i = 0; i < Math.min(numRecurringRuns, recurringNames.length); i++) {
-    const recurring = await createRecurringRun(recurringNames[i], defaultPipelineId, defaultExperimentId);
+    const recurring = await createRecurringRun(
+      recurringNames[i],
+      defaultPipelineId,
+      defaultExperimentId,
+    );
     if (recurring) created.recurringRuns.push(recurring);
   }
 
@@ -456,14 +607,20 @@ async function seedData(options = {}) {
     const fetchedIds = await fetchResourceIds();
     const fromCreated = createdIds(created);
     const resourceIds = {
+      artifactIds: [],
       experimentIds: unique([...fromCreated.experimentIds, ...fetchedIds.experimentIds]),
       pipelineIds: unique([...fromCreated.pipelineIds, ...fetchedIds.pipelineIds]),
       recurringRunIds: unique([...fromCreated.recurringRunIds, ...fetchedIds.recurringRunIds]),
       runIds: unique([...fromCreated.runIds, ...fetchedIds.runIds]),
+      taskIds: [],
     };
+    const relatedTaskArtifact = await createRelatedTaskArtifact(resourceIds.runIds[0]);
+    resourceIds.artifactIds = [relatedTaskArtifact.artifactId];
+    resourceIds.taskIds = [relatedTaskArtifact.taskId];
     writeSeedManifest(buildSeedManifest(resourceIds));
   } catch (error) {
     log(`Failed to generate seed manifest: ${error.message}`, 'warn');
+    return { success: false, created, error: error.message };
   }
 
   return { success: true, created, seedManifestPath: SEED_MANIFEST_PATH };
@@ -489,11 +646,11 @@ if (require.main === module) {
   const clear = args.includes('--clear');
 
   if (clear) {
-    clearData().then(result => {
+    clearData().then((result) => {
       process.exit(result.success ? 0 : 1);
     });
   } else {
-    seedData({ skipIfExists: !force }).then(result => {
+    seedData({ skipIfExists: !force }).then((result) => {
       process.exit(result.success ? 0 : 1);
     });
   }
@@ -504,7 +661,11 @@ module.exports = {
   seedData,
   clearData,
   getExistingCounts,
+  canReuseExistingData,
+  selectComparableRunIds,
+  listComparableRunIds,
   createExperiment,
+  createRelatedTaskArtifact,
   uploadPipeline,
   createRun,
   createRecurringRun,

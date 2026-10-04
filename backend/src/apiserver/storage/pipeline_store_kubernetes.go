@@ -27,8 +27,9 @@ import (
 const pollTimeout = 3 * time.Second
 
 var (
-	ErrNoV1             = errors.New("the v1 API is not available for the Kubernetes pipeline store")
 	ErrUnsupportedField = errors.New("the field is unsupported")
+
+	errDefaultVersionUnresolved = errors.New("spec.defaultVersionName does not resolve to exactly one pipeline version")
 )
 
 type PipelineStoreKubernetes struct {
@@ -40,12 +41,15 @@ func NewPipelineStoreKubernetes(k8sClient ctrlclient.Client, k8sClientNoCache ct
 	return &PipelineStoreKubernetes{client: k8sClient, clientNoCache: k8sClientNoCache}
 }
 
-func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
-	return nil, nil, ErrNoV1
-}
-
 func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	if namespace == "" {
+		// The pod namespace is where KFP itself runs; falling back to it would cross tenants.
+		if common.IsMultiUserMode() {
+			return nil, util.NewInvalidInputError(
+				"A namespace is required to look up pipeline %v in multi-user mode", name,
+			)
+		}
+
 		namespace = common.GetPodNamespace()
 	}
 
@@ -63,17 +67,17 @@ func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, nam
 	return k8sPipeline.ToModel(), nil
 }
 
-func (k *PipelineStoreKubernetes) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	return nil, nil, 0, "", ErrNoV1
-}
-
-func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters map[string]string) ([]*model.Pipeline, int, string, error) {
+func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 	k8sPipelines := v2beta1.PipelineList{}
 
 	listOptions := []ctrlclient.ListOption{ctrlclient.UnsafeDisableDeepCopy}
 
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
-		listOptions = append(listOptions, ctrlclient.InNamespace(filterContext.ReferenceKey.ID))
+	if filterContext.ReferenceKey != nil && filterContext.Type == model.NamespaceResourceType {
+		listOptions = append(listOptions, ctrlclient.InNamespace(filterContext.ID))
 	}
 
 	// Be careful, the deep copy is disabled here to reduce memory allocations
@@ -97,9 +101,9 @@ func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterConte
 			}
 		}
 		// Filter by tags if tag filters are provided
-		if len(tagFilters) > 0 {
+		if len(resolvedTagFilters) > 0 {
 			match := true
-			for key, value := range tagFilters {
+			for key, value := range resolvedTagFilters {
 				if k8sPipeline.Spec.Tags[key] != value {
 					match = false
 					break
@@ -330,31 +334,149 @@ func (k *PipelineStoreKubernetes) CreatePipelineVersion(pipelineVersion *model.P
 	return k.createPipelineVersionWithPipeline(context.TODO(), pipeline, pipelineVersion)
 }
 
-func (k *PipelineStoreKubernetes) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-	// Default version was used in KFPv1 and is deprecated. In KFPv2, we do not support this.
-	return util.NewBadRequestError(errors.New("pipeline default version is unsupported"),
-		"pipeline default version is unsupported when storing in Kubernetes")
-}
-
-func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
-	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineId, "")
+// GetDefaultPipelineVersion returns spec.defaultVersionName when set, otherwise the newest version.
+// A default that does not resolve is an error, not a fallback.
+func (k *PipelineStoreKubernetes) GetDefaultPipelineVersion(pipelineID string) (*model.PipelineVersion, error) {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
 	if err != nil {
 		return nil, err
 	}
 
+	ownedVersions, err := k.ownedPipelineVersions(context.TODO(), k8sPipeline)
+	if err != nil {
+		return nil, err
+	}
+
+	if defaultVersionName := k8sPipeline.Spec.DefaultVersionName; defaultVersionName != "" {
+		pipelineVersion, err := resolveDefaultPipelineVersion(ownedVersions, defaultVersionName)
+		if err != nil {
+			return nil, util.Wrapf(
+				err,
+				"Failed to resolve the default pipeline version %q of pipeline %v",
+				defaultVersionName, pipelineID,
+			)
+		}
+
+		return pipelineVersion, nil
+	}
+
 	var latestK8sPipelineVersion *v2beta1.PipelineVersion
 
-	for _, k8sPipelineVersion := range k8sPipelineVersions.Items {
-		if latestK8sPipelineVersion == nil || isNewerPipelineVersion(&k8sPipelineVersion, latestK8sPipelineVersion) {
-			latestK8sPipelineVersion = &k8sPipelineVersion
+	for _, k8sPipelineVersion := range ownedVersions {
+		if latestK8sPipelineVersion == nil || isNewerPipelineVersion(k8sPipelineVersion, latestK8sPipelineVersion) {
+			latestK8sPipelineVersion = k8sPipelineVersion
 		}
 	}
 
 	if latestK8sPipelineVersion == nil {
-		return nil, util.NewResourceNotFoundError("PipelineVersion", "Latest")
+		return nil, util.NewResourceNotFoundError("PipelineVersion", "Default")
 	}
 
 	return latestK8sPipelineVersion.ToModel()
+}
+
+// ownedPipelineVersions lists the pipeline's versions in its own namespace and keeps those its
+// ownerReferences claim. The pipelines.kubeflow.org/pipeline-id label is user-mutable, so it is not
+// used to select candidates: a stale label must neither hide an owned version nor surface a foreign one.
+func (k *PipelineStoreKubernetes) ownedPipelineVersions(
+	ctx context.Context, k8sPipeline *v2beta1.Pipeline,
+) ([]*v2beta1.PipelineVersion, error) {
+	k8sPipelineVersions, err := k.listPipelineVersionsInNamespace(ctx, k8sPipeline.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	owned := make([]*v2beta1.PipelineVersion, 0, len(k8sPipelineVersions.Items))
+
+	for i := range k8sPipelineVersions.Items {
+		k8sPipelineVersion := &k8sPipelineVersions.Items[i]
+		if k8sPipelineVersion.IsOwnedByPipeline(string(k8sPipeline.UID)) {
+			owned = append(owned, k8sPipelineVersion)
+		}
+	}
+
+	return owned, nil
+}
+
+// listPipelineVersionsInNamespace lists the pipeline version CRs in a namespace.
+//
+// Be careful, the deep copy is disabled here to reduce memory allocations.
+// Callers that mutate the returned objects must deep copy them first.
+func (k *PipelineStoreKubernetes) listPipelineVersionsInNamespace(
+	ctx context.Context, namespace string,
+) (*v2beta1.PipelineVersionList, error) {
+	k8sPipelineVersions := &v2beta1.PipelineVersionList{}
+
+	err := k.client.List(
+		ctx, k8sPipelineVersions,
+		ctrlclient.UnsafeDisableDeepCopy, ctrlclient.InNamespace(namespace),
+	)
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err, "Failed to list pipeline versions in namespace %v", namespace,
+		)
+	}
+
+	return k8sPipelineVersions, nil
+}
+
+// GetAnyPipelineVersionID returns the id of one version owned by the pipeline, or "" if it owns
+// none. It returns on the first owned CR and never calls ToModel, so a caller that only needs to
+// know whether any version exists does not pay to parse the whole version history.
+func (k *PipelineStoreKubernetes) GetAnyPipelineVersionID(pipelineID string) (string, error) {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
+	if err != nil {
+		return "", err
+	}
+
+	k8sPipelineVersions, err := k.listPipelineVersionsInNamespace(context.TODO(), k8sPipeline.Namespace)
+	if err != nil {
+		return "", err
+	}
+
+	for i := range k8sPipelineVersions.Items {
+		if k8sPipelineVersions.Items[i].IsOwnedByPipeline(string(k8sPipeline.UID)) {
+			return string(k8sPipelineVersions.Items[i].UID), nil
+		}
+	}
+
+	return "", nil
+}
+
+// resolveDefaultPipelineVersion matches the pin on the name ToModel reports: spec.versionName, or
+// metadata.name when unset.
+func resolveDefaultPipelineVersion(
+	k8sPipelineVersions []*v2beta1.PipelineVersion, defaultVersionName string,
+) (*model.PipelineVersion, error) {
+	var matches []*v2beta1.PipelineVersion
+
+	for _, k8sPipelineVersion := range k8sPipelineVersions {
+		versionName := k8sPipelineVersion.Spec.VersionName
+		if versionName == "" {
+			versionName = k8sPipelineVersion.Name
+		}
+
+		if versionName == defaultVersionName {
+			matches = append(matches, k8sPipelineVersion)
+		}
+	}
+
+	switch len(matches) {
+	case 0:
+		return nil, util.NewFailedPreconditionError(
+			errDefaultVersionUnresolved,
+			"no pipeline version is named %q; set spec.defaultVersionName to an existing version",
+			defaultVersionName,
+		)
+	case 1:
+		return matches[0].ToModel()
+	default:
+		return nil, util.NewFailedPreconditionError(
+			errDefaultVersionUnresolved,
+			"%d pipeline versions are named %q; spec.defaultVersionName must match exactly one",
+			len(matches), defaultVersionName,
+		)
+	}
 }
 
 // isNewerPipelineVersion reports whether a should be preferred over b. CreationTimestamp has second
@@ -444,7 +566,11 @@ func (k *PipelineStoreKubernetes) GetPipelineVersionWithStatus(pipelineVersionId
 	return pipelineVersion, nil
 }
 
-func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+	var resolvedTagFilters map[string]string
+	if len(tagFilters) > 0 {
+		resolvedTagFilters = tagFilters[0]
+	}
 	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineID, "")
 	if err != nil {
 		return nil, 0, "", err
@@ -463,9 +589,9 @@ func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *
 			}
 		}
 		// Filter by tags if tag filters are provided
-		if len(tagFilters) > 0 {
+		if len(resolvedTagFilters) > 0 {
 			match := true
-			for key, value := range tagFilters {
+			for key, value := range resolvedTagFilters {
 				if k8sPipelineVersion.Spec.Tags[key] != value {
 					match = false
 					break

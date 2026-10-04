@@ -12,7 +12,7 @@
   "dependencies": {
     "looks-same": "^10.0.1",
     "playwright": "^1.40.0",
-    "sharp": "^0.35.0"
+    "sharp": "^0.35.4"
   },
   "engines": {
     "node": ">=18.0.0"

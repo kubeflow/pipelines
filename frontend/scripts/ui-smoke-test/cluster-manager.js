@@ -21,7 +21,6 @@ const NAMESPACE = 'kubeflow';
 
 // Port forwarding config (matches frontend/scripts/start-proxy-and-server.sh)
 const PORT_FORWARDS = [
-  { service: 'metadata-envoy-service', localPort: 9090, remotePort: 9090 },
   { service: 'ml-pipeline', localPort: 3002, remotePort: 8888 },
   { service: 'minio-service', localPort: 9000, remotePort: 9000 },
 ];

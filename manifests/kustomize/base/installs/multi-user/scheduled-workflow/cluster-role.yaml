@@ -8,7 +8,6 @@ rules:
   resources:
   - workflows
   verbs:
-  - create
   - get
   - list
   - watch
@@ -21,6 +20,12 @@ rules:
   - runs
   verbs:
   - create
+- apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - pipelines
+  verbs:
+  - get
 - apiGroups:
   - kubeflow.org
   resources:

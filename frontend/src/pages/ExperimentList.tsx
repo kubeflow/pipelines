@@ -23,7 +23,7 @@ import CustomTable, {
   CustomRendererProps,
 } from 'src/components/CustomTable';
 import RunList from './RunList';
-import immerProduce from 'immer';
+import { produce as immerProduce } from 'immer';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -32,7 +32,7 @@ import {
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from 'src/lib/Apis';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
@@ -236,6 +236,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
                 ],
               } as V2beta1Filter),
             ),
+            /* skip_count */ true, // this page never displays the total run count
           );
           experiment.last5Runs = listRunsResponse.runs || [];
         } catch (err) {

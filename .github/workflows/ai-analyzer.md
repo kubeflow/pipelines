@@ -163,8 +163,9 @@ checkout: false
 
 tools:
   # Strict mode with min-integrity: none requires an explicit Bash policy.
-  # An empty list keeps shell access disabled for this issue-only workflow.
+  # Keep shell and CLI proxy access disabled so safe outputs use MCP directly.
   bash: []
+  cli-proxy: false
   github:
     toolsets: [issues]
     min-integrity: none

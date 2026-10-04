@@ -39,12 +39,13 @@ describe('gcs-helper', () => {
       private_key: 'test-private-key',
     } as any;
 
-    const client = await getGCSClient(credentials);
+    const client = await getGCSClient(credentials, 'gdc.example');
 
     expect(client).toBe(mockClient);
     expect(MockedGoogleAuth).toHaveBeenCalledWith({
       credentials,
       scopes: 'https://www.googleapis.com/auth/devstorage.read_write',
+      universeDomain: 'gdc.example',
     });
     expect(mockedGetClient).toHaveBeenCalledTimes(1);
   });
@@ -99,5 +100,70 @@ describe('gcs-helper', () => {
       url: 'https://storage.googleapis.com/storage/v1/b/bucket%2Fname/o/hello%2Fworld%20%231.txt?alt=media',
     });
     expect(MockedGoogleAuth).not.toHaveBeenCalled();
+  });
+
+  it('lists and downloads public objects anonymously without resolving ADC', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ items: [{ name: 'public/report.csv' }] }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(new Response('public contents', { status: 200 }));
+    try {
+      await expect(
+        listGCSObjectNames({ anonymous: true, bucket: 'public-bucket', prefix: 'public/' }),
+      ).resolves.toEqual(['public/report.csv']);
+      const stream = await downloadGCSObjectStream({
+        anonymous: true,
+        bucket: 'public-bucket',
+        objectName: 'public/report.csv',
+      });
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+
+      expect(Buffer.concat(chunks).toString()).toBe('public contents');
+      expect(fetchSpy).toHaveBeenNthCalledWith(
+        1,
+        'https://storage.googleapis.com/storage/v1/b/public-bucket/o?prefix=public%2F',
+      );
+      expect(fetchSpy).toHaveBeenNthCalledWith(
+        2,
+        'https://storage.googleapis.com/storage/v1/b/public-bucket/o/public%2Freport.csv?alt=media',
+      );
+      expect(MockedGoogleAuth).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('uses the requested universe domain for GCS API requests', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({ data: { items: [{ name: 'report.csv' }] } })
+      .mockResolvedValueOnce({ data: new PassThrough() });
+    const client = { request } as any;
+
+    await listGCSObjectNames({
+      bucket: 'bucket',
+      client,
+      prefix: '',
+      universeDomain: 'example.com',
+    });
+    await downloadGCSObjectStream({
+      bucket: 'bucket',
+      client,
+      objectName: 'report.csv',
+      universeDomain: 'example.com',
+    });
+
+    expect(request).toHaveBeenNthCalledWith(1, {
+      url: 'https://storage.example.com/storage/v1/b/bucket/o?prefix=',
+    });
+    expect(request).toHaveBeenNthCalledWith(2, {
+      responseType: 'stream',
+      url: 'https://storage.example.com/storage/v1/b/bucket/o/report.csv?alt=media',
+    });
   });
 });

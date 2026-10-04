@@ -2,7 +2,43 @@
 
 ## Features
 
+* The accompanying backend enables live pod-log following for direct API callers
+  through `GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/log?follow=true`.
+  Omitting `follow` still returns a snapshot. Clients should set a deadline or
+  cancel the stream; there is no dedicated server-side timeout. The UI's API-log
+  proxy does not forward `follow`.
+
+* Add Kubernetes Dynamic Resource Allocation support. This feature requires
+  Kubernetes 1.31 or later with the `DynamicResourceAllocation` feature gate
+  enabled (GA and enabled by default in Kubernetes 1.34), an installed DRA
+  driver, and the KFP backend from the same release as this SDK. Older backends
+  reject pipelines containing the new DRA platform field.
+
 ## Breaking changes
+
+* Component loaders now accept only PipelineSpec IR YAML, optionally followed by
+  a PlatformSpec document. Old `implementation: container:` component YAML is
+  rejected, including when loaded by a v2 pipeline. Define components with the
+  current DSL and compile them with `kfp.compiler.Compiler().compile()` before
+  using `load_component_from_text`, `load_component_from_file`, or
+  `load_component_from_url`. Alternatively, convert legacy container files to IR
+  with an older compatible KFP v2 SDK before upgrading, then update consumers to
+  load the IR files. See the [migration guide](../docs/user-guides/migration.md).
+
+* The accompanying backend/UI release removes v1 APIs, execution, and historical
+  v1 run-details, graph, output, and comparison views. Database records are
+  retained, but their old UI views are not. Export required history before
+  upgrading.
+* Existing recurring runs with malformed embedded templates or templates without
+  the IR compiler's `v2_component` pod-metadata marker stop firing, regardless of
+  the former `BLOCK_V1_PIPELINES` setting. A workflow-level `v2_pipeline` marker
+  alone no longer suffices. Disable these schedules before upgrading and recreate
+  them from pipeline IR; otherwise the controller reports repeated submission
+  errors. Retrying a stored workflow also requires the pod-metadata marker.
+* New runs and recurring runs no longer write legacy `resource_references` rows.
+  Ownership and pipeline references are stored in native columns. Historical
+  reference reads and deletion cleanup remain supported. See the
+  [migration guide](../docs/user-guides/migration.md#existing-runs-and-recurring-runs).
 
 ## Deprecations
 
@@ -57,14 +93,14 @@
 
 ## Bug Fixes
 
-* **sdk:** chore: remove pin on protobuf 6 ver & use requirements.in for kfp-k8s and spec (#12345) 
-* **sdk:** chore: regenerate files for ver upgrade (#12341) 
+* **sdk:** chore: remove pin on protobuf 6 ver & use requirements.in for kfp-k8s and spec (#12345)
+* **sdk:** chore: regenerate files for ver upgrade (#12341)
 
 # 2.14.5
 
 ## Bug Fixes
 
-* **sdk:**  fix: include requirements files in python sdist (#12330) 
+* **sdk:**  fix: include requirements files in python sdist (#12330)
 
 # 2.14.4
 

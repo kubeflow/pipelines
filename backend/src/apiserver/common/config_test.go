@@ -26,6 +26,30 @@ import (
 // NOTE: These tests use viper.Reset() which mutates the global viper singleton.
 // Do not add t.Parallel() to these subtests — the shared viper state would race.
 
+func TestWorkflowIdentityMode(t *testing.T) {
+	for _, value := range []string{"", "enforce", "audit", "true", "false", "legacy", "AUDIT", " audit"} {
+		t.Run("value="+value, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			t.Setenv(WorkflowIdentityMode, value)
+			viper.AutomaticEnv()
+			mode, err := GetWorkflowIdentityMode()
+			if value == "" || value == "enforce" || value == "audit" {
+				require.NoError(t, err)
+				expected := value
+				if expected == "" {
+					expected = "enforce"
+				}
+				assert.Equal(t, expected, mode)
+				require.NoError(t, InitializeWorkflowIdentityMode())
+			} else {
+				require.Error(t, err)
+				require.Error(t, InitializeWorkflowIdentityMode())
+			}
+		})
+	}
+}
+
 func TestGetStringConfigWithDefault(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -304,11 +328,6 @@ func TestConfigWrapperDefaults(t *testing.T) {
 		expected interface{}
 	}{
 		{
-			name:     "IsPipelineVersionUpdatedByDefault defaults to true",
-			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
-			expected: true,
-		},
-		{
 			name:     "IsNamespaceRequiredForPipelines defaults to false",
 			getter:   func() interface{} { return IsNamespaceRequiredForPipelines() },
 			expected: false,
@@ -328,11 +347,7 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: DefaultPodNamespace,
 		},
-		{
-			name:     "IsCacheEnabled defaults to true string",
-			getter:   func() interface{} { return IsCacheEnabled() },
-			expected: "true",
-		},
+
 		{
 			name:     "GetKubeflowUserIDHeader defaults to GoogleIAPUserIdentityHeader",
 			getter:   func() interface{} { return GetKubeflowUserIDHeader() },
@@ -347,6 +362,31 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			name:     "GetTokenReviewAudience defaults to DefaultTokenReviewAudience",
 			getter:   func() interface{} { return GetTokenReviewAudience() },
 			expected: DefaultTokenReviewAudience,
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffBaseDelay defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffBaseDelay() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMultiplier defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMultiplier() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffJitter defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffJitter() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMaxDelay defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMaxDelay() },
+			expected: "",
+		},
+		{
+			name:     "GetMLPipelineGRPCMinConnectTimeout defaults to empty string",
+			getter:   func() interface{} { return GetMLPipelineGRPCMinConnectTimeout() },
+			expected: "",
 		},
 		{
 			name:     "GetMetadataTLSEnabled defaults to false",
@@ -409,13 +449,6 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 		expected    interface{}
 	}{
 		{
-			name:     "IsPipelineVersionUpdatedByDefault with custom false",
-			envKey:   UpdatePipelineVersionByDefault,
-			envValue: "false",
-			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
-			expected: false,
-		},
-		{
 			name:     "IsNamespaceRequiredForPipelines with custom true",
 			envKey:   RequireNamespaceForPipelines,
 			envValue: "true",
@@ -443,14 +476,7 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: "custom-ns",
 		},
-		{
-			name:        "IsCacheEnabled with custom false",
-			envKey:      CacheEnabled,
-			envValue:    "false",
-			useViperSet: true, // CacheEnabled is mixed-case, env var lookup via AutomaticEnv uppercases the key
-			getter:      func() interface{} { return IsCacheEnabled() },
-			expected:    "false",
-		},
+
 		{
 			name:     "GetKubeflowUserIDHeader with custom header",
 			envKey:   KubeflowUserIDHeader,
@@ -471,6 +497,48 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envValue: "custom.audience.org",
 			getter:   func() interface{} { return GetTokenReviewAudience() },
 			expected: "custom.audience.org",
+		},
+		{
+			name:     "TokenAudienceForRun appends run ID to custom audience",
+			envKey:   TokenReviewAudience,
+			envValue: "custom.audience.org",
+			getter:   func() interface{} { return TokenAudienceForRun("run-abc") },
+			expected: "custom.audience.org/runs/run-abc",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffBaseDelay with custom value",
+			envKey:   MLPipelineGRPCBackoffBaseDelay,
+			envValue: "2s",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffBaseDelay() },
+			expected: "2s",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMultiplier with custom value",
+			envKey:   MLPipelineGRPCBackoffMultiplier,
+			envValue: "1.8",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMultiplier() },
+			expected: "1.8",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffJitter with custom value",
+			envKey:   MLPipelineGRPCBackoffJitter,
+			envValue: "0.3",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffJitter() },
+			expected: "0.3",
+		},
+		{
+			name:     "GetMLPipelineGRPCBackoffMaxDelay with custom value",
+			envKey:   MLPipelineGRPCBackoffMaxDelay,
+			envValue: "30s",
+			getter:   func() interface{} { return GetMLPipelineGRPCBackoffMaxDelay() },
+			expected: "30s",
+		},
+		{
+			name:     "GetMLPipelineGRPCMinConnectTimeout with custom value",
+			envKey:   MLPipelineGRPCMinConnectTimeout,
+			envValue: "15s",
+			getter:   func() interface{} { return GetMLPipelineGRPCMinConnectTimeout() },
+			expected: "15s",
 		},
 		{
 			name:     "GetMetadataTLSEnabled with custom true",
@@ -544,6 +612,58 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			assert.Equal(t, testCase.expected, result)
 		})
 	}
+}
+
+// TestRunGarbageCollectionConfigEnvVars locks the contract that the apiserver
+// deployment relies on: viper.AutomaticEnv() uppercases the config key to
+// derive the env var name. If these names drift, the GC silently falls back
+// to its disabled/default values.
+func TestRunGarbageCollectionConfigEnvVars(t *testing.T) {
+	t.Run("retention times read from uppercased env vars", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_RETENTION_TIME", "720h")
+		t.Setenv("ARCHIVED_RUNS_RETENTION_TIME", "2160h")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 720*time.Hour, GetRunsRetentionTime())
+		assert.Equal(t, 2160*time.Hour, GetArchivedRunsRetentionTime())
+	})
+
+	t.Run("interval and batch size read from uppercased env vars", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_INTERVAL", "1h")
+		t.Setenv("RUNS_GC_BATCH_SIZE", "250")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, time.Hour, GetRunsGCInterval())
+		assert.Equal(t, 250, GetRunsGCBatchSize())
+	})
+
+	t.Run("empty retention keeps GC disabled", func(t *testing.T) {
+		viper.Reset()
+		viper.AutomaticEnv()
+
+		assert.Equal(t, time.Duration(0), GetRunsRetentionTime())
+		assert.Equal(t, time.Duration(0), GetArchivedRunsRetentionTime())
+	})
+
+	t.Run("non-positive interval and batch size fall back to defaults", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_INTERVAL", "0s")
+		t.Setenv("RUNS_GC_BATCH_SIZE", "0")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 6*time.Hour, GetRunsGCInterval())
+		assert.Equal(t, 100, GetRunsGCBatchSize())
+	})
+
+	t.Run("batch size exceeding upper bound is clamped to 1000", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_BATCH_SIZE", "5000")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 1000, GetRunsGCBatchSize())
+	})
 }
 
 func TestGetClusterDomain(t *testing.T) {
@@ -794,4 +914,100 @@ func TestGetPluginLimitsConfigConflictingSourceUsesGetterContract(t *testing.T) 
 	limits, err := GetPluginLimitsConfig()
 	require.NoError(t, err)
 	assert.Equal(t, 9, limits.MaxKeys)
+}
+
+func TestValidateServiceAccountAllowList_AllowedSA(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, "custom-sa")
+	err := ValidateServiceAccountAllowList("custom-sa")
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_DisallowedSA(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, "other-sa")
+	err := ValidateServiceAccountAllowList("evil-sa")
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+func TestValidateServiceAccountAllowList_DefaultAlwaysAllowed(t *testing.T) {
+	viper.Reset()
+	err := ValidateServiceAccountAllowList(DefaultPipelineRunnerServiceAccount)
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_EmptyListRejectsCustom(t *testing.T) {
+	viper.Reset()
+	err := ValidateServiceAccountAllowList("custom-sa")
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+func TestValidateServiceAccountAllowList_MultipleSAs(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, "sa1,sa2,sa3")
+	err := ValidateServiceAccountAllowList("sa2")
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_WhitespaceTrimming(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, " sa1 , sa2 ")
+	err := ValidateServiceAccountAllowList("sa1")
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_EmptyStringAllowed(t *testing.T) {
+	viper.Reset()
+	err := ValidateServiceAccountAllowList("")
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_ErrorDoesNotLeakAllowList(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, "secret-sa-1,secret-sa-2")
+	err := ValidateServiceAccountAllowList("evil-sa")
+	require.NotNil(t, err)
+	assert.NotContains(t, err.Error(), "secret-sa-1")
+	assert.NotContains(t, err.Error(), "secret-sa-2")
+}
+
+func TestValidateServiceAccountAllowList_ConfiguredDefaultAllowed(t *testing.T) {
+	viper.Reset()
+	viper.Set(DefaultPipelineRunnerServiceAccountFlag, "my-runner")
+	err := ValidateServiceAccountAllowList("my-runner")
+	assert.Nil(t, err)
+}
+
+func TestGetServiceAccountAuthorizationMode(t *testing.T) {
+	for _, tc := range []struct {
+		name, value, want string
+		invalid           bool
+	}{
+		{name: "unset", want: "enforce"},
+		{name: "empty", want: "enforce"},
+		{name: "enforce", value: "enforce", want: "enforce"},
+		{name: "audit", value: "audit", want: "audit"},
+		{name: "typo", value: "audti", invalid: true},
+		{name: "legacy", value: "legacy", invalid: true},
+		{name: "case", value: "AUDIT", invalid: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			viper.AutomaticEnv()
+			viper.AllowEmptyEnv(true)
+			if tc.name != "unset" {
+				t.Setenv(ServiceAccountAuthorizationMode, tc.value)
+			}
+			got, err := GetServiceAccountAuthorizationMode()
+			if tc.invalid {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }

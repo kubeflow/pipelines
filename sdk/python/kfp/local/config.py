@@ -42,7 +42,7 @@ class SubprocessRunner:
 
     Args:
         use_venv: Whether to run the subprocess in a virtual environment. If True, dependencies will be installed in the virtual environment. If False, dependencies will be installed in the current environment. Using a virtual environment is recommended.
-        serialize_pip_installs: Whether to serialize pip installations across parallel tasks to avoid race conditions. Only applies when use_venv=True. Default is True for safety.
+        serialize_pip_installs: Whether to serialize pip installations across parallel tasks to avoid race conditions. Default is True for safety.
         max_concurrent_pip_installs: Maximum number of concurrent pip installations when serialize_pip_installs=False. Default is 1.
     """
     use_venv: bool = True
@@ -51,12 +51,11 @@ class SubprocessRunner:
 
     def __post_init__(self):
         """Configure the pip install manager when the runner is created."""
-        if self.use_venv:
-            # Lazy import to avoid circular imports
-            from kfp.local.pip_install_manager import pip_install_manager
-            pip_install_manager.configure(
-                serialize_installs=self.serialize_pip_installs,
-                max_concurrent=self.max_concurrent_pip_installs)
+        # Lazy import to avoid circular imports
+        from kfp.local.pip_install_manager import pip_install_manager
+        pip_install_manager.configure(
+            serialize_installs=self.serialize_pip_installs,
+            max_concurrent=self.max_concurrent_pip_installs)
 
 
 class DockerRunner:

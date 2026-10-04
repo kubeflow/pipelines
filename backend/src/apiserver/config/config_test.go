@@ -215,7 +215,7 @@ func TestLoadSamples(t *testing.T) {
 	// Expect another Pipeline version added for Pipeline 1
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	require.NoError(t, err)
-	_, totalSize, _, err := rm.ListPipelineVersions(pipeline1.UUID, opts, nil)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline1.UUID, opts)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 
@@ -229,12 +229,12 @@ func TestLoadSamples(t *testing.T) {
 	// Expect another Pipeline version added for Pipeline 2
 	_, err = rm.GetPipelineVersionByName(pipeline2.UUID, pc.Pipelines[1].VersionName)
 	require.NoError(t, err)
-	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts, nil)
+	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 
 	// Confirm previous pipeline version count has not been affected
-	_, totalSize, _, err = rm.ListPipelineVersions(pipeline1.UUID, opts, nil)
+	_, totalSize, _, err = rm.ListPipelineVersions(pipeline1.UUID, opts)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 
@@ -250,7 +250,7 @@ func TestLoadSamples(t *testing.T) {
 	require.NoError(t, err)
 
 	// Expect no change
-	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts, nil)
+	_, totalSize, _, err = rm.ListPipelineVersions(pipeline2.UUID, opts)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 }
@@ -296,7 +296,7 @@ func TestLoadSamplesMultiplePipelineVersionsInConfig(t *testing.T) {
 	opts, err := list.NewOptions(&model.PipelineVersion{}, 10, "id", nil)
 	require.NoError(t, err)
 
-	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
+	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts)
 	require.NoError(t, err)
 	require.Equal(t, totalSize, 2)
 }
@@ -644,6 +644,13 @@ func TestLoadSamples_MultiUserMode_RestartNewVersion(t *testing.T) {
 	pipeline, err := rm.GetPipelineByNameAndNamespace("Sample Pipeline", "")
 	require.NoError(t, err)
 
+	// A newer tenant pipeline with the same name must not receive sample versions.
+	privatePipeline, err := rm.CreatePipeline(&model.Pipeline{
+		Name:      "Sample Pipeline",
+		Namespace: "tenant-a",
+	})
+	require.NoError(t, err)
+
 	// Second load with a new version name (simulates config update + restart).
 	pc.Pipelines[0].VersionName = "v2"
 	path, err = writeSampleConfig(t, pc, "sample.json")
@@ -655,6 +662,9 @@ func TestLoadSamples_MultiUserMode_RestartNewVersion(t *testing.T) {
 	_, totalSize, _, err := rm.ListPipelineVersions(pipeline.UUID, opts, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 2, totalSize, "new version should be created under existing pipeline")
+	_, privateVersions, _, err := rm.ListPipelineVersions(privatePipeline.UUID, opts, nil)
+	require.NoError(t, err)
+	assert.Zero(t, privateVersions, "sample reload must not write a tenant pipeline version")
 }
 
 func TestLoadSamples_ExistingPipelineNotRetagged(t *testing.T) {

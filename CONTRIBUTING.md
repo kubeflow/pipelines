@@ -64,6 +64,36 @@ implement your design and send a pull request. Make sure existing tests are all
 passing and new tests are added when applicable. Remember to link to the feature
 request issue to help reviewers catch up on the context.
 
+### Pull Request Admission for External Contributors
+
+Kubeflow Pipelines uses GitHub Actions workflows to gate CI for pull requests.
+
+- Pull requests opened by users listed under Kubeflow's `admins` or `members`
+  in [`kubeflow/internal-acls/github-orgs/kubeflow/org.yaml`](https://github.com/kubeflow/internal-acls/blob/master/github-orgs/kubeflow/org.yaml)
+  can proceed without this extra gate. This lookup is case-insensitive and does
+  not depend on public membership visibility or GitHub's `author_association`.
+- Pull requests authored by `dependabot[bot]` or `copybara-service[bot]` are exempt
+  from this linked-issue gate. Required CI checks and merge requirements still
+  apply.
+- Pull requests opened by other contributors must reference an issue in this
+  repository with a closing keyword such as `Fixes #1234` on its own line in
+  the PR description. For PRs targeting a release branch, GitHub does not
+  automatically create an issue link from that keyword, but the admission gate
+  recognizes the reference.
+- The referenced issue must be labeled `ready` by a Kubeflow Pipelines
+  maintainer before CI is allowed to proceed.
+
+If you plan to contribute regularly, becoming a Kubeflow GitHub organization
+member is straightforward. Follow the instructions in the
+[`kubeflow/internal-acls` guide](https://github.com/kubeflow/internal-acls/#joining-the-kubeflow-github-organization).
+
+If a non-member pull request subject to this gate does not reference an issue,
+or the referenced issue is not labeled `ready`, the gatekeeper workflow may
+comment on the PR and close it until the issue triage step is completed. If the
+membership lookup fails, the workflow fails without closing the PR; a
+maintainer can rerun it after the lookup problem is resolved. Once the issue is
+ready and referenced, reopen the PR to rerun the gate.
+
 ## Project Structure
 
 Kubeflow Pipelines consists of multiple components. Before you begin, learn how to [build the Kubeflow Pipelines component container images](./developer_guide.md##build-image). To get started, see the development guides:
@@ -81,7 +111,7 @@ See the [SDK-specific Contribution Guidelines](sdk/CONTRIBUTING.md) for contribu
 The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/README.md#code-style) for more details.
 
 ### Backend
-Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. Read [backend/README.md#code-style](backend/README.md#code-style) for more details. 
+Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. Read [backend/README.md#code-style](backend/README.md#code-style) for more details.
 
 ## Unit Testing Best Practices
 
@@ -165,11 +195,11 @@ Scope is optional, it can be one of the following:
 * **frontend**: user interface or frontend server related, folder `frontend`, `frontend/server`
 * **backend**: Backend, folder `backend`
 * **sdk**: `kfp` python package, folder `sdk`
-* **sdk/client**: `kfp-server-api` python package, folder `backend/api/python_http_client`
+* **sdk/client**: `kfp-server-api` python package, folder `backend/api/v2beta1/python_http_client`
 * **components**: Pipeline components, folder `components`
 * **deployment**: Kustomize or gcp marketplace manifests, folder `manifests`
 * **metadata**: Related to machine learning metadata (MLMD), folder `backend/metadata_writer`
-* **cache**: Caching, folder `backend/src/cache`
+* **cache**: Native task caching, folder `backend/src/v2/cacheutils`
 * **swf**: Scheduled workflow, folder `backend/src/crd/controller/scheduledworkflow`
 * **viewer**: Tensorboard viewer, folder `backend/src/crd/controller/viewer`
 

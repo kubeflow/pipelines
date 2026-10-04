@@ -17,38 +17,24 @@ package server
 import (
 	"archive/tar"
 	"archive/zip"
-	"bufio"
 	"bytes"
 	"compress/gzip"
 	"errors"
 	"io"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 func loadFile(fileReader io.Reader, MaxFileLength int) ([]byte, error) {
-	// TODO(lingqinggan): investigate ways to increase the buffer size, so we don't have to use a loop.
-	reader := bufio.NewReaderSize(fileReader, MaxFileLength)
-	var pipelineFile []byte
-	for {
-		currentRead := make([]byte, bufio.MaxScanTokenSize)
-		size, err := reader.Read(currentRead)
-		pipelineFile = append(pipelineFile, currentRead[:size]...)
-		if err == io.EOF {
-			// there is no more data to read
-			break
-		}
-		if err != nil {
-			return nil, util.NewInvalidInputErrorWithDetails(err, "Error read pipeline file")
-		}
+	limitedReader := io.LimitReader(fileReader, util.SaturatingAdd(int64(MaxFileLength), 1))
+	pipelineFile, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Error read pipeline file")
 	}
 	if len(pipelineFile) > MaxFileLength {
-		return nil, util.NewInvalidInputError(
-			"File size too large (%v bytes). Maximum supported size: %v. Consider moving large embedded artifacts or "+
-				"notebooks or Python code into a container image or object store.",
-			len(pipelineFile), MaxFileLength,
-		)
+		return nil, common.NewSizeLimitError("pipeline_upload", int64(MaxFileLength), common.MaxPipelineUploadBytesEnv)
 	}
 	return pipelineFile, nil
 }
@@ -73,15 +59,26 @@ func isCompressedTarballFile(compressedFile []byte) bool {
 	return len(compressedFile) > 2 && compressedFile[0] == '\x1F' && compressedFile[1] == '\x8B'
 }
 
-func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
+func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte, error) {
 	gzipReader, err := gzip.NewReader(bytes.NewReader(compressedFile))
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
 	}
+
+	// Use the shared overflow-safe traversal budget for tar headers,
+	// PAX/GNU metadata, and padding.
+	traversalBudget := util.ArchiveTraversalBudget(int64(maxFileLength))
+	limitedGzipReader := &io.LimitedReader{R: gzipReader, N: traversalBudget + 1}
+
 	// New behavior: searching for the "pipeline.yaml" file.
-	tarReader := tar.NewReader(gzipReader)
+	tarReader := tar.NewReader(limitedGzipReader)
 	for {
 		header, err := tarReader.Next()
+		// Check exhaustion before any error branch: if the budget ran out,
+		// tar may return io.EOF or a truncated-data error depending on alignment.
+		if limitedGzipReader.N <= 0 {
+			return nil, common.NewSizeLimitError("pipeline_archive_traversal", traversalBudget, common.MaxPipelineSpecBytesEnv)
+		}
 		if errors.Is(err, io.EOF) {
 			tarReader = nil
 			break
@@ -101,8 +98,13 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
 		}
-		tarReader = tar.NewReader(gzipReader)
+		limitedGzipReader = &io.LimitedReader{R: gzipReader, N: traversalBudget + 1}
+		tarReader = tar.NewReader(limitedGzipReader)
 		header, err := tarReader.Next()
+		// Check exhaustion before EOF
+		if limitedGzipReader.N <= 0 {
+			return nil, common.NewSizeLimitError("pipeline_archive_traversal", traversalBudget, common.MaxPipelineSpecBytesEnv)
+		}
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
 		}
@@ -111,20 +113,31 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 		}
 	}
 
-	decompressedFile, err := io.ReadAll(tarReader)
+	limitedReader := io.LimitReader(tarReader, util.SaturatingAdd(int64(maxFileLength), 1))
+	decompressedFile, err := io.ReadAll(limitedReader)
+
+	// In the io.ReadAll case, we don't need to check traversal budget immediately because
+	// io.LimitReader will prevent it from reading beyond maxFileLength+1.
+	// But just in case gzip reader ran out during reading the file block itself:
+	if limitedGzipReader.N <= 0 {
+		return nil, common.NewSizeLimitError("pipeline_archive_traversal", traversalBudget, common.MaxPipelineSpecBytesEnv)
+	}
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the tarball file")
+	}
+	if len(decompressedFile) > maxFileLength {
+		return nil, common.NewSizeLimitError("pipeline_decompressed_spec", int64(maxFileLength), common.MaxPipelineSpecBytesEnv)
 	}
 	return decompressedFile, err
 }
 
-func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
+func decompressPipelineZip(compressedFile []byte, maxFileLength int) ([]byte, error) {
 	reader, err := zip.NewReader(bytes.NewReader(compressedFile), int64(len(compressedFile)))
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Not a valid zip file")
 	}
 	if len(reader.File) < 1 {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Empty zip file")
+		return nil, util.NewInvalidInputError("Error extracting pipeline from the zip file. Empty zip file")
 	}
 
 	// Old behavior - taking the first file in the archive
@@ -144,16 +157,34 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Failed to read the content")
 	}
-	decompressedFile, err := io.ReadAll(rc)
+	limitedReader := io.LimitReader(rc, util.SaturatingAdd(int64(maxFileLength), 1))
+	decompressedFile, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the zip file")
+	}
+	if len(decompressedFile) > maxFileLength {
+		return nil, common.NewSizeLimitError("pipeline_decompressed_spec", int64(maxFileLength), common.MaxPipelineSpecBytesEnv)
 	}
 	return decompressedFile, err
 }
 
 func ReadPipelineFile(fileName string, fileReader io.Reader, MaxFileLength int) ([]byte, error) {
+	return readPipelineFile(fileName, fileReader, MaxFileLength, MaxFileLength)
+}
+
+// ReadPipelineFileWithConfiguredLimits applies independent input and extracted
+// specification ceilings to file uploads, URL imports, and bootstrap pipelines.
+func ReadPipelineFileWithConfiguredLimits(fileName string, fileReader io.Reader) ([]byte, error) {
+	limits, err := common.GetPipelineSizeLimits()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Invalid pipeline size limit configuration")
+	}
+	return readPipelineFile(fileName, fileReader, limits.UploadBytes, limits.SpecBytes)
+}
+
+func readPipelineFile(fileName string, fileReader io.Reader, inputLimit, specLimit int) ([]byte, error) {
 	// Read file into size limited byte array.
-	pipelineFileBytes, err := loadFile(fileReader, MaxFileLength)
+	pipelineFileBytes, err := loadFile(fileReader, inputLimit)
 	if err != nil {
 		return nil, util.Wrap(err, "Error read pipeline file")
 	}
@@ -165,14 +196,39 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, MaxFileLength int) 
 	case isJSONFile(fileName):
 		processedFile = pipelineFileBytes
 	case isZipFile(pipelineFileBytes):
-		processedFile, err = DecompressPipelineZip(pipelineFileBytes)
+		processedFile, err = decompressPipelineZip(pipelineFileBytes, specLimit)
 	case isCompressedTarballFile(pipelineFileBytes):
-		processedFile, err = DecompressPipelineTarball(pipelineFileBytes)
+		processedFile, err = decompressPipelineTarball(pipelineFileBytes, specLimit)
 	default:
 		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support .zip, .tar.gz, .json or YAML")
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Error decompress the pipeline file")
 	}
+	if len(processedFile) > specLimit {
+		return nil, common.NewSizeLimitError("pipeline_spec", int64(specLimit), common.MaxPipelineSpecBytesEnv)
+	}
 	return processedFile, nil
+}
+
+func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
+	limits, err := common.GetPipelineSizeLimits()
+	if err != nil {
+		return nil, err
+	}
+	return decompressPipelineTarball(compressedFile, limits.SpecBytes)
+}
+
+func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
+	limits, err := common.GetPipelineSizeLimits()
+	if err != nil {
+		return nil, err
+	}
+	return decompressPipelineZip(compressedFile, limits.SpecBytes)
+}
+
+// apiError is the error envelope used by native HTTP upload and streaming routes.
+type apiError struct {
+	ErrorMessage string `json:"error_message,omitempty"`
+	ErrorDetails string `json:"error_details,omitempty"`
 }

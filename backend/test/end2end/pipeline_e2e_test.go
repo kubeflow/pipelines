@@ -199,7 +199,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			pipelineRuntimeInputs := map[string]interface{}{
 				"env_var": "http_proxy",
 			}
-			createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+			createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, k8Client, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
 			if *config.RunProxyTests {
 				logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
 				compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
@@ -226,7 +226,8 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 				logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
 				uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
 				pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
-				createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+				// Negative fixtures may intentionally use images that cannot be pulled.
+				createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, nil, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
 				logger.Log("Fetching updated pipeline run details for run with id=%s", createdRunID)
 				updatedRun := testutil.GetPipelineRun(runClient, &createdRunID)
 				Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
@@ -248,9 +249,27 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			})
 		}
 	})
+
+	// Filter with --label-filter=dra-check. Requires a cluster with a DRA
+	// driver installed (e.g. Kind + dra-example-driver).
+	Context("DRA scheduling check >", Label(E2eDraCheck), func() {
+		var pipelineDir = "valid/dra"
+		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
+		Expect(pipelineFiles).NotTo(BeEmpty(), "no pipeline files found in %s", pipelineDir)
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				runID := validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+				expectedClaims := []string{"dra-test-claim"}
+				if pipelineFile == "dra_static_claim_check.yaml" {
+					expectedClaims = append(expectedClaims, "dra-test-claim-secondary")
+				}
+				e2e_utils.ValidateDRAResourceClaims(k8Client, *config.Namespace, runID, expectedClaims)
+			})
+		}
+	})
 })
 
-func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {
+func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) string {
 	testutil.CheckIfSkipping(pipelineFile)
 	pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 	logger.Log("Uploading pipeline file %s", pipelineFile)
@@ -260,14 +279,14 @@ func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testCon
 	logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
 	uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
 	pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
-	createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+	createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, k8Client, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
 	logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
 	if strings.Contains(pipelineFile, "/") {
 		pipelineFile = strings.Split(pipelineFile, "/")[1]
 	}
 	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
 	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
-
+	return createdRunID
 }
 
 func cleanupE2ETestResources(testContext *apitests.TestContext) {

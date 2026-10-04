@@ -76,9 +76,9 @@ func (p *Pipeline) DefaultSortField() string {
 }
 
 var pipelineAPIToModelFieldMap = map[string]string{
-	"id":           "UUID",        // v1beta1 API
+	"id":           "UUID",        // Legacy filter alias retained in the v2beta1 filter contract
 	"pipeline_id":  "UUID",        // v2beta1 API
-	"name":         "Name",        // v1beta1 API
+	"name":         "Name",        // Legacy filter alias retained in the v2beta1 filter contract
 	"display_name": "DisplayName", // v2beta1 API
 	"created_at":   "CreatedAtInSec",
 	"description":  "Description",
@@ -133,4 +133,14 @@ func (p *Pipeline) GetSortByFieldPrefix(name string) string {
 
 func (p *Pipeline) GetKeyFieldPrefix() string {
 	return "pipelines."
+}
+
+var pipelineCaseInsensitiveFields = map[string]struct{}{
+	"name":         {},
+	"display_name": {},
+	"description":  {},
+}
+
+func (p *Pipeline) CaseInsensitiveFields() map[string]struct{} {
+	return pipelineCaseInsensitiveFields
 }

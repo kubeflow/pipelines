@@ -20,22 +20,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/google/go-cmp/cmp"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const testPluginsExperimentName = "my-exp"
@@ -95,50 +92,12 @@ func createPluginOutputMapWithNKeys(n int) map[string]*apiv2beta1.PluginOutput {
 func TestToModelExperiment(t *testing.T) {
 	tests := []struct {
 		name                    string
-		experiment              interface{}
+		experiment              *apiv2beta1.Experiment
 		wantError               bool
 		errorMessage            string
 		expectedModelExperiment *model.Experiment
 	}{
-		{
-			"No resource references v1",
-			&apiv1beta1.Experiment{
-				Name:        "exp1",
-				Description: "This is an experiment",
-			},
-			false,
-			"",
-			&model.Experiment{
-				Name:         "exp1",
-				Description:  "This is an experiment",
-				Namespace:    "",
-				StorageState: model.StorageStateAvailable,
-			},
-		},
-		{
-			"Valid resource references v1",
-			&apiv1beta1.Experiment{
-				Name:        "exp1",
-				Description: "This is an experiment",
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key: &apiv1beta1.ResourceKey{
-							Type: apiv1beta1.ResourceType_NAMESPACE,
-							Id:   "ns1",
-						},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-				},
-			},
-			false,
-			"",
-			&model.Experiment{
-				Name:         "exp1",
-				Description:  "This is an experiment",
-				Namespace:    "ns1",
-				StorageState: model.StorageStateAvailable,
-			},
-		},
+
 		{
 			"Happy pass v2",
 			&apiv2beta1.Experiment{
@@ -171,17 +130,6 @@ func TestToModelExperiment(t *testing.T) {
 			},
 		},
 		{
-			"Wrong API type",
-			&model.Experiment{
-				Name:        "test",
-				Description: "API V2beta1 test experiment",
-				Namespace:   "ns2",
-			},
-			true,
-			"UnknownApiVersionError: Error using Experiment with *model.Experiment",
-			nil,
-		},
-		{
 			"missing name v2",
 			&apiv2beta1.Experiment{
 				DisplayName: "",
@@ -190,26 +138,6 @@ func TestToModelExperiment(t *testing.T) {
 			},
 			true,
 			"Experiment must have a non-empty name",
-			nil,
-		},
-		{
-			"missing name v1",
-			&apiv1beta1.Experiment{
-				Name:        "",
-				Description: "API V2beta1 test experiment",
-			},
-			true,
-			"Experiment must have a non-empty name",
-			nil,
-		},
-		{
-			"name too long v1",
-			&apiv1beta1.Experiment{
-				Name:        strings.Repeat("a", 129), // Max is 128
-				Description: "This is an experiment with a very long name",
-			},
-			true,
-			"Experiment.Name length cannot exceed 128",
 			nil,
 		},
 	}
@@ -235,142 +163,12 @@ func TestToModelExperiment(t *testing.T) {
 func TestToModelPipeline(t *testing.T) {
 	tests := []struct {
 		name                  string
-		pipeline              interface{}
+		pipeline              *apiv2beta1.Pipeline
 		wantError             bool
 		errorMessage          string
 		expectedModelPipeline *model.Pipeline
 	}{
-		{
-			"No resource references v1",
-			&apiv1beta1.Pipeline{
-				Name:        "p1",
-				Description: "This is a pipeline1",
-			},
-			false,
-			"",
-			&model.Pipeline{
-				Name:        "p1",
-				DisplayName: "p1",
-				Description: "This is a pipeline1",
-				Status:      model.PipelineCreating,
-			},
-		},
-		{
-			"Invalid resource reference v1",
-			&apiv1beta1.Pipeline{
-				Name:        "p2",
-				Description: "This is a pipeline2",
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"},
-						Relationship: apiv1beta1.Relationship_CREATOR,
-					},
-				},
-			},
-			false,
-			"",
-			&model.Pipeline{
-				Name:        "p2",
-				DisplayName: "p2",
-				Description: "This is a pipeline2",
-				Status:      model.PipelineCreating,
-			},
-		},
-		{
-			"Invalid relationship reference v1",
-			&apiv1beta1.Pipeline{
-				Name:        "p3",
-				Description: "This is a pipeline3",
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-						Relationship: apiv1beta1.Relationship_CREATOR,
-					},
-				},
-			},
-			false,
-			"",
-			&model.Pipeline{
-				Name:        "p3",
-				DisplayName: "p3",
-				Description: "This is a pipeline3",
-				Status:      model.PipelineCreating,
-				Namespace:   "ns1",
-			},
-		},
-		{
-			"Valid reference v1",
-			&apiv1beta1.Pipeline{
-				Name:        "p4",
-				Description: "This is a pipeline4",
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-				},
-			},
-			false,
-			"",
-			&model.Pipeline{
-				Name:        "p4",
-				DisplayName: "p4",
-				Description: "This is a pipeline4",
-				Status:      model.PipelineCreating,
-				Namespace:   "ns1",
-			},
-		},
-		{
-			"Empty valid reference v1",
-			&apiv1beta1.Pipeline{
-				Name:        "p5",
-				Description: "This is a pipeline5",
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: ""},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-				},
-			},
-			false,
-			"",
-			&model.Pipeline{
-				Name:        "p5",
-				DisplayName: "p5",
-				Description: "This is a pipeline5",
-				Status:      model.PipelineCreating,
-				Namespace:   "",
-			},
-		},
-		{
-			name: "name too long v1",
-			pipeline: &apiv1beta1.Pipeline{
-				Name:        strings.Repeat("a", 129), // Max 128
-				Description: "desc",
-			},
-			wantError:             true,
-			errorMessage:          "Pipeline.Name length cannot exceed 128",
-			expectedModelPipeline: nil,
-		},
-		{
-			name: "namespace too long v1",
-			pipeline: &apiv1beta1.Pipeline{
-				Name:        "p1",
-				Description: "desc",
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key: &apiv1beta1.ResourceKey{
-							Type: apiv1beta1.ResourceType_NAMESPACE,
-							Id:   strings.Repeat("n", 64), // Max 63
-						},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-				},
-			},
-			wantError:             true,
-			errorMessage:          "Pipeline.Namespace length cannot exceed 63",
-			expectedModelPipeline: nil,
-		},
+
 		{
 			"Empty namespace v2",
 			&apiv2beta1.Pipeline{
@@ -465,500 +263,15 @@ func TestToModelPipeline(t *testing.T) {
 	}
 }
 
-func TestToModelRunDetail(t *testing.T) {
-	listParams := []interface{}{1, 2, 3}
-	v2RuntimeListParams, _ := structpb.NewList(listParams)
-
-	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
-	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
-
-	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
-	v2RuntimeParams := map[string]*structpb.Value{
-		"param2": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
-		"param3": {Kind: &structpb.Value_BoolValue{BoolValue: true}},
-		"param4": {Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
-		"param5": {Kind: &structpb.Value_NumberValue{NumberValue: 12}},
-		"param6": {Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
-	}
-
-	tests := []struct {
-		name                   string
-		apiRun                 *apiv1beta1.Run
-		workflow               *util.Workflow
-		manifest               string
-		templateType           template.TemplateType
-		expectedModelRunDetail *model.Run
-		wantErr                bool
-		errMsg                 string
-	}{
-		{
-			name: "v1",
-			apiRun: &apiv1beta1.Run{
-				Id:          "run1",
-				Name:        "name1",
-				Description: "this is a run",
-				PipelineSpec: &apiv1beta1.PipelineSpec{
-					Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
-				},
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pv1"},
-						Relationship: apiv1beta1.Relationship_CREATOR,
-					},
-				},
-			},
-			workflow: util.NewWorkflow(&v1alpha1.Workflow{
-				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
-				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
-			}),
-			manifest:     "workflow spec",
-			templateType: template.V1,
-			expectedModelRunDetail: &model.Run{
-				UUID:         "run1",
-				ExperimentId: "exp1",
-				Namespace:    "",
-				K8SName:      "",
-				DisplayName:  "name1",
-				Description:  "this is a run",
-				RunDetails: model.RunDetails{
-					State: model.RuntimeStateUnspecified,
-				},
-				PipelineSpec: model.PipelineSpec{
-					Parameters: `[{"name":"param2","value":"world"}]`,
-					RuntimeConfig: model.RuntimeConfig{
-						Parameters: "",
-					},
-					PipelineVersionId: "pv1",
-					PipelineName:      "pipelines/pv1",
-				},
-				StorageState: model.StorageStateAvailable,
-			},
-			wantErr: false,
-			errMsg:  "",
-		},
-		{
-			name: "v2",
-			apiRun: &apiv1beta1.Run{
-				Id:          "run1",
-				Name:        "name1",
-				Description: "this is a run",
-				PipelineSpec: &apiv1beta1.PipelineSpec{
-					RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
-						Parameters: v2RuntimeParams,
-					},
-					PipelineId: "p1",
-				},
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-				},
-			},
-			workflow: util.NewWorkflow(&v1alpha1.Workflow{
-				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
-				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
-			}),
-			manifest:     "pipeline spec",
-			templateType: template.V2,
-			expectedModelRunDetail: &model.Run{
-				UUID:         "run1",
-				ExperimentId: "exp1",
-				Namespace:    "",
-				K8SName:      "",
-				RunDetails: model.RunDetails{
-					State: model.RuntimeStateUnspecified,
-				},
-				DisplayName: "name1",
-				Description: "this is a run",
-				PipelineSpec: model.PipelineSpec{
-					RuntimeConfig: model.RuntimeConfig{
-						// Note: for some versions of structpb.Value.MarshalJSON(), there is a trailing space after array items or struct items
-						Parameters: "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
-					},
-					PipelineId: "p1",
-				},
-				StorageState: model.StorageStateAvailable,
-			},
-			wantErr: false,
-			errMsg:  "",
-		},
-		{
-			name: "v1 namespace too long",
-			apiRun: &apiv1beta1.Run{
-				Id:          "run1",
-				Name:        "name1",
-				Description: "desc",
-				PipelineSpec: &apiv1beta1.PipelineSpec{
-					Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
-				},
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: strings.Repeat("n", 64)},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pv1"},
-						Relationship: apiv1beta1.Relationship_CREATOR,
-					},
-				},
-			},
-			workflow: util.NewWorkflow(&v1alpha1.Workflow{
-				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
-				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
-			}),
-			manifest:               "workflow spec",
-			templateType:           template.V1,
-			expectedModelRunDetail: nil,
-			wantErr:                true,
-			errMsg:                 "Run.Namespace length cannot exceed 63",
-		},
-		{
-			name: "v1 experimentId too long",
-			apiRun: &apiv1beta1.Run{
-				Id:          "run1",
-				Name:        "name1",
-				Description: "desc",
-				PipelineSpec: &apiv1beta1.PipelineSpec{
-					Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
-				},
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: strings.Repeat("e", 65)},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-					{
-						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pv1"},
-						Relationship: apiv1beta1.Relationship_CREATOR,
-					},
-				},
-			},
-			workflow: util.NewWorkflow(&v1alpha1.Workflow{
-				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
-				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
-			}),
-			manifest:               "workflow spec",
-			templateType:           template.V1,
-			expectedModelRunDetail: nil,
-			wantErr:                true,
-			errMsg:                 "Run.ExperimentId length cannot exceed 64",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			modelRunDetail, err := toModelRun(tt.apiRun)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.Nil(t, err)
-				assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
-			}
-		})
-	}
-}
-
-func TestToModelJob(t *testing.T) {
-	tests := []struct {
-		name             string
-		job              interface{}
-		manifest         string
-		templateType     template.TemplateType
-		expectedModelJob *model.Job
-	}{
-		{
-			name: "v1api v1template",
-			job: &apiv1beta1.Job{
-				Name:           "name1",
-				Enabled:        true,
-				MaxConcurrency: 1,
-				NoCatchup:      true,
-				Trigger: &apiv1beta1.Trigger{
-					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: timestamppb.New(time.Unix(1, 0)),
-						Cron:      "1 * * * *",
-					}},
-				},
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"}, Relationship: apiv1beta1.Relationship_OWNER},
-				},
-				PipelineSpec: &apiv1beta1.PipelineSpec{PipelineId: "p1", Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}}},
-			},
-			manifest:     "workflow spec",
-			templateType: template.V1,
-			expectedModelJob: &model.Job{
-				DisplayName:  "name1",
-				K8SName:      "name1",
-				Enabled:      true,
-				Conditions:   "ENABLED",
-				ExperimentId: "exp1",
-				Trigger: model.Trigger{
-					CronSchedule: model.CronSchedule{
-						CronScheduleStartTimeInSec: util.Int64Pointer(1),
-						Cron:                       util.StringPointer("1 * * * *"),
-					},
-				},
-				MaxConcurrency: 1,
-				NoCatchup:      true,
-				PipelineSpec: model.PipelineSpec{
-					PipelineId: "p1",
-					Parameters: `[{"name":"param2","value":"world"}]`,
-				},
-				ResourceReferences: make([]*model.ResourceReference, 0),
-			},
-		},
-		{
-			name: "v1api v2template",
-			job: &apiv1beta1.Job{
-				Name:           "name1",
-				Enabled:        true,
-				MaxConcurrency: 1,
-				NoCatchup:      true,
-				Trigger: &apiv1beta1.Trigger{
-					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: timestamppb.New(time.Unix(1, 0)),
-						Cron:      "1 * * * *",
-					}},
-				},
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"}, Relationship: apiv1beta1.Relationship_OWNER},
-				},
-				PipelineSpec: &apiv1beta1.PipelineSpec{
-					PipelineId: "p1",
-					RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{Parameters: map[string]*structpb.Value{
-						"param2": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
-					}},
-				},
-			},
-			manifest:     "pipeline spec",
-			templateType: template.V2,
-			expectedModelJob: &model.Job{
-				K8SName:      "name1",
-				DisplayName:  "name1",
-				Enabled:      true,
-				Conditions:   "ENABLED",
-				ExperimentId: "exp1",
-				Trigger: model.Trigger{
-					CronSchedule: model.CronSchedule{
-						CronScheduleStartTimeInSec: util.Int64Pointer(1),
-						Cron:                       util.StringPointer("1 * * * *"),
-					},
-				},
-				ResourceReferences: make([]*model.ResourceReference, 0),
-				MaxConcurrency:     1,
-				NoCatchup:          true,
-				PipelineSpec: model.PipelineSpec{
-					PipelineId: "p1",
-					RuntimeConfig: model.RuntimeConfig{
-						Parameters: "{\"param2\":\"world\"}",
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			modelJob, err := toModelJob(tt.job)
-			assert.Nil(t, err)
-			assert.Equal(t, tt.expectedModelJob, modelJob)
-		})
-	}
-}
-
-func TestToModelResourceReferencesV1(t *testing.T) {
-	refs, err := toModelResourceReferencesV1(
-		[]*apiv1beta1.ResourceReference{
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
-		}, "r1", apiv1beta1.ResourceType_JOB,
-	)
-	assert.Nil(t, err)
-	expectedRefs := []*model.ResourceReference{
-		{
-			ResourceUUID: "r1", ResourceType: model.JobResourceType,
-			ReferenceUUID: DefaultFakeUUID, ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-		},
-		{
-			ResourceUUID: "r1", ResourceType: model.JobResourceType,
-			ReferenceUUID: DefaultFakeUUID, ReferenceType: model.NamespaceResourceType, Relationship: model.OwnerRelationship,
-		},
-	}
-	assert.Equal(t, expectedRefs, refs)
-}
-
-func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
-	modelRefs, err := toModelResourceReferencesV1([]*apiv1beta1.ResourceReference{
-		{
-			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "e1"},
-			Relationship: apiv1beta1.Relationship_OWNER,
-		},
-	}, "r1", apiv1beta1.ResourceType_JOB)
-	assert.Nil(t, err)
-	expectedRefs := []*model.ResourceReference{
-		{
-			ResourceUUID:  "r1",
-			ResourceType:  model.JobResourceType,
-			ReferenceUUID: "e1",
-			ReferenceType: model.NamespaceResourceType,
-			Relationship:  model.OwnerRelationship,
-		},
-	}
-	assert.Equal(t, 1, len(modelRefs))
-	assert.Equal(t, expectedRefs, modelRefs)
-}
-
-func TestToModelResourceReferences_UnknownRefType(t *testing.T) {
-	_, err := toModelResourceReferencesV1([]*apiv1beta1.ResourceReference{
-		{
-			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "e1"},
-			Relationship: apiv1beta1.Relationship_OWNER,
-		},
-		{
-			Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j1"},
-			Relationship: apiv1beta1.Relationship_CREATOR,
-		},
-	}, "e1", apiv1beta1.ResourceType_EXPERIMENT)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to convert unsupported v1beta1 API resource type UNKNOWN_RESOURCE_TYPE")
-}
-
-func TestToModelResourceReferences_UnknownRelationship(t *testing.T) {
-	_, err := toModelResourceReferencesV1([]*apiv1beta1.ResourceReference{
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "e1"}, Relationship: apiv1beta1.Relationship_UNKNOWN_RELATIONSHIP},
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "j1"}, Relationship: apiv1beta1.Relationship_OWNER},
-	}, "r1", apiv1beta1.ResourceType_JOB,
-	)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "an error in reference relationship")
-}
-
-func TestToModelResourceReferences_ImpossibleRelationship(t *testing.T) {
-	_, err := toModelResourceReferencesV1([]*apiv1beta1.ResourceReference{
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "e1"}, Relationship: apiv1beta1.Relationship_CREATOR},
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "j1"}, Relationship: apiv1beta1.Relationship_OWNER},
-	}, "r1", apiv1beta1.ResourceType_JOB,
-	)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Invalid resource-reference relationship")
-}
-
-func TestToModelRunMetric(t *testing.T) {
-	apiRunMetric := &apiv1beta1.RunMetric{
-		Name:   "metric-1",
-		NodeId: "node-1",
-		Value: &apiv1beta1.RunMetric_NumberValue{
-			NumberValue: 0.88,
-		},
-		Format: apiv1beta1.RunMetric_RAW,
-	}
-
-	actualModelRunMetric, err := toModelRunMetric(apiRunMetric, "run-1")
-	assert.Nil(t, err)
-	expectedModelRunMetric := &model.RunMetric{
-		RunUUID:     "run-1",
-		Name:        "metric-1",
-		NodeID:      "node-1",
-		NumberValue: 0.88,
-		Format:      "RAW",
-	}
-	assert.Equal(t, expectedModelRunMetric, actualModelRunMetric)
-
-	// Test Name length overflow
-	{
-		longName := strings.Repeat("a", 192)
-		apiRunMetric := &apiv1beta1.RunMetric{
-			Name:   longName,
-			NodeId: "node-1",
-			Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: 0.88},
-			Format: apiv1beta1.RunMetric_RAW,
-		}
-		_, err := toModelRunMetric(apiRunMetric, "run-1")
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "RunMetric.Name length cannot exceed 191")
-	}
-
-	// Test NodeID length overflow
-	{
-		longNodeID := strings.Repeat("a", 192)
-		apiRunMetric := &apiv1beta1.RunMetric{
-			Name:   "metric-1",
-			NodeId: longNodeID,
-			Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: 0.88},
-			Format: apiv1beta1.RunMetric_RAW,
-		}
-		_, err := toModelRunMetric(apiRunMetric, "run-1")
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "RunMetric.NodeID length cannot exceed 191")
-	}
-}
-
 func TestToModelPipelineVersion(t *testing.T) {
 	tests := []struct {
 		name                    string
-		pipeline                interface{}
+		pipeline                *apiv2beta1.PipelineVersion
 		expectedPipelineVersion *model.PipelineVersion
 		isError                 bool
 		errMsg                  string
 	}{
-		{
-			"happy version v1",
-			&apiv1beta1.PipelineVersion{
-				PackageUrl: &apiv1beta1.Url{
-					PipelineUrl: "http://package/11111",
-				},
-				CodeSourceUrl: "http://repo/11111",
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key: &apiv1beta1.ResourceKey{
-							Id:   "pipeline1",
-							Type: apiv1beta1.ResourceType_PIPELINE,
-						},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-				},
-			},
-			&model.PipelineVersion{
-				PipelineId:      "pipeline1",
-				PipelineSpecURI: "http://package/11111",
-				CodeSourceUrl:   "http://repo/11111",
-				Status:          model.PipelineVersionCreating,
-			},
-			false,
-			"",
-		},
-		{
-			"missing pipeline url v1",
-			&apiv1beta1.PipelineVersion{
-				PackageUrl: &apiv1beta1.Url{
-					PipelineUrl: "",
-				},
-				CodeSourceUrl: "http://repo/11111",
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key: &apiv1beta1.ResourceKey{
-							Id:   "pipeline1",
-							Type: apiv1beta1.ResourceType_PIPELINE,
-						},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-				},
-			},
-			nil,
-			true,
-			"Invalid input error: Failed to convert v1beta1 API pipeline version to its internal representation due to missing pipeline URL",
-		},
+
 		{
 			"happy pipeline version v2",
 			&apiv2beta1.PipelineVersion{
@@ -1020,132 +333,6 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 		)
 	}
-}
-
-// Tests toApiPipelineV1
-func TestToApiPipelineV1(t *testing.T) {
-	modelPipeline := &model.Pipeline{
-		UUID:           "pipeline1",
-		CreatedAtInSec: 1,
-	}
-	modelVersion := &model.PipelineVersion{
-		UUID:           "pipelineversion1",
-		CreatedAtInSec: 1,
-		Parameters:     "[]",
-		PipelineId:     "pipeline1",
-		Description:    "desc1",
-		CodeSourceUrl:  "http://repo/22222",
-	}
-	apiPipeline := toApiPipelineV1(modelPipeline, modelVersion)
-	expectedApiPipeline := &apiv1beta1.Pipeline{
-		Id:        "pipeline1",
-		CreatedAt: timestamppb.New(time.Unix(1, 0)),
-		Url:       &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
-		DefaultVersion: &apiv1beta1.PipelineVersion{
-			Id:            "pipelineversion1",
-			CreatedAt:     timestamppb.New(time.Unix(1, 0)),
-			Description:   "desc1",
-			CodeSourceUrl: "http://repo/22222",
-			PackageUrl:    &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key: &apiv1beta1.ResourceKey{
-						Id:   "pipeline1",
-						Type: apiv1beta1.ResourceType_PIPELINE,
-					},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		},
-	}
-	assert.Equal(t, expectedApiPipeline, apiPipeline)
-}
-
-// Tests toApiPipelineV1 (error parsing a field)
-func TestToApiPipelineV1_ErrorParsingField(t *testing.T) {
-	modelPipeline := &model.Pipeline{
-		UUID:           "pipeline1",
-		CreatedAtInSec: 1,
-	}
-	modelVersion := &model.PipelineVersion{
-		Parameters: "super wrong parameters",
-	}
-	apiPipeline := toApiPipelineV1(modelPipeline, modelVersion)
-	assert.Equal(t, "pipeline1", apiPipeline.Id)
-	assert.Contains(t, apiPipeline.Error, "Failed to convert parameters: super wrong parameters")
-}
-
-func TestToApiPipelinesV1(t *testing.T) {
-	modelPipelines := []*model.Pipeline{
-		{
-			UUID:           "pipeline1",
-			CreatedAtInSec: 1,
-		},
-		nil,
-		{
-			UUID:           "pipeline1",
-			CreatedAtInSec: 1,
-		},
-	}
-	modelPipelineVersions := []*model.PipelineVersion{
-		{
-			UUID:           "pipelineversion1",
-			CreatedAtInSec: 1,
-			Parameters:     "[]",
-			PipelineId:     "pipeline1",
-			Description:    "desc1",
-			CodeSourceUrl:  "http://repo/22222",
-		},
-		{
-			UUID:           "pipelineversion1",
-			CreatedAtInSec: 1,
-			Parameters:     "[]",
-			PipelineId:     "pipeline1",
-			Description:    "desc1",
-		},
-		{
-			Parameters: "super wrong parameters",
-		},
-	}
-	apiPipelines := toApiPipelinesV1(modelPipelines, modelPipelineVersions)
-	expectedPipelines := []*apiv1beta1.Pipeline{
-		{
-			Id:        "pipeline1",
-			CreatedAt: timestamppb.New(time.Unix(1, 0)),
-			Url:       &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
-			DefaultVersion: &apiv1beta1.PipelineVersion{
-				Id:            "pipelineversion1",
-				CreatedAt:     timestamppb.New(time.Unix(1, 0)),
-				Description:   "desc1",
-				CodeSourceUrl: "http://repo/22222",
-				PackageUrl:    &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
-				ResourceReferences: []*apiv1beta1.ResourceReference{
-					{
-						Key: &apiv1beta1.ResourceKey{
-							Id:   "pipeline1",
-							Type: apiv1beta1.ResourceType_PIPELINE,
-						},
-						Relationship: apiv1beta1.Relationship_OWNER,
-					},
-				},
-			},
-		},
-		{
-			Id:    "",
-			Error: "InternalServerError: Failed to convert a model pipeline to v1beta1 API pipeline: Invalid input error: Pipeline cannot be nil",
-		},
-		{
-			Id:    "pipeline1",
-			Error: "InternalServerError: Failed to convert a model pipeline to v1beta1 API pipeline: Invalid input error: Failed to convert parameters: super wrong parameters",
-		},
-	}
-	assert.Equal(t, expectedPipelines, apiPipelines)
-
-	modelPipelines2 := make([]*model.Pipeline, 0)
-	modelPipelineVersions2 := make([]*model.PipelineVersion, 0)
-	apiPipelines2 := toApiPipelinesV1(modelPipelines2, modelPipelineVersions2)
-	expectedPipelines2 := make([]*apiv1beta1.Pipeline, 0)
-	assert.Equal(t, expectedPipelines2, apiPipelines2)
 }
 
 func TestToApiPipeline(t *testing.T) {
@@ -1365,873 +552,6 @@ func TestToApiPipelines(t *testing.T) {
 	assert.Equal(t, expectedPipelines2, apiPipelines2)
 }
 
-func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
-	modelRun := &model.Run{
-		UUID:           "run123",
-		K8SName:        "name123",
-		StorageState:   model.StorageStateAvailable,
-		DisplayName:    "displayName123",
-		Namespace:      "ns123",
-		RecurringRunId: "job123",
-		ExperimentId:   "exp123",
-		RunDetails: model.RunDetails{
-			CreatedAtInSec:          1,
-			ScheduledAtInSec:        1,
-			FinishedAtInSec:         1,
-			Conditions:              "running",
-			WorkflowRuntimeManifest: "workflow123",
-		},
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: "manifest",
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
-				PipelineRoot: "model-pipeline-root",
-			},
-		},
-	}
-	apiRun := toApiRunDetailV1(modelRun)
-
-	listParams := []interface{}{1, 2, 3}
-	v2RuntimeListParams, _ := structpb.NewList(listParams)
-
-	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
-	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
-
-	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
-	v2RuntimeParams := map[string]*structpb.Value{
-		"param2": structpb.NewStringValue("world"),
-		"param3": structpb.NewBoolValue(true),
-		"param4": structpb.NewListValue(v2RuntimeListParams),
-		"param5": structpb.NewNumberValue(12),
-		"param6": structpb.NewStructValue(v2RuntimeStructParams),
-	}
-
-	expectedApiRun := &apiv1beta1.RunDetail{
-		Run: &apiv1beta1.Run{
-			Id:           "run123",
-			Name:         "displayName123",
-			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
-			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
-			FinishedAt:   timestamppb.New(time.Unix(1, 0)),
-			Status:       "Running",
-			PipelineSpec: &apiv1beta1.PipelineSpec{
-				WorkflowManifest: "manifest",
-				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
-					Parameters:   v2RuntimeParams,
-					PipelineRoot: "model-pipeline-root",
-				},
-			},
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp123"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
-					Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-			},
-		},
-		PipelineRuntime: &apiv1beta1.PipelineRuntime{
-			WorkflowManifest: "workflow123",
-		},
-	}
-	// Compare the string representation of ApiRuns, since these structs have internal fields
-	// used only by protobuff, and may be different. The .String() method marshal all
-	// exported fields into string format.
-	// See https://github.com/stretchr/testify/issues/758
-	assert.Equal(t, expectedApiRun.String(), apiRun.String())
-}
-
-func TestToApiRunDetailV1_V1Params(t *testing.T) {
-	modelRun := &model.Run{
-		UUID:         "run123",
-		K8SName:      "name123",
-		StorageState: model.StorageStateAvailable,
-		DisplayName:  "displayName123",
-		Namespace:    "ns123",
-		RunDetails: model.RunDetails{
-			CreatedAtInSec:          1,
-			ScheduledAtInSec:        1,
-			FinishedAtInSec:         1,
-			Conditions:              "running",
-			WorkflowRuntimeManifest: "workflow123",
-		},
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: "manifest",
-			Parameters:           `[{"name":"param2","value":"world"}]`,
-		},
-		RecurringRunId: "job123",
-	}
-	apiRun := toApiRunDetailV1(modelRun)
-	expectedApiRun := &apiv1beta1.RunDetail{
-		Run: &apiv1beta1.Run{
-			Id:           "run123",
-			Name:         "displayName123",
-			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
-			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
-			FinishedAt:   timestamppb.New(time.Unix(1, 0)),
-			Status:       "Running",
-			PipelineSpec: &apiv1beta1.PipelineSpec{
-				WorkflowManifest: "manifest",
-				Parameters:       []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
-			},
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns123"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job123"},
-					Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-			},
-		},
-		PipelineRuntime: &apiv1beta1.PipelineRuntime{
-			WorkflowManifest: "workflow123",
-		},
-	}
-	assert.Equal(t, expectedApiRun, apiRun)
-}
-
-func TestToApiRunsV1(t *testing.T) {
-	metric1 := &model.RunMetric{
-		Name:        "metric-1",
-		NodeID:      "node-1",
-		NumberValue: 0.88,
-		Format:      "RAW",
-	}
-	metric2 := &model.RunMetric{
-		Name:        "metric-2",
-		NodeID:      "node-2",
-		NumberValue: 0.99,
-		Format:      "PERCENTAGE",
-	}
-	apiMetric1 := &apiv1beta1.RunMetric{
-		Name:   metric1.Name,
-		NodeId: metric1.NodeID,
-		Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: metric1.NumberValue},
-		Format: apiv1beta1.RunMetric_RAW,
-	}
-	apiMetric2 := &apiv1beta1.RunMetric{
-		Name:   metric2.Name,
-		NodeId: metric2.NodeID,
-		Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: metric2.NumberValue},
-		Format: apiv1beta1.RunMetric_PERCENTAGE,
-	}
-	modelRun1 := model.Run{
-		UUID:         "run1",
-		K8SName:      "name1",
-		StorageState: model.StorageStateAvailable,
-		DisplayName:  "displayName1",
-		Namespace:    "ns1",
-		RunDetails: model.RunDetails{
-			CreatedAtInSec:   1,
-			ScheduledAtInSec: 1,
-			Conditions:       "running",
-		},
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: "manifest",
-		},
-		RecurringRunId: "job1",
-		Metrics:        []*model.RunMetric{metric1, metric2},
-	}
-	modelRun2 := model.Run{
-		UUID:         "run2",
-		K8SName:      "name2",
-		StorageState: model.StorageStateAvailable,
-		DisplayName:  "displayName2",
-		Namespace:    "ns2",
-		RunDetails: model.RunDetails{
-			CreatedAtInSec:   2,
-			ScheduledAtInSec: 2,
-			Conditions:       "done",
-		},
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: "manifest",
-		},
-		RecurringRunId: "job2",
-		Metrics:        []*model.RunMetric{metric2},
-	}
-	apiRuns := toApiRunsV1([]*model.Run{&modelRun1, &modelRun2})
-	expectedApiRun := []*apiv1beta1.Run{
-		{
-			Id:           "run1",
-			Name:         "displayName1",
-			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
-			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
-			FinishedAt:   &timestamppb.Timestamp{Seconds: 0, Nanos: 0},
-			Status:       "Running",
-			PipelineSpec: &apiv1beta1.PipelineSpec{
-				WorkflowManifest: "manifest",
-			},
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
-					Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-			},
-			Metrics: []*apiv1beta1.RunMetric{apiMetric1, apiMetric2},
-		},
-		{
-			Id:           "run2",
-			Name:         "displayName2",
-			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    timestamppb.New(time.Unix(2, 0)),
-			ScheduledAt:  timestamppb.New(time.Unix(2, 0)),
-			FinishedAt:   &timestamppb.Timestamp{Seconds: 0, Nanos: 0},
-			Status:       "Succeeded",
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns2"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job2"},
-					Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-			},
-			PipelineSpec: &apiv1beta1.PipelineSpec{
-				WorkflowManifest: "manifest",
-			},
-			Metrics: []*apiv1beta1.RunMetric{apiMetric2},
-		},
-	}
-	assert.Equal(t, expectedApiRun, apiRuns)
-}
-
-func TestToApiTask(t *testing.T) {
-	modelTask := &model.Task{
-		UUID:              DefaultFakeUUID,
-		Namespace:         "",
-		PipelineName:      "pipeline/my-pipeline",
-		RunID:             NonDefaultFakeUUID,
-		MLMDExecutionID:   "1",
-		CreatedTimestamp:  1,
-		FinishedTimestamp: 2,
-		Fingerprint:       "123",
-	}
-	apiTask := toApiTaskV1(modelTask)
-	expectedApiTask := &apiv1beta1.Task{
-		Id:              DefaultFakeUUID,
-		Namespace:       "",
-		PipelineName:    "pipeline/my-pipeline",
-		RunId:           NonDefaultFakeUUID,
-		MlmdExecutionID: "1",
-		CreatedAt:       timestamppb.New(time.Unix(1, 0)),
-		FinishedAt:      timestamppb.New(time.Unix(2, 0)),
-		Fingerprint:     "123",
-	}
-
-	assert.Equal(t, expectedApiTask, apiTask)
-}
-
-func TestToApiTasks(t *testing.T) {
-	modelTask1 := model.Task{
-		UUID:              "123e4567-e89b-12d3-a456-426655440000",
-		Namespace:         "ns1",
-		PipelineName:      "namespace/ns1/pipeline/my-pipeline-1",
-		RunID:             "123e4567-e89b-12d3-a456-426655440001",
-		MLMDExecutionID:   "1",
-		CreatedTimestamp:  1,
-		FinishedTimestamp: 2,
-		Fingerprint:       "123",
-	}
-	modelTask2 := model.Task{
-		UUID:              "123e4567-e89b-12d3-a456-426655440002",
-		Namespace:         "ns2",
-		PipelineName:      "namespace/ns1/pipeline/my-pipeline-2",
-		RunID:             "123e4567-e89b-12d3-a456-426655440003",
-		MLMDExecutionID:   "2",
-		CreatedTimestamp:  3,
-		FinishedTimestamp: 4,
-		Fingerprint:       "124",
-	}
-
-	apiTasks := toApiTasksV1([]*model.Task{&modelTask1, &modelTask2})
-	expectedApiTasks := []*apiv1beta1.Task{
-		{
-			Id:              "123e4567-e89b-12d3-a456-426655440000",
-			Namespace:       "ns1",
-			PipelineName:    "namespace/ns1/pipeline/my-pipeline-1",
-			RunId:           "123e4567-e89b-12d3-a456-426655440001",
-			MlmdExecutionID: "1",
-			CreatedAt:       timestamppb.New(time.Unix(1, 0)),
-			FinishedAt:      timestamppb.New(time.Unix(2, 0)),
-			Fingerprint:     "123",
-		},
-		{
-			Id:              "123e4567-e89b-12d3-a456-426655440002",
-			Namespace:       "ns2",
-			PipelineName:    "namespace/ns1/pipeline/my-pipeline-2",
-			RunId:           "123e4567-e89b-12d3-a456-426655440003",
-			MlmdExecutionID: "2",
-			CreatedAt:       &timestamppb.Timestamp{Seconds: 3, Nanos: 0},
-			FinishedAt:      &timestamppb.Timestamp{Seconds: 4, Nanos: 0},
-			Fingerprint:     "124",
-		},
-	}
-	assert.Equal(t, expectedApiTasks, apiTasks)
-}
-
-func TestCronScheduledJobtoApiJob(t *testing.T) {
-	modelJob := model.Job{
-		UUID:        "job1",
-		DisplayName: "name 1",
-		K8SName:     "name1",
-		Enabled:     true,
-		Trigger: model.Trigger{
-			CronSchedule: model.CronSchedule{
-				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron:                       util.StringPointer("1 * *"),
-			},
-		},
-		MaxConcurrency: 1,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			Parameters:   `[{"name":"param2","value":"world"}]`,
-		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-		ResourceReferences: []*model.ResourceReference{
-			{
-				ResourceUUID: "job1", ResourceType: model.JobResourceType, ReferenceUUID: "experiment1", ReferenceName: "e1",
-				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-			},
-		},
-	}
-	apiJob := toApiJobV1(modelJob.ToV2())
-	expectedJob := &apiv1beta1.Job{
-		Id:             "job1",
-		Name:           "name 1",
-		Enabled:        true,
-		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
-		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
-		MaxConcurrency: 1,
-		Trigger: &apiv1beta1.Trigger{
-			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: timestamppb.New(time.Unix(1, 0)),
-				Cron:      "1 * *",
-			}},
-		},
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId:   "1",
-			PipelineName: "p1",
-		},
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-				Relationship: apiv1beta1.Relationship_CREATOR,
-			},
-		},
-		Status: "STATUS_UNSPECIFIED",
-	}
-	assert.Equal(t, expectedJob, apiJob)
-}
-
-func TestPeriodicScheduledJobtoApiJob(t *testing.T) {
-	modelJob := model.Job{
-		UUID:        "job1",
-		DisplayName: "name 1",
-		K8SName:     "name1",
-		Enabled:     true,
-		Trigger: model.Trigger{
-			PeriodicSchedule: model.PeriodicSchedule{
-				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
-				IntervalSecond:                 util.Int64Pointer(3),
-			},
-		},
-		MaxConcurrency: 1,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			Parameters:   `[{"name":"param2","value":"world"}]`,
-		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-	}
-	apiJob := toApiJobV1(&modelJob)
-	expectedJob := &apiv1beta1.Job{
-		Id:             "job1",
-		Name:           "name 1",
-		Enabled:        true,
-		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
-		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
-		MaxConcurrency: 1,
-		Trigger: &apiv1beta1.Trigger{
-			Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &apiv1beta1.PeriodicSchedule{
-				StartTime:      timestamppb.New(time.Unix(1, 0)),
-				IntervalSecond: 3,
-			}},
-		},
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId:   "1",
-			PipelineName: "p1",
-		},
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-				Relationship: apiv1beta1.Relationship_CREATOR,
-			},
-		},
-		Status: "STATUS_UNSPECIFIED",
-	}
-	assert.Equal(t, expectedJob, apiJob)
-}
-
-func TestNonScheduledJobtoApiJob(t *testing.T) {
-	modelJob := model.Job{
-		UUID:           "job1",
-		DisplayName:    "name1",
-		Enabled:        true,
-		Trigger:        model.Trigger{},
-		MaxConcurrency: 1,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			Parameters:   `[{"name":"param2","value":"world"}]`,
-		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-	}
-	apiJob := toApiJobV1(&modelJob)
-	expectedJob := &apiv1beta1.Job{
-		Id:             "job1",
-		Name:           "name1",
-		Enabled:        true,
-		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
-		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
-		MaxConcurrency: 1,
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId:   "1",
-			PipelineName: "p1",
-		},
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-				Relationship: apiv1beta1.Relationship_CREATOR,
-			},
-		},
-		Status: "STATUS_UNSPECIFIED",
-	}
-	assert.Equal(t, expectedJob, apiJob)
-}
-
-func TestToApiJob_ErrorParsingField(t *testing.T) {
-	modelJob := &model.Job{
-		UUID:           "job1",
-		DisplayName:    "name1",
-		Enabled:        true,
-		Trigger:        model.Trigger{},
-		MaxConcurrency: 1,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			Parameters:   `invalid parameter format`,
-		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-	}
-	modelJob2 := &model.Job{
-		UUID:           "job2",
-		DisplayName:    "name1",
-		Enabled:        true,
-		Trigger:        model.Trigger{},
-		MaxConcurrency: 1,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters: "wrong cong params",
-			},
-		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-	}
-
-	apiJob := toApiJobV1(modelJob)
-	assert.Equal(t, "job1", apiJob.Id)
-	assert.Contains(t, apiJob.Error, "Pipeline v1 parameters were not parsed correctly")
-
-	apiJob2 := toApiJobV1(modelJob2)
-	assert.Equal(t, "job2", apiJob2.Id)
-	assert.Contains(t, apiJob2.Error, "Runtime config was not parsed correctly")
-}
-
-func TestToApiJob_V2(t *testing.T) {
-	modelJob := &model.Job{
-		UUID:        "job1",
-		DisplayName: "name 1",
-		K8SName:     "name1",
-		Enabled:     true,
-		Trigger: model.Trigger{
-			CronSchedule: model.CronSchedule{
-				CronScheduleStartTimeInSec: util.Int64Pointer(2),
-				Cron:                       util.StringPointer("2 * *"),
-			},
-		},
-		MaxConcurrency: 2,
-		NoCatchup:      true,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   "{\"param1\":\"world\"}",
-				PipelineRoot: "job-1-root",
-			},
-		},
-		CreatedAtInSec: 2,
-		UpdatedAtInSec: 2,
-	}
-	expectedJob := &apiv1beta1.Job{
-		Id:             "job1",
-		Name:           "name 1",
-		Enabled:        true,
-		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
-		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
-		MaxConcurrency: 2,
-		NoCatchup:      true,
-		Status:         "STATUS_UNSPECIFIED",
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{
-				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-				Relationship: apiv1beta1.Relationship_CREATOR,
-			},
-		},
-		Trigger: &apiv1beta1.Trigger{
-			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: timestamppb.New(time.Unix(2, 0)),
-				Cron:      "2 * *",
-			}},
-		},
-		PipelineSpec: &apiv1beta1.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
-				Parameters: map[string]*structpb.Value{
-					"param1": {Kind: &structpb.Value_StringValue{StringValue: "world"}},
-				},
-				PipelineRoot: "job-1-root",
-			},
-		},
-	}
-	apiJob := toApiJobV1(modelJob)
-	// Compare the string representation of ApiRuns, since these structs have internal fields
-	// used only by protobuff, and may be different. The .String() method marshal all
-	// exported fields into string format.
-	// See https://github.com/stretchr/testify/issues/758
-	assert.Equal(t, expectedJob.String(), apiJob.String())
-}
-
-func TestToApiJobs(t *testing.T) {
-	modelJob1 := model.Job{
-		UUID:        "job1",
-		DisplayName: "name 1",
-		K8SName:     "name1",
-		Enabled:     true,
-		Trigger: model.Trigger{
-			CronSchedule: model.CronSchedule{
-				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron:                       util.StringPointer("1 * *"),
-			},
-		},
-		MaxConcurrency: 1,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "1",
-			PipelineName: "p1",
-			Parameters:   `[{"name":"param1","value":"world"}]`,
-		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-	}
-	modeljob2 := model.Job{
-		UUID:        "job2",
-		DisplayName: "name 2",
-		K8SName:     "name2",
-		Enabled:     true,
-		Trigger: model.Trigger{
-			CronSchedule: model.CronSchedule{
-				CronScheduleStartTimeInSec: util.Int64Pointer(2),
-				Cron:                       util.StringPointer("2 * *"),
-			},
-		},
-		MaxConcurrency: 2,
-		NoCatchup:      true,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:   "2",
-			PipelineName: "p2",
-			Parameters:   `[{"name":"param1","value":"world"}]`,
-		},
-		CreatedAtInSec: 2,
-		UpdatedAtInSec: 2,
-	}
-	apiJobs := toApiJobsV1([]*model.Job{&modelJob1, &modeljob2})
-	expectedJobs := []*apiv1beta1.Job{
-		{
-			Id:             "job1",
-			Name:           "name 1",
-			Enabled:        true,
-			CreatedAt:      timestamppb.New(time.Unix(1, 0)),
-			UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
-			MaxConcurrency: 1,
-			Status:         "STATUS_UNSPECIFIED",
-			Trigger: &apiv1beta1.Trigger{
-				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-					StartTime: timestamppb.New(time.Unix(1, 0)),
-					Cron:      "1 * *",
-				}},
-			},
-			PipelineSpec: &apiv1beta1.PipelineSpec{
-				Parameters:   []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-				PipelineId:   "1",
-				PipelineName: "p1",
-			},
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "1"},
-					Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-			},
-		},
-		{
-			Id:             "job2",
-			Name:           "name 2",
-			Enabled:        true,
-			CreatedAt:      timestamppb.New(time.Unix(2, 0)),
-			UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
-			MaxConcurrency: 2,
-			NoCatchup:      true,
-			Status:         "STATUS_UNSPECIFIED",
-			Trigger: &apiv1beta1.Trigger{
-				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-					StartTime: timestamppb.New(time.Unix(2, 0)),
-					Cron:      "2 * *",
-				}},
-			},
-			PipelineSpec: &apiv1beta1.PipelineSpec{
-				Parameters:   []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
-				PipelineId:   "2",
-				PipelineName: "p2",
-			},
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE, Id: "2"},
-					Relationship: apiv1beta1.Relationship_CREATOR,
-				},
-			},
-		},
-	}
-	assert.Equal(t, expectedJobs, apiJobs)
-}
-
-func TestToApiRunMetric(t *testing.T) {
-	modelRunMetric := &model.RunMetric{
-		Name:        "metric-1",
-		NodeID:      "node-1",
-		NumberValue: 0.88,
-		Format:      "RAW",
-	}
-
-	actualAPIRunMetric := toApiRunMetricV1(modelRunMetric)
-
-	expectedAPIRunMetric := &apiv1beta1.RunMetric{
-		Name:   "metric-1",
-		NodeId: "node-1",
-		Value: &apiv1beta1.RunMetric_NumberValue{
-			NumberValue: 0.88,
-		},
-		Format: apiv1beta1.RunMetric_RAW,
-	}
-	assert.Equal(t, expectedAPIRunMetric, actualAPIRunMetric)
-}
-
-func TestToApiRunMetric_UnknownFormat(t *testing.T) {
-	// This can happen if we accidentally remove an existing format value from proto.
-	modelRunMetric := &model.RunMetric{
-		Name:        "metric-1",
-		NodeID:      "node-1",
-		NumberValue: 0.88,
-		Format:      "NotExistValue",
-	}
-
-	actualAPIRunMetric := toApiRunMetricV1(modelRunMetric)
-
-	expectedAPIRunMetric := &apiv1beta1.RunMetric{
-		Name:   "metric-1",
-		NodeId: "node-1",
-		Value: &apiv1beta1.RunMetric_NumberValue{
-			NumberValue: 0.88,
-		},
-		// Expect return UNSPECIFIED for unknown format
-		Format: apiv1beta1.RunMetric_UNSPECIFIED,
-	}
-	assert.Equal(t, expectedAPIRunMetric, actualAPIRunMetric)
-}
-
-func TestToApiResourceReferences(t *testing.T) {
-	resourceReferences := []*model.ResourceReference{
-		{
-			ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "experiment1",
-			ReferenceName: "e1", ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
-		},
-		{
-			ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "job1",
-			ReferenceName: "j1", ReferenceType: model.JobResourceType, Relationship: model.OwnerRelationship,
-		},
-		{
-			ResourceUUID: "run1", ResourceType: model.RunResourceType, ReferenceUUID: "pipelineversion1",
-			ReferenceName: "k1", ReferenceType: model.PipelineVersionResourceType, Relationship: model.OwnerRelationship,
-		},
-	}
-	expectedApiResourceReferences := []*apiv1beta1.ResourceReference{
-		{
-			Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
-			Name: "e1", Relationship: apiv1beta1.Relationship_OWNER,
-		},
-		{
-			Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "job1"},
-			Name: "j1", Relationship: apiv1beta1.Relationship_OWNER,
-		},
-		{
-			Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pipelineversion1"},
-			Name: "k1", Relationship: apiv1beta1.Relationship_OWNER,
-		},
-	}
-	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferencesV1(resourceReferences))
-}
-
-func TestToApiExperimentsV1(t *testing.T) {
-	exp1 := &model.Experiment{
-		UUID:           "exp1",
-		CreatedAtInSec: 1,
-		Name:           "experiment1",
-		Description:    "experiment1 was created using V2 APIV1BETA1",
-		StorageState:   "AVAILABLE",
-		Namespace:      "default",
-	}
-	exp2 := &model.Experiment{
-		UUID:           "exp2",
-		CreatedAtInSec: 2,
-		Name:           "experiment2",
-		Description:    "experiment2 was created using V2 APIV1BETA1",
-		Namespace:      "default",
-		StorageState:   "ARCHIVED",
-	}
-	exp3 := &model.Experiment{
-		UUID:           "exp3",
-		CreatedAtInSec: 3,
-		Name:           "experiment3",
-		Description:    "experiment3 was created using V1 APIV1BETA1",
-		Namespace:      "default",
-		StorageState:   "STORAGESTATE_AVAILABLE",
-	}
-	exp4 := &model.Experiment{
-		UUID:           "exp4",
-		CreatedAtInSec: 4,
-		Name:           "experiment4",
-		Description:    "experiment4 was created using V1 APIV1BETA1",
-		Namespace:      "default",
-		StorageState:   "STORAGESTATE_ARCHIVED",
-	}
-	exp5 := &model.Experiment{
-		UUID:           "exp5",
-		CreatedAtInSec: 1,
-		Name:           "experiment5",
-		Description:    "experiment5 was created using V2 APIV1BETA1",
-		StorageState:   "this is invalid value",
-		Namespace:      "default",
-	}
-	apiExps := toApiExperimentsV1([]*model.Experiment{exp1, exp2, exp3, exp4, nil, exp5})
-	expectedApiExps := []*apiv1beta1.Experiment{
-		{
-			Id:           "exp1",
-			Name:         "experiment1",
-			Description:  "experiment1 was created using V2 APIV1BETA1",
-			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
-			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		},
-		{
-			Id:           "exp2",
-			Name:         "experiment2",
-			Description:  "experiment2 was created using V2 APIV1BETA1",
-			CreatedAt:    timestamppb.New(time.Unix(2, 0)),
-			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		},
-		{
-			Id:           "exp3",
-			Name:         "experiment3",
-			Description:  "experiment3 was created using V1 APIV1BETA1",
-			CreatedAt:    &timestamppb.Timestamp{Seconds: 3, Nanos: 0},
-			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		},
-		{
-			Id:           "exp4",
-			Name:         "experiment4",
-			Description:  "experiment4 was created using V1 APIV1BETA1",
-			CreatedAt:    &timestamppb.Timestamp{Seconds: 4, Nanos: 0},
-			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		},
-		{},
-		{
-			Id:           "exp5",
-			Name:         "experiment5",
-			Description:  "experiment5 was created using V2 APIV1BETA1",
-			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
-			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"]),
-			ResourceReferences: []*apiv1beta1.ResourceReference{
-				{
-					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "default"},
-					Relationship: apiv1beta1.Relationship_OWNER,
-				},
-			},
-		},
-	}
-	assert.Equal(t, expectedApiExps, apiExps)
-}
-
 func TestToApiExperiments(t *testing.T) {
 	exp1 := &model.Experiment{
 		UUID:                  "exp1",
@@ -2320,75 +640,70 @@ func TestToApiExperiments(t *testing.T) {
 	assert.Equal(t, expectedApiExps, apiExps)
 }
 
-func TestToApiParameters(t *testing.T) {
-	expectedApiParameters := []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}}
-	modelParameters := `[{"name":"param2","value":"world"}]`
-	actualApiParameters := toApiParametersV1(modelParameters)
-	assert.Equal(t, expectedApiParameters, actualApiParameters)
-
-	expectedApiParameters = []*apiv1beta1.Parameter{
-		{
-			Name:  "pipeline-root",
-			Value: "gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}",
-		},
-		{
-			Name:  "version",
-			Value: "2",
-		},
-	}
-	modelParameters = `[{"name":"pipeline-root","value":"gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"},{"name":"version","value":"2"}]`
-	actualApiParameters = toApiParametersV1(modelParameters)
-	assert.Equal(t, expectedApiParameters, actualApiParameters)
-
-}
-
 func TestToMapProtoStructParameters(t *testing.T) {
 	expectedApiParameters := map[string]*structpb.Value{
 		"param2": structpb.NewStringValue("world"),
 	}
-	modelParameters := `[{"name":"param2","value":"world"}]`
+	modelParameters := `{"param2":"world"}`
 	actualApiParameters := toMapProtoStructParameters(modelParameters)
-	assert.Equal(t, expectedApiParameters, actualApiParameters)
+	assert.True(t, proto.Equal(&structpb.Struct{Fields: expectedApiParameters}, &structpb.Struct{Fields: actualApiParameters}))
 
 	expectedApiParameters = map[string]*structpb.Value{
 		"pipeline-root": structpb.NewStringValue("gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"),
 		"version":       structpb.NewStringValue("2"),
 	}
-	modelParameters = `[{"name":"pipeline-root","value":"gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}"},{"name":"version","value":"2"}]`
+	modelParameters = `{"pipeline-root":"gs://my-bucket/tfx_taxi_simple/{{workflow.uid}}","version":"2"}`
 	actualApiParameters = toMapProtoStructParameters(modelParameters)
-	assert.Equal(t, expectedApiParameters, actualApiParameters)
+	assert.True(t, proto.Equal(&structpb.Struct{Fields: expectedApiParameters}, &structpb.Struct{Fields: actualApiParameters}))
 
 }
 
-func TestToApiRuntimeConfigV1(t *testing.T) {
-	listParams := []interface{}{1, 2, 3}
-	v2RuntimeListParams, _ := structpb.NewList(listParams)
+func TestToMapProtoStructParameters_HistoricalArrays(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		parameters string
+		want       map[string]interface{}
+	}{
+		{"legacy strings", `[{"name":"text","value":"hello"},{"name":"number","value":"2"},{"name":"flag","value":"true"},{"name":"empty","value":""}]`, map[string]interface{}{"text": "hello", "number": "2", "flag": "true", "empty": ""}},
+		{"native types", `{"number":2,"flag":true,"nested":{"key":"value"}}`, map[string]interface{}{"number": float64(2), "flag": true, "nested": map[string]interface{}{"key": "value"}}},
+		{"malformed JSON", `[{`, nil},
+		{"invalid legacy value", `[{"name":"number","value":2}]`, nil},
+		{"scalar", `42`, nil},
+		{"empty array", `[]`, map[string]interface{}{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := toMapProtoStructParameters(tc.parameters)
+			if tc.want == nil {
+				assert.Nil(t, got)
+				return
+			}
+			assert.Equal(t, tc.want, (&structpb.Struct{Fields: got}).AsMap())
+		})
+	}
+}
 
-	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
-	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
-
-	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
-	runtimeParameters := map[string]*structpb.Value{
-		"param2": structpb.NewStringValue("world"),
-		"param3": structpb.NewBoolValue(true),
-		"param4": structpb.NewListValue(v2RuntimeListParams),
-		"param5": structpb.NewNumberValue(12),
-		"param6": structpb.NewStructValue(v2RuntimeStructParams),
+func TestHistoricalParametersRemainVisible(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		runtimeParameters model.LargeText
+		want              string
+	}{
+		{"legacy fallback", "", "historical"},
+		{"native takes precedence", `{"text":"native"}`, "native"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := model.PipelineSpec{
+				Parameters:    `[{"name":"text","value":"historical"}]`,
+				RuntimeConfig: model.RuntimeConfig{Parameters: tc.runtimeParameters},
+			}
+			run := toApiRun(&model.Run{PipelineSpec: spec})
+			require.NotNil(t, run.GetRuntimeConfig())
+			assert.Equal(t, tc.want, run.GetRuntimeConfig().GetParameters()["text"].GetStringValue())
+			job := toApiRecurringRun(&model.Job{PipelineSpec: spec})
+			require.NotNil(t, job.GetRuntimeConfig())
+			assert.Equal(t, tc.want, job.GetRuntimeConfig().GetParameters()["text"].GetStringValue())
+		})
 	}
-	expectedRuntimeConfig := &apiv1beta1.PipelineSpec_RuntimeConfig{
-		Parameters:   runtimeParameters,
-		PipelineRoot: "model-pipeline-root",
-	}
-	modelRuntimeConfig := model.RuntimeConfig{
-		Parameters:   "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
-		PipelineRoot: "model-pipeline-root",
-	}
-	actualRuntimeConfig := toApiRuntimeConfigV1(modelRuntimeConfig)
-	// Compare the string representation of ApiRuntimeConfig, since these structs have fields
-	// used only by protobuff, and may be different. The .String() method marshal all
-	// exported fields into string format.
-	// See https://github.com/stretchr/testify/issues/758
-	assert.Equal(t, expectedRuntimeConfig.String(), actualRuntimeConfig.String())
 }
 
 func TestToApiRecurringRun(t *testing.T) {
@@ -2512,276 +827,49 @@ func TestToApiRecurringRun(t *testing.T) {
 }
 
 func Test_toModelRuntimeState(t *testing.T) {
-	tests := []struct {
-		name     string
-		apiState interface{}
-		wantV1   model.RuntimeState
-		wantV2   model.RuntimeState
-		wantErr  bool
-		errMsg   string
-	}{
-		{
-			"V1 pending",
-			"Pending",
-			model.RuntimeStatePendingV1,
-			model.RuntimeStatePending,
-			false,
-			"",
-		},
-		{
-			"V1 Running",
-			"Running",
-			model.RuntimeStateRunningV1,
-			model.RuntimeStateRunning,
-			false,
-			"",
-		},
-		{
-			"V1 Succeeded",
-			"Succeeded",
-			model.RuntimeStateSucceededV1,
-			model.RuntimeStateSucceeded,
-			false,
-			"",
-		},
-		{
-			"V1 Skipped",
-			"Skipped",
-			model.RuntimeStateSkippedV1,
-			model.RuntimeStateSkipped,
-			false,
-			"",
-		},
-		{
-			"V1 Failed",
-			"Failed",
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateFailed,
-			false,
-			"",
-		},
-		{
-			"V1 Error",
-			"Error",
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateFailed,
-			false,
-			"",
-		},
-		{
-			"V1 Empty",
-			"",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V1 Unknown",
-			"Unknown",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V1 NO_STATUS",
-			"NO_STATUS",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V1 Terminating",
-			"Terminating",
-			model.RuntimeStateTerminatingV1,
-			model.RuntimeStateCancelling,
-			false,
-			"",
-		},
-		{
-			"V1 Ready",
-			"Ready",
-			model.RuntimeStateRunningV1,
-			model.RuntimeStateRunning,
-			false,
-			"",
-		},
-		{
-			"V1 Done",
-			"Done",
-			model.RuntimeStateSucceededV1,
-			model.RuntimeStateSucceeded,
-			false,
-			"",
-		},
-		{
-			"V1 wrong value",
-			"wrong value",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-
-		{
-			"V2 RUNTIME_STATE_UNSPECIFIED",
-			"RUNTIME_STATE_UNSPECIFIED",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V2 RUNNING",
-			"RUNNING",
-			model.RuntimeStateRunningV1,
-			model.RuntimeStateRunning,
-			false,
-			"",
-		},
-		{
-			"V2 SUCCEEDED",
-			"SUCCEEDED",
-			model.RuntimeStateSucceededV1,
-			model.RuntimeStateSucceeded,
-			false,
-			"",
-		},
-		{
-			"V2 SKIPPED",
-			"SKIPPED",
-			model.RuntimeStateSkippedV1,
-			model.RuntimeStateSkipped,
-			false,
-			"",
-		},
-		{
-			"V2 CANCELED",
-			"CANCELED",
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateCanceled,
-			false,
-			"",
-		},
-		{
-			"V2 PAUSED",
-			"PAUSED",
-			model.RuntimeStatePendingV1,
-			model.RuntimeStatePaused,
-			false,
-			"",
-		},
-		{
-			"V2 Empty",
-			"",
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"V2 PENDING",
-			"PENDING",
-			model.RuntimeStatePendingV1,
-			model.RuntimeStatePending,
-			false,
-			"",
-		},
-		{
-			"V2 RuntimeState_CANCELED",
-			apiv2beta1.RuntimeState_CANCELED,
-			model.RuntimeStateFailedV1,
-			model.RuntimeStateCanceled,
-			false,
-			"",
-		},
-		{
-			"nil",
-			nil,
-			model.RuntimeStateUnknownV1,
-			model.RuntimeStateUnspecified,
-			false,
-			"",
-		},
-		{
-			"Invalid run type",
-			&apiv1beta1.Run{},
-			"",
-			"",
-			true,
-			"Error using RuntimeState with *go_client.Run",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := toModelRuntimeState(tt.apiState)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				assert.Equal(t, "", string(got))
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.Nil(t, err)
-				assert.True(t, got.ToV2().IsValid())
-				assert.Equal(t, tt.wantV1, got.ToV1())
-				assert.Equal(t, tt.wantV2, got.ToV2())
-				assert.Equal(t, string(tt.wantV2), got.ToString())
-			}
+	for value, name := range apiv2beta1.RuntimeState_name {
+		t.Run(name, func(t *testing.T) {
+			got := toModelRuntimeState(apiv2beta1.RuntimeState(value))
+			assert.True(t, got.IsValid())
+			assert.Equal(t, model.RuntimeState(name), got)
 		})
 	}
+	assert.Equal(t, model.RuntimeStateUnspecified, toModelRuntimeState(apiv2beta1.RuntimeState(999)))
 }
 
-func Test_toApiRuntimeStateV1(t *testing.T) {
-
-	tests := []struct {
-		name       string
-		modelState model.RuntimeState
-		want       string
+func TestToModelStorageState(t *testing.T) {
+	for _, tc := range []struct {
+		state apiv2beta1.Run_StorageState
+		want  model.StorageState
 	}{
-		{
-			"v1 Error",
-			model.RuntimeStateErrorV1,
-			"Failed",
-		},
-		{
-			"v1 NO_STATUS",
-			model.RuntimeState(model.LegacyStateNoStatus),
-			"Unknown",
-		},
-		{
-			"v1 succeeded",
-			model.RuntimeStateSucceededV1,
-			"Succeeded",
-		},
-		{
-			"v2 succeeded",
-			model.RuntimeStateSucceeded,
-			"Succeeded",
-		},
-		{
-			"v2 canceling",
-			model.RuntimeStateCancelling,
-			"Terminating",
-		},
-		{
-			"v2 paused",
-			model.RuntimeStatePaused,
-			"Pending",
-		},
-		{
-			"v2 Unspecified",
-			model.RuntimeStateUnspecified,
-			"Unknown",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := toApiRuntimeStateV1(&tt.modelState); got != tt.want {
-				t.Errorf("toApiRuntimeStateV1() = %v, want %v", tt.want, got)
-			}
+		{apiv2beta1.Run_STORAGE_STATE_UNSPECIFIED, model.StorageStateUnspecified},
+		{apiv2beta1.Run_AVAILABLE, model.StorageStateAvailable},
+		{apiv2beta1.Run_ARCHIVED, model.StorageStateArchived},
+	} {
+		t.Run(tc.state.String(), func(t *testing.T) {
+			got, err := toModelStorageState(tc.state)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
 		})
 	}
+	_, err := toModelStorageState(apiv2beta1.Run_StorageState(999))
+	require.ErrorContains(t, err, "Storage state cannot be equal to")
+}
+
+func TestToModelJobEnabled(t *testing.T) {
+	for _, mode := range []apiv2beta1.RecurringRun_Mode{
+		apiv2beta1.RecurringRun_MODE_UNSPECIFIED,
+		apiv2beta1.RecurringRun_ENABLE,
+		apiv2beta1.RecurringRun_DISABLE,
+	} {
+		t.Run(mode.String(), func(t *testing.T) {
+			enabled, err := toModelJobEnabled(mode)
+			require.NoError(t, err)
+			assert.Equal(t, mode == apiv2beta1.RecurringRun_ENABLE, enabled)
+		})
+	}
+	_, err := toModelJobEnabled(apiv2beta1.RecurringRun_Mode(999))
+	require.ErrorContains(t, err, "Recurring run's mode is invalid")
 }
 
 func Test_toApiRuntimeState(t *testing.T) {
@@ -3164,748 +1252,6 @@ func Test_toApiRuntimeStatuses(t *testing.T) {
 	assert.Equal(t, expected, got)
 }
 
-func Test_toModelTask(t *testing.T) {
-	tests := []struct {
-		name    string
-		apiTask interface{}
-		want    *model.Task
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			"V1 full spec",
-			&apiv1beta1.Task{
-				Id:              "1",
-				Namespace:       "ns1",
-				PipelineName:    "namespaces/ns1/pipelines/p1",
-				RunId:           "2",
-				MlmdExecutionID: "3",
-				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-				FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
-				Fingerprint:     "6",
-			},
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "3",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  4,
-				FinishedTimestamp: 5,
-				Fingerprint:       "6",
-				Name:              "",
-				ParentTaskId:      "",
-				State:             model.RuntimeStateUnspecified,
-				StateHistory:      nil,
-				MLMDInputs:        "",
-				MLMDOutputs:       "",
-				ChildrenPods:      nil,
-			},
-			false,
-			"",
-		},
-		{
-			"V2 full spec",
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:       "2",
-				TaskId:      "1",
-				DisplayName: "task",
-				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-				StartTime:   &timestamppb.Timestamp{Seconds: 5},
-				EndTime:     &timestamppb.Timestamp{Seconds: 6},
-				State:       apiv2beta1.RuntimeState_CANCELING,
-				ExecutionId: 7,
-				Inputs: map[string]*apiv2beta1.ArtifactList{
-					"a1": {
-						ArtifactIds: []int64{1, 2, 3},
-					},
-				},
-				Outputs: map[string]*apiv2beta1.ArtifactList{
-					"b2": {
-						ArtifactIds: []int64{4, 5, 6},
-					},
-				},
-				ParentTaskId: "8",
-				StateHistory: []*apiv2beta1.RuntimeStatus{
-					{
-						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-						State:      apiv2beta1.RuntimeState_PAUSED,
-					},
-				},
-				ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-					{
-						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-					},
-					{
-						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-					},
-				},
-			},
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "",
-				PipelineName:      "",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			false,
-			"",
-		},
-		{
-			"argo node status",
-			util.NodeStatus{
-				ID:          "1",
-				DisplayName: "node_1",
-				State:       "Pending",
-				Children:    []string{"node3", "node4"},
-				StartTime:   4,
-				CreateTime:  4,
-				FinishTime:  5,
-			},
-			&model.Task{
-				PodName:           "1",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  4,
-				FinishedTimestamp: 5,
-				Name:              "node_1",
-				State:             model.RuntimeStatePending,
-				ChildrenPods:      []string{"node3", "node4"},
-			},
-			false,
-			"",
-		},
-		{
-			"invalid type",
-			apiv2beta1.Run{},
-			nil,
-			true,
-			"UnknownApiVersionError: Error using Task with go_client.Run",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := toModelTask(tt.apiTask)
-			if tt.wantErr {
-				assert.NotNil(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-				assert.Nil(t, got)
-			} else {
-				assert.Nil(t, err)
-				assert.Equal(t, tt.want, got)
-			}
-		})
-	}
-}
-
-func Test_toModelTasks_v2(t *testing.T) {
-	argV2 := []*apiv2beta1.PipelineTaskDetail{
-		{
-			RunId:       "2",
-			TaskId:      "1",
-			DisplayName: "task",
-			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-			StartTime:   &timestamppb.Timestamp{Seconds: 5},
-			EndTime:     &timestamppb.Timestamp{Seconds: 6},
-			State:       apiv2beta1.RuntimeState_FAILED,
-			ExecutionId: 7,
-			Inputs: map[string]*apiv2beta1.ArtifactList{
-				"a1": {
-					ArtifactIds: []int64{1, 2, 3},
-				},
-			},
-			Outputs: map[string]*apiv2beta1.ArtifactList{
-				"b2": {
-					ArtifactIds: []int64{4, 5, 6},
-				},
-			},
-			ParentTaskId: "8",
-			StateHistory: []*apiv2beta1.RuntimeStatus{
-				{
-					UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-					State:      apiv2beta1.RuntimeState_FAILED,
-					Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-				},
-			},
-			ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-				{
-					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-				},
-				{
-					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-				},
-			},
-		},
-	}
-	expectedV2 := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "",
-			PipelineName:      "",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateFailed,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStateFailed,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-	}
-	gotV2, err := toModelTasks(argV2)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedV2, gotV2)
-}
-
-func Test_toModelTasks_wf(t *testing.T) {
-	expectedWf := []*model.Task{
-		{
-			PodName:           "run1-file-passing-pipelines-node0",
-			Namespace:         "kubeflow",
-			RunID:             "run1_uid_true",
-			CreatedTimestamp:  -62135596800,
-			StartedTimestamp:  1675734919,
-			FinishedTimestamp: 1675735118,
-			Name:              "boudary_exec_id",
-			State:             model.RuntimeStateSucceeded,
-			ChildrenPods:      []string{"boudary_exec_id-node1"},
-		},
-		{
-			PodName:           "run1-print-text-node1",
-			Namespace:         "kubeflow",
-			RunID:             "run1_uid_true",
-			CreatedTimestamp:  -62135596800,
-			StartedTimestamp:  1675735015,
-			FinishedTimestamp: 1675735041,
-			Name:              "print-text",
-			State:             model.RuntimeStateSucceeded,
-		},
-	}
-	argWf, err := util.NewWorkflowFromBytes([]byte(`{  "kind": "Workflow",  "apiVersion": "argoproj.io/v1alpha1",  "metadata": {    "name": "run1",    "namespace": "kubeflow",    "uid": "run1_uid",	"labels": {	  "pipeline/runid": "run1_uid_true"	 }  },  "status": {    "phase": "Succeeded",    "startedAt": "2023-02-07T01:55:19Z",    "finishedAt": "2023-02-07T01:58:38Z",    "progress": "9/9",    "nodes": {      "boudary_exec_id-node0": {        "id": "boudary_exec_id-node0",        "name": "boudary_exec_id",        "displayName": "boudary_exec_id",        "type": "DAG",        "templateName": "file-passing-pipelines",        "templateScope": "local/boudary_exec_id",        "phase": "Succeeded",        "startedAt": "2023-02-07T01:55:19Z",        "finishedAt": "2023-02-07T01:58:38Z",        "progress": "9/9",        "resourcesDuration": {"cpu": 53,"memory": 19},        "children": ["boudary_exec_id-node1"],        "outboundNodes": ["boudary_exec_id-node1"]      },      "boudary_exec_id-node1": {        "id": "boudary_exec_id-node1",        "name": "boudary_exec_id.print-text",        "displayName": "print-text",        "type": "Pod",        "templateName": "print-text",        "templateScope": "local/boudary_exec_id",        "phase": "Succeeded",        "boundaryID": "boudary_exec_id",        "startedAt": "2023-02-07T01:56:55Z",        "finishedAt": "2023-02-07T01:57:21Z",        "progress": "1/1",        "resourcesDuration": {"cpu": 15,"memory": 7},        "inputs": {"artifacts": [{"name": "repeat-line-output_text",              "path": "/tmp/inputs/text/data",              "s3": {"key": "art1.tgz"}}]},        "outputs": {"artifacts": [{"name": "main-logs",              "s3": {"key": "art1.log"}}],          "exitCode": "0"},        "hostNodeName": "gke-kfp-node1"      }    }  }}`))
-	assert.Nil(t, err)
-
-	gotWf, err := toModelTasks(argWf)
-	assert.Nil(t, err)
-	if !cmp.Equal(expectedWf, gotWf) {
-		t.Errorf("toModelTasks() diff: %v", cmp.Diff(gotWf, expectedWf))
-	}
-}
-
-func Test_toApiTaskV1(t *testing.T) {
-	tests := []struct {
-		name string
-		args *model.Task
-		want *apiv1beta1.Task
-	}{
-		{
-			"v1 spec",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "3",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  4,
-				FinishedTimestamp: 5,
-				Fingerprint:       "6",
-				Name:              "",
-				ParentTaskId:      "",
-				State:             model.RuntimeStateUnspecified,
-				StateHistory:      nil,
-				MLMDInputs:        "",
-				MLMDOutputs:       "",
-				ChildrenPods:      nil,
-			},
-			&apiv1beta1.Task{
-				Id:              "1",
-				Namespace:       "ns1",
-				PipelineName:    "namespaces/ns1/pipelines/p1",
-				RunId:           "2",
-				MlmdExecutionID: "3",
-				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-				FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
-				Fingerprint:     "6",
-			},
-		},
-		{
-			"v2 spec",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "fp",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			&apiv1beta1.Task{
-				Id:              "1",
-				Namespace:       "ns1",
-				PipelineName:    "namespaces/ns1/pipelines/p1",
-				RunId:           "2",
-				MlmdExecutionID: "7",
-				CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-				FinishedAt:      &timestamppb.Timestamp{Seconds: 6},
-				Fingerprint:     "fp",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := toApiTaskV1(tt.args)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func Test_toApiTasksV1(t *testing.T) {
-	arg := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "3",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  4,
-			FinishedTimestamp: 5,
-			Fingerprint:       "6",
-			Name:              "",
-			ParentTaskId:      "",
-			State:             model.RuntimeStateUnspecified,
-			StateHistory:      nil,
-			MLMDInputs:        "",
-			MLMDOutputs:       "",
-			ChildrenPods:      nil,
-		},
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "fp",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-	}
-	expected := []*apiv1beta1.Task{
-		{
-			Id:              "1",
-			Namespace:       "ns1",
-			PipelineName:    "namespaces/ns1/pipelines/p1",
-			RunId:           "2",
-			MlmdExecutionID: "3",
-			CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-			FinishedAt:      &timestamppb.Timestamp{Seconds: 5},
-			Fingerprint:     "6",
-		},
-		{
-			Id:              "1",
-			Namespace:       "ns1",
-			PipelineName:    "namespaces/ns1/pipelines/p1",
-			RunId:           "2",
-			MlmdExecutionID: "7",
-			CreatedAt:       &timestamppb.Timestamp{Seconds: 4},
-			FinishedAt:      &timestamppb.Timestamp{Seconds: 6},
-			Fingerprint:     "fp",
-		},
-	}
-	got := toApiTasksV1(arg)
-	assert.Equal(t, expected, got)
-}
-
-func Test_toApiPipelineTaskDetail(t *testing.T) {
-	tests := []struct {
-		name    string
-		args    *model.Task
-		want    *apiv2beta1.PipelineTaskDetail
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			"v1 spec",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "3",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  4,
-				FinishedTimestamp: 5,
-				Fingerprint:       "6",
-				State:             model.RuntimeStateUnspecified,
-			},
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:       "2",
-				TaskId:      "1",
-				DisplayName: "",
-				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-				StartTime:   &timestamppb.Timestamp{Seconds: 4},
-				EndTime:     &timestamppb.Timestamp{Seconds: 5},
-				State:       apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
-				ExecutionId: 3,
-			},
-			false,
-			"",
-		},
-		{
-			"v2 spec",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "fp",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:       "2",
-				TaskId:      "1",
-				DisplayName: "task",
-				CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-				StartTime:   &timestamppb.Timestamp{Seconds: 5},
-				EndTime:     &timestamppb.Timestamp{Seconds: 6},
-				State:       apiv2beta1.RuntimeState_CANCELING,
-				ExecutionId: 7,
-				Inputs: map[string]*apiv2beta1.ArtifactList{
-					"a1": {
-						ArtifactIds: []int64{1, 2, 3},
-					},
-				},
-				Outputs: map[string]*apiv2beta1.ArtifactList{
-					"b2": {
-						ArtifactIds: []int64{4, 5, 6},
-					},
-				},
-				ParentTaskId: "8",
-				StateHistory: []*apiv2beta1.RuntimeStatus{
-					{
-						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-						State:      apiv2beta1.RuntimeState_PAUSED,
-						Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
-					},
-				},
-				ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-					{
-						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-					},
-					{
-						ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-					},
-				},
-			},
-			false,
-			"",
-		},
-		{
-			"v2 wrong inputs",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "fp",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:  "2",
-				TaskId: "1",
-			},
-			true,
-			"Failed to convert task's internal representation to its API counterpart due to error parsing inputs",
-		},
-		{
-			"v2 wrong outputs",
-			&model.Task{
-				UUID:              "1",
-				Namespace:         "ns1",
-				PipelineName:      "namespaces/ns1/pipelines/p1",
-				RunID:             "2",
-				MLMDExecutionID:   "7",
-				CreatedTimestamp:  4,
-				StartedTimestamp:  5,
-				FinishedTimestamp: 6,
-				Fingerprint:       "fp",
-				Name:              "task",
-				ParentTaskId:      "8",
-				State:             model.RuntimeStateCancelling,
-				StateHistory: []*model.RuntimeStatus{
-					{
-						UpdateTimeInSec: 9,
-						State:           model.RuntimeStatePaused,
-						Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-					},
-				},
-				MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-				MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}`,
-				ChildrenPods: []string{"9", "10"},
-			},
-			&apiv2beta1.PipelineTaskDetail{
-				RunId:  "2",
-				TaskId: "1",
-			},
-			true,
-			"Failed to convert task's internal representation to its API counterpart due to error parsing outputs",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := toApiPipelineTaskDetail(tt.args)
-			if tt.wantErr {
-				assert.Equal(t, tt.want.GetRunId(), got.GetRunId())
-				assert.Equal(t, tt.want.GetTaskId(), got.GetTaskId())
-				assert.Contains(t, got.Error.Message, tt.errMsg)
-			} else {
-				assert.Equal(t, tt.want, got)
-			}
-		})
-	}
-}
-
-func Test_toApiPipelineTaskDetails(t *testing.T) {
-	args := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "3",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  4,
-			FinishedTimestamp: 5,
-			Fingerprint:       "6",
-			State:             model.RuntimeStateUnspecified,
-		},
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "fp",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-	}
-	expected := []*apiv2beta1.PipelineTaskDetail{
-		{
-			RunId:       "2",
-			TaskId:      "1",
-			DisplayName: "",
-			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-			StartTime:   &timestamppb.Timestamp{Seconds: 4},
-			EndTime:     &timestamppb.Timestamp{Seconds: 5},
-			State:       apiv2beta1.RuntimeState_RUNTIME_STATE_UNSPECIFIED,
-			ExecutionId: 3,
-		},
-		{
-			RunId:       "2",
-			TaskId:      "1",
-			DisplayName: "task",
-			CreateTime:  &timestamppb.Timestamp{Seconds: 4},
-			StartTime:   &timestamppb.Timestamp{Seconds: 5},
-			EndTime:     &timestamppb.Timestamp{Seconds: 6},
-			State:       apiv2beta1.RuntimeState_CANCELING,
-			ExecutionId: 7,
-			Inputs: map[string]*apiv2beta1.ArtifactList{
-				"a1": {
-					ArtifactIds: []int64{1, 2, 3},
-				},
-			},
-			Outputs: map[string]*apiv2beta1.ArtifactList{
-				"b2": {
-					ArtifactIds: []int64{4, 5, 6},
-				},
-			},
-			ParentTaskId: "8",
-			StateHistory: []*apiv2beta1.RuntimeStatus{
-				{
-					UpdateTime: &timestamppb.Timestamp{Seconds: 9},
-					State:      apiv2beta1.RuntimeState_PAUSED,
-					Error:      util.ToRpcStatus(util.NewInvalidInputError("Sample error2")),
-				},
-			},
-			ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-				{
-					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "9"},
-				},
-				{
-					ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "10"},
-				},
-			},
-		},
-	}
-	got := toApiPipelineTaskDetails(args)
-	assert.Equal(t, expected, got)
-
-	args2 := []*model.Task{
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "fp",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-		{
-			UUID:              "1",
-			Namespace:         "ns1",
-			PipelineName:      "namespaces/ns1/pipelines/p1",
-			RunID:             "2",
-			MLMDExecutionID:   "7",
-			CreatedTimestamp:  4,
-			StartedTimestamp:  5,
-			FinishedTimestamp: 6,
-			Fingerprint:       "fp",
-			Name:              "task",
-			ParentTaskId:      "8",
-			State:             model.RuntimeStateCancelling,
-			StateHistory: []*model.RuntimeStatus{
-				{
-					UpdateTimeInSec: 9,
-					State:           model.RuntimeStatePaused,
-					Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Sample error2"))),
-				},
-			},
-			MLMDInputs:   `{"a1":{"artifact_ids":[1,2,3]}}`,
-			MLMDOutputs:  `{"b2":{"artifact_ids":[4,5,6]}`,
-			ChildrenPods: []string{"9", "10"},
-		},
-	}
-	got2 := toApiPipelineTaskDetails(args2)
-	assert.Contains(t, got2[0].Error.Message, "Failed to convert task's internal representation to its API counterpart due to error parsing inputs")
-	assert.Contains(t, got2[1].Error.Message, "Failed to convert task's internal representation to its API counterpart due to error parsing outputs")
-	expected2 := &apiv2beta1.PipelineTaskDetail{
-		RunId:  "2",
-		TaskId: "1",
-	}
-	expected2.Error = got2[0].GetError()
-	assert.Equal(t, expected2, got2[0])
-	expected2.Error = got2[1].GetError()
-	assert.Equal(t, expected2, got2[1])
-}
-
 func TestToModelRun(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -3942,61 +1288,6 @@ func TestToModelRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-						{
-							RunId:          "run1",
-							TaskId:         "task1",
-							DisplayName:    "this is task",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_FAILED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-								},
-							},
-							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task2"},
-								},
-							},
-						},
-						{
-							RunId:          "run1",
-							TaskId:         "task2",
-							DisplayName:    "this is task 2",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_CANCELED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							ParentTaskId: "task1",
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_CANCELED,
-								},
-							},
-						},
-					},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{
@@ -4037,56 +1328,8 @@ func TestToModelRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    0,
 					PipelineRunContextId: 0,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run1",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStateFailed,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
-								},
-							},
-							ChildrenPods: []string{"task2"},
-						},
-						{
-							UUID:              "task2",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run1",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task 2",
-							ParentTaskId:      "task1",
-							State:             model.RuntimeStateCanceled,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateCanceled,
-								},
-							},
-						},
-					},
 				},
 				ResourceReferences: nil,
-				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
@@ -4138,31 +1381,6 @@ func TestToModelRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-						{
-							RunId:          "run2",
-							TaskId:         "task1",
-							DisplayName:    "this is task",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_RUNNING,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_RUNNING,
-								},
-							},
-						},
-					},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{
@@ -4199,32 +1417,8 @@ func TestToModelRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    0,
 					PipelineRunContextId: 0,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run2",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStateRunning,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateRunning,
-								},
-							},
-						},
-					},
 				},
 				ResourceReferences: nil,
-				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
@@ -4259,61 +1453,6 @@ func TestToModelRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-						{
-							RunId:          "run1",
-							TaskId:         "task1",
-							DisplayName:    "this is task",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_FAILED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-								},
-							},
-							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
-								{
-									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task2"},
-								},
-							},
-						},
-						{
-							RunId:          "run1",
-							TaskId:         "task2",
-							DisplayName:    "this is task 2",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_CANCELED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							ParentTaskId: "task1",
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_CANCELED,
-								},
-							},
-						},
-					},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{
@@ -4504,33 +1643,8 @@ func Test_toApiRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run2",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStateFailed,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateFailed,
-									Error:           util.ToError(util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid"))),
-								},
-							},
-						},
-					},
 				},
 				ResourceReferences: nil,
-				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
@@ -4577,32 +1691,6 @@ func Test_toApiRun(t *testing.T) {
 				RunDetails: &apiv2beta1.RunDetails{
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
-						{
-							RunId:          "run2",
-							TaskId:         "task1",
-							DisplayName:    "this is task",
-							CreateTime:     timestamppb.New(time.Unix(11, 0)),
-							StartTime:      timestamppb.New(time.Unix(12, 0)),
-							EndTime:        timestamppb.New(time.Unix(13, 0)),
-							ExecutorDetail: nil,
-							State:          apiv2beta1.RuntimeState_FAILED,
-							ExecutionId:    14,
-							Inputs: map[string]*apiv2beta1.ArtifactList{
-								"a1": {ArtifactIds: []int64{1, 2, 3}},
-							},
-							Outputs: map[string]*apiv2beta1.ArtifactList{
-								"b2": {ArtifactIds: []int64{4, 5, 6}},
-							},
-							StateHistory: []*apiv2beta1.RuntimeStatus{
-								{
-									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
-									State:      apiv2beta1.RuntimeState_FAILED,
-									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
-								},
-							},
-						},
-					},
 				},
 				RecurringRunId: "job1",
 				StateHistory: []*apiv2beta1.RuntimeStatus{
@@ -4645,37 +1733,59 @@ func Test_toApiRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run2",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStateCancelling,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStateCancelling,
-								},
-							},
-							ChildrenPods: []string{"task3", "task4"},
-						},
-					},
+					TaskDetails:          []*model.Task{},
 				},
 				ResourceReferences: nil,
-				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
-			nil,
+			&apiv2beta1.Run{
+				RunId:          "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   apiv2beta1.Run_ARCHIVED,
+				State:          apiv2beta1.RuntimeState_CANCELING,
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_CANCELING,
+					},
+				},
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
+				RunDetails: &apiv2beta1.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+				},
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"Boolean": structpb.NewBoolValue(false),
+							"Number":  structpb.NewNumberValue(19.1),
+							"String":  structpb.NewStringValue("pv2"),
+							"Struct": structpb.NewStructValue(
+								&structpb.Struct{
+									Fields: map[string]*structpb.Value{
+										"InnerNull": structpb.NewNullValue(),
+										"InnerList": structpb.NewListValue(
+											&structpb.ListValue{
+												Values: []*structpb.Value{
+													structpb.NewStringValue("a"),
+													structpb.NewStringValue("b"),
+												},
+											},
+										),
+									},
+								},
+							),
+						},
+					},
+				},
+			},
 			true,
 			"Failed to parse runtime config",
 		},
@@ -4707,37 +1817,41 @@ func Test_toApiRun(t *testing.T) {
 					FinishedAtInSec:      3,
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
-					TaskDetails: []*model.Task{
-						{
-							UUID:              "task1",
-							Namespace:         "",
-							PipelineName:      "",
-							RunID:             "run2",
-							MLMDExecutionID:   "14",
-							CreatedTimestamp:  11,
-							StartedTimestamp:  12,
-							FinishedTimestamp: 13,
-							Fingerprint:       "",
-							Name:              "this is task",
-							State:             model.RuntimeStatePaused,
-							MLMDInputs:        `{"a1":{"artifact_ids":[1,2,3]}}`,
-							MLMDOutputs:       `{"b2":{"artifact_ids":[4,5,6]}}`,
-							StateHistory: []*model.RuntimeStatus{
-								{
-									UpdateTimeInSec: 15,
-									State:           model.RuntimeStatePaused,
-								},
-							},
-							ChildrenPods: []string{"task3", "task4"},
-						},
-					},
+					TaskDetails:          []*model.Task{},
 				},
 				ResourceReferences: nil,
 				Metrics:            nil,
 				Namespace:          "",
 				K8SName:            "",
 			},
-			nil,
+			&apiv2beta1.Run{
+				RunId:          "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   apiv2beta1.Run_ARCHIVED,
+				State:          apiv2beta1.RuntimeState_PAUSED,
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_PAUSED,
+					},
+				},
+				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
+				RunDetails: &apiv2beta1.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+			},
 			true,
 			"Failed to convert internal run representation to its API counterpart due to missing pipeline source",
 		},
@@ -4747,7 +1861,28 @@ func Test_toApiRun(t *testing.T) {
 			got := toApiRun(tt.arg)
 			if tt.wantErr {
 				assert.Contains(t, got.Error.Message, tt.errMsg)
-				assert.Equal(t, &apiv2beta1.Run{RunId: "run1", ExperimentId: "exp1", Error: got.GetError()}, got)
+				if tt.want.GetRuntimeConfig() != nil && got.GetRuntimeConfig() != nil {
+					wp := tt.want.GetRuntimeConfig().GetParameters()
+					gp := got.GetRuntimeConfig().GetParameters()
+					for k := range wp {
+						wp1, err := wp[k].MarshalJSON()
+						assert.Nil(t, err)
+						gp1, err := gp[k].MarshalJSON()
+						assert.Nil(t, err)
+						assert.Equal(t, wp1, gp1)
+					}
+					tt.want.RuntimeConfig.Parameters = got.RuntimeConfig.Parameters
+				}
+				if tt.want.GetPipelineSpec() != nil && got.GetPipelineSpec() != nil {
+					w, err := tt.want.GetPipelineSpec().MarshalJSON()
+					assert.Nil(t, err)
+					g, err := got.GetPipelineSpec().MarshalJSON()
+					assert.Nil(t, err)
+					assert.Equal(t, w, g)
+					tt.want.PipelineSource = got.GetPipelineSource()
+				}
+				tt.want.Error = got.GetError()
+				assert.Equal(t, tt.want, got)
 			} else {
 				if tt.want.GetPipelineSpec() != nil {
 					w, err := tt.want.GetPipelineSpec().MarshalJSON()
@@ -4778,28 +1913,6 @@ func Test_toApiRun(t *testing.T) {
 				}
 				assert.Equal(t, tt.want, got)
 			}
-		})
-	}
-}
-
-func TestToApiRunStorageStateV1(t *testing.T) {
-	tests := []struct {
-		name     string
-		state    model.StorageState
-		expected apiv1beta1.Run_StorageState
-	}{
-		{"empty string defaults to available", model.StorageState(""), apiv1beta1.Run_STORAGESTATE_AVAILABLE},
-		{"archived v2", model.StorageStateArchived, apiv1beta1.Run_STORAGESTATE_ARCHIVED},
-		{"archived v1", model.StorageStateArchived.ToV1(), apiv1beta1.Run_STORAGESTATE_ARCHIVED},
-		{"available v2", model.StorageStateAvailable, apiv1beta1.Run_STORAGESTATE_AVAILABLE},
-		{"available v1", model.StorageStateAvailable.ToV1(), apiv1beta1.Run_STORAGESTATE_AVAILABLE},
-		{"unknown defaults to available", model.StorageState("UNKNOWN"), apiv1beta1.Run_STORAGESTATE_AVAILABLE},
-	}
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			state := testCase.state
-			result := toApiRunStorageStateV1(&state)
-			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -4910,11 +2023,11 @@ func TestToApiExperimentStorageState(t *testing.T) {
 	}{
 		{"empty string defaults to unspecified", model.StorageState(""), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
 		{"archived v2", model.StorageStateArchived, apiv2beta1.Experiment_ARCHIVED},
-		{"archived v1", model.StorageStateArchived.ToV1(), apiv2beta1.Experiment_ARCHIVED},
+		{"archived v1", model.StorageStateArchived.ToV2(), apiv2beta1.Experiment_ARCHIVED},
 		{"available v2", model.StorageStateAvailable, apiv2beta1.Experiment_AVAILABLE},
-		{"available v1", model.StorageStateAvailable.ToV1(), apiv2beta1.Experiment_AVAILABLE},
+		{"available v1", model.StorageStateAvailable.ToV2(), apiv2beta1.Experiment_AVAILABLE},
 		{"unspecified v2", model.StorageStateUnspecified, apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
-		{"unspecified v1", model.StorageStateUnspecified.ToV1(), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
+		{"unspecified v1", model.StorageStateUnspecified.ToV2(), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
 		{"unknown defaults to unspecified", model.StorageState("UNKNOWN"), apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED},
 	}
 	for _, testCase := range tests {
@@ -5026,30 +2139,6 @@ func TestJSONToPluginsOutput(t *testing.T) {
 			require.Len(t, got["mlflow"].Entries, 1)
 			require.Contains(t, got["mlflow"].Entries, "run_url")
 			assert.Equal(t, "https://mlflow.example.com", got["mlflow"].Entries["run_url"].Value.GetStringValue())
-		})
-	}
-}
-
-func TestToApiExperimentStorageStateV1(t *testing.T) {
-	tests := []struct {
-		name     string
-		state    model.StorageState
-		expected apiv1beta1.Experiment_StorageState
-	}{
-		{"empty string defaults to unspecified", model.StorageState(""), apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED},
-		{"archived v2", model.StorageStateArchived, apiv1beta1.Experiment_STORAGESTATE_ARCHIVED},
-		{"archived v1", model.StorageStateArchived.ToV1(), apiv1beta1.Experiment_STORAGESTATE_ARCHIVED},
-		{"available v2", model.StorageStateAvailable, apiv1beta1.Experiment_STORAGESTATE_AVAILABLE},
-		{"available v1", model.StorageStateAvailable.ToV1(), apiv1beta1.Experiment_STORAGESTATE_AVAILABLE},
-		{"unspecified v2", model.StorageStateUnspecified, apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED},
-		{"unspecified v1", model.StorageStateUnspecified.ToV1(), apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED},
-		{"unknown defaults to unspecified", model.StorageState("UNKNOWN"), apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED},
-	}
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			state := testCase.state
-			result := toApiExperimentStorageStateV1(&state)
-			assert.Equal(t, testCase.expected, result)
 		})
 	}
 }
@@ -5270,49 +2359,52 @@ func TestValidatePluginsOutput(t *testing.T) {
 		})
 	}
 }
-
-func TestToApiPipelineVersionsV1_Empty(t *testing.T) {
-	result := toApiPipelineVersionsV1([]*model.PipelineVersion{})
-	assert.NotNil(t, result)
-	assert.Empty(t, result)
-}
-
-func TestToApiPipelineVersionsV1_SingleVersion(t *testing.T) {
-	versions := []*model.PipelineVersion{
-		{
-			UUID:           "version-1",
-			Name:           "v1",
-			CreatedAtInSec: 100,
-			PipelineId:     "pipeline-1",
+func Test_toApiRun_PreservesTopLevelStateOnTaskConversionError(t *testing.T) {
+	run := &model.Run{
+		UUID:           "run-task-error",
+		ExperimentId:   "exp-task-error",
+		DisplayName:    "run with bad task",
+		StorageState:   model.StorageStateArchived,
+		RecurringRunId: "job-1",
+		ServiceAccount: "pipeline-runner",
+		TaskCount:      1,
+		RunDetails: model.RunDetails{
+			State:            model.RuntimeStatePending,
+			CreatedAtInSec:   10,
+			ScheduledAtInSec: 11,
+			FinishedAtInSec:  12,
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:        "pipeline-1",
+			PipelineVersionId: "pipeline-version-1",
+		},
+		Tasks: []*model.Task{
+			{
+				UUID:             "task-1",
+				RunUUID:          "run-task-error",
+				Name:             "bad-task",
+				DisplayName:      "bad-task",
+				Namespace:        "kubeflow",
+				CreatedAtInSec:   9,
+				State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+				Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+				OutputParameters: model.JSONSlice{"not-a-valid-task-output-parameter"},
+			},
 		},
 	}
-	result := toApiPipelineVersionsV1(versions)
-	assert.NotNil(t, result)
-	assert.Equal(t, 1, len(result))
-	assert.Equal(t, "version-1", result[0].Id)
-	assert.Equal(t, "v1", result[0].Name)
-}
 
-func TestToApiPipelineVersionsV1_MultipleVersions(t *testing.T) {
-	versions := []*model.PipelineVersion{
-		{
-			UUID:           "version-1",
-			Name:           "v1",
-			CreatedAtInSec: 100,
-			PipelineId:     "pipeline-1",
-		},
-		{
-			UUID:           "version-2",
-			Name:           "v2",
-			CreatedAtInSec: 200,
-			PipelineId:     "pipeline-1",
-		},
+	got := toApiRun(run)
+	if assert.NotNil(t, got) {
+		assert.Equal(t, run.UUID, got.GetRunId())
+		assert.Equal(t, run.ExperimentId, got.GetExperimentId())
+		assert.Equal(t, apiv2beta1.RuntimeState_PENDING, got.GetState())
+		assert.Equal(t, apiv2beta1.Run_ARCHIVED, got.GetStorageState())
+		assert.Equal(t, int32(1), got.GetTaskCount())
+		assert.Nil(t, got.GetTasks())
+		if assert.NotNil(t, got.GetError()) {
+			assert.Contains(t, got.GetError().GetMessage(), "Failed to convert task to API format")
+		}
 	}
-	result := toApiPipelineVersionsV1(versions)
-	assert.NotNil(t, result)
-	assert.Equal(t, 2, len(result))
-	assert.Equal(t, "version-1", result[0].Id)
-	assert.Equal(t, "version-2", result[1].Id)
 }
 
 func TestToApiPipelineVersion_OnlyPipelineSpecURI(t *testing.T) {

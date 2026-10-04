@@ -17,7 +17,6 @@ package config
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 )
@@ -148,7 +147,7 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 			sessionInfo.Params["forcePathStyle"] = strconv.FormatBool(*override.ForcePathStyle)
 		}
 		if override.MaxRetries != nil {
-			sessionInfo.Params["maxRetries"] = strconv.FormatInt(int64(*p.Default.MaxRetries), 10)
+			sessionInfo.Params["maxRetries"] = strconv.FormatInt(int64(*override.MaxRetries), 10)
 		}
 		if override.Credentials == nil {
 			return objectstore.SessionInfo{}, invalidConfigErr(fmt.Errorf("missing override credentials"))
@@ -171,10 +170,18 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 	return sessionInfo, nil
 }
 
+func (p S3ProviderConfig) HasExplicitOverride(path string) (bool, error) {
+	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
+	if err != nil {
+		return false, err
+	}
+	return p.getOverrideByPrefix(bucketConfig.BucketName, bucketConfig.Prefix) != nil, nil
+}
+
 // getOverrideByPrefix returns first matching bucketname and prefix in overrides
 func (p S3ProviderConfig) getOverrideByPrefix(bucketName, prefix string) *S3Override {
 	for _, override := range p.Overrides {
-		if override.BucketName == bucketName && strings.HasPrefix(prefix, override.KeyPrefix) {
+		if override.BucketName == bucketName && prefixMatchesOverride(prefix, override.KeyPrefix) {
 			return &override
 		}
 	}

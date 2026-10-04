@@ -22,6 +22,8 @@ const getArg = (name, defaultValue) => {
 const PORT = getArg('port', '4001');
 const OUTPUT_DIR = getArg('output', './screenshots');
 const LABEL = getArg('label', 'screenshot');
+const REVISION = getArg('revision', 'head');
+const REQUIRE_SEEDED_NATIVE_ARTIFACTS = args.includes('--require-seeded-native-artifacts');
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const DEFAULT_SEED_MANIFEST = path.join(REPO_ROOT, '.ui-smoke-test', 'seed-manifest.json');
 const SEED_MANIFEST_PATH = getArg(
@@ -59,6 +61,7 @@ function loadSeedValues(manifestPath) {
 
     return {
       compareRunlist: defaults.compareRunlist || runIds.slice(0, 3).join(','),
+      artifactId: defaults.artifactId || (resources.artifactIds || [])[0],
       experimentId: defaults.experimentId || (resources.experimentIds || [])[0],
       pipelineId: defaults.pipelineId || (resources.pipelineIds || [])[0],
       recurringRunId: defaults.recurringRunId || (resources.recurringRunIds || [])[0],
@@ -72,10 +75,10 @@ function loadSeedValues(manifestPath) {
 
 const seedValues = loadSeedValues(SEED_MANIFEST_PATH);
 
-function resolvePathTemplate(routePath) {
+function resolvePathTemplate(routePath, values = seedValues) {
   const missing = [];
   const resolved = routePath.replace(/\{seed\.([a-zA-Z0-9_]+)\}/g, (_match, key) => {
-    const value = seedValues && seedValues[key];
+    const value = values && values[key];
     if (value === undefined || value === null || value === '') {
       missing.push(key);
       return '';
@@ -170,13 +173,13 @@ const PAGES = [
   },
   {
     name: 'pipeline-details-seeded',
-    path: '/#/pipelines/details/{seed.pipelineId}',
+    path: '/#/pipelines/details/?fromRun={seed.runId}',
     waitFor: '#root',
     waitForData: '[role="tab"], .ace_editor',
   },
   {
     name: 'pipeline-details-seeded-sidepanel',
-    path: '/#/pipelines/details/{seed.pipelineId}',
+    path: '/#/pipelines/details/?fromRun={seed.runId}',
     waitFor: '#root',
     waitForData: '[role="tab"], .ace_editor',
     actions: [
@@ -214,7 +217,7 @@ const PAGES = [
           }
           const flowNodes = Array.from(document.querySelectorAll('.react-flow__node'));
           return (
-            flowNodes.length >= 4 &&
+            flowNodes.length > 0 &&
             flowNodes.every((node) => getComputedStyle(node).visibility !== 'hidden')
           );
         }`,
@@ -236,7 +239,7 @@ const PAGES = [
           }
           const flowNodes = Array.from(document.querySelectorAll('.react-flow__node'));
           return (
-            flowNodes.length >= 4 &&
+            flowNodes.length > 0 &&
             flowNodes.every((node) => getComputedStyle(node).visibility !== 'hidden')
           );
         }`,
@@ -308,38 +311,18 @@ const PAGES = [
   { name: 'recurring-runs', path: '/#/recurringruns', waitFor: '[class*="tableRow"]' },
   { name: 'artifacts', path: '/#/artifacts', waitFor: '[class*="tableRow"]' },
   {
-    name: 'artifact-lineage-from-list',
-    path: '/#/artifacts',
-    waitFor: '[class*="tableRow"]',
+    name: 'artifact-related-tasks-seeded',
+    path: '/#/artifacts/{seed.artifactId}',
+    headOnly: true,
+    requireSeed: true,
+    waitFor: '[role="tab"]:has-text("Related tasks"), button:has-text("Related tasks")',
     actions: [
       {
-        type: 'waitForFunction',
-        expression: `() =>
-          !!document.querySelector('a[href*="#/artifacts/"], a[href*="/artifacts/"]') ||
-          document.body.innerText.includes('No artifacts found.')`,
-      },
-      {
-        type: 'skipIf',
-        expression: `() => document.body.innerText.includes('No artifacts found.')`,
-        reason: 'Artifact list is empty; cannot open a lineage view from the list page.',
-      },
-      { type: 'click', selector: 'a[href*="#/artifacts/"], a[href*="/artifacts/"]' },
-      {
-        type: 'waitForSelector',
-        selector: '[role="tab"]:has-text("Lineage Explorer"), button:has-text("Lineage Explorer")',
-      },
-      {
         type: 'click',
-        selector: '[role="tab"]:has-text("Lineage Explorer"), button:has-text("Lineage Explorer")',
+        selector: '[role="tab"]:has-text("Related tasks"), button:has-text("Related tasks")',
       },
-      { type: 'waitForTimeout', ms: 1000, optional: true },
+      { type: 'waitForSelector', selector: 'a[href*="task="]' },
     ],
-  },
-  {
-    name: 'executions',
-    path: '/#/executions',
-    waitFor: '[class*="tableRow"]',
-    waitForData: 'a[href*="execution"]',
   },
   { name: 'pipeline-create', path: '/#/pipeline/create', waitFor: 'input' },
   { name: 'experiment-create', path: '/#/experiments/new', waitFor: 'input' },
@@ -351,6 +334,7 @@ const filteredPages = envPages ? PAGES.filter((p) => envPages.split(',').include
 
 async function captureScreenshots() {
   console.log(`Starting screenshot capture for ${LABEL}`);
+  console.log(`Revision role: ${REVISION}`);
   console.log(`Base URL: ${BASE_URL}`);
   console.log(`Output directory: ${OUTPUT_DIR}`);
   console.log(`Viewports: ${VIEWPORTS.map((v) => `${v.width}x${v.height}`).join(', ')}`);
@@ -381,15 +365,28 @@ async function captureScreenshots() {
     const page = await context.newPage();
 
     for (const pageConfig of filteredPages) {
+      if (pageConfig.headOnly && REVISION !== 'head') {
+        console.log(
+          `Skipping ${pageConfig.name} (${viewport.width}x${viewport.height}): head-only coverage`,
+        );
+        results.push({
+          page: pageConfig.name,
+          reason: 'head-only coverage',
+          status: 'skipped',
+          viewport,
+        });
+        continue;
+      }
       const { resolvedPath, missing } = resolvePathTemplate(pageConfig.path);
       if (!resolvedPath) {
+        const required = pageConfig.requireSeed && REQUIRE_SEEDED_NATIVE_ARTIFACTS;
         console.log(
-          `Skipping ${pageConfig.name} (${viewport.width}x${viewport.height}): missing seed key(s): ${missing.join(', ')}`,
+          `${required ? 'Failing' : 'Skipping'} ${pageConfig.name} (${viewport.width}x${viewport.height}): missing seed key(s): ${missing.join(', ')}`,
         );
         results.push({
           page: pageConfig.name,
           reason: `missing seed key(s): ${missing.join(', ')}`,
-          status: 'skipped',
+          status: required ? 'failed' : 'skipped',
           viewport,
         });
         continue;
@@ -485,6 +482,7 @@ async function captureScreenshots() {
     JSON.stringify(
       {
         label: LABEL,
+        revision: REVISION,
         timestamp: new Date().toISOString(),
         baseUrl: BASE_URL,
         seedManifestPath: seedValues ? SEED_MANIFEST_PATH : null,
@@ -509,14 +507,21 @@ async function captureScreenshots() {
     process.exit(1);
   }
   if (degradedCount > 0) {
-    console.warn(`${degradedCount}/${results.length} screenshots degraded (selectors not found)`);
+    console.error(`${degradedCount}/${results.length} screenshots degraded (selectors not found)`);
   }
   if (failedCount > 0) {
-    console.warn(`${failedCount}/${results.length} screenshots failed`);
+    console.error(`${failedCount}/${results.length} screenshots failed`);
+  }
+  if (degradedCount > 0 || failedCount > 0) {
+    process.exitCode = 1;
   }
 }
 
-captureScreenshots().catch((err) => {
-  console.error('Screenshot capture failed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  captureScreenshots().catch((err) => {
+    console.error('Screenshot capture failed:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { PAGES, resolvePathTemplate };

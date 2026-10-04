@@ -35,11 +35,17 @@ import (
 // fakeRunServiceClient captures the context passed to CreateRun so tests can
 // inspect outgoing gRPC metadata.
 type fakeRunServiceClient struct {
-	capturedCtx context.Context
+	capturedCtx     context.Context
+	capturedRequest *api.CreateRunRequest
+	response        *api.Run
 }
 
 func (f *fakeRunServiceClient) CreateRun(ctx context.Context, in *api.CreateRunRequest, opts ...grpc.CallOption) (*api.Run, error) {
 	f.capturedCtx = ctx
+	f.capturedRequest = in
+	if f.response != nil {
+		return f.response, nil
+	}
 	return &api.Run{DisplayName: "fake-run"}, nil
 }
 
@@ -68,6 +74,30 @@ func (f *fakeRunServiceClient) TerminateRun(ctx context.Context, in *api.Termina
 }
 
 func (f *fakeRunServiceClient) RetryRun(ctx context.Context, in *api.RetryRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) CreateTask(ctx context.Context, in *api.CreateTaskRequest, opts ...grpc.CallOption) (*api.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) UpdateTask(ctx context.Context, in *api.UpdateTaskRequest, opts ...grpc.CallOption) (*api.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) UpdateTasksBulk(ctx context.Context, in *api.UpdateTasksBulkRequest, opts ...grpc.CallOption) (*api.UpdateTasksBulkResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) GetTask(ctx context.Context, in *api.GetTaskRequest, opts ...grpc.CallOption) (*api.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) ListTasks(ctx context.Context, in *api.ListTasksRequest, opts ...grpc.CallOption) (*api.ListTasksResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) FindCachedTask(ctx context.Context, in *api.FindCachedTaskRequest, opts ...grpc.CallOption) (*api.FindCachedTaskResponse, error) {
 	return nil, nil
 }
 
@@ -115,7 +145,7 @@ func TestUserIdentityHeader_BothSet(test *testing.T) {
 	}
 
 	swf := newTestSWFForAPIPath()
-	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+	submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
 	require.NoError(test, err)
@@ -139,7 +169,7 @@ func TestUserIdentityHeader_BothEmpty(test *testing.T) {
 	}
 
 	swf := newTestSWFForAPIPath()
-	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+	submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
 	require.NoError(test, err)
@@ -183,7 +213,7 @@ func TestUserIdentityHeader_OnlyOneSet(test *testing.T) {
 			}
 
 			swf := newTestSWFForAPIPath()
-			submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+			submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 				context.Background(), swf, 100, 200)
 
 			require.NoError(test, err)
@@ -212,7 +242,7 @@ func TestUserIdentityHeader_CoexistsWithBearerToken(test *testing.T) {
 	}
 
 	swf := newTestSWFForAPIPath()
-	submitted, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
+	submitted, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(
 		context.Background(), swf, 100, 200)
 
 	require.NoError(test, err)
@@ -278,6 +308,7 @@ func TestNewController_InvalidUserIdentityHeader(test *testing.T) {
 		nil, // tokenSrc
 		"invalid header",
 		"some-value",
+		false, // multiUser
 	)
 	require.Error(test, err)
 	assert.Contains(test, err.Error(), "invalid userIdentityHeader")

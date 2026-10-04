@@ -21,12 +21,13 @@ import (
 )
 
 func TestInitializeDBStatusTable(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	dBStatusStore := NewDBStatusStore(db)
+	dBStatusStore, err := NewDBStatusStore(db, testDialect)
+	assert.Nil(t, err)
 
 	// Initialize for the first time
-	err := dBStatusStore.InitializeDBStatusTable()
+	err = dBStatusStore.InitializeDBStatusTable()
 	assert.Nil(t, err)
 	// Initialize again should be no-op and no error
 	err = dBStatusStore.InitializeDBStatusTable()
@@ -41,12 +42,13 @@ func TestInitializeDBStatusTable(t *testing.T) {
 }
 
 func TestMarkSampleLoaded(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	dBStatusStore := NewDBStatusStore(db)
+	dBStatusStore, err := NewDBStatusStore(db, testDialect)
+	assert.Nil(t, err)
 
 	// Initialize for the first time
-	err := dBStatusStore.InitializeDBStatusTable()
+	err = dBStatusStore.InitializeDBStatusTable()
 	assert.Nil(t, err)
 	// Mark the samples as loaded
 	err = dBStatusStore.MarkSampleLoaded()

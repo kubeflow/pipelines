@@ -13,7 +13,8 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6 AS generator
+FROM golang:1.27.1@sha256:f44f6e88636cfb311f9ebace870ded69d943f227bb3cb27d32ffd84ea18c43ea AS generator
+ARG TARGETARCH
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
 # The googleapis repo doesn't use GitHub releases or version tags,
@@ -28,7 +29,13 @@ COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
 
 # Install protoc and Java (needed for KFP server API package generation).
 RUN apt-get update -y && apt-get install -y jq sed unzip default-jdk
-RUN curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+RUN set -eu; \
+    case "${TARGETARCH}" in \
+        amd64) protoc_arch=x86_64 ;; \
+        arm64) protoc_arch=aarch_64 ;; \
+        *) echo "Unsupported TARGETARCH: ${TARGETARCH}. Use amd64 or arm64." >&2; exit 1 ;; \
+    esac; \
+    curl -fL -o protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${protoc_arch}.zip"
 RUN unzip -o protoc.zip -d /tmp/protoc && \
     mv /tmp/protoc/bin/protoc /usr/bin/protoc && \
     chmod +x /usr/bin/protoc
@@ -61,7 +68,7 @@ RUN git init /googleapis && \
 # Download go-swagger binary.
 RUN set -eu; \
     go_swagger_version="$(cd /tmp/api-generator-tools && go mod edit -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
-    curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64"; \
+    curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_${TARGETARCH}"; \
     chmod +x /usr/bin/swagger
 
 # Needed for buildling python packages requiring protoc

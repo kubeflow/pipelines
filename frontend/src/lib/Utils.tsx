@@ -15,20 +15,10 @@
  */
 
 import { isFunction } from 'lodash';
-import * as pako from 'pako';
-import * as React from 'react';
-import { classes } from 'typestyle';
-import { Workflow } from 'src/third_party/mlmd/argo_template';
-import { ApiTrigger } from 'src/apis/job';
 import { V2beta1RecurringRunStatus, V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
-import { ApiRun } from 'src/apis/run';
-import { Column, ExpandState, Row } from 'src/components/CustomTable';
-import { css, CustomTableRow } from 'src/components/CustomTableRow';
-import { padding } from 'src/Css';
-import { Apis, ListRequest } from './Apis';
-import { hasFinished, hasFinishedV2, NodePhase } from './StatusUtils';
-import { StorageService } from './WorkflowParser';
-import { ApiParameter } from 'src/apis/pipeline';
+import { Column, Row } from 'src/components/CustomTable';
+import { ListRequest } from './Apis';
+import { hasFinishedV2 } from './StatusUtils';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 
 export const logger = {
@@ -85,13 +75,6 @@ export async function errorToMessage(error: any): Promise<string> {
   return JSON.stringify(error) || '';
 }
 
-export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: boolean): string {
-  if (trigger) {
-    return enabled ? 'Yes' : 'No';
-  }
-  return '-';
-}
-
 export function enabledDisplayStringV2(
   trigger: V2beta1Trigger | undefined,
   status: V2beta1RecurringRunStatus,
@@ -127,102 +110,16 @@ function getDuration(start: Date, end: Date): string {
   return `${sign}${hours}:${minutes}:${seconds}`;
 }
 
-// TODO(jlyaoyuli): remove this after v2 API integration.
-export function getRunDuration(run?: ApiRun): string {
-  if (!run || !run.created_at || !run.finished_at || !hasFinished(run.status as NodePhase)) {
-    return '-';
-  }
-
-  // A bug in swagger-codegen causes the API to indicate that created_at and finished_at are Dates,
-  // as they should be, when in reality they are transferred as strings.
-  // See: https://github.com/swagger-api/swagger-codegen/issues/2776
-  return getDuration(new Date(run.created_at), new Date(run.finished_at));
-}
-
 export function getRunDurationV2(run?: V2beta1Run): string {
   return !run || !run.created_at || !run.finished_at || !hasFinishedV2(run.state)
     ? '-'
     : getDuration(new Date(run.created_at), new Date(run.finished_at));
 }
 
-export function getRunDurationFromWorkflow(workflow?: Workflow): string {
-  if (!workflow || !workflow.status || !workflow.status.startedAt || !workflow.status.finishedAt) {
-    return '-';
-  }
-
-  return getDuration(new Date(workflow.status.startedAt), new Date(workflow.status.finishedAt));
-}
-
-export function getRunDurationFromApiRun(apiRun?: ApiRun): string {
-  if (!apiRun || !apiRun.created_at || !apiRun.finished_at) {
-    return '-';
-  }
-
-  return getDuration(new Date(apiRun.created_at), new Date(apiRun.finished_at));
-}
-
 export function getRunDurationFromRunV2(run?: V2beta1Run): string {
   return run && run.created_at && run.finished_at
     ? getDuration(new Date(run.created_at), new Date(run.finished_at))
     : '-';
-}
-
-/**
- * Calculate the time duration a task has taken as a node in workflow. If start time or end time
- * is not available, return '-'.
- *
- * @param workflow
- * @param nodeId
- */
-export function getRunDurationFromNode(workflow: Workflow, nodeId: string): string {
-  const node = workflow?.status?.nodes?.[nodeId];
-  if (!node || !node.startedAt || !node.finishedAt) {
-    return '-';
-  }
-
-  return getDuration(
-    new Date(workflow.status.nodes[nodeId].startedAt),
-    new Date(workflow.status.nodes[nodeId].finishedAt),
-  );
-}
-/**
- * Derives the Pod name from a given workflowapi.Workflow and workflowapi.NodeStatus
- * This is a workaround for an upstream breaking change with node.ID and node.Name mismatches,
- * see https://github.com/argoproj/argo-workflows/issues/10107#issuecomment-1536113642
- *
- * @param workflow
- * @param nodeId
- * @returns the node name for a given nodeID
- */
-export function getNodeNameFromNodeId(workflow: Workflow, nodeId: string): string {
-  if (!workflow || !nodeId) {
-    return '';
-  }
-
-  const podNamesAnnotation =
-    workflow.metadata.annotations?.['workflows.argoproj.io/pod-name-format'];
-  if (workflow.apiVersion === 'v1' || podNamesAnnotation === 'v1') {
-    return nodeId;
-  }
-
-  const node = workflow?.status?.nodes?.[nodeId];
-  if (!node || !node.name) {
-    return '';
-  }
-
-  const wfname = workflow.metadata.name;
-  if (wfname === node.name) {
-    return wfname;
-  }
-
-  const split = node.id.split('-');
-  const hash = split[split.length - 1];
-  var prefix = wfname;
-  if (!node.name.includes('.inline')) {
-    prefix = wfname!.concat('-', node.templateName);
-  }
-
-  return prefix!.concat('-', hash);
 }
 
 export function s(items: any[] | number): string {
@@ -253,39 +150,6 @@ export function serviceErrorToString(error: ServiceError): string {
   return `Error: ${error.message}.${error.code ? ` Code: ${error.code}` : ''}`;
 }
 
-/**
- * Returns true if no filter is specified, or if the filter string matches any of the row's columns,
- * case insensitively.
- * @param request
- */
-export function rowFilterFn(request: ListRequest): (r: Row) => boolean {
-  // TODO: We are currently searching across all properties of all artifacts. We should figure
-  // what the most useful fields are and limit filtering to those
-  return (r) => {
-    if (!request.filter) {
-      return true;
-    }
-
-    const decodedFilter = decodeURIComponent(request.filter);
-    try {
-      const filter = JSON.parse(decodedFilter);
-      if (!filter.predicates || filter.predicates.length === 0) {
-        return true;
-      }
-      // TODO: Extend this to look at more than a single predicate
-      const filterString =
-        '' +
-        (filter.predicates[0].int_value ||
-          filter.predicates[0].long_value ||
-          filter.predicates[0].string_value);
-      return r.otherFields.join('').toLowerCase().indexOf(filterString.toLowerCase()) > -1;
-    } catch (err) {
-      logger.error('Error parsing request filter!', err);
-      return true;
-    }
-  };
-}
-
 export function rowCompareFn(
   request: ListRequest,
   columns: Column[],
@@ -312,86 +176,6 @@ export function rowCompareFn(
   };
 }
 
-export interface CollapsedAndExpandedRows {
-  // collapsedRows are the first row of each group, what the user sees before expanding a group.
-  collapsedRows: Row[];
-  // expandedRows is a map of grouping keys to a list of rows grouped by that key. This is what a
-  // user sees when they expand one or more rows.
-  expandedRows: Map<number, Row[]>;
-}
-
-/**
- * Groups the incoming rows by name and type pushing all but the first row
- * of each group to the expandedRows Map.
- * @param rows
- */
-export function groupRows(rows: Row[]): CollapsedAndExpandedRows {
-  const flattenedRows = rows.reduce((map, r) => {
-    const stringKey = r.otherFields[0];
-    const rowsForKey = map.get(stringKey);
-    if (rowsForKey) {
-      rowsForKey.push(r);
-    } else {
-      map.set(stringKey, [r]);
-    }
-    return map;
-  }, new Map<string, Row[]>());
-
-  const collapsedAndExpandedRows: CollapsedAndExpandedRows = {
-    collapsedRows: [],
-    expandedRows: new Map<number, Row[]>(),
-  };
-  // collapsedRows are the first row of each group, what the user sees before expanding a group.
-  Array.from(flattenedRows.entries()) // entries() returns in insertion order
-    .forEach((entry, index) => {
-      // entry[0] is a grouping key, entry[1] is a list of rows
-      const rowsInGroup = entry[1];
-
-      // If there is only one row in the group, don't allow expansion.
-      // Only the first row is displayed when collapsed
-      if (rowsInGroup.length === 1) {
-        rowsInGroup[0].expandState = ExpandState.NONE;
-      }
-
-      // Add the first row in this group to be displayed as collapsed row
-      collapsedAndExpandedRows.collapsedRows.push(rowsInGroup[0]);
-
-      // Remove the grouping column text for all but the first row in the group because it will be
-      // redundant within an expanded group.
-      const hiddenRows = rowsInGroup.slice(1);
-      hiddenRows.forEach((row) => (row.otherFields[0] = ''));
-
-      // Add this group of rows sharing a pipeline to the list of grouped rows
-      collapsedAndExpandedRows.expandedRows.set(index, hiddenRows);
-    });
-
-  return collapsedAndExpandedRows;
-}
-
-/**
- * Returns a fragment representing the expanded content for the given
- * row.
- * @param index
- */
-export function getExpandedRow(
-  expandedRows: Map<number, Row[]>,
-  columns: Column[],
-): (index: number) => React.ReactNode {
-  return (index: number) => {
-    const rows = expandedRows.get(index) || [];
-
-    return (
-      <div className={padding(65, 'l')}>
-        {rows.map((r, rindex) => (
-          <div className={classes('tableRow', css.row)} key={rindex}>
-            <CustomTableRow row={r} columns={columns} />
-          </div>
-        ))}
-      </div>
-    );
-  };
-}
-
 const GCS_CONSOLE_BASE = 'https://console.cloud.google.com/storage/browser/';
 const GCS_URI_PREFIX = 'gs://';
 
@@ -409,52 +193,28 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
   return GCS_CONSOLE_BASE + gcsUri.substring(GCS_URI_PREFIX.length);
 }
 
-const MINIO_URI_PREFIX = 'minio://';
-
 /**
- * Generates an HTTPS API URL from minio:// uri
+ * Returns the given URL only when it uses a browsable, safe scheme (http/https),
+ * otherwise undefined. Used to gate user-supplied values (for example a pipeline
+ * version's code_source_url) before placing them in an anchor href, so that
+ * untrusted schemes such as `javascript:` are never rendered as clickable links.
  *
- * @param minioUri Minio uri that starts with minio://, like minio://ml-pipeline/path/file
- * @returns A URL that leads to the artifact data. Returns undefined when minioUri is not valid.
+ * @param url Candidate URL, typically user-supplied.
+ * @returns The URL when it has an HTTP(S) scheme, otherwise undefined.
  */
-export function generateMinioArtifactUrl(minioUri: string, peek?: number): string | undefined {
-  if (!minioUri.startsWith(MINIO_URI_PREFIX)) {
+export function sanitizeExternalHref(url?: string): string | undefined {
+  if (!url) {
     return undefined;
   }
-
-  // eslint-disable-next-line no-useless-escape
-  const matches = minioUri.match(/^minio:\/\/([^\/]+)\/(.+)$/);
-  if (matches == null) {
-    return undefined;
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
+      return url;
+    }
+  } catch {
+    // Malformed and relative URLs are not safe external links.
   }
-  return Apis.buildReadFileUrl({
-    path: { source: StorageService.MINIO, bucket: matches[1], key: matches[2] },
-    peek,
-    isDownload: true,
-  });
-}
-
-const S3_URI_PREFIX = 's3://';
-/**
- * Generates an HTTPS API URL from s3:// uri
- *
- * @param s3Uri S3 uri that starts with s3://, like s3://ml-pipeline/path/file
- * @returns A URL that leads to the artifact data. Returns undefined when s3Uri is not valid.
- */
-export function generateS3ArtifactUrl(s3Uri: string): string | undefined {
-  if (!s3Uri.startsWith(S3_URI_PREFIX)) {
-    return undefined;
-  }
-
-  // eslint-disable-next-line no-useless-escape
-  const matches = s3Uri.match(/^s3:\/\/([^\/]+)\/(.+)$/);
-  if (matches == null) {
-    return undefined;
-  }
-  return Apis.buildReadFileUrl({
-    path: { source: StorageService.S3, bucket: matches[1], key: matches[2] },
-    isDownload: true,
-  });
+  return undefined;
 }
 
 export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {
@@ -468,23 +228,11 @@ export function buildQuery(queriesMap: { [key: string]: string | number | undefi
   return `?${queryContent}`;
 }
 
-export async function decodeCompressedNodes(compressedNodes: string): Promise<object> {
-  return new Promise<object>((resolve, reject) => {
-    const compressedBuffer = Uint8Array.from(
-      atob(compressedNodes)
-        .split('')
-        .map((char) => char.charCodeAt(0)),
-    );
-    try {
-      const result = pako.ungzip(compressedBuffer, { to: 'string' });
-      const nodes = JSON.parse(result);
-      resolve(nodes);
-    } catch (error) {
-      const gz_error_msg = `failed to ungzip data: ${error}`;
-      logger.error(gz_error_msg);
-      reject(gz_error_msg);
-    }
-  });
+declare global {
+  interface Window {
+    // Nonstandard, Safari-only; used below purely for browser detection.
+    safari?: { pushNotification?: object };
+  }
 }
 
 export function isSafari(): boolean {
@@ -493,9 +241,9 @@ export function isSafari(): boolean {
   // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
   const isSafari =
     /constructor/i.test(window.HTMLElement.toString()) ||
-    (function (p) {
-      return p.toString() === '[object SafariRemoteNotification]';
-    })(!window['safari'] || window['safari'].pushNotification);
+    (function (p: unknown) {
+      return String(p) === '[object SafariRemoteNotification]';
+    })(!window.safari || window.safari.pushNotification);
   return isSafari;
 }
 
@@ -516,22 +264,4 @@ export function generateRandomString(length: number): string {
     str += randomChar();
   }
   return str;
-}
-
-export function mergeApiParametersByNames(
-  mainParams: ApiParameter[],
-  extraParams: ApiParameter[],
-): ApiParameter[] {
-  const extraParamsDict = Object.fromEntries(extraParams.map((param) => [param.name, param.value]));
-
-  return mainParams.map((param) => {
-    if (param.name === undefined || !(param.name in extraParamsDict)) {
-      return { ...param };
-    }
-
-    return {
-      ...param,
-      value: extraParamsDict[param.name],
-    };
-  });
 }

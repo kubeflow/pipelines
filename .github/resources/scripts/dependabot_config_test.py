@@ -13,17 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from fnmatch import fnmatchcase
 from pathlib import Path
 from pathlib import PurePosixPath
 import re
+import subprocess
 import unittest
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEPENDABOT_PATH = REPOSITORY_ROOT / '.github/dependabot.yml'
 CI_SCRIPTS_WORKFLOW_PATH = (
     REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml')
 GENERATED_PYTHON_CLIENTS = {
-    '/backend/api/v1beta1/python_http_client',
     '/backend/api/v2beta1/python_http_client',
 }
 
@@ -48,16 +51,25 @@ class DependabotConfigTest(unittest.TestCase):
         cls.ci_scripts_workflow = CI_SCRIPTS_WORKFLOW_PATH.read_text(
             encoding='utf-8')
 
-    def update_block(self, ecosystem: str) -> str:
-        block_match = re.search(
-            rf'^  - package-ecosystem: {re.escape(ecosystem)}\n'
+    def update_blocks(self) -> list[tuple[str, str]]:
+        return re.findall(
+            r'^  - package-ecosystem: (\S+)\n'
             r'(.*?)(?=^  - package-ecosystem:|\Z)',
             self.config,
             flags=re.MULTILINE | re.DOTALL,
         )
-        self.assertIsNotNone(block_match,
-                             f'missing Dependabot ecosystem {ecosystem}')
-        return block_match.group(1)
+
+    def update_block(self, ecosystem: str) -> str:
+        matching_blocks = [
+            block for configured_ecosystem, block in self.update_blocks()
+            if configured_ecosystem == ecosystem
+        ]
+        self.assertEqual(
+            len(matching_blocks),
+            1,
+            f'expected exactly one Dependabot ecosystem {ecosystem}',
+        )
+        return matching_blocks[0]
 
     def configured_directories(self, ecosystem: str) -> set[str]:
         block = self.update_block(ecosystem)
@@ -75,18 +87,91 @@ class DependabotConfigTest(unittest.TestCase):
             directories_match,
             f'missing directories for Dependabot ecosystem {ecosystem}',
         )
-        return set(re.findall(r'^      - "([^"]+)"$',
-                              directories_match.group(1), re.MULTILINE))
-
-    def test_all_supported_repository_ecosystems_are_configured(self):
-        configured_ecosystems = set(
-            re.findall(r'^  - package-ecosystem: (\S+)$', self.config,
+        return set(
+            re.findall(r'^      - "([^"]+)"$', directories_match.group(1),
                        re.MULTILINE))
 
-        self.assertEqual(
-            configured_ecosystems,
-            {'gomod', 'docker', 'npm', 'pip', 'github-actions', 'pre-commit'},
+    def configured_labels(self, ecosystem: str) -> list[str]:
+        block = self.update_block(ecosystem)
+        label_keys = re.findall(
+            r'^    (?:labels|[\'\"]labels[\'\"])\s*:',
+            block,
+            flags=re.MULTILINE,
         )
+        self.assertEqual(
+            len(label_keys),
+            1,
+            f'expected exactly one labels key for ecosystem {ecosystem}',
+        )
+        label_blocks = re.findall(
+            r'^    labels:\n((?:      - "[^"]+"\n)+)',
+            block,
+            flags=re.MULTILINE,
+        )
+        self.assertEqual(
+            len(label_blocks),
+            1,
+            f'expected exactly one labels block for ecosystem {ecosystem}',
+        )
+        return re.findall(r'^      - "([^"]+)"$', label_blocks[0], re.MULTILINE)
+
+    def test_all_supported_repository_ecosystems_are_configured(self):
+        configured_ecosystems = [
+            ecosystem for ecosystem, _ in self.update_blocks()
+        ]
+
+        self.assertCountEqual(configured_ecosystems,
+                              ('gomod', 'docker', 'npm', 'pip', 'uv',
+                               'github-actions', 'pre-commit'))
+        self.assertEqual(
+            len(configured_ecosystems), len(set(configured_ecosystems)))
+
+    def test_version_and_security_updates_start_held_with_defaults_preserved(
+            self):
+        ecosystem_labels = {
+            'gomod': 'go',
+            'docker': 'docker',
+            'npm': 'javascript',
+            'pip': 'python',
+            'uv': 'python:uv',
+            'github-actions': 'github_actions',
+            'pre-commit': 'pre_commit',
+        }
+
+        for ecosystem, ecosystem_label in ecosystem_labels.items():
+            with self.subTest(ecosystem=ecosystem):
+                self.assertNotRegex(
+                    self.update_block(ecosystem),
+                    r'(?m)^    (?:target-branch|[\'\"]target-branch[\'\"])\s*:',
+                )
+                self.assertEqual(
+                    self.configured_labels(ecosystem),
+                    ['dependencies', ecosystem_label, 'do-not-merge/hold'],
+                )
+
+    def test_argo_updates_remain_visible_outside_bulk_go_group(self):
+        config = yaml.safe_load(self.config)
+        gomod = next(update for update in config['updates']
+                     if update['package-ecosystem'] == 'gomod')
+        bulk = gomod['groups']['go-minor-and-patch']
+
+        def grouped(dependency):
+            return (any(
+                fnmatchcase(dependency, pattern)
+                for pattern in bulk['patterns']) and not any(
+                    fnmatchcase(dependency, pattern)
+                    for pattern in bulk.get('exclude-patterns', [])))
+
+        for dependency in ('github.com/argoproj/argo-workflows/v3',
+                           'github.com/argoproj/argo-workflows/v4'):
+            with self.subTest(dependency=dependency):
+                self.assertFalse(grouped(dependency))
+                self.assertFalse(
+                    any(
+                        fnmatchcase(dependency, rule['dependency-name'])
+                        for rule in gomod.get('ignore', [])))
+        self.assertNotIn('allow', gomod)
+        self.assertTrue(grouped('github.com/stretchr/testify'))
 
     def test_all_go_modules_are_covered(self):
         module_directories = {
@@ -122,25 +207,50 @@ class DependabotConfigTest(unittest.TestCase):
                 for npm_directory in npm_directories))
 
     def test_all_maintained_python_projects_are_covered(self):
-        python_manifests = set(REPOSITORY_ROOT.rglob('setup.py'))
-        python_manifests.update(REPOSITORY_ROOT.rglob('pyproject.toml'))
-        python_manifests.update(REPOSITORY_ROOT.rglob('requirements*.txt'))
+        # Installed dependencies in .venv are not repository manifests.
+        tracked_manifests = subprocess.check_output(
+            [
+                'git', 'ls-files', '-z', '--', 'setup.py', '**/setup.py',
+                'pyproject.toml', '**/pyproject.toml', 'requirements*.txt',
+                '**/requirements*.txt'
+            ],
+            cwd=REPOSITORY_ROOT,
+            text=True,
+        )
+        python_manifests = {
+            REPOSITORY_ROOT / path
+            for path in tracked_manifests.split('\0')
+            if path
+        }
         python_directories = {
             repository_directory(path)
             for path in python_manifests
             if repository_directory(path) not in GENERATED_PYTHON_CLIENTS
         }
 
-        self.assertEqual(self.configured_directories('pip'),
-                         python_directories)
+        self.assertEqual(self.configured_directories('pip'), python_directories)
+
+    def test_all_uv_lockfiles_are_covered(self):
+        tracked_locks = subprocess.check_output(
+            ['git', 'ls-files', '-z', '--', 'uv.lock', '**/uv.lock'],
+            cwd=REPOSITORY_ROOT,
+            text=True,
+        )
+        lock_directories = {
+            repository_directory(REPOSITORY_ROOT / path)
+            for path in tracked_locks.split('\0')
+            if path
+        }
+        self.assertTrue(lock_directories)
+        self.assertEqual(self.configured_directories('uv'), lock_directories)
 
     def test_workflows_and_reusable_actions_are_covered(self):
         configured_directories = self.configured_directories('github-actions')
         self.assertIn('/', configured_directories)
         action_directories = {
             repository_directory(path)
-            for path in (REPOSITORY_ROOT / '.github/actions').rglob(
-                'action.y*ml')
+            for path in (REPOSITORY_ROOT /
+                         '.github/actions').rglob('action.y*ml')
         }
 
         self.assertTrue(action_directories)
@@ -158,7 +268,7 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(self.configured_directories('pre-commit'), {'/'})
 
     def test_new_ecosystems_use_bounded_weekly_updates(self):
-        for ecosystem in ('npm', 'pip', 'github-actions', 'pre-commit'):
+        for ecosystem in ('npm', 'pip', 'uv', 'github-actions', 'pre-commit'):
             with self.subTest(ecosystem=ecosystem):
                 block = self.update_block(ecosystem)
                 self.assertIn('      interval: weekly', block)
@@ -169,14 +279,15 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertIn("      - '.github/dependabot.yml'",
                       self.ci_scripts_workflow)
         for manifest_pattern in (
-            '**/go.mod',
-            '**/package.json',
-            '**/requirements*.txt',
-            '**/setup.py',
-            '**/pyproject.toml',
-            '**/action.yml',
-            '**/action.yaml',
-            '.pre-commit-config.yaml',
+                '**/go.mod',
+                '**/package.json',
+                '**/requirements*.txt',
+                '**/setup.py',
+                '**/pyproject.toml',
+                '**/uv.lock',
+                '**/action.yml',
+                '**/action.yaml',
+                '.pre-commit-config.yaml',
         ):
             with self.subTest(manifest_pattern=manifest_pattern):
                 self.assertIn(f"      - '{manifest_pattern}'",

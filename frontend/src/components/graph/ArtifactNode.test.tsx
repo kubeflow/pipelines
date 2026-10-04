@@ -17,7 +17,6 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import ArtifactNode from './ArtifactNode';
-import { Artifact } from 'src/third_party/mlmd';
 import { ReactFlowProvider } from '@xyflow/react';
 
 describe('ArtifactNode', () => {
@@ -27,17 +26,14 @@ describe('ArtifactNode', () => {
 
   it('renders the artifact label', () => {
     renderWithProvider(
-      <ArtifactNode id='artifact-1' data={{ label: 'my-artifact', state: undefined }} />,
+      <ArtifactNode id='artifact-1' data={{ label: 'my-artifact', hasArtifact: false }} />,
     );
     expect(screen.getByText('my-artifact')).toBeInTheDocument();
   });
 
-  it('renders with LIVE state and correct icon', () => {
+  it('renders a live icon when artifact data is present', () => {
     renderWithProvider(
-      <ArtifactNode
-        id='artifact-1'
-        data={{ label: 'live-artifact', state: Artifact.State.LIVE }}
-      />,
+      <ArtifactNode id='artifact-1' data={{ label: 'live-artifact', hasArtifact: true }} />,
     );
     expect(screen.getByText('live-artifact')).toBeInTheDocument();
     const liveIcon = screen.getByTestId('artifact-icon-live');
@@ -47,7 +43,7 @@ describe('ArtifactNode', () => {
 
   it('renders with undefined state and default icon', () => {
     renderWithProvider(
-      <ArtifactNode id='artifact-1' data={{ label: 'unknown-artifact', state: undefined }} />,
+      <ArtifactNode id='artifact-1' data={{ label: 'unknown-artifact', hasArtifact: false }} />,
     );
     expect(screen.getByText('unknown-artifact')).toBeInTheDocument();
     const defaultIcon = screen.getByTestId('artifact-icon-default');
@@ -57,21 +53,21 @@ describe('ArtifactNode', () => {
 
   it('sets the title attribute on the button', () => {
     renderWithProvider(
-      <ArtifactNode id='artifact-1' data={{ label: 'titled-artifact', state: undefined }} />,
+      <ArtifactNode id='artifact-1' data={{ label: 'titled-artifact', hasArtifact: false }} />,
     );
     expect(screen.getByTitle('titled-artifact')).toBeInTheDocument();
   });
 
   it('renders with the correct id on the label span', () => {
     renderWithProvider(
-      <ArtifactNode id='artifact-42' data={{ label: 'test', state: undefined }} />,
+      <ArtifactNode id='artifact-42' data={{ label: 'test', hasArtifact: false }} />,
     );
     expect(screen.getByTestId('artifact-42')).toBeInTheDocument();
   });
 
   it('renders hidden, non-connectable edge anchors', () => {
     const { container } = renderWithProvider(
-      <ArtifactNode id='artifact-1' data={{ label: 'anchored-artifact', state: undefined }} />,
+      <ArtifactNode id='artifact-1' data={{ label: 'anchored-artifact', hasArtifact: false }} />,
     );
     const handles = container.querySelectorAll('.react-flow__handle');
 

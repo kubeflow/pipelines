@@ -12,25 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
 from kfp import dsl
 import kfp.compiler as compiler
 
-component_op = components.load_component_from_text("""
-name: Component with concat placeholder
-inputs:
-- {name: input_one, type: String}
-- {name: input_two, type: String}
-implementation:
-  container:
-    image: ghcr.io/containerd/busybox
-    command:
-    - sh
-    - -ec
-    args:
-    - echo "$0" > /tmp/test && [[ "$0" == 'one+two=three' ]]
-    - concat: [{inputValue: input_one}, '+', {inputValue: input_two}, '=three']
-""")
+
+@dsl.container_component
+def component_with_concat_placeholder(input_one: str, input_two: str):
+    return dsl.ContainerSpec(
+        image='ghcr.io/containerd/busybox',
+        command=['sh', '-ec'],
+        args=[
+            'echo "$0" > /tmp/test && [[ "$0" == \'one+two=three\' ]]',
+            dsl.ConcatPlaceholder([input_one, '+', input_two, '=three'])
+        ],
+    )
+
+
+component_op = component_with_concat_placeholder
 
 
 @dsl.pipeline(name='one-step-pipeline-with-concat-placeholder')

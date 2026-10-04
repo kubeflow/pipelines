@@ -79,6 +79,52 @@ Single-step commands do not update the checkpoint unless `--done` is passed.
 `update-version-tags` cuts `<version>-update-version-tags` from the release branch
 before committing version changes. When SDK release steps are enabled, this same PR also updates
 SDK package versions, requirements, docs versions, and `sdk/RELEASE.md`.
+Branches with `uv.lock` require uv: release updates synchronize the four package
+manifests, regenerate the lockfile and requirements exports, and build with
+`uv build`. All four Python distributions follow the SDK release version,
+independently of the backend `VERSION`. The server API generator reads the SDK
+version and runs before locking or building the workspace, including for
+SDK-only releases. Older release branches retain the pip-compile build path.
+
+Requirements exports retain editable workspace packages and pinned dependencies,
+but omit hashes because pip cannot hash editable sources. Consume these files
+with `pip install -r <export>` from the repository root. The uv lockfile retains
+dependency hashes; CI checks both export freshness and actual pip resolution.
+
+Maintenance releases continue to dispatch the publishing workflow from their
+release branch. The current `publish-packages.yml` also accepts pre-uv tags:
+tool setup is independent of the selected checkout, and package builds use that
+tag's Makefiles or a setuptools-compatible source-path build. Use `dry_run=true`
+to build and validate distributions without uploading them to PyPI.
+
+### Architecture support and release validation
+
+The [supported-platforms policy](../docs/operator-guides/supported-platforms.md)
+commits to Linux AMD64 and ARM64 support starting with backend 3.0. The image
+publication workflow for that release line verifies shared-tag resolution on native
+AMD64 and ARM64 runners, then runs the native ARM64 installation/pipeline smoke
+against the same run's immutable published image indexes. Validation follows image
+publication; a failed validation blocks release completion, not the initial upload.
+Dry-run publication builds images without running checks against published tags.
+
+For backend 3.0 and later, the existing `create-backend-release` checkpoint asks the
+release manager to review the successful release run and retain its published-index,
+native image-validation, and smoke artifacts before creating the GitHub release.
+Release notes and final communications link to the policy. A successful master smoke is not a substitute
+for validating the release images. Existing checkpoint IDs are unchanged; when
+resuming a release whose backend-release step was already marked done, review the
+new checklist explicitly rather than recreating an existing release.
+
+The remaining **2.18 release does not acquire ARM64 support or these validation
+requirements**. Use the current CLI with version `2.18.0` (or a 2.18 patch version):
+it dispatches `image-builds-release.yml` from `release-2.18`, using that branch's
+existing inputs and image inventory. Do not dispatch the master workflow for 2.x
+or backport the 3.x image inventory. SDK-only releases also have no backend-image
+architecture checkpoint. All workflow watchers stop on failure, including on 2.x.
+
+These checks prepare the tooling for future releases; no release candidate needs
+to be cut now. The CLI still accepts final `MAJOR.MINOR.PATCH` versions only;
+prerelease image validation can use the release workflow directly.
 
 If you complete a step outside `kfpr` (for example, manually creating an already-existing
 release branch), mark that step done before resuming:
@@ -89,6 +135,27 @@ kfpr run --state-file release-state.json
 ```
 
 Use the exact step ID from `kfpr steps` or the list below.
+
+## Maintainer container architectures
+
+The current `kfp-api-generator` and `kfp-release` tooling images are built and
+tested for Linux AMD64 and ARM64. Their shared `:master` (and subsequent release
+branch) tags select the Docker host's native architecture, including the Linux
+VM used by Docker on Apple Silicon. No architecture-specific tag or forced
+`--platform` is needed for normal use.
+
+Tool versions are identical on both architectures. CI runs native API/client and
+Python-package generation with both images, then exercises manifest versioning
+and changelog preparation in a disposable repository. It compares generated
+source bytes across architectures before publishing the shared tooling tags;
+PR builds do not publish. The release image uses the generator built in the
+same job, so a stale registry tag cannot supply its parent image.
+
+This concerns the machine running maintainer tools, not the supported platforms
+of a KFP installation. Existing 2.x branches are not changed or backported, and
+the remaining 2.x release does not acquire ARM runtime support. The AMD64 tools
+retain their pinned versions. These image changes do not dispatch a release or
+alter the release CLI's existing image-tag and branch-selection behavior.
 
 ## Recovery helpers
 
@@ -141,3 +208,7 @@ run sync-master
 run confirm-website-and-slack
 run watch-publish-images
 ```
+
+For the KFP 3.0 release, the `confirm-website-and-slack` checkpoint also requires the Kubeflow
+website installation and upgrade documentation to announce that Argo Workflows 3.x is unsupported,
+and requires the GitHub release notes to identify that removal as a breaking change.

@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -59,7 +59,8 @@ jobs:
         id: tests
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          make -C backend/test/integration test-webhook
+          export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
+          make -C backend/test/v2/integration test-webhook
         continue-on-error: true
 
       - name: Collect failed logs

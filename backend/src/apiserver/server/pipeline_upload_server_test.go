@@ -35,6 +35,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 const (
@@ -43,71 +45,148 @@ const (
 	fakeDescription = "a_fake_description"
 )
 
+func TestUploadPipelineAuthorization(t *testing.T) {
+	for _, apiVersion := range []string{"v2beta1"} {
+		for _, versionUpload := range []bool{false, true} {
+			for _, tc := range []struct {
+				name      string
+				namespace string
+				multiUser bool
+				allowed   bool
+			}{
+				{name: "shared allowed", multiUser: true, allowed: true},
+				{name: "shared denied", multiUser: true},
+				{name: "sentinel shared allowed", namespace: model.NoNamespace, multiUser: true, allowed: true},
+				{name: "sentinel shared denied", namespace: model.NoNamespace, multiUser: true},
+				{name: "namespaced allowed", namespace: "tenant-ns", multiUser: true, allowed: true},
+				{name: "namespaced denied", namespace: "tenant-ns", multiUser: true},
+				{name: "single user shared"},
+				{name: "single user namespaced", namespace: "tenant-ns"},
+			} {
+				t.Run(fmt.Sprintf("%s/version=%t/%s", apiVersion, versionUpload, tc.name), func(t *testing.T) {
+					for _, key := range []string{common.MultiUserMode, common.RequireNamespaceForPipelines, common.KubeflowUserIDHeader, common.PodNamespace} {
+						previous := viper.Get(key)
+						t.Cleanup(func() { viper.Set(key, previous) })
+					}
+					viper.Set(common.PodNamespace, "kfp-system-test")
+					viper.Set(common.MultiUserMode, false)
+					viper.Set(common.KubeflowUserIDHeader, "kubeflow-userid")
+					viper.Set(common.RequireNamespaceForPipelines, false)
+					clients, server := setupClientManagerAndServer()
+					t.Cleanup(func() { clients.Close() })
+					if versionUpload {
+						_, err := server.resourceManager.CreatePipeline(&model.Pipeline{
+							Name: "existing-pipeline", Namespace: tc.namespace,
+						})
+						require.NoError(t, err)
+					}
+					review := &recordingSubjectAccessReviewClient{allowed: tc.allowed}
+					clients.SubjectAccessReviewClientFake = review
+					server = updateClientManager(clients, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
+					viper.Set(common.MultiUserMode, tc.multiUser)
+					buffer, writer := setupWriter("")
+					setWriterWithBuffer("uploadfile", "hello-world.yaml", v2SpecHelloWorld, writer)
+					endpoint := "/apis/" + apiVersion + "/pipelines/upload?name=test-pipeline&namespace=" + tc.namespace
+					handler := server.UploadPipeline
+					if versionUpload {
+						endpoint = "/apis/" + apiVersion + "/pipelines/upload_version?name=test-version&pipelineid=" + DefaultFakeUUID
+						handler = server.UploadPipelineVersion
+					}
+					request := httptest.NewRequest(http.MethodPost, endpoint, bytes.NewReader(buffer.Bytes()))
+					request.Header.Set("Content-Type", writer.FormDataContentType())
+					request.Header.Set("kubeflow-userid", common.GetKubeflowUserIDPrefix()+"tenant@example.com")
+					response := httptest.NewRecorder()
+					handler(response, request)
+					if tc.multiUser && !tc.allowed {
+						assert.Equal(t, http.StatusBadRequest, response.Code, response.Body.String())
+						var responseError struct {
+							ErrorMessage string `json:"error_message"`
+						}
+						require.NoError(t, json.Unmarshal(response.Body.Bytes(), &responseError))
+						assert.Contains(t, responseError.ErrorMessage, "permission to create pipelines.pipelines.kubeflow.org")
+						if tc.namespace == "" || tc.namespace == model.NoNamespace {
+							assert.Contains(t, responseError.ErrorMessage, `namespace "kfp-system-test"`)
+							assert.Contains(t, responseError.ErrorMessage, "specify your user namespace")
+						} else {
+							assert.Contains(t, responseError.ErrorMessage, `namespace "tenant-ns"`)
+							assert.Contains(t, responseError.ErrorMessage, "For a new pipeline, check the upload namespace")
+							assert.Contains(t, responseError.ErrorMessage, "Ask your administrator for permission in the applicable namespace")
+							assert.NotContains(t, responseError.ErrorMessage, "Check the upload namespace or")
+						}
+						assert.Contains(t, responseError.ErrorMessage, "version uploads inherit their parent pipeline's namespace")
+						assert.NotContains(t, response.Body.String(), "tenant@example.com")
+						assert.NotContains(t, response.Body.String(), "ResourceAttributes")
+					} else {
+						require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+						pipelineID := fakeVersionUUID
+						if versionUpload {
+							pipelineID = DefaultFakeUUID
+						}
+						pipeline, err := clients.PipelineStore().GetPipeline(pipelineID)
+						require.NoError(t, err)
+						expectedStoredNamespace := tc.namespace
+						if !tc.multiUser && !versionUpload {
+							expectedStoredNamespace = ""
+						}
+						assert.Equal(t, expectedStoredNamespace, pipeline.Namespace)
+					}
+					if !tc.multiUser {
+						assert.Empty(t, review.requests)
+						return
+					}
+					expectedNamespace := tc.namespace
+					if expectedNamespace == "" || expectedNamespace == model.NoNamespace {
+						expectedNamespace = "kfp-system-test"
+					}
+					require.Len(t, review.requests, 1)
+					assert.Equal(t, authorizationv1.ResourceAttributes{
+						Namespace: expectedNamespace, Verb: common.RbacResourceVerbCreate,
+						Group: common.RbacPipelinesGroup, Version: common.RbacPipelinesVersion,
+						Resource: common.RbacResourceTypePipelines,
+					}, review.requests[0])
+				})
+			}
+		}
+	}
+}
+
 // TODO: move other upload pipeline tests into this table driven test
 func TestUploadPipeline(t *testing.T) {
-	// TODO(v2): when we add a field to distinguish between v1 and v2 template, verify it's in the response
 	tt := []struct {
-		name       string
-		spec       []byte
-		apiVersion string
+		name string
+		spec []byte
 	}{{
-		name:       "upload argo workflow YAML",
-		spec:       []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
-		apiVersion: "v1beta1",
+		name: "upload IR pipeline JSON",
+		spec: []byte(testIRPipeline),
 	}, {
-		name:       "upload argo workflow YAML",
-		spec:       []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
-		apiVersion: "v2beta1",
-	}, {
-		name:       "upload pipeline v2 job in proto yaml",
-		spec:       []byte(v2SpecHelloWorld),
-		apiVersion: "v1beta1",
-	}, {
-		name:       "upload pipeline v2 job in proto yaml",
-		spec:       []byte(v2SpecHelloWorld),
-		apiVersion: "v2beta1",
+		name: "upload IR pipeline YAML",
+		spec: []byte(v2SpecHelloWorld),
 	}}
 	for _, test := range tt {
 		t.Run(test.name, func(t *testing.T) {
 			clientManager, server := setupClientManagerAndServer()
 			bytesBuffer, writer := setupWriter("")
 			setWriterWithBuffer("uploadfile", "hello-world.yaml", string(test.spec), writer)
-			var response *httptest.ResponseRecorder
-			switch test.apiVersion {
-			case "v1beta1":
-				response = uploadPipeline("/apis/v1beta1/pipelines/upload",
-					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineV1)
-			case "v2beta1":
-				response = uploadPipeline("/apis/v2beta1/pipelines/upload",
-					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
-			}
+			response := uploadPipeline("/apis/v2beta1/pipelines/upload",
+				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 
 			if response.Code != 200 {
 				t.Fatalf("Upload response is not 200, message: %s", response.Body.String())
 			}
 
 			parsedResponse := struct {
-				// v1 API only field
-				ID string `json:"id"`
-				// v2 API only field
+				ID         string `json:"id"`
 				PipelineID string `json:"pipeline_id"`
-				// v1 API and v2 API shared field
-				CreatedAt string `json:"created_at"`
+				CreatedAt  string `json:"created_at"`
 			}{}
 			json.Unmarshal(response.Body.Bytes(), &parsedResponse)
 
 			// Verify time format is RFC3339.
 			assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
 
-			// Verify v1 API returns v1 object while v2 API returns v2 object.
-			switch test.apiVersion {
-			case "v1beta1":
-				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.ID)
-				assert.Equal(t, "", parsedResponse.PipelineID)
-			case "v2beta1":
-				assert.Equal(t, "", parsedResponse.ID)
-				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
-			}
+			// The response uses pipeline_id, not the obsolete id field.
+			assert.Equal(t, "", parsedResponse.ID)
+			assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
 
 			opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 			assert.Nil(t, err)
@@ -153,7 +232,7 @@ func TestUploadPipeline(t *testing.T) {
 
 			// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 			server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
-			response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+DefaultFakeUUID+"&description="+fakeDescription,
+			response = uploadPipeline("/apis/v2beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+DefaultFakeUUID+"&description="+fakeDescription,
 				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 			assert.Equal(t, 200, response.Code)
 			assert.Contains(t, response.Body.String(), `"created_at":"1970-01-01T00:00:03Z"`)
@@ -265,19 +344,16 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 				assert.Equal(t, 200, response.Code)
 
 				parsedResponse := struct {
-					// v1 API only field
-					ID string `json:"id"`
-					// v2 API only field
+					ID         string `json:"id"`
 					PipelineID string `json:"pipeline_id"`
-					// v1 API and v2 API shared field
-					CreatedAt string `json:"created_at"`
+					CreatedAt  string `json:"created_at"`
 				}{}
 				json.Unmarshal(response.Body.Bytes(), &parsedResponse)
 
 				// Verify time format is RFC3339.
 				assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
 
-				// Verify v1 API returns v1 object while v2 API returns v2 object.
+				// The response uses pipeline_id, not the obsolete id field.
 				assert.Equal(t, "", parsedResponse.ID)
 				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
 			}
@@ -288,8 +364,6 @@ func TestUploadPipelineV2_NameValidation(t *testing.T) {
 func TestUploadPipeline_NameAndNamespaceTooLong(t *testing.T) {
 	type testCase struct {
 		name       string
-		apiVersion string
-		uploadFunc func(http.ResponseWriter, *http.Request)
 		query      string
 		wantStatus int
 		wantErrMsg string
@@ -297,33 +371,13 @@ func TestUploadPipeline_NameAndNamespaceTooLong(t *testing.T) {
 
 	cases := []testCase{
 		{
-			name:       "v1 name too long",
-			apiVersion: "v1beta1",
-			uploadFunc: nil, // set in t.Run
+			name:       "name too long",
 			query:      "?name=" + url.PathEscape(strings.Repeat("a", 129)),
 			wantStatus: http.StatusBadRequest,
 			wantErrMsg: "Pipeline.Name length cannot exceed 128",
 		},
 		{
-			name:       "v1 namespace too long",
-			apiVersion: "v1beta1",
-			uploadFunc: nil,
-			query:      "?namespace=" + url.PathEscape(strings.Repeat("n", 64)),
-			wantStatus: http.StatusBadRequest,
-			wantErrMsg: "Pipeline.Namespace length cannot exceed 63",
-		},
-		{
-			name:       "v2 name too long",
-			apiVersion: "v2beta1",
-			uploadFunc: nil,
-			query:      "?name=" + url.PathEscape(strings.Repeat("a", 129)),
-			wantStatus: http.StatusBadRequest,
-			wantErrMsg: "Pipeline.Name length cannot exceed 128",
-		},
-		{
-			name:       "v2 namespace too long",
-			apiVersion: "v2beta1",
-			uploadFunc: nil,
+			name:       "namespace too long",
 			query:      "?namespace=" + url.PathEscape(strings.Repeat("n", 64)),
 			wantStatus: http.StatusBadRequest,
 			wantErrMsg: "Pipeline.Namespace length cannot exceed 63",
@@ -335,18 +389,10 @@ func TestUploadPipeline_NameAndNamespaceTooLong(t *testing.T) {
 			_, server := setupClientManagerAndServer()
 			bytesBuffer, writer := setupWriter("")
 			setWriterWithBuffer("uploadfile", "hello.yaml",
-				"apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-			uploadFunc := tc.uploadFunc
-			if uploadFunc == nil {
-				if tc.apiVersion == "v1beta1" {
-					uploadFunc = server.UploadPipelineV1
-				} else {
-					uploadFunc = server.UploadPipeline
-				}
-			}
-			endpoint := fmt.Sprintf("/apis/%s/pipelines/upload%s", tc.apiVersion, tc.query)
+				testIRPipeline, writer)
+			endpoint := "/apis/v2beta1/pipelines/upload" + tc.query
 			resp := uploadPipeline(endpoint,
-				bytes.NewReader(bytesBuffer.Bytes()), writer, uploadFunc)
+				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 			assert.Equal(t, tc.wantStatus, resp.Code)
 			assert.Contains(t, resp.Body.String(), tc.wantErrMsg)
 		})
@@ -357,7 +403,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
-	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
@@ -389,10 +435,10 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			CreatedAtInSec: 2,
 			Name:           "arguments.tar.gz",
 			DisplayName:    "arguments.tar.gz",
-			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
+			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\"},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   canonicalUploadedIR(t),
 		},
 	}
 	opts2, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
@@ -408,7 +454,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	bytesBuffer, writer = setupWriter("")
 	setWriterFromFile("uploadfile", "arguments-version.tar.gz", "test/arguments_tarball/arguments-version.tar.gz", writer)
-	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?pipelineid="+DefaultFakeUUID,
+	response = uploadPipeline("/apis/v2beta1/pipelines/upload_version?pipelineid="+DefaultFakeUUID,
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 	assert.Contains(t, response.Body.String(), `"created_at":"1970-01-01T00:00:03Z"`)
@@ -422,20 +468,20 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			CreatedAtInSec: 2,
 			Name:           "arguments.tar.gz",
 			DisplayName:    "arguments.tar.gz",
-			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
+			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\"},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   canonicalUploadedIR(t),
 		},
 		{
 			UUID:           fakeVersionUUID,
 			CreatedAtInSec: 3,
 			Name:           "arguments-version.tar.gz",
 			DisplayName:    "arguments-version.tar.gz",
-			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
+			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"generateName\":\"arguments-parameters-\"},\"spec\":{\"templates\":[{\"name\":\"whalesay\",\"inputs\":{\"parameters\":[{\"name\":\"param1\"},{\"name\":\"param2\"}]},\"outputs\":{},\"metadata\":{},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay:latest\",\"command\":[\"cowsay\"],\"args\":[\"{{inputs.parameters.param1}}-{{inputs.parameters.param2}}\"],\"resources\":{}}}],\"entrypoint\":\"whalesay\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   canonicalUploadedIR(t),
 		},
 	}
 	// Expect 2 versions, one is created by default when creating pipeline and the other is what we manually created
@@ -449,7 +495,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 func TestUploadPipeline_CodeSourceUrl(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", testIRPipeline, writer)
 	response := uploadPipeline(
 		fmt.Sprintf("/apis/v2beta1/pipelines/upload?name=%s&code_source_url=%s",
 			url.PathEscape("my-pipeline"), url.PathEscape("https://github.com/example/repo")),
@@ -468,7 +514,7 @@ func TestUploadPipelineVersion_CodeSourceUrl(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	// First create a pipeline
 	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", testIRPipeline, writer)
 	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
@@ -476,7 +522,7 @@ func TestUploadPipelineVersion_CodeSourceUrl(t *testing.T) {
 	// Upload a version with code_source_url
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	bytesBuffer, writer = setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", testIRPipeline, writer)
 	response = uploadPipeline(
 		fmt.Sprintf("/apis/v2beta1/pipelines/upload_version?name=%s&pipelineid=%s&code_source_url=%s",
 			url.PathEscape(fakeVersionName), DefaultFakeUUID, url.PathEscape("https://github.com/example/repo")),
@@ -494,7 +540,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	bytesBuffer, writer := setupWriter("I am invalid file")
 	writer.CreateFormFile("uploadfile", "hello-world.yaml")
 	writer.Close()
-	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 400, response.Code)
 	assert.Contains(t, response.Body.String(), "Failed to read pipeline")
@@ -503,8 +549,8 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo-bar")),
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", testIRPipeline, writer)
+	response := uploadPipeline(fmt.Sprintf("/apis/v2beta1/pipelines/upload?name=%s", url.PathEscape("foo-bar")),
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
@@ -538,7 +584,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   canonicalTestIR(t),
 		},
 	}
 	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
@@ -551,8 +597,8 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline(fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo-bar"),
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", testIRPipeline, writer)
+	response := uploadPipeline(fmt.Sprintf("/apis/v2beta1/pipelines/upload?name=%s&description=%s", url.PathEscape("foo-bar"),
 		url.PathEscape("description of foo bar")),
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
@@ -590,7 +636,7 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 			Parameters:     "[]",
 			Status:         model.PipelineVersionReady,
 			PipelineId:     DefaultFakeUUID,
-			PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			PipelineSpec:   canonicalTestIR(t),
 		},
 	}
 	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
@@ -603,8 +649,8 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", testIRPipeline, writer)
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 	// Upload a new version under this pipeline
@@ -614,7 +660,7 @@ func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
 	bytesBuffer, writer = setupWriter("I am invalid file")
 	writer.CreateFormFile("uploadfile", "hello-world.yaml")
 	writer.Close()
-	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+DefaultFakeUUID,
+	response = uploadPipeline("/apis/v2beta1/pipelines/upload_version?name="+fakeVersionName+"&pipelineid="+DefaultFakeUUID,
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 400, response.Code)
 	assert.Contains(t, response.Body.String(), "Failed to create a pipeline version")
@@ -624,14 +670,14 @@ func TestUploadPipelineVersion_NameTooLong(t *testing.T) {
 	_, server := setupClientManagerAndServer()
 	// a valid workflow body
 	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+	setWriterWithBuffer("uploadfile", "hello.yaml", testIRPipeline, writer)
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
 	// a name too long（>127）
 	longName := strings.Repeat("a", 128)
-	endpoint := fmt.Sprintf("/apis/v1beta1/pipelines/upload_version?name=%s&pipelineid=%s",
+	endpoint := fmt.Sprintf("/apis/v2beta1/pipelines/upload_version?name=%s&pipelineid=%s",
 		url.PathEscape(longName), DefaultFakeUUID)
 
 	resp := uploadPipeline(endpoint,
@@ -645,8 +691,8 @@ func TestUploadPipelineVersion_InvalidName(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	// First create a valid pipeline
 	bytesBuffer, writer := setupWriter("")
-	setWriterWithBuffer("uploadfile", "hello.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+	setWriterWithBuffer("uploadfile", "hello.yaml", testIRPipeline, writer)
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
@@ -659,7 +705,7 @@ func TestUploadPipelineVersion_InvalidName(t *testing.T) {
 
 	bytesBuffer2, writer2 := setupWriter("")
 	setWriterWithBuffer("uploadfile", "hello.yaml", invalidSpec, writer2)
-	endpoint := fmt.Sprintf("/apis/v1beta1/pipelines/upload_version?pipelineid=%s",
+	endpoint := fmt.Sprintf("/apis/v2beta1/pipelines/upload_version?pipelineid=%s",
 		DefaultFakeUUID)
 	resp := uploadPipeline(endpoint,
 		bytes.NewReader(bytesBuffer2.Bytes()), writer2, server.UploadPipelineVersion)
@@ -668,14 +714,11 @@ func TestUploadPipelineVersion_InvalidName(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), "pipeline's name must contain only lowercase")
 }
 
-func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
-	viper.Set(common.UpdatePipelineVersionByDefault, "false")
-	defer viper.Set(common.UpdatePipelineVersionByDefault, "true")
-
+func TestUploadPipelineVersion_SameSpecBecomesLatest(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
-	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
@@ -683,27 +726,29 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineVersion.PipelineId, DefaultFakeUUID)
 
-	// Upload a new version under this pipeline and check that the default version is not updated
+	// Every successful version upload becomes the latest version.
 
 	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	bytesBuffer, writer = setupWriter("")
 	setWriterFromFile("uploadfile", "arguments-version.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
-	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?pipelineid="+DefaultFakeUUID,
+	response = uploadPipeline("/apis/v2beta1/pipelines/upload_version?pipelineid="+DefaultFakeUUID,
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 
 	_, err = clientManager.PipelineStore().GetPipeline(DefaultFakeUUID)
 	assert.Nil(t, err)
-	// assert.Equal(t, pipeline.DefaultVersionId, DefaultFakeUUID)
-	// assert.NotEqual(t, pipeline.DefaultVersionId, fakeVersionUUID)
+	latestVersion, err := clientManager.PipelineStore().GetDefaultPipelineVersion(DefaultFakeUUID)
+	require.NoError(t, err)
+	assert.Equal(t, fakeVersionUUID, latestVersion.UUID)
+	assert.Equal(t, pipelineVersion.PipelineSpec, latestVersion.PipelineSpec)
 }
 
-func TestDefaultUpdatedPipelineVersion(t *testing.T) {
+func TestUploadPipelineVersion_ChangedSpecBecomesLatest(t *testing.T) {
 	clientManager, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("")
 	setWriterFromFile("uploadfile", "arguments.tar.gz", "test/arguments_tarball/arguments.tar.gz", writer)
-	response := uploadPipeline("/apis/v1beta1/pipelines/upload",
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 	assert.Equal(t, 200, response.Code)
 
@@ -711,19 +756,18 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineVersion.PipelineId, DefaultFakeUUID)
 
-	// Upload a new version under this pipeline and check that the default version is not updated
-
-	// Set the fake uuid generator with a new uuid to avoid generate a same uuid as above.
+	// Every successful version upload becomes the latest version.
 	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
 	bytesBuffer, writer = setupWriter("")
-	setWriterFromFile("uploadfile", "arguments-version.tar.gz", "test/arguments_tarball/arguments-version.tar.gz", writer)
-	response = uploadPipeline("/apis/v1beta1/pipelines/upload_version?pipelineid="+DefaultFakeUUID,
+	setWriterWithBuffer("uploadfile", "hello-world-updated.yaml", v2SpecHelloWorldDash, writer)
+	response = uploadPipeline("/apis/v2beta1/pipelines/upload_version?pipelineid="+DefaultFakeUUID,
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 
-	pipelineVersion2, err := clientManager.PipelineStore().GetLatestPipelineVersion(DefaultFakeUUID)
-	assert.Nil(t, err)
+	pipelineVersion2, err := clientManager.PipelineStore().GetDefaultPipelineVersion(DefaultFakeUUID)
+	require.NoError(t, err)
 	assert.Equal(t, pipelineVersion2.UUID, fakeVersionUUID)
+	assert.NotEqual(t, pipelineVersion.PipelineSpec, pipelineVersion2.PipelineSpec)
 }
 
 func setWriterWithBuffer(fieldname string, filename string, buffer string, writer *multipart.Writer) {
@@ -991,3 +1035,23 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
+
+func TestPipelineUploadAuthorizationErrorDoesNotExposeInfrastructureDetails(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"unauthenticated", util.NewUnauthenticatedError(fmt.Errorf("private authentication detail"), "private identity"), "Authenticate the client"},
+		{"unavailable", util.NewUnavailableServerError(fmt.Errorf("private infrastructure detail"), "private review endpoint"), "Retry later"},
+		{"internal", util.NewInternalServerError(fmt.Errorf("private infrastructure detail"), "private review endpoint"), "Retry later"},
+		{"unknown", fmt.Errorf("private unexpected error"), "Retry later"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := pipelineUploadAuthorizationError(util.Wrap(tc.err, "Authorization Failure"), "tenant-ns", false)
+			assert.Contains(t, err.Error(), tc.want)
+			assert.NotContains(t, err.Error(), "private")
+			assert.NotContains(t, err.Error(), "permission to create")
+		})
+	}
+}

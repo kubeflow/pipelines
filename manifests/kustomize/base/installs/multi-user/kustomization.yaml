@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: kubeflow
 resources:
 - ../../pipeline/cluster-scoped
-- ../../cache-deployer/cluster-scoped
 - ../generic
 - view-edit-cluster-roles.yaml
 - api-service
@@ -12,8 +11,6 @@ resources:
 - scheduled-workflow
 - viewer-controller
 - persistence-agent
-- cache
-- metadata-writer
 - istio-authorization-config.yaml
 - virtual-service.yaml
 
@@ -24,8 +21,6 @@ patches:
 - path: scheduled-workflow/deployment-patch.yaml
 - path: viewer-controller/deployment-patch.yaml
 - path: persistence-agent/deployment-patch.yaml
-- path: metadata-writer/deployment-patch.yaml
-- path: cache/deployment-patch.yaml
 
 
 replacements:

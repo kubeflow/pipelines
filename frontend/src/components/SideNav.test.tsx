@@ -17,7 +17,6 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { createMemoryHistory } from 'history';
 import { vi } from 'vitest';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { ExternalLinks, RoutePage } from './Router';
@@ -48,12 +47,10 @@ function renderSideNav(
   page: RoutePage,
   overrides: Partial<React.ComponentProps<typeof SideNav>> = {},
 ) {
-  const history = createMemoryHistory();
   const ref = React.createRef<SideNav>();
   const props = {
     ...defaultProps,
     ...overrides,
-    history,
     page,
   } as React.ComponentProps<typeof SideNav>;
   const renderResult = render(

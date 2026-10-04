@@ -104,6 +104,17 @@ type FakeBadPodClient struct {
 	FakePodClient
 }
 
+// FakePodClientWithPod serves a fixed pod from Get, so tests can exercise
+// checks against pod metadata such as the run id label.
+type FakePodClientWithPod struct {
+	FakePodClient
+	Pod *corev1.Pod
+}
+
+func (c FakePodClientWithPod) Get(ctx context.Context, name string, options v1.GetOptions) (*corev1.Pod, error) {
+	return c.Pod, nil
+}
+
 func (FakeBadPodClient) Delete(ctx context.Context, name string, options v1.DeleteOptions) error {
 	return errors.New("failed to delete pod")
 }

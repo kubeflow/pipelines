@@ -37,7 +37,7 @@ RUN pip3 install -U google-api-python-client
 RUN pip3 install -U apache_beam
 
 # Required for sklearn/train_test_split_jsonl
-RUN pip3 install -U "fsspec>=0.7.4" "gcsfs>=0.6.0" "pandas<=1.3.5" "scikit-learn"
+RUN pip3 install -U "fsspec>=0.7.4" "gcsfs>=0.6.0" "pandas" "scikit-learn"
 
 # Required by experimental.notebooks.NotebooksExecutorOp
 RUN pip3 install -U google-cloud-notebooks

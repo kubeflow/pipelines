@@ -30,8 +30,7 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             encoding='utf-8')
 
     def test_scanner_release_is_pinned_and_checksum_verified(self):
-        self.assertEqual(self.workflow.count("OSV_SCANNER_VERSION: '2.5.0'"),
-                         2)
+        self.assertEqual(self.workflow.count("OSV_SCANNER_VERSION: '2.5.0'"), 2)
         scanner_checksum = (
             "OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3f"
             "cfc434b0b423ea67468a84c207524e0c'")
@@ -42,10 +41,6 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         self.assertIn('./osv-scanner scan source', self.workflow)
         self.assertIn('            --recursive', self.workflow)
         self.assertIn('            --no-resolve', self.workflow)
-        self.assertIn(
-            '            --experimental-exclude backend/api/v1beta1/python_http_client',
-            self.workflow,
-        )
         self.assertIn(
             '            --experimental-exclude backend/api/v2beta1/python_http_client',
             self.workflow,

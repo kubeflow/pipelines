@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
+import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
-import Metric from 'src/components/Metric';
-import { MetricMetadata, ExperimentInfo } from 'src/lib/RunUtils';
+import { ExperimentInfo } from 'src/lib/ExperimentInfo';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
+import { ResponseError, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { URLParser } from 'src/lib/URLParser';
-import { commonCss, color } from 'src/Css';
+import { commonCss } from 'src/Css';
 import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import { Tooltip } from '@mui/material';
@@ -37,6 +38,7 @@ interface PipelineVersionInfo {
   recurringRunId?: string;
   pipelineId?: string;
   usePlaceholder: boolean;
+  unavailable?: boolean;
 }
 
 interface RecurringRunInfo {
@@ -52,12 +54,6 @@ interface DisplayRun {
   error?: string;
 }
 
-interface DisplayMetric {
-  metadata?: MetricMetadata;
-  // run metric field is currently not supported in v2 API
-  // Context: https://github.com/kubeflow/pipelines/issues/8957
-}
-
 // Both masks cannot be provided together.
 type MaskProps = Exclude<
   { experimentIdMask?: string; namespaceMask?: string },
@@ -65,12 +61,11 @@ type MaskProps = Exclude<
 >;
 
 export type RunListProps = MaskProps &
-  RouteComponentProps & {
+  NavigationProps & {
     disablePaging?: boolean;
     disableSelection?: boolean;
     disableSorting?: boolean;
     hideExperimentColumn?: boolean;
-    hideMetricMetadata?: boolean;
     noFilterBox?: boolean;
     onError: (message: string, error: Error) => void;
     onSelectionChange?: (selectedRunIds: string[]) => void;
@@ -80,8 +75,11 @@ export type RunListProps = MaskProps &
   };
 
 interface RunListState {
-  metrics: MetricMetadata[];
   runs: DisplayRun[];
+}
+
+function _pipelineVersionKey(pipelineId: string, pipelineVersionId: string): string {
+  return `${pipelineId}/${pipelineVersionId}`;
 }
 
 class RunList extends React.PureComponent<RunListProps, RunListState> {
@@ -92,14 +90,11 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     super(props);
 
     this.state = {
-      metrics: [],
       runs: [],
     };
   }
 
   public render(): React.JSX.Element {
-    // Only show the two most prevalent metrics
-    const metricMetadata: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer,
@@ -122,31 +117,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       });
     }
 
-    if (metricMetadata.length && !this.props.hideMetricMetadata) {
-      // This is a column of empty cells with a left border to separate the metrics from the other
-      // columns.
-      columns.push({
-        customRenderer: this._metricBufferCustomRenderer,
-        flex: 0.1,
-        label: '',
-      });
-
-      columns.push(
-        ...metricMetadata.map((metadata) => {
-          return {
-            customRenderer: this._metricCustomRenderer,
-            flex: 0.5,
-            label: metadata.name!,
-          };
-        }),
-      );
-    }
-
     const rows: Row[] = this.state.runs.map((r) => {
-      const displayMetrics = metricMetadata.map((metadata) => {
-        const displayMetric: DisplayMetric = { metadata };
-        return displayMetric;
-      });
       const row = {
         error: r.error,
         id: r.run.run_id!,
@@ -161,10 +132,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       };
       if (!this.props.hideExperimentColumn) {
         row.otherFields.splice(3, 0, r.experiment);
-      }
-      if (displayMetrics.length && !this.props.hideMetricMetadata) {
-        row.otherFields.push(''); // Metric buffer column
-        row.otherFields.push(...(displayMetrics as any));
       }
       return row;
     });
@@ -241,6 +208,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   public _pipelineVersionCustomRenderer: React.FC<CustomRendererProps<PipelineVersionInfo>> = (
     props: CustomRendererProps<PipelineVersionInfo>,
   ) => {
+    if (props.value?.unavailable) {
+      return <span title='The pipeline version is no longer available.'>Unavailable</span>;
+    }
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
     if (!props.value || (!props.value.usePlaceholder && !props.value.pipelineId)) {
       return <div>-</div>;
@@ -321,21 +291,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     return statusToIcon(props.value);
   };
 
-  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = () => {
-    return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
-  };
-
-  public _metricCustomRenderer: React.FC<CustomRendererProps<DisplayMetric>> = (
-    props: CustomRendererProps<DisplayMetric>,
-  ) => {
-    const displayMetric = props.value;
-    if (!displayMetric) {
-      return <div />;
-    }
-
-    return <Metric metadata={displayMetric.metadata} />;
-  };
-
   protected async _loadRuns(request: ListRequest): Promise<string> {
     let displayRuns: DisplayRun[];
     let nextPageToken = '';
@@ -394,6 +349,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.pageSize,
           request.sortBy,
           request.filter,
+          /* skip_count */ true, // this page never displays the total run count
         );
 
         displayRuns = (response.runs || []).map((r) => ({ run: r }));
@@ -409,7 +365,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     await this._setColumns(displayRuns);
 
     this.setStateSafe({
-      // metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
     });
     return nextPageToken;
@@ -442,11 +397,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       experimentsGetError = 'Failed to get associated experiment: ' + (await errorToMessage(error));
     }
 
+    const { pipelineVersionsByKey, errorsByKey } =
+      await this._getReferencedPipelineVersions(displayRuns);
+
     return Promise.all(
       displayRuns.map(async (displayRun) => {
         this._setRecurringRun(displayRun);
 
-        await this._getAndSetPipelineVersionNames(displayRun);
+        this._setPipelineVersionName(displayRun, pipelineVersionsByKey, errorsByKey);
 
         if (!this.props.hideExperimentColumn) {
           const experimentId = displayRun.run.experiment_id;
@@ -499,33 +457,85 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   }
 
   /**
-   * For the given DisplayRun, get its ApiRun and retrieve that ApiRun's Pipeline ID if it has one,
-   * then use that Pipeline ID to fetch its associated Pipeline and attach that Pipeline's name to
-   * the DisplayRun. If the ApiRun has no Pipeline ID, then the corresponding DisplayRun will show
-   * '-'.
+   * Fetches each unique (pipeline_id, pipeline_version_id) pair referenced by the given runs
+   * exactly once, instead of fetching a pipeline version per run. Most runs on a page share
+   * only a handful of distinct pipeline versions, so this turns what used to be one API call
+   * per run into one call per unique version.
    */
-  private async _getAndSetPipelineVersionNames(displayRun: DisplayRun): Promise<void> {
+  private async _getReferencedPipelineVersions(displayRuns: DisplayRun[]): Promise<{
+    pipelineVersionsByKey: Map<string, V2beta1PipelineVersion>;
+    errorsByKey: Map<string, string>;
+  }> {
+    const uniqueVersionRefs = new Map<string, { pipelineId: string; pipelineVersionId: string }>();
+    displayRuns.forEach((displayRun) => {
+      const pipelineId = displayRun.run.pipeline_version_reference?.pipeline_id;
+      const pipelineVersionId = displayRun.run.pipeline_version_reference?.pipeline_version_id;
+      if (pipelineId && pipelineVersionId) {
+        uniqueVersionRefs.set(_pipelineVersionKey(pipelineId, pipelineVersionId), {
+          pipelineId,
+          pipelineVersionId,
+        });
+      }
+    });
+
+    const pipelineVersionsByKey = new Map<string, V2beta1PipelineVersion>();
+    const errorsByKey = new Map<string, string>();
+    await Promise.all(
+      Array.from(uniqueVersionRefs.entries()).map(
+        async ([key, { pipelineId, pipelineVersionId }]) => {
+          try {
+            const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
+              pipelineId,
+              pipelineVersionId,
+            );
+            pipelineVersionsByKey.set(key, pipelineVersion);
+          } catch (err) {
+            // Deleting a version does not delete the runs that reference it.
+            if (err instanceof ResponseError && err.response.status === 404) {
+              return;
+            }
+            errorsByKey.set(key, await errorToMessage(err));
+            logger.error(
+              `Failed to get pipeline version ${pipelineVersionId} for pipeline ${pipelineId}`,
+              err,
+            );
+          }
+        },
+      ),
+    );
+    return { pipelineVersionsByKey, errorsByKey };
+  }
+
+  /**
+   * For the given DisplayRun, look up its associated pipeline version from the already-fetched
+   * pipelineVersionsByKey batch and attach its name to the DisplayRun. If the ApiRun has no
+   * Pipeline ID, then the corresponding DisplayRun will show '-'.
+   */
+  private _setPipelineVersionName(
+    displayRun: DisplayRun,
+    pipelineVersionsByKey: Map<string, V2beta1PipelineVersion>,
+    errorsByKey: Map<string, string>,
+  ): void {
     const pipelineId = displayRun.run.pipeline_version_reference?.pipeline_id;
     const pipelineVersionId = displayRun.run.pipeline_version_reference?.pipeline_version_id;
     if (pipelineId && pipelineVersionId) {
-      try {
-        const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
-          pipelineId,
-          pipelineVersionId,
-        );
+      const key = _pipelineVersionKey(pipelineId, pipelineVersionId);
+      const pipelineVersion = pipelineVersionsByKey.get(key);
+      if (pipelineVersion) {
         displayRun.pipelineVersion = {
           displayName: pipelineVersion.display_name,
           pipelineId: pipelineVersion.pipeline_id,
           usePlaceholder: false,
           versionId: pipelineVersion.pipeline_version_id,
         };
-      } catch (err) {
+      } else if (errorsByKey.has(key)) {
+        const errorMessage = errorsByKey.get(key);
         displayRun.error =
-          'Failed to get associated pipeline version: ' + (await errorToMessage(err));
-        return;
+          'Failed to get associated pipeline version' + (errorMessage ? ': ' + errorMessage : '');
+      } else {
+        displayRun.pipelineVersion = { usePlaceholder: false, unavailable: true };
       }
     } else if (displayRun.run.pipeline_spec) {
-      // pipeline_spec in v2 can store either workflow_manifest or pipeline_manifest
       displayRun.pipelineVersion = displayRun.recurringRun?.id
         ? { usePlaceholder: true, recurringRunId: displayRun.recurringRun.id }
         : { usePlaceholder: true };

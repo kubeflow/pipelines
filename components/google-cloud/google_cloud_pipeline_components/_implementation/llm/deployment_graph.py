@@ -22,7 +22,7 @@ from google_cloud_pipeline_components._implementation.llm import function_based
 from google_cloud_pipeline_components._implementation.llm import upload_llm_model
 import kfp
 
-PipelineOutput = NamedTuple(
+PipelineOutput = NamedTuple(  # pyrefly: ignore[bad-class-definition]
     'Outputs', model_resource_name=str, endpoint_resource_name=str
 )
 
@@ -82,6 +82,6 @@ def pipeline(
       encryption_spec_key_name=encryption_spec_key_name,
   ).set_display_name('Deploy Model')
   return PipelineOutput(
-      model_resource_name=upload_task.outputs['model_resource_name'],
-      endpoint_resource_name=deploy_task.outputs['endpoint_resource_name'],
+      model_resource_name=upload_task.outputs['model_resource_name'],  # pyrefly: ignore[unexpected-keyword]
+      endpoint_resource_name=deploy_task.outputs['endpoint_resource_name'],  # pyrefly: ignore[unexpected-keyword]
   )

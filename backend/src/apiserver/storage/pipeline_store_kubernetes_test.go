@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -32,7 +32,7 @@ func TestListK8sPipelines(t *testing.T) {
 	fc := &model.FilterContext{}
 	options := list.EmptyOptions()
 
-	_, size, _, err := store.ListPipelines(fc, options, nil)
+	_, size, _, err := store.ListPipelines(fc, options)
 	require.Nil(t, err, "Failed to list all pipelines: %v")
 	require.Equalf(t, size, 1, "List size is not zero")
 
@@ -45,7 +45,7 @@ func TestListK8sPipelines(t *testing.T) {
 	_, err = store.CreatePipeline(pipeline)
 	require.Nil(t, err, "Failed to create Pipeline: %v", err)
 
-	_, size, _, err = store.ListPipelines(fc, options, nil)
+	_, size, _, err = store.ListPipelines(fc, options)
 	require.Nil(t, err, "Failed to list all pipelines: %v", err)
 	require.Equalf(t, size, 2, "List size should not be zero")
 }
@@ -68,9 +68,9 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "test"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "test"},
 			},
 		},
 	}
@@ -78,7 +78,7 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "id", newFilter)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, _, _, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, _, _, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.Equalf(t, len(pipelines), 2, "List size should return 2")
 }
@@ -109,14 +109,14 @@ func TestListK8sPipelines_Pagination(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
 	require.Nil(t, err1, "Failed to create list options: %v")
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
 }
@@ -147,13 +147,14 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "name desc", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	require.NoError(t, err1)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-3", "Pagination failed")
 }
@@ -184,13 +185,14 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 1, "name", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	_, pageSize, npt, err2 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err2, "Failed to list pipelines: %v")
 	require.NotNil(t, npt)
 	require.Equalf(t, pageSize, 3, "List size should not be zero")
 
 	options, err1 = list.NewOptionsFromToken(npt, 1)
-	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options, nil)
+	require.NoError(t, err1)
+	pipelines, _, _, err3 := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err3, "Failed to list pipelines: %v")
 	require.Equalf(t, pipelines[0].Name, "test-pipeline-1", "Pagination failed")
 }
@@ -205,7 +207,7 @@ func TestListK8sPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, pageSize, _, err := store.ListPipelines(&model.FilterContext{}, options, nil)
+	pipelines, pageSize, _, err := store.ListPipelines(&model.FilterContext{}, options)
 	require.Nil(t, err, "Failed to list pipelines: %v")
 	require.Equalf(t, pageSize, 1, "Page size should be 1")
 	require.Equalf(t, len(pipelines), 1, "List size should be 1")
@@ -234,6 +236,46 @@ func TestGetK8sPipeline_NotFoundError(t *testing.T) {
 
 	_, err := store.GetPipeline(DefaultFakePipelineIdFive)
 	require.NotNil(t, err)
+}
+
+func TestGetK8sPipelineByNameAndNamespace_SingleUserDefaultsToPodNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	// Set the mode explicitly rather than relying on the ambient global, so this
+	// case establishes single-user on its own.
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "false")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	// Single-user mode has one namespace, so the fallback stays correct.
+	pipeline, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "")
+	require.NoError(t, err)
+	assert.Equal(t, "test-pipeline-3", pipeline.Name)
+}
+
+func TestGetK8sPipelineByNameAndNamespace_MultiUserRequiresNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "true")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	store := NewPipelineStoreKubernetes(getClient())
+
+	// "test-pipeline-3" lives in the pod namespace, which must not be reachable without naming it.
+	_, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "")
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+
+	pipeline, err := store.GetPipelineByNameAndNamespace("test-pipeline-3", "Test")
+	require.NoError(t, err)
+	assert.Equal(t, "test-pipeline-3", pipeline.Name)
 }
 
 func TestCreateK8sPipeline(t *testing.T) {
@@ -325,16 +367,295 @@ func TestGetK8sPipelineVersion(t *testing.T) {
 	require.Equal(t, p.UUID, pipelineVersion.UUID)
 }
 
-func TestGetLatestK8sPipelineVersion(t *testing.T) {
+func TestGetDefaultK8sPipelineVersion(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
 	defer viper.Set("POD_NAMESPACE", podNamespace)
 
 	store := NewPipelineStoreKubernetes(getClient())
 
-	pipelineVersion, err := store.GetLatestPipelineVersion(DefaultFakePipelineIdTwo)
+	pipelineVersion, err := store.GetDefaultPipelineVersion(DefaultFakePipelineIdTwo)
 	require.Nil(t, err, "Failed to get latest pipeline version: %v", err)
 	require.Equal(t, "test-pipeline-version-3", pipelineVersion.Name)
+}
+
+const defaultVersionPipelineID = "b0a1c2d3-0000-4000-8000-00000000000a"
+
+// newPinnedPipelineVersion keeps objectName independent of versionName, as a CR authored outside the REST API may.
+func newPinnedPipelineVersion(objectName, versionName string, created metav1.Time) *v2beta1.PipelineVersion {
+	return &v2beta1.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:               types.UID("uid-" + objectName),
+			Name:              objectName,
+			Namespace:         "Test",
+			CreationTimestamp: created,
+			Labels:            map[string]string{"pipelines.kubeflow.org/pipeline-id": defaultVersionPipelineID},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: v2beta1.GroupVersion.String(),
+				Kind:       "Pipeline",
+				Name:       "pinned-pipeline",
+				UID:        defaultVersionPipelineID,
+			}},
+		},
+		Spec: v2beta1.PipelineVersionSpec{
+			VersionName:  versionName,
+			PipelineName: "pinned-pipeline",
+			PipelineSpec: getBasicPipelineSpec(),
+		},
+	}
+}
+
+// newDefaultVersionFixture builds a pipeline pinned to defaultVersionName, owning an older "pinned"
+// version and a newer "rolling" one, plus any extra versions.
+func newDefaultVersionFixture(
+	t *testing.T, defaultVersionName string, extraVersions ...client.Object,
+) (client.Client, string) {
+	t.Helper()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	objects := []client.Object{
+		&v2beta1.Pipeline{
+			ObjectMeta: metav1.ObjectMeta{
+				UID: defaultVersionPipelineID, Name: "pinned-pipeline", Namespace: "Test",
+			},
+			Spec: v2beta1.PipelineSpec{DefaultVersionName: defaultVersionName},
+		},
+		newPinnedPipelineVersion("gitops-authored-a", "pinned", metav1.Unix(1700000000, 0)),
+		newPinnedPipelineVersion("gitops-authored-b", "rolling", metav1.Unix(1800000000, 0)),
+	}
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(append(objects, extraVersions...)...).
+		Build()
+
+	return k8sClient, defaultVersionPipelineID
+}
+
+func TestGetDefaultK8sPipelineVersion_PinnedDefaultWinsOverNewer(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "pinned")
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "pinned", version.Name)
+}
+
+func TestGetDefaultK8sPipelineVersion_NoDefaultUsesNewest(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "")
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "rolling", version.Name)
+}
+
+func TestGetDefaultK8sPipelineVersion_DanglingDefaultErrors(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "deleted-version")
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	_, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.ErrorIs(t, err, errDefaultVersionUnresolved)
+
+	var userError *util.UserError
+	require.ErrorAs(t, err, &userError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		`no pipeline version is named "deleted-version"; set spec.defaultVersionName to an existing version`,
+		userError.ExternalMessage())
+}
+
+func TestGetDefaultK8sPipelineVersion_PinnedDefaultFallsBackToObjectName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	legacy := newPinnedPipelineVersion("legacy-version", "", metav1.Unix(1600000000, 0))
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "legacy-version", legacy)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "legacy-version", version.Name)
+}
+
+func TestGetDefaultK8sPipelineVersion_AmbiguousDefaultErrors(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	duplicate := newPinnedPipelineVersion("gitops-authored-c", "pinned", metav1.Unix(1900000000, 0))
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "pinned", duplicate)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	_, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.ErrorIs(t, err, errDefaultVersionUnresolved)
+
+	var userError *util.UserError
+	require.ErrorAs(t, err, &userError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		`2 pipeline versions are named "pinned"; spec.defaultVersionName must match exactly one`,
+		userError.ExternalMessage())
+}
+
+func TestGetDefaultK8sPipelineVersion_PinDoesNotMatchObjectName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	// gitops-authored-a is an object name; its version is named "pinned".
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "gitops-authored-a")
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	_, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.ErrorIs(t, err, errDefaultVersionUnresolved)
+}
+
+func TestGetDefaultK8sPipelineVersion_VersionNameBeatsAnotherObjectName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	decoy := newPinnedPipelineVersion("collision", "not-the-pin", metav1.Unix(1610000000, 0))
+	target := newPinnedPipelineVersion("collision-owner", "collision", metav1.Unix(1620000000, 0))
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "collision", decoy, target)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "collision", version.Name)
+}
+
+func newDefaultVersionFixtureWithPin(
+	t *testing.T, pin string, extra ...client.Object,
+) client.Client {
+	t.Helper()
+
+	k8sClient, _ := newDefaultVersionFixture(t, pin, extra...)
+
+	return k8sClient
+}
+
+// The pipeline-id label is user-mutable, so ownerReferences decide which versions are candidates.
+func TestGetDefaultK8sPipelineVersion_IgnoresLabelWithoutOwnership(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	// Carries this pipeline's label but is owned by another pipeline.
+	foreign := newPinnedPipelineVersion("foreign", "borrowed", metav1.Unix(1900000000, 0))
+	foreign.OwnerReferences[0].UID = "f0f0f0f0-0000-4000-8000-00000000000f"
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "", foreign)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	// It is the newest, but must not be selected as the default.
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "rolling", version.Name)
+
+	// Nor may it be pinned.
+	_, err = NewPipelineStoreKubernetes(
+		newDefaultVersionFixtureWithPin(t, "borrowed", foreign), k8sClient,
+	).GetDefaultPipelineVersion(pipelineID)
+	require.ErrorIs(t, err, errDefaultVersionUnresolved)
+}
+
+// Candidates are scoped to the pipeline's namespace; in multi-user mode the list is cluster-wide.
+func TestGetDefaultK8sPipelineVersion_IgnoresOtherNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "true")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	// Correct label and owner UID, but a different namespace.
+	otherNs := newPinnedPipelineVersion("other-ns", "tenant-b", metav1.Unix(1900000000, 0))
+	otherNs.Namespace = "other"
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "", otherNs)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "rolling", version.Name)
+}
+
+// The inverse of IgnoresLabelWithoutOwnership: an owned version must stay visible even if the
+// mutable label is missing or stale.
+func TestGetDefaultK8sPipelineVersion_FindsOwnedVersionWithStaleLabel(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	// Correct ownerReference, but the label points at a different pipeline.
+	mislabeled := newPinnedPipelineVersion("mislabeled", "recovered", metav1.Unix(1900000000, 0))
+	mislabeled.Labels["pipelines.kubeflow.org/pipeline-id"] = "f0f0f0f0-0000-4000-8000-00000000000f"
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "", mislabeled)
+
+	// It is the newest owned version, so it is the default.
+	version, err := NewPipelineStoreKubernetes(k8sClient, k8sClient).GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "recovered", version.Name)
+
+	// And it can be pinned by name.
+	version, err = NewPipelineStoreKubernetes(
+		newDefaultVersionFixtureWithPin(t, "recovered", mislabeled), k8sClient,
+	).GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "recovered", version.Name)
+}
+
+func TestGetDefaultK8sPipelineVersion_NoVersions(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	tests := []struct {
+		pin      string
+		wantCode codes.Code
+	}{
+		{pin: "", wantCode: codes.NotFound},
+		{pin: "pinned", wantCode: codes.FailedPrecondition},
+	}
+
+	for _, test := range tests {
+		t.Run("pin="+test.pin, func(t *testing.T) {
+			scheme := runtime.NewScheme()
+			require.NoError(t, v2beta1.AddToScheme(scheme))
+
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&v2beta1.Pipeline{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: defaultVersionPipelineID, Name: "pinned-pipeline", Namespace: "Test",
+				},
+				Spec: v2beta1.PipelineSpec{DefaultVersionName: test.pin},
+			}).Build()
+
+			_, err := NewPipelineStoreKubernetes(k8sClient, k8sClient).GetDefaultPipelineVersion(defaultVersionPipelineID)
+
+			var userError *util.UserError
+			require.ErrorAs(t, err, &userError)
+			assert.Equal(t, test.wantCode, userError.ExternalStatusCode())
+		})
+	}
 }
 
 func TestGetK8sPipelineVersion_NotFoundError(t *testing.T) {
@@ -344,7 +665,7 @@ func TestGetK8sPipelineVersion_NotFoundError(t *testing.T) {
 
 	store := NewPipelineStoreKubernetes(getClient())
 
-	_, err := store.GetLatestPipelineVersion(DefaultFakePipelineIdFive)
+	_, err := store.GetDefaultPipelineVersion(DefaultFakePipelineIdFive)
 	require.NotNil(t, err)
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.NotFound)
 }
@@ -376,14 +697,14 @@ func TestListK8sPipelineVersions_Pagination(t *testing.T) {
 	options, err := list.NewOptions(&model.PipelineVersion{}, 1, "", nil)
 	require.Nil(t, err, "Failed to create list options")
 
-	pipelineVersions, _, npt, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, npt, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.NotNil(t, npt, "Npt should not be nil")
 
 	options, err = list.NewOptionsFromToken(npt, 1)
 	require.Nil(t, err, "Failed to create list options")
-	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err = store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.Equalf(t, pipelineVersions[0].Name, "test-pipeline-version-3", "Pagination did not work as expected")
@@ -415,7 +736,7 @@ func TestListK8sPipelineVersions_Pagination_Descend(t *testing.T) {
 
 	options, err := list.NewOptions(&model.PipelineVersion{}, 1, "name desc", nil)
 
-	pipelineVersions, _, _, err1 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err1 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err1, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 	require.Equalf(t, pipelineVersions[0].Name, "test-pipeline-version-3", "Pagination did not work as expected")
@@ -431,7 +752,7 @@ func TestListK8sPipelineVersions_Pagination_LessThanPageSize(t *testing.T) {
 	options, err1 := list.NewOptions(&model.Pipeline{}, 10, "", nil)
 	require.Nil(t, err1, "Failed to create list options: %v")
 
-	pipelines, pageSize, _, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelines, pageSize, _, err := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err, "Failed to list pipeline Versions: %v")
 	require.Equalf(t, pageSize, 1, "Page size should be 1")
 	require.Equalf(t, len(pipelines), 1, "List size should be 1")
@@ -460,9 +781,9 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	filterProto := &api.Filter{
 		Predicates: []*api.Predicate{
 			{
-				Key:   "name",
-				Op:    api.Predicate_IS_SUBSTRING,
-				Value: &api.Predicate_StringValue{StringValue: "test"},
+				Key:       "name",
+				Operation: api.Predicate_IS_SUBSTRING,
+				Value:     &api.Predicate_StringValue{StringValue: "test"},
 			},
 		},
 	}
@@ -471,7 +792,7 @@ func TestListK8sPipelineVersions_WithFilter(t *testing.T) {
 	options, err1 := list.NewOptions(&model.PipelineVersion{}, 1, "", newFilter)
 	require.Nil(t, err1, "Failed to list pipeline versions: %v", err)
 
-	pipelineVersions, _, _, err2 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options, nil)
+	pipelineVersions, _, _, err2 := store.ListPipelineVersions(DefaultFakePipelineIdTwo, options)
 	require.Nil(t, err2, "Failed to list pipeline versions: %v", err)
 	require.Equalf(t, len(pipelineVersions), 1, "List size should not be zero")
 }
@@ -671,7 +992,7 @@ func TestIsNewerPipelineVersion(t *testing.T) {
 }
 
 // Versions created within the same second tie on CreationTimestamp.
-func TestGetLatestK8sPipelineVersion_SameCreationSecondIsDeterministic(t *testing.T) {
+func TestGetDefaultK8sPipelineVersion_SameCreationSecondIsDeterministic(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
 	defer viper.Set("POD_NAMESPACE", podNamespace)
@@ -724,7 +1045,7 @@ func TestGetLatestK8sPipelineVersion_SameCreationSecondIsDeterministic(t *testin
 
 		store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
 
-		latest, err := store.GetLatestPipelineVersion(pipelineID)
+		latest, err := store.GetDefaultPipelineVersion(pipelineID)
 		require.NoError(t, err)
 		assert.Equal(t, "tie-version-high", latest.Name)
 	}
@@ -812,4 +1133,115 @@ func getClient() (client.Client, client.Client) {
 		Build()
 
 	return k8sClient, k8sClient
+}
+
+// newVersionFixture builds an unpinned pipeline owning the given versions.
+func newVersionFixture(t *testing.T, versions ...client.Object) (client.Client, string) {
+	t.Helper()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	objects := []client.Object{&v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			UID: defaultVersionPipelineID, Name: "pinned-pipeline", Namespace: "Test",
+		},
+	}}
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(append(objects, versions...)...).
+		Build()
+
+	return k8sClient, defaultVersionPipelineID
+}
+
+// newUnparseableVersion returns an owned version whose manifest ToModel cannot parse, so any code
+// path that converts it fails loudly.
+func newUnparseableVersion(objectName string) *v2beta1.PipelineVersion {
+	version := newPinnedPipelineVersion(objectName, objectName, metav1.Unix(1700000000, 0))
+	version.Spec.PipelineSpec = v2beta1.IRSpec{Value: map[string]interface{}{"not": "a pipeline spec"}}
+
+	return version
+}
+
+// The existence check must not parse manifests: callers only need to know a version exists.
+func TestGetAnyK8sPipelineVersionId_DoesNotConvertManifests(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newVersionFixture(t,
+		newUnparseableVersion("a"), newUnparseableVersion("b"),
+		newUnparseableVersion("c"), newUnparseableVersion("d"),
+	)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	pipelineVersionID, err := store.GetAnyPipelineVersionID(pipelineID)
+	require.NoError(t, err)
+	assert.NotEmpty(t, pipelineVersionID)
+}
+
+// Documents why the existence check does not list: ListPipelineVersions converts every candidate
+// before paginating, so a page size of 1 does not bound the work. If the list path is ever made to
+// paginate first, this test becomes obsolete rather than wrong.
+func TestListK8sPipelineVersions_ConvertsEveryManifest(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newVersionFixture(t, newUnparseableVersion("a"), newUnparseableVersion("b"))
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	opts, err := list.NewOptions(&model.PipelineVersion{}, 1, "id", nil)
+	require.NoError(t, err)
+	_, _, _, err = store.ListPipelineVersions(pipelineID, opts, nil)
+	require.Error(t, err)
+}
+
+func TestGetAnyK8sPipelineVersionId_NoVersions(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newVersionFixture(t)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	pipelineVersionID, err := store.GetAnyPipelineVersionID(pipelineID)
+	require.NoError(t, err)
+	assert.Empty(t, pipelineVersionID)
+}
+
+// A foreign CR carrying this pipeline's mutable label must not block its deletion.
+func TestGetAnyK8sPipelineVersionId_IgnoresLabelWithoutOwnership(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	foreign := newPinnedPipelineVersion("foreign", "borrowed", metav1.Unix(1900000000, 0))
+	foreign.OwnerReferences[0].UID = "f0f0f0f0-0000-4000-8000-00000000000f"
+
+	k8sClient, pipelineID := newVersionFixture(t, foreign)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	pipelineVersionID, err := store.GetAnyPipelineVersionID(pipelineID)
+	require.NoError(t, err)
+	assert.Empty(t, pipelineVersionID)
+}
+
+// The inverse: an owned version with a stale label still blocks deletion.
+func TestGetAnyK8sPipelineVersionId_FindsOwnedVersionWithStaleLabel(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	stale := newPinnedPipelineVersion("stale-label", "owned", metav1.Unix(1900000000, 0))
+	stale.Labels = map[string]string{"pipelines.kubeflow.org/pipeline-id": "stale"}
+
+	k8sClient, pipelineID := newVersionFixture(t, stale)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	pipelineVersionID, err := store.GetAnyPipelineVersionID(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, string(stale.UID), pipelineVersionID)
 }

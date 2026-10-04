@@ -24,9 +24,9 @@ import AllExperimentsAndArchive, {
 describe('ExperimentsAndArchive', () => {
   function generateProps(): AllExperimentsAndArchiveProps {
     return {
-      history: {} as any,
+      navigate: vi.fn(),
       location: '' as any,
-      match: '' as any,
+      params: {},
       toolbarProps: {} as any,
       updateBanner: () => null,
       updateDialog: vi.fn(),
@@ -51,7 +51,7 @@ describe('ExperimentsAndArchive', () => {
   it('switches to clicked page by pushing to history', () => {
     const spy = vi.fn();
     const props = generateProps();
-    props.history.push = spy;
+    props.navigate = spy;
     const { rerender } = render(<AllExperimentsAndArchive {...(props as any)} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Archived' }));

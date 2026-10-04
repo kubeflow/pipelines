@@ -15,7 +15,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -25,6 +24,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -568,107 +568,223 @@ func TestResolveWebhookTLSPaths(t *testing.T) {
 func int64Ptr(v int64) *int64 { return &v }
 func boolPtr(v bool) *bool    { return &v }
 
-func TestClearTagsMiddleware(t *testing.T) {
-	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Got-Clear-Tags", r.Header.Get(common.ClearTagsMetadataKey))
-		body, _ := io.ReadAll(r.Body)
-		w.Header().Set("X-Body", string(body))
-		w.WriteHeader(http.StatusOK)
-	})
-	handler := clearTagsMiddleware(downstream)
+type errReader struct{ err error }
 
+func (e errReader) Read(p []byte) (n int, err error) { return 0, e.err }
+
+func TestClearTagsMiddleware(t *testing.T) {
+	t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, "")
+	limitErrorJSON, err := json.Marshal(map[string]interface{}{
+		"code":    3,
+		"message": common.SizeLimitErrorMessage("pipeline_update_body", MaxUpdateRequestBodySize, common.MaxPipelineUpdateBodyBytesEnv),
+	})
+	require.NoError(t, err)
 	tests := []struct {
-		name       string
-		method     string
-		body       string
-		wantHeader string
+		name                 string
+		method               string
+		path                 string
+		reqBodyStr           string
+		reqBodyReader        io.Reader // if set, overrides reqBodyStr
+		setupReq             func(*http.Request)
+		expectedStatus       int
+		expectedClearTags    string
+		expectDownstreamCall bool
+		expectedErrorJSON    string
 	}{
 		{
-			name:       "PUT with empty tags sets header",
-			method:     http.MethodPut,
-			body:       `{"tags":{}}`,
-			wantHeader: "true",
+			name:                 "not an update path",
+			method:               http.MethodPut,
+			path:                 "/apis/v2beta1/experiments/123",
+			reqBodyStr:           `{"tags":{}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "",
+			expectDownstreamCall: true,
 		},
 		{
-			name:       "PUT with non-empty tags does not set header",
-			method:     http.MethodPut,
-			body:       `{"tags":{"k":"v"}}`,
-			wantHeader: "",
+			name:                 "not a PUT/PATCH",
+			method:               http.MethodPost,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyStr:           `{"tags":{}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "",
+			expectDownstreamCall: true,
 		},
 		{
-			name:       "PUT without tags does not set header",
-			method:     http.MethodPut,
-			body:       `{"display_name":"foo"}`,
-			wantHeader: "",
+			name:                 "pipeline update with empty tags triggers header",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyStr:           `{"tags":{}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "true",
+			expectDownstreamCall: true,
 		},
 		{
-			name:       "GET request is ignored",
-			method:     http.MethodGet,
-			body:       "",
-			wantHeader: "",
+			name:                 "pipeline version update with empty tags triggers header",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123/versions/456",
+			reqBodyStr:           `{"tags":{}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "true",
+			expectDownstreamCall: true,
 		},
 		{
-			name:       "POST request is ignored",
-			method:     http.MethodPost,
-			body:       `{"tags":{}}`,
-			wantHeader: "",
+			name:                 "non-empty tags does not trigger header",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyStr:           `{"tags":{"k":"v"}}`,
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "",
+			expectDownstreamCall: true,
+		},
+		{
+			name:                 "body exactly at limit is accepted and preserved",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyStr:           strings.Repeat("a", MaxUpdateRequestBodySize),
+			expectedStatus:       http.StatusOK,
+			expectedClearTags:    "",
+			expectDownstreamCall: true,
+		},
+		{
+			name:                 "body one byte over limit is rejected with 413",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyReader:        strings.NewReader(strings.Repeat("a", MaxUpdateRequestBodySize+1)),
+			expectedStatus:       http.StatusRequestEntityTooLarge,
+			expectDownstreamCall: false,
+			expectedErrorJSON:    string(limitErrorJSON),
+		},
+		{
+			name:   "unknown content length over limit is rejected with 413",
+			method: http.MethodPatch,
+			path:   "/apis/v2beta1/pipelines/123",
+			setupReq: func(r *http.Request) {
+				r.ContentLength = -1
+				r.Body = io.NopCloser(strings.NewReader(strings.Repeat("a", MaxUpdateRequestBodySize+1)))
+			},
+			expectedStatus:       http.StatusRequestEntityTooLarge,
+			expectDownstreamCall: false,
+			expectedErrorJSON:    string(limitErrorJSON),
+		},
+		{
+			name:                 "unrelated reader failure yields 400",
+			method:               http.MethodPatch,
+			path:                 "/apis/v2beta1/pipelines/123",
+			reqBodyReader:        errReader{err: errors.New("synthetic network error")},
+			expectedStatus:       http.StatusBadRequest,
+			expectDownstreamCall: false,
+			expectedErrorJSON:    `{"code":3,"message":"Failed to read request body"}`,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var bodyReader io.Reader
-			if tt.body != "" {
-				bodyReader = strings.NewReader(tt.body)
+			downstreamCalled := false
+			var readBody []byte
+			downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				downstreamCalled = true
+				if r.Body != nil {
+					readBody, _ = io.ReadAll(r.Body)
+				}
+				w.WriteHeader(http.StatusOK)
+			})
+			handler := clearTagsMiddleware(downstream)
+
+			var reqBody io.Reader
+			if tt.reqBodyReader != nil {
+				reqBody = tt.reqBodyReader
+			} else {
+				reqBody = strings.NewReader(tt.reqBodyStr)
 			}
-			req := httptest.NewRequest(tt.method, "/apis/v2beta1/pipelines/some-id", bodyReader)
-			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(tt.method, tt.path, reqBody)
 
-			handler.ServeHTTP(rr, req)
+			if tt.setupReq != nil {
+				tt.setupReq(req)
+			}
 
-			assert.Equal(t, tt.wantHeader, rr.Header().Get("X-Got-Clear-Tags"))
-			if tt.body != "" {
-				assert.Equal(t, tt.body, rr.Header().Get("X-Body"))
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+			assert.Equal(t, tt.expectDownstreamCall, downstreamCalled)
+
+			if tt.expectDownstreamCall {
+				assert.Equal(t, tt.expectedClearTags, req.Header.Get(common.ClearTagsMetadataKey))
+				// Ensure body is preserved entirely if we supplied a readable string
+				if tt.reqBodyReader == nil && tt.setupReq == nil {
+					assert.Equal(t, tt.reqBodyStr, string(readBody), "Downstream body should exactly match original body")
+				}
+			} else {
+				// Assert structured JSON error
+				assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+				assert.JSONEq(t, tt.expectedErrorJSON, rec.Body.String())
 			}
 		})
 	}
 }
 
-func TestGrpcCustomMatcher_ClearTags(t *testing.T) {
-	key, ok := grpcCustomMatcher(common.ClearTagsMetadataKey)
-	assert.True(t, ok)
-	assert.Equal(t, common.ClearTagsMetadataKey, key)
-
-	key, ok = grpcCustomMatcher("X-CLEAR-TAGS")
-	assert.True(t, ok)
-	assert.Equal(t, common.ClearTagsMetadataKey, key)
+func TestClearTagsMiddlewareConfiguredLimit(t *testing.T) {
+	for _, method := range []string{http.MethodPatch, http.MethodPut} {
+		for _, path := range []string{
+			"/apis/v2beta1/pipelines/123",
+			"/apis/v2beta1/pipelines/123/versions/456",
+		} {
+			for _, size := range []int{15, 16, 17} {
+				t.Run(fmt.Sprintf("%s/%s/%d", method, path, size), func(t *testing.T) {
+					t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, "16")
+					body := strings.Repeat("a", size)
+					called := false
+					handler := clearTagsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						called = true
+						got, err := io.ReadAll(r.Body)
+						require.NoError(t, err)
+						assert.Equal(t, body, string(got))
+					}))
+					req := httptest.NewRequest(method, path, strings.NewReader(body))
+					req.ContentLength = -1
+					rec := httptest.NewRecorder()
+					handler.ServeHTTP(rec, req)
+					if size <= 16 {
+						assert.Equal(t, http.StatusOK, rec.Code)
+						assert.True(t, called)
+					} else {
+						assert.Equal(t, http.StatusRequestEntityTooLarge, rec.Code)
+						assert.False(t, called)
+						assert.Contains(t, rec.Body.String(), common.MaxPipelineUpdateBodyBytesEnv)
+						assert.Contains(t, rec.Body.String(), "16 bytes")
+						assert.NotContains(t, rec.Body.String(), body)
+					}
+				})
+			}
+		}
+	}
 }
 
-func TestClearTagsMiddleware_BodyPreserved(t *testing.T) {
-	original := `{"tags":{},"display_name":"test"}`
-	var capturedBody []byte
-	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		capturedBody, _ = io.ReadAll(r.Body)
-		w.WriteHeader(http.StatusOK)
-	})
-	handler := clearTagsMiddleware(downstream)
-
-	req := httptest.NewRequest(http.MethodPut, "/test", bytes.NewBufferString(original))
-	handler.ServeHTTP(httptest.NewRecorder(), req)
-
-	assert.Equal(t, original, string(capturedBody))
+func TestClearTagsMiddlewareInvalidLimit(t *testing.T) {
+	for _, setting := range []string{"0", "-1", "invalid", "134217729"} {
+		t.Run(setting, func(t *testing.T) {
+			t.Setenv(common.MaxPipelineUpdateBodyBytesEnv, setting)
+			called := false
+			handler := clearTagsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				called = true
+			}))
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPatch, "/apis/v2beta1/pipelines/123", strings.NewReader(`{"tags":{}}`)))
+			assert.False(t, called)
+			assert.Equal(t, http.StatusInternalServerError, rec.Code)
+			assert.JSONEq(t, `{"code":13,"message":"Invalid server size-limit configuration; contact your administrator"}`, rec.Body.String())
+		})
+	}
 }
 
 func noOpHandler(w http.ResponseWriter, r *http.Request) {}
 
 func newNoOpHTTPRouterDeps() HTTPRouterDeps {
 	return HTTPRouterDeps{
-		UploadPipelineV1:        noOpHandler,
-		UploadPipelineVersionV1: noOpHandler,
-		UploadPipeline:          noOpHandler,
-		UploadPipelineVersion:   noOpHandler,
-		ReadRunLogV1:            noOpHandler,
-		ReadArtifactV1:          noOpHandler,
-		ReadArtifact:            noOpHandler,
+		UploadPipeline:        noOpHandler,
+		UploadPipelineVersion: noOpHandler,
+		ReadRunLog:            noOpHandler,
+		ReadArtifact:          noOpHandler,
 	}
 }
 
@@ -698,14 +814,10 @@ func TestBuildHTTPRouter_AllRoutesRegistered(t *testing.T) {
 		path            string
 		expectedMethods []string
 	}{
-		{"/apis/v1beta1/pipelines/upload", nil},
-		{"/apis/v1beta1/pipelines/upload_version", nil},
-		{"/apis/v1beta1/healthz", nil},
 		{"/apis/v2beta1/pipelines/upload", nil},
 		{"/apis/v2beta1/pipelines/upload_version", nil},
 		{"/apis/v2beta1/healthz", nil},
-		{"/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", nil},
-		{"/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
+		{"/apis/v2beta1/runs/{run_id}/nodes/{node_id}/log", []string{"GET"}},
 		{"/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", []string{"GET"}},
 		{"/metrics", nil},
 	}
@@ -731,13 +843,7 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 		multiUser     bool
 		wantV2Store   bool
 	}{
-		{
-			name:      "v1beta1 healthz",
-			path:      "/apis/v1beta1/healthz",
-			commitSHA: `sha-"v1"`,
-			tagName:   "tag-v1\nline",
-			multiUser: true,
-		},
+
 		{
 			name:          "v2beta1 healthz with database store",
 			path:          "/apis/v2beta1/healthz",
@@ -797,12 +903,12 @@ func TestBuildHTTPRouter_HandlersAreCalled(t *testing.T) {
 		path       string
 		setHandler func(deps *HTTPRouterDeps, handler http.HandlerFunc)
 	}{
-		{"v1beta1 upload pipeline", http.MethodPost, "/apis/v1beta1/pipelines/upload",
-			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineV1 = handler }},
+		{"v2beta1 upload pipeline", http.MethodPost, "/apis/v2beta1/pipelines/upload",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipeline = handler }},
 		{"v2beta1 upload pipeline version", http.MethodPost, "/apis/v2beta1/pipelines/upload_version",
 			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.UploadPipelineVersion = handler }},
-		{"v1alpha1 run log", http.MethodGet, "/apis/v1alpha1/runs/run-123/nodes/node-456/log",
-			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadRunLogV1 = handler }},
+		{"v2beta1 run log", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/log",
+			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadRunLog = handler }},
 		{"v2beta1 artifact read", http.MethodGet, "/apis/v2beta1/runs/run-123/nodes/node-456/artifacts/my-artifact:read",
 			func(deps *HTTPRouterDeps, handler http.HandlerFunc) { deps.ReadArtifact = handler }},
 	}
@@ -842,4 +948,38 @@ func TestBuildHTTPRouter_UnmatchedAPIsGoToGateway(t *testing.T) {
 	router.ServeHTTP(recorder, request)
 
 	assert.True(t, gatewayHandlerCalled, "requests to /apis/ paths not matching explicit routes should reach the gRPC gateway handler")
+}
+
+func TestInitConfigRejectsInvalidServiceAccountAuthorizationMode(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	t.Setenv(common.ServiceAccountAuthorizationMode, "audti")
+	tempDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "config.json"), []byte(`{}`), 0600))
+	original := *configPath
+	*configPath = tempDir
+	t.Cleanup(func() { *configPath = original })
+	require.ErrorContains(t, initConfig(), "KFP_SECURITY_SERVICE_ACCOUNT_MODE must be enforce or audit")
+}
+
+func TestInitConfigRejectsInvalidWorkflowIdentityMode(t *testing.T) {
+	viper.Reset()
+	tempDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "config.json"), []byte(`{}`), 0600))
+	originalConfigPath := *configPath
+	*configPath = tempDir
+	t.Cleanup(func() { *configPath = originalConfigPath; viper.Reset() })
+	t.Setenv(common.WorkflowIdentityMode, "true")
+	err := initConfig()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), common.WorkflowIdentityMode)
+}
+
+func TestBuildHTTPRouter_RunLogRequiresGET(t *testing.T) {
+	deps := newNoOpHTTPRouterDeps()
+	deps.ReadRunLog = func(http.ResponseWriter, *http.Request) { t.Error("POST reached run log streaming handler") }
+	router := buildHTTPRouter(deps, http.NotFoundHandler(), "database")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/apis/v2beta1/runs/run-id/nodes/node-id/log?follow=true", nil))
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
 }

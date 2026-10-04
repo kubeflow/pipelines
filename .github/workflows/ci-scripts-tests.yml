@@ -1,18 +1,21 @@
 # Presubmit gate for the Python tooling and CI action wiring under .github:
-# the unit tests are stdlib-only and use the `*_test.py` suffix, so select
+# the unit tests use the `*_test.py` suffix, so select
 # that pattern explicitly because it is not unittest discover's default.
 name: CI Scripts Tests
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
     paths:
-      - '.gitattributes'
       - '.github/dependabot.yml'
       - '**/go.mod'
       - '**/package.json'
       - '**/requirements*.txt'
       - '**/setup.py'
       - '**/pyproject.toml'
+      - '**/uv.lock'
       - '**/action.yml'
       - '**/action.yaml'
       - '.pre-commit-config.yaml'
@@ -23,6 +26,11 @@ on:
       - '.github/resources/buildkitd.toml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
+      - '.github/resources/scripts/*.js'
+      - '.github/resources/ci-workflow-inventory.json'
+      # Any trigger change must update the expected-workflow inventory.
+      - '.github/workflows/**'
+      - '.github/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
@@ -34,20 +42,45 @@ on:
       - '.github/workflows/api-server-tests.yml'
       - '.github/workflows/create-manifest.yml'
       - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/e2e-test-frontend.yml'
       - '.github/workflows/image-builds.yml'
-      - '.github/workflows/update-dependabot-generated-files.yml'
       - '.github/workflows/validate-generated-files.yml'
       - '.github/workflows/osv-scanner.yml'
       - '.github/workflows/build-tools-images.yml'
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
+      - '.github/workflows/check-requirements-txt.yml'
+      - '.github/workflows/check-uv-lock.yml'
+      - '.github/workflows/publish-packages.yml'
+      - '.github/workflows/pre-commit.yml'
+      - '.github/workflows/pr-gate.yml'
       - '.github/workflows/gh-workflow-approve.yml'
-      - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
-      - 'manifests/kustomize/third-party/argo/base/workflow-controller-deployment-patch.yaml'
-      - 'manifests/kustomize/third-party/argo/base/kustomization.yaml'
-      - 'manifests/kustomize/third-party/argo/installs/**'
-      - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
+      - '.github/workflows/contributor-report.yml'
+      # Inputs read by the v2 deployment contract and profile-controller tests.
+      - 'manifests/kustomize/**'
+      - '.github/resources/manifests/**'
+      - 'backend/api/v2beta1/**'
+      - 'backend/Dockerfile.visualization'
+      - 'backend/src/apiserver/visualization/**'
+      - 'frontend/src/apisv2beta1/visualization/**'
+      - 'docs/_static/kfp_api_single_file.swagger.json'
+      - 'Makefile'
+      - 'backend/src/v2/Makefile'
+      - 'release/kfpr/core.py'
+      - 'test_data/sdk_compiled_pipelines/valid/**'
+      - 'backend/test/end2end/pipeline_e2e_test.go'
+      - 'backend/test/v2/resources/env-var.yaml'
+      - 'backend/test/v2/resources/hello-world-with-returning-component.yaml'
+      - 'test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py'
+      - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - 'backend/Dockerfile'
+      - 'backend/api/build_kfp_server_api_python_package.sh'
+      - 'hack/update-requirements.sh'
+      - '.readthedocs.yml'
+      - 'kubernetes_platform/python/docs/.readthedocs.yml'
+      - 'sdk/python/kfp/version.py'
+      - 'kubernetes_platform/python/kfp/kubernetes/__init__.py'
+      - 'kubernetes_platform/python/release.sh'
       - 'backend/src/common/types.go'
       - 'go.mod'
       - 'go.sum'
@@ -62,14 +95,37 @@ permissions:
   contents: read
 
 jobs:
+  profile-controller-tests:
+    name: Run profile-controller unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Run profile-controller tests
+        working-directory: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller
+        run: bash run_tests.sh
+
   python-script-tests:
     name: Run .github scripts unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - name: Run Python script unit tests
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
+      - name: Run Python resource script unit tests
         working-directory: .github/resources/scripts
+        run: python3 -m unittest discover -v -p '*_test.py'
+      - name: Run repo-local workflow script unit tests
+        working-directory: .github/scripts
         run: python3 -m unittest discover -v -p '*_test.py'
       - name: Run JUnit summary action unit tests
         working-directory: .github/actions/junit-summary

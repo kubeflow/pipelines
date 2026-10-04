@@ -45,6 +45,7 @@ func CompareWorkflows(actual *v1alpha1.Workflow, expected *v1alpha1.Workflow) {
 	sort.Slice(actual.Spec.Arguments.Parameters, func(i, j int) bool {
 		return actual.Spec.Arguments.Parameters[i].Name < actual.Spec.Arguments.Parameters[j].Name
 	})
+	gomega.Expect(actual.Spec.Arguments.Parameters).To(gomega.HaveLen(len(expected.Spec.Arguments.Parameters)), "Workflow argument parameter count is not same")
 	for paramIndex, param := range expected.Spec.Arguments.Parameters {
 		gomega.Expect(actual.Spec.Arguments.Parameters[paramIndex].Name).To(gomega.Equal(param.Name), "Parameter Name is not same")
 		gomega.Expect(actual.Spec.Arguments.Parameters[paramIndex].Description).To(gomega.Equal(param.Description), "Parameter Description is not same")

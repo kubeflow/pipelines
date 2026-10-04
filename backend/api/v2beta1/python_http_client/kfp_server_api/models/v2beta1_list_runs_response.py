@@ -89,7 +89,7 @@ class V2beta1ListRunsResponse(object):
     def total_size(self):
         """Gets the total_size of this V2beta1ListRunsResponse.  # noqa: E501
 
-        The total number of runs for the given query.  # noqa: E501
+        The total number of runs for the given query. If the request set skip_count to true, this is -1 rather than a real count.  # noqa: E501
 
         :return: The total_size of this V2beta1ListRunsResponse.  # noqa: E501
         :rtype: int
@@ -100,7 +100,7 @@ class V2beta1ListRunsResponse(object):
     def total_size(self, total_size):
         """Sets the total_size of this V2beta1ListRunsResponse.
 
-        The total number of runs for the given query.  # noqa: E501
+        The total number of runs for the given query. If the request set skip_count to true, this is -1 rather than a real count.  # noqa: E501
 
         :param total_size: The total_size of this V2beta1ListRunsResponse.  # noqa: E501
         :type total_size: int

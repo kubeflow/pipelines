@@ -43,6 +43,9 @@ Uses only the Python standard library.
 """
 
 import collections
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
 import io
 import json
 import os
@@ -52,7 +55,6 @@ import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
-from datetime import datetime, timedelta, timezone
 
 API_ROOT = "https://api.github.com"
 
@@ -63,7 +65,6 @@ API_ROOT = "https://api.github.com"
 TARGET_WORKFLOWS = [
     "e2e-test.yml",
     "api-server-tests.yml",
-    "integration-tests-v1.yml",
     "legacy-v2-api-integration-tests.yml",
     "kfp-sdk-client-tests.yml",
     "upgrade-test.yml",
@@ -79,7 +80,9 @@ RETRY_ARTIFACT_SUFFIX = re.compile(r"^(?P<base>.+) - retry-(?P<attempt>\d+)$")
 # in-progress runs, so counting cancellations as either success or failure
 # biases rates. Everything not listed here and not "success" is a failure
 # (failure, timed_out, stale, ...).
-NON_RESULT_CONCLUSIONS = {None, "", "skipped", "cancelled", "neutral", "action_required"}
+NON_RESULT_CONCLUSIONS = {
+    None, "", "skipped", "cancelled", "neutral", "action_required"
+}
 
 
 class RateLimited(Exception):
@@ -90,11 +93,12 @@ def build_opener_without_redirects():
     """Opener that surfaces redirects instead of following them.
 
     Artifact downloads redirect to blob storage; forwarding the GitHub
-    Authorization header there makes the storage backend reject the request,
-    so the redirect target must be fetched without it.
+    Authorization header there makes the storage backend reject the
+    request, so the redirect target must be fetched without it.
     """
 
     class NoRedirect(urllib.request.HTTPRedirectHandler):
+
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             return None
 
@@ -108,7 +112,8 @@ def api_request(token, url, method="GET", body=None, raw=False):
         "X-GitHub-Api-Version": "2022-11-28",
     }
     data = json.dumps(body).encode() if body is not None else None
-    request = urllib.request.Request(url, data=data, headers=headers, method=method)
+    request = urllib.request.Request(
+        url, data=data, headers=headers, method=method)
     opener = build_opener_without_redirects()
     try:
         with opener.open(request, timeout=60) as response:
@@ -120,10 +125,11 @@ def api_request(token, url, method="GET", body=None, raw=False):
             if location:
                 # Redirect target (blob storage) must not receive the token.
                 with urllib.request.urlopen(
-                    urllib.request.Request(location), timeout=120
-                ) as redirected:
+                        urllib.request.Request(location),
+                        timeout=120) as redirected:
                     return redirected.read()
-        if error.code == 403 and error.headers.get("X-RateLimit-Remaining") == "0":
+        if error.code == 403 and error.headers.get(
+                "X-RateLimit-Remaining") == "0":
             raise RateLimited(url) from error
         raise
 
@@ -131,10 +137,10 @@ def api_request(token, url, method="GET", body=None, raw=False):
 def paginate(token, url, key, max_pages=3):
     """Returns (items, may_have_more).
 
-    may_have_more is True when the page budget ran out while pages were still
-    full and the API's total_count confirms that more results exist. The caller
-    must surface that as a completeness gap instead of silently publishing
-    partial results.
+    may_have_more is True when the page budget ran out while pages were
+    still full and the API's total_count confirms that more results
+    exist. The caller must surface that as a completeness gap instead of
+    silently publishing partial results.
     """
     items = []
     page_url = url
@@ -142,7 +148,8 @@ def paginate(token, url, key, max_pages=3):
         payload = api_request(token, page_url)
         chunk = payload.get(key, []) if isinstance(payload, dict) else payload
         items.extend(chunk)
-        total_count = payload.get("total_count") if isinstance(payload, dict) else None
+        total_count = payload.get("total_count") if isinstance(payload,
+                                                               dict) else None
         if isinstance(total_count, int) and len(items) >= total_count:
             return items, False
         if len(chunk) < 100:
@@ -181,19 +188,23 @@ def run_attempt_job_urls(repo, run):
         ]
     return [
         f"{API_ROOT}/repos/{repo}/actions/runs/{run['id']}/attempts/{attempt}/jobs"
-        "?per_page=100"
-        for attempt in range(1, attempts + 1)
+        "?per_page=100" for attempt in range(1, attempts + 1)
     ]
 
 
 def collect_lane_stats(token, repo, since, max_runs):
     """Aggregates per-lane job outcomes across every attempt of each run.
 
-    Returns (lanes, failed_runs, reruns, notes) where failed_runs is a list of
-    (created_at, run_id) for runs with a failed job in any attempt, and notes
-    is a list of data-completeness warnings for the report header.
+    Returns (lanes, failed_runs, reruns, notes) where failed_runs is a
+    list of (created_at, run_id) for runs with a failed job in any
+    attempt, and notes is a list of data-completeness warnings for the
+    report header.
     """
-    lanes = collections.defaultdict(lambda: {"total": 0, "failed": 0, "durations": []})
+    lanes = collections.defaultdict(lambda: {
+        "total": 0,
+        "failed": 0,
+        "durations": []
+    })
     failed_runs = []
     reruns = 0
     notes = []
@@ -203,10 +214,8 @@ def collect_lane_stats(token, repo, since, max_runs):
     job_page_truncations = 0
 
     for workflow in TARGET_WORKFLOWS:
-        url = (
-            f"{API_ROOT}/repos/{repo}/actions/workflows/{workflow}/runs"
-            f"?branch=master&created=>={since}&per_page=100"
-        )
+        url = (f"{API_ROOT}/repos/{repo}/actions/workflows/{workflow}/runs"
+               f"?branch=master&created=>={since}&per_page=100")
         try:
             runs, more_runs = paginate(token, url, "workflow_runs", max_pages=1)
         except urllib.error.HTTPError as error:
@@ -243,8 +252,7 @@ def collect_lane_stats(token, repo, since, max_runs):
                 except RateLimited:
                     notes.append(
                         f"rate-limited while reading jobs for `{workflow}`; "
-                        "results truncated"
-                    )
+                        "results truncated")
                     rate_limited = True
                     break
                 except urllib.error.HTTPError:
@@ -273,22 +281,18 @@ def collect_lane_stats(token, repo, since, max_runs):
             break
 
     if missing_workflows:
-        notes.append(
-            "tracked workflow(s) not found (renamed/removed — update "
-            "TARGET_WORKFLOWS): " + ", ".join(missing_workflows)
-        )
+        notes.append("tracked workflow(s) not found (renamed/removed — update "
+                     "TARGET_WORKFLOWS): " + ", ".join(missing_workflows))
     if capped_workflows:
         notes.append("run cap applied: " + ", ".join(capped_workflows))
     if job_fetch_errors:
         notes.append(
             f"{job_fetch_errors} job listing(s) failed with HTTP errors; "
-            "lane rates may undercount failures"
-        )
+            "lane rates may undercount failures")
     if job_page_truncations:
         notes.append(
             f"{job_page_truncations} job listing(s) exceeded the page budget; "
-            "lane rates may undercount"
-        )
+            "lane rates may undercount")
     return lanes, failed_runs, reruns, notes
 
 
@@ -297,7 +301,8 @@ def select_junit_artifacts(artifacts):
     selected_by_base_name = {}
     for artifact in artifacts:
         name = artifact.get("name", "")
-        if not name.startswith(JUNIT_ARTIFACT_PREFIX) or artifact.get("expired"):
+        if not name.startswith(JUNIT_ARTIFACT_PREFIX) or artifact.get(
+                "expired"):
             continue
 
         retry_match = RETRY_ARTIFACT_SUFFIX.match(name)
@@ -314,8 +319,8 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
     """Tallies failed testcases from junit-xml artifacts of failed runs.
 
     Newest failed runs first, across all workflows, so one busy workflow
-    cannot monopolize the artifact budget. Returns
-    (failed_tests, artifacts_parsed, ingestion_errors, scanned_run_count).
+    cannot monopolize the artifact budget. Returns (failed_tests,
+    artifacts_parsed, ingestion_errors, scanned_run_count).
     """
     failed_tests = collections.Counter()
     artifacts_parsed = 0
@@ -340,7 +345,8 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
             continue
         for artifact in select_junit_artifacts(artifacts):
             try:
-                content = api_request(token, artifact["archive_download_url"], raw=True)
+                content = api_request(
+                    token, artifact["archive_download_url"], raw=True)
                 archive = zipfile.ZipFile(io.BytesIO(content))
             except Exception:  # noqa: BLE001 - best-effort artifact ingestion
                 ingestion_errors += 1
@@ -355,7 +361,8 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
                     ingestion_errors += 1
                     continue
                 for case in root.iter("testcase"):
-                    if case.find("failure") is not None or case.find("error") is not None:
+                    if case.find("failure") is not None or case.find(
+                            "error") is not None:
                         # name alone is only unique within a suite/class;
                         # include classname so unrelated tests do not merge.
                         name = case.get("name") or "<unnamed>"
@@ -384,9 +391,11 @@ def render_report(
         lines.append("> **Data completeness:** " + "; ".join(notes) + "\n")
 
     ranked = sorted(
-        lanes.items(), key=lambda item: (item[1]["failed"], item[1]["total"]), reverse=True
-    )
-    failing = [(key, stats) for key, stats in ranked if stats["failed"] > 0][:25]
+        lanes.items(),
+        key=lambda item: (item[1]["failed"], item[1]["total"]),
+        reverse=True)
+    failing = [(key, stats) for key, stats in ranked if stats["failed"] > 0
+              ][:25]
 
     lines.append("## Failing lanes (top 25 by failure count)\n")
     if not failing:
@@ -397,14 +406,11 @@ def render_report(
         for (workflow, lane), stats in failing:
             rate = 100 * stats["failed"] / stats["total"]
             avg = (
-                sum(stats["durations"]) / len(stats["durations"])
-                if stats["durations"]
-                else 0
-            )
+                sum(stats["durations"]) /
+                len(stats["durations"]) if stats["durations"] else 0)
             lines.append(
                 f"| {workflow} | {lane} | {stats['total']} | {stats['failed']}"
-                f" | {rate:.0f}% | {avg:.0f} |"
-            )
+                f" | {rate:.0f}% | {avg:.0f} |")
         lines.append("")
 
     total_lanes = len(lanes)
@@ -413,26 +419,25 @@ def render_report(
     lines.append(
         f"**Window totals:** {total_jobs} lane runs across {total_lanes} lanes, "
         f"{total_failures} failures, {reruns} workflow re-runs "
-        "(all attempts counted; cancelled/skipped excluded).\n"
-    )
+        "(all attempts counted; cancelled/skipped excluded).\n")
 
-    lines.append("## Flakiest tests (from junit-xml artifacts of failed runs)\n")
+    lines.append(
+        "## Flakiest tests (from junit-xml artifacts of failed runs)\n")
     # Name the actual scan scope: the artifact budget covers only the newest
     # failed runs, and describing a capped scan as the whole window would let
     # artifact-less infrastructure failures mask real junit data on older runs.
     if junit_total > junit_scanned:
         lines.append(
             f"_Scanned the newest {junit_scanned} of {junit_total} failed runs "
-            "for junit artifacts._\n"
-        )
+            "for junit artifacts._\n")
     else:
-        lines.append(f"_Scanned {junit_scanned} failed run(s) for junit artifacts._\n")
+        lines.append(
+            f"_Scanned {junit_scanned} failed run(s) for junit artifacts._\n")
     if ingestion_errors:
         lines.append(
             f"> **Note:** {ingestion_errors} artifact ingestion gap(s) "
             "(errors or page-budget truncation); per-test counts are a lower "
-            "bound.\n"
-        )
+            "bound.\n")
     if failed_tests:
         lines.append(f"_Parsed {artifacts_parsed} junit artifact(s)._\n")
         lines.append("| Test | Failures |")
@@ -446,7 +451,8 @@ def render_report(
             "per-test data populates as runs upload them (see test-and-report)._\n"
         )
     else:
-        lines.append("_No junit artifacts could be ingested from the scanned runs._\n")
+        lines.append(
+            "_No junit artifacts could be ingested from the scanned runs._\n")
     return "\n".join(lines) + "\n"
 
 
@@ -473,20 +479,24 @@ def upsert_issue(token, repo, report):
     # The issues endpoint also returns pull requests, and a label alone could
     # match unrelated content; only ever overwrite the bot's own report issue.
     issues = [
-        item
-        for item in listed
+        item for item in listed
         if "pull_request" not in item and item.get("title") == ISSUE_TITLE
     ]
-    body = {"title": ISSUE_TITLE, "body": report[:65000], "labels": [ISSUE_LABEL]}
+    body = {
+        "title": ISSUE_TITLE,
+        "body": report[:65000],
+        "labels": [ISSUE_LABEL]
+    }
     if issues:
         number = issues[0]["number"]
         api_request(
-            token, f"{API_ROOT}/repos/{repo}/issues/{number}", method="PATCH", body=body
-        )
+            token,
+            f"{API_ROOT}/repos/{repo}/issues/{number}",
+            method="PATCH",
+            body=body)
         return issues[0]["html_url"]
     created = api_request(
-        token, f"{API_ROOT}/repos/{repo}/issues", method="POST", body=body
-    )
+        token, f"{API_ROOT}/repos/{repo}/issues", method="POST", body=body)
     return created["html_url"]
 
 
@@ -499,12 +509,13 @@ def main():
     days = int(os.environ.get("DAYS", "14"))
     max_runs = int(os.environ.get("MAX_RUNS_PER_WORKFLOW", "40"))
     max_junit_runs = int(os.environ.get("MAX_JUNIT_RUNS", "15"))
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    since = (datetime.now(timezone.utc) -
+             timedelta(days=days)).strftime("%Y-%m-%d")
 
-    lanes, failed_runs, reruns, notes = collect_lane_stats(token, repo, since, max_runs)
+    lanes, failed_runs, reruns, notes = collect_lane_stats(
+        token, repo, since, max_runs)
     failed_tests, artifacts_parsed, ingestion_errors, junit_scanned = (
-        collect_failed_tests(token, repo, failed_runs, max_junit_runs)
-    )
+        collect_failed_tests(token, repo, failed_runs, max_junit_runs))
     report = render_report(
         lanes,
         failed_tests,

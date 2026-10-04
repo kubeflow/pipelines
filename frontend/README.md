@@ -1,4 +1,4 @@
-# Kubeflow Pipelines Frontend 
+# Kubeflow Pipelines Frontend
 
 This section of the codebase contains the Kubeflow Pipelines (KFP) Frontend.
 
@@ -7,14 +7,14 @@ This section of the codebase contains the Kubeflow Pipelines (KFP) Frontend.
 - React 19 with TypeScript on Vite 7
 - MUI v5 with Emotion
 - TanStack Query v5
-- React Router v5
+- React Router v8 (declarative hash routing)
 - Vitest with Testing Library v16 for UI tests
 - Vitest for frontend server tests
 - Storybook 10 for component development
 
 ## Quick Start Development
 
-This guide will get you started with development on KFP standalone mode. 
+This guide will get you started with development on KFP standalone mode.
 
 ### Prerequisites
 
@@ -22,8 +22,8 @@ You will need the following installed in your environment:
 
 * [Docker]
 * [Kubectl]
-* [Kind] 
-* [Kustomize] 
+* [Kind]
+* [Kustomize]
 * [Node] version specified in the [.nvmrc]
 * npm version specified in [package.json]
 
@@ -33,7 +33,7 @@ You will need the following installed in your environment:
 
 ### Deploy KFP
 
-Clone and then deploy KFP: 
+Clone and then deploy KFP:
 
 ```bash
 git clone https://github.com/kubeflow/pipelines.git ${WORKING_DIRECTORY}
@@ -41,23 +41,27 @@ cd ${WORKING_DIRECTORY}
 make -C backend kind-cluster-agnostic
 ```
 
-The above command will deploy KFP in standalone mode. You can access the KFP UI by port-forwarding the KFP UI Kubernetes Service:
+The above command will deploy KFP in standalone mode.
+It uses sensible defaults (MySQL database) for quick setup. If you need to customize the backend configuration (e.g., use PostgreSQL instead of MySQL), please refer to the [backend README](../backend/README.md) for advanced deployment options using `dev-kind-cluster`.
+
+
+You can access the KFP UI by port-forwarding the KFP UI Kubernetes Service:
 
 ```bash
 kubectl -n kubeflow  port-forward svc/ml-pipeline-ui 3000:80
 ```
 
-Navigate to [http://127.0.0.1:3000] to view the UI. You will see something like the following: 
+Navigate to [http://127.0.0.1:3000] to view the UI. You will see something like the following:
 
 ![KFP UI](docs/images/kfp-ui.png)
 
 Try uploading and running a pipeline and confirm it works! You can use one of the already uploaded templates. You can also follow the [KFP docs] for instructions on how to write and submit a pipeline. You can use [http://127.0.0.1:3000] as your `Client(host=...)` value.
 
-### Local Development 
+### Local Development
 
-Now that you have had a chance to check out the UI, we will now scale this UI down and run the UI ourselves locally. 
+Now that you have had a chance to check out the UI, we will now scale this UI down and run the UI ourselves locally.
 
-Scale the UI down by running the following: 
+Scale the UI down by running the following:
 
 ```bash
 # End the port-forwarding by pressing ctrl+D in your terminal, then run:
@@ -66,7 +70,7 @@ kubectl -n kubeflow scale --replicas=0 deployment/ml-pipeline-ui
 
 You can confirm that the previous [http://127.0.0.1:3000] link no longer works.
 
-Now navigate to the KFP frontend folder, install and build your NPM dependencies: 
+Now navigate to the KFP frontend folder, install and build your NPM dependencies:
 
 ```bash
 cd ${WORKING_DIRECTORY}/frontend
@@ -75,7 +79,7 @@ npm ci
 npm run build
 ```
 
-Now run the following: 
+Now run the following:
 
 ```bash
 npm run start:proxy-and-server
@@ -103,7 +107,7 @@ VITE v7.x ready in ...
 ...
 ```
 
-Follow this link, it should also take you to the same UI. The difference here is that whenever you change client side (React) code locally, you will automatically get the new changes in your browser without having to restart your server. 
+Follow this link, it should also take you to the same UI. The difference here is that whenever you change client side (React) code locally, you will automatically get the new changes in your browser without having to restart your server.
 
 The local dev bootstrap runs under React Strict Mode. Vitest UI tests are configured to do the same through Testing Library's global `reactStrictMode` setting so direct `render()` calls match dev behavior. Production builds remain outside Strict Mode.
 
@@ -116,7 +120,7 @@ npm run mock:api
 npm run start
 ```
 
-The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurring Runs list pages with deterministic fixture data. Use `npm run start:proxy-and-server` against a real KFP deployment when validating MLMD, pod logs, runtime artifacts, auth, or backend behavior beyond those fixtures.
+The mock backend serves the primary v2 Pipelines, Experiments, Runs, and Recurring Runs list pages with deterministic fixture data. Use `npm run start:proxy-and-server` against a real KFP deployment when validating native tasks and artifacts, pod logs, authentication, or backend behavior beyond those fixtures.
 
 ## Visual Regression Testing
 
@@ -171,3 +175,35 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [sample pipeline]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.py
 [sample pipeline in yaml]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.yaml
 [KFP docs]: https://www.kubeflow.org/docs/components/pipelines/getting-started/
+
+## Multi-user artifact ownership
+
+With `ENABLE_AUTHZ=true`, artifact previews and downloads require an object key under
+`private-artifacts/<namespace>/...`, or the equivalent prefix configured by the operator through
+`ARTIFACT_NAMESPACE_KEY_PREFIX`. This applies to MinIO, S3, GCS, and HTTP(S) artifacts, including
+requests made with `ARTIFACTS_SERVICE_PROXY_ENABLED=true`. A namespace-scoped metadata record does
+not establish ownership of an arbitrary object: a pipeline can import an existing URI.
+
+**Compatibility change:** custom-root objects outside that namespace prefix return HTTP 403,
+even when a tenant proxy has isolated credentials. To retain frontend previews/downloads, configure
+pipeline roots with the tenant namespace segment and write or copy authorized artifacts to those
+paths. Updating metadata alone does not move existing objects. Keep storage credentials and tenant
+proxy access isolated; the path policy does not replace storage or network authorization.
+
+For example, namespace `team-a` can serve `s3://bucket/private-artifacts/team-a/run/model`, but not
+`s3://bucket/shared/model`. A different common prefix, such as `tenant-data`, may be configured by
+the operator; the next path segment must still be the authorized namespace. Do not disable
+authorization to restore custom-root access in a multi-user deployment.
+
+With `ENABLE_AUTHZ=true`, HTTP(S) artifacts use the shared UI's configured `HTTP_BASE_URL` and,
+when needed, its `HTTP_AUTHORIZATION_KEY` and `HTTP_AUTHORIZATION_DEFAULT_VALUE`, even when the
+namespace artifact proxy is enabled. Without a shared UI `HTTP_BASE_URL`, these requests return
+HTTP 400. The shared UI checks redirect targets itself rather than forwarding HTTP(S) requests to
+tenant services that may run older redirect handling code.
+Redirects must stay on the configured origin and under the same namespace prefix. Cross-origin
+signed URLs and same-origin signed URLs outside that prefix return HTTP 403. Standalone mode keeps
+its existing redirect behavior.
+
+Standalone mode and namespace-proxied volume artifacts are unchanged. The `artifact-only` mode
+(also accepted as legacy `mlmd-only`) requires metadata evidence in addition to the namespace
+path policy; it does not enable arbitrary custom roots.

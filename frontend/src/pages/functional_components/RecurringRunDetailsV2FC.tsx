@@ -28,14 +28,14 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { Breadcrumb, ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from 'src/Css';
-import { KeyValue } from 'src/lib/StaticGraphParser';
+import { KeyValue } from 'src/lib/DetailsTableTypes';
 import { formatDateString, enabledDisplayStringV2, errorToMessage } from 'src/lib/Utils';
 import { triggerDisplayString } from 'src/lib/TriggerUtils';
 
 export function RecurringRunDetailsV2FC(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
 
-  const recurringRunId = props.match.params[RouteParams.recurringRunId];
+  const recurringRunId = props.params[RouteParams.recurringRunId] ?? '';
 
   const {
     isLoading: isRecurringRunLoading,
@@ -84,7 +84,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
       const previousPage = breadcrumbs.length
         ? breadcrumbs[breadcrumbs.length - 1].href
         : RoutePage.EXPERIMENTS;
-      props.history.push(previousPage);
+      props.navigate(previousPage);
     }
   };
 

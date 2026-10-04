@@ -2,7 +2,6 @@
   "include": ["."],
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "esModuleInterop": true,
     "typeRoots": ["./node_modules/@types"],
     "types": ["node"],
@@ -19,7 +18,6 @@
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
     "skipLibCheck": true,
     "strictPropertyInitialization": false, // Workaround: swagger generated client breaks this.
     "strict": true

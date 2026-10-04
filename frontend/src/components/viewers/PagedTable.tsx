@@ -17,7 +17,7 @@
 import * as React from 'react';
 import Viewer, { ViewerConfig, PlotType } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
-import { stylesheet } from 'typestyle';
+import { classes, stylesheet } from 'typestyle';
 
 import {
   Table,
@@ -55,12 +55,16 @@ interface PagedTableState {
 
 class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   private _shrinkThreshold = 600;
-  private _config = this.props.configs[0];
   private _rowHeight = 30;
 
   private _css = stylesheet({
     cell: {
       borderRight: 'solid 1px ' + color.divider,
+      $nest: {
+        '&:first-child': {
+          borderLeft: 'solid 1px ' + color.divider,
+        },
+      },
       color: color.foreground,
       fontSize: this._isSmall() ? fontsize.small : fontsize.base,
       paddingLeft: this._isSmall() ? 5 : 'invalid',
@@ -71,6 +75,9 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
       fontSize: this._isSmall() ? fontsize.base : fontsize.medium,
       fontWeight: 'bold',
       paddingLeft: this._isSmall() ? 5 : 'invalid',
+    },
+    topBorder: {
+      borderTop: 'solid 1px ' + color.divider,
     },
     row: {
       borderBottom: '1px solid #ddd',
@@ -93,40 +100,46 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   }
 
   public render(): React.JSX.Element | null {
-    if (!this._config) {
+    const config = this.props.configs[0];
+    if (!config) {
       return null;
     }
 
-    const { data, labels } = this._config;
-    const { order, orderBy, rowsPerPage, page } = this.state;
+    const { data, labels } = config;
+    const { order, orderBy, rowsPerPage } = this.state;
+    const lastPage = Math.max(0, Math.ceil(data.length / rowsPerPage) - 1);
+    const page = Math.min(this.state.page, lastPage);
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, data.length - page * rowsPerPage);
 
     return (
       <div style={{ width: '100%' }} className={commonCss.page}>
         <Table style={{ display: 'block', overflow: 'auto' }}>
-          <TableHead>
-            <TableRow>
-              {labels.map((label, i) => {
-                return (
-                  <TableCell
-                    className={this._css.columnName}
-                    key={i}
-                    sortDirection={orderBy === i ? order : false}
-                  >
-                    <Tooltip title='Sort' enterDelay={300}>
-                      <TableSortLabel
-                        active={orderBy === i}
-                        direction={order}
-                        onClick={this._handleSort(i)}
-                      >
-                        {label}
-                      </TableSortLabel>
-                    </Tooltip>
-                  </TableCell>
-                );
-              }, this)}
-            </TableRow>
-          </TableHead>
+          {/* An empty header clips the body's collapsed top border in the scrollable table. */}
+          {labels.length > 0 && (
+            <TableHead>
+              <TableRow>
+                {labels.map((label, i) => {
+                  return (
+                    <TableCell
+                      className={this._css.columnName}
+                      key={i}
+                      sortDirection={orderBy === i ? order : false}
+                    >
+                      <Tooltip title='Sort' enterDelay={300}>
+                        <TableSortLabel
+                          active={orderBy === i}
+                          direction={order}
+                          onClick={this._handleSort(i)}
+                        >
+                          {label}
+                        </TableSortLabel>
+                      </Tooltip>
+                    </TableCell>
+                  );
+                }, this)}
+              </TableRow>
+            </TableHead>
+          )}
 
           <TableBody>
             {this._stableSort(data)
@@ -135,7 +148,13 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
                 return (
                   <TableRow hover={true} tabIndex={-1} key={index} className={this._css.row}>
                     {row.map((cell, i) => (
-                      <TableCell key={i} className={this._css.cell}>
+                      <TableCell
+                        key={i}
+                        className={classes(
+                          this._css.cell,
+                          labels.length === 0 && index === 0 ? this._css.topBorder : '',
+                        )}
+                      >
                         {cell}
                       </TableCell>
                     ))}

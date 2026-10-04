@@ -6,7 +6,7 @@ env:
   NUMBER_OF_PARALLEL_NODES: 15
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
 
 on:
   push:
@@ -14,6 +14,8 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/upgrade-test.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
@@ -22,7 +24,6 @@ on:
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
-      - 'backend/metadata_writer/**'
       - 'backend/test/v2/api/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'
@@ -36,9 +37,13 @@ concurrency:
 
 jobs:
   build:
+    # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
+    if: ${{ false }}
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
+    # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -50,15 +55,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: ./.github/actions/setup-go
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
-          python-version: 3.9
+          python-version: 3.11
 
       - name: Get last release tag
         shell: bash

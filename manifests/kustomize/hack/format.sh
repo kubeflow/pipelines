@@ -26,12 +26,7 @@ function format_yaml {
 }
 echo "This formatting script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
 kustomization_yamls_with_images=(
-  "base/cache-deployer/kustomization.yaml"
-  "base/cache/kustomization.yaml"
-  "base/metadata/base/kustomization.yaml"
-  "base/pipeline/metadata-writer/kustomization.yaml"
   "base/pipeline/kustomization.yaml"
-  "env/gcp/inverse-proxy/kustomization.yaml"
 )
 for path in "${kustomization_yamls_with_images[@]}"
 do

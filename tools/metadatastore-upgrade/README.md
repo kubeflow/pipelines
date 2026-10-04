@@ -2,7 +2,7 @@
 
 **Note: There are two available options to upgrade Metadata store in the cluster**
 
-1. upgrade whole KFP system (via CLI guide/doc) that incldues Metadata store upgrade.
+1. upgrade whole KFP system (via CLI guide/doc) that includes Metadata store upgrade.
 2. Use this tool to upgrade only the Metadata store in the cluster.
 
 
@@ -21,13 +21,13 @@ go run main.go --new_image_tag=<image-tag> --kubeconfig=<kubeconfig-path> --name
 ```
 
 Arguments:
-* `--new_image_tag`(Required) - The image tag for the gRPC server version to upgrade to. The list of available images can be found [here](gcr.io/tfx-oss-public/ml_metadata_store_server)
-* `--kubeconfig`(Optional) - Absolute path to a kubeconfig file. If this argument is not specified `.kubecofing` in user's home directory is used.
+* `--new_image_tag`(Required) - The image tag for the gRPC server version to upgrade to. The list of available images can be found [here](https://gcr.io/tfx-oss-public/ml_metadata_store_server)
+* `--kubeconfig`(Optional) - Absolute path to a kubeconfig file. If this argument is not specified `~/.kube/config` in user's home directory is used.
 * `--namespace`(Optional) - Namespace where `metadata-deployment` is deployed in the KFP cluster. Defaults to `kubeflow`.
 
-**Note:** 
+**Note:**
 1. Upgrade is supported from version [ml-metadata v0.21.0](https://github.com/google/ml-metadata/releases/tag/v0.21.0) onwards.
-2. The ML Metadata Store Server image version used in the `metadata-grpc-deployment` deployment of a KFP cluster can be found  in the `Active revisions` section of the deployment details page. 
+2. The ML Metadata Store Server image version used in the `metadata-grpc-deployment` deployment of a KFP cluster can be found  in the `Active revisions` section of the deployment details page.
 
 ## Execution Flow
 
@@ -38,4 +38,3 @@ The tool using the K8's [client-go](https://github.com/kubernetes/client-go) lib
 3. Uses  [client-go's](https://github.com/kubernetes/client-go) `RetryOnConflict` API to update the Deployment.
 4. If the update is successful, `metadata-grpc-deployment` deployment is updated again to remove the `--enable_database_upgrade=true` argument. If this update fails, the tool logs the failure message to `stdout` with error details.
 5. If update in Step-3 fails, the tool errors out by logging the failure message to `stdout` with error details. In this state, the user is expected to fix the MetadataStore deployment in the cluster.
-

@@ -52,9 +52,9 @@ func (e *Experiment) DefaultSortField() string {
 }
 
 var experimentAPIToModelFieldMap = map[string]string{
-	"id":                  "UUID", // v1beta1 API
+	"id":                  "UUID", // Legacy filter alias retained in the v2beta1 filter contract
 	"experiment_id":       "UUID", // v2beta1 API
-	"name":                "Name", // v1beta1 API
+	"name":                "Name", // Legacy filter alias retained in the v2beta1 filter contract
 	"display_name":        "Name", // v2beta1 API
 	"created_at":          "CreatedAtInSec",
 	"last_run_created_at": "LastRunCreatedAtInSec", // v2beta1 API
@@ -108,4 +108,14 @@ func (e *Experiment) GetSortByFieldPrefix(name string) string {
 
 func (e *Experiment) GetKeyFieldPrefix() string {
 	return "experiments."
+}
+
+var experimentCaseInsensitiveFields = map[string]struct{}{
+	"name":         {},
+	"display_name": {},
+	"description":  {},
+}
+
+func (e *Experiment) CaseInsensitiveFields() map[string]struct{} {
+	return experimentCaseInsensitiveFields
 }

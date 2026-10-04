@@ -49,8 +49,8 @@ exports[`PlotCard > renders a confusion matrix plot card 1`] = `
           <tbody>
             <tr>
               <td
-                class="cell_f1cowfye"
-                style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255);"
+                class="cell_ffgmx8m"
+                style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
               >
                 <div
                   class="overlay_fecblze"

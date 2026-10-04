@@ -126,6 +126,18 @@ class TestInitCalls(unittest.TestCase):
         ):
             local.init(runner='foo')
 
+    @mock.patch('kfp.local.pip_install_manager.pip_install_manager.configure')
+    def test_subprocess_runner_configures_pip_manager_without_venv(
+            self, mock_configure):
+        local.SubprocessRunner(
+            use_venv=False,
+            serialize_pip_installs=True,
+            max_concurrent_pip_installs=1,
+        )
+
+        mock_configure.assert_called_once_with(
+            serialize_installs=True, max_concurrent=1)
+
 
 class TestDockerRunner(unittest.TestCase):
 

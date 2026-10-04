@@ -23,8 +23,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/squirrel"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
@@ -51,6 +51,21 @@ type Filter struct {
 	in map[string][]interface{}
 
 	substring map[string][]interface{}
+
+	// caseInsensitiveKeys holds the set of qualified column names (e.g.
+	// "pipelines.Name") for which EQ/NEQ/IN comparisons should use
+	// case-insensitive semantics (LOWER() in SQL, EqualFold in-memory).
+	// Fields not in this set use exact comparison.
+	// SUBSTRING always uses case-insensitive semantics regardless.
+	caseInsensitiveKeys map[string]struct{}
+}
+
+func (f *Filter) isCaseInsensitive(key string) bool {
+	if f.caseInsensitiveKeys == nil {
+		return false
+	}
+	_, ok := f.caseInsensitiveKeys[key]
+	return ok
 }
 
 // filterForMarshaling is a helper struct for marshaling Filter into JSON. This
@@ -66,19 +81,22 @@ type filterForMarshaling struct {
 	IN map[string][]interface{}
 
 	SUBSTRING map[string][]interface{}
+
+	CaseInsensitiveKeys map[string]struct{} `json:",omitempty"`
 }
 
 // MarshalJSON implements JSON Marshaler for Filter.
 func (f *Filter) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&filterForMarshaling{
-		EQ:        f.eq,
-		NEQ:       f.neq,
-		GT:        f.gt,
-		GTE:       f.gte,
-		LT:        f.lt,
-		LTE:       f.lte,
-		IN:        f.in,
-		SUBSTRING: f.substring,
+		EQ:                  f.eq,
+		NEQ:                 f.neq,
+		GT:                  f.gt,
+		GTE:                 f.gte,
+		LT:                  f.lt,
+		LTE:                 f.lte,
+		IN:                  f.in,
+		SUBSTRING:           f.substring,
+		CaseInsensitiveKeys: f.caseInsensitiveKeys,
 	})
 }
 
@@ -98,12 +116,38 @@ func (f *Filter) UnmarshalJSON(b []byte) error {
 	f.lte = ffm.LTE
 	f.in = ffm.IN
 	f.substring = ffm.SUBSTRING
+	f.caseInsensitiveKeys = ffm.CaseInsensitiveKeys
+
+	// json.Unmarshal decodes JSON arrays into []interface{}.
+	// These codes normalize them back to []string when possible,
+	// so that AddToSelect always sees []string and applies LOWER() correctly.
+	for k, vs := range f.in {
+		for i, v := range vs {
+			iface, ok := v.([]interface{})
+			if !ok {
+				continue
+			}
+			strs := make([]string, len(iface))
+			allStrings := true
+			for j, elem := range iface {
+				s, isStr := elem.(string)
+				if !isStr {
+					allStrings = false
+					break
+				}
+				strs[j] = s
+			}
+			if allStrings {
+				f.in[k][i] = strs
+			}
+		}
+	}
 
 	return nil
 }
 
 // New creates a new Filter from parsing the API filter protocol buffer.
-func New(filterProto interface{}) (*Filter, error) {
+func New(filterProto *apiv2beta1.Filter) (*Filter, error) {
 	predicates, err := toPredicates(filterProto)
 	if err != nil {
 		return nil, err
@@ -116,7 +160,7 @@ func New(filterProto interface{}) (*Filter, error) {
 // model. For example, if the API name of a field is "name", the model name is "pipelines", and
 // the equivalent column name is "Name", then filterProto with predicates against key "name"
 // will be parsed as if the key value was "pipelines.Name".
-func NewWithKeyMap(filterProto interface{}, keyMap map[string]string, modelName string) (*Filter, error) {
+func NewWithKeyMap(filterProto *apiv2beta1.Filter, keyMap map[string]string, modelName string) (*Filter, error) {
 	// Fully qualify column name to avoid "ambiguous column name" error.
 	var modelNamePrefix string
 	if modelName != "" {
@@ -176,12 +220,16 @@ func (f *Filter) ValidateKeys(validator func(segment string) error) error {
 	return nil
 }
 
-// Replaces and adds a prefix to the keys for an existing filter.
-// This is useful when someone wants to extend the filter with a table name.
-func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string) error {
+// ReplaceKeys replaces API field names with qualified column names and builds
+// the case-insensitive key set. caseInsensitiveAPIFields contains the API-level
+// field names (e.g. "name", "display_name") that should use case-insensitive
+// comparison; it may be nil when no fields need this treatment.
+func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string, caseInsensitiveAPIFields map[string]struct{}) error {
+	f.SetCaseInsensitiveFields(keyMap, prefix, caseInsensitiveAPIFields)
 	if prefix != "" {
 		prefix = prefix + "."
 	}
+
 	if err := replaceMapKeys(f.eq, keyMap, prefix); err != nil {
 		return err
 	}
@@ -207,6 +255,26 @@ func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string) error {
 		return err
 	}
 	return nil
+}
+
+// SetCaseInsensitiveFields rebuilds derived comparison metadata from the server's
+// model definition. Call this when restoring a page-token filter: older tokens
+// omit this metadata, and client-supplied metadata must not choose semantics.
+// Predicate keys are already qualified and are left unchanged.
+func (f *Filter) SetCaseInsensitiveFields(keyMap map[string]string, prefix string, caseInsensitiveAPIFields map[string]struct{}) {
+	if prefix != "" {
+		prefix += "."
+	}
+	f.caseInsensitiveKeys = nil
+	// Build the case-insensitive key set using qualified column names.
+	if len(caseInsensitiveAPIFields) > 0 {
+		f.caseInsensitiveKeys = make(map[string]struct{})
+		for apiField := range caseInsensitiveAPIFields {
+			if colName, ok := keyMap[apiField]; ok {
+				f.caseInsensitiveKeys[prefix+colName] = struct{}{}
+			}
+		}
+	}
 }
 
 // Replaces string keys in a map and adds a prefix.
@@ -241,8 +309,14 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	for k := range f.eq {
 		fieldVal := fmt.Sprint(getField(k))
 		for _, v := range f.eq[k] {
-			if !strings.EqualFold(fieldVal, fmt.Sprint(v)) {
-				return false, nil
+			if f.isCaseInsensitive(k) {
+				if !strings.EqualFold(fieldVal, fmt.Sprint(v)) {
+					return false, nil
+				}
+			} else {
+				if fieldVal != fmt.Sprint(v) {
+					return false, nil
+				}
 			}
 		}
 	}
@@ -251,8 +325,14 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	for k := range f.neq {
 		fieldVal := fmt.Sprint(getField(k))
 		for _, v := range f.neq[k] {
-			if strings.EqualFold(fieldVal, fmt.Sprint(v)) {
-				return false, nil
+			if f.isCaseInsensitive(k) {
+				if strings.EqualFold(fieldVal, fmt.Sprint(v)) {
+					return false, nil
+				}
+			} else {
+				if fieldVal == fmt.Sprint(v) {
+					return false, nil
+				}
 			}
 		}
 	}
@@ -276,6 +356,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	// IN: field must be a member of all provided IN lists for the same key (AND semantics across lists)
 	for k := range f.in {
 		fieldVal := fmt.Sprint(getField(k))
+		caseInsensitive := f.isCaseInsensitive(k)
 		for _, list := range f.in[k] {
 			inOne := false
 			rv := reflect.ValueOf(list)
@@ -283,9 +364,17 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 				return false, nil
 			}
 			for i := 0; i < rv.Len(); i++ {
-				if strings.EqualFold(fieldVal, fmt.Sprint(rv.Index(i).Interface())) {
-					inOne = true
-					break
+				elemVal := fmt.Sprint(rv.Index(i).Interface())
+				if caseInsensitive {
+					if strings.EqualFold(fieldVal, elemVal) {
+						inOne = true
+						break
+					}
+				} else {
+					if fieldVal == elemVal {
+						inOne = true
+						break
+					}
 				}
 			}
 			if !inOne {
@@ -308,67 +397,128 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	return true, nil
 }
 
+// QualifyIdentifier quotes identifiers correctly when they are qualified with dots,
+// e.g. "experiments.Name" -> `"experiments"."Name"` (or the dialect's quote style).
+// If there is no dot, it simply quotes the key.
+func QualifyIdentifier(q dialect.QuoteFunction, key string) string {
+	if q == nil {
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
+	}
+	if strings.Contains(key, ".") {
+		parts := strings.Split(key, ".")
+		for i := range parts {
+			parts[i] = q(parts[i])
+		}
+		return strings.Join(parts, ".")
+	}
+	return q(key)
+}
+
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
 // SelectBuilder object and returns it for use in SQL queries.
-func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
-	for k := range f.eq {
-		for _, v := range f.eq[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Eq(m))
+func (f *Filter) AddToSelect(sb squirrel.SelectBuilder, quote dialect.QuoteFunction) squirrel.SelectBuilder {
+	if quote == nil {
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
+	}
+
+	var andExprs []squirrel.Sqlizer
+
+	for k, vs := range f.eq {
+		for _, v := range vs {
+			if s, ok := v.(string); ok && f.isCaseInsensitive(k) {
+				col := QualifyIdentifier(quote, k)
+				andExprs = append(andExprs, squirrel.Expr(
+					fmt.Sprintf("LOWER(%s) = LOWER(?)", col), s,
+				))
+			} else {
+				andExprs = append(andExprs, squirrel.Eq{QualifyIdentifier(quote, k): v})
+			}
 		}
 	}
 
-	for k := range f.neq {
-		for _, v := range f.neq[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.NotEq(m))
+	for k, vs := range f.neq {
+		for _, v := range vs {
+			if s, ok := v.(string); ok && f.isCaseInsensitive(k) {
+				col := QualifyIdentifier(quote, k)
+				andExprs = append(andExprs, squirrel.Expr(
+					fmt.Sprintf("LOWER(%s) <> LOWER(?)", col), s,
+				))
+			} else {
+				andExprs = append(andExprs, squirrel.NotEq{QualifyIdentifier(quote, k): v})
+			}
 		}
 	}
 
-	for k := range f.gt {
-		for _, v := range f.gt[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Gt(m))
+	for k, vs := range f.gt {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Gt{QualifyIdentifier(quote, k): v})
 		}
 	}
 
-	for k := range f.gte {
-		for _, v := range f.gte[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.GtOrEq(m))
+	for k, vs := range f.gte {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.GtOrEq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
-	for k := range f.lt {
-		for _, v := range f.lt[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Lt(m))
+	for k, vs := range f.lt {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Lt{QualifyIdentifier(quote, k): v})
 		}
 	}
 
-	for k := range f.lte {
-		for _, v := range f.lte[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.LtOrEq(m))
+	for k, vs := range f.lte {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.LtOrEq{QualifyIdentifier(quote, k): v})
 		}
 	}
 
-	// In
-	for k := range f.in {
-		for _, v := range f.in[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Eq(m))
+	for k, vs := range f.in {
+		for _, v := range vs {
+			switch ss := v.(type) {
+			case []string:
+				// An empty list must not produce "IN ()", which is invalid SQL
+				// in both MySQL and PostgreSQL. Emit a match-nothing predicate
+				// instead, matching squirrel.Eq's behavior for empty slices.
+				if len(ss) == 0 {
+					andExprs = append(andExprs, squirrel.Expr("1 = 0"))
+					continue
+				}
+				if f.isCaseInsensitive(k) {
+					col := QualifyIdentifier(quote, k)
+					placeholders := make([]string, len(ss))
+					args := make([]interface{}, len(ss))
+					for i, s := range ss {
+						placeholders[i] = "LOWER(?)"
+						args[i] = s
+					}
+					andExprs = append(andExprs, squirrel.Expr(
+						fmt.Sprintf("LOWER(%s) IN (%s)", col, strings.Join(placeholders, ", ")),
+						args...,
+					))
+				} else {
+					andExprs = append(andExprs, squirrel.Eq{QualifyIdentifier(quote, k): ss})
+				}
+			default:
+				// squirrel.Eq renders an empty slice as a match-nothing
+				// predicate ("(1=0)"), so empty int lists are handled here.
+				andExprs = append(andExprs, squirrel.Eq{QualifyIdentifier(quote, k): v})
+			}
 		}
 	}
 
-	for k := range f.substring {
-		// Modify each string value v so it looks like %v% so we are doing a substring
-		// match with the LIKE operator.
-		for _, v := range f.substring[k] {
-			like := make(squirrel.Like)
-			like[k] = fmt.Sprintf("%%%s%%", v)
-			sb = sb.Where(like)
+	for k, vs := range f.substring {
+		for _, v := range vs {
+			col := QualifyIdentifier(quote, k)
+			andExprs = append(andExprs, squirrel.Expr(
+				fmt.Sprintf("LOWER(%s) LIKE LOWER(?)", col),
+				fmt.Sprintf("%%%s%%", v),
+			))
 		}
+	}
+
+	if len(andExprs) > 0 {
+		return sb.Where(squirrel.And(andExprs))
 	}
 
 	return sb
@@ -376,17 +526,21 @@ func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
 
 func checkPredicate(p *Predicate) error {
 	switch p.operation {
-	case apiv1beta1.Predicate_IN.String(), apiv2beta1.Predicate_IN.String():
+	case apiv2beta1.Predicate_IN.String():
+		// An empty list is intentionally allowed. It produces a match-nothing
+		// predicate in AddToSelect (see the IN handling there), preserving the
+		// historical behavior of returning an empty result page rather than an
+		// error for clients that build filters from an empty selection.
 		switch t := p.value.(type) {
 		case int32, int64, string:
 			return util.NewInvalidInputError("cannot use IN operator with scalar type %T", t)
 		}
-	case apiv1beta1.Predicate_EQUALS.String(), apiv1beta1.Predicate_NOT_EQUALS.String(), apiv1beta1.Predicate_GREATER_THAN.String(), apiv1beta1.Predicate_GREATER_THAN_EQUALS.String(), apiv1beta1.Predicate_LESS_THAN.String(), apiv1beta1.Predicate_LESS_THAN_EQUALS.String(), apiv2beta1.Predicate_EQUALS.String(), apiv2beta1.Predicate_NOT_EQUALS.String(), apiv2beta1.Predicate_GREATER_THAN.String(), apiv2beta1.Predicate_GREATER_THAN_EQUALS.String(), apiv2beta1.Predicate_LESS_THAN.String(), apiv2beta1.Predicate_LESS_THAN_EQUALS.String():
+	case apiv2beta1.Predicate_EQUALS.String(), apiv2beta1.Predicate_NOT_EQUALS.String(), apiv2beta1.Predicate_GREATER_THAN.String(), apiv2beta1.Predicate_GREATER_THAN_EQUALS.String(), apiv2beta1.Predicate_LESS_THAN.String(), apiv2beta1.Predicate_LESS_THAN_EQUALS.String():
 		switch t := p.value.(type) {
 		case []int32, []int64, []string:
 			return util.NewInvalidInputError("cannot use scalar operator %v on array type %T", p.operation, t)
 		}
-	case apiv1beta1.Predicate_IS_SUBSTRING.String(), apiv2beta1.Predicate_IS_SUBSTRING.String():
+	case apiv2beta1.Predicate_IS_SUBSTRING.String():
 		switch t := p.value.(type) {
 		case string:
 			return nil
@@ -430,68 +584,34 @@ func (f *Filter) parsePredicates(preds []*Predicate) error {
 	return nil
 }
 
-func toPredicates(filterProto interface{}) ([]*Predicate, error) {
-	if filterProto == nil {
-		return nil, nil
-	}
+func toPredicates(filterProto *apiv2beta1.Filter) ([]*Predicate, error) {
 	predicates := make([]*Predicate, 0)
-	switch filterProto := filterProto.(type) {
-	case *apiv2beta1.Filter:
-		for _, p := range filterProto.GetPredicates() {
-			if pred, err := toPredicate(p); err != nil {
-				return nil, err
-			} else {
-				predicates = append(predicates, pred)
-			}
+	for _, p := range filterProto.GetPredicates() {
+		if pred, err := toPredicate(p); err != nil {
+			return nil, err
+		} else {
+			predicates = append(predicates, pred)
 		}
-	case *apiv1beta1.Filter:
-		for _, p := range filterProto.GetPredicates() {
-			if pred, err := toPredicate(p); err != nil {
-				return nil, err
-			} else {
-				predicates = append(predicates, pred)
-			}
-		}
-	default:
-		return nil, util.NewUnknownApiVersionError("Filter", filterProto)
 	}
 	return predicates, nil
 }
 
-func toPredicate(p interface{}) (*Predicate, error) {
+func toPredicate(p *apiv2beta1.Predicate) (*Predicate, error) {
 	if p == nil {
 		return nil, nil
 	}
 	operation := ""
-	key := ""
+	key := p.GetKey()
 	var value interface{}
-	switch p := p.(type) {
-	case *apiv2beta1.Predicate:
-		key = p.GetKey()
-		if temp, err := toOperation(p.GetOperation()); err != nil {
-			return nil, err
-		} else {
-			operation = temp
-		}
-		if temp, err := toValue(p.GetValue()); err != nil {
-			return nil, err
-		} else {
-			value = temp
-		}
-	case *apiv1beta1.Predicate:
-		key = p.GetKey()
-		if temp, err := toOperation(p.GetOp()); err != nil {
-			return nil, err
-		} else {
-			operation = temp
-		}
-		if temp, err := toValue(p.GetValue()); err != nil {
-			return nil, err
-		} else {
-			value = temp
-		}
-	default:
-		return nil, util.NewUnknownApiVersionError("Filter.Predicate", p)
+	if temp, err := toOperation(p.GetOperation()); err != nil {
+		return nil, err
+	} else {
+		operation = temp
+	}
+	if temp, err := toValue(p.GetValue()); err != nil {
+		return nil, err
+	} else {
+		value = temp
 	}
 	if key == "" {
 		return nil, util.NewInvalidInputError("Predicate key cannot be empty for operation %v and value %v", operation, value)
@@ -505,21 +625,21 @@ func toPredicate(p interface{}) (*Predicate, error) {
 
 func toOperation(o interface{}) (string, error) {
 	switch o {
-	case apiv2beta1.Predicate_EQUALS, apiv1beta1.Predicate_EQUALS:
+	case apiv2beta1.Predicate_EQUALS:
 		return "EQUALS", nil
-	case apiv2beta1.Predicate_NOT_EQUALS, apiv1beta1.Predicate_NOT_EQUALS:
+	case apiv2beta1.Predicate_NOT_EQUALS:
 		return "NOT_EQUALS", nil
-	case apiv2beta1.Predicate_GREATER_THAN, apiv1beta1.Predicate_GREATER_THAN:
+	case apiv2beta1.Predicate_GREATER_THAN:
 		return "GREATER_THAN", nil
-	case apiv2beta1.Predicate_GREATER_THAN_EQUALS, apiv1beta1.Predicate_GREATER_THAN_EQUALS:
+	case apiv2beta1.Predicate_GREATER_THAN_EQUALS:
 		return "GREATER_THAN_EQUALS", nil
-	case apiv2beta1.Predicate_LESS_THAN, apiv1beta1.Predicate_LESS_THAN:
+	case apiv2beta1.Predicate_LESS_THAN:
 		return "LESS_THAN", nil
-	case apiv2beta1.Predicate_LESS_THAN_EQUALS, apiv1beta1.Predicate_LESS_THAN_EQUALS:
+	case apiv2beta1.Predicate_LESS_THAN_EQUALS:
 		return "LESS_THAN_EQUALS", nil
-	case apiv2beta1.Predicate_IN, apiv1beta1.Predicate_IN:
+	case apiv2beta1.Predicate_IN:
 		return "IN", nil
-	case apiv2beta1.Predicate_IS_SUBSTRING, apiv1beta1.Predicate_IS_SUBSTRING:
+	case apiv2beta1.Predicate_IS_SUBSTRING:
 		return "IS_SUBSTRING", nil
 	default:
 		return "", util.NewUnknownApiVersionError("Filter.Predicate.Operation", o)
@@ -541,21 +661,6 @@ func toValue(v interface{}) (interface{}, error) {
 	case *apiv2beta1.Predicate_StringValues_:
 		return v.StringValues.GetValues(), nil
 	case *apiv2beta1.Predicate_LongValues_:
-		return v.LongValues.GetValues(), nil
-
-	case *apiv1beta1.Predicate_IntValue:
-		return v.IntValue, nil
-	case *apiv1beta1.Predicate_LongValue:
-		return v.LongValue, nil
-	case *apiv1beta1.Predicate_StringValue:
-		return v.StringValue, nil
-	case *apiv1beta1.Predicate_TimestampValue:
-		return v.TimestampValue.AsTime().Unix(), nil
-	case *apiv1beta1.Predicate_IntValues:
-		return v.IntValues.GetValues(), nil
-	case *apiv1beta1.Predicate_StringValues:
-		return v.StringValues.GetValues(), nil
-	case *apiv1beta1.Predicate_LongValues:
 		return v.LongValues.GetValues(), nil
 
 	default:

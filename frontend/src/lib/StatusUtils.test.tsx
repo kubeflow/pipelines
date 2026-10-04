@@ -14,207 +14,69 @@
  * limitations under the License.
  */
 
-import {
-  NodePhase,
-  hasFinished,
-  statusBgColors,
-  statusToBgColor,
-  checkIfTerminated,
-  parseNodePhase,
-} from './StatusUtils';
-import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
+import { hasFinishedV2, statusBgColors, statusToBgColorV2 } from './StatusUtils';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 
 describe('StatusUtils', () => {
-  describe('hasFinished', () => {
+  describe('hasFinishedV2', () => {
+    it('treats a paused run as active', () => {
+      expect(hasFinishedV2(V2beta1RuntimeState.PAUSED)).toBe(false);
+    });
+  });
+  describe('hasFinishedV2', () => {
     [
-      NodePhase.ERROR,
-      NodePhase.FAILED,
-      NodePhase.SUCCEEDED,
-      NodePhase.CACHED,
-      NodePhase.SKIPPED,
-      NodePhase.TERMINATED,
-      NodePhase.OMITTED,
-    ].forEach((status) => {
-      it(`returns \'true\' if status is: ${status}`, () => {
-        expect(hasFinished(status)).toBe(true);
+      V2beta1RuntimeState.SUCCEEDED,
+      V2beta1RuntimeState.FAILED,
+      V2beta1RuntimeState.CANCELED,
+      V2beta1RuntimeState.SKIPPED,
+    ].forEach((state) => {
+      it(`returns 'true' for finished state: ${state}`, () => {
+        expect(hasFinishedV2(state)).toBe(true);
       });
-    });
-
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN, NodePhase.TERMINATING].forEach(
-      (status) => {
-        it(`returns \'false\' if status is: ${status}`, () => {
-          expect(hasFinished(status)).toBe(false);
-        });
-      },
-    );
-
-    it("returns 'false' if status is undefined", () => {
-      expect(hasFinished(undefined)).toBe(false);
-    });
-
-    it("returns 'false' if status is invalid", () => {
-      expect(hasFinished('bad phase' as any)).toBe(false);
-    });
-  });
-
-  describe('statusToBgColor', () => {
-    it('handles an invalid phase', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
-      expect(statusToBgColor('bad phase' as any)).toEqual(statusBgColors.notStarted);
-      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
-    });
-
-    it("handles an 'Unknown' phase", () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
-      expect(statusToBgColor(NodePhase.UNKNOWN)).toEqual(statusBgColors.notStarted);
-      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'Unknown');
-    });
-
-    it("returns color 'not started' if status is undefined", () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => null);
-      expect(statusToBgColor(undefined)).toEqual(statusBgColors.notStarted);
-      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
-    });
-
-    it("returns color 'not started' if status is 'Omitted'", () => {
-      expect(statusToBgColor(NodePhase.OMITTED)).toEqual(statusBgColors.notStarted);
-    });
-
-    it("returns color 'not started' if status is 'Pending'", () => {
-      expect(statusToBgColor(NodePhase.PENDING)).toEqual(statusBgColors.notStarted);
-    });
-
-    [NodePhase.ERROR, NodePhase.FAILED].forEach((status) => {
-      it(`returns color \'error\' if status is: ${status}`, () => {
-        expect(statusToBgColor(status)).toEqual(statusBgColors.error);
-      });
-    });
-
-    [NodePhase.RUNNING, NodePhase.TERMINATING].forEach((status) => {
-      it(`returns color \'running\' if status is: ${status}`, () => {
-        expect(statusToBgColor(status)).toEqual(statusBgColors.running);
-      });
-    });
-
-    [NodePhase.SKIPPED, NodePhase.TERMINATED].forEach((status) => {
-      it(`returns color \'terminated or skipped\' if status is: ${status}`, () => {
-        expect(statusToBgColor(status)).toEqual(statusBgColors.terminatedOrSkipped);
-      });
-    });
-
-    [NodePhase.SUCCEEDED, NodePhase.CACHED].forEach((status) => {
-      it(`returns color 'succeeded' if status is '${status}'`, () => {
-        expect(statusToBgColor(status)).toEqual(statusBgColors.succeeded);
-      });
-    });
-  });
-
-  describe('checkIfTerminated', () => {
-    it("returns status 'terminated' if status is 'failed' and error message is 'terminated'", () => {
-      expect(checkIfTerminated(NodePhase.FAILED, 'terminated')).toEqual(NodePhase.TERMINATED);
     });
 
     [
-      NodePhase.SUCCEEDED,
-      NodePhase.ERROR,
-      NodePhase.SKIPPED,
-      NodePhase.PENDING,
-      NodePhase.RUNNING,
-      NodePhase.TERMINATING,
-      NodePhase.OMITTED,
-      NodePhase.UNKNOWN,
-    ].forEach((status) => {
-      it(`returns the original status, even if message is 'terminated', if status is: ${status}`, () => {
-        expect(checkIfTerminated(status, 'terminated')).toEqual(status);
+      V2beta1RuntimeState.PENDING,
+      V2beta1RuntimeState.RUNNING,
+      V2beta1RuntimeState.CANCELING,
+      V2beta1RuntimeState.PAUSED,
+      V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED,
+    ].forEach((state) => {
+      it(`returns 'false' for non-finished state: ${state}`, () => {
+        expect(hasFinishedV2(state)).toBe(false);
       });
     });
 
-    it("returns 'failed' if status is 'failed' and no error message is provided", () => {
-      expect(checkIfTerminated(NodePhase.FAILED)).toEqual(NodePhase.FAILED);
-    });
-
-    it("returns 'failed' if status is 'failed' and empty error message is provided", () => {
-      expect(checkIfTerminated(NodePhase.FAILED, '')).toEqual(NodePhase.FAILED);
-    });
-
-    it("returns 'failed' if status is 'failed' and arbitrary error message is provided", () => {
-      expect(checkIfTerminated(NodePhase.FAILED, 'some random error')).toEqual(NodePhase.FAILED);
+    it('does not throw for undefined state', () => {
+      expect(() => hasFinishedV2(undefined)).not.toThrow();
     });
   });
 
-  describe('parseNodePhase', () => {
-    const DEFAULT_NODE_STATUS = {
-      phase: 'Succeeded',
-      id: 'file-passing-pipelines-55slt-2894085459',
-      outputs: {
-        artifacts: [
-          {
-            s3: {
-              key: 'artifacts/file-passing-pipelines-55slt/file-passing-pipelines-55slt-2894085459/sum-numbers-output.tgz',
-            },
-          } as unknown as Artifact,
-        ],
-      },
-    } as unknown as NodeStatus;
-
-    it('returns node original phase if not successful', () => {
-      expect(
-        parseNodePhase({
-          ...DEFAULT_NODE_STATUS,
-          phase: 'Failed',
-        }),
-      ).toEqual('Failed');
+  describe('statusToBgColorV2', () => {
+    it("returns 'notStarted' color for PAUSED state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.PAUSED)).toEqual(statusBgColors.notStarted);
     });
 
-    it('returns succeeded phase for a normal node', () => {
-      expect(
-        parseNodePhase({
-          ...DEFAULT_NODE_STATUS,
-          phase: 'Succeeded',
-        }),
-      ).toEqual('Succeeded');
+    it("returns 'running' color for RUNNING state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.RUNNING)).toEqual(statusBgColors.running);
     });
 
-    it('returns cached phase for a cached node', () => {
-      expect(
-        parseNodePhase({
-          ...DEFAULT_NODE_STATUS,
-          id: 'file-passing-pipelines-55slt-2894085459',
-          type: 'Pod',
-          phase: 'Succeeded', // Cached nodes have phase == 'Succeeded'
-          outputs: {
-            artifacts: [
-              {
-                s3: {
-                  // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
-                  key: 'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
-                },
-              } as Artifact,
-            ],
-          },
-        }),
-      ).toEqual('Cached');
+    it("returns 'running' color for CANCELING state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.CANCELING)).toEqual(statusBgColors.running);
     });
 
-    it('returns succeeded phase for a retry node', () => {
-      expect(
-        parseNodePhase({
-          ...DEFAULT_NODE_STATUS,
-          id: 'file-passing-pipelines-55slt-2894085459',
-          type: 'Retry',
-          phase: 'Succeeded', // Cached nodes have phase == 'Succeeded'
-          outputs: {
-            artifacts: [
-              {
-                s3: {
-                  // HACK: A cached node's artifacts will refer to a path that doesn't match its own id.
-                  key: 'artifacts/file-passing-pipelines-mjpph/file-passing-pipelines-mjpph-1802581193/sum-numbers-output.tgz',
-                },
-              } as Artifact,
-            ],
-          },
-        }),
-      ).toEqual('Succeeded');
+    it("returns 'succeeded' color for SUCCEEDED state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.SUCCEEDED)).toEqual(statusBgColors.succeeded);
+    });
+
+    it("returns 'error' color for FAILED state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.FAILED)).toEqual(statusBgColors.error);
+    });
+
+    [V2beta1RuntimeState.SKIPPED, V2beta1RuntimeState.CANCELED].forEach((state) => {
+      it(`returns 'terminatedOrSkipped' color for state: ${state}`, () => {
+        expect(statusToBgColorV2(state)).toEqual(statusBgColors.terminatedOrSkipped);
+      });
     });
   });
 });

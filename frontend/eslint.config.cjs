@@ -11,14 +11,12 @@ module.exports = [
   {
     ignores: [
       '**/node_modules/**',
-      'src/apis/**',
-      'src/apisv2beta1/**',
       'server/dist/**',
       'server/src/generated/**',
       '**/*.test.ts',
       '**/*.test.tsx',
       'src/generated/**',
-      'src/third_party/mlmd/generated/**',
+      'src/apisv2beta1/**',
       'src/stories/**',
     ],
   },

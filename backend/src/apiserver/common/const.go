@@ -24,9 +24,9 @@ const (
 	RbacResourceTypeRuns               = "runs"
 	RbacResourceTypeJobs               = "jobs"
 	RbacResourceTypeViewers            = "viewers"
-	RbacResourceTypeVisualizations     = "visualizations"
 	RbacResourceTypeScheduledWorkflows = "scheduledworkflows"
 	RbacResourceTypeWorkflows          = "workflows"
+	RbacResourceTypeArtifacts          = "artifacts"
 
 	RbacResourceVerbArchive       = "archive"
 	RbacResourceVerbUpdate        = "update"
@@ -41,7 +41,9 @@ const (
 	RbacResourceVerbUnarchive     = "unarchive"
 	RbacResourceVerbReportMetrics = "reportMetrics"
 	RbacResourceVerbReadArtifact  = "readArtifact"
+	RbacResourceVerbReadLog       = "readLog"
 	RbacResourceVerbReport        = "report"
+	RbacResourceVerbUse           = "use"
 )
 
 const (
@@ -53,11 +55,17 @@ const (
 
 const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
 
+// TokenAudienceRunPrefix is appended to the token-review audience base when
+// minting and validating run-scoped projected service-account tokens used by
+// driver/launcher/importer pods. The resulting audience is:
+//
+//	<base>/runs/<runID>
+const TokenAudienceRunPrefix string = "/runs/"
+
 const DefaultMetadataTLSEnabled = false
 
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
-	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
 	ProjectIDEnvVar                     = "PROJECT_ID"
 )

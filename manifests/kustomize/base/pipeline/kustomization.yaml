@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - metadata-writer
+  - ui-signing-key
   - ml-pipeline-apiserver-deployment.yaml
   - ml-pipeline-apiserver-role.yaml
   - ml-pipeline-apiserver-rolebinding.yaml
@@ -25,9 +25,6 @@ resources:
   - ml-pipeline-viewer-crd-rolebinding.yaml
   - ml-pipeline-viewer-crd-deployment.yaml
   - ml-pipeline-viewer-crd-sa.yaml
-  - ml-pipeline-visualization-deployment.yaml
-  - ml-pipeline-visualization-sa.yaml
-  - ml-pipeline-visualization-service.yaml
   - pipeline-runner-role.yaml
   - pipeline-runner-rolebinding.yaml
   - pipeline-runner-sa.yaml
@@ -44,14 +41,12 @@ configMapGenerator:
       disableNameSuffixHash: true
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
-    newTag: 2.17.0
+    newTag: 2.17.1
   - name: ghcr.io/kubeflow/kfp-persistence-agent
-    newTag: 2.17.0
+    newTag: 2.17.1
   - name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
-    newTag: 2.17.0
+    newTag: 2.17.1
   - name: ghcr.io/kubeflow/kfp-frontend
-    newTag: 2.17.0
+    newTag: 2.17.1
   - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
-    newTag: 2.17.0
-  - name: ghcr.io/kubeflow/kfp-visualization-server
-    newTag: 2.17.0
+    newTag: 2.17.1

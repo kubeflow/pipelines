@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  # Expose the UI, PostgreSQL, and SeaweedFS
+  extraPortMappings:
+  - containerPort: 30300
+    hostPort: 3000
+  - containerPort: 30432
+    hostPort: 5432
+  - containerPort: 30900
+    hostPort: 9000

@@ -112,7 +112,7 @@ def container_component_dumps(obj: Any) -> Any:
           inner_func(v)
       elif (
           isinstance(obj, placeholders.InputValuePlaceholder)
-          and obj._ir_type != "STRING"  # pylint: disable=protected-access
+          and obj._ir_type != "STRING"  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
       ):
         non_str_fields.append(obj.input_name)
 

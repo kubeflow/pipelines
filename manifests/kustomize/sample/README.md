@@ -5,7 +5,7 @@ Do whatever you want to customize your cluster. You can use existing cluster
 or create a new one.
 - **ML Usage** GPU normally is required for deep learning task.
 You may consider create **zero-sized GPU node-pool with autoscaling**.
-Please reference [GPU Tutorial](/samples/tutorials/gpu/).
+Please reference [GPU scheduling example](/test_data/sdk_compiled_pipelines/valid/gpu-scheduling/nvidia_gpu_scheduling_check.py).
 - **Security** You may consider use **Workload Identity** in GCP cluster.
 
 Here for simplicity, we create a small cluster with **--scopes=cloud-platform**

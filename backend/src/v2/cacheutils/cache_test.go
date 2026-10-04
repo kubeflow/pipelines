@@ -1,7 +1,6 @@
 package cacheutils
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -27,6 +26,7 @@ func TestGenerateCacheKey(t *testing.T) {
 		cmdArgs                 []string
 		image                   string
 		pvcNames                []string
+		env                     []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar
 		want                    *cachekey.CacheKey
 		wantErr                 bool
 	}{
@@ -218,11 +218,9 @@ func TestGenerateCacheKey(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
-	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := cacheClient.GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames)
+			got, err := GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames, test.env)
 			if (err != nil) != test.wantErr {
 				t.Errorf("GenerateCacheKey() error = %v", err)
 				return
@@ -339,13 +337,11 @@ func TestGenerateFingerPrint(t *testing.T) {
 			fingerPrint: "3d9a2a778fa3174c6cfc6e639c507c265b5f21ef6e5b1dd70b236462cc6da464",
 		},
 	}
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
-	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fingerPrint, err := cacheClient.GenerateFingerPrint(cacheKey)
+			fingerPrint, err := GenerateFingerPrint(cacheKey)
 			assert.Nil(t, err)
-			testFingerPrint, err := cacheClient.GenerateFingerPrint(test.cacheKey)
+			testFingerPrint, err := GenerateFingerPrint(test.cacheKey)
 			assert.Nil(t, err)
 			assert.Equal(t, fingerPrint == testFingerPrint, test.wantEqual)
 			assert.Equal(t, test.fingerPrint, testFingerPrint)
@@ -409,16 +405,13 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 	}
 
-	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
+	baseFP, err := GenerateFingerPrint(base)
 	require.NoError(t, err)
-
-	baseFP, err := cacheClient.GenerateFingerPrint(base)
+	withPVCsFP, err := GenerateFingerPrint(withPVCs)
 	require.NoError(t, err)
-	withPVCsFP, err := cacheClient.GenerateFingerPrint(withPVCs)
+	samePVCsFP, err := GenerateFingerPrint(samePVCs)
 	require.NoError(t, err)
-	samePVCsFP, err := cacheClient.GenerateFingerPrint(samePVCs)
-	require.NoError(t, err)
-	differentPVCsFP, err := cacheClient.GenerateFingerPrint(differentPVCs)
+	differentPVCsFP, err := GenerateFingerPrint(differentPVCs)
 	require.NoError(t, err)
 
 	// PVC names should affect the fingerprint when present
@@ -427,4 +420,47 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 	assert.Equal(t, withPVCsFP, samePVCsFP)
 	// Different PVC names should change the fingerprint
 	assert.NotEqual(t, withPVCsFP, differentPVCsFP)
+}
+
+func TestGenerateFingerPrint_ConsidersEnv(t *testing.T) {
+	newKey := func(env ...*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar) *cachekey.CacheKey {
+		return &cachekey.CacheKey{
+			InputArtifactNames: map[string]*cachekey.ArtifactNameList{
+				"dataset_one": {ArtifactNames: []string{"1"}},
+			},
+			OutputParametersSpec: map[string]string{
+				"output_parameter_one": "STRING",
+			},
+			ContainerSpec: &cachekey.ContainerSpec{
+				CmdArgs: []string{"sh", "ec", "test"},
+				Image:   "python:3.11",
+				Env:     env,
+			},
+		}
+	}
+	fingerPrint := func(env ...*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar) string {
+		fp, err := GenerateFingerPrint(newKey(env...))
+		require.NoError(t, err)
+		return fp
+	}
+	envVar := func(name, value string) *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar {
+		return &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{Name: name, Value: value}
+	}
+
+	noEnv := fingerPrint()
+	train := fingerPrint(envVar("MODE", "train"))
+
+	assert.NotEqual(t, noEnv, train, "adding an env var must change the fingerprint")
+	assert.Equal(t, train, fingerPrint(envVar("MODE", "train")), "the same env must give the same fingerprint")
+	assert.NotEqual(t, train, fingerPrint(envVar("MODE", "eval")), "a different value must change the fingerprint")
+	assert.NotEqual(t, train, fingerPrint(envVar("MODE", "train"), envVar("SEED", "7")), "an extra env var must change the fingerprint")
+	assert.NotEqual(t,
+		fingerPrint(envVar("A", "x"), envVar("B", "$(A)")),
+		fingerPrint(envVar("B", "$(A)"), envVar("A", "x")),
+		"the same entries in a different order must change the fingerprint")
+
+	// An empty list has to hash like no list at all, or every cached task in an
+	// existing deployment misses once on upgrade.
+	assert.Equal(t, noEnv, fingerPrint([]*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{}...),
+		"an empty env must keep the fingerprint a task had before env was part of the key")
 }

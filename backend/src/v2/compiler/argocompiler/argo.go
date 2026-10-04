@@ -34,6 +34,7 @@ import (
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type Options struct {
@@ -68,6 +69,10 @@ type Options struct {
 	// configuration and passes it in, so callers that compile outside the API server,
 	// such as the standalone compiler, simply leave it nil and get no extra metadata.
 	DriverPodConfig *common.DriverPodConfig
+	// Optional: base audience for projected service-account tokens used by runtime
+	// pods. Empty means DefaultTokenReviewAudience. The API server passes
+	// TOKEN_REVIEW_AUDIENCE so minted audiences match TokenReview.
+	TokenReviewAudience string
 }
 
 const (
@@ -160,6 +165,18 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		},
 		ObjectMeta: k8smeta.ObjectMeta{
 			GenerateName: retrieveLastValidString(spec.GetPipelineInfo().GetName()) + "-",
+			Annotations: map[string]string{
+				// Use Argo's shorter v1 pod names so long workflow names do not inherit
+				// internal template names like system-dag-driver into the pod hostname.
+				// Some runtime paths self-look up the current pod by its exact
+				// metadata.name via the Kubernetes API before reading pod
+				// annotations, for example the launcher retry-index fallback. If
+				// the hostname is truncated, that self-lookup can fail with "pod
+				// not found" even though the pod only talks to the API server.
+				// For debugging, the system template identity now lives in pod
+				// metadata instead of the pod name itself; see addSystemPodMetadata.
+				"workflows.argoproj.io/pod-name-format": "v1",
+			},
 			// Note, uncomment the following during development to view argo inputs/outputs in KFP UI.
 			// TODO(Bobgy): figure out what annotations we should use for v2 engine.
 			// For now, comment this annotation, so that in KFP UI, it shows argo input/output params/artifacts
@@ -172,10 +189,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
-					"pipelines.kubeflow.org/v2_component": "true",
+					util.V2ComponentKey: "true",
 				},
 				Labels: map[string]string{
-					"pipelines.kubeflow.org/v2_component": "true",
+					util.V2ComponentKey: "true",
 				},
 			},
 			Arguments: wfapi.Arguments{
@@ -227,6 +244,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		c.defaultHostUsers = opts.DefaultHostUsers
 		c.driverPodConfig = opts.DriverPodConfig
+		c.tokenReviewAudience = opts.TokenReviewAudience
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -242,6 +260,17 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	err = compiler.Accept(job, kubernetesSpec, c)
 	if err != nil {
 		return nil, err
+	}
+
+	// A task's retry settings only mean what they say if nothing above the pod
+	// also retries. Argo's templateDefaults gives every strategy-less template
+	// the deployment-wide retryStrategy, so the generated DAG templates would
+	// re-run whole subgraphs on top of the task's own retries, multiplying the
+	// attempt count and overriding the selected policy. Zero them so the pod
+	// owns retry. Scoped to pipelines that actually configure retry, so
+	// everything else compiles exactly as before.
+	if pipelineConfiguresRetry(spec) {
+		neutralizeDAGRetries(c.wf)
 	}
 
 	// Apply any workflow spec patches from environment variable
@@ -334,6 +363,7 @@ type workflowCompiler struct {
 	defaultRunAsNonRoot  *bool
 	defaultHostUsers     *bool
 	driverPodConfig      *common.DriverPodConfig
+	tokenReviewAudience  string
 	kubernetesConfigs    map[string]*kubernetesplatform.KubernetesExecutorConfig
 }
 
@@ -390,24 +420,30 @@ func (c *workflowCompiler) templateName(componentName string) string {
 }
 
 const (
-	argumentsComponents     = "components-"
+	systemPodRoleLabelKey           = "pipelines.kubeflow.org/pod-role"
+	systemTemplateNameAnnotationKey = "pipelines.kubeflow.org/template-name"
+)
+
+func addSystemPodMetadata(t *wfapi.Template, role, templateName string) {
+	if t == nil {
+		return
+	}
+	if t.Metadata.Labels == nil {
+		t.Metadata.Labels = make(map[string]string)
+	}
+	if t.Metadata.Annotations == nil {
+		t.Metadata.Annotations = make(map[string]string)
+	}
+	// Keep system pod identity in metadata so debugging does not depend on
+	// template names being embedded in the pod hostname.
+	t.Metadata.Labels[systemPodRoleLabelKey] = role
+	t.Metadata.Annotations[systemTemplateNameAnnotationKey] = templateName
+}
+
+const (
 	argumentsContainers     = "implementations-"
 	argumentsKubernetesSpec = "kubernetes-"
 )
-
-func (c *workflowCompiler) saveComponentSpec(name string, spec *pipelinespec.ComponentSpec) error {
-	hashedComponent := c.hashComponentContainer(name)
-
-	return c.saveProtoToArguments(argumentsComponents+hashedComponent, spec)
-}
-
-// useComponentSpec returns a placeholder we can refer to the component spec
-// in argo workflow fields.
-func (c *workflowCompiler) useComponentSpec(name string) (string, error) {
-	hashedComponent := c.hashComponentContainer(name)
-
-	return c.argumentsPlaceholder(argumentsComponents + hashedComponent)
-}
 
 func (c *workflowCompiler) saveComponentImpl(name string, msg proto.Message) error {
 	hashedComponent := c.hashComponentContainer(name)
@@ -520,17 +556,15 @@ func hashValue(value interface{}) (string, error) {
 }
 
 const (
-	paramComponent               = "component"      // component spec
 	paramTask                    = "task"           // task spec
 	paramTaskName                = "task-name"      // task name
 	paramContainer               = "container"      // container spec
 	paramImporter                = "importer"       // importer spec
 	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
-	paramParentDagID             = "parent-dag-id"
-	paramExecutionID             = "execution-id"
+	paramParentDagTaskID         = "parent-dag-task-id"
+	paramParentDagTaskIDPath     = "parent-dag-task-id-path"
 	paramIterationCount          = "iteration-count"
 	paramIterationIndex          = "iteration-index"
-	paramExecutorInput           = "executor-input"
 	paramDriverType              = "driver-type"
 	paramCachedDecision          = "cached-decision"             // indicate hit cache or not
 	paramPodSpecPatch            = "pod-spec-patch"              // a strategic patch merged with the pod spec
@@ -554,10 +588,6 @@ func runID() string {
 func runResourceName() string {
 	// This translates to the Argo Workflow object name.
 	return "{{workflow.name}}"
-}
-
-func runCreationTimeUTC() string {
-	return "{{workflow.creationTimestamp}}"
 }
 
 func workflowParameter(name string) string {
@@ -729,4 +759,40 @@ func GetWorkspacePVC(
 		},
 		Spec: pvcSpec,
 	}, nil
+}
+
+// pipelineConfiguresRetry reports whether any task in the pipeline sets a retry
+// policy, including tasks inside nested pipelines.
+func pipelineConfiguresRetry(spec *pipelinespec.PipelineSpec) bool {
+	if spec.GetRoot().GetDag() != nil {
+		for _, task := range spec.GetRoot().GetDag().GetTasks() {
+			if task.GetRetryPolicy() != nil {
+				return true
+			}
+		}
+	}
+	for _, component := range spec.GetComponents() {
+		for _, task := range component.GetDag().GetTasks() {
+			if task.GetRetryPolicy() != nil {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// neutralizeDAGRetries gives every DAG template an explicit zero-retry strategy
+// so templateDefaults cannot supply one. Pod templates are left alone: retrying
+// a pod re-runs one container, which is what the deployment default is for,
+// while retrying a DAG re-runs its entire subgraph.
+func neutralizeDAGRetries(wf *wfapi.Workflow) {
+	for i := range wf.Spec.Templates {
+		tmpl := &wf.Spec.Templates[i]
+		if tmpl.DAG == nil || tmpl.RetryStrategy != nil {
+			continue
+		}
+		tmpl.RetryStrategy = &wfapi.RetryStrategy{
+			Limit: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
+		}
+	}
 }

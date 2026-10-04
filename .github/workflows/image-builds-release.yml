@@ -33,7 +33,29 @@ on:
         description: 'Dry run mode - build images without pushing to registry or creating tags.'
         required: false
 jobs:
+  resolve-source:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.src_branch }}
+          path: release-source
+      - name: Validate release line and source version
+        env:
+          TARGET_TAG: ${{ inputs.target_tag }}
+        run: |
+          python3 .github/resources/scripts/release_image_validation.py source \
+            --target-tag "$TARGET_TAG" --version-file release-source/VERSION
+      - id: commit
+        run: echo "sha=$(git -C release-source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   build-images-for-release:
+    needs: resolve-source
     strategy:
       fail-fast: true
       matrix:
@@ -53,30 +75,12 @@ jobs:
           - name: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
-          - name: kfp-visualization-server
-            dockerfile: backend/Dockerfile.visualization
-            context: .
           - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
           - name: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
-          - name: kfp-cache-deployer
-            dockerfile: backend/src/cache/deployer/Dockerfile
-            context: .
-          - name: kfp-cache-server
-            dockerfile: backend/Dockerfile.cacheserver
-            context: .
-          - name: kfp-metadata-envoy
-            dockerfile: third_party/metadata_envoy/Dockerfile
-            context: .
-          - name: kfp-metadata-writer
-            dockerfile: backend/metadata_writer/Dockerfile
-            context: .
-          - name: kfp-inverse-proxy-agent
-            dockerfile: proxy/Dockerfile
-            context: ./proxy
 
         arch:
           - arch_name: amd64
@@ -86,17 +90,10 @@ jobs:
             runs_on: ubuntu-24.04-arm
             platform: linux/arm64
 
-        exclude:
-          - image: { name: kfp-metadata-writer }
-            arch: { arch_name: arm64 }
-
-          - image: { name: kfp-inverse-proxy-agent }
-            arch: { arch_name: arm64 }
-
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
     with:
-      src_branch: ${{ inputs.src_branch }}
+      src_branch: ${{ needs.resolve-source.outputs.sha }}
       target_tag: ${{ inputs.target_tag }}
       arch_tag: ${{ matrix.arch.arch_name }}
       overwrite_imgs: ${{ inputs.overwrite_imgs }}
@@ -110,7 +107,7 @@ jobs:
       push: ${{ !inputs.dry_run }}
 
   create-manifests:
-    needs: build-images-for-release
+    needs: [resolve-source, build-images-for-release]
     if: ${{ !inputs.dry_run }}
     strategy:
       fail-fast: true
@@ -121,17 +118,71 @@ jobs:
           - image: kfp-persistence-agent
           - image: kfp-scheduled-workflow-controller
           - image: kfp-viewer-crd-controller
-          - image: kfp-visualization-server
           - image: kfp-launcher
           - image: kfp-driver
-          - image: kfp-cache-deployer
-          - image: kfp-cache-server
-          - image: kfp-metadata-writer
-          - image: kfp-metadata-envoy
-          - image: kfp-inverse-proxy-agent
     uses: ./.github/workflows/create-manifest.yml
     secrets: inherit
     with:
       target_tag: ${{ inputs.target_tag }}
       app_to_build: ${{ matrix.component.image }}
+      source_sha: ${{ needs.resolve-source.outputs.sha }}
+      expected_platforms: linux/amd64,linux/arm64
       set_latest: ${{ inputs.set_latest }}
+
+  validate-release-images:
+    needs: [resolve-source, create-manifests]
+    if: ${{ !inputs.dry_run }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: amd64
+            runner: ubuntu-latest
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-source.outputs.sha }}
+      - name: Download this release attempt's verified index references
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: published-index-*-${{ github.run_attempt }}
+          path: published-indexes
+          merge-multiple: 'true'
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker
+      - name: Verify native shared-tag selection
+        env:
+          SOURCE_SHA: ${{ needs.resolve-source.outputs.sha }}
+          TARGET_TAG: ${{ inputs.target_tag }}
+          ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          python3 .github/resources/scripts/release_image_validation.py native \
+            --records published-indexes --source-sha "$SOURCE_SHA" \
+            --target-tag "$TARGET_TAG" --architecture "$ARCHITECTURE" \
+            --output "$RUNNER_TEMP/release-image-validation/images.json"
+      - name: Validate published release on native ARM64
+        if: matrix.architecture == 'arm64'
+        uses: ./.github/actions/arm64-smoke
+        with:
+          image_records: published-indexes
+          source_sha: ${{ needs.resolve-source.outputs.sha }}
+      - name: Upload native release image evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-image-validation-${{ matrix.architecture }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-image-validation

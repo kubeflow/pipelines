@@ -1,13 +1,18 @@
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 version: 2
 sphinx:
-  configuration: docs/sdk/conf.py
-python:
-  install:
-    - requirements: docs/sdk/requirements.txt
-    - method: pip
-      path: sdk/python/
+  configuration: docs/conf.py
+  fail_on_warning: true
 build:
-  os: ubuntu-22.04
+  os: ubuntu-24.04
+  apt_packages:
+    - protobuf-compiler
   tools:
-    python: "3.11"
+    python: "3.12"
+    uv: "latest"
+  commands:
+    - uv sync --frozen --extra docs
+    - make -C api fetch-protos
+    - uv run python api/v2alpha1/python/generate_proto.py
+    - uv run python kubernetes_platform/python/generate_proto.py
+    - uv run sphinx-build -W --keep-going -b html docs $READTHEDOCS_OUTPUT/html

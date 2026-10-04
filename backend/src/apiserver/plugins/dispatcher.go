@@ -42,11 +42,19 @@ type RunPluginDispatcher interface {
 	// run creation.
 	OnBeforeRunCreation(ctx context.Context, run *PendingRun, executionSpec util.ExecutionSpec) error
 
+	// OnRunCreationDiscarded cleans up resources created only by a losing request.
+	// It must preserve resources referenced by the existing execution and must
+	// not persist the losing request's plugin output.
+	OnRunCreationDiscarded(ctx context.Context, run *PendingRun, existing util.ExecutionSpec) error
+
 	// OnRunEnd is called when a run reaches a terminal state. Returns
 	// true if all plugin syncs succeeded.
 	OnRunEnd(ctx context.Context, run *PersistedRun) bool
 
-	// OnRunRetry is called when a run is retried.
+	// OnRunRetry is called when a run is retried. Delivery is at least
+	// once per retry: recovery from a crash between this call and the run
+	// row update (expired-claim adoption) replays it. Implementations must
+	// be idempotent, or deduplicate on (RunID, RetryGeneration).
 	OnRunRetry(ctx context.Context, run *PersistedRun) error
 }
 
@@ -57,6 +65,9 @@ var _ RunPluginDispatcher = NoOpDispatcher{}
 
 func (NoOpDispatcher) PluginsRegistered() bool { return false }
 func (NoOpDispatcher) OnBeforeRunCreation(context.Context, *PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+func (NoOpDispatcher) OnRunCreationDiscarded(context.Context, *PendingRun, util.ExecutionSpec) error {
 	return nil
 }
 func (NoOpDispatcher) OnRunEnd(context.Context, *PersistedRun) bool { return true }

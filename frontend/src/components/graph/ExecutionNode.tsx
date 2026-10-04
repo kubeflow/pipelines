@@ -17,12 +17,11 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import ErrorIcon from '@mui/icons-material/Error';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { ReactElement } from 'react';
+import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 import StopCircle from 'src/icons/StopCircle';
-import { Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -69,44 +68,39 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
 }
 export default ExecutionNode;
 
-export function getExecutionIcon(state: Execution.State | undefined) {
+export function getExecutionIcon(state: PipelineTaskTaskState | undefined) {
   if (state === undefined) {
     return <ListAltIcon data-testid='execution-icon-default' className='text-mui-grey-500' />;
   }
   return <ListAltIcon data-testid='execution-icon-active' className='text-mui-blue-600' />;
 }
 
-export function getIcon(state: Execution.State | undefined) {
+export function getIcon(state: PipelineTaskTaskState | undefined) {
   if (state === undefined) {
     return null;
   }
   switch (state) {
-    case Execution.State.UNKNOWN:
+    case PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED:
       return getStateIconWrapper(
         <MoreHorizIcon className='text-mui-grey-600' />,
         'bg-mui-grey-200',
       );
 
-    case Execution.State.NEW:
-      return getStateIconWrapper(
-        <PowerSettingsNewIcon className='text-mui-blue-600' />,
-        'bg-mui-blue-50',
-      );
-    case Execution.State.RUNNING:
+    case PipelineTaskTaskState.RUNNING:
       return getStateIconWrapper(<RefreshIcon className='text-mui-green-600' />, 'bg-mui-green-50');
-    case Execution.State.CACHED:
+    case PipelineTaskTaskState.CACHED:
       return getStateIconWrapper(
         <CloudDownloadIcon className='text-mui-green-600' />,
         'bg-mui-green-50',
       );
-    case Execution.State.FAILED:
+    case PipelineTaskTaskState.FAILED:
       return getStateIconWrapper(<ErrorIcon className='text-mui-red-600' />, 'bg-mui-red-50');
-    case Execution.State.CANCELED:
+    case PipelineTaskTaskState.SKIPPED:
       return getStateIconWrapper(
         <StopCircle colorClass={'text-mui-grey-600'} />,
         'bg-mui-grey-200',
       );
-    case Execution.State.COMPLETE:
+    case PipelineTaskTaskState.SUCCEEDED:
       return getStateIconWrapper(
         <CheckCircleIcon className='text-mui-green-600' />,
         'bg-mui-green-50',

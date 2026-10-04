@@ -20,21 +20,15 @@ import { ViewerTensorboardConfig } from '../configs.js';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 import {
-  AuthorizeRequestResources,
-  AuthorizeRequestVerb,
-} from '../src/generated/apis/auth/index.js';
+  AuthorizeResourcesEnum,
+  AuthorizeVerbEnum,
+} from '../src/generated/apisv2beta1/auth/index.js';
 import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
-const UI_SERVER_ROUTE_PREFIXES = [
-  '/apis',
-  '/apps',
-  '/artifacts',
-  '/k8s',
-  '/system',
-  '/visualizations',
-];
+const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
+const UI_SERVER_ROUTE_PREFIXES = ['/apis', '/apps', '/artifacts', '/k8s', '/system'];
 
 interface TensorboardProxyPayload {
   namespace: string;
@@ -80,11 +74,7 @@ function isUIServerRoute(requestPath: string, basePath: string): boolean {
     return true;
   }
 
-  return (
-    UI_SERVER_ROUTE_PREFIXES.some((routePrefix) => hasPathPrefix(requestPath, routePrefix)) ||
-    requestPath === '/ml_metadata' ||
-    requestPath.startsWith('/ml_metadata.')
-  );
+  return UI_SERVER_ROUTE_PREFIXES.some((routePrefix) => hasPathPrefix(requestPath, routePrefix));
 }
 
 /**
@@ -204,10 +194,12 @@ export function parseTensorboardProxyPayload(
   }
 
   const expectedSignature = signTensorboardProxyPayload(serializedPayload, signingSecret);
-  if (signature.length !== expectedSignature.length) {
+  if (signature.length !== expectedSignature.length || !BASE64URL_PATTERN.test(signature)) {
     return undefined;
   }
-  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  const signatureBuffer = Buffer.from(signature, 'ascii');
+  const expectedSignatureBuffer = Buffer.from(expectedSignature, 'ascii');
+  if (!timingSafeEqual(signatureBuffer, expectedSignatureBuffer)) {
     return undefined;
   }
 
@@ -316,8 +308,8 @@ export default function registerTensorboardProxy(
 
       const authError = await authorizeFn(
         {
-          verb: AuthorizeRequestVerb.GET,
-          resources: AuthorizeRequestResources.VIEWERS,
+          verb: AuthorizeVerbEnum.GET,
+          resources: AuthorizeResourcesEnum.VIEWERS,
           namespace: payload.namespace,
         },
         req,
@@ -342,7 +334,6 @@ export default function registerTensorboardProxy(
     proxyRoutes,
     createProxyMiddleware({
       changeOrigin: true,
-      logLevel: process.env.NODE_ENV === 'test' ? 'warn' : 'debug',
       target: 'http://127.0.0.1',
       router: (req: any) => {
         const { namespace, viewerName } = req.tensorboardProxy as TensorboardProxyPayload;
