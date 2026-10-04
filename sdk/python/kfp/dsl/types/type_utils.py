@@ -14,8 +14,7 @@
 """Utilities for component I/O type mapping."""
 
 import inspect
-import json
-from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
+from typing import Any, List, Literal, Optional, Type, Union
 
 try:
     from typing import get_args, get_origin
