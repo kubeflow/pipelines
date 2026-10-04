@@ -214,7 +214,7 @@ def get_inputs_for_all_groups(
 
             # If the value is already provided (immediate value), then no
             # need to expose it as input for its parent groups.
-            if getattr(channel, 'value', None):
+            if getattr(channel, 'value', None) is not None:
                 continue
 
             # channels_to_add could be a list of PipelineChannels when loop

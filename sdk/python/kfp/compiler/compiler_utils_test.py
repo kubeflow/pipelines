@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import unittest
+import types
 
 from absl.testing import parameterized
 from kfp.compiler import compiler_utils
@@ -234,6 +235,48 @@ class TestMemoryToFloat(parameterized.TestCase):
         self.assertAlmostEqual(
             compiler_utils._memory_to_float(memory), expected)
 
+
+def _groups_for_value(value):
+    """Runs get_inputs_for_all_groups on a fake task holding one channel.
+
+    Returns the names of groups the channel got surfaced to.
+    """
+    channel = pipeline_channel.PipelineParameterChannel(
+        
+        name='param', channel_type='Integer', value=value)
+    task = types.SimpleNamespace(name='task', channel_inputs=[channel])
+    pipeline = types.SimpleNamespace(tasks={'task': task})
+    
+    return set(
+        compiler_utils.get_inputs_for_all_groups(
+            pipeline=pipeline,
+            task_name_to_parent_groups={'task': ['group']},
+            group_name_to_parent_groups={},
+            condition_channels={'task': set()},
+            name_to_for_loop_group={}))
+
+
+class TestImmediateValues(parameterized.TestCase):
+
+    
+    # Only None means "no value yet". 0 and False are real values
+    # and must not surface the channel to the parent group.
+    @parameterized.parameters(
+        {
+            'value': 0,
+            'expected': set()
+        },
+        {
+            'value': False,
+            'expected': set()
+        },
+        {
+            'value': None,
+            'expected': {'group'}
+        },
+    )
+    def test_falsy_values_skipped(self, value, expected):
+        self.assertEqual(_groups_for_value(value), expected)
 
 if __name__ == '__main__':
     unittest.main()
