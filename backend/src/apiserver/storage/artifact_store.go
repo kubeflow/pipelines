@@ -60,35 +60,129 @@ func artifactURIHash(uri string) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func computeArtifactWriteIdentity(
+	namespace, runUUID, taskID string,
+	retryGeneration int64,
+	producerKey string,
+	iterationIndex int64,
+) (string, error) {
+	var identity bytes.Buffer
+
+	for _, value := range []string{namespace, runUUID, taskID} {
+		if err := writeLengthPrefixedString(&identity, value); err != nil {
+			return "", err
+		}
+	}
+
+	if err := binary.Write(&identity, binary.BigEndian, retryGeneration); err != nil {
+		return "", err
+	}
+
+	if err := writeLengthPrefixedString(&identity, producerKey); err != nil {
+		return "", err
+	}
+
+	if err := binary.Write(&identity, binary.BigEndian, iterationIndex); err != nil {
+		return "", err
+	}
+
+	digest := sha256.Sum256(identity.Bytes())
+	return hex.EncodeToString(digest[:]), nil
+}
+
+func computeArtifactWritePayloadHash(artifact *model.Artifact) (string, error) {
+	if artifact == nil {
+		return "", fmt.Errorf("artifact is nil")
+	}
+
+	var payload bytes.Buffer
+
+	if err := binary.Write(&payload, binary.BigEndian, int32(artifact.Type)); err != nil {
+		return "", err
+	}
+
+	if artifact.URI == nil {
+		if err := binary.Write(&payload, binary.BigEndian, uint8(0)); err != nil {
+			return "", err
+		}
+	} else {
+		if err := binary.Write(&payload, binary.BigEndian, uint8(1)); err != nil {
+			return "", err
+		}
+		if err := writeLengthPrefixedString(&payload, *artifact.URI); err != nil {
+			return "", err
+		}
+	}
+
+	if err := writeLengthPrefixedString(&payload, artifact.Name); err != nil {
+		return "", err
+	}
+
+	if err := writeLengthPrefixedString(&payload, artifact.Description); err != nil {
+		return "", err
+	}
+
+	metadataBytes, err := canonicalArtifactMetadataBytes(artifact.Metadata)
+	if err != nil {
+		return "", err
+	}
+	if err := writeLengthPrefixedString(&payload, string(metadataBytes)); err != nil {
+		return "", err
+	}
+
+	if artifact.NumberValue == nil {
+		if err := binary.Write(&payload, binary.BigEndian, uint8(0)); err != nil {
+			return "", err
+		}
+	} else {
+		if err := binary.Write(&payload, binary.BigEndian, uint8(1)); err != nil {
+			return "", err
+		}
+		if err := binary.Write(&payload, binary.BigEndian, *artifact.NumberValue); err != nil {
+			return "", err
+		}
+	}
+
+	digest := sha256.Sum256(payload.Bytes())
+	return hex.EncodeToString(digest[:]), nil
+}
+
 // Ensure that ClientManager implements the resource.ClientManagerInterface interface.
 var _ ArtifactStoreInterface = &ArtifactStore{}
 
 type ArtifactStoreInterface interface {
 	// CreateArtifact creates an artifact entry in the database.
-	CreateArtifact(artifact *model.Artifact) (*model.Artifact, error)
+	CreateArtifact(*model.Artifact) (*model.Artifact, error)
 
 	// CreateArtifactWithTask atomically creates an artifact row and its output link.
-	CreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error)
+	CreateArtifactWithTask(
+		artifact *model.Artifact,
+		artifactTask *model.ArtifactTask,
+		retryGeneration int64,
+	) (*model.Artifact, *model.ArtifactTask, error)
 
 	// CreateArtifactsWithTasks atomically creates a batch of artifacts and output links.
-	CreateArtifactsWithTasks(artifacts []*model.Artifact, artifactTasks []*model.ArtifactTask) ([]*model.Artifact, []*model.ArtifactTask, error)
+	CreateArtifactsWithTasks(
+		artifacts []*model.Artifact,
+		artifactTasks []*model.ArtifactTask,
+		retryGenerations []int64,
+	) ([]*model.Artifact, []*model.ArtifactTask, error)
 
 	// FindOrCreateArtifactWithTask atomically reuses an existing artifact that matches the
 	// stable reuse identity, or creates one when no match exists. Concurrent callers that
 	// race on the same identity share one artifact row and each still get their own link.
-	FindOrCreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error)
+	FindOrCreateArtifactWithTask(*model.Artifact, *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error)
 
 	// GetArtifact fetches an artifact with a given id.
-	GetArtifact(id string) (*model.Artifact, error)
+	GetArtifact(string) (*model.Artifact, error)
 
 	// GetArtifactsByURI fetches artifacts with exact Namespace + URI equality.
-	// This is a dedicated lookup path that avoids paginated ListArtifacts + COUNT.
-	GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error)
+	GetArtifactsByURI(string, string) ([]*model.Artifact, error)
 
 	// ListArtifacts fetches artifacts for given filtering and listing options.
 	// It returns the current page of artifacts, the total count across all pages,
 	// the next page token, and an error.
-	ListArtifacts(filterContext *model.FilterContext, opts *list.Options) ([]*model.Artifact, int, string, error)
+	ListArtifacts(*model.FilterContext, *list.Options) ([]*model.Artifact, int, string, error)
 }
 
 type ArtifactStore struct {
@@ -97,6 +191,7 @@ type ArtifactStore struct {
 	time                            util.TimeInterface
 	uuid                            util.UUIDGeneratorInterface
 	createArtifactTaskInTransaction func(tx *sql.Tx, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error)
+	createArtifactWriteIdentity     func(tx *sql.Tx, identity *model.ArtifactWriteIdentity) error
 }
 
 // NewArtifactStore creates a new ArtifactStore.
@@ -109,6 +204,9 @@ func NewArtifactStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGenerat
 	}
 	store.createArtifactTaskInTransaction = func(tx *sql.Tx, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
 		return createArtifactTaskWithExecutor(tx.Exec, store.uuid, artifactTask, store.dbDialect)
+	}
+	store.createArtifactWriteIdentity = func(tx *sql.Tx, identity *model.ArtifactWriteIdentity) error {
+		return store.createArtifactWriteIdentityInTransaction(tx, identity)
 	}
 	return store
 }
@@ -178,21 +276,11 @@ func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sq
 	return &newArtifact, nil
 }
 
-// CreateArtifactWithTask atomically creates an artifact row and its output link.
-// Keeping this transaction inside storage preserves the store-first boundary and
-// prevents callers from reaching into the raw DB just to keep `artifacts` and
-// `artifact_tasks` in sync for one logical API operation.
-func (s *ArtifactStore) CreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return nil, nil, util.NewInternalServerError(err, "Failed to start transaction for creating artifact and artifact-task")
-	}
-	defer func() {
-		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
-			glog.Warningf("Failed to rollback artifact create transaction: %v", rbErr)
-		}
-	}()
-
+func (s *ArtifactStore) createArtifactWithTaskInTransaction(
+	tx *sql.Tx,
+	artifact *model.Artifact,
+	artifactTask *model.ArtifactTask,
+) (*model.Artifact, *model.ArtifactTask, error) {
 	newArtifact, err := s.createArtifactWithExecutor(tx.Exec, artifact)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create artifact")
@@ -205,20 +293,159 @@ func (s *ArtifactStore) CreateArtifactWithTask(artifact *model.Artifact, artifac
 		return nil, nil, util.Wrap(err, "Failed to create artifact-task relationship")
 	}
 
-	if err := tx.Commit(); err != nil {
-		return nil, nil, util.NewInternalServerError(err, "Failed to commit transaction for creating artifact and artifact-task")
+	return newArtifact, newArtifactTask, nil
+}
+
+// CreateArtifactWithTask atomically creates an artifact row and its output link.
+// Keeping this transaction inside storage preserves the store-first boundary and
+// prevents callers from reaching into the raw DB just to keep `artifacts` and
+// `artifact_tasks` in sync for one logical API operation.
+func (s *ArtifactStore) CreateArtifactWithTask(
+	artifact *model.Artifact,
+	artifactTask *model.ArtifactTask,
+	retryGeneration int64,
+) (*model.Artifact, *model.ArtifactTask, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(
+			err,
+			"Failed to start transaction for creating artifact and artifact-task",
+		)
 	}
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			glog.Warningf("Failed to rollback artifact create transaction: %v", rbErr)
+		}
+	}()
+
+	artifactTaskCopy := *artifactTask
+	if err := artifactTaskCopy.SyncIterationFromProducer(); err != nil {
+		return nil, nil, util.NewInternalServerError(
+			err,
+			"Failed to derive artifact-task iteration: %v",
+			err.Error(),
+		)
+	}
+	iterationIndex := artifactTaskCopy.Iteration
+
+	identity, err := computeArtifactWriteIdentity(
+		artifact.Namespace,
+		artifactTaskCopy.RunUUID,
+		artifactTaskCopy.TaskID,
+		retryGeneration,
+		artifactTaskCopy.ArtifactKey,
+		iterationIndex,
+	)
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(
+			err,
+			"Failed to compute artifact write identity",
+		)
+	}
+
+	payloadHash, err := computeArtifactWritePayloadHash(artifact)
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(
+			err,
+			"Failed to compute artifact write payload hash",
+		)
+	}
+
+	existingIdentity, err := s.getArtifactWriteIdentity(tx, identity)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if existingIdentity != nil {
+		if existingIdentity.PayloadHash != payloadHash {
+			return nil, nil, util.NewInvalidInputError(
+				"Artifact write identity %q already exists with a different payload",
+				identity,
+			)
+		}
+
+		existingArtifact, err := s.getArtifactWithExecutor(
+			tx,
+			existingIdentity.ArtifactID,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		if existingArtifact == nil {
+			return nil, nil, util.NewInternalServerError(
+				fmt.Errorf("artifact %q not found", existingIdentity.ArtifactID),
+				"Artifact write identity points to missing artifact",
+			)
+		}
+
+		artifactTaskCopy := *artifactTask
+		artifactTaskCopy.ArtifactID = existingArtifact.UUID
+		artifactTaskCopy.Iteration = iterationIndex
+
+		existingArtifactTask, err :=
+			s.getArtifactTaskByUniqueLinkWithExecutor(tx, &artifactTaskCopy)
+		if err != nil {
+			return nil, nil, err
+		}
+		if existingArtifactTask == nil {
+			return nil, nil, util.NewInternalServerError(
+				fmt.Errorf(
+					"artifact-task link for artifact %q not found",
+					existingArtifact.UUID,
+				),
+				"Artifact write identity points to missing artifact-task link",
+			)
+		}
+
+		return existingArtifact, existingArtifactTask, nil
+	}
+
+	newArtifact, newArtifactTask, err :=
+		s.createArtifactWithTaskInTransaction(tx, artifact, &artifactTaskCopy)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	writeIdentity := &model.ArtifactWriteIdentity{
+		Identity:        identity,
+		Namespace:       artifact.Namespace,
+		RunUUID:         artifactTaskCopy.RunUUID,
+		TaskID:          artifactTaskCopy.TaskID,
+		RetryGeneration: retryGeneration,
+		ProducerKey:     artifactTaskCopy.ArtifactKey,
+		IterationIndex:  iterationIndex,
+		PayloadHash:     payloadHash,
+		ArtifactID:      newArtifact.UUID,
+	}
+
+	if err := s.createArtifactWriteIdentity(tx, writeIdentity); err != nil {
+		return nil, nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, nil, util.NewInternalServerError(
+			err,
+			"Failed to commit transaction for creating artifact and artifact-task",
+		)
+	}
+
 	return newArtifact, newArtifactTask, nil
 }
 
 // CreateArtifactsWithTasks atomically creates a batch of artifacts and output links.
 // This method is intentionally all-or-nothing so a later artifact-task failure
 // cannot leave earlier artifacts committed without their matching link rows.
-func (s *ArtifactStore) CreateArtifactsWithTasks(artifacts []*model.Artifact, artifactTasks []*model.ArtifactTask) ([]*model.Artifact, []*model.ArtifactTask, error) {
-	if len(artifacts) != len(artifactTasks) {
-		return nil, nil, util.NewInvalidInputError("artifacts and artifactTasks must have the same length")
+func (s *ArtifactStore) CreateArtifactsWithTasks(
+	artifacts []*model.Artifact,
+	artifactTasks []*model.ArtifactTask,
+	retryGenerations []int64,
+) ([]*model.Artifact, []*model.ArtifactTask, error) {
+	if len(artifacts) != len(artifactTasks) ||
+		len(artifacts) != len(retryGenerations) {
+		return nil, nil, util.NewInvalidInputError(
+			"artifacts, artifact tasks, and retry generations must have the same length",
+		)
 	}
-
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, nil, util.NewInternalServerError(err, "Failed to start transaction for bulk artifact creation")
@@ -232,18 +459,122 @@ func (s *ArtifactStore) CreateArtifactsWithTasks(artifacts []*model.Artifact, ar
 	createdArtifacts := make([]*model.Artifact, 0, len(artifacts))
 	createdArtifactTasks := make([]*model.ArtifactTask, 0, len(artifactTasks))
 	for index, artifact := range artifacts {
-		newArtifact, err := s.createArtifactWithExecutor(tx.Exec, artifact)
-		if err != nil {
-			return nil, nil, util.Wrapf(err, "Failed to create artifact %d", index)
-		}
-		createdArtifacts = append(createdArtifacts, newArtifact)
-
 		artifactTaskCopy := *artifactTasks[index]
-		artifactTaskCopy.ArtifactID = newArtifact.UUID
-		newArtifactTask, err := s.createArtifactTaskInTransaction(tx, &artifactTaskCopy)
-		if err != nil {
-			return nil, nil, util.Wrapf(err, "Failed to create artifact-task relationship %d", index)
+
+		if err := artifactTaskCopy.SyncIterationFromProducer(); err != nil {
+			return nil, nil, util.Wrap(err, fmt.Sprintf("Failed to sync artifact-task iteration %d", index))
 		}
+
+		iterationIndex := artifactTaskCopy.Iteration
+
+		identity, err := computeArtifactWriteIdentity(
+			artifact.Namespace,
+			artifactTaskCopy.RunUUID,
+			artifactTaskCopy.TaskID,
+			retryGenerations[index],
+			artifactTaskCopy.ArtifactKey,
+			iterationIndex,
+		)
+		if err != nil {
+			return nil, nil, util.Wrap(
+				err,
+				fmt.Sprintf("Failed to compute artifact write identity %d", index),
+			)
+		}
+
+		payloadHash, err := computeArtifactWritePayloadHash(artifact)
+		if err != nil {
+			return nil, nil, util.Wrap(
+				err,
+				fmt.Sprintf("Failed to compute artifact payload hash %d", index),
+			)
+		}
+
+		existingIdentity, err := s.getArtifactWriteIdentity(tx, identity)
+		if err != nil {
+			return nil, nil, util.Wrap(
+				err,
+				fmt.Sprintf("Failed to look up artifact write identity %d", index),
+			)
+		}
+
+		if existingIdentity != nil {
+			if existingIdentity.PayloadHash != payloadHash {
+				return nil, nil, util.NewInvalidInputError(
+					"Artifact write identity %q already exists with a different payload",
+					identity,
+				)
+			}
+
+			existingArtifact, err := s.getArtifactWithExecutor(tx, existingIdentity.ArtifactID)
+			if err != nil {
+				return nil, nil, util.Wrap(
+					err,
+					fmt.Sprintf("Failed to retrieve replayed artifact %d", index),
+				)
+			}
+
+			if existingArtifact == nil {
+				return nil, nil, util.NewInternalServerError(
+					fmt.Errorf("Artifact write identity %q references a missing artifact", identity),
+					"Artifact write identity references a missing artifact",
+				)
+			}
+
+			artifactTaskCopy.ArtifactID = existingArtifact.UUID
+			existingArtifactTask, err :=
+				s.getArtifactTaskByUniqueLinkWithExecutor(tx, &artifactTaskCopy)
+			if err != nil {
+				return nil, nil, util.Wrap(
+					err,
+					fmt.Sprintf("Failed to retrieve replayed artifact-task relationship %d", index),
+				)
+			}
+
+			if existingArtifactTask == nil {
+				return nil, nil, util.NewInternalServerError(
+					fmt.Errorf(
+						"Artifact write identity %q references a missing artifact-task relationship",
+						identity,
+					),
+					"Artifact write identity references a missing artifact-task relationship",
+				)
+			}
+
+			createdArtifacts = append(createdArtifacts, existingArtifact)
+			createdArtifactTasks = append(createdArtifactTasks, existingArtifactTask)
+			continue
+		}
+
+		newArtifact, newArtifactTask, err :=
+			s.createArtifactWithTaskInTransaction(tx, artifact, &artifactTaskCopy)
+		if err != nil {
+			return nil, nil, util.Wrap(
+				err,
+				fmt.Sprintf("Failed to create artifact and artifact-task relationship %d", index),
+			)
+		}
+
+		writeIdentity := &model.ArtifactWriteIdentity{
+			Identity:        identity,
+			Namespace:       artifact.Namespace,
+			RunUUID:         artifactTaskCopy.RunUUID,
+			TaskID:          artifactTaskCopy.TaskID,
+			RetryGeneration: retryGenerations[index],
+			ProducerKey:     artifactTaskCopy.ArtifactKey,
+			IterationIndex:  iterationIndex,
+			PayloadHash:     payloadHash,
+			ArtifactID:      newArtifact.UUID,
+		}
+
+		if err := s.createArtifactWriteIdentityInTransaction(tx, writeIdentity); err != nil {
+			return nil, nil, util.Wrap(
+				err,
+				fmt.Sprintf("Failed to persist artifact write identity %d", index),
+			)
+		}
+
+		createdArtifacts = append(createdArtifacts, newArtifact)
 		createdArtifactTasks = append(createdArtifactTasks, newArtifactTask)
 	}
 
@@ -295,16 +626,41 @@ func (s *ArtifactStore) FindOrCreateArtifactWithTask(artifact *model.Artifact, a
 
 	artifactToCreate := *artifact
 	artifactToCreate.IdentityKey = &identityKey
-	createdArtifact, createdArtifactTask, err := s.CreateArtifactWithTask(&artifactToCreate, artifactTask)
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(
+			err,
+			"Failed to start transaction for finding or creating artifact",
+		)
+	}
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			glog.Warningf("Failed to rollback artifact find-or-create transaction: %v", rbErr)
+		}
+	}()
+
+	createdArtifact, createdArtifactTask, err :=
+		s.createArtifactWithTaskInTransaction(tx, &artifactToCreate, artifactTask)
+
 	if err == nil {
+		if err := tx.Commit(); err != nil {
+			return nil, nil, util.NewInternalServerError(
+				err,
+				"Failed to commit transaction for finding or creating artifact",
+			)
+		}
 		return createdArtifact, createdArtifactTask, nil
 	}
 
 	// Another concurrent writer may have inserted the same identity key first.
+	_ = tx.Rollback()
+
 	existingArtifact, findErr := s.getArtifactByIdentityKey(artifact.Namespace, identityKey)
 	if findErr == nil && existingArtifact != nil {
 		return s.linkExistingArtifact(existingArtifact, artifactTask)
 	}
+
 	return nil, nil, err
 }
 
@@ -336,6 +692,198 @@ func (s *ArtifactStore) linkExistingArtifact(existingArtifact *model.Artifact, a
 		return existingArtifact, existingLink, nil
 	}
 	return nil, nil, err
+}
+
+func (s *ArtifactStore) getArtifactWriteIdentity(
+	tx *sql.Tx,
+	identity string,
+) (*model.ArtifactWriteIdentity, error) {
+	q := s.dbDialect.QuoteIdentifier
+
+	query := fmt.Sprintf(
+		"SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s FROM %s WHERE %s = ?",
+		q("Identity"),
+		q("Namespace"),
+		q("RunUUID"),
+		q("TaskID"),
+		q("RetryGeneration"),
+		q("ProducerKey"),
+		q("IterationIndex"),
+		q("PayloadHash"),
+		q("ArtifactID"),
+		q("artifact_write_identities"),
+		q("Identity"),
+	)
+
+	var result model.ArtifactWriteIdentity
+	err := tx.QueryRow(query, identity).Scan(
+		&result.Identity,
+		&result.Namespace,
+		&result.RunUUID,
+		&result.TaskID,
+		&result.RetryGeneration,
+		&result.ProducerKey,
+		&result.IterationIndex,
+		&result.PayloadHash,
+		&result.ArtifactID,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to get artifact write identity",
+		)
+	}
+
+	return &result, nil
+}
+
+func (s *ArtifactStore) createArtifactWriteIdentityInTransaction(
+	tx *sql.Tx,
+	identity *model.ArtifactWriteIdentity,
+) error {
+	q := s.dbDialect.QuoteIdentifier
+
+	query := fmt.Sprintf(
+		"INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		q("artifact_write_identities"),
+		q("Identity"),
+		q("Namespace"),
+		q("RunUUID"),
+		q("TaskID"),
+		q("RetryGeneration"),
+		q("ProducerKey"),
+		q("IterationIndex"),
+		q("PayloadHash"),
+		q("ArtifactID"),
+	)
+
+	_, err := tx.Exec(
+		query,
+		identity.Identity,
+		identity.Namespace,
+		identity.RunUUID,
+		identity.TaskID,
+		identity.RetryGeneration,
+		identity.ProducerKey,
+		identity.IterationIndex,
+		identity.PayloadHash,
+		identity.ArtifactID,
+	)
+	if err != nil {
+		return util.NewInternalServerError(
+			err,
+			"Failed to create artifact write identity",
+		)
+	}
+
+	return nil
+}
+
+func (s *ArtifactStore) getArtifactTaskByUniqueLinkWithExecutor(
+	exec interface {
+		Query(string, ...any) (*sql.Rows, error)
+	},
+	artifactTask *model.ArtifactTask,
+) (*model.ArtifactTask, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	if artifactTask == nil {
+		return nil, nil
+	}
+
+	sqlQuery, args, err := qb.
+		Select(
+			q("UUID"),
+			q("ArtifactID"),
+			q("TaskID"),
+			q("Type"),
+			q("Iteration"),
+			q("RunUUID"),
+			q("Producer"),
+			q("ArtifactKey"),
+		).
+		From(q(artifactTaskTableName)).
+		Where(sq.Eq{
+			q("ArtifactID"):  artifactTask.ArtifactID,
+			q("TaskID"):      artifactTask.TaskID,
+			q("Type"):        artifactTask.Type,
+			q("Iteration"):   artifactTask.Iteration,
+			q("ArtifactKey"): artifactTask.ArtifactKey,
+		}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to create query to get artifact-task by unique link: %v",
+			err.Error(),
+		)
+	}
+
+	rows, err := exec.Query(sqlQuery, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to get artifact-task by unique link: %v",
+			err.Error(),
+		)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, nil
+	}
+
+	var (
+		uuid, artifactID, taskID, runUUID, artifactKey string
+		ioType                                         int32
+		iteration                                      int64
+		producerBytes                                  []byte
+	)
+
+	if err := rows.Scan(
+		&uuid,
+		&artifactID,
+		&taskID,
+		&ioType,
+		&iteration,
+		&runUUID,
+		&producerBytes,
+		&artifactKey,
+	); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to scan artifact-task by unique link: %v",
+			err.Error(),
+		)
+	}
+
+	var producer model.JSONData
+	if producerBytes != nil {
+		if err := producer.Scan(producerBytes); err != nil {
+			return nil, util.NewInternalServerError(
+				err,
+				"Failed to parse artifact-task producer: %v",
+				err.Error(),
+			)
+		}
+	}
+
+	return &model.ArtifactTask{
+		UUID:        uuid,
+		ArtifactID:  artifactID,
+		TaskID:      taskID,
+		Type:        model.IOType(ioType),
+		Iteration:   iteration,
+		RunUUID:     runUUID,
+		Producer:    producer,
+		ArtifactKey: artifactKey,
+	}, nil
 }
 
 func (s *ArtifactStore) getArtifactTaskByUniqueLink(artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
@@ -479,6 +1027,56 @@ func modelArtifactsEqualForReuse(left, right *model.Artifact) bool {
 		return false
 	}
 	return bytes.Equal(leftMetadata, rightMetadata)
+}
+
+func (s *ArtifactStore) getArtifactWithExecutor(
+	exec interface {
+		Query(string, ...any) (*sql.Rows, error)
+	},
+	artifactID string,
+) (*model.Artifact, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	query, args, err := qb.
+		Select(dialect.QuoteAll(q, artifactColumns)...).
+		From(q(artifactTableName)).
+		Where(sq.Eq{
+			q("UUID"): artifactID,
+		}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to create query to get artifact: %v",
+			err.Error(),
+		)
+	}
+
+	rows, err := exec.Query(query, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to get artifact: %v",
+			err.Error(),
+		)
+	}
+	defer rows.Close()
+
+	artifacts, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to scan artifact: %v",
+			err.Error(),
+		)
+	}
+	if len(artifacts) == 0 {
+		return nil, nil
+	}
+
+	return artifacts[0], nil
 }
 
 func (s *ArtifactStore) getArtifactByIdentityKey(namespace, identityKey string) (*model.Artifact, error) {
