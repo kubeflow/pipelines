@@ -34,7 +34,7 @@ import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import {
   convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,
-  updateFlowElementsState,
+  reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
 import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -164,7 +164,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     }
 
     // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
-    return updateFlowElementsState(
+    return reconcileRuntimeFlowElements(
       layers,
       flowElements,
       data.executions,

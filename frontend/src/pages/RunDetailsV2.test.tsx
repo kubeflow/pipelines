@@ -14,12 +14,23 @@
  * limitations under the License.
  */
 
-import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  queryByText,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter } from 'react-router-dom';
 
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { RoutePage, RouteParams } from 'src/components/Router';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/Api';
 import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
@@ -28,9 +39,11 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import {
   Context,
+  Execution,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
   GetExecutionsByContextResponse,
+  Value,
 } from 'src/third_party/mlmd';
 import * as metadataStoreServicePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { PageProps } from './Page';
@@ -96,6 +109,61 @@ describe('RunDetailsV2', () => {
     display_name: 'Default',
     storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
+
+  const LOOP_PIPELINE_JOB = JSON.stringify({
+    pipelineInfo: { name: 'late-loop-metadata' },
+    deploymentSpec: { executors: { 'exec-train': { container: { image: 'test' } } } },
+    root: {
+      dag: {
+        tasks: { loop: { taskInfo: { name: 'loop' }, componentRef: { name: 'comp-loop' } } },
+      },
+    },
+    components: {
+      'comp-loop': {
+        dag: {
+          tasks: { train: { taskInfo: { name: 'train' }, componentRef: { name: 'comp-train' } } },
+        },
+      },
+      'comp-train': { executorLabel: 'exec-train' },
+    },
+  });
+
+  function createLoopMetadata() {
+    const root = new Execution().setId(1).setLastKnownState(Execution.State.RUNNING);
+    root.getCustomPropertiesMap().set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue(''));
+    const loop = new Execution().setId(2).setLastKnownState(Execution.State.RUNNING);
+    loop
+      .getCustomPropertiesMap()
+      .set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue('loop'))
+      .set(DynamicFlow.PARENT_DAG_ID_KEY, new Value().setIntValue(1));
+    const iterations = [0, 1].map((index) => {
+      const iteration = new Execution()
+        .setId(3 + index)
+        .setLastKnownState(index === 0 ? Execution.State.COMPLETE : Execution.State.FAILED);
+      iteration
+        .getCustomPropertiesMap()
+        .set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue('loop'))
+        .set(DynamicFlow.PARENT_DAG_ID_KEY, new Value().setIntValue(2))
+        .set(DynamicFlow.ITERATION_INDEX_KEY, new Value().setIntValue(index));
+      return iteration;
+    });
+    const leaves = iterations.map((iteration, index) => {
+      const leaf = new Execution()
+        .setId(5 + index)
+        .setLastKnownState(iteration.getLastKnownState());
+      leaf
+        .getCustomPropertiesMap()
+        .set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue('train'))
+        .set(DynamicFlow.PARENT_DAG_ID_KEY, new Value().setIntValue(iteration.getId()))
+        .set(
+          'display_name',
+          new Value().setStringValue(index === 0 ? 'Selected train' : 'Sibling train'),
+        );
+      return leaf;
+    });
+    return { root, loop, iterations, leaves };
+  }
+
   beforeEach(() => {
     mockResizeObserver();
 
@@ -121,6 +189,349 @@ describe('RunDetailsV2', () => {
     );
   });
 
+  it('opens a sub-DAG with missing task metadata and updates it after a refetch', async () => {
+    const pipelineJob = JSON.stringify({
+      pipelineInfo: { name: 'sibling-dags' },
+      deploymentSpec: { executors: { 'exec-train': { container: { image: 'test' } } } },
+      root: {
+        dag: {
+          tasks: {
+            'dag-a': { taskInfo: { name: 'dag-a' }, componentRef: { name: 'comp-dag' } },
+            'dag-b': { taskInfo: { name: 'dag-b' }, componentRef: { name: 'comp-dag' } },
+          },
+        },
+      },
+      components: {
+        'comp-dag': {
+          dag: {
+            tasks: { train: { taskInfo: { name: 'train' }, componentRef: { name: 'comp-train' } } },
+          },
+        },
+        'comp-train': { executorLabel: 'exec-train' },
+      },
+    });
+    const rootExecution = new Execution().setId(1);
+    rootExecution
+      .getCustomPropertiesMap()
+      .set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue(''));
+    const dagExecution = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
+    dagExecution
+      .getCustomPropertiesMap()
+      .set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue('dag-a'))
+      .set(DynamicFlow.PARENT_DAG_ID_KEY, new Value().setIntValue(1));
+    const siblingDagExecution = new Execution()
+      .setId(3)
+      .setLastKnownState(Execution.State.COMPLETE);
+    siblingDagExecution
+      .getCustomPropertiesMap()
+      .set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue('dag-b'))
+      .set(DynamicFlow.PARENT_DAG_ID_KEY, new Value().setIntValue(1));
+    const siblingTaskExecution = new Execution().setId(4).setLastKnownState(Execution.State.FAILED);
+    siblingTaskExecution
+      .getCustomPropertiesMap()
+      .set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue('train'))
+      .set(DynamicFlow.PARENT_DAG_ID_KEY, new Value().setIntValue(3));
+    const getExecutionsSpy = vi.spyOn(
+      Api.getInstance().metadataStoreService,
+      'getExecutionsByContext',
+    );
+    getExecutionsSpy.mockResolvedValue(
+      new GetExecutionsByContextResponse().setExecutionsList([
+        rootExecution,
+        dagExecution,
+        siblingDagExecution,
+        siblingTaskExecution,
+      ]),
+    );
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={pipelineJob} run={TEST_RUN} {...generateProps()} />
+        </QueryClientProvider>
+      </BrowserRouter>,
+    );
+
+    const dagNode = screen.getByTitle('dag-a');
+    await within(dagNode).findByTestId('CheckCircleIcon');
+    fireEvent.click(within(dagNode).getByTestId('expand-button'));
+
+    expect(screen.getByText('train')).toBeInTheDocument();
+    expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('CheckCircleIcon')).not.toBeInTheDocument();
+    expect(screen.getByTestId('DagCanvas')).toBeInTheDocument();
+
+    const taskExecution = new Execution().setId(5).setLastKnownState(Execution.State.COMPLETE);
+    taskExecution
+      .getCustomPropertiesMap()
+      .set(DynamicFlow.TASK_NAME_KEY, new Value().setStringValue('train'))
+      .set(DynamicFlow.PARENT_DAG_ID_KEY, new Value().setIntValue(2))
+      .set('display_name', new Value().setStringValue('Train model'));
+    getExecutionsSpy.mockResolvedValue(
+      new GetExecutionsByContextResponse().setExecutionsList([
+        rootExecution,
+        dagExecution,
+        siblingDagExecution,
+        siblingTaskExecution,
+        taskExecution,
+      ]),
+    );
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.mlmdPackage(RUN_ID) });
+    });
+
+    expect(await screen.findByText('Train model')).toBeInTheDocument();
+    expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('dag-a')).not.toBeInTheDocument();
+  });
+
+  it.each(['missing loop execution', 'missing iteration count'])(
+    'recovers the open loop after a refetch with %s',
+    async (missingMetadata) => {
+      const { root, loop, iterations, leaves } = createLoopMetadata();
+      const initialExecutions =
+        missingMetadata === 'missing loop execution' ? [root] : [root, loop];
+      const executionsSpy = vi.mocked(
+        Api.getInstance().metadataStoreService.getExecutionsByContext,
+      );
+      executionsSpy.mockResolvedValue(
+        new GetExecutionsByContextResponse().setExecutionsList(initialExecutions),
+      );
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(
+        <BrowserRouter>
+          <QueryClientProvider client={queryClient}>
+            <RunDetailsV2 pipeline_job={LOOP_PIPELINE_JOB} run={TEST_RUN} {...generateProps()} />
+          </QueryClientProvider>
+        </BrowserRouter>,
+      );
+      await waitFor(() =>
+        expect(queryClient.getQueryData(queryKeys.mlmdPackage(RUN_ID))).toMatchObject({
+          executions: initialExecutions,
+        }),
+      );
+      fireEvent.click(within(screen.getByTitle('loop')).getByTestId('expand-button'));
+      expect(screen.getByText('train')).toBeInTheDocument();
+      const canvas = screen.getByTestId('DagCanvas');
+
+      const hydratedLoop = loop.clone();
+      hydratedLoop
+        .getCustomPropertiesMap()
+        .set(DynamicFlow.ITERATION_COUNT_KEY, new Value().setIntValue(2));
+      const recoveredExecutions = [root, hydratedLoop, ...iterations, ...leaves];
+      executionsSpy.mockResolvedValue(
+        new GetExecutionsByContextResponse().setExecutionsList(recoveredExecutions),
+      );
+      await act(async () =>
+        queryClient.invalidateQueries({ queryKey: queryKeys.mlmdPackage(RUN_ID), exact: true }),
+      );
+      expect(executionsSpy).toHaveBeenCalledTimes(2);
+      expect(queryClient.getQueryData(queryKeys.mlmdPackage(RUN_ID))).toMatchObject({
+        executions: recoveredExecutions,
+      });
+      const selectedIteration = await screen.findByTitle('loop.0');
+      expect(within(selectedIteration).getByTestId('CheckCircleIcon')).toBeInTheDocument();
+      expect(within(screen.getByTitle('loop.1')).getByTestId('ErrorIcon')).toBeInTheDocument();
+      expect(screen.queryByText('train')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('loop')).not.toBeInTheDocument();
+      expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+
+      fireEvent.click(within(selectedIteration).getByTestId('expand-button'));
+      expect(await screen.findByText('Selected train')).toBeInTheDocument();
+      expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
+      expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+    },
+  );
+
+  it('recovers selected iteration ancestry without borrowing the sibling leaf state', async () => {
+    const { root, loop, iterations, leaves } = createLoopMetadata();
+    loop.getCustomPropertiesMap().set(DynamicFlow.ITERATION_COUNT_KEY, new Value().setIntValue(2));
+    const initialExecutions = [root, loop, iterations[1], ...leaves];
+    const executionsSpy = vi.mocked(Api.getInstance().metadataStoreService.getExecutionsByContext);
+    executionsSpy.mockResolvedValue(
+      new GetExecutionsByContextResponse().setExecutionsList(initialExecutions),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={LOOP_PIPELINE_JOB} run={TEST_RUN} {...generateProps()} />
+        </QueryClientProvider>
+      </BrowserRouter>,
+    );
+    await within(screen.getByTitle('loop')).findByTestId('RefreshIcon');
+    fireEvent.click(within(screen.getByTitle('loop')).getByTestId('expand-button'));
+    const selectedIteration = screen.getByTitle('loop.0');
+    expect(within(selectedIteration).queryByTestId('CheckCircleIcon')).not.toBeInTheDocument();
+    expect(within(selectedIteration).queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+    fireEvent.click(within(selectedIteration).getByTestId('expand-button'));
+    expect(screen.getByText('train')).toBeInTheDocument();
+    expect(screen.queryByTestId('CheckCircleIcon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+    const canvas = screen.getByTestId('DagCanvas');
+
+    const recoveredExecutions = [root, loop, ...iterations, ...leaves];
+    executionsSpy.mockResolvedValue(
+      new GetExecutionsByContextResponse().setExecutionsList(recoveredExecutions),
+    );
+    await act(async () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.mlmdPackage(RUN_ID), exact: true }),
+    );
+    expect(executionsSpy).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText('Selected train')).toBeInTheDocument();
+    expect(screen.getByTestId('CheckCircleIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sibling train')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('loop.0')).not.toBeInTheDocument();
+    expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+  });
+
+  it.each(
+    [Execution.State.COMPLETE, Execution.State.FAILED].flatMap((state) =>
+      [
+        'leaf execution',
+        'leaf ancestor',
+        'iteration execution',
+        'loop execution',
+        'iteration count',
+      ].map((omission) => ({ state, omission })),
+    ),
+  )(
+    'restores the open graph after omitting $omission with state $state',
+    async ({ state, omission }) => {
+      const { root, loop, iterations, leaves } = createLoopMetadata();
+      const selectedIndex = state === Execution.State.COMPLETE ? 0 : 1;
+      loop
+        .getCustomPropertiesMap()
+        .set(DynamicFlow.ITERATION_COUNT_KEY, new Value().setIntValue(2));
+      const completeExecutions = [root, loop, ...iterations, ...leaves];
+      const executionsSpy = vi.mocked(
+        Api.getInstance().metadataStoreService.getExecutionsByContext,
+      );
+      executionsSpy.mockResolvedValue(
+        new GetExecutionsByContextResponse().setExecutionsList(completeExecutions),
+      );
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(
+        <BrowserRouter>
+          <QueryClientProvider client={queryClient}>
+            <RunDetailsV2 pipeline_job={LOOP_PIPELINE_JOB} run={TEST_RUN} {...generateProps()} />
+          </QueryClientProvider>
+        </BrowserRouter>,
+      );
+      await within(screen.getByTitle('loop')).findByTestId('RefreshIcon');
+      fireEvent.click(within(screen.getByTitle('loop')).getByTestId('expand-button'));
+      const iterationTitle = `loop.${selectedIndex}`;
+      const expectedIcon = state === Execution.State.COMPLETE ? 'CheckCircleIcon' : 'ErrorIcon';
+      const otherIcon = state === Execution.State.COMPLETE ? 'ErrorIcon' : 'CheckCircleIcon';
+      const leafTitle = selectedIndex === 0 ? 'Selected train' : 'Sibling train';
+      await within(screen.getByTitle(iterationTitle)).findByTestId(expectedIcon);
+      const isLeafLayer = omission.startsWith('leaf');
+      if (isLeafLayer) {
+        fireEvent.click(within(screen.getByTitle(iterationTitle)).getByTestId('expand-button'));
+        await within(screen.getByTitle(leafTitle)).findByTestId(expectedIcon);
+      }
+      const nodeTitle = isLeafLayer ? 'train' : iterationTitle;
+      const layerTitle = isLeafLayer ? iterationTitle : 'loop';
+      const canvas = screen.getByTestId('DagCanvas');
+      const loopWithoutCount = loop.clone();
+      loopWithoutCount.getCustomPropertiesMap().del(DynamicFlow.ITERATION_COUNT_KEY);
+      const omittedId =
+        omission === 'leaf execution'
+          ? leaves[selectedIndex].getId()
+          : omission === 'leaf ancestor' || omission === 'iteration execution'
+            ? iterations[selectedIndex].getId()
+            : omission === 'loop execution'
+              ? loop.getId()
+              : undefined;
+      const partialExecutions = completeExecutions
+        .filter((execution) => execution.getId() !== omittedId)
+        .map((execution) =>
+          omission === 'iteration count' && execution.getId() === loop.getId()
+            ? loopWithoutCount
+            : execution,
+        );
+      executionsSpy.mockResolvedValue(
+        new GetExecutionsByContextResponse().setExecutionsList(partialExecutions),
+      );
+      await act(async () =>
+        queryClient.invalidateQueries({ queryKey: queryKeys.mlmdPackage(RUN_ID), exact: true }),
+      );
+      expect(executionsSpy).toHaveBeenCalledTimes(2);
+      expect(queryClient.getQueryData(queryKeys.mlmdPackage(RUN_ID))).toMatchObject({
+        executions: partialExecutions,
+      });
+      await waitFor(() => {
+        const unavailableNode = screen.getByTitle(nodeTitle);
+        expect(within(unavailableNode).queryByTestId(expectedIcon)).not.toBeInTheDocument();
+        expect(within(unavailableNode).queryByTestId(otherIcon)).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: layerTitle })).toBeDisabled();
+      expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+      expect(updateBannerSpy).not.toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
+
+      executionsSpy.mockResolvedValue(
+        new GetExecutionsByContextResponse().setExecutionsList(completeExecutions),
+      );
+      await act(async () =>
+        queryClient.invalidateQueries({ queryKey: queryKeys.mlmdPackage(RUN_ID), exact: true }),
+      );
+      expect(executionsSpy).toHaveBeenCalledTimes(3);
+      await waitFor(() => {
+        const restoredNode = screen.getByTitle(isLeafLayer ? leafTitle : iterationTitle);
+        expect(within(restoredNode).getByTestId(expectedIcon)).toBeInTheDocument();
+        expect(within(restoredNode).queryByTestId(otherIcon)).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: layerTitle })).toBeDisabled();
+      expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+      expect(canvas.querySelectorAll('.react-flow__node')).toHaveLength(isLeafLayer ? 1 : 2);
+      if (isLeafLayer) {
+        expect(
+          screen.getByText(selectedIndex === 0 ? 'Selected train' : 'Sibling train'),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByText(selectedIndex === 0 ? 'Sibling train' : 'Selected train'),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  it('reconciles an open loop to an empty graph for a valid zero iteration count', async () => {
+    const { root, loop } = createLoopMetadata();
+    const executionsSpy = vi.mocked(Api.getInstance().metadataStoreService.getExecutionsByContext);
+    executionsSpy.mockResolvedValue(
+      new GetExecutionsByContextResponse().setExecutionsList([root, loop]),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={LOOP_PIPELINE_JOB} run={TEST_RUN} {...generateProps()} />
+        </QueryClientProvider>
+      </BrowserRouter>,
+    );
+    await within(screen.getByTitle('loop')).findByTestId('RefreshIcon');
+    fireEvent.click(within(screen.getByTitle('loop')).getByTestId('expand-button'));
+    expect(screen.getByText('train')).toBeInTheDocument();
+    const canvas = screen.getByTestId('DagCanvas');
+    const zeroLoop = loop.clone();
+    zeroLoop
+      .getCustomPropertiesMap()
+      .set(DynamicFlow.ITERATION_COUNT_KEY, new Value().setIntValue(0));
+    executionsSpy.mockResolvedValue(
+      new GetExecutionsByContextResponse().setExecutionsList([root, zeroLoop]),
+    );
+    await act(async () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.mlmdPackage(RUN_ID), exact: true }),
+    );
+    await waitFor(() => expect(screen.queryByText('train')).not.toBeInTheDocument());
+    expect(canvas.querySelectorAll('.react-flow__node')).toHaveLength(0);
+    expect(screen.getByTestId('DagCanvas')).toBe(canvas);
+    expect(screen.getByRole('button', { name: 'loop' })).toBeDisabled();
+  });
+
   it('Render detail page with reactflow', async () => {
     render(
       <CommonTestWrapper>
@@ -135,7 +546,7 @@ describe('RunDetailsV2', () => {
   });
 
   it('keeps runtime flow elements stable across same-props rerenders', async () => {
-    const updateFlowElementsStateSpy = vi.spyOn(DynamicFlow, 'updateFlowElementsState');
+    const reconcileRuntimeFlowElementsSpy = vi.spyOn(DynamicFlow, 'reconcileRuntimeFlowElements');
     const props = generateProps();
 
     const view = render(
@@ -144,8 +555,8 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => expect(updateFlowElementsStateSpy).toHaveBeenCalled());
-    const callCountAfterLoad = updateFlowElementsStateSpy.mock.calls.length;
+    await waitFor(() => expect(reconcileRuntimeFlowElementsSpy).toHaveBeenCalled());
+    const callCountAfterLoad = reconcileRuntimeFlowElementsSpy.mock.calls.length;
 
     view.rerender(
       <CommonTestWrapper>
@@ -154,7 +565,7 @@ describe('RunDetailsV2', () => {
     );
 
     await act(async () => {});
-    expect(updateFlowElementsStateSpy).toHaveBeenCalledTimes(callCountAfterLoad);
+    expect(reconcileRuntimeFlowElementsSpy).toHaveBeenCalledTimes(callCountAfterLoad);
   });
 
   it('Shows error banner when disconnected from MLMD', async () => {

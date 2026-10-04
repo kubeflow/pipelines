@@ -17,9 +17,12 @@ import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/gra
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import {
+  convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,
+  ITERATION_COUNT_KEY,
   ITERATION_INDEX_KEY,
   PARENT_DAG_ID_KEY,
+  reconcileRuntimeFlowElements,
   TASK_NAME_KEY,
   updateFlowElementsState,
 } from './DynamicFlow';
@@ -86,6 +89,145 @@ function buildRootGraph(): PipelineFlowElement[] {
 }
 
 describe('DynamicFlow', () => {
+  describe('loop runtime structure', () => {
+    const pipelineSpec = PipelineSpec.fromJSON({
+      root: {
+        dag: {
+          tasks: { loop: { taskInfo: { name: 'loop' }, componentRef: { name: 'comp-loop' } } },
+        },
+      },
+      components: {
+        'comp-loop': {
+          dag: {
+            tasks: { train: { taskInfo: { name: 'train' }, componentRef: { name: 'comp-train' } } },
+          },
+        },
+        'comp-train': { executorLabel: 'exec-train' },
+      },
+    });
+    function createExecutions(iterationCount?: Value) {
+      const root = new Execution().setId(1);
+      root.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
+      const loop = new Execution().setId(2);
+      loop
+        .getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('loop'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(1));
+      if (iterationCount) loop.getCustomPropertiesMap().set(ITERATION_COUNT_KEY, iterationCount);
+      return [root, loop];
+    }
+
+    it.each<[string, Value | undefined]>([
+      ['missing', undefined],
+      ['unset', new Value()],
+      ['string', new Value().setStringValue('2')],
+      ['negative', new Value().setIntValue(-1)],
+      ['fractional', new Value().setIntValue(1.5)],
+      ['unsafe integer', new Value().setIntValue(Number.MAX_SAFE_INTEGER + 1)],
+    ])('retains the declarative loop body for a %s iteration count', (_name, count) => {
+      const elements = convertSubDagToRuntimeFlowElements(
+        pipelineSpec,
+        ['root', 'loop'],
+        createExecutions(count),
+      );
+      expect(elements.map((element) => element.id)).toEqual(['task.train']);
+      const fallback = convertSubDagToRuntimeFlowElements(pipelineSpec, ['root', 'loop'], []);
+      const reconciled = reconcileRuntimeFlowElements(
+        ['root', 'loop'],
+        fallback,
+        createExecutions(count),
+        [],
+        [],
+      );
+      expect(reconciled.map((element) => element.id)).toEqual(['task.train']);
+    });
+
+    it.each([0, 2])('builds the runtime loop structure for a valid count of %s', (count) => {
+      const elements = convertSubDagToRuntimeFlowElements(
+        pipelineSpec,
+        ['root', 'loop'],
+        createExecutions(new Value().setIntValue(count)),
+      );
+      expect(elements.map((element) => element.id)).toEqual(
+        Array.from({ length: count }, (_, index) => `task.loop.${index}`),
+      );
+    });
+
+    it('replaces the fallback only after the complete loop ancestry arrives', () => {
+      const layers = ['root', 'loop'];
+      const executions = createExecutions(new Value().setIntValue(2));
+      const fallback = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, []);
+      expect(reconcileRuntimeFlowElements(layers, fallback, [executions[1]], [], [])).toBe(
+        fallback,
+      );
+
+      const iteration = new Execution().setId(3).setLastKnownState(Execution.State.COMPLETE);
+      iteration
+        .getCustomPropertiesMap()
+        .set(TASK_NAME_KEY, new Value().setStringValue('loop'))
+        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2))
+        .set(ITERATION_INDEX_KEY, new Value().setIntValue(0));
+      const reconciled = reconcileRuntimeFlowElements(
+        layers,
+        fallback,
+        [...executions, iteration],
+        [],
+        [],
+      );
+      expect(reconciled.map((element) => element.id)).toEqual(['task.loop.0', 'task.loop.1']);
+      expect(reconciled[0].data.state).toBe(Execution.State.COMPLETE);
+      expect(reconciled[1].data.state).toBeUndefined();
+      expect(fallback.map((element) => element.id)).toEqual(['task.train']);
+    });
+
+    it('preserves positions when the authoritative iteration structure is already present', () => {
+      const layers = ['root', 'loop'];
+      const executions = createExecutions(new Value().setIntValue(2));
+      const elements = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, executions);
+      const node = elements[0] as Node<FlowElementDataBase>;
+      node.position = { x: 432, y: 876 };
+      const reconciled = reconcileRuntimeFlowElements(layers, elements, executions, [], []);
+      expect((reconciled[0] as Node).position).toEqual(node.position);
+      expect(node.position).toEqual({ x: 432, y: 876 });
+
+      const smallerLoop = createExecutions(new Value().setIntValue(1));
+      expect(
+        reconcileRuntimeFlowElements(layers, elements, smallerLoop, [], []).map(
+          (element) => element.id,
+        ),
+      ).toEqual(['task.loop.0']);
+      expect(
+        reconcileRuntimeFlowElements(
+          layers,
+          elements,
+          createExecutions(new Value().setIntValue(0)),
+          [],
+          [],
+        ),
+      ).toEqual([]);
+    });
+
+    it('rebuilds a mismatched iteration node type instead of reusing the body node', () => {
+      const elements = [
+        {
+          id: 'task.loop.0',
+          type: NodeTypeNames.EXECUTION,
+          data: { label: 'train' },
+          position: { x: 10, y: 20 },
+        },
+      ];
+      const reconciled = reconcileRuntimeFlowElements(
+        ['root', 'loop'],
+        elements,
+        createExecutions(new Value().setIntValue(1)),
+        [],
+        [],
+      );
+      expect(reconciled[0]).toMatchObject({ id: 'task.loop.0', type: NodeTypeNames.SUB_DAG });
+      expect(elements[0].type).toBe(NodeTypeNames.EXECUTION);
+    });
+  });
+
   describe('updateFlowElementsState', () => {
     it('update node status based on MLMD', () => {
       // Prepare MLMD objects.

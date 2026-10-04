@@ -92,9 +92,50 @@ export function convertSubDagToRuntimeFlowElements(
 }
 function canvasIsParallelForDag(executionLayers: Execution[], layers: string[]) {
   return (
+    executionLayers.length > 0 &&
     executionLayers.length === layers.length &&
-    executionLayers[executionLayers.length - 1].getCustomPropertiesMap().has(ITERATION_COUNT_KEY)
+    getParallelForIterationCount(executionLayers[executionLayers.length - 1]) !== undefined
   );
+}
+
+function getParallelForIterationCount(execution: Execution): number | undefined {
+  const value = execution.getCustomPropertiesMap().get(ITERATION_COUNT_KEY);
+  if (value?.getValueCase() !== Value.ValueCase.INT_VALUE) {
+    return undefined;
+  }
+  const count = value.getIntValue();
+  return Number.isSafeInteger(count) && count >= 0 ? count : undefined;
+}
+
+export function reconcileRuntimeFlowElements(
+  layers: string[],
+  elements: PipelineFlowElement[],
+  executions: Execution[],
+  events: Event[],
+  artifacts: Artifact[],
+): PipelineFlowElement[] {
+  const executionLayers = getExecutionLayers(layers, executions);
+  let runtimeStructure = elements;
+  if (canvasIsParallelForDag(executionLayers, layers)) {
+    const loopExecution = executionLayers[executionLayers.length - 1];
+    const iterationCount = getParallelForIterationCount(loopExecution)!;
+    const taskName = loopExecution.getCustomPropertiesMap().get(TASK_NAME_KEY)?.getStringValue();
+    const expectedNodeIds = new Set(
+      Array.from({ length: iterationCount }, (_, index) => getTaskNodeKey(`${taskName}.${index}`)),
+    );
+    const hasIterationStructure =
+      elements.length === iterationCount &&
+      elements.every(
+        (element) =>
+          isNode(element) &&
+          element.type === NodeTypeNames.SUB_DAG &&
+          expectedNodeIds.delete(element.id),
+      );
+    if (!hasIterationStructure) {
+      runtimeStructure = buildParallelForDag(loopExecution);
+    }
+  }
+  return updateFlowElementsState(layers, runtimeStructure, executions, events, artifacts);
 }
 
 function getExecutionLayers(layers: string[], executions: Execution[]) {
@@ -155,19 +196,18 @@ function buildParallelForDag(rootDagExecution: Execution): PipelineFlowElement[]
 
 function addIterationNodes(rootDagExecution: Execution, flowGraph: PipelineFlowElement[]) {
   const taskName = rootDagExecution.getCustomPropertiesMap().get(TASK_NAME_KEY);
-  const iterationCount = rootDagExecution.getCustomPropertiesMap().get(ITERATION_COUNT_KEY);
+  const iterationCount = getParallelForIterationCount(rootDagExecution);
   if (taskName === undefined || !taskName.getStringValue()) {
     console.warn("Task name for the parallelFor Execution doesn't exist.");
     return;
   }
-  if (iterationCount === undefined || !iterationCount.getIntValue()) {
+  if (iterationCount === undefined) {
     console.warn("Iteration Count for the parallelFor Execution doesn't exist.");
     return;
   }
 
   const taskNameStr = taskName.getStringValue();
-  const iterationCountInt = iterationCount.getIntValue();
-  for (let index = 0; index < iterationCountInt; index++) {
+  for (let index = 0; index < iterationCount; index++) {
     const iterationNodeName = `${taskNameStr}.${index}`;
     // One iteration is a sub-DAG instance.
     const node: Node<FlowElementDataBase> = {
