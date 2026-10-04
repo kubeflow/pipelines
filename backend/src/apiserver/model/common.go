@@ -93,5 +93,6 @@ func AllModels() []any {
 		&MigrationStatus{},
 		&TransferIdentity{},
 		&TransferReceipt{},
+		&ArtifactWriteIdentity{},
 	}
 }
