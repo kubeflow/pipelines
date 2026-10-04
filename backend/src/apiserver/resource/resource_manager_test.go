@@ -5690,6 +5690,47 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
 
+func TestReportWorkflowResource_ReconcilesStrandedTasks(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := common.GetPodNamespace()
+	defer store.Close()
+
+	// Seed a RUNNING task for this run
+	strandedTask, err := store.TaskStore().CreateTask(&model.Task{
+		RunUUID:     run.UUID,
+		Namespace:   namespace,
+		Name:        "stranded",
+		Fingerprint: "fp1",
+		State:       model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Pods:        model.JSONSlice{},
+		TypeAttrs:   model.JSONData{},
+	})
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.Time{Time: time.Unix(9999, 0)},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	assert.Nil(t, err)
+
+	// Verify stranded task was updated to FAILED and received the completion timestamp
+	updatedTask, err := store.TaskStore().GetTask(strandedTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), updatedTask.State)
+	assert.Equal(t, int64(9999), updatedTask.FinishedInSec)
+}
+
 func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *testing.T) {
 	wfClient := client.NewWorkflowClientFake()
 	ctx := context.Background()

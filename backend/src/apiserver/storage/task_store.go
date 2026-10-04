@@ -103,6 +103,12 @@ type TaskStoreInterface interface {
 
 	// FindLatestCachedTask returns the newest succeeded task for a fingerprint.
 	FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error)
+
+	// MarkRunningTasksAsFailed sets every task for the given run that is still
+	// RUNNING to FAILED, stamping finishedAt as the completion timestamp. Called
+	// after the run reaches a terminal state to reconcile stranded task records
+	// whose executor crashed before the launcher ran.
+	MarkRunningTasksAsFailed(runID string, finishedAt int64) error
 }
 
 type TaskStore struct {
@@ -948,6 +954,34 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 		return nil, util.NewInternalServerError(err, "Failed to hydrate latest cached task artifacts")
 	}
 	return tasks[0], nil
+}
+
+// MarkRunningTasksAsFailed sets every task for the given run that is still
+// RUNNING to FAILED, stamping finishedAt as the completion epoch second.
+// This is called after the run reaches a terminal state so that stranded task
+// records — created by the container driver before executor startup but never
+// finalized by a launcher — do not leave the parent DAG task RUNNING.
+func (s *TaskStore) MarkRunningTasksAsFailed(runID string, finishedAt int64) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sql, args, err := qb.
+		Update(q("tasks")).
+		SetMap(sq.Eq{
+			q("State"):         int32(apiv2beta1.PipelineTask_FAILED),
+			q("FinishedInSec"): finishedAt,
+		}).
+		Where(sq.Eq{
+			q("RunUUID"): runID,
+			q("State"):   int32(apiv2beta1.PipelineTask_RUNNING),
+		}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build MarkRunningTasksAsFailed query: %w", err)
+	}
+	if _, err = s.db.Exec(sql, args...); err != nil {
+		return fmt.Errorf("failed to mark running tasks as failed for run %s: %w", runID, err)
+	}
+	return nil
 }
 
 func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, error) {

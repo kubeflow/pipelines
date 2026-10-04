@@ -1820,3 +1820,60 @@ func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
 		})
 	}
 }
+
+// TestMarkRunningTasksAsFailed covers the stranded-task reconciliation path
+// that is invoked by terminal workflow reporting.
+func TestMarkRunningTasksAsFailed(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	makeTask := func(uuid, runID, name string, state apiv2beta1.PipelineTask_TaskState) *model.Task {
+		return &model.Task{
+			UUID:           uuid,
+			RunUUID:        runID,
+			Namespace:      "ns1",
+			Name:           name,
+			DisplayName:    name,
+			Fingerprint:    "fp-" + uuid,
+			State:          model.TaskStatus(state),
+			Pods:           model.JSONSlice{},
+			TypeAttrs:      model.JSONData{},
+			CreatedAtInSec: 1,
+		}
+	}
+
+	// Tasks for run-1: one RUNNING (stranded), one FAILED (already terminal).
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal("11111111-1111-1111-1111-111111111111", nil)
+	strandedTask, err := taskStore.CreateTask(makeTask("11111111-1111-1111-1111-111111111111", "run-1", "stranded", apiv2beta1.PipelineTask_RUNNING))
+	require.NoError(t, err)
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal("22222222-2222-2222-2222-222222222222", nil)
+	alreadyFailed, err := taskStore.CreateTask(makeTask("22222222-2222-2222-2222-222222222222", "run-1", "failed", apiv2beta1.PipelineTask_FAILED))
+	require.NoError(t, err)
+
+	// Task for run-2: should NOT be touched.
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal("33333333-3333-3333-3333-333333333333", nil)
+	otherRunTask, err := taskStore.CreateTask(makeTask("33333333-3333-3333-3333-333333333333", "run-2", "other", apiv2beta1.PipelineTask_RUNNING))
+	require.NoError(t, err)
+	_ = otherRunTask
+
+	finishedAt := int64(9999)
+	require.NoError(t, taskStore.MarkRunningTasksAsFailed("run-1", finishedAt))
+
+	// Stranded task must now be FAILED with the supplied FinishedInSec.
+	got, err := taskStore.GetTask(strandedTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), got.State)
+	assert.Equal(t, finishedAt, got.FinishedInSec)
+
+	// Already-terminal task must be unchanged.
+	got, err = taskStore.GetTask(alreadyFailed.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_FAILED), got.State)
+	assert.Equal(t, int64(0), got.FinishedInSec, "already-terminal task FinishedInSec must not be overwritten")
+
+	// Task in a different run must be untouched.
+	got, err = taskStore.GetTask(otherRunTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), got.State, "task in different run must not be modified")
+}
