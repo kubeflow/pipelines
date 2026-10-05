@@ -21,6 +21,8 @@ import subprocess
 import tempfile
 import unittest
 
+from artifact_workflow_test_support import evaluate
+from artifact_workflow_test_support import render
 import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -29,11 +31,6 @@ ACTION_DIRECTORY = (
 ARTIFACT_FILES = REPOSITORY_ROOT / '.github/resources/scripts/artifact-files.sh'
 ACTION_FILE = Path(
     os.environ.get('ARTIFACT_RETRY_ACTION', ACTION_DIRECTORY / 'action.yml'))
-EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
-EXPRESSION_TOKEN = re.compile(
-    r"(?P<literal>'(?:[^']|'')*')|"
-    r'(?P<reference>\b(?:inputs|steps|github)(?:\.[\w-]+)+)|'
-    r'(?P<operator>&&|\|\||!=|!)')
 
 
 class CompositeAction:
@@ -57,66 +54,40 @@ class CompositeAction:
         self.failed = False
         self.cancelled = False
         self.log = ''
+        self.github = {
+            'action_path': str(ACTION_DIRECTORY),
+            'repository': 'owner/repository',
+            'run_id': '123',
+        }
         self.inputs = {
-            key: str(value.get('default', ''))
+            key: render(value.get('default', ''), {'github': self.github})
             for key, value in self.action['inputs'].items()
         }
         self.inputs.update({'path': str(path), 'retry-delay-seconds': '0'})
         if required_files is not None:
             self.inputs['required-files'] = required_files
 
-    def evaluate(self, expression):
-        expression = expression.strip()
-        match = EXPRESSION.fullmatch(expression)
-        if match:
-            expression = match.group(1).strip()
+    def expression_context(self):
+        return {
+            'inputs': self.inputs,
+            'steps': self.steps,
+            'github': self.github,
+        }
 
-        bindings = {}
-
-        def translate(match):
-            if match.group('operator'):
-                return {
-                    '&&': ' and ',
-                    '||': ' or ',
-                    '!': 'not ',
-                    '!=': '!='
-                }[match.group()]
-            if match.group('literal'):
-                # Actions escapes a quote by doubling it, not with backslashes.
-                value = match.group()[1:-1].replace("''", "'")
-            else:
-                value = {
-                    'inputs': self.inputs,
-                    'steps': self.steps,
-                    'github': {
-                        'action_path': str(ACTION_DIRECTORY)
-                    },
-                }
-                for part in match.group().split('.'):
-                    value = value.get(part, {}) if isinstance(value,
-                                                              dict) else ''
-                if isinstance(value, dict):
-                    value = ''
-            name = f'_value_{len(bindings)}'
-            bindings[name] = value
-            return name
-
-        # A single pass keeps operators inside literals and referenced values
-        # as data; never rewrite a value after inserting it into an expression.
-        expression = EXPRESSION_TOKEN.sub(translate, expression)
-        return eval(expression, {'__builtins__': {}}, {
+    def status_functions(self):
+        return {
             'always': lambda: True,
             'cancelled': lambda: self.cancelled,
             'success': lambda: not self.failed and not self.cancelled,
             'failure': lambda: self.failed,
-            'true': True,
-            'false': False,
-            **bindings,
-        })
+        }
+
+    def evaluate(self, expression):
+        return evaluate(expression, self.expression_context(),
+                        self.status_functions())
 
     def render(self, value):
-        return EXPRESSION.sub(lambda match: str(self.evaluate(match.group())),
-                              str(value))
+        return render(value, self.expression_context(), self.status_functions())
 
     def run(self):
         for index, step in enumerate(self.action['runs']['steps']):
@@ -206,7 +177,7 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.path = Path(self.directory.name) / 'downloads'
+        self.path = Path(self.directory.name).resolve() / 'downloads'
         self.required = 'frontend/image.tar\nruntime-base-images/images.tar'
         self.complete = {
             'frontend/image.tar': 'frontend image',
@@ -226,8 +197,21 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         output = runner.action['outputs']['download-path']['value']
         self.assertEqual(runner.render(output), str(self.path))
 
+    def test_download_defaults_resolve_the_github_context(self):
+        received = []
+
+        def attempt(path, inputs):
+            received.append(inputs)
+            return download(files=self.complete)(path, inputs)
+
+        runner, result = self.run_action([attempt], self.required)
+        self.assertEqual(result, 'success', runner.log)
+        self.assertEqual(received[0]['repository'], 'owner/repository')
+        self.assertEqual(received[0]['run-id'], '123')
+
     def test_rendered_download_inputs_preserve_literal_characters(self):
-        self.path = Path(self.directory.name) / 'downloads with spaces'
+        self.path = Path(
+            self.directory.name).resolve() / 'downloads with spaces'
         filename = 'archive with ! && || != and \'single\' "double" quotes.tar'
         received = []
 
@@ -429,23 +413,64 @@ class RequiredFilesSafetyTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.path = Path(self.directory.name)
+        self.path = Path(self.directory.name).resolve()
         self.output = self.path / 'github-output'
 
-    def run_helper(self, mode, required_files):
+    def run_helper(self, mode, required_files, download_path=None):
         self.output.write_text('')
         return subprocess.run(
             ['bash', str(ARTIFACT_FILES), mode],
             env={
                 **os.environ,
-                'DOWNLOAD_PATH': str(self.path),
-                'REQUIRED_FILES': required_files,
-                'GITHUB_OUTPUT': str(self.output),
+                'DOWNLOAD_PATH':
+                    str(self.path if download_path is None else download_path),
+                'REQUIRED_FILES':
+                    required_files,
+                'GITHUB_OUTPUT':
+                    str(self.output),
             },
             text=True,
             capture_output=True,
             check=False,
+            cwd=self.path,
         )
+
+    def test_destination_and_ancestor_symlinks_fail_before_filesystem_changes(
+            self):
+        outside = self.path / 'outside'
+        outside.mkdir()
+        sentinel = outside / 'archive.tar'
+        sentinel.write_text('keep')
+        link = self.path / 'destination'
+        link.symlink_to(outside, target_is_directory=True)
+        for destination in (str(link), str(link) + '/', str(link / 'new'),
+                            'destination', 'destination/',
+                            './destination/new/'):
+            for mode in ('prepare', 'verify', 'check'):
+                with self.subTest(destination=destination, mode=mode):
+                    result = self.run_helper(mode, 'archive.tar', destination)
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn('destination contains a symlink',
+                                  result.stdout)
+                    self.assertEqual(sentinel.read_text(), 'keep')
+                    self.assertFalse((outside / 'new').exists())
+
+    def test_physical_absolute_and_relative_destinations_are_supported(self):
+        for destination in ('new/nested/', './new/nested',
+                            str(self.path / 'new/nested') + '/'):
+            with self.subTest(destination=destination):
+                result = self.run_helper('prepare', 'archive.tar', destination)
+                self.assertEqual(result.returncode, 0,
+                                 result.stdout + result.stderr)
+                self.assertTrue((self.path / 'new/nested').is_dir())
+
+    def test_empty_or_parent_traversal_destination_is_rejected(self):
+        for destination in ('', '../outside', 'new/../outside'):
+            with self.subTest(destination=destination):
+                result = self.run_helper('prepare', 'archive.tar', destination)
+                self.assertEqual(result.returncode, 2,
+                                 result.stdout + result.stderr)
+                self.assertFalse((self.path / 'new').exists())
 
     def test_invalid_paths_fail_before_removing_any_file(self):
         sentinel = self.path / 'sentinel'

@@ -32,13 +32,38 @@ fi
 # Preparation and download must resolve the destination identically. Unlike
 # the download action, shell paths do not expand a tilde stored in a variable.
 case "$DOWNLOAD_PATH" in
-  "~"*)
+  ""|"~"*)
     echo "::error::required-files needs an absolute or workspace-relative destination without tilde expansion"
     exit 2
     ;;
 esac
-mkdir -p "$DOWNLOAD_PATH"
-cd "$DOWNLOAD_PATH"
+# Check the destination before following it or creating anything. Relative
+# paths start at the physical working directory; absolute paths must already
+# use physical ancestors (for example /private/tmp, not macOS's /tmp alias).
+# This rejects existing symlinks, not concurrent filesystem replacement races.
+case "$DOWNLOAD_PATH" in
+  /*) destination="$DOWNLOAD_PATH" ;;
+  *) destination="$(pwd -P)/$DOWNLOAD_PATH" ;;
+esac
+remaining="$destination"
+ancestor=""
+while [[ -n "$remaining" ]]; do
+  component="${remaining%%/*}"
+  remaining="${remaining#"$component"}"
+  remaining="${remaining#/}"
+  [[ -n "$component" && "$component" != "." ]] || continue
+  if [[ "$component" == ".." ]]; then
+    echo "::error::Artifact destination must not contain parent traversal: $DOWNLOAD_PATH"
+    exit 2
+  fi
+  ancestor="$ancestor/$component"
+  if [[ -L "$ancestor" ]]; then
+    echo "::error::Artifact destination contains a symlink: $ancestor"
+    exit 2
+  fi
+done
+mkdir -p -- "$destination"
+cd -P -- "$destination"
 
 files=()
 while IFS= read -r file || [[ -n "$file" ]]; do

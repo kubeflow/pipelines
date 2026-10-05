@@ -142,12 +142,7 @@ jobs:
         shell: bash
         env:
           RUN_ATTEMPT: ${{ github.run_attempt }}
-        run: |
-          {
-            echo 'required-files<<EOF'
-            bash .github/resources/scripts/ci-image-artifacts.sh tool-output-artifacts "$RUN_ATTEMPT"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output tool-output-artifacts "$RUN_ATTEMPT"
       - uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: tool-output-*-${{ github.run_attempt }}
@@ -169,12 +164,7 @@ jobs:
       - name: List required tool digest records
         id: tool-digests
         shell: bash
-        run: |
-          {
-            echo 'required-files<<EOF'
-            bash .github/resources/scripts/ci-image-artifacts.sh tool-digest-files
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output tool-digest-files
       - uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: tool-digests-*-${{ github.run_attempt }}

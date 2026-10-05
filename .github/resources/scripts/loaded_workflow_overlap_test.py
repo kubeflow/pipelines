@@ -81,15 +81,25 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                     self.assertIn('image_registry: kind-registry:5000', job)
 
     def test_deploy_waits_before_downloading_images(self):
-        deploy_action = (ROOT / '.github/actions/deploy/action.yml').read_text(
-            encoding='utf-8')
-
-        wait_position = deploy_action.index(
-            './.github/resources/scripts/wait-for-image-artifacts.sh')
-        download_position = deploy_action.index(
-            '- name: Download Docker Images')
-        self.assertLess(wait_position, download_position)
-        self.assertIn('GH_TOKEN: ${{ github.token }}', deploy_action)
+        deploy_action = yaml.safe_load(
+            (ROOT /
+             '.github/actions/deploy/action.yml').read_text(encoding='utf-8'))
+        steps = deploy_action['runs']['steps']
+        wait_steps = [
+            step for step in steps
+            if './.github/resources/scripts/wait-for-image-artifacts.sh' in
+            [line.strip() for line in step.get('run', '').splitlines()]
+        ]
+        download_steps = [
+            step for step in steps if step.get('uses') ==
+            './.github/actions/download-artifact-with-retry'
+        ]
+        self.assertEqual(len(wait_steps), 1)
+        self.assertEqual(len(download_steps), 1)
+        wait = wait_steps[0]
+        self.assertLess(steps.index(wait), steps.index(download_steps[0]))
+        self.assertEqual(
+            wait.get('env', {}).get('GH_TOKEN'), '${{ github.token }}')
 
     def test_multi_user_artifact_proxy_lane_uses_critical_shards(self):
         workflow = (ROOT / '.github/workflows/e2e-test.yml').read_text(

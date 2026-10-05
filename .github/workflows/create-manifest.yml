@@ -47,18 +47,7 @@ jobs:
         shell: bash
         env:
           EXPECTED_PLATFORMS: ${{ inputs.expected_platforms }}
-        run: |
-          PYTHONPATH=.github/resources/scripts python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
-          import os
-
-          from publish_image_index import parse_platforms
-
-          platforms = parse_platforms(os.environ['EXPECTED_PLATFORMS'])
-          print('required-files<<EOF')
-          for platform in sorted(platforms):
-              print(f"{platform.split('/')[1]}.json")
-          print('EOF')
-          PYTHON
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output platform-digest-files "$EXPECTED_PLATFORMS"
 
       - name: Download digests
         uses: ./.github/actions/download-artifact-with-retry

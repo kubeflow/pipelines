@@ -8,7 +8,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 set -euo pipefail
-source "${BASH_SOURCE[0]%/*}/ci-image-artifacts.sh"
+source "$(dirname -- "${BASH_SOURCE[0]}")/ci-image-artifacts.sh"
 
 # Compare source bytes, not tarballs (whose packaging timestamps can differ).
 # Keep generator metadata in the comparison; exclude only build products.
@@ -48,9 +48,8 @@ validate_native_images() {
   fi
   local image
   for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
-    image="$image:ci"
-    if [[ $(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image") != "linux/$architecture" ]]; then
-      echo "$image does not match native Linux $architecture." >&2
+    if [[ $(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image:ci") != "linux/$architecture" ]]; then
+      echo "$image:ci does not match native Linux $architecture." >&2
       return 1
     fi
   done
@@ -62,7 +61,7 @@ main() {
     return 1
   fi
   validate_native_images "$1"
-  local output root source_dir image name
+  local output root source_dir image
   root=$(git rev-parse --show-toplevel)
   mkdir -p "$2"
   output=$(cd "$2" && pwd)
@@ -72,13 +71,11 @@ main() {
   git -C "$root" archive HEAD | tar -x -C "$source_dir"
 
   for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
-    image="$image:ci"
-    name=${image%:ci}
     docker run --rm --interactive --user "$(id -u):$(id -g)" \
       --env HOME=/tmp/kfp-smoke-home --env API_VERSION=v2beta1 \
       --env LC_ALL=C.UTF-8 --env TZ=UTC \
       --mount "type=bind,source=$source_dir,target=/go/src/github.com/kubeflow/pipelines" \
-      --workdir /go/src/github.com/kubeflow/pipelines "$image" bash -se <<'CONTAINER'
+      --workdir /go/src/github.com/kubeflow/pipelines "$image:ci" bash -se <<'CONTAINER'
 set -euo pipefail
 mkdir -p "$HOME"
 test "$(protoc --version)" = "libprotoc ${PROTOC_VERSION}"
@@ -97,7 +94,7 @@ CONTAINER
     snapshot_sources "$source_dir" \
       backend/api/v2beta1/go_client backend/api/v2beta1/go_http_client \
       backend/api/v2beta1/swagger backend/api/v2beta1/python_http_client \
-      > "$output/$name$TOOL_API_OUTPUT_SUFFIX"
+      > "$output/$image$TOOL_API_OUTPUT_SUFFIX"
   done
   diff -u "$output/$TOOL_GENERATOR_IMAGE$TOOL_API_OUTPUT_SUFFIX" \
     "$output/$TOOL_RELEASE_IMAGE$TOOL_API_OUTPUT_SUFFIX"

@@ -64,7 +64,7 @@ class FakeCommandsTestCase(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
-        self.directory = Path(self.temporary_directory.name)
+        self.directory = Path(self.temporary_directory.name).resolve()
         self.bin_directory = self.directory / 'bin'
         self.bin_directory.mkdir()
         self.sleep_log = self.directory / 'sleep.log'
@@ -184,6 +184,7 @@ class RuntimeArchiveBuildTest(FakeCommandsTestCase):
         super().setUp()
         self.docker_log = self.directory / 'docker.jsonl'
         self.output_directory = self.directory / 'archives with spaces'
+        self.cache_directory = self.directory / 'runtime-base-images-cache'
         self.write_command(
             'docker', '''#!/usr/bin/env python3
 import json
@@ -192,6 +193,9 @@ from pathlib import Path
 import sys
 
 arguments = sys.argv[1:]
+failed_cache = os.environ.get('EXPECTED_REMOVED_CACHE')
+if failed_cache and Path(failed_cache).exists():
+    sys.exit('Failed cache still occupies disk before rebuild')
 with open(os.environ['DOCKER_LOG'], 'a') as log:
     log.write(json.dumps(arguments) + '\\n')
 if arguments[0] == os.environ.get('FAIL_DOCKER_COMMAND'):
@@ -272,7 +276,10 @@ if arguments[0] == 'save':
             any(command[0] == 'save' and MODELCAR_IMAGE in command
                 for command in commands))
 
-    def run_recovery(self, required_files=None, failed_command=''):
+    def run_recovery(self,
+                     required_files=None,
+                     failed_command='',
+                     cache_path=None):
         job = yaml.safe_load(
             CONSUMER.read_text())['jobs']['runtime-base-images']
         step = next(step for step in job['steps']
@@ -288,15 +295,27 @@ if arguments[0] == 'save':
             cwd=ROOT,
             env={
                 **self.environment,
-                'DOCKER_LOG': str(self.docker_log),
-                'FAIL_DOCKER_COMMAND': failed_command,
-                'DOWNLOAD_OUTCOME': 'failure',
-                'ARTIFACTS_PATH': str(self.output_directory),
-                'DOWNLOAD_PATH': str(self.output_directory),
-                'REQUIRED_FILES': manifest,
-                'GITHUB_STEP_SUMMARY': str(summary),
-                'GITHUB_OUTPUT': str(output),
-                'RUNNER_TEMP': str(self.directory),
+                'DOCKER_LOG':
+                    str(self.docker_log),
+                'FAIL_DOCKER_COMMAND':
+                    failed_command,
+                'DOWNLOAD_OUTCOME':
+                    'failure',
+                'ARTIFACTS_PATH':
+                    job['env']['ARTIFACTS_PATH']
+                    if cache_path is None else cache_path,
+                'EXPECTED_REMOVED_CACHE':
+                    str(self.cache_directory),
+                'GITHUB_WORKSPACE':
+                    str(self.directory),
+                'REQUIRED_FILES':
+                    manifest,
+                'GITHUB_STEP_SUMMARY':
+                    str(summary),
+                'GITHUB_OUTPUT':
+                    str(output),
+                'RUNNER_TEMP':
+                    str(self.directory),
             },
             capture_output=True,
             text=True,
@@ -308,15 +327,15 @@ if arguments[0] == 'save':
         return result, summary.read_text() if summary.exists() else '', outputs
 
     def test_recovery_reports_cache_failure_and_verifies_fresh_archives(self):
-        self.output_directory.mkdir()
-        (self.output_directory /
-         'fixture.tar').write_text('stale cache residue')
+        self.cache_directory.mkdir()
+        (self.cache_directory / 'fixture.tar').write_text('stale cache residue')
         result, summary, outputs = self.run_recovery()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('cache download: failure', summary)
         self.assertIn('Rebuilding and verifying', summary)
         rebuilt = Path(outputs['path'])
-        self.assertNotEqual(rebuilt, self.output_directory)
+        self.assertNotEqual(rebuilt, self.cache_directory)
+        self.assertFalse(self.cache_directory.exists())
         self.assertEqual(
             set(path.name for path in rebuilt.iterdir()),
             {'runtime-base-images.tar', 'modelcar.tar'})
@@ -325,17 +344,40 @@ if arguments[0] == 'save':
 
     def test_drifted_manifest_fails_after_rebuild_even_with_stale_cache_file(
             self):
-        self.output_directory.mkdir()
-        (self.output_directory / 'renamed-modelcar.tar').write_text('stale')
+        self.cache_directory.mkdir()
+        (self.cache_directory / 'renamed-modelcar.tar').write_text('stale')
         result, _, outputs = self.run_recovery(
             'runtime-base-images.tar\nrenamed-modelcar.tar')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
             'Missing or empty required artifact file: renamed-modelcar.tar',
             result.stdout)
-        self.assertTrue(
-            (self.output_directory / 'renamed-modelcar.tar').exists())
+        self.assertFalse(self.cache_directory.exists())
         self.assertEqual(outputs, {})
+
+    def test_recovery_unlinks_cache_symlink_without_removing_target(self):
+        outside = self.directory / 'outside'
+        outside.mkdir()
+        sentinel = outside / 'archive.tar'
+        sentinel.write_text('keep')
+        self.cache_directory.symlink_to(outside, target_is_directory=True)
+        result, _, outputs = self.run_recovery()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(outputs['path'])
+        self.assertFalse(self.cache_directory.is_symlink())
+        self.assertEqual(sentinel.read_text(), 'keep')
+
+    def test_recovery_rejects_an_unexpected_cleanup_path(self):
+        self.output_directory.mkdir()
+        sentinel = self.output_directory / 'archive.tar'
+        sentinel.write_text('keep')
+        result, _, outputs = self.run_recovery(
+            cache_path=str(self.output_directory))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Unexpected runtime image cache path', result.stdout)
+        self.assertEqual(outputs, {})
+        self.assertEqual(sentinel.read_text(), 'keep')
+        self.assertFalse(self.docker_log.exists())
 
     def test_failed_rebuild_does_not_publish_a_directory(self):
         result, _, outputs = self.run_recovery(failed_command='build')

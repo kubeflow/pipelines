@@ -82,6 +82,16 @@ class SnapshotTests(unittest.TestCase):
 
 class NativeGuardTests(unittest.TestCase):
 
+    def test_local_invocation_reaches_usage_guard(self):
+        result = subprocess.run(['bash', SCRIPT.name],
+                                cwd=SCRIPT.parent,
+                                capture_output=True,
+                                text=True,
+                                check=False)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('Usage:', result.stderr)
+        self.assertNotIn('Not a directory', result.stderr)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

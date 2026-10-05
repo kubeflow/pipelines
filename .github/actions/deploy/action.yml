@@ -66,17 +66,7 @@ runs:
         LOAD_MODELCAR_FIXTURE: ${{ inputs.load_modelcar_fixture }}
       run: |
         ./.github/resources/scripts/wait-for-image-artifacts.sh
-        source .github/resources/scripts/ci-image-artifacts.sh
-        {
-          echo 'required-files<<EOF'
-          for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
-            echo "$artifact/$artifact.tar"
-          done
-          if [[ "$LOAD_MODELCAR_FIXTURE" == 'true' ]]; then
-            echo 'runtime-base-images/modelcar.tar'
-          fi
-          echo 'EOF'
-        } >> "$GITHUB_OUTPUT"
+        bash .github/resources/scripts/ci-image-artifacts.sh --github-output deploy-image-files "$LOAD_MODELCAR_FIXTURE"
 
     - name: Download Docker Images
       uses: ./.github/actions/download-artifact-with-retry

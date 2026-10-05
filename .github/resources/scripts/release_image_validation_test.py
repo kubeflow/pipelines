@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -64,6 +65,61 @@ class SourceTests(unittest.TestCase):
                 with self.subTest(tag=tag, version=version):
                     with self.assertRaisesRegex(ValueError, 'Expected MAJOR'):
                         release.validate_source(tag, version)
+
+
+class SourceInventoryTests(unittest.TestCase):
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.source = Path(temporary.name)
+        (self.source / 'VERSION').write_text('3.0.0\n')
+        self.inventory = self.source / '.github/resources/scripts/arm64_smoke.py'
+        self.inventory.parent.mkdir(parents=True)
+
+    def validate(self, images):
+        # The product inventory is loaded from this distinct source tree,
+        # while the command and its expected inventory use the workflow tree.
+        self.inventory.write_text(f'IMAGES = set({images!r})\n')
+        return subprocess.run([
+            sys.executable, release.__file__, 'source', '--target-tag', '3.0.0',
+            '--version-file',
+            str(self.source / 'VERSION')
+        ],
+                              check=False,
+                              capture_output=True,
+                              text=True)
+
+    def test_distinct_source_with_matching_inventory_passes(self):
+        result = self.validate(list(reversed(sorted(arm64_smoke.IMAGES))))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_added_removed_or_renamed_product_images_fail_before_publication(
+            self):
+        removed = sorted(arm64_smoke.IMAGES)[0]
+        for images in (arm64_smoke.IMAGES | {'source-only-image'},
+                       arm64_smoke.IMAGES - {removed},
+                       arm64_smoke.IMAGES - {removed} | {'renamed-image'}):
+            with self.subTest(images=images):
+                result = self.validate(images)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    'Release source and workflow image inventories differ',
+                    result.stderr)
+                for image in images ^ arm64_smoke.IMAGES:
+                    self.assertIn(image, result.stderr)
+
+    def test_missing_product_inventory_does_not_reuse_workflow_module(self):
+        result = subprocess.run([
+            sys.executable, release.__file__, 'source', '--target-tag', '3.0.0',
+            '--version-file',
+            str(self.source / 'VERSION')
+        ],
+                                check=False,
+                                capture_output=True,
+                                text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('ModuleNotFoundError', result.stderr)
 
 
 class NativeImagesTests(unittest.TestCase):
@@ -354,7 +410,7 @@ class WorkflowTests(unittest.TestCase):
             ['matrix']['component']
         }
         with tempfile.TemporaryDirectory() as directory:
-            temporary = Path(directory)
+            temporary = Path(directory).resolve()
             policy = temporary / 'policy'
             source = temporary / 'source'
             workspace = temporary / 'workspace'
@@ -369,8 +425,7 @@ class WorkflowTests(unittest.TestCase):
                 shutil.copyfile(root / path, policy / path)
             shutil.copytree(root / action_path, policy / action_path)
             (source / script_path).parent.mkdir(parents=True)
-            (source /
-             script_path).write_text("IMAGES = {'source-only-image'}\n")
+            (source / script_path).write_text(f"IMAGES = {images!r}\n")
             (source / action_path).mkdir(parents=True)
             (source / action_path / 'action.yml'
             ).write_text('name: Earlier product source download policy\n')
@@ -449,6 +504,16 @@ class WorkflowTests(unittest.TestCase):
     def test_source_validation_precedes_builds_and_propagates_immutable_commit(
             self):
         resolve = self.jobs['resolve-source']
+        checkouts = [
+            step for step in resolve['steps']
+            if step.get('uses', '').startswith('actions/checkout@')
+        ]
+        self.assertEqual(checkouts[0]['with']['ref'],
+                         '${{ github.workflow_sha }}')
+        self.assertEqual(checkouts[1]['with'], {
+            'ref': '${{ inputs.src_branch }}',
+            'path': 'release-source'
+        })
         validation = next(
             step for step in resolve['steps']
             if 'release_image_validation.py source' in step.get('run', ''))
@@ -467,6 +532,11 @@ class WorkflowTests(unittest.TestCase):
                          '${{ needs.resolve-source.outputs.sha }}')
         self.assertEqual(self.jobs['create-manifests']['with']['source_sha'],
                          '${{ needs.resolve-source.outputs.sha }}')
+        self.assertEqual(
+            set(self.jobs['create-manifests']['needs']),
+            {'resolve-source', 'build-images-for-release'})
+        self.assertNotIn('continue-on-error', validation)
+        self.assertNotIn('if', validation)
 
 
 if __name__ == '__main__':

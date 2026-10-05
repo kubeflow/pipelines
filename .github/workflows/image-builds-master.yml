@@ -89,12 +89,7 @@ jobs:
       - name: List required published image records
         id: image-records
         shell: bash
-        run: |
-          {
-            echo 'required-files<<EOF'
-            bash .github/resources/scripts/ci-image-artifacts.sh published-image-files
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output published-image-files
       - name: Download this publication's verified index references
         id: published-images
         uses: ./.github/actions/download-artifact-with-retry

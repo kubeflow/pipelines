@@ -24,11 +24,11 @@ import tempfile
 import unittest
 
 from arm64_smoke import IMAGES
+from artifact_workflow_test_support import render
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
-EXPRESSION = re.compile(r'\$\{\{\s*([\w.-]+)\s*\}\}')
 CALLERS = {
     ('.github/actions/deploy/action.yml', 'composite'),
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
@@ -43,21 +43,6 @@ CALLERS = {
 
 def workflow(name):
     return yaml.safe_load((ROOT / '.github/workflows' / name).read_text())
-
-
-def render(value, context):
-
-    def substitute(match):
-        value = context
-        for part in match.group(1).split('.'):
-            value = value[part]
-        return str(value)
-
-    rendered = EXPRESSION.sub(substitute, str(value))
-    if '${{' in rendered:
-        raise AssertionError(
-            f'Unsupported or unresolved expression: {rendered}')
-    return rendered
 
 
 class ArtifactDownloadCallersTest(unittest.TestCase):

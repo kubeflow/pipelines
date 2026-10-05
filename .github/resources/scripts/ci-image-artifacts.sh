@@ -48,6 +48,28 @@ tool_output_files() {
 ci_artifact_files() {
   local kind="${1:?Expected artifact inventory command}" architecture image file attempt
   case "$kind" in
+    deploy-image-files)
+      case "${2:-false}" in
+        true|false) ;;
+        *) echo "Expected true or false for Modelcar fixture" >&2; return 1 ;;
+      esac
+      for image in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+        printf '%s/%s.tar\n' "$image" "$image"
+      done
+      if [[ "${2:-false}" == true ]]; then
+        printf '%s\n' 'runtime-base-images/modelcar.tar'
+      fi
+      ;;
+    arm64-image-files)
+      for image in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}" "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
+        printf '%s-arm64.tar\n%s-arm64.json\n' "$image" "$image"
+      done
+      ;;
+    platform-digest-files)
+      PYTHONPATH="$(dirname -- "${BASH_SOURCE[0]}")" python3 -c \
+        'import sys; from publish_image_index import parse_platforms; print("\n".join(platform.split("/")[1] + ".json" for platform in sorted(parse_platforms(sys.argv[1]))))' \
+        "${2:?Expected Linux platforms}"
+      ;;
     tool-output-files)
       tool_output_files
       ;;
@@ -71,7 +93,7 @@ ci_artifact_files() {
       done
       ;;
     published-image-files)
-      PYTHONPATH="${BASH_SOURCE[0]%/*}" python3 -c \
+      PYTHONPATH="$(dirname -- "${BASH_SOURCE[0]}")" python3 -c \
         'from arm64_smoke import IMAGES; print("\n".join(f"{image}.json" for image in sorted(IMAGES)))'
       ;;
     *)
@@ -83,5 +105,11 @@ ci_artifact_files() {
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   set -euo pipefail
-  ci_artifact_files "$@"
+  if [[ "${1:-}" == --github-output ]]; then
+    shift
+    manifest=$(ci_artifact_files "$@")
+    printf 'required-files<<EOF\n%s\nEOF\n' "$manifest" >> "${GITHUB_OUTPUT:?Expected GITHUB_OUTPUT}"
+  else
+    ci_artifact_files "$@"
+  fi
 fi

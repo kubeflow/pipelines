@@ -7,7 +7,7 @@ inputs:
     required: false
     default: ''
   path:
-    description: "Absolute or workspace-relative destination path"
+    description: "Absolute or workspace-relative destination without symlink or parent-traversal components"
     required: true
   pattern:
     description: "Glob pattern matching artifacts to download"

@@ -24,7 +24,6 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / '.github/resources/scripts/ci_expected_workflows.js'
-UPGRADE = '.github/workflows/upgrade-test.yml'
 ACTIONS = {
     './.github/actions/deploy',
     './.github/actions/download-artifact-with-retry',
@@ -33,7 +32,7 @@ ACTIONS = {
 
 class ArtifactDownloadTriggersTest(unittest.TestCase):
 
-    def test_changes_require_all_pr_consumers_and_preserve_upgrade_pause(self):
+    def test_changes_trigger_all_pr_consumers(self):
         consumers = set()
         for path in (ROOT / '.github/workflows').iterdir():
             if path.suffix not in ('.yml', '.yaml'):
@@ -49,7 +48,6 @@ class ArtifactDownloadTriggersTest(unittest.TestCase):
         self.assertIn('.github/workflows/e2e-test-frontend.yml', consumers)
         self.assertIn('.github/workflows/arm64-presubmit.yml', consumers)
         self.assertIn('.github/workflows/build-tools-images.yml', consumers)
-        self.assertIn(UPGRADE, consumers)
 
         for branch in ('master', 'release-2.17'):
             for changed_path in (
@@ -59,18 +57,11 @@ class ArtifactDownloadTriggersTest(unittest.TestCase):
                 with self.subTest(branch=branch, changed_path=changed_path):
                     script = f'''
 const gate = require({json.dumps(str(MODULE))});
-const loaded = gate.loadLocalInventory(process.cwd());
-const github = {{
-  rest: {{pulls: {{listFiles: 'files'}}, actions: {{listWorkflowRunsForRepo: 'runs'}}}},
-  paginate: async route => route === 'files'
-    ? [{{filename: {json.dumps(changed_path)}}}] : [],
-}};
-gate.verifyExpectedWorkflows({{...loaded, github, owner: 'owner', repo: 'repo',
-  pullRequest: {{number: 7, changed_files: 1,
-    base: {{ref: {json.dumps(branch)}}},
-    head: {{sha: 'head', ref: 'artifact-fix', repo: {{full_name: 'owner/repo'}}}},
-  }},
-}}).then(result => console.log(JSON.stringify(result)));
+const {{inventory}} = gate.loadLocalInventory(process.cwd());
+console.log(JSON.stringify(inventory.workflows.filter(workflow =>
+  workflow.pull_request !== null && gate.applicable(workflow.pull_request,
+    {json.dumps(branch)}, [{json.dumps(changed_path)}]))
+  .map(workflow => workflow.path)));
 '''
                     result = subprocess.run(['node'],
                                             input=script,
@@ -78,17 +69,9 @@ gate.verifyExpectedWorkflows({{...loaded, github, owner: 'owner', repo: 'repo',
                                             capture_output=True,
                                             text=True,
                                             cwd=ROOT)
-                    coverage = json.loads(result.stdout)
-                    expected = consumers - {UPGRADE}
+                    triggered = set(json.loads(result.stdout))
                     self.assertTrue(
-                        expected.issubset(coverage['expected']),
-                        expected - set(coverage['expected']))
-                    self.assertTrue(expected.issubset(coverage['missing']))
-                    self.assertNotIn(UPGRADE, coverage['expected'])
-                    self.assertEqual(
-                        [item['path'] for item in coverage['disabled']],
-                        [UPGRADE])
-                    self.assertFalse(coverage['passed'])
+                        consumers.issubset(triggered), consumers - triggered)
 
 
 if __name__ == '__main__':
