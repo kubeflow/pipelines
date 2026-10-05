@@ -14,8 +14,10 @@
 """MUTATING helper for disposable kind upgrade CI; never a readiness scan."""
 
 import argparse
+import copy
 from datetime import datetime
 from datetime import timezone
+import hashlib
 import http.client
 import ipaddress
 import json
@@ -435,6 +437,8 @@ def prepare(context, state_dir, state, client, pipeline_spec):
     if not pipeline_spec.get('pipelineInfo') or not pipeline_spec.get(
             'root') or not pipeline_spec.get('deploymentSpec'):
         raise FixtureError('compiled_v2_pipeline_required')
+    state['pipeline_digest'] = hashlib.sha256(
+        json.dumps(pipeline_spec, sort_keys=True).encode()).hexdigest()
     experiment = client.post(
         '/apis/v2beta1/experiments',
         dict(
@@ -477,6 +481,83 @@ def prepare(context, state_dir, state, client, pipeline_spec):
                 if denied else 'no_issue_detected'))
     write_object(state_dir / 'cases.json',
                  dict(namespace=NAMESPACE, cases=cases))
+
+
+def recreate(context, state_dir, state, client, pipeline_spec, legacy_report):
+    """Replace controlled fixtures from reviewed local IR, preserving
+    originals."""
+    records = state.get('schedules', [])
+    digest = hashlib.sha256(json.dumps(pipeline_spec,
+                                       sort_keys=True).encode()).hexdigest()
+    if (not state.get('prepared') or state.get('enabled') is not False or
+            state.get('recreated') or len(records) != 3 or
+            state.get('pipeline_digest') != digest):
+        raise FixtureError('fixture_not_ready_for_reviewed_recreation')
+    if (legacy_report.get('outcome') != 'passed' or legacy_report.get('scope')
+            != 'legacy_schedule_migration_rejection' or
+            legacy_report.get('namespace') != NAMESPACE or
+            set(legacy_report.get('schedule_uids', []))
+            != {record['schedule_uid'] for record in records}):
+        raise FixtureError('legacy_rejection_evidence_required')
+    legacy = state_dir / 'legacy-state.json'
+    if legacy.exists():
+        raise FixtureError('fixture_recreation_already_started')
+    # Verify disabled Kubernetes identities as well as our own recorded state.
+    for record in records:
+        if schedule_identity(context,
+                             record['schedule_uid']) != record['schedule_name']:
+            raise FixtureError('legacy_schedule_identity_changed')
+    write_object(legacy, state)
+    write_object(state_dir / 'legacy-cases.json',
+                 read_object(state_dir / 'cases.json'))
+    replacement = copy.deepcopy(state)
+    for key in ('experiment_id', 'prepared', 'activation_start'):
+        replacement.pop(key, None)
+    replacement.update(schedules=[], recreated=True, enabled=False)
+    # Persist before issuing requests: partial preparation is not retryable and
+    # cleanup must disable any newly created fixture IDs.
+    write_object(state_dir / 'state.json', replacement)
+    prepare(context, state_dir, replacement, client, pipeline_spec)
+
+
+def remap_predictions(source_report, legacy, replacement):
+    """Transfer only main-account expectations for identical reviewed
+    fixtures."""
+    if (not replacement.get('recreated') or
+            not replacement.get('pipeline_digest') or
+            replacement['pipeline_digest'] != legacy.get('pipeline_digest')):
+        raise FixtureError('fixture_pipeline_changed')
+    old = {case['scenario']: case for case in legacy['schedules']}
+    new = {case['scenario']: case for case in replacement['schedules']}
+    if len(old) != 3 or set(old) != set(new):
+        raise FixtureError('fixture_scenarios_changed')
+    result = dict(
+        scope='recreated_fixture_main_account_expectations',
+        source_ruleset=source_report.get('ruleset'),
+        findings=[],
+        identity_mapping=[])
+    for scenario, previous in old.items():
+        current = new[scenario]
+        if current['service_account'] != previous['service_account']:
+            raise FixtureError('fixture_account_changed')
+        matches = [
+            f for f in source_report.get('findings', [])
+            if f.get('rule') == 'schedule.targetMainAccount' and
+            f.get('resource') == 'ScheduledWorkflow/' + NAMESPACE + '/' +
+            previous['schedule_name']
+        ]
+        if len(matches) != 1:
+            raise FixtureError('source_prediction_missing_or_ambiguous')
+        finding = copy.deepcopy(matches[0])
+        finding['resource'] = 'ScheduledWorkflow/' + NAMESPACE + '/' + current[
+            'schedule_name']
+        result['findings'].append(finding)
+        result['identity_mapping'].append(
+            dict(
+                scenario=scenario,
+                source_schedule_uid=previous['schedule_uid'],
+                recreated_schedule_uid=current['schedule_uid']))
+    return result
 
 
 def set_enabled(state_dir, state, client, enabled):
@@ -522,11 +603,12 @@ def main():
     parser.add_argument(
         '--phase',
         required=True,
-        choices=('rbac', 'prepare', 'enable', 'disable'))
+        choices=('rbac', 'prepare', 'recreate', 'enable', 'disable'))
     parser.add_argument('--state-dir', required=True)
     parser.add_argument('--endpoint')
     parser.add_argument('--token-file')
     parser.add_argument('--pipeline-spec')
+    parser.add_argument('--legacy-report')
     args = parser.parse_args()
     try:
         if args.context != CONTEXT or not args.allow_test_cluster_mutations:
@@ -542,6 +624,10 @@ def main():
             if args.phase == 'prepare':
                 prepare(args.context, state_dir, state, client,
                         read_object(args.pipeline_spec))
+            elif args.phase == 'recreate':
+                recreate(args.context, state_dir, state, client,
+                         read_object(args.pipeline_spec),
+                         read_object(args.legacy_report))
             else:
                 set_enabled(state_dir, state, client, args.phase == 'enable')
     except (OSError, ValueError, TypeError, KeyError, AttributeError):

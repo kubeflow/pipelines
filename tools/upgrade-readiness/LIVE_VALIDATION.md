@@ -7,22 +7,27 @@ by the operator readiness scan.
 No passing live-cluster result has yet been recorded for this fixture protocol.
 
 The release acceptance sequence is: prepare on 2.17.2, capture predictions and
-baselines, upgrade to the exact candidate, enable the prepared schedules, then
-compare actual controller behavior with the predictions. The `readiness-schedules`
+baselines, upgrade to the exact candidate, and verify that the old schedules
+are rejected for missing trusted scheduling state. Recreate the controlled fixtures
+through the target API from the same reviewed local pipeline, then compare their
+main-account behavior with the source-generated expectations. The `readiness-schedules`
 job contains scaffolding for a separate multi-user fixture lane alongside the
-single-user persistence tests. The schedule lane is disabled unless the repository
-variable `KFP_218_READINESS_SCHEDULES` equals `enabled`. Enable it only after the
+single-user persistence tests. The schedule lane requires either the repository variable
+`KFP_218_READINESS_SCHEDULES=enabled` or the explicit manual dispatch input
+`run_readiness_schedules=true`. Enable it only after the
 scheduling prerequisites land and activation has been reviewed. Preflight rejects
-a candidate missing those prerequisites; workflow dispatch alone cannot enable it. Integration and an actual passing candidate run remain open in #14421.
+a candidate missing those prerequisites. The reviewed manual dispatch input permits
+a single isolated acceptance run without changing the repository-wide gate. Integration and an actual passing candidate run remain open in #14421.
 
 ## Fixture contract
 
 Use a fresh test namespace, a short periodic schedule interval (for example ten
 seconds), and a small known-working pipeline. Prove the
 pipeline and controller work on the source version before collecting the final
-baseline. Disable the fixture schedules through the API before the upgrade and
-re-enable them afterward; do not edit only their CRs, because the API record is
-authoritative. The fixture owner must be allowed to create/enable every account
+baseline. Disable the fixture schedules through the API before the upgrade. First re-enable
+them only to establish the expected legacy migration rejection, then disable them
+again and recreate replacements through the API from the reviewed local fixture.
+Do not edit only their CRs, because the API record is authoritative. The fixture owner must be allowed to create/enable every account
 under test. The controller must retain run creation and referenced-pipeline access. Keep the
 fixtures exclusive to the test: do not manually submit runs with their recurring
 run IDs during observation. Run association alone does not identify the submitting
@@ -49,6 +54,26 @@ allowlist, compiler patch, independent workflow-identity mode and complete targe
 RBAC before interpreting results. Template/plugin identities and broader workload
 representativeness remain outside this main-account fixture. Successful completion
 of these small fixtures is required but cannot stand in for representative pipelines.
+
+## Legacy migration acceptance
+
+The CI lane separately checks all three source schedules for fresh, UID-correlated
+controller `FailedPrecondition` Events naming missing trusted scheduling state.
+No new associated run may appear during the full observation window, including
+a final collection at or after its deadline. Missing Events, transport failures,
+and generic failures are inconclusive. This is an expected migration requirement,
+not successful continuation of old schedules and not a main-account prediction.
+Audit mode does not bypass missing trusted state; the fixture observes this boundary
+in enforce mode, with audit non-bypass separately covered by backend policy behavior.
+
+`legacy-migration.json` preserves the observed result. Original source reports and
+baselines remain under `source-*` names. Recreation requires disabled original
+identities and the same digest of the reviewed local compiled pipeline; it never
+copies execution inputs from a source CR or API row. The provisioner retains
+`legacy-state.json`, creates new disabled schedules, and maps only the original
+main-account expectations to their new identities. The mapped report is explicitly
+scoped to recreated fixture expectations and records old/new UIDs; it is not a
+fresh operator scan of 2.18. Fresh target baselines precede functional observation.
 
 ## Capture the pre-upgrade baseline
 
@@ -194,5 +219,7 @@ another namespace, API review permissions and controller workload access.
 Namespace adoption was also rejected. These checks validate
 fixture permissions only; they do not establish KFP schedule firing or upgrade
 success. Those require the full candidate lane, including source run creation and
-both target modes. Task completion and emitted audit telemetry remain outside this
-lane's acceptance scope.
+both target modes. The lane requires successful V2 fixture completion and bounded audit-log emission.
+V1 schedules, permission revocation after a successful tick, template/plugin
+identities, mixed-version rollouts, and representative production workloads remain
+outside this lane's coverage.

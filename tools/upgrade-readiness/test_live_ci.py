@@ -47,6 +47,20 @@ class LiveCITests(unittest.TestCase):
         self.assertIn("steps.prepare-upgrade.outcome == 'success'", text)
         self.assertNotIn('KFP_ENABLE_MLMD_UPGRADE_TESTS', text)
 
+    def test_legacy_rejection_precedes_recreated_functional_observation(self):
+        script = SCRIPT.read_text()
+        target = script.split('else\n  configure_api enforce', 1)[1]
+        self.assertLess(
+            target.index('verify_legacy_schedules.py'),
+            target.index('fixture --phase recreate'))
+        self.assertLess(
+            target.index('fixture --phase recreate'),
+            target.index('capture enforce'))
+        self.assertLess(
+            target.index('capture enforce'), target.index('observe enforce'))
+        self.assertIn('source-$mode-prediction.json', script)
+        self.assertIn('remap_predictions(source, legacy, replacement)', target)
+
     def test_embedded_python_compiles(self):
         blocks = [
             body for _, body in re.findall(r"<<'(PY[A-Z]*)'\n(.*?)\n\1\n",

@@ -14,6 +14,8 @@
 """Safety and API contract tests for the mutating disposable CI helper."""
 
 from contextlib import redirect_stderr
+import copy
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -267,6 +269,122 @@ class ProvisionTests(unittest.TestCase):
                          ['run_created', 'run_created', 'blocked'])
         self.assertTrue(
             json.loads((self.path / 'state.json').read_text())['prepared'])
+
+    def migration_fixture(self):
+        pipeline = dict(
+            pipelineInfo={'name': 'fixture'},
+            root={'dag': {}},
+            deploymentSpec={'executors': {}})
+        self.state.update(
+            prepared=True,
+            enabled=False,
+            experiment_id='original',
+            pipeline_digest=hashlib.sha256(
+                json.dumps(pipeline, sort_keys=True).encode()).hexdigest(),
+            schedules=[
+                dict(
+                    scenario=scenario,
+                    schedule_uid=scenario,
+                    schedule_name=scenario,
+                    service_account=account)
+                for scenario, account in zip(('default', 'scoped',
+                                              'denied'), fixture.ACCOUNTS)
+            ])
+        fixture.write_object(self.path / 'cases.json', dict(cases=[]))
+        report = dict(
+            outcome='passed',
+            scope='legacy_schedule_migration_rejection',
+            namespace=fixture.NAMESPACE,
+            schedule_uids=['default', 'scoped', 'denied'])
+        return pipeline, report
+
+    def test_recreation_preserves_legacy_and_uses_reviewed_pipeline(self):
+        pipeline, report = self.migration_fixture()
+        client = mock.Mock()
+        client.post.side_effect = [dict(experiment_id='replacement')] + [
+            dict(recurring_run_id='new-' + str(i)) for i in range(3)
+        ]
+        with mock.patch.object(
+                fixture,
+                'schedule_identity',
+                side_effect=[
+                    'default', 'scoped', 'denied', 'new-default', 'new-scoped',
+                    'new-denied'
+                ]):
+            fixture.recreate(fixture.CONTEXT, self.path, self.state, client,
+                             pipeline, report)
+        legacy = fixture.read_object(self.path / 'legacy-state.json')
+        replacement = fixture.read_object(self.path / 'state.json')
+        self.assertEqual(legacy['experiment_id'], 'original')
+        self.assertEqual(replacement['experiment_id'], 'replacement')
+        self.assertTrue(replacement['recreated'])
+        self.assertFalse(replacement['enabled'])
+        self.assertTrue(
+            all(c.args[1]['pipeline_spec'] == pipeline
+                for c in client.post.call_args_list[1:]))
+
+    def test_recreation_rejects_missing_evidence_or_changed_pipeline(self):
+        pipeline, report = self.migration_fixture()
+        for candidate, evidence in ((dict(pipeline, unexpected=True), report),
+                                    (pipeline,
+                                     dict(report, outcome='inconclusive')),
+                                    (pipeline,
+                                     dict(report, schedule_uids=['wrong']))):
+            client = mock.Mock()
+            with self.assertRaises(fixture.FixtureError):
+                fixture.recreate(fixture.CONTEXT, self.path, self.state, client,
+                                 candidate, evidence)
+            client.post.assert_not_called()
+
+    def test_partial_recreation_keeps_new_id_and_refuses_retry(self):
+        pipeline, report = self.migration_fixture()
+        client = mock.Mock()
+        client.post.side_effect = [
+            dict(experiment_id='replacement'),
+            dict(recurring_run_id='new-one')
+        ]
+        with mock.patch.object(
+                fixture,
+                'schedule_identity',
+                side_effect=[
+                    'default', 'scoped', 'denied',
+                    fixture.FixtureError('missing')
+                ]):
+            with self.assertRaises(fixture.FixtureError):
+                fixture.recreate(fixture.CONTEXT, self.path, self.state, client,
+                                 pipeline, report)
+        saved = fixture.read_object(self.path / 'state.json')
+        self.assertEqual(saved['schedules'][0]['schedule_uid'], 'new-one')
+        with self.assertRaises(fixture.FixtureError):
+            fixture.recreate(fixture.CONTEXT, self.path, saved, client,
+                             pipeline, report)
+        self.assertEqual(client.post.call_count, 2)
+
+    def test_remap_preserves_source_and_rejects_account_changes(self):
+        self.migration_fixture()
+        replacement = copy.deepcopy(self.state)
+        replacement['recreated'] = True
+        for record in replacement['schedules']:
+            record['schedule_uid'] = 'new-' + record['schedule_uid']
+            record['schedule_name'] = 'new-' + record['schedule_name']
+        source = dict(findings=[
+            dict(
+                rule='schedule.targetMainAccount',
+                status='unknown',
+                resource='ScheduledWorkflow/' + fixture.NAMESPACE + '/' +
+                record['schedule_name']) for record in self.state['schedules']
+        ])
+        original = copy.deepcopy(source)
+        result = fixture.remap_predictions(source, self.state, replacement)
+        self.assertEqual(source, original)
+        self.assertEqual(result['scope'],
+                         'recreated_fixture_main_account_expectations')
+        self.assertEqual(len(result['identity_mapping']), 3)
+        self.assertTrue(
+            all('/new-' in f['resource'] for f in result['findings']))
+        replacement['schedules'][0]['service_account'] = 'different'
+        with self.assertRaises(fixture.FixtureError):
+            fixture.remap_predictions(source, self.state, replacement)
 
     def test_prepare_requires_matching_disabled_schedule(self):
         obj = dict(

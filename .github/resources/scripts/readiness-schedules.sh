@@ -263,6 +263,7 @@ PY
       --schedule-policy "$state/$mode-policy.json" --kfp-endpoint "$endpoint" \
       --kfp-token-file "$state/token" --format json >"$reports/$mode-prediction.json" || result=$?
     [[ "$result" == 2 ]] # Reports remain explicitly incomplete, even in this fixture.
+    cp "$reports/$mode-prediction.json" "$reports/source-$mode-prediction.json"
     capture "$mode"
     cp "$reports/$mode-baseline.json" "$reports/source-$mode-baseline.json"
   done
@@ -273,6 +274,38 @@ else
   kube -n kubeflow rollout status deployment/ml-pipeline-persistenceagent --timeout=300s
   start_forward
   mint_token
+  # Old multi-user schedules intentionally lack API-owned state. Establish the
+  # migration rejection first; account audit is not a bypass for this boundary.
+  fixture --phase enable
+  python3 "$helpers/verify_legacy_schedules.py" --context "$context" \
+    --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
+    --baseline "$reports/source-enforce-baseline.json" \
+    --prediction-report "$reports/source-enforce-prediction.json" \
+    --not-before "$(cat "$state/fixture/activation-start.txt")" \
+    >"$reports/legacy-migration.json"
+  fixture --phase disable
+  fixture --phase recreate --pipeline-spec "$state/pipeline.json" \
+    --legacy-report "$reports/legacy-migration.json"
+  python3 - "$state" <<'PYRECREATE'
+from pathlib import Path
+import sys
+from provision_live_schedules import read_object, remap_predictions, write_object
+state = Path(sys.argv[1])
+legacy = read_object(state / 'fixture/legacy-state.json')
+replacement = read_object(state / 'fixture/state.json')
+for mode in ('enforce', 'audit'):
+    source = read_object(state / f'reports/source-{mode}-prediction.json')
+    write_object(state / f'reports/{mode}-prediction.json',
+                 remap_predictions(source, legacy, replacement))
+    cases = read_object(state / 'fixture/cases.json')
+    if mode == 'audit':
+        for case in cases['cases']:
+            case['expected_outcome'] = 'run_created'
+            if case['scenario'] == 'denied':
+                case['expected_prediction'] = 'operational_impact'
+    write_object(state / f'{mode}-cases.json', cases)
+PYRECREATE
+  capture enforce
   observe enforce
   stop_forward
   configure_api audit
