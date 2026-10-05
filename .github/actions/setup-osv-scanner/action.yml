@@ -1,0 +1,40 @@
+name: Set up OSV-Scanner
+description: Install the pinned, checksum-verified OSV-Scanner for a native Linux runner.
+runs:
+  using: composite
+  steps:
+    - name: Install OSV-Scanner
+      shell: bash
+      env:
+        OSV_SCANNER_VERSION: '2.5.0'
+        OSV_SCANNER_SHA256_AMD64: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
+        OSV_SCANNER_SHA256_ARM64: 'fe152e1a546af223e6c557cc3111a8bb3e5dc02fcbf7dbe95d26567c0f0041f2'
+      run: |
+        set -euo pipefail
+        if [[ "${RUNNER_OS}" != Linux ]]; then
+          echo "::error::OSV-Scanner setup requires a Linux runner; got ${RUNNER_OS}"
+          exit 1
+        fi
+        case "${RUNNER_ARCH}" in
+          X64)
+            scanner_arch=amd64
+            scanner_sha256="${OSV_SCANNER_SHA256_AMD64}"
+            ;;
+          ARM64)
+            scanner_arch=arm64
+            scanner_sha256="${OSV_SCANNER_SHA256_ARM64}"
+            ;;
+          *)
+            echo "::error::Unsupported OSV-Scanner runner architecture: ${RUNNER_ARCH}"
+            exit 1
+            ;;
+        esac
+        scanner_bin_dir=$(mktemp -d "${RUNNER_TEMP}/osv-scanner.XXXXXX")
+        scanner_binary="${scanner_bin_dir}/osv-scanner"
+        curl -fsSL --retry 5 --retry-all-errors \
+          "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_${scanner_arch}" \
+          --output "${scanner_binary}"
+        echo "${scanner_sha256}  ${scanner_binary}" | sha256sum --check --strict
+        chmod +x "${scanner_binary}"
+        "${scanner_binary}" --version
+        echo "${scanner_bin_dir}" >> "${GITHUB_PATH}"

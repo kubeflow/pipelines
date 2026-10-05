@@ -125,7 +125,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "b0ff1829b2fa57f442e8788dd333f60b40bae8b8ba6cf9d5de609bcbad5c0ad4",
+      "header_sha256": "93113244d75d6ae189240c9475ad5bd2b191e48b18faee69e34052bef2c66ba5",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -141,6 +141,7 @@
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
           ".github/actions/download-artifact-with-retry/**",
+          ".github/actions/setup-osv-scanner/**",
           ".github/resources/curl-retry/**",
           ".github/resources/buildkitd.toml",
           ".github/resources/runtime-base-images.txt",

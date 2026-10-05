@@ -256,32 +256,44 @@ jobs:
             echo "digest=$digest" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Scan image for fixable CVEs
-        id: trivy_scan
+      - name: Install OSV-Scanner
         if: >-
           steps.check_tag.outcome == 'success' &&
           inputs.push &&
           inputs.scan_fixable_cves
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
-        with:
-          scan-type: 'image'
-          image-ref: ${{ format('{0}/{1}/{2}@{3}', env.IMAGE_REGISTRY, env.IMAGE_ORG, inputs.app_to_build, steps.push.outputs.digest) }}
-          scanners: 'vuln'
-          ignore-unfixed: true
-          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
-          format: 'json'
-          output: 'trivy-results.json'
-          exit-code: '0'
+        uses: ./.github/actions/setup-osv-scanner
+
+      - name: Scan image for fixable CVEs
+        id: osv_scan
+        if: >-
+          steps.check_tag.outcome == 'success' &&
+          inputs.push &&
+          inputs.scan_fixable_cves
+        shell: bash
         env:
-          # Remote index resolution defaults to AMD64 even on ARM64 runners.
-          TRIVY_PLATFORM: ${{ inputs.platforms }}
-          # Use ECR instead of GitHub Container Registry to avoid rate limiting.
-          # Do not skip updates: release decisions must use current advisory data.
-          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
-          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db:1
+          IMAGE_REF: ${{ format('{0}/{1}/{2}@{3}', env.IMAGE_REGISTRY, env.IMAGE_ORG, inputs.app_to_build, steps.push.outputs.digest) }}
+          PLATFORM: ${{ inputs.platforms }}
+        run: |
+          source .github/resources/scripts/helper-functions.sh
+          archive=$(mktemp "${RUNNER_TEMP}/release-image-XXXXXX.tar")
+          trap 'rm -f "$archive"' EXIT
+
+          # Select the built platform explicitly, including when the digest is an OCI index.
+          retry 3 20 docker pull --platform "$PLATFORM" "$IMAGE_REF"
+          docker image save --platform "$PLATFORM" --output "$archive" "$IMAGE_REF"
+
+          scan_exit_code=0
+          osv-scanner scan image --archive "$archive" \
+            --all-vulns --format json --output-file osv-results.json \
+            || scan_exit_code=$?
+          # Findings are classified by the policy step; scanner errors stay fatal.
+          if [[ "$scan_exit_code" -ne 0 && "$scan_exit_code" -ne 1 ]]; then
+            echo "::error::OSV-Scanner failed with exit code $scan_exit_code"
+            exit "$scan_exit_code"
+          fi
 
       - name: Enforce fixable CVE policy
-        if: ${{ steps.trivy_scan.outcome == 'success' }}
+        if: ${{ steps.osv_scan.outcome == 'success' }}
         env:
           ALLOW_FIXABLE_CVES: ${{ inputs.allow_fixable_cves }}
         run: |
@@ -290,14 +302,14 @@ jobs:
             policy_args+=(--allow-fixable-cves)
           fi
           python3 .github/resources/scripts/check_fixable_cves.py \
-            trivy-results.json "${policy_args[@]}"
+            osv-results.json "${policy_args[@]}"
 
       - name: Upload CVE scan report
-        if: ${{ always() && steps.trivy_scan.outcome != 'skipped' }}
+        if: ${{ always() && steps.osv_scan.outcome != 'skipped' }}
         uses: actions/upload-artifact@v4
         with:
           name: fixable-cve-scan-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}
-          path: trivy-results.json
+          path: osv-results.json
           if-no-files-found: error
           retention-days: 30
 

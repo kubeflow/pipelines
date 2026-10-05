@@ -179,12 +179,16 @@ without dispatching a new workflow run.
 
 The current 3.x non-dry-run `publish-images` workflow scans each
 architecture-specific image by immutable digest before publishing the versioned
-or `latest` manifests. The gate uses the current Trivy advisory database and fails on CVEs
-of any severity for which a fixed version is available. Findings without a
-published fix and advisories without a CVE identifier do not block the
-release. To proceed despite fixable CVEs, maintainers must explicitly enable the
-override for each invocation. The scan and its report are retained. Scanner failures and
-missing, invalid, or malformed reports remain fatal even with the override.
+or `latest` manifests. Release and reporting workflows share the checksum-verified
+OSV-Scanner 2.5.0 installation. The release scan queries OSV for advisories and
+includes findings of every severity. The policy blocks CVEs (including CVE aliases
+of other advisories) with a fixed version for the scanned package and ecosystem.
+Findings without a published fix or CVE identifier/alias do not block the release.
+Each image is pulled by its immutable digest with an explicit platform, exported
+for that same platform, and scanned as an archive. To proceed despite fixable CVEs,
+maintainers must explicitly enable the override for each invocation. The scan and its report are retained. Scanner
+failures and missing, invalid, or malformed reports remain fatal even with the
+override.
 
 To allow fixable CVEs for one image publication:
 
@@ -223,8 +227,8 @@ scan to publish tags.
 
 The 2.18 CLI path dispatches the workflow from `release-2.18`, so merging this
 policy into master alone does not gate 2.18 publication. Apply a selective
-backport of the scan and override inputs, enforcement helper, tests, and
-release-workflow wiring to that branch before relying on the gate or requesting
+backport of the shared OSV installer, scan and override inputs, enforcement helper,
+tests, and release-workflow wiring to that branch before relying on the gate or requesting
 the override there. `kfpr` omits the override input unless explicitly requested,
 so default dispatch still works with older release workflows. Preserve the 2.18
 image inventory; do not backport the 3.x ARM64 requirements for this policy.
@@ -232,16 +236,16 @@ image inventory; do not backport the 3.x ARM64 requirements for this policy.
 If the gate fails:
 
 1. Download the `fixable-cve-scan-<image>-<architecture>` artifacts from the
-   workflow run.
+   workflow run; each contains `osv-results.json`.
 2. Update the affected dependency, base image, or build toolchain to the fixed
-   version reported by Trivy.
+   version reported by OSV-Scanner.
 3. Merge the fix into the release branch and rerun `publish-images` with image
    overwrite enabled.
 
 Resolve the findings or rerun image publication with the explicit override before
 running `create-backend-release`. `kfpr` watches the image workflow with failure
-propagation enabled, so a failed gate stops the release flow and leaves `publish-images` incomplete in the
-checkpoint.
+propagation enabled, so a failed gate stops the release flow and leaves
+`publish-images` incomplete in the checkpoint.
 
 `confirm-rtd` prompts for a Read the Docs API token, keeps it only in process memory, and uses it
 to activate release versions, trigger builds, wait for successful builds, and update project

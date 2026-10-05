@@ -12,65 +12,111 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Checks fixable CVEs in a Trivy report with an explicit findings override."""
+"""Checks fixable CVEs in an OSV-Scanner report with a findings override."""
 
 import argparse
 import json
 import sys
 
-BLOCKING_SEVERITIES = {"UNKNOWN", "LOW", "MEDIUM", "HIGH", "CRITICAL"}
+
+def _records(value, field):
+    if not isinstance(value, list) or any(
+            not isinstance(item, dict) for item in value):
+        raise ValueError(f"{field} must be an array of objects")
+    return value
+
+
+def _strings(value, field):
+    if not isinstance(value, list) or any(
+            not isinstance(item, str) or not item for item in value):
+        raise ValueError(f"{field} must be an array of nonempty strings")
+    return value
+
+
+def _package(value):
+    if not isinstance(value, dict) or any(not isinstance(value.get(field), str)
+                                          for field in ("name", "ecosystem")):
+        raise ValueError(
+            "Package must contain string name and ecosystem fields")
+    return value
+
+
+def _fixed_versions(vulnerability, package):
+    fixed_versions = set()
+    for affected in _records(vulnerability.get("affected", []), "affected"):
+        affected_package = affected.get("package")
+        if affected_package is None:
+            continue
+        _package(affected_package)
+        # Match OSV-Scanner's GetFixedVersions: versioned ecosystems also map
+        # to their unversioned name, never to another distribution version.
+        ecosystems = {affected_package["ecosystem"]}
+        ecosystems.add(affected_package["ecosystem"].split(":", 1)[0])
+        matches = (
+            affected_package["name"] == package["name"] and
+            package["ecosystem"] in ecosystems)
+        for affected_range in _records(affected.get("ranges", []), "ranges"):
+            for event in _records(affected_range.get("events"), "events"):
+                if not event or any(not isinstance(value, str) or not value
+                                    for value in event.values()):
+                    raise ValueError(
+                        "Range events must contain nonempty strings")
+                fixed = event.get("fixed", "")
+                if not isinstance(fixed, str):
+                    raise ValueError("Fixed version must be a string")
+                if matches and fixed:
+                    fixed_versions.add(fixed)
+    return fixed_versions
 
 
 def find_blocking_cves(report):
     """Returns unique fixable CVE findings."""
-    if not isinstance(report, dict) or report.get("SchemaVersion") != 2:
-        raise ValueError("Expected a Trivy JSON report with SchemaVersion 2")
-
-    results = report.get("Results")
-    if results is not None and not isinstance(results, list):
-        raise ValueError("Results must be an array or null")
+    if not isinstance(report, dict):
+        raise ValueError("Expected an OSV-Scanner JSON report object")
+    results = _records(report.get("results"), "results")
     findings = {}
-    for result in results or []:
-        if not isinstance(result, dict):
-            raise ValueError("Each result must be an object")
-        target = result.get("Target", "unknown")
-        if not isinstance(target, str):
-            raise ValueError("Result Target must be a string")
-        vulnerabilities = result.get("Vulnerabilities")
-        if vulnerabilities is not None and not isinstance(
-                vulnerabilities, list):
-            raise ValueError("Vulnerabilities must be an array or null")
-        for vulnerability in vulnerabilities or []:
-            if not isinstance(vulnerability, dict):
-                raise ValueError("Each vulnerability must be an object")
-            for field in ("VulnerabilityID", "FixedVersion", "Severity",
-                          "PkgName", "InstalledVersion"):
-                if not isinstance(vulnerability.get(field, ""), str):
-                    raise ValueError(f"Vulnerability {field} must be a string")
-            vulnerability_id = vulnerability.get("VulnerabilityID", "")
-            fixed_version = vulnerability.get("FixedVersion", "")
-            severity = vulnerability.get("Severity", "").upper()
-            if not vulnerability_id or severity not in BLOCKING_SEVERITIES:
-                raise ValueError(
-                    "Vulnerability must have an ID and valid severity")
-            if not vulnerability_id.startswith("CVE-") or not fixed_version:
-                continue
-
-            finding = (
-                target,
-                vulnerability_id,
-                vulnerability.get("PkgName", "unknown"),
-                vulnerability.get("InstalledVersion", "unknown"),
-                fixed_version,
-                severity,
-            )
-            findings[finding] = finding
-    return sorted(findings.values())
+    for result in results:
+        source = result.get("source")
+        if not isinstance(source, dict) or not isinstance(
+                source.get("path"), str):
+            raise ValueError("Source must contain a string path")
+        for entry in _records(result.get("packages"), "packages"):
+            package = _package(entry.get("package"))
+            if not isinstance(package.get("version"), str):
+                raise ValueError("Package version must be a string")
+            group_aliases = {}
+            for group in _records(entry.get("groups", []), "groups"):
+                ids = _strings(group.get("ids"), "group ids")
+                aliases = group.get("aliases", [])
+                aliases = _strings([] if aliases is None else aliases,
+                                   "group aliases")
+                for advisory_id in ids:
+                    group_aliases.setdefault(advisory_id,
+                                             set()).update(ids + aliases)
+            for vulnerability in _records(
+                    entry.get("vulnerabilities", []), "vulnerabilities"):
+                advisory_id = vulnerability.get("id")
+                if not isinstance(advisory_id, str) or not advisory_id:
+                    raise ValueError(
+                        "Vulnerability ID must be a nonempty string")
+                aliases = _strings(vulnerability.get("aliases", []), "aliases")
+                ids = {
+                    advisory_id, *aliases, *group_aliases.get(advisory_id, [])
+                }
+                fixed = _fixed_versions(vulnerability, package)
+                for cve in ids:
+                    if not cve.startswith("CVE-") or not fixed:
+                        continue
+                    finding = (source["path"], cve, package["ecosystem"],
+                               package["name"], package["version"])
+                    findings.setdefault(finding, set()).update(fixed)
+    return sorted(
+        key + (", ".join(sorted(fixed)),) for key, fixed in findings.items())
 
 
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("report", help="Path to the Trivy JSON report")
+    parser.add_argument("report", help="Path to the OSV-Scanner JSON report")
     parser.add_argument(
         "--allow-fixable-cves",
         action="store_true",
@@ -84,7 +130,8 @@ def main(argv):
         findings = find_blocking_cves(report)
     except (OSError, ValueError) as error:
         print(
-            f"ERROR: Cannot read valid Trivy report: {error}", file=sys.stderr)
+            f"ERROR: Cannot read valid OSV-Scanner report: {error}",
+            file=sys.stderr)
         return 2
 
     if not findings:
@@ -100,12 +147,12 @@ def main(argv):
     else:
         print(f"FAIL: found {len(findings)} fixable CVE(s).", file=sys.stderr)
     print(
-        "Target | CVE | Package | Installed | Fixed | Severity",
+        "Target | CVE | Ecosystem | Package | Installed | Fixed",
         file=sys.stderr,
     )
-    for target, cve, package, installed, fixed, severity in findings:
+    for target, cve, ecosystem, package, installed, fixed in findings:
         print(
-            f"{target} | {cve} | {package} | {installed} | {fixed} | {severity}",
+            f"{target} | {cve} | {ecosystem} | {package} | {installed} | {fixed}",
             file=sys.stderr,
         )
     return 0 if args.allow_fixable_cves else 1

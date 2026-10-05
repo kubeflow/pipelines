@@ -282,15 +282,19 @@ class WorkflowTests(unittest.TestCase):
         job = reusable['jobs']['build-and-push-images']
         self.assertFalse(job.get('continue-on-error', False))
         steps = job['steps']
-        scan = next(step for step in steps if step.get('id') == 'trivy_scan')
+        scan = next(step for step in steps if step.get('id') == 'osv_scan')
+        setup = next(
+            step for step in steps
+            if step.get('uses') == './.github/actions/setup-osv-scanner')
+        self.assertEqual(setup['if'], scan['if'])
         self.assertNotIn('allow_fixable_cves', scan['if'])
         self.assertFalse(scan.get('continue-on-error', False))
-        self.assertIn('steps.push.outputs.digest', scan['with']['image-ref'])
+        self.assertIn('steps.push.outputs.digest', scan['env']['IMAGE_REF'])
         policy = next(
             step for step in steps
             if step.get('name') == 'Enforce fixable CVE policy')
         self.assertEqual(policy['if'],
-                         "${{ steps.trivy_scan.outcome == 'success' }}")
+                         "${{ steps.osv_scan.outcome == 'success' }}")
         self.assertEqual(policy['env']['ALLOW_FIXABLE_CVES'],
                          '${{ inputs.allow_fixable_cves }}')
         self.assertIn('--allow-fixable-cves', policy['run'])
@@ -300,8 +304,9 @@ class WorkflowTests(unittest.TestCase):
             if step.get('name') == 'Upload CVE scan report')
         self.assertEqual(
             upload['if'],
-            "${{ always() && steps.trivy_scan.outcome != 'skipped' }}")
+            "${{ always() && steps.osv_scan.outcome != 'skipped' }}")
         self.assertEqual(upload['with']['if-no-files-found'], 'error')
+        self.assertEqual(upload['with']['path'], 'osv-results.json')
         self.assertIn('build-images-for-release',
                       self.jobs['create-manifests']['needs'])
 
@@ -313,9 +318,8 @@ class WorkflowTests(unittest.TestCase):
         workflow = yaml.safe_load(
             (root / '.github/workflows/build-and-push.yml').read_text())
         steps = workflow['jobs']['build-and-push-images']['steps']
-        scan = next(step for step in steps if step.get('id') == 'trivy_scan')
-        self.assertEqual(scan['env'].get('TRIVY_PLATFORM'),
-                         '${{ inputs.platforms }}')
+        scan = next(step for step in steps if step.get('id') == 'osv_scan')
+        self.assertEqual(scan['env'].get('PLATFORM'), '${{ inputs.platforms }}')
 
     def test_validation_runs_natively_after_publication_and_skips_dry_runs(
             self):
