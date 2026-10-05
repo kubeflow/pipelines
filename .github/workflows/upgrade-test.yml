@@ -15,7 +15,13 @@ on:
   push:
     branches: [release-2.18]
 
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      run_readiness_schedules:
+        description: 'Run isolated scheduling acceptance after candidate policy review'
+        type: boolean
+        required: false
+        default: false
 
   pull_request:
     paths:
@@ -138,8 +144,8 @@ jobs:
 
 
   readiness-schedules:
-    # Enable only after the release scheduling policy and live acceptance are reviewed.
-    if: ${{ vars.KFP_218_READINESS_SCHEDULES == 'enabled' }}
+    # Explicitly activate only after reviewing the candidate scheduling policy.
+    if: ${{ vars.KFP_218_READINESS_SCHEDULES == 'enabled' || (github.event_name == 'workflow_dispatch' && inputs.run_readiness_schedules) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
