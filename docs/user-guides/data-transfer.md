@@ -8,7 +8,7 @@ files stay at their existing storage locations.
 ## Export from the source
 
 1. Choose your namespace and open **Export / Import**.
-2. Optionally select a completed-history date range. The range limits completed
+2. Optionally select a completed-history UTC time range. The range limits completed
    runs only; every archive includes all experiments, pipeline definitions and
    versions, tags, and schedules in the namespace, including unused definitions
    and empty experiments.
@@ -88,11 +88,11 @@ service-account permissions for imported schedules. Shared-read mode does not
 bypass transfer authorization. Native-storage installations also require the
 corresponding artifact permissions. Users never provide database credentials.
 
-Archives are limited to 256 MiB of metadata. Use smaller completed-history ranges
+Archives are limited to 256 MiB of metadata. Use smaller completed-history time ranges
 for larger histories; retain the same name prefix across batches. One transfer at
 a time runs per API-server process; a busy server asks the client to retry. Native
 archives also have limits of 1,000 completed runs, 20,000 history rows, and
-10,000 catalog/schedule objects. Narrow date ranges for history limits; the
+10,000 catalog/schedule objects. Narrow time ranges for history limits; the
 complete catalog must fit in one archive.
 
 Validation does not create Kubernetes resources or write MLMD. A real import can

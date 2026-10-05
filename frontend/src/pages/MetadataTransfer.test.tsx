@@ -109,24 +109,25 @@ describe('MetadataTransferForm', () => {
     await screen.findByText('Archive validated. Ready to import.');
     expect(transfer.importMetadata).toHaveBeenCalledTimes(1);
   });
-  it('downloads history within optional UTC date bounds', async () => {
+  it('downloads history within second-level UTC bounds independent of local timezone', async () => {
     const user = userEvent.setup();
     const blob = new Blob(['{}']);
     vi.mocked(transfer.exportMetadata).mockResolvedValue(blob);
     render(<MetadataTransferForm namespace='team' />);
-    fireEvent.change(screen.getByLabelText('Completed on or after (UTC)'), {
-      target: { value: '2026-10-01' },
+    expect(screen.getByLabelText('Completed from (UTC)')).toHaveAttribute('step', '1');
+    fireEvent.change(screen.getByLabelText('Completed from (UTC)'), {
+      target: { value: '2026-10-01T12:30:15' },
     });
     fireEvent.change(screen.getByLabelText('Completed before (UTC)'), {
-      target: { value: '2026-10-02' },
+      target: { value: '2026-10-01T12:31:45' },
     });
     await user.click(screen.getByRole('button', { name: 'Download archive' }));
     await waitFor(() => expect(transfer.downloadMetadata).toHaveBeenCalledWith(blob));
     expect(transfer.exportMetadata).toHaveBeenCalledWith(
       'team',
       {
-        completed_after: Date.parse('2026-10-01') / 1000,
-        completed_before: Date.parse('2026-10-02') / 1000,
+        completed_after: Date.parse('2026-10-01T12:30:15Z') / 1000,
+        completed_before: Date.parse('2026-10-01T12:31:45Z') / 1000,
       },
       expect.any(AbortSignal),
     );
@@ -165,14 +166,30 @@ describe('MetadataTransferForm', () => {
   it('rejects a reversed date range before starting export', async () => {
     const user = userEvent.setup();
     render(<MetadataTransferForm namespace='team' />);
-    fireEvent.change(screen.getByLabelText('Completed on or after (UTC)'), {
-      target: { value: '2026-10-02' },
+    fireEvent.change(screen.getByLabelText('Completed from (UTC)'), {
+      target: { value: '2026-10-01T12:31:45' },
     });
     fireEvent.change(screen.getByLabelText('Completed before (UTC)'), {
-      target: { value: '2026-10-01' },
+      target: { value: '2026-10-01T12:30:15' },
     });
     await user.click(screen.getByRole('button', { name: 'Download archive' }));
-    await screen.findByText('Choose an end date later than the start date.');
+    await screen.findByText('Choose an end time later than the start time.');
     expect(transfer.exportMetadata).not.toHaveBeenCalled();
+  });
+  it('keeps empty completion bounds unbounded', async () => {
+    const user = userEvent.setup();
+    vi.mocked(transfer.exportMetadata).mockResolvedValue(new Blob(['{}']));
+    render(<MetadataTransferForm namespace='team' />);
+    await user.click(screen.getByRole('button', { name: 'Download archive' }));
+    await waitFor(() =>
+      expect(transfer.exportMetadata).toHaveBeenCalledWith(
+        'team',
+        {
+          completed_after: undefined,
+          completed_before: undefined,
+        },
+        expect.any(AbortSignal),
+      ),
+    );
   });
 });

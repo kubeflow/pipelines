@@ -73,8 +73,9 @@ export function MetadataTransferForm({
     if (!controller) return;
     setDownloaded(false);
     try {
-      const completed_after = after ? Date.parse(after) / 1000 : undefined;
-      const completed_before = before ? Date.parse(before) / 1000 : undefined;
+      // datetime-local supplies no timezone; these fields always represent UTC.
+      const completed_after = after ? Date.parse(`${after}Z`) / 1000 : undefined;
+      const completed_before = before ? Date.parse(`${before}Z`) / 1000 : undefined;
       if (
         (completed_after !== undefined && !Number.isFinite(completed_after)) ||
         (completed_before !== undefined && !Number.isFinite(completed_before)) ||
@@ -82,7 +83,7 @@ export function MetadataTransferForm({
           completed_before !== undefined &&
           completed_after >= completed_before)
       ) {
-        throw new Error('Choose an end date later than the start date.');
+        throw new Error('Choose an end time later than the start time.');
       }
       const archive = await exportMetadata(
         namespace,
@@ -150,14 +151,15 @@ export function MetadataTransferForm({
           </Typography>
           <Typography variant='body2'>
             Export the full experiment and pipeline catalog, including empty experiments, and all
-            recurring runs. Active runs are excluded. Optional dates limit completed run history
-            only. Use smaller date ranges for archives over 256 MiB.
+            recurring runs. Active runs are excluded. Optional times limit completed run history
+            only. Narrow the time range to export busy periods in smaller batches.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
-              label='Completed on or after (UTC)'
-              type='date'
-              sx={{ minWidth: 240 }}
+              label='Completed from (UTC)'
+              type='datetime-local'
+              inputProps={{ step: 1 }}
+              sx={{ minWidth: 280 }}
               value={after}
               disabled={locked}
               InputLabelProps={{ shrink: true }}
@@ -165,8 +167,9 @@ export function MetadataTransferForm({
             />
             <TextField
               label='Completed before (UTC)'
-              type='date'
-              sx={{ minWidth: 240 }}
+              type='datetime-local'
+              inputProps={{ step: 1 }}
+              sx={{ minWidth: 280 }}
               value={before}
               disabled={locked}
               InputLabelProps={{ shrink: true }}
