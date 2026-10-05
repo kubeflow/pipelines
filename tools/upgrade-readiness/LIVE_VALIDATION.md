@@ -32,21 +32,23 @@ For target **enforce** mode prepare three distinct recurring runs:
 
 | Scenario | Account and target grants | Predicted status | Observed requirement |
 | --- | --- | --- | --- |
-| Default control | Omitted account resolving to the configured default | `no_issue_detected` | New controller-created run with that account |
-| Scoped grant | Explicit custom account in allowlist; controller has `use` only for that named account | `no_issue_detected` | New controller-created run with that account |
+| Default control | Omitted account resolving to the configured default | `no_issue_detected` | New run with that account reaches `SUCCEEDED` |
+| Scoped grant | Explicit custom account in allowlist; controller has `use` only for that named account | `no_issue_detected` | New run with that account reaches `SUCCEEDED` |
 | Denied custom | Explicit custom account in allowlist; controller lacks its `use` grant | `policy_rejection` | Fresh correlated named-account rejection Event and no new run for the whole observation window |
 
 Run **audit** as a separate phase: capture a new prediction report and baseline
 with target mode `audit`, apply that mode in the isolated installation, and expect
 the denied-custom scenario to produce a run with prediction `operational_impact`.
-The verifier checks that audit permits the run; it does not establish that an audit
-log or metric was emitted. Keep a default control. Never change enforcement on an
+The verifier checks that audit permits a successful run. Audit-log emission is a
+separate bounded fixture check; logs currently identify namespace/account/operation,
+not a run ID or schedule UID. Keep a default control. Never change enforcement on an
 operator's installation for this test.
 
 Verify candidate image revisions, actual authenticated controller identity,
 allowlist, compiler patch, independent workflow-identity mode and complete target
-RBAC before interpreting results. Template/plugin identities and full workload
-completion are outside this main-account firing test.
+RBAC before interpreting results. Template/plugin identities and broader workload
+representativeness remain outside this main-account fixture. Successful completion
+of these small fixtures is required but cannot stand in for representative pipelines.
 
 ## Capture the pre-upgrade baseline
 
@@ -63,7 +65,7 @@ names (these are fixture selectors, not credentials):
       "schedule_uid": "replace-with-control-uid",
       "service_account": "pipeline-runner",
       "expected_prediction": "no_issue_detected",
-      "expected_outcome": "run_created"
+      "expected_outcome": "run_succeeded"
     },
     {
       "scenario": "custom-denied",
@@ -108,7 +110,8 @@ python3 tools/upgrade-readiness/live_schedule_check.py \
   --context isolated-test --namespace readiness-test \
   --kfp-endpoint https://test.example/pipeline --kfp-token-file /secure/test-token \
   --expectations baseline.json --prediction-report readiness.json \
-  --not-before "$ACTIVATION_TIME" --timeout-seconds 120 > observed.json
+  --not-before "$ACTIVATION_TIME" --require-run-success \
+  --timeout-seconds 120 > observed.json
 ```
 
 The observer permits 30–600 seconds and at most 20 cases. It collects final evidence
@@ -118,7 +121,10 @@ still apply. Source transport byte,
 request and response budgets also apply; use small fixture sets. It follows run
 pagination, verifies recurring-run association and experiment namespace, and
 excludes baseline IDs and pre-observation timestamps. It verifies the service
-account on each new run. A run being created is **not** successful task completion.
+account on each new run. `--require-run-success` upgrades `run_created` expectations
+to `run_succeeded`. Failed/canceled/skipped runs fail; still-running or unknown
+states remain inconclusive at the deadline. The older `run_created` expectation
+remains available for narrower diagnostics, but does not establish task completion.
 
 A blocked result requires a Warning `Failed` Event from the scheduled workflow
 controller with the exact involved schedule UID/name/namespace, a fresh timestamp
@@ -126,7 +132,7 @@ and increased count, and a named core `serviceaccounts/use` PermissionDenied
 signature. Raw messages are inspected in memory and never included in the output.
 Generic errors, old Events, absent permissions, truncated collection, changed
 message formats and timeouts cannot establish a denial. A blocked case also needs
-a positive control to fire, and observation continues through the full window to
+a successful positive control in the completion mode, and observation continues through the full window to
 catch an unexpected run after an earlier rejection. The controller error signature
 is source-derived and still needs confirmation against actual candidate Events.
 
@@ -136,6 +142,21 @@ as a rejected workload or a successful upgrade. Retain candidate/source revision
 predictions, baselines and sanitized results in CI artifacts. A release gate must
 run both enforce and audit phases; documenting this protocol or running its mocked
 unit tests does not satisfy live acceptance.
+
+After disabling each phase, the CI script rechecks all fresh associated runs
+against its activation/baseline. Every expected run must succeed, and a blocked
+scenario must still have no run. It writes `source-completion.json`,
+`enforce-completion.json` and `audit-completion.json`; a failed/canceled/skipped
+run or drain deadline fails the phase.
+
+The audit phase then invokes `verify_live_audit.py`. It requires the successful
+three-scenario audit completion report and reads only the isolated API container
+logs after activation, with a 1 MiB output cap and 30-second process budget. An
+exact main-account audit record for `kfp-readiness-test/readiness-denied` must be
+present. Only a matching count and the limited evidence scope are retained in
+`audit-emission.json`. Raw logs are neither printed nor saved. This establishes
+emission in that isolated namespace/account/window, not per-run correlation or
+metrics coverage; the backend producer does not include run/schedule identifiers.
 
 ## Disposable CI fixture tooling
 

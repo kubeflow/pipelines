@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Evaluate a named core serviceaccounts/use request against target RBAC.
+"""Evaluate resource requests against explicit target RBAC evidence.
 
 This models RBAC grants only, not other authorizers, account existence,
 admission, identity discovery, or whether the supplied objects will be
@@ -50,7 +50,7 @@ def _subject_match(subject, user, groups, binding_namespace):
     return None
 
 
-def _rule_match(rule, account):
+def _rule_match(rule, verb, api_group, resource, resource_name):
     if not isinstance(rule, dict):
         return None
     for field in ('verbs', 'apiGroups', 'resources', 'resourceNames',
@@ -63,13 +63,32 @@ def _rule_match(rule, account):
         return False if not rule.get('resources') else None
     if not rule.get('apiGroups') or not rule.get('resources'):
         return None
-    return (any(v in rule['verbs'] for v in ('use', '*')) and
-            any(g in rule['apiGroups'] for g in ('', '*')) and
-            any(r in rule['resources'] for r in ('serviceaccounts', '*')) and
-            (not rule.get('resourceNames') or account in rule['resourceNames']))
+    resources = (resource, '*')
+    if '/' in resource:
+        resources += ('*/' + resource.split('/', 1)[1],)
+    return (any(v in rule['verbs'] for v in (verb, '*')) and
+            any(g in rule['apiGroups'] for g in (api_group, '*')) and
+            any(r in rule['resources'] for r in resources) and
+            (not rule.get('resourceNames') or
+             resource_name in rule['resourceNames']))
 
 
 def evaluate_use(items, user, groups, namespace, account, complete=False):
+    if not isinstance(account, str) or not account:
+        return 'unknown'
+    return evaluate_access(items, user, groups, namespace, 'use', '',
+                           'serviceaccounts', account, complete)
+
+
+def evaluate_access(items,
+                    user,
+                    groups,
+                    namespace,
+                    verb,
+                    api_group,
+                    resource,
+                    resource_name='',
+                    complete=False):
     """Return allowed, denied, or unknown for the supplied target RBAC
     evidence.
 
@@ -79,7 +98,9 @@ def evaluate_use(items, user, groups, namespace, account, complete=False):
     grant, but cannot prove a denial. Wildcards in resourceNames are literal.
     """
     if (not isinstance(items, list) or not _strings(groups) or not all(
-            isinstance(v, str) and v for v in (user, namespace, account)) or
+            isinstance(v, str) and v for v in (user, namespace, verb, resource))
+            or not isinstance(api_group, str) or
+            not isinstance(resource_name, str) or
             not isinstance(complete, bool)):
         return 'unknown'
     roles = {}
@@ -145,7 +166,7 @@ def evaluate_use(items, user, groups, namespace, account, complete=False):
             uncertain = True
             continue
         for rule in rules:
-            match = _rule_match(rule, account)
+            match = _rule_match(rule, verb, api_group, resource, resource_name)
             if match is True:
                 return 'allowed'
             if match is None:

@@ -15,9 +15,11 @@ import contextlib
 import io
 from pathlib import Path
 import socket
+import ssl
 import tempfile
 import threading
 import time
+import traceback
 import unittest
 from unittest import mock
 import urllib.error
@@ -32,8 +34,15 @@ class Response(io.BytesIO):
 
 class ClientTest(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.tls_fixtures = Path(__file__).parent / 'testdata' / 'tls'
+        cls.tls_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        cls.tls_context.load_cert_chain(cls.tls_fixtures / 'server.pem',
+                                        cls.tls_fixtures / 'server.key')
+
     @contextlib.contextmanager
-    def server(self, prefix, suffix=b'', slow_bytes=0):
+    def server(self, prefix, suffix=b'', slow_bytes=0, tls_context=None):
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0))
             listener.listen()
@@ -45,20 +54,26 @@ class ClientTest(unittest.TestCase):
                     connection, _ = listener.accept()
                     with connection:
                         connection.settimeout(3)
-                        connection.recv(4096)
-                        connection.sendall(prefix)
-                        for _ in range(slow_bytes):
-                            connection.sendall(b'x')
-                            if stop.wait(0.025):
-                                return
-                        connection.sendall(suffix)
+                        stream = (
+                            tls_context.wrap_socket(
+                                connection, server_side=True)
+                            if tls_context is not None else connection)
+                        with stream:
+                            stream.recv(4096)
+                            stream.sendall(prefix)
+                            for _ in range(slow_bytes):
+                                stream.sendall(b'x')
+                                if stop.wait(0.025):
+                                    return
+                            stream.sendall(suffix)
                 except OSError:
                     pass
 
             server = threading.Thread(target=serve)
             server.start()
             try:
-                yield f'http://127.0.0.1:{listener.getsockname()[1]}'
+                scheme = 'https' if tls_context is not None else 'http'
+                yield f'{scheme}://127.0.0.1:{listener.getsockname()[1]}'
             finally:
                 stop.set()
                 server.join(4)
@@ -239,6 +254,90 @@ class ClientTest(unittest.TestCase):
                     response=response), self.server(response) as endpoint:
                 self.assertEqual(
                     kfp_http.Client(endpoint).get('/apis/v2beta1/runs'), {})
+
+    def test_trusted_https_preserves_complete_responses(self):
+        for response in (
+                b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}',
+                b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n'
+                b'2;key=value\r\n{}\r\n0\r\nX-Trailer: value\r\n\r\n'):
+            with self.subTest(response=response), self.server(
+                    response, tls_context=self.tls_context) as endpoint:
+                client = kfp_http.Client(
+                    endpoint, ca_file=self.tls_fixtures / 'ca.pem')
+                self.assertEqual({}, client.get('/apis/v2beta1/runs'))
+
+    def test_https_rejects_untrusted_ca_and_hostname_mismatch(self):
+        for trusted_ca, hostname in ((False, '127.0.0.1'), (True, 'localhost')):
+            with self.subTest(trusted_ca=trusted_ca, hostname=hostname), \
+                    self.server(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}',
+                                tls_context=self.tls_context) as endpoint:
+                client = kfp_http.Client(
+                    endpoint.replace('127.0.0.1', hostname),
+                    ca_file=self.tls_fixtures /
+                    'ca.pem' if trusted_ca else None)
+                with self.assertRaisesRegex(kfp_http.CollectionError,
+                                            '^request_failed$') as error:
+                    client.get('/apis/v2beta1/runs')
+                self.assertNotIn(
+                    'CERTIFICATE_VERIFY_FAILED',
+                    ''.join(traceback.format_exception(error.exception)))
+
+    def test_deadline_interrupts_slow_https_framing(self):
+        for prefix, suffix in (
+            (b'HTTP/1.1 200 OK\r\nX-Slow: ',
+             b'\r\nContent-Length: 2\r\n\r\n{}'),
+            (b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n2;',
+             b'\r\n{}\r\n0\r\n\r\n'),
+            (b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n'
+             b'2\r\n{}\r\n0\r\nX-Slow: ', b'\r\n\r\n'),
+        ):
+            with self.subTest(prefix=prefix), self.server(
+                    prefix, suffix, slow_bytes=80,
+                    tls_context=self.tls_context) as endpoint:
+                client = kfp_http.Client(
+                    endpoint, ca_file=self.tls_fixtures / 'ca.pem')
+                with mock.patch.object(kfp_http, 'TIMEOUT_SECONDS', 0.25):
+                    started = time.monotonic()
+                    with self.assertRaisesRegex(kfp_http.CollectionError,
+                                                '^request_timeout$'):
+                        client.get('/apis/v2beta1/runs')
+                    self.assertLess(time.monotonic() - started, 1.25)
+
+    def test_https_redirects_are_refused_and_failures_are_sanitized(self):
+        secret = 'private-server-detail'
+        responses = [(code, b'{}', 'redirect_refused')
+                     for code in (301, 302, 303, 307, 308)] + [
+                         (401, b'{}', 'access_denied'),
+                         (403, b'{}', 'access_denied'),
+                         (500, b'{}', 'http_error'),
+                         (200, b'{"error":{"message":"private-server-detail"}}',
+                          'api_error'),
+                         (200, b'private-server-detail', 'invalid_json_object'),
+                     ]
+        with tempfile.TemporaryDirectory() as directory:
+            token = Path(directory) / 'private-token-file'
+            token.write_text('private-bearer-token')
+            for code, body, reason in responses:
+                response = (f'HTTP/1.1 {code} {secret}\r\n'
+                            f'Location: https://127.0.0.1:1/{secret}\r\n'
+                            f'Content-Length: {len(body)}\r\n\r\n'.encode() +
+                            body)
+                with self.subTest(
+                        code=code, reason=reason), self.server(
+                            response, tls_context=self.tls_context) as endpoint:
+                    client = kfp_http.Client(
+                        endpoint,
+                        token_file=token,
+                        ca_file=self.tls_fixtures / 'ca.pem')
+                    with self.assertRaisesRegex(kfp_http.CollectionError,
+                                                '^' + reason + '$') as error:
+                        client.get('/apis/v2beta1/runs',
+                                   {'page_token': 'private-page-token'})
+                    output = ''.join(
+                        traceback.format_exception(error.exception))
+                    for detail in (secret, 'private-bearer-token',
+                                   'private-page-token', str(token)):
+                        self.assertNotIn(detail, output)
 
 
 if __name__ == '__main__':

@@ -14,8 +14,8 @@
 """Read-only, bounded observation of prepared isolated schedule fixtures.
 
 A timeout is never evidence of policy rejection. This is a CI acceptance
-helper, not an operator readiness scan or proof of successful workload
-completion.
+helper, not an operator readiness scan. Successful run completion is
+required only by explicit expectations or --require-run-success.
 """
 
 import argparse
@@ -30,6 +30,12 @@ from kfp_http import CollectionError
 from kfp_inventory import field
 from kfp_inventory import identifier
 from readiness import kubectl_get
+
+RUN_STATES = frozenset(
+    ('RUNTIME_STATE_UNSPECIFIED', 'PENDING', 'RUNNING', 'SUCCEEDED', 'SKIPPED',
+     'FAILED', 'CANCELING', 'CANCELED', 'PAUSED'))
+FAILED_STATES = frozenset(('FAILED', 'CANCELED', 'SKIPPED'))
+POSITIVE_OUTCOMES = ('run_created', 'run_succeeded')
 
 
 def timestamp(value):
@@ -64,7 +70,7 @@ def validate(bundle, report, namespace):
         if case['schedule_uid'] in seen:
             raise ValueError('duplicate_schedule')
         seen.add(case['schedule_uid'])
-        if case.get('expected_outcome') not in ('run_created', 'blocked'):
+        if case.get('expected_outcome') not in (*POSITIVE_OUTCOMES, 'blocked'):
             raise ValueError('invalid_outcome')
         allowed = (
             'policy_rejection',) if case['expected_outcome'] == 'blocked' else (
@@ -90,7 +96,7 @@ def validate(bundle, report, namespace):
                 'status') != case['expected_prediction']:
             raise ValueError('prediction_mismatch')
     if any(c['expected_outcome'] == 'blocked' for c in cases) and not any(
-            c['expected_outcome'] == 'run_created' and
+            c['expected_outcome'] in POSITIVE_OUTCOMES and
             c['expected_prediction'] == 'no_issue_detected' for c in cases):
         raise ValueError('positive_control_required')
     return cases, start
@@ -168,6 +174,14 @@ def list_events(context, namespace):
 
 
 def runs(client, namespace, case, start):
+    return [
+        record['run_id']
+        for record in run_evidence(client, namespace, case, start)
+    ]
+
+
+def run_evidence(client, namespace, case, start):
+    """Retain only fresh run identifiers and recognized API runtime states."""
     fresh = []
     for run in list_runs(client, namespace, case['schedule_uid']):
         uid = field(run, 'run_id', 'runId')
@@ -177,7 +191,14 @@ def runs(client, namespace, case, start):
         if field(run, 'service_account',
                  'serviceAccount') != case['service_account']:
             raise CollectionError('run_account_mismatch')
-        fresh.append(uid)
+        if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_.-]{0,252}', uid):
+            raise CollectionError('invalid_run_id')
+        state = run.get('state')
+        fresh.append(
+            dict(
+                run_id=uid,
+                state=state if isinstance(state, str) and state in RUN_STATES
+                else 'UNKNOWN'))
     return fresh
 
 
@@ -227,51 +248,71 @@ def observe(client,
             clock=time.monotonic,
             sleep=time.sleep):
     deadline = clock() + timeout
-    observed = {
-        c['schedule_uid']: {
-            'run': False,
-            'denial': False
-        } for c in cases
-    }
+    observed = {c['schedule_uid']: {'runs': {}, 'denial': False} for c in cases}
     while True:
         final_collection = clock() >= deadline
         events = get(context, namespace)
         for case in cases:
             state = observed[case['schedule_uid']]
-            state['run'] |= bool(runs(client, namespace, case, start))
+            state['runs'].update({
+                record['run_id']: record['state']
+                for record in run_evidence(client, namespace, case, start)
+            })
             state['denial'] |= denied(events, namespace, case, start)
-            if case['expected_outcome'] == 'blocked' and state['run']:
+            if case['expected_outcome'] == 'blocked' and state['runs']:
+                return result(cases, observed, 'failed')
+            if case['expected_outcome'] == 'run_succeeded' and any(
+                    value in FAILED_STATES for value in state['runs'].values()):
                 return result(cases, observed, 'failed')
         # Finish with evidence collected after the entire observation window,
         # including when an earlier collection crosses the deadline.
         if final_collection:
             break
         sleep(min(10, max(0, deadline - clock())))
-    control = any(observed[c['schedule_uid']]['run']
-                  for c in cases
-                  if c['expected_outcome'] == 'run_created' and
-                  c['expected_prediction'] == 'no_issue_detected')
-    complete = all(
-        observed[c['schedule_uid']]['run'] if c['expected_outcome'] ==
-        'run_created' else observed[c['schedule_uid']]['denial'] and control
-        for c in cases)
-    return result(cases, observed, 'passed' if complete else 'inconclusive')
+    require_success = any(
+        c['expected_outcome'] == 'run_succeeded' for c in cases)
+    control = any(
+        positive_complete(c, observed[c['schedule_uid']], require_success)
+        for c in cases
+        if c['expected_outcome'] in POSITIVE_OUTCOMES and
+        c['expected_prediction'] == 'no_issue_detected')
+    for case in cases:
+        state = observed[case['schedule_uid']]
+        if case['expected_outcome'] == 'blocked':
+            if not (state['denial'] and control):
+                return result(cases, observed, 'inconclusive')
+        elif not positive_complete(case, state):
+            return result(cases, observed, 'inconclusive')
+    return result(cases, observed, 'passed')
+
+
+def positive_complete(case, observed, require_success=False):
+    if require_success or case['expected_outcome'] == 'run_succeeded':
+        return 'SUCCEEDED' in observed['runs'].values()
+    return bool(observed['runs'])
 
 
 def result(cases, observed, outcome):
-    return dict(
-        outcome=outcome,
-        scope='schedule_run_creation_only',
-        cases=[
+    reports = []
+    scope = 'schedule_run_creation_only'
+    for case in cases:
+        if case['expected_outcome'] == 'run_succeeded':
+            scope = 'schedule_run_completion'
+        state = observed[case['schedule_uid']]
+        reports.append(
             dict(
-                scenario=c['scenario'],
-                schedule_uid=c['schedule_uid'],
-                expected_prediction=c['expected_prediction'],
-                expected_outcome=c['expected_outcome'],
-                run_observed=observed[c['schedule_uid']]['run'],
-                denial_observed=observed[c['schedule_uid']]['denial'])
-            for c in cases
-        ])
+                scenario=case['scenario'],
+                schedule_uid=case['schedule_uid'],
+                expected_prediction=case['expected_prediction'],
+                expected_outcome=case['expected_outcome'],
+                run_observed=bool(state['runs']),
+                success_observed='SUCCEEDED' in state['runs'].values(),
+                runs=[
+                    dict(run_id=uid, state=value)
+                    for uid, value in sorted(state['runs'].items())
+                ],
+                denial_observed=state['denial']))
+    return dict(outcome=outcome, scope=scope, cases=reports)
 
 
 def load(path):
@@ -292,6 +333,11 @@ def main():
         parser.add_argument('--' + arg, required=True)
     parser.add_argument('--kfp-ca-file')
     parser.add_argument('--timeout-seconds', type=int, default=60)
+    parser.add_argument(
+        '--require-run-success',
+        action='store_true',
+        help='Require SUCCEEDED for every positive case; reject failed, canceled or skipped runs.'
+    )
     args = parser.parse_args()
     try:
         if not 30 <= args.timeout_seconds <= 600:
@@ -299,6 +345,12 @@ def main():
         cases, start = validate(
             load(args.expectations), load(args.prediction_report),
             args.namespace)
+        if args.require_run_success:
+            cases = [
+                dict(case, expected_outcome='run_succeeded')
+                if case['expected_outcome'] == 'run_created' else case
+                for case in cases
+            ]
         start = activation_start(start, args.not_before)
         client = Client(args.kfp_endpoint, args.kfp_token_file,
                         args.kfp_ca_file)

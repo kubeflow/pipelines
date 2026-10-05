@@ -31,10 +31,14 @@ import time
 from kfp_http import Client
 import kfp_inventory
 import schedule_policy
+import source_observation
+import workload_assessment
+import workload_inventory
+import workload_policy
 
 MAX_BYTES = 16 * 1024 * 1024
 MAX_ITEMS = 10000
-RULESET = '2.18-preview.5'
+RULESET = '2.18-preview.6'
 SUPPORTED_KINDS = {
     'Deployment', 'Role', 'RoleBinding', 'ClusterRole', 'ScheduledWorkflow'
 }
@@ -553,6 +557,28 @@ def markdown(report):
             ' recurring-run records; ' + str(coverage['failed_checks']) +
             ' failed checks. Snapshot is not atomic.', ''
         ]
+    coverage = report['source'].get('workload_collection')
+    if coverage is not None:
+        lines += [
+            'Stored workload collection: ' +
+            str(sum(coverage['record_counts'].values())) + ' records; ' +
+            str(coverage['failed_checks']) +
+            ' failed checks; snapshot is not atomic. Offline completeness and target configuration are not verified.',
+            ''
+        ]
+    if report['target'].get('workload_policy_revision'):
+        lines += [
+            'Workload target revision (operator supplied, unverified): ' +
+            report['target']['workload_policy_revision'], ''
+        ]
+    if report.get('control_coverage'):
+        lines += ['Per-control coverage:']
+        for control in report['control_coverage']:
+            lines.append('- `' + control['control'] + '`: ' +
+                         control['coverage'] + '; confidence: ' +
+                         control['confidence'] + '; findings: ' +
+                         str(sum(control['counts'].values())))
+        lines.append('')
     for f in report['findings']:
         # Escape control characters and markup in inventory-controlled names.
         safe = lambda value: json.dumps(
@@ -614,6 +640,35 @@ def main(argv=None):
         '--kfp-ca-file',
         type=Path,
         help='CA bundle for source KFP HTTPS verification.')
+    parser.add_argument(
+        '--include-workloads',
+        action='store_true',
+        help='Collect experiments, pipelines, versions, runs and recurring runs in selected namespaces.'
+    )
+    parser.add_argument(
+        '--workload-inventory',
+        type=Path,
+        help='Offline raw KFP resource arrays; requires --include-workloads.')
+    parser.add_argument(
+        '--target-policy',
+        type=Path,
+        help='Explicit target workload policy, identities and RBAC; requires --include-workloads.'
+    )
+    parser.add_argument(
+        '--include-shared-pipelines',
+        action='store_true',
+        help='Also inspect shared pipeline/version scopes; never unscoped runs.'
+    )
+    parser.add_argument(
+        '--source-single-user',
+        action='store_true',
+        help='Assert the source is single-user; requires exactly one selected namespace.'
+    )
+    parser.add_argument(
+        '--source-observation',
+        type=Path,
+        help='Private evidence from the optional pinned 2.17.2 observer; no live observation is started.'
+    )
     parser.add_argument('--ui-deployment', default='ml-pipeline-ui')
     parser.add_argument('--cache-deployment', default='cache-server')
     parser.add_argument(
@@ -621,9 +676,19 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.schedule_policy and not args.include_schedules:
         parser.error('--schedule-policy requires --include-schedules.')
-    if args.kfp_endpoint and not args.schedule_policy:
+    if args.kfp_endpoint and not (args.schedule_policy or
+                                  args.include_workloads):
         parser.error(
-            '--kfp-endpoint requires --schedule-policy and --include-schedules.'
+            '--kfp-endpoint requires --include-workloads or --schedule-policy with --include-schedules.'
+        )
+    if (args.workload_inventory or args.target_policy or
+            args.include_shared_pipelines or
+            args.source_single_user) and not args.include_workloads:
+        parser.error('Workload options require --include-workloads.')
+    if args.include_workloads and bool(args.kfp_endpoint) == bool(
+            args.workload_inventory):
+        parser.error(
+            '--include-workloads requires exactly one of --kfp-endpoint or --workload-inventory.'
         )
     if (args.kfp_token_file or args.kfp_ca_file) and not args.kfp_endpoint:
         parser.error('KFP credential options require --kfp-endpoint.')
@@ -632,6 +697,9 @@ def main(argv=None):
             not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', n) or len(n) > 63
             for n in namespaces):
         parser.error('Supply at most 100 valid Kubernetes namespace names.')
+    if args.source_single_user and len(namespaces) != 1:
+        parser.error(
+            '--source-single-user requires exactly one selected namespace.')
     try:
         inventory, failures = collect(
             args.context, namespaces,
@@ -640,7 +708,72 @@ def main(argv=None):
         policy = read_json(
             args.schedule_policy) if args.schedule_policy else None
         kfp_coverage = None
-        if args.kfp_endpoint:
+        workload_records, workload_coverage = None, None
+        target = workload_policy.validate(read_json(
+            args.target_policy)) if args.target_policy else None
+        workload_assessment.validate_target(target)
+        if policy is not None and target is not None and policy.get(
+                'target_revision') != target['target_revision']:
+            raise ValueError(
+                'Schedule and workload policy must name the same target revision.'
+            )
+        if args.include_workloads:
+            single_namespace = namespaces[0] if args.source_single_user else None
+            if args.kfp_endpoint:
+                client = Client(args.kfp_endpoint, args.kfp_token_file,
+                                args.kfp_ca_file)
+                workload_records, workload_failures, workload_coverage = workload_inventory.collect(
+                    client, namespaces, args.include_shared_pipelines,
+                    single_namespace)
+                failures.extend(workload_failures)
+            else:
+                workload_records = workload_inventory.validate(
+                    read_json(args.workload_inventory), namespaces,
+                    args.include_shared_pipelines, single_namespace)
+                workload_coverage = dict(
+                    requested_namespaces=namespaces,
+                    include_shared=args.include_shared_pipelines,
+                    source_single_user_namespace=single_namespace,
+                    complete=False,
+                    snapshot_consistency='not_atomic',
+                    evidence='operator_supplied_not_verified',
+                    record_counts={
+                        key: len(value)
+                        for key, value in workload_records.items()
+                    },
+                    failed_checks=sum(
+                        len(row.get('_readiness_collection_errors', []))
+                        for rows in workload_records.values()
+                        for row in rows),
+                    resources=[])
+            if policy is not None:
+                # Never merge stale exported schedule records with a fresh scan.
+                policy['experiments'] = [
+                    dict(
+                        experiment_id=kfp_inventory.field(
+                            row, 'experiment_id', 'experimentId'),
+                        namespace=row['namespace'])
+                    for row in workload_records['experiments']
+                ]
+                policy['recurring_runs'] = []
+                for row in workload_records['recurring_runs']:
+                    job = {
+                        snake: kfp_inventory.field(row, snake, camel)
+                        for snake, camel in (('recurring_run_id',
+                                              'recurringRunId'),
+                                             ('experiment_id', 'experimentId'),
+                                             ('service_account',
+                                              'serviceAccount'))
+                    }
+                    job['namespace'] = row['namespace']
+                    reference = row.get('_readiness_version_reference', {})
+                    if reference.get(
+                            'kind'
+                    ) != 'moving_latest' and workload_assessment.template(
+                            row)[0] == 'v2_ir':
+                        job['_readiness_v2_default'] = True
+                    policy['recurring_runs'].append(job)
+        elif args.kfp_endpoint:
             # Never retain stale manual records alongside a fresh partial scan.
             policy['recurring_runs'], policy['experiments'] = [], []
             schedule_policy.validate(policy)
@@ -668,6 +801,41 @@ def main(argv=None):
             policy=policy)
         if kfp_coverage is not None:
             report['source']['kfp_collection'] = kfp_coverage
+        if workload_records is not None:
+            for item in report['findings']:
+                if item['rule'] == 'coverage.unassessed' and item[
+                        'evidence'] == GAPS[1]:
+                    item[
+                        'evidence'] = 'Historical ownership, inaccessible workloads, MLMD-only artifacts and runtime-generated identities beyond the scoped API inventory'
+            extra, summary = workload_assessment.assess(workload_records,
+                                                        target)
+            if target is not None:
+                extra.extend(workload_policy.assess(workload_records, target))
+                report['target']['workload_policy_revision'] = target[
+                    'target_revision']
+                report['target']['workload_policy_contract'] = target[
+                    'policy_contract']
+                report['target'][
+                    'workload_policy_evidence'] = 'operator_supplied_not_verified'
+            report['source']['workload_collection'] = workload_coverage
+            report['source']['workload_summary'] = summary
+            report['findings'].extend(extra)
+            report['counts'] = dict(
+                Counter(f['status'] for f in report['findings']))
+        if args.source_observation:
+            extra, summary = source_observation.assess(
+                read_json(args.source_observation), args.source_version)
+            report['source']['observation'] = summary
+            for item in report['findings']:
+                if item['rule'] == 'coverage.unassessed' and item[
+                        'evidence'] == GAPS[7]:
+                    item[
+                        'evidence'] = 'Frontend/unobserved traffic, infrequent schedules, mixed-version pagination and live upgrade acceptance beyond the imported source interval'
+            report['findings'].extend(extra)
+            report['counts'] = dict(
+                Counter(f['status'] for f in report['findings']))
+        report['control_coverage'] = workload_assessment.coverage(
+            report['findings'])
     except (OSError, ValueError, TypeError, AttributeError, KeyError):
         print(
             'Unable to assess inventory: check JSON structure, supported kinds, input size and scope. '

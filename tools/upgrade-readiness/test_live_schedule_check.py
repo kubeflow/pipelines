@@ -16,8 +16,10 @@
 import copy
 from datetime import datetime
 from datetime import timezone
+import json
 import unittest
 from unittest.mock import Mock
+from unittest.mock import patch
 
 from kfp_http import CollectionError
 import live_schedule_check as live
@@ -329,6 +331,154 @@ class LiveTests(unittest.TestCase):
         report['findings'][0]['status'] = 'unknown'
         with self.assertRaises(ValueError):
             live.validate(bundle, report, 'team')
+
+    def completion_report(self,
+                          states,
+                          *,
+                          blocked=False,
+                          outcome='run_succeeded'):
+        control = dict(
+            self.case,
+            schedule_uid='control',
+            schedule_name='control',
+            expected_prediction='no_issue_detected',
+            expected_outcome=outcome)
+        cases = [self.case, control] if blocked else [control]
+        elapsed = [0]
+        client = Mock()
+
+        def get(path, params=None):
+            if '/experiments/' in path:
+                return {'experiment_id': 'exp', 'namespace': 'team'}
+            if 'control' not in params['filter']:
+                return {'runs': []}
+            state = states[min(elapsed[0] // 10, len(states) - 1)]
+            return {
+                'runs': [
+                    dict(
+                        self.run,
+                        recurring_run_id='control',
+                        state=state,
+                        pipeline_spec={'private': 'payload'},
+                        error_message='secret')
+                ]
+            }
+
+        def sleep(seconds):
+            elapsed[0] += seconds
+
+        client.get.side_effect = get
+        report = live.observe(
+            client,
+            'ctx',
+            'team',
+            cases,
+            self.start,
+            30,
+            get=lambda *_: [self.event],
+            clock=lambda: elapsed[0],
+            sleep=sleep)
+        return report, elapsed[0]
+
+    def test_completion_waits_for_success_in_final_interval(self):
+        report, elapsed = self.completion_report(
+            ['PENDING', 'RUNNING', 'RUNNING', 'SUCCEEDED'])
+        self.assertEqual(report['outcome'], 'passed')
+        self.assertEqual(report['scope'], 'schedule_run_completion')
+        self.assertEqual(elapsed, 30)
+        self.assertTrue(report['cases'][0]['success_observed'])
+        self.assertEqual(report['cases'][0]['runs'], [{
+            'run_id': 'new',
+            'state': 'SUCCEEDED'
+        }])
+        self.assertNotIn('private', json.dumps(report))
+        self.assertNotIn('secret', json.dumps(report))
+
+    def test_unsuccessful_terminal_runs_fail_completion(self):
+        for state in ('FAILED', 'CANCELED', 'SKIPPED'):
+            with self.subTest(state=state):
+                report, _ = self.completion_report(['RUNNING', state])
+                self.assertEqual(report['outcome'], 'failed')
+                self.assertFalse(report['cases'][0]['success_observed'])
+
+    def test_unfinished_or_unknown_runs_cannot_pass_completion(self):
+        for state in ('PENDING', 'RUNNING', 'CANCELING', 'PAUSED', None, {
+                'private': 'payload'
+        }, 'private-unrecognized-state'):
+            with self.subTest(state=state):
+                report, elapsed = self.completion_report([state])
+                self.assertEqual(report['outcome'], 'inconclusive')
+                self.assertEqual(elapsed, 30)
+                self.assertNotIn('private', json.dumps(report))
+
+    def test_creation_only_remains_compatible_with_failed_or_unknown_state(
+            self):
+        for state in ('FAILED', None):
+            with self.subTest(state=state):
+                report, _ = self.completion_report([state],
+                                                   outcome='run_created')
+                self.assertEqual(report['outcome'], 'passed')
+                self.assertEqual(report['scope'], 'schedule_run_creation_only')
+
+    def test_denial_requires_successful_control_in_completion_mode(self):
+        for state, outcome in [('RUNNING', 'inconclusive'),
+                               ('FAILED', 'failed'), ('SUCCEEDED', 'passed')]:
+            with self.subTest(state=state):
+                report, elapsed = self.completion_report([state], blocked=True)
+                self.assertEqual(report['outcome'], outcome)
+                if outcome == 'passed':
+                    self.assertEqual(elapsed, 30)
+                self.assertTrue(report['cases'][0]['denial_observed'])
+
+    def test_success_does_not_hide_a_later_failure(self):
+        report, elapsed = self.completion_report(
+            ['SUCCEEDED', 'SUCCEEDED', 'SUCCEEDED', 'FAILED'])
+        self.assertEqual(report['outcome'], 'failed')
+        self.assertEqual(elapsed, 30)
+
+    def test_explicit_success_expectation_validates(self):
+        case = dict(
+            self.case,
+            expected_outcome='run_succeeded',
+            expected_prediction='no_issue_detected')
+        bundle = dict(
+            namespace='team',
+            observation_start='2026-01-01T00:00:00Z',
+            cases=[case])
+        report = {
+            'findings': [
+                dict(
+                    rule='schedule.targetMainAccount',
+                    resource='ScheduledWorkflow/team/schedule',
+                    status='no_issue_detected')
+            ]
+        }
+        self.assertEqual(live.validate(bundle, report, 'team')[0], [case])
+
+    def test_cli_upgrades_positive_expectations_only(self):
+        case = dict(
+            self.case,
+            schedule_uid='control',
+            expected_outcome='run_created',
+            expected_prediction='no_issue_detected')
+        args = [
+            'check', '--context', 'ctx', '--namespace', 'team',
+            '--kfp-endpoint', 'http://127.0.0.1', '--kfp-token-file', 'token',
+            '--expectations', 'cases', '--prediction-report', 'report',
+            '--not-before', '2026-01-01T00:00:00Z', '--require-run-success'
+        ]
+        with patch('sys.argv', args), patch.object(live, 'load'), patch.object(
+                live, 'validate',
+                return_value=([self.case, case], self.start)), patch.object(
+                    live, 'Client'), patch.object(
+                        live, 'observe',
+                        return_value={'outcome': 'passed'
+                                     }) as observe, patch('builtins.print'):
+            self.assertEqual(live.main(), 0)
+        self.assertEqual(
+            [c['expected_outcome'] for c in observe.call_args.args[3]],
+            ['blocked', 'run_succeeded'])
+        self.assertEqual(case['expected_outcome'], 'run_created')
 
 
 if __name__ == '__main__':

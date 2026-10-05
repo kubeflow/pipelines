@@ -51,3 +51,26 @@ jobs:
           python-version: "3.13"
       - name: Compare predictions with backend policy
         run: python3 tools/upgrade-readiness/conformance.py --backend-source policy-source
+
+  source-observation:
+    name: Pinned 2.17.2 observation adapter (not live upgrade)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Checkout exact observation source
+        uses: actions/checkout@v7
+        with:
+          ref: 2511cdbd74cd531c6633f2e094d235082a32917d
+          path: observation-source
+      - uses: ./.github/actions/setup-go
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Apply source adapter after exact revision and cleanliness checks
+        run: python3 tools/upgrade-readiness/observation/apply_adapter.py --source observation-source --apply
+      - name: Check bounded recorder and source request boundaries
+        working-directory: observation-source
+        run: |
+          go test -race ./backend/src/apiserver/readinessobservation
+          go test ./backend/src/apiserver/server ./backend/src/apiserver/resource ./backend/src/apiserver -run 'Test.*(Authoriz|Upload|CreateRun|CreateJob|Recurring|RunLog|Artifact)' -count=1

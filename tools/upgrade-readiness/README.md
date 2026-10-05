@@ -3,12 +3,19 @@
 Assess selected deployment and RBAC configuration on an existing 2.17 installation
 without upgrading it. This standalone Python tool uses `kubectl get` or an offline
 JSON inventory and prints an actionable Markdown or JSON report. Optional authenticated
-KFP API collection supplies recurring-run, experiment and pinned-template evidence.
+KFP API collection supplies experiments, pipelines, versions, runs and recurring
+runs with scoped reference and migration evidence. See [WORKLOADS.md](WORKLOADS.md)
+for `--include-workloads`, offline exports, target authorization, artifact and
+size evidence, and per-control coverage.
+An optional [source 2.17.2 observation adapter](observation/README.md) supplies
+bounded evidence about exercised backend operations and omitted upload namespaces.
+The scanner imports its private report with `--source-observation`; it never
+enables observation or patches a running installation.
 
 **This first version is a partial migration-plan assessment, not an upgrade
 certification.** Every report is marked `incomplete`. It can identify configuration
 to review, but cannot establish that users or workloads will succeed on 2.18.
-Ruleset `2.18-preview.5` includes proposed TensorBoard adoption behavior from
+Ruleset `2.18-preview.6` includes proposed TensorBoard adoption behavior from
 [#14362](https://github.com/kubeflow/pipelines/pull/14362), not a claim that this
 change has shipped. Final release-candidate rules must be pinned and validated
 before this tool can offer a readiness conclusion.
@@ -19,8 +26,8 @@ V1/raw-Argo templates. Historical records remain useful migration evidence; thei
 presence does not imply they can be resubmitted. Recompile legacy pipelines to V2
 IR and recreate affected schedules before targeting v2-only master. Embedded
 workflows compiled from V2 IR remain supported, so embedded schedule inventory
-alone does not establish incompatibility. This tool leaves that classification
-and actual execution unassessed. Its pinned policy conformance and release-2.18
+alone does not establish incompatibility. Stored workload assessment classifies
+available templates while leaving actual execution unassessed. Its pinned policy conformance and release-2.18
 live lane do not certify the current master target.
 
 ## Run alongside an existing installation
@@ -316,24 +323,23 @@ Try the synthetic example without cluster access by passing
 with the same installation namespace and source version above. It demonstrates
 a custom reader role whose log and TensorBoard management permissions need review.
 
-## Next stages
+## Remaining evidence and validation
 
 Tracked in [#14421](https://github.com/kubeflow/pipelines/issues/14421):
 
-1. Expand authenticated KFP collection beyond recurring runs/experiments and
-   pinned-template evidence to full stored workload, ownership and size coverage.
-2. Add optional effective authorization checks with separately documented access
-   requirements, including actual caller/group identities.
-3. Assess artifact origins, profile reconciliation, archive credentials and
-   HTTP configuration without exposing credentials or fetching arbitrary artifacts.
-4. Add optional 2.17 observation telemetry for real requests. It must preserve
-   existing enforcement, use bounded metric labels and distinguish evaluation
-   failure from success. It must not replay requests or create runs.
-5. Pin the final rules to the actual 2.18 candidate and test against populated
+1. Resolve inaccessible workloads, historical ownership, runtime-resolved identities
+   and externally measured request sizes beyond the stored API inventory.
+2. Verify target configuration and exact authorization requests with representative
+   credentials, including authentication, token scope and authorizer health.
+3. Verify MLMD task artifact origins, profile reconciliation, archive credentials
+   and actual artifact requests; source API roots are partial evidence.
+4. Collect optional bounded source observation for exercised operations, while
+   retaining unsupported checks and infrequent/unobserved operations as unknown.
+5. Pin final rules to the actual 2.18 candidate and test against populated
    upgrade fixtures; report the observation period and workload coverage.
 
-Observation telemetry is **not** implemented here and is distinct from the
-security audit/enforce controls. Zero findings over a quiet period cannot prove
+Source observation is distinct from the security audit/enforce controls.
+Zero findings over a quiet period cannot prove
 that monthly schedules or unobserved clients will work.
 
 ## Development
@@ -342,7 +348,7 @@ that monthly schedules or unobserved clients will work.
 python3 -m unittest discover -s tools/upgrade-readiness -p 'test_*.py' -v
 ```
 
-Tests use synthetic inventories, subprocesses and loopback HTTP servers, never a real cluster. They cover
+Tests use synthetic inventories, subprocesses and real loopback HTTP/HTTPS servers, never a real cluster. They cover
 role scope/wildcards, unresolved aggregation, missing permissions, environment
 imports, sensitive-value exclusion, output bounds, CLI errors and incomplete
 assessment semantics, opt-in schedule scope, unresolved defaults and embedded
@@ -366,6 +372,13 @@ To run locally, use a clean checkout at that exact revision:
 ```bash
 python3 tools/upgrade-readiness/conformance.py --backend-source /path/to/policy-checkout
 ```
+
+To test a selected candidate, pass `--target-revision` with its full commit SHA
+and point `--backend-source` to a clean checkout of exactly that commit. The
+default remains the pinned policy source. The runner reports the modeled contract,
+modeled source and tested candidate separately. `--timeout-seconds` bounds the Go
+test process group (default 900, maximum 3600). A candidate compile or prediction
+failure is a failure, never a fallback to the pinned source.
 
 The runner checks the revision and clean working tree, generates predictions and
 uses a Go overlay to add its test without editing the backend checkout. A policy
