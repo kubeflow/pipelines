@@ -7,6 +7,7 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest import mock
 
 from kfpr import core
 from kfpr import steps
@@ -169,6 +170,70 @@ class CliTest(unittest.TestCase):
 
             self.assertEqual(result.exit_code, 0, result.stdout)
             self.assertFalse(state_file.exists())
+
+    def test_publish_images_cve_override_is_explicit(self):
+        for allow_cves in (False, True):
+            with self.subTest(
+                    allow_cves=allow_cves), TemporaryDirectory() as tmpdir:
+                command = [
+                    'run',
+                    'publish-images',
+                    '--state-file',
+                    str(Path(tmpdir) / 'state.json'),
+                    '--release-type',
+                    'major',
+                    '--version',
+                    '3.0.0',
+                    '--fork-remote',
+                    'upstream',
+                    '--dry-run',
+                ]
+                if allow_cves:
+                    command.append('--allow-fixable-cves')
+                result = CliRunner().invoke(app, command)
+                self.assertEqual(result.exit_code, 0, result.stdout)
+                self.assertIn('workflow run image-builds-release.yml',
+                              result.stdout)
+                if allow_cves:
+                    self.assertIn('-f allow_fixable_cves=true', result.stdout)
+                else:
+                    self.assertNotIn('allow_fixable_cves=', result.stdout)
+
+    def test_full_run_and_next_cve_override_is_invocation_only(self):
+        for command in ('run', 'next'):
+            with self.subTest(command=command), TemporaryDirectory() as tmpdir:
+                state = ReleaseState(Path(tmpdir) / 'state.json')
+                state.answers.update({
+                    'release_type': 'major',
+                    'version': '3.0.0',
+                    'fork_remote': 'upstream',
+                    'include_backend': True,
+                    'include_sdk': False,
+                    'previous_release': '2.18.0',
+                    'release_source_branch': 'master',
+                })
+                for step in steps.build_steps('major', True, False):
+                    if step.step_id == 'publish-images':
+                        break
+                    state.mark_done(step.step_id)
+                state.save()
+                args = [command, '--state-file', str(state.path), '--dry-run']
+                if command == 'run':
+                    args.append('--force')
+                handler = mock.Mock()
+                with mock.patch('kfpr.cli.run_steps', handler), mock.patch.dict(
+                        'kfpr.cli.STEP_HANDLERS', {'publish-images': handler}):
+                    result = CliRunner().invoke(app,
+                                                args + ['--allow-fixable-cves'])
+                    self.assertEqual(result.exit_code, 0, result.stdout)
+                    self.assertTrue(
+                        handler.call_args.args[0].allow_fixable_cves)
+                    self.assertNotIn('allow_fixable_cves',
+                                     ReleaseState.load(state.path).answers)
+                    result = CliRunner().invoke(app, args)
+                    self.assertEqual(result.exit_code, 0, result.stdout)
+                    self.assertFalse(
+                        handler.call_args.args[0].allow_fixable_cves)
 
     def test_watch_publish_images_watches_without_dispatching(self):
         with TemporaryDirectory() as tmpdir:

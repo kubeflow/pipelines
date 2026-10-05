@@ -182,13 +182,52 @@ architecture-specific image by immutable digest before publishing the versioned
 or `latest` manifests. The gate uses the current Trivy advisory database and fails on CVEs
 of any severity for which a fixed version is available. Findings without a
 published fix and advisories without a CVE identifier do not block the
-release.
+release. To proceed despite fixable CVEs, maintainers must explicitly enable the
+override for each invocation. The scan and its report are retained. Scanner failures and
+missing, invalid, or malformed reports remain fatal even with the override.
+
+To allow fixable CVEs for one image publication:
+
+```bash
+kfpr run publish-images \
+  --release-type minor \
+  --version 3.0.0 \
+  --state-file release-3.0-state.json \
+  --allow-fixable-cves \
+  --done
+```
+
+The flag is also available on the full `kfpr run` flow. It is never saved in the
+checkpoint: pass it again if a later invocation needs the same override. Add
+`--dry-run` and omit `--done` to preview the single-step command without dispatching.
+
+For direct GitHub Actions dispatch, set the boolean `allow_fixable_cves` input
+(default: `false`):
+
+```bash
+gh workflow run image-builds-release.yml \
+  --repo kubeflow/pipelines \
+  --ref release-3.0 \
+  -f src_branch=release-3.0 \
+  -f target_tag=3.0.0 \
+  -f overwrite_imgs=false \
+  -f set_latest=true \
+  -f dry_run=false \
+  -f allow_fixable_cves=true
+```
+
+The GitHub **Run workflow** form exposes the same override. Each image's policy
+step prints a warning and the findings when it uses the override; the JSON scan
+report is uploaded as usual. No override skips the scanner or allows a failed
+scan to publish tags.
 
 The 2.18 CLI path dispatches the workflow from `release-2.18`, so merging this
 policy into master alone does not gate 2.18 publication. Apply a selective
-backport of the scan input, enforcement helper, and release-workflow wiring to
-that branch before relying on the gate there. Preserve its existing image
-inventory; do not backport the 3.x ARM64 requirements for this policy.
+backport of the scan and override inputs, enforcement helper, tests, and
+release-workflow wiring to that branch before relying on the gate or requesting
+the override there. `kfpr` omits the override input unless explicitly requested,
+so default dispatch still works with older release workflows. Preserve the 2.18
+image inventory; do not backport the 3.x ARM64 requirements for this policy.
 
 If the gate fails:
 
@@ -199,9 +238,9 @@ If the gate fails:
 3. Merge the fix into the release branch and rerun `publish-images` with image
    overwrite enabled.
 
-Do not run `create-backend-release` while this gate is failing.
-`kfpr` watches the image workflow with failure propagation enabled, so a failed
-gate stops the release flow and leaves `publish-images` incomplete in the
+Resolve the findings or rerun image publication with the explicit override before
+running `create-backend-release`. `kfpr` watches the image workflow with failure
+propagation enabled, so a failed gate stops the release flow and leaves `publish-images` incomplete in the
 checkpoint.
 
 `confirm-rtd` prompts for a Read the Docs API token, keeps it only in process memory, and uses it

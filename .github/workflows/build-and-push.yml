@@ -61,6 +61,11 @@ on:
         default: false
         description: 'Fail before publishing tags when the image contains fixable CVEs'
         required: false
+      allow_fixable_cves:
+        type: boolean
+        default: false
+        description: 'Allow fixable CVE findings while requiring a successful scan and report'
+        required: false
   workflow_dispatch:
     inputs:
       src_branch:
@@ -277,7 +282,15 @@ jobs:
 
       - name: Enforce fixable CVE policy
         if: ${{ steps.trivy_scan.outcome == 'success' }}
-        run: python3 .github/resources/scripts/check_fixable_cves.py trivy-results.json
+        env:
+          ALLOW_FIXABLE_CVES: ${{ inputs.allow_fixable_cves }}
+        run: |
+          policy_args=()
+          if [ "$ALLOW_FIXABLE_CVES" = "true" ]; then
+            policy_args+=(--allow-fixable-cves)
+          fi
+          python3 .github/resources/scripts/check_fixable_cves.py \
+            trivy-results.json "${policy_args[@]}"
 
       - name: Upload CVE scan report
         if: ${{ always() && steps.trivy_scan.outcome != 'skipped' }}

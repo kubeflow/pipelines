@@ -59,6 +59,7 @@ def _context(
     previous_release: Optional[str] = None,
     save_state: bool = True,
     require_previous_release: bool = True,
+    allow_fixable_cves: bool = False,
 ) -> ReleaseContext:
     state = _load_state(state_file)
     _set_answer(state, 'release_type', release_type)
@@ -86,6 +87,7 @@ def _context(
             'release_source_branch': release_source_branch,
             'save_state': save_state,
             'require_previous_release': require_previous_release,
+            'allow_fixable_cves': allow_fixable_cves,
         },
     )()
     return collect_context(args, state)
@@ -198,6 +200,11 @@ def run(
         None,
         '--previous-release',
         help='Previous release tag for changelog generation.'),
+    allow_fixable_cves: bool = typer.Option(
+        False,
+        '--allow-fixable-cves',
+        help='Allow image publication despite fixable CVEs for this invocation only.'
+    ),
 ) -> None:
     """Run the full checkpointed release flow."""
     if ctx.invoked_subcommand is not None:
@@ -222,6 +229,7 @@ def run(
         release_source_branch=release_source_branch,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
+        allow_fixable_cves=allow_fixable_cves,
     )
     run_steps(context)
     typer.echo(f'Release flow complete for {context.metadata.tag}')
@@ -267,6 +275,11 @@ def next_command(
         None,
         '--previous-release',
         help='Previous release tag for changelog generation.'),
+    allow_fixable_cves: bool = typer.Option(
+        False,
+        '--allow-fixable-cves',
+        help='Allow image publication despite fixable CVEs for this invocation only.'
+    ),
 ) -> None:
     """Run the next incomplete checkpoint step."""
     state = _load_state(state_file)
@@ -291,6 +304,7 @@ def next_command(
         None,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
+        allow_fixable_cves=allow_fixable_cves,
         save_state=True,
     )
     typer.echo(f'Running step: {next_step.description}')
@@ -463,6 +477,11 @@ def _make_step_command(step_id: str):
             None,
             '--previous-release',
             help='Previous release tag for changelog generation.'),
+        allow_fixable_cves: bool = typer.Option(
+            False,
+            '--allow-fixable-cves',
+            help='Allow image publication despite fixable CVEs for this invocation only.'
+        ),
     ) -> None:
         if step_id != 'cherry-pick-prs' and patch_prs is None:
             patch_prs = 'not-needed'
@@ -481,6 +500,7 @@ def _make_step_command(step_id: str):
             include_sdk,
             skip_local_review=skip_local_review,
             previous_release=previous_release,
+            allow_fixable_cves=allow_fixable_cves,
             save_state=done,
             require_previous_release=step_id
             in ('update-version-tags', 'sync-master'),

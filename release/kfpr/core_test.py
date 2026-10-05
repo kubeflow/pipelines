@@ -206,6 +206,16 @@ class GithubCommandTest(unittest.TestCase):
                         'dry_run=false',
                     ])
 
+    def test_image_workflow_command_allows_explicit_cve_override(self):
+        metadata = core.ReleaseMetadata.from_version('major', '3.0.0')
+        self.assertEqual(
+            core.image_workflow_command(metadata, allow_fixable_cves=True),
+            core.image_workflow_command(metadata) +
+            ['-f', 'allow_fixable_cves=true'])
+        self.assertEqual(
+            core.image_workflow_command(metadata, allow_fixable_cves=False),
+            core.image_workflow_command(metadata))
+
     def test_sdk_workflow_command(self):
         metadata = core.ReleaseMetadata.from_version('minor', '3.2.0')
         command = core.sdk_workflow_command(metadata)
@@ -735,6 +745,27 @@ class PromptValidationTest(unittest.TestCase):
 
         self.assertEqual(answer, 'patch')
         self.assertIn('Choose a number from 1 to 3.', output.getvalue())
+
+    def test_collect_context_does_not_persist_cve_override(self):
+        with TemporaryDirectory() as tmpdir:
+            state = ReleaseState(Path(tmpdir) / 'state.json')
+            state.answers.update({
+                'release_type': 'major',
+                'version': '3.0.0',
+                'fork_remote': 'upstream',
+                'previous_release': '2.18.0',
+            })
+            args = type('Args', (), {
+                'dry_run': True,
+                'allow_fixable_cves': True,
+            })()
+            context = core.collect_context(args, state)
+            self.assertTrue(context.allow_fixable_cves)
+            saved = ReleaseState.load(state.path)
+            self.assertNotIn('allow_fixable_cves', saved.answers)
+            args.allow_fixable_cves = False
+            self.assertFalse(
+                core.collect_context(args, saved).allow_fixable_cves)
 
     def test_collect_context_reasks_for_invalid_version_and_fork_remote(self):
         with TemporaryDirectory() as tmpdir:

@@ -32,6 +32,11 @@ on:
         default: false
         description: 'Dry run mode - build images without pushing to registry or creating tags.'
         required: false
+      allow_fixable_cves:
+        type: boolean
+        default: false
+        description: 'Allow release publication with fixable CVEs; scanning and reports remain required.'
+        required: false
 jobs:
   resolve-source:
     runs-on: ubuntu-latest
@@ -113,6 +118,7 @@ jobs:
       runs_on: ${{ matrix.arch.runs_on }}
       push: ${{ !inputs.dry_run }}
       scan_fixable_cves: ${{ !inputs.dry_run }}
+      allow_fixable_cves: ${{ inputs.allow_fixable_cves }}
 
   create-manifests:
     needs: [resolve-source, build-images-for-release]

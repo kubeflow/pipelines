@@ -262,9 +262,48 @@ class WorkflowTests(unittest.TestCase):
 
     def setUp(self):
         root = Path(__file__).resolve().parents[3]
-        self.jobs = yaml.safe_load(
-            (root /
-             '.github/workflows/image-builds-release.yml').read_text())['jobs']
+        self.workflow = yaml.safe_load(
+            (root / '.github/workflows/image-builds-release.yml').read_text())
+        self.jobs = self.workflow['jobs']
+
+    def test_cve_override_is_explicit_and_preserves_required_scan(self):
+        root = Path(__file__).resolve().parents[3]
+        reusable = yaml.safe_load(
+            (root / '.github/workflows/build-and-push.yml').read_text())
+        for workflow, event in ((self.workflow, 'workflow_dispatch'),
+                                (reusable, 'workflow_call')):
+            override = workflow[True][event]['inputs']['allow_fixable_cves']
+            self.assertEqual(override['type'], 'boolean')
+            self.assertIs(override['default'], False)
+        inputs = self.jobs['build-images-for-release']['with']
+        self.assertEqual(inputs['allow_fixable_cves'],
+                         '${{ inputs.allow_fixable_cves }}')
+        self.assertEqual(inputs['scan_fixable_cves'], '${{ !inputs.dry_run }}')
+        job = reusable['jobs']['build-and-push-images']
+        self.assertFalse(job.get('continue-on-error', False))
+        steps = job['steps']
+        scan = next(step for step in steps if step.get('id') == 'trivy_scan')
+        self.assertNotIn('allow_fixable_cves', scan['if'])
+        self.assertFalse(scan.get('continue-on-error', False))
+        self.assertIn('steps.push.outputs.digest', scan['with']['image-ref'])
+        policy = next(
+            step for step in steps
+            if step.get('name') == 'Enforce fixable CVE policy')
+        self.assertEqual(policy['if'],
+                         "${{ steps.trivy_scan.outcome == 'success' }}")
+        self.assertEqual(policy['env']['ALLOW_FIXABLE_CVES'],
+                         '${{ inputs.allow_fixable_cves }}')
+        self.assertIn('--allow-fixable-cves', policy['run'])
+        self.assertFalse(policy.get('continue-on-error', False))
+        upload = next(
+            step for step in steps
+            if step.get('name') == 'Upload CVE scan report')
+        self.assertEqual(
+            upload['if'],
+            "${{ always() && steps.trivy_scan.outcome != 'skipped' }}")
+        self.assertEqual(upload['with']['if-no-files-found'], 'error')
+        self.assertIn('build-images-for-release',
+                      self.jobs['create-manifests']['needs'])
 
     def test_cve_scan_uses_the_build_platform(self):
         build = self.jobs['build-images-for-release']

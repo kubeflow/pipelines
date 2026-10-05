@@ -270,18 +270,21 @@ class ReleaseContext:
     include_sdk: bool
     skip_local_review: bool = False
     previous_release: str = ''
+    allow_fixable_cves: bool = False
 
 
-def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
+def image_workflow_command(metadata: ReleaseMetadata,
+                           allow_fixable_cves: bool = False) -> list[str]:
     """Build command to trigger image-builds-release.yml workflow.
 
     Args:
       metadata: Release metadata for version and branch info.
+      allow_fixable_cves: Allow publication despite fixable CVE findings.
 
     Returns:
       Command list for gh workflow run with appropriate parameters.
     """
-    return [
+    command = [
         'gh',
         'workflow',
         'run',
@@ -301,6 +304,10 @@ def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
         '-f',
         'dry_run=false',
     ]
+    # Omit the new input by default for older release-branch workflows.
+    if allow_fixable_cves:
+        command.extend(['-f', 'allow_fixable_cves=true'])
+    return command
 
 
 def sdk_workflow_command(metadata: ReleaseMetadata,
@@ -912,4 +919,5 @@ def collect_context(args: argparse.Namespace,
         include_sdk=bool(answers['include_sdk']),
         skip_local_review=bool(answers.get('skip_local_review', False)),
         previous_release=str(answers.get('previous_release', '')),
+        allow_fixable_cves=bool(getattr(args, 'allow_fixable_cves', False)),
     )
