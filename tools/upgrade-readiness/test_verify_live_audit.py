@@ -116,7 +116,7 @@ class LiveAuditTest(unittest.TestCase):
             audit.validate_completion(
                 dict(report, cases=report['cases'][:2]), self.start)
 
-    def collect_with_script(self, script):
+    def collect_with_script(self, script, progress=None):
         original = subprocess.Popen
         commands = []
 
@@ -125,7 +125,8 @@ class LiveAuditTest(unittest.TestCase):
             return original([sys.executable, '-c', script], **kwargs)
 
         with mock.patch.object(audit.subprocess, 'Popen', side_effect=launch):
-            result = audit.collect_logs(audit.CONTEXT, self.start)
+            result = audit.collect_logs(
+                audit.CONTEXT, self.start, progress=progress)
         self.assertEqual(commands[0][:6], [
             'kubectl', '--context', audit.CONTEXT, '--request-timeout=20s',
             '--namespace', 'kubeflow'
@@ -152,6 +153,50 @@ class LiveAuditTest(unittest.TestCase):
         with mock.patch.object(audit, 'MAX_BYTES', 128), self.assertRaisesRegex(
                 CollectionError, '^audit_collection_exceeded_limit$'):
             self.collect_with_script("print('x' * 1024)")
+
+    def test_failed_collection_retains_only_bounded_counters(self):
+        progress = {}
+        with self.assertRaisesRegex(CollectionError,
+                                    '^audit_collection_failed$'):
+            self.collect_with_script(
+                "import sys; print('PRIVATE'); sys.exit(7)", progress)
+        self.assertEqual(progress,
+                         dict(collected_bytes=8, collector_exit_code=7))
+        self.assertNotIn('PRIVATE', str(progress))
+        progress = {}
+        with mock.patch.object(audit, 'MAX_BYTES', 128), self.assertRaisesRegex(
+                CollectionError, '^audit_collection_exceeded_limit$'):
+            self.collect_with_script("print('x' * 1024)", progress)
+        self.assertEqual(progress['collected_bytes'], 129)
+
+    def test_cli_failure_reason_and_stage_are_sanitized(self):
+        for reason, expected in [('audit_collection_exceeded_limit',
+                                  'audit_collection_exceeded_limit'),
+                                 ('PRIVATE_RESPONSE',
+                                  'invalid_or_incomplete_audit_evidence')]:
+            output = io.StringIO()
+
+            def fail(*args, **kwargs):
+                kwargs['progress']['collected_bytes'] = 1024
+                raise CollectionError(reason)
+
+            with mock.patch.object(
+                    audit, 'load',
+                    return_value=completion(self.start)), mock.patch.object(
+                        audit, 'collect_logs',
+                        side_effect=fail), contextlib.redirect_stdout(output):
+                code = audit.main([
+                    '--context', audit.CONTEXT, '--not-before',
+                    self.start.isoformat(), '--completion-report', 'report.json'
+                ])
+            report = json.loads(output.getvalue())
+            self.assertEqual(code, 1)
+            self.assertEqual(report['outcome'], 'inconclusive')
+            self.assertEqual(report['reason'], expected)
+            self.assertEqual(report['diagnostics']['stage'], 'log_collection')
+            self.assertEqual(report['diagnostics']['collected_bytes'], 1024)
+            self.assertGreaterEqual(report['diagnostics']['elapsed_seconds'], 0)
+            self.assertNotIn('PRIVATE', output.getvalue())
 
     def test_collection_timeout_is_bounded(self):
         began = time.monotonic()

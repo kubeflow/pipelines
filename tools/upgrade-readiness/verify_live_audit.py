@@ -39,6 +39,20 @@ ACCOUNT = 'readiness-denied'
 MAX_BYTES = 1024 * 1024
 TIMEOUT = 30
 SCOPE = 'isolated_namespace_account_activation_window'
+DIAGNOSTIC_REASONS = frozenset({
+    'recent_isolated_audit_activation_required',
+    'isolated_test_context_required',
+    'successful_audit_fixture_required',
+    'complete_audit_fixture_required',
+    'audit_fixture_identity_mismatch',
+    'audit_collection_timed_out',
+    'audit_collection_exceeded_limit',
+    'audit_collection_failed',
+    'audit_collection_truncated',
+    'audit_collection_invalid_encoding',
+    'audit_record_invalid_timestamp',
+    'invalid_timestamp',
+})
 SCENARIOS = {
     'default': 'pipeline-runner',
     'scoped': 'readiness-granted',
@@ -79,7 +93,7 @@ def validate_completion(report, start):
             raise ValueError('successful_audit_fixture_required')
 
 
-def collect_logs(context, start):
+def collect_logs(context, start, progress=None):
     if context != CONTEXT:
         raise ValueError('isolated_test_context_required')
     command = [
@@ -90,6 +104,8 @@ def collect_logs(context, start):
         '--limit-bytes=' + str(MAX_BYTES + 1)
     ]
     chunks = bytearray()
+    if progress is not None:
+        progress['collected_bytes'] = 0
     try:
         with subprocess.Popen(
                 command,
@@ -109,6 +125,8 @@ def collect_logs(context, start):
                     if not chunk:
                         break
                     chunks.extend(chunk)
+                    if progress is not None:
+                        progress['collected_bytes'] = len(chunks)
                     if len(chunks) > MAX_BYTES:
                         kill_process_group(process)
                         raise CollectionError('audit_collection_exceeded_limit')
@@ -119,6 +137,8 @@ def collect_logs(context, start):
                     kill_process_group(process)
                     raise CollectionError(
                         'audit_collection_timed_out') from None
+                if progress is not None:
+                    progress['collector_exit_code'] = code
                 if code:
                     raise CollectionError('audit_collection_failed')
     except OSError:
@@ -157,21 +177,31 @@ def main(argv=None):
         scope=SCOPE,
         namespace=NAMESPACE,
         service_account=ACCOUNT)
+    began = time.monotonic()
+    progress = dict(stage='activation_validation')
     try:
         start = timestamp(args.not_before)
         age = (datetime.now(timezone.utc) - start).total_seconds()
         if args.context != CONTEXT or not 0 <= age <= 1800:
             raise ValueError('recent_isolated_audit_activation_required')
+        progress['stage'] = 'completion_validation'
         validate_completion(load(args.completion_report), start)
-        count = count_records(collect_logs(args.context, start), start)
+        progress['stage'] = 'log_collection'
+        logs = collect_logs(args.context, start, progress=progress)
+        progress['stage'] = 'audit_record_validation'
+        count = count_records(logs, start)
         report.update(
             outcome='passed' if count else 'inconclusive',
             matching_records=count,
             observation_start=start.isoformat())
         if not count:
             report['reason'] = 'matching_audit_record_not_observed'
-    except (OSError, ValueError, TypeError, KeyError, AttributeError):
-        report['reason'] = 'invalid_or_incomplete_audit_evidence'
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+        report['reason'] = (
+            str(error) if str(error) in DIAGNOSTIC_REASONS else
+            'invalid_or_incomplete_audit_evidence')
+        report['diagnostics'] = dict(
+            progress, elapsed_seconds=round(time.monotonic() - began, 3))
     print(json.dumps(report, sort_keys=True))
     return 0 if report['outcome'] == 'passed' else 1
 

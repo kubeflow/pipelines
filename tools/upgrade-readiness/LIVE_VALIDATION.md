@@ -277,3 +277,8 @@ immediate execution after a policy change. Each observation collection uses a
 fresh bounded HTTP client; request and byte limits still fail that collection
 closed, and failure diagnostics report cumulative counters across collections.
 The final collection still starts after the observation deadline.
+
+If audit-emission verification fails, its report includes an allowlisted local
+reason, validation/collection stage, elapsed time, and available collected-byte
+and process-exit counters. Raw log lines and subprocess error text remain private;
+collection limits and exact audit-record requirements remain mandatory.
