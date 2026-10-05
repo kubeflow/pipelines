@@ -26,9 +26,14 @@ import yaml
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 ACTION_DIRECTORY = (
     REPOSITORY_ROOT / '.github/actions/download-artifact-with-retry')
+ARTIFACT_FILES = REPOSITORY_ROOT / '.github/resources/scripts/artifact-files.sh'
 ACTION_FILE = Path(
     os.environ.get('ARTIFACT_RETRY_ACTION', ACTION_DIRECTORY / 'action.yml'))
 EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
+EXPRESSION_TOKEN = re.compile(
+    r"(?P<literal>'(?:[^']|'')*')|"
+    r'(?P<reference>\b(?:inputs|steps|github)(?:\.[\w-]+)+)|'
+    r'(?P<operator>&&|\|\||!=|!)')
 
 
 class CompositeAction:
@@ -66,23 +71,39 @@ class CompositeAction:
         if match:
             expression = match.group(1).strip()
 
-        def reference(match):
-            parts = match.group().split('.')
-            value = {
-                'inputs': self.inputs,
-                'steps': self.steps,
-                'github': {
-                    'action_path': str(ACTION_DIRECTORY)
-                },
-            }
-            for part in parts:
-                value = value.get(part, {}) if isinstance(value, dict) else ''
-            return repr(value if not isinstance(value, dict) else '')
+        bindings = {}
 
-        expression = re.sub(r'\b(?:inputs|steps|github)(?:\.[\w-]+)+',
-                            reference, expression)
-        expression = expression.replace('&&', ' and ').replace('||', ' or ')
-        expression = re.sub(r'!(?!=)', 'not ', expression)
+        def translate(match):
+            if match.group('operator'):
+                return {
+                    '&&': ' and ',
+                    '||': ' or ',
+                    '!': 'not ',
+                    '!=': '!='
+                }[match.group()]
+            if match.group('literal'):
+                # Actions escapes a quote by doubling it, not with backslashes.
+                value = match.group()[1:-1].replace("''", "'")
+            else:
+                value = {
+                    'inputs': self.inputs,
+                    'steps': self.steps,
+                    'github': {
+                        'action_path': str(ACTION_DIRECTORY)
+                    },
+                }
+                for part in match.group().split('.'):
+                    value = value.get(part, {}) if isinstance(value,
+                                                              dict) else ''
+                if isinstance(value, dict):
+                    value = ''
+            name = f'_value_{len(bindings)}'
+            bindings[name] = value
+            return name
+
+        # A single pass keeps operators inside literals and referenced values
+        # as data; never rewrite a value after inserting it into an expression.
+        expression = EXPRESSION_TOKEN.sub(translate, expression)
         return eval(expression, {'__builtins__': {}}, {
             'always': lambda: True,
             'cancelled': lambda: self.cancelled,
@@ -90,6 +111,7 @@ class CompositeAction:
             'failure': lambda: self.failed,
             'true': True,
             'false': False,
+            **bindings,
         })
 
     def render(self, value):
@@ -113,12 +135,15 @@ class CompositeAction:
                 # Each callback models only the external action's extraction.
                 attempt = self.attempts[len(self.downloads)]
                 self.downloads.append(step_id)
-                destination = Path(self.render(
-                    step['with']['path'])).expanduser()
+                download_inputs = {
+                    key: self.render(value)
+                    for key, value in step['with'].items()
+                }
+                destination = Path(download_inputs['path']).expanduser()
                 if not destination.is_absolute():
                     destination = REPOSITORY_ROOT / destination
                 destination.mkdir(parents=True, exist_ok=True)
-                outcome = attempt(destination)
+                outcome = attempt(destination, download_inputs)
                 if outcome == 'success':
                     outputs['download-path'] = os.path.abspath(destination)
             else:
@@ -128,6 +153,7 @@ class CompositeAction:
                 # Only the action's declared env can supply its helper path.
                 environment.pop('GITHUB_ACTION_PATH', None)
                 environment.pop('ACTION_PATH', None)
+                environment.pop('ARTIFACT_FILES', None)
                 environment.update({
                     key: self.render(value)
                     for key, value in step.get('env', {}).items()
@@ -165,7 +191,7 @@ class CompositeAction:
 
 def download(outcome='success', files=None):
 
-    def attempt(path):
+    def attempt(path, inputs=None):
         for name, content in (files or {}).items():
             target = path / name
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -199,6 +225,46 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertEqual(runner.downloads, ['primary'])
         output = runner.action['outputs']['download-path']['value']
         self.assertEqual(runner.render(output), str(self.path))
+
+    def test_rendered_download_inputs_preserve_literal_characters(self):
+        self.path = Path(self.directory.name) / 'downloads with spaces'
+        filename = 'archive with ! && || != and \'single\' "double" quotes.tar'
+        received = []
+
+        def attempt(path, inputs):
+            received.append(inputs)
+            if len(received) == 1:
+                return 'failure'
+            return download(files={filename: 'image'})(path, inputs)
+
+        runner = CompositeAction(self.path, [attempt, attempt], filename)
+        runner.inputs.update({
+            'pattern': '!*.dockerbuild',
+            'name': 'artifact ! && || != \'single\' "double" quotes',
+            'github-token': 'test-token!&&||!=',
+            'repository': 'owner/repository',
+            'run-id': '123',
+            'merge-multiple': 'true',
+        })
+        self.assertEqual(runner.run(), 'success', runner.log)
+        expected = {
+            key: runner.inputs[key]
+            for key in ('name', 'path', 'pattern', 'merge-multiple',
+                        'github-token', 'repository', 'run-id')
+        }
+        self.assertEqual(received, [expected, expected])
+        self.assertTrue((self.path / filename).is_file())
+
+    def test_expression_literals_are_not_operator_rewritten(self):
+        runner = CompositeAction(self.path, [], self.required)
+        literal = "! && || != 'quoted' inputs.pattern"
+        expression = "${{ '! && || != ''quoted'' inputs.pattern' }}"
+        self.assertEqual(runner.render(expression), literal)
+        runner.inputs['pattern'] = literal
+        self.assertTrue(
+            runner.evaluate(
+                "inputs.pattern == '! && || != ''quoted'' inputs.pattern' "
+                "&& !cancelled() && inputs.pattern != 'other'"))
 
     def test_successful_but_incomplete_download_retries(self):
         runner, result = self.run_action([
@@ -286,7 +352,7 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         target = outside / 'images.tar'
         target.write_text('keep')
 
-        def incomplete_download(path):
+        def incomplete_download(path, inputs):
             (path / 'runtime-base-images').symlink_to(
                 outside, target_is_directory=True)
             return 'failure'
@@ -297,6 +363,46 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertIn('Artifact retry did not start', runner.log)
         self.assertNotIn('after 2 attempt', runner.log)
         self.assertEqual(target.read_text(), 'keep')
+
+    def test_unsafe_download_is_fatal_without_wait_or_retry(self):
+        outside = Path(self.directory.name) / 'outside.tar'
+        outside.write_text('keep')
+        for kind in ('symlink', 'directory'):
+            with self.subTest(kind=kind):
+                destination = self.path / kind
+
+                def unsafe_download(path, inputs):
+                    target = path / 'frontend/image.tar'
+                    target.parent.mkdir(parents=True)
+                    if kind == 'symlink':
+                        target.symlink_to(outside)
+                    else:
+                        target.mkdir()
+                    return 'success'
+
+                runner = CompositeAction(destination, [unsafe_download],
+                                         self.required)
+                self.assertEqual(runner.run(), 'failure', runner.log)
+                self.assertEqual(runner.downloads, ['primary'])
+                self.assertEqual(runner.steps['verify-primary']['outcome'],
+                                 'failure')
+                self.assertNotIn('complete',
+                                 runner.steps['verify-primary']['outputs'])
+                self.assertNotIn('retrying in', runner.log)
+                self.assertEqual(outside.read_text(), 'keep')
+
+    def test_missing_verification_helper_is_fatal_without_retry(self):
+        runner = CompositeAction(self.path, [download(files=self.complete)],
+                                 self.required)
+        verifier = next(step for step in runner.action['runs']['steps']
+                        if step.get('id') == 'verify-primary')
+        # Fault injection changes only helper availability, not retry logic.
+        verifier['env']['ARTIFACT_FILES'] = str(self.path / 'missing-helper.sh')
+        self.assertEqual(runner.run(), 'failure', runner.log)
+        self.assertEqual(runner.downloads, ['primary'])
+        self.assertEqual(runner.steps['verify-primary']['outcome'], 'failure')
+        self.assertNotIn('complete', runner.steps['verify-primary']['outputs'])
+        self.assertNotIn('retrying in', runner.log)
 
     def test_invalid_initial_preparation_prevents_download(self):
         runner, result = self.run_action([], '../outside')
@@ -324,13 +430,17 @@ class RequiredFilesSafetyTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name)
+        self.output = self.path / 'github-output'
 
     def run_helper(self, mode, required_files):
+        self.output.write_text('')
         return subprocess.run(
-            ['bash', str(ACTION_DIRECTORY / 'required-files.sh'), mode],
+            ['bash', str(ARTIFACT_FILES), mode],
             env={
-                **os.environ, 'DOWNLOAD_PATH': str(self.path),
-                'REQUIRED_FILES': required_files
+                **os.environ,
+                'DOWNLOAD_PATH': str(self.path),
+                'REQUIRED_FILES': required_files,
+                'GITHUB_OUTPUT': str(self.output),
             },
             text=True,
             capture_output=True,
@@ -340,22 +450,23 @@ class RequiredFilesSafetyTest(unittest.TestCase):
     def test_invalid_paths_fail_before_removing_any_file(self):
         sentinel = self.path / 'sentinel'
         for invalid in ('/absolute', '../outside', 'a/../outside', './sentinel',
-                        'a//file', 'directory/'):
-            for mode in ('prepare', 'verify'):
+                        'a//file', 'directory/', ' \t../outside\r'):
+            for mode in ('prepare', 'verify', 'check'):
                 with self.subTest(path=invalid, mode=mode):
                     sentinel.write_text('keep')
                     result = self.run_helper(mode, f'sentinel\n{invalid}')
-                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.returncode, 2)
                     self.assertEqual(sentinel.read_text(), 'keep')
+                    self.assertEqual(self.output.read_text(), '')
 
     def test_symlink_is_rejected_without_touching_target(self):
         target = self.path / 'target'
         target.write_text('keep')
         (self.path / 'link').symlink_to(target)
-        for mode in ('prepare', 'verify'):
+        for mode in ('prepare', 'verify', 'check'):
             with self.subTest(mode=mode):
                 result = self.run_helper(mode, 'link')
-                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.returncode, 2)
                 self.assertEqual(target.read_text(), 'keep')
                 self.assertTrue((self.path / 'link').is_symlink())
 
@@ -363,17 +474,34 @@ class RequiredFilesSafetyTest(unittest.TestCase):
         directory = self.path / 'directory'
         directory.mkdir()
         (directory / 'sentinel').write_text('keep')
-        for mode in ('prepare', 'verify'):
+        for mode in ('prepare', 'verify', 'check'):
             with self.subTest(mode=mode):
                 result = self.run_helper(mode, 'directory')
-                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.returncode, 2)
                 self.assertTrue(directory.is_dir())
 
     def test_verify_rejects_empty_file(self):
         (self.path / 'empty.tar').touch()
         result = self.run_helper('verify', 'empty.tar')
-        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.returncode, 10)
         self.assertIn('empty.tar', result.stdout)
+
+    def test_missing_file_has_distinct_incomplete_exit_code(self):
+        result = self.run_helper('verify', 'missing.tar')
+        self.assertEqual(result.returncode, 10)
+        self.assertIn('missing.tar', result.stdout)
+
+    def test_check_emits_only_recoverable_completeness_outputs(self):
+        result = self.run_helper('check', 'image.tar')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.output.read_text(), 'complete=false\n')
+        (self.path / 'image.tar').write_text('image')
+        result = self.run_helper('check', 'image.tar')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.output.read_text(), 'complete=true\n')
+        result = self.run_helper('check', '../unsafe.tar')
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(self.output.read_text(), '')
 
     def test_blank_lines_and_spaces_in_filename_are_supported(self):
         target = self.path / 'artifact with spaces.tar'
@@ -381,12 +509,23 @@ class RequiredFilesSafetyTest(unittest.TestCase):
         result = self.run_helper('verify', '\nartifact with spaces.tar\n\n')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_empty_required_files_fails_in_both_modes(self):
-        for mode in ('prepare', 'verify'):
+    def test_outer_whitespace_and_crlf_are_trimmed_but_internal_spaces_remain(
+            self):
+        target = self.path / 'artifact  with spaces.tar'
+        required = ' \tartifact  with spaces.tar \t\r\n \t\r\n'
+        target.write_text('image')
+        result = self.run_helper('verify', required)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result = self.run_helper('prepare', required)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(target.exists())
+
+    def test_empty_required_files_fails_in_all_modes(self):
+        for mode in ('prepare', 'verify', 'check'):
             for required_files in ('', '\n\n', ' \t\n'):
                 with self.subTest(mode=mode, required_files=required_files):
                     result = self.run_helper(mode, required_files)
-                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.returncode, 2)
                     self.assertIn('Set required-files', result.stdout)
 
 

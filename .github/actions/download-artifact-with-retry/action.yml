@@ -34,7 +34,7 @@ inputs:
     required: false
     default: '20'
   required-files:
-    description: "Newline-separated paths relative to the destination that each attempt must download as nonempty files"
+    description: "Newline-separated relative paths required as nonempty files; surrounding whitespace is trimmed"
     required: true
 
 outputs:
@@ -49,10 +49,10 @@ runs:
       id: prepare-primary
       shell: bash
       env:
-        ACTION_PATH: ${{ github.action_path }}
+        ARTIFACT_FILES: ${{ github.action_path }}/../../resources/scripts/artifact-files.sh
         DOWNLOAD_PATH: ${{ inputs.path }}
         REQUIRED_FILES: ${{ inputs.required-files }}
-      run: bash "$ACTION_PATH/required-files.sh" prepare
+      run: bash "$ARTIFACT_FILES" prepare
 
     # The client can fail during transport or succeed with an incomplete list
     # of artifacts. Validate the extracted files before accepting either attempt.
@@ -74,15 +74,10 @@ runs:
       if: ${{ !cancelled() && steps.primary.outcome == 'success' }}
       shell: bash
       env:
-        ACTION_PATH: ${{ github.action_path }}
+        ARTIFACT_FILES: ${{ github.action_path }}/../../resources/scripts/artifact-files.sh
         DOWNLOAD_PATH: ${{ steps.primary.outputs.download-path || inputs.path }}
         REQUIRED_FILES: ${{ inputs.required-files }}
-      run: |
-        if bash "$ACTION_PATH/required-files.sh" verify; then
-          echo 'complete=true' >> "$GITHUB_OUTPUT"
-        else
-          echo 'complete=false' >> "$GITHUB_OUTPUT"
-        fi
+      run: bash "$ARTIFACT_FILES" check
 
     - name: Wait before retrying artifact download
       if: ${{ !cancelled() && (steps.primary.outcome == 'failure' || steps.verify-primary.outputs.complete == 'false') }}
@@ -98,10 +93,10 @@ runs:
       if: ${{ !cancelled() && (steps.primary.outcome == 'failure' || steps.verify-primary.outputs.complete == 'false') }}
       shell: bash
       env:
-        ACTION_PATH: ${{ github.action_path }}
+        ARTIFACT_FILES: ${{ github.action_path }}/../../resources/scripts/artifact-files.sh
         DOWNLOAD_PATH: ${{ inputs.path }}
         REQUIRED_FILES: ${{ inputs.required-files }}
-      run: bash "$ACTION_PATH/required-files.sh" prepare
+      run: bash "$ARTIFACT_FILES" prepare
 
     - name: Retry artifact download
       id: retry
@@ -122,15 +117,10 @@ runs:
       if: ${{ !cancelled() && steps.retry.outcome == 'success' }}
       shell: bash
       env:
-        ACTION_PATH: ${{ github.action_path }}
+        ARTIFACT_FILES: ${{ github.action_path }}/../../resources/scripts/artifact-files.sh
         DOWNLOAD_PATH: ${{ steps.retry.outputs.download-path || inputs.path }}
         REQUIRED_FILES: ${{ inputs.required-files }}
-      run: |
-        if bash "$ACTION_PATH/required-files.sh" verify; then
-          echo 'complete=true' >> "$GITHUB_OUTPUT"
-        else
-          echo 'complete=false' >> "$GITHUB_OUTPUT"
-        fi
+      run: bash "$ARTIFACT_FILES" check
 
     - name: Verify artifact download
       if: ${{ always() && !cancelled() }}
@@ -139,8 +129,10 @@ runs:
         PREPARE_OUTCOME: ${{ steps.prepare-primary.outcome }}
         RETRY_PREPARE_OUTCOME: ${{ steps.prepare-retry.outcome }}
         PRIMARY_OUTCOME: ${{ steps.primary.outcome }}
+        PRIMARY_VALIDATION_OUTCOME: ${{ steps.verify-primary.outcome }}
         PRIMARY_FILES_COMPLETE: ${{ steps.verify-primary.outputs.complete }}
         RETRY_OUTCOME: ${{ steps.retry.outcome }}
+        RETRY_VALIDATION_OUTCOME: ${{ steps.verify-retry.outcome }}
         RETRY_FILES_COMPLETE: ${{ steps.verify-retry.outputs.complete }}
       run: |
         if [[ "$PRIMARY_OUTCOME" == "success" && "$PRIMARY_FILES_COMPLETE" == "true" ]] ||
@@ -151,6 +143,8 @@ runs:
           echo "::error::Artifact download did not start: required-file preparation failed"
         elif [[ "$RETRY_PREPARE_OUTCOME" == "failure" ]]; then
           echo "::error::Artifact retry did not start: required-file preparation failed after the first download"
+        elif [[ "$PRIMARY_VALIDATION_OUTCOME" == "failure" || "$RETRY_VALIDATION_OUTCOME" == "failure" ]]; then
+          echo "::error::Artifact validation failed; see the validation error above"
         else
           attempts=0
           for outcome in "$PRIMARY_OUTCOME" "$RETRY_OUTCOME"; do

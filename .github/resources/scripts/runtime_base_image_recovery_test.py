@@ -272,7 +272,7 @@ if arguments[0] == 'save':
             any(command[0] == 'save' and MODELCAR_IMAGE in command
                 for command in commands))
 
-    def run_recovery(self, required_files=None):
+    def run_recovery(self, required_files=None, failed_command=''):
         job = yaml.safe_load(
             CONSUMER.read_text())['jobs']['runtime-base-images']
         step = next(step for step in job['steps']
@@ -281,43 +281,66 @@ if arguments[0] == 'save':
             job['env']['RUNTIME_IMAGE_FILES']
             if required_files is None else required_files)
         summary = self.directory / 'summary'
+        output = self.directory / 'recovery-output'
+        output.touch()
         result = subprocess.run(
             ['bash', '-e', '-o', 'pipefail', '-c', step['run']],
             cwd=ROOT,
             env={
                 **self.environment,
                 'DOCKER_LOG': str(self.docker_log),
+                'FAIL_DOCKER_COMMAND': failed_command,
                 'DOWNLOAD_OUTCOME': 'failure',
                 'ARTIFACTS_PATH': str(self.output_directory),
                 'DOWNLOAD_PATH': str(self.output_directory),
                 'REQUIRED_FILES': manifest,
                 'GITHUB_STEP_SUMMARY': str(summary),
+                'GITHUB_OUTPUT': str(output),
+                'RUNNER_TEMP': str(self.directory),
             },
             capture_output=True,
             text=True,
             check=False,
             timeout=10,
         )
-        return result, summary.read_text() if summary.exists() else ''
+        outputs = dict(
+            line.split('=', 1) for line in output.read_text().splitlines())
+        return result, summary.read_text() if summary.exists() else '', outputs
 
     def test_recovery_reports_cache_failure_and_verifies_fresh_archives(self):
-        result, summary = self.run_recovery()
+        self.output_directory.mkdir()
+        (self.output_directory /
+         'fixture.tar').write_text('stale cache residue')
+        result, summary, outputs = self.run_recovery()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('cache download: failure', summary)
         self.assertIn('Rebuilding and verifying', summary)
+        rebuilt = Path(outputs['path'])
+        self.assertNotEqual(rebuilt, self.output_directory)
+        self.assertEqual(
+            set(path.name for path in rebuilt.iterdir()),
+            {'runtime-base-images.tar', 'modelcar.tar'})
+        for path in rebuilt.iterdir():
+            self.assertEqual(path.read_bytes(), b'new archive')
 
     def test_drifted_manifest_fails_after_rebuild_even_with_stale_cache_file(
             self):
         self.output_directory.mkdir()
         (self.output_directory / 'renamed-modelcar.tar').write_text('stale')
-        result, _ = self.run_recovery(
+        result, _, outputs = self.run_recovery(
             'runtime-base-images.tar\nrenamed-modelcar.tar')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
             'Missing or empty required artifact file: renamed-modelcar.tar',
             result.stdout)
-        self.assertFalse(
+        self.assertTrue(
             (self.output_directory / 'renamed-modelcar.tar').exists())
+        self.assertEqual(outputs, {})
+
+    def test_failed_rebuild_does_not_publish_a_directory(self):
+        result, _, outputs = self.run_recovery(failed_command='build')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(outputs, {})
 
 
 class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
@@ -338,7 +361,10 @@ class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
                       download)
         self.assertIn(recovery, build)
         self.assertIn(recovery, mirror)
-        self.assertIn('build-runtime-base-images.sh "${ARTIFACTS_PATH}"', build)
+        self.assertIn('id: build-runtime-base-images', build)
+        self.assertIn(
+            'path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}',
+            upload)
         self.assertLess(job.index(download), job.index(mirror))
         self.assertLess(job.index(mirror), job.index(build))
         self.assertLess(job.index(build), job.index(upload))

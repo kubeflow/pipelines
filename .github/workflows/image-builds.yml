@@ -110,24 +110,25 @@ jobs:
         run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Build runtime base image archives
+        id: build-runtime-base-images
         if: steps.download-runtime-base-images.outcome != 'success'
         shell: bash
         env:
           DOWNLOAD_OUTCOME: ${{ steps.download-runtime-base-images.outcome }}
-          DOWNLOAD_PATH: ${{ env.ARTIFACTS_PATH }}
           REQUIRED_FILES: ${{ env.RUNTIME_IMAGE_FILES }}
         run: |
           echo "Runtime image cache download: $DOWNLOAD_OUTCOME; rebuilding locally"
           echo "Runtime image cache download: $DOWNLOAD_OUTCOME. Rebuilding and verifying archives locally." >> "$GITHUB_STEP_SUMMARY"
-          bash .github/actions/download-artifact-with-retry/required-files.sh prepare
-          bash .github/resources/scripts/build-runtime-base-images.sh "${ARTIFACTS_PATH}"
-          bash .github/actions/download-artifact-with-retry/required-files.sh verify
+          rebuilt_path=$(mktemp -d "$RUNNER_TEMP/runtime-base-images.XXXXXX")
+          bash .github/resources/scripts/build-runtime-base-images.sh "$rebuilt_path"
+          DOWNLOAD_PATH="$rebuilt_path" bash .github/resources/scripts/artifact-files.sh verify
+          echo "path=$rebuilt_path" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACTS_PATH }}
+          path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}
           if-no-files-found: error
           retention-days: 1
 

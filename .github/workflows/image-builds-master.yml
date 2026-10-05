@@ -92,11 +92,11 @@ jobs:
         run: |
           {
             echo 'required-files<<EOF'
-            PYTHONPATH=.github/resources/scripts python3 -c \
-              'from arm64_smoke import IMAGES; print("\n".join(f"{image}.json" for image in sorted(IMAGES)))'
+            bash .github/resources/scripts/ci-image-artifacts.sh published-image-files
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
       - name: Download this publication's verified index references
+        id: published-images
         uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: published-index-*-${{ github.run_attempt }}
@@ -105,5 +105,5 @@ jobs:
           required-files: ${{ steps.image-records.outputs.required-files }}
       - uses: ./.github/actions/arm64-smoke
         with:
-          image_records: published-indexes
+          image_records: ${{ steps.published-images.outputs.download-path }}
           source_sha: ${{ github.sha }}

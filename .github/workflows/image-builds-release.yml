@@ -157,11 +157,11 @@ jobs:
         run: |
           {
             echo 'required-files<<EOF'
-            PYTHONPATH=.github/resources/scripts python3 -c \
-              'from arm64_smoke import IMAGES; print("\n".join(f"{image}.json" for image in sorted(IMAGES)))'
+            bash .github/resources/scripts/ci-image-artifacts.sh published-image-files
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
       - name: Download this release attempt's verified index references
+        id: published-images
         uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: published-index-*-${{ github.run_attempt }}
@@ -187,7 +187,7 @@ jobs:
           SOURCE_SHA: ${{ needs.resolve-source.outputs.sha }}
           TARGET_TAG: ${{ inputs.target_tag }}
           ARCHITECTURE: ${{ matrix.architecture }}
-          IMAGE_RECORDS: ${{ runner.temp }}/published-indexes
+          IMAGE_RECORDS: ${{ steps.published-images.outputs.download-path }}
         run: |
           python3 .github/resources/scripts/release_image_validation.py native \
             --records "$IMAGE_RECORDS" --source-sha "$SOURCE_SHA" \
@@ -197,7 +197,7 @@ jobs:
         if: matrix.architecture == 'arm64'
         uses: ./.github/actions/arm64-smoke
         with:
-          image_records: ${{ runner.temp }}/published-indexes
+          image_records: ${{ steps.published-images.outputs.download-path }}
           source_sha: ${{ needs.resolve-source.outputs.sha }}
       - name: Upload native release image evidence
         if: always()

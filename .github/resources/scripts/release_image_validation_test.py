@@ -322,7 +322,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(native['env']['TARGET_TAG'],
                          '${{ inputs.target_tag }}')
         self.assertEqual(native['env']['IMAGE_RECORDS'],
-                         download['with']['path'])
+                         '${{ steps.published-images.outputs.download-path }}')
+        self.assertEqual(download['id'], 'published-images')
         self.assertIn('--records "$IMAGE_RECORDS"', native['run'])
         self.assertLess(steps.index(checkouts[1]), steps.index(native))
         smoke = next(
@@ -330,7 +331,7 @@ class WorkflowTests(unittest.TestCase):
             if step.get('uses') == './.github/actions/arm64-smoke')
         self.assertEqual(smoke['if'], "matrix.architecture == 'arm64'")
         self.assertEqual(smoke['with']['image_records'],
-                         download['with']['path'])
+                         native['env']['IMAGE_RECORDS'])
         self.assertEqual(smoke['with']['source_sha'],
                          '${{ needs.resolve-source.outputs.sha }}')
         self.assertLess(steps.index(native), steps.index(smoke))
@@ -363,6 +364,9 @@ class WorkflowTests(unittest.TestCase):
             action_path = Path('.github/actions/download-artifact-with-retry')
             (policy / script_path).parent.mkdir(parents=True)
             shutil.copyfile(root / script_path, policy / script_path)
+            for name in ('ci-image-artifacts.sh', 'artifact-files.sh'):
+                path = script_path.with_name(name)
+                shutil.copyfile(root / path, policy / path)
             shutil.copytree(root / action_path, policy / action_path)
             (source / script_path).parent.mkdir(parents=True)
             (source /
@@ -410,7 +414,7 @@ class WorkflowTests(unittest.TestCase):
                         'DOWNLOAD_PATH': str(records),
                         'REQUIRED_FILES': '\n'.join(required),
                     })
-                    helper = selected_action / 'required-files.sh'
+                    helper = workspace / '.github/resources/scripts/artifact-files.sh'
                     subprocess.run(['bash', str(helper), 'prepare'],
                                    cwd=workspace,
                                    env=environment,

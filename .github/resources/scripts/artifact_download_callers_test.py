@@ -246,29 +246,64 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         for filename in actual:
             self.assertIn(filename, producer)
 
-    def test_tool_output_manifest_tracks_architectures_attempt_and_output_files(
-            self):
+    def inventory(self, *arguments):
+        return subprocess.check_output([
+            'bash',
+            str(ROOT / '.github/resources/scripts/ci-image-artifacts.sh'),
+            *arguments
+        ],
+                                       text=True).splitlines()
+
+    def test_tool_output_manifest_matches_executed_producer(self):
         document = workflow('build-tools-images.yml')
         architectures = {
             item['arch'] for item in document['jobs']['build-tools']['strategy']
             ['matrix']['include']
         }
-        script = (
-            ROOT /
-            '.github/resources/scripts/maintainer_tools_smoke.sh').read_text()
-        tools = set(
-            re.search(r'for image in ([^;]+); do', script).group(1).split())
-        templates = set(re.findall(r'"\$output/([^\"]+)"', script))
-        filenames = {
-            template.replace('$name', image.removesuffix(':ci'))
-            for template in templates
-            for image in tools
-        }
-        self.assertEqual(
-            filenames, {
-                'kfp-api-generator.sha256', 'kfp-release.sha256',
-                'manifests.sha256', 'CHANGELOG.md'
-            })
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'tool-output'
+            # Execute the producer's file-writing flow without native Docker
+            # generation or archiving the checkout. Source hashing is covered
+            # separately by maintainer_tools_smoke_test.
+            script = r"""
+source "$1"
+validate_native_images() { :; }
+snapshot_sources() { echo 'fixture source checksum'; }
+git() {
+  if [[ "$1" == rev-parse ]]; then
+    printf '%s\n' "$PWD"
+  else
+    tar -cf - -T /dev/null
+  fi
+}
+docker() {
+  cat >/dev/null
+  local argument directory
+  for argument in "$@"; do
+    if [[ "$argument" == type=bind,source=* ]]; then
+      directory="${argument#type=bind,source=}"
+      directory="${directory%%,target=*}"
+      printf '## 3.0.0-smoke (2026-10-05)\nfixture\n' > "$directory/CHANGELOG.md"
+    fi
+  done
+}
+main amd64 "$2"
+"""
+            subprocess.run([
+                'bash', '-e', '-o', 'pipefail', '-c', script, 'producer',
+                str(ROOT /
+                    '.github/resources/scripts/maintainer_tools_smoke.sh'),
+                str(output)
+            ],
+                           cwd=ROOT,
+                           check=True,
+                           capture_output=True,
+                           text=True)
+            filenames = {path.name for path in output.iterdir()}
+            self.assertEqual(filenames,
+                             set(self.inventory('tool-output-files')))
+            self.assertTrue(
+                all(path.stat().st_size for path in output.iterdir()))
         for attempt in ('1', '17'):
             with self.subTest(attempt=attempt):
                 actual = self.required_files(
@@ -276,29 +311,77 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                     'compare-generated', {'github': {
                         'run_attempt': attempt
                     }})
-                expected = {
-                    f'tool-output-{arch}-{attempt}/{name}'
-                    for arch in architectures
-                    for name in filenames
-                }
-                self.assertEqual(actual, expected)
+                self.assertEqual(
+                    actual, {
+                        f'tool-output-{arch}-{attempt}/{name}'
+                        for arch in architectures
+                        for name in filenames
+                    })
 
-    def test_tool_digest_manifest_matches_staged_image_and_architecture_matrix(
-            self):
+    def test_tool_digest_manifest_matches_executed_staging(self):
         producer = workflow('build-tools-images.yml')['jobs']['build-tools']
         architectures = {
             item['arch'] for item in producer['strategy']['matrix']['include']
         }
         stage = next(step['run'] for step in producer['steps'] if step.get(
             'name') == 'Stage tested images without changing shared tags')
-        images = set(
-            re.search(r'for image in ([^;]+); do', stage).group(1).split())
-        self.assertIn('> "$RUNNER_TEMP/tool-digests/$image/$ARCH.json"', stage)
+        mocks = r"""
+docker() {
+  local previous='' argument
+  for argument in "$@"; do
+    if [[ "$previous" == --metadata-file ]]; then
+      printf '{}\n' > "$argument"
+    fi
+    previous="$argument"
+  done
+}
+jq() {
+  if [[ "$1" == -er ]]; then
+    printf 'sha256:%064d\n' 1
+  else
+    python3 -c 'import json, sys; args=sys.argv[1:]; print(json.dumps({args[i+1]:args[i+2] for i, value in enumerate(args) if value == "--arg"}))' "$@"
+  fi
+}
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            for arch in architectures:
+                subprocess.run(
+                    ['bash', '-e', '-o', 'pipefail', '-c', mocks + stage],
+                    cwd=ROOT,
+                    env={
+                        **os.environ, 'RUNNER_TEMP': directory,
+                        'ARCH': arch,
+                        'PLATFORM': f'linux/{arch}',
+                        'SOURCE_SHA': '1' * 40,
+                        'IMAGE_REGISTRY': 'ghcr.io',
+                        'IMAGE_ORG': 'kubeflow',
+                        'RUN_TAG': 'run-123-17'
+                    },
+                    check=True,
+                    capture_output=True,
+                    text=True)
+            records = Path(directory) / 'tool-digests'
+            produced = {
+                path.relative_to(records).as_posix()
+                for path in records.rglob('*.json')
+            }
         actual = self.required_files('.github/workflows/build-tools-images.yml',
                                      'publish-tools')
-        self.assertEqual(actual, {
-            f'{image}/{arch}.json' for image in images for arch in architectures
-        })
+        self.assertEqual(actual, produced)
+
+    def test_inventory_rejects_invalid_command_and_attempt(self):
+        for arguments in (('unknown',), ('tool-output-artifacts', '0'),
+                          ('tool-output-artifacts', '../1')):
+            with self.subTest(arguments=arguments):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    subprocess.check_output([
+                        'bash',
+                        str(ROOT /
+                            '.github/resources/scripts/ci-image-artifacts.sh'),
+                        *arguments
+                    ],
+                                            stderr=subprocess.PIPE,
+                                            text=True)
 
 
 if __name__ == '__main__':
