@@ -17,6 +17,8 @@ import argparse
 from pathlib import Path
 import time
 
+from fixture_diagnostics import container_diagnostics
+from fixture_diagnostics import node_diagnostics
 from kfp_http import Client
 from kfp_http import CollectionError
 from live_schedule_check import field
@@ -85,6 +87,7 @@ def diagnostics(get=kubectl_get):
     """Persist counts and enumerated states only; never specs, messages, or
     logs."""
     result = {}
+    objects = {}
     for resource, phases in (('workflows.argoproj.io',
                               ('Pending', 'Running', 'Succeeded', 'Failed',
                                'Error')), ('pods',
@@ -99,6 +102,7 @@ def diagnostics(get=kubectl_get):
         if len(items) > 1000:
             result[resource] = dict(collection='limit_exceeded')
             continue
+        objects[resource] = items
         counts = {phase: 0 for phase in phases}
         counts['other'] = 0
         for item in items:
@@ -106,6 +110,11 @@ def diagnostics(get=kubectl_get):
             counts[phase if phase in phases else 'other'] += 1
         result[resource] = dict(
             collection='complete', count=len(items), phases=counts)
+    if 'pods' in objects and 'workflows.argoproj.io' in objects:
+        result['workflow_nodes'] = node_diagnostics(
+            objects['workflows.argoproj.io'])
+        result['container_failures'] = container_diagnostics(
+            objects['pods'], objects['workflows.argoproj.io'])
     return result
 
 

@@ -61,8 +61,12 @@ the live Workflow: exact API run-ID label and display-name match, namespace,
 fresh creation time, schedule controller owner UID/name, and expected service
 account. A conflicting API account still fails. Target verification continues to
 require the API account directly. Failed source preparation and completion retain
-sanitized workload counts and enumerated pod/workflow phases; no raw specifications,
-server error text, credentials, or logs are included.
+sanitized workload counts, enumerated pod/workflow/node phases, and failed-container
+exit codes and known reasons. At most six failed-container log tails are inspected
+in memory, each limited to 64 KiB and 15 seconds, and only fixed error categories
+(such as authorization, DNS, metadata, or object store) are retained. No raw
+specifications, server error text, credentials, or logs are included. Diagnostic
+categories are clues for investigation, not proof of a root cause or a passing run.
 
 ## Legacy migration acceptance
 
