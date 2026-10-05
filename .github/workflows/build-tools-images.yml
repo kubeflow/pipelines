@@ -138,6 +138,15 @@ jobs:
         with:
           pattern: tool-output-*-${{ github.run_attempt }}
           path: tool-output
+          required-files: |
+            tool-output-amd64-${{ github.run_attempt }}/kfp-api-generator.sha256
+            tool-output-amd64-${{ github.run_attempt }}/kfp-release.sha256
+            tool-output-amd64-${{ github.run_attempt }}/manifests.sha256
+            tool-output-amd64-${{ github.run_attempt }}/CHANGELOG.md
+            tool-output-arm64-${{ github.run_attempt }}/kfp-api-generator.sha256
+            tool-output-arm64-${{ github.run_attempt }}/kfp-release.sha256
+            tool-output-arm64-${{ github.run_attempt }}/manifests.sha256
+            tool-output-arm64-${{ github.run_attempt }}/CHANGELOG.md
       - name: Require architecture-independent generated output
         env:
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -156,6 +165,11 @@ jobs:
           pattern: tool-digests-*-${{ github.run_attempt }}
           path: tool-digests
           merge-multiple: 'true'
+          required-files: |
+            kfp-api-generator/amd64.json
+            kfp-api-generator/arm64.json
+            kfp-release/amd64.json
+            kfp-release/arm64.json
       - uses: docker/login-action@v4
         with:
           registry: ${{ env.IMAGE_REGISTRY }}

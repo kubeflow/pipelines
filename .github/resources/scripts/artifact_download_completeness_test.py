@@ -236,21 +236,25 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(unrelated.read_text(), 'keep')
 
-    def test_empty_default_preserves_downloads_without_required_files(self):
+    def test_missing_required_files_fails_before_download(self):
         download(files={'existing.tar': 'keep'})(self.path)
-        runner, result = self.run_action([download()])
-        self.assertEqual(result, 'success', runner.log)
-        self.assertEqual(runner.downloads, ['primary'])
+        runner, result = self.run_action([])
+        self.assertEqual(result, 'failure', runner.log)
+        self.assertEqual(runner.downloads, [])
+        self.assertIn('Set required-files', runner.log)
         self.assertEqual((self.path / 'existing.tar').read_text(), 'keep')
 
-    def test_empty_default_still_retries_transport_failure(self):
-        runner, result = self.run_action([download('failure'), download()])
-        self.assertEqual(result, 'success', runner.log)
-        self.assertEqual(runner.downloads, ['primary', 'retry'])
+    def test_empty_or_blank_required_files_fails_before_download(self):
+        for required_files in ('', '\n\n', '  \t\n \t'):
+            with self.subTest(required_files=required_files):
+                runner, result = self.run_action([], required_files)
+                self.assertEqual(result, 'failure', runner.log)
+                self.assertEqual(runner.downloads, [])
+                self.assertIn('Set required-files', runner.log)
 
-    def test_empty_default_does_not_mask_two_transport_failures(self):
+    def test_two_transport_failures_do_not_pass(self):
         runner, result = self.run_action(
-            [download('failure'), download('failure')])
+            [download('failure'), download('failure')], self.required)
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, ['primary', 'retry'])
 
@@ -351,12 +355,13 @@ class RequiredFilesSafetyTest(unittest.TestCase):
         result = self.run_helper('verify', '\nartifact with spaces.tar\n\n')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_only_blank_lines_noops(self):
+    def test_empty_required_files_fails_in_both_modes(self):
         for mode in ('prepare', 'verify'):
-            with self.subTest(mode=mode):
-                result = self.run_helper(mode, '\n\n')
-                self.assertEqual(result.returncode, 0,
-                                 result.stdout + result.stderr)
+            for required_files in ('', '\n\n', ' \t\n'):
+                with self.subTest(mode=mode, required_files=required_files):
+                    result = self.run_helper(mode, required_files)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('Set required-files', result.stdout)
 
 
 class DeployRequiredFilesTest(unittest.TestCase):

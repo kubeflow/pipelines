@@ -51,12 +51,25 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+      - name: List required ARM image artifacts
+        id: image-artifacts
+        shell: bash
+        run: |
+          source .github/resources/scripts/ci-image-artifacts.sh
+          {
+            echo 'required-files<<EOF'
+            for artifact in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}" "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
+              printf '%s-arm64.tar\n%s-arm64.json\n' "$artifact" "$artifact"
+            done
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - name: Download only ARM image artifacts from this run
         uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: '*-arm64'
           path: arm64-images
           merge-multiple: 'true'
+          required-files: ${{ steps.image-artifacts.outputs.required-files }}
       - name: Install KFP and run a pipeline natively
         uses: ./.github/actions/arm64-smoke
         with:

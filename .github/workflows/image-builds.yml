@@ -99,6 +99,9 @@ jobs:
           path: ${{ env.ARTIFACTS_PATH }}
           github-token: ${{ github.token }}
           run-id: ${{ steps.runtime-base-images-producer.outputs.run-id }}
+          required-files: |
+            runtime-base-images.tar
+            modelcar.tar
 
       - name: Configure Docker Hub mirror
         if: steps.download-runtime-base-images.outcome != 'success'

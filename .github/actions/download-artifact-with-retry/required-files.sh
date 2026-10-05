@@ -21,8 +21,11 @@ case "$mode" in
   *) echo "::error::Unknown required-file operation: $mode"; exit 1 ;;
 esac
 
-# Existing callers can continue to rely on the downloader's outcome alone.
-[[ -n "${REQUIRED_FILES:-}" ]] || exit 0
+required_files="${REQUIRED_FILES:-}"
+if [[ -z "${required_files//[[:space:]]/}" ]]; then
+  echo "::error::Set required-files to the complete list of expected artifact files"
+  exit 1
+fi
 # Preparation and download must resolve the destination identically. Unlike
 # the download action, shell paths do not expand a tilde stored in a variable.
 case "$DOWNLOAD_PATH" in
@@ -36,7 +39,7 @@ cd "$DOWNLOAD_PATH"
 
 files=()
 while IFS= read -r file || [[ -n "$file" ]]; do
-  [[ -n "$file" ]] || continue
+  [[ "$file" =~ [^[:space:]] ]] || continue
   case "/$file/" in
     //*|*/../*|*/./*|*//*)
       echo "::error::Required file must be a relative file path: $file"
@@ -57,10 +60,8 @@ while IFS= read -r file || [[ -n "$file" ]]; do
     exit 1
   fi
   files+=("$file")
-done <<< "$REQUIRED_FILES"
+done <<< "$required_files"
 
-# Bash 3 treats expansion of an empty array as unset under nounset.
-[[ ${#files[@]} -gt 0 ]] || exit 0
 missing=0
 for file in "${files[@]}"; do
   if [[ "$mode" == "prepare" ]]; then

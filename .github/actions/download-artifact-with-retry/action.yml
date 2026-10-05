@@ -7,7 +7,7 @@ inputs:
     required: false
     default: ''
   path:
-    description: "Destination path; use an absolute or workspace-relative path with required-files"
+    description: "Absolute or workspace-relative destination path"
     required: true
   pattern:
     description: "Glob pattern matching artifacts to download"
@@ -35,8 +35,7 @@ inputs:
     default: '20'
   required-files:
     description: "Newline-separated paths relative to the destination that each attempt must download as nonempty files"
-    required: false
-    default: ''
+    required: true
 
 outputs:
   download-path:

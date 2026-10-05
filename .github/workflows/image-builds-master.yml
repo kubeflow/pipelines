@@ -86,12 +86,23 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v7
+      - name: List required published image records
+        id: image-records
+        shell: bash
+        run: |
+          {
+            echo 'required-files<<EOF'
+            PYTHONPATH=.github/resources/scripts python3 -c \
+              'from arm64_smoke import IMAGES; print("\n".join(f"{image}.json" for image in sorted(IMAGES)))'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - name: Download this publication's verified index references
         uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: published-index-*-${{ github.run_attempt }}
           path: published-indexes
           merge-multiple: 'true'
+          required-files: ${{ steps.image-records.outputs.required-files }}
       - uses: ./.github/actions/arm64-smoke
         with:
           image_records: published-indexes
