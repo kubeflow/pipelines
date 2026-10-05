@@ -262,3 +262,9 @@ both target modes. The lane requires successful V2 fixture completion and bounde
 V1 schedules, permission revocation after a successful tick, template/plugin
 identities, mixed-version rollouts, and representative production workloads remain
 outside this lane's coverage.
+
+The fixture owns and stops the actual kubectl port-forward process across API
+rollouts. Startup requires that process to report its own loopback listener
+before accepting health checks; an unrelated healthy listener cannot satisfy
+readiness. Transport failures remain inconclusive and are not retried by the
+observer.

@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -27,6 +28,58 @@ SCRIPT = Path(__file__).resolve(
 
 
 class LiveCITests(unittest.TestCase):
+
+    def test_forward_owns_and_reaps_listener_and_rejects_unrelated_health(self):
+        script = SCRIPT.read_text()
+        functions = script[script.index('start_forward() {'):script
+                           .index('mint_token() {')]
+        for binds in (True, False):
+            with self.subTest(
+                    binds=binds), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                kubectl = root / 'kubectl'
+                kubectl.write_text(
+                    '#!' + sys.executable + '\n' + 'import os, time\n' +
+                    'from pathlib import Path\n' +
+                    'Path(os.environ["LISTENER_PID"]).write_text(str(os.getpid()))\n'
+                    +
+                    ('print("Forwarding from 127.0.0.1:8888 -> 8888", flush=True)\ntime.sleep(30)\n'
+                     if binds else 'raise SystemExit(1)\n'))
+                kubectl.chmod(0o755)
+                curl = root / 'curl'
+                curl.write_text('#!/bin/sh\ntouch "$CURL_CALLED"\nexit 0\n')
+                curl.chmod(0o755)
+                env = dict(
+                    os.environ,
+                    PATH=tmp + os.pathsep + os.environ['PATH'],
+                    LISTENER_PID=str(root / 'listener-pid'),
+                    CURL_CALLED=str(root / 'curl-called'))
+                # Keep the old wrapper definition so this regression also detects
+                # accidentally reverting to backgrounding kube() instead of exec.
+                setup = 'set -euo pipefail\ncontext=kind-kfp-readiness\nstate=' + tmp + '\nendpoint=http://127.0.0.1:8888\nkube() { kubectl "$@"; }\n'
+                check = (
+                    'start_forward\n[[ "$forward_pid" == "$(cat "$LISTENER_PID")" ]]\n'
+                    'listener=$forward_pid\nstop_forward\n! kill -0 "$listener" 2>/dev/null\n'
+                    if binds else
+                    'if start_forward; then exit 9; fi\nstop_forward\n[[ ! -e "$CURL_CALLED" ]]\n'
+                )
+                try:
+                    result = subprocess.run(
+                        ['bash', '-c', setup + functions + check],
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        timeout=8)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual((root / 'curl-called').exists(), binds)
+                finally:
+                    # Also clean a leaked child if this test catches a regression.
+                    if (root / 'listener-pid').exists():
+                        try:
+                            os.kill(
+                                int((root / 'listener-pid').read_text()), 15)
+                        except ProcessLookupError:
+                            pass
 
     def test_release_upgrade_is_pinned_and_schedule_lane_requires_opt_in(self):
         workflow = SCRIPT.parents[2] / 'workflows/upgrade-test.yml'

@@ -93,13 +93,19 @@ restore_controller_namespaces() {
   done
 }
 start_forward() {
-  kube -n kubeflow port-forward service/ml-pipeline 8888:8888 >"$state/port-forward.log" 2>&1 &
+  # exec makes forward_pid the actual listener, so stop_forward cannot leave
+  # an orphan behind when an API rollout replaces the selected Pod.
+  (exec kubectl --context "$context" --request-timeout=30s -n kubeflow \
+    port-forward --address=127.0.0.1 service/ml-pipeline 8888:8888) >"$state/port-forward.log" 2>&1 &
   forward_pid=$!
   for attempt in {1..30}; do
-    if curl --noproxy '*' --silent --fail --max-time 2 "$endpoint/apis/v2beta1/healthz" >/dev/null; then
+    kill -0 "$forward_pid" 2>/dev/null || return 1
+    # A healthy unrelated/old listener is not evidence that this child bound.
+    if grep -q '^Forwarding from 127\.0\.0\.1:8888 -> ' "$state/port-forward.log" &&
+        curl --noproxy '*' --silent --fail --max-time 2 "$endpoint/apis/v2beta1/healthz" >/dev/null; then
+      kill -0 "$forward_pid" 2>/dev/null || return 1
       return
     fi
-    kill -0 "$forward_pid"
     sleep 2
   done
   echo '::error::The isolated API port-forward did not become ready.'
