@@ -415,7 +415,7 @@ class Client:
         return config
 
     def set_user_namespace(self, namespace: str) -> None:
-        """Sets the namespace in the Kuberenetes cluster to use.
+        """Sets the namespace in the Kubernetes cluster to use.
 
         This function should only be used when Kubeflow Pipelines is in the
         multi-user mode.
@@ -738,7 +738,7 @@ class Client:
             pipeline_id: ID of the pipeline.
             version_id: ID of the pipeline version to run.
                 If both pipeline_id and version_id are specified, version_id
-                will take precendence.
+                will take precedence.
                 If only pipeline_id is specified, the default version of this
                 pipeline is used to create the run.
             pipeline_root: Root path of the pipeline outputs.
@@ -1070,7 +1070,7 @@ class Client:
         Returns:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
-        #TODO: Check arguments against the pipeline function
+        # TODO: Check arguments against the pipeline function
         pipeline_name = pipeline_func.name
         run_name = run_name or pipeline_name + ' ' + datetime.datetime.now(
         ).strftime('%Y-%m-%d %H-%M-%S')
@@ -1138,7 +1138,7 @@ class Client:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
 
-        #TODO: Check arguments against the pipeline function
+        # TODO: Check arguments against the pipeline function
         pipeline_name = os.path.basename(pipeline_file)
 
         if (experiment_name is not None) and (experiment_id is not None):
