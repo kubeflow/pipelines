@@ -42,12 +42,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: List required platform digest records
+        id: digest-files
+        shell: bash
+        env:
+          EXPECTED_PLATFORMS: ${{ inputs.expected_platforms }}
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output platform-digest-files "$EXPECTED_PLATFORMS"
+
       - name: Download digests
         uses: ./.github/actions/download-artifact-with-retry
         with:
           path: /tmp/digests
           pattern: digests-${{ env.APP_NAME }}-*-${{ github.run_attempt }}
           merge-multiple: true
+          required-files: ${{ steps.digest-files.outputs.required-files }}
 
       - name: Log in to the Container registry
         uses: docker/login-action@v4

@@ -61,8 +61,9 @@ class WorkflowTests(unittest.TestCase):
         action = next(step for step in job["steps"]
                       if step.get("uses") == "./.github/actions/arm64-smoke")
         self.assertEqual(action["with"]["source_sha"], "${{ github.sha }}")
-        self.assertEqual(action["with"]["image_records"],
-                         download["with"]["path"])
+        self.assertEqual(
+            action["with"]["image_records"],
+            "${{ steps." + download["id"] + ".outputs.download-path }}")
 
 
 class InventoryTests(unittest.TestCase):

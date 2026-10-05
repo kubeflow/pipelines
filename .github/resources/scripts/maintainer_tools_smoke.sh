@@ -8,6 +8,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 set -euo pipefail
+source "$(dirname -- "${BASH_SOURCE[0]}")/ci-image-artifacts.sh"
 
 # Compare source bytes, not tarballs (whose packaging timestamps can differ).
 # Keep generator metadata in the comparison; exclude only build products.
@@ -46,9 +47,9 @@ validate_native_images() {
     return 1
   fi
   local image
-  for image in kfp-api-generator:ci kfp-release:ci; do
-    if [[ $(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image") != "linux/$architecture" ]]; then
-      echo "$image does not match native Linux $architecture." >&2
+  for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
+    if [[ $(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image:ci") != "linux/$architecture" ]]; then
+      echo "$image:ci does not match native Linux $architecture." >&2
       return 1
     fi
   done
@@ -60,7 +61,7 @@ main() {
     return 1
   fi
   validate_native_images "$1"
-  local output root source_dir image name
+  local output root source_dir image
   root=$(git rev-parse --show-toplevel)
   mkdir -p "$2"
   output=$(cd "$2" && pwd)
@@ -69,13 +70,12 @@ main() {
   trap 'rm -rf -- "$source_dir"' EXIT
   git -C "$root" archive HEAD | tar -x -C "$source_dir"
 
-  for image in kfp-api-generator:ci kfp-release:ci; do
-    name=${image%:ci}
+  for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
     docker run --rm --interactive --user "$(id -u):$(id -g)" \
       --env HOME=/tmp/kfp-smoke-home --env API_VERSION=v2beta1 \
       --env LC_ALL=C.UTF-8 --env TZ=UTC \
       --mount "type=bind,source=$source_dir,target=/go/src/github.com/kubeflow/pipelines" \
-      --workdir /go/src/github.com/kubeflow/pipelines "$image" bash -se <<'CONTAINER'
+      --workdir /go/src/github.com/kubeflow/pipelines "$image:ci" bash -se <<'CONTAINER'
 set -euo pipefail
 mkdir -p "$HOME"
 test "$(protoc --version)" = "libprotoc ${PROTOC_VERSION}"
@@ -94,14 +94,15 @@ CONTAINER
     snapshot_sources "$source_dir" \
       backend/api/v2beta1/go_client backend/api/v2beta1/go_http_client \
       backend/api/v2beta1/swagger backend/api/v2beta1/python_http_client \
-      > "$output/$name.sha256"
+      > "$output/$image$TOOL_API_OUTPUT_SUFFIX"
   done
-  diff -u "$output/kfp-api-generator.sha256" "$output/kfp-release.sha256"
+  diff -u "$output/$TOOL_GENERATOR_IMAGE$TOOL_API_OUTPUT_SUFFIX" \
+    "$output/$TOOL_RELEASE_IMAGE$TOOL_API_OUTPUT_SUFFIX"
 
   docker run --rm --interactive --user "$(id -u):$(id -g)" \
     --env HOME=/tmp/kfp-smoke-home --env LC_ALL=C.UTF-8 --env TZ=UTC \
     --mount "type=bind,source=$source_dir,target=/go/src/github.com/kubeflow/pipelines" \
-    --workdir /go/src/github.com/kubeflow/pipelines kfp-release:ci bash -se <<'CONTAINER'
+    --workdir /go/src/github.com/kubeflow/pipelines "$TOOL_RELEASE_IMAGE:ci" bash -se <<'CONTAINER'
 set -euo pipefail
 mkdir -p "$HOME"
 test "$(node --version)" = "v$(tr -d 'v\r\n' < frontend/.nvmrc)"
@@ -121,10 +122,10 @@ git -c commit.gpgsign=false commit --allow-empty -qm 'feat: native maintainer to
 git-cliff -c cliff.toml --tag 3.0.0-smoke --prepend CHANGELOG.md "$previous..HEAD"
 grep -F 'native maintainer tooling smoke' CHANGELOG.md
 CONTAINER
-  snapshot_sources "$source_dir" manifests/kustomize > "$output/manifests.sha256"
+  snapshot_sources "$source_dir" manifests/kustomize > "$output/$TOOL_MANIFESTS_OUTPUT"
   # Only the synthetic release heading contains a wall-clock date. Preserve
   # every other byte, including the project's existing historical changelog.
-  python3 - "$source_dir/CHANGELOG.md" "$output/CHANGELOG.md" <<'PY'
+  python3 - "$source_dir/CHANGELOG.md" "$output/$TOOL_CHANGELOG_OUTPUT" <<'PY'
 from pathlib import Path
 import re
 import sys

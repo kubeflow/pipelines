@@ -86,13 +86,19 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v7
+      - name: List required published image records
+        id: image-records
+        shell: bash
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output published-image-files
       - name: Download this publication's verified index references
+        id: published-images
         uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: published-index-*-${{ github.run_attempt }}
           path: published-indexes
           merge-multiple: 'true'
+          required-files: ${{ steps.image-records.outputs.required-files }}
       - uses: ./.github/actions/arm64-smoke
         with:
-          image_records: published-indexes
+          image_records: ${{ steps.published-images.outputs.download-path }}
           source_sha: ${{ github.sha }}

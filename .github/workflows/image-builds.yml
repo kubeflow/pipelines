@@ -35,6 +35,9 @@ jobs:
     env:
       ARTIFACT_NAME: "runtime-base-images"
       ARTIFACTS_PATH: "runtime-base-images-cache"
+      RUNTIME_IMAGE_FILES: |
+        runtime-base-images.tar
+        modelcar.tar
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -99,6 +102,7 @@ jobs:
           path: ${{ env.ARTIFACTS_PATH }}
           github-token: ${{ github.token }}
           run-id: ${{ steps.runtime-base-images-producer.outputs.run-id }}
+          required-files: ${{ env.RUNTIME_IMAGE_FILES }}
 
       - name: Configure Docker Hub mirror
         if: steps.download-runtime-base-images.outcome != 'success'
@@ -106,15 +110,33 @@ jobs:
         run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Build runtime base image archives
+        id: build-runtime-base-images
         if: steps.download-runtime-base-images.outcome != 'success'
         shell: bash
-        run: bash .github/resources/scripts/build-runtime-base-images.sh "${ARTIFACTS_PATH}"
+        env:
+          DOWNLOAD_OUTCOME: ${{ steps.download-runtime-base-images.outcome }}
+          REQUIRED_FILES: ${{ env.RUNTIME_IMAGE_FILES }}
+        run: |
+          echo "Runtime image cache download: $DOWNLOAD_OUTCOME; rebuilding locally"
+          echo "Runtime image cache download: $DOWNLOAD_OUTCOME. Rebuilding and verifying archives locally." >> "$GITHUB_STEP_SUMMARY"
+          # This job owns one fixed cache directory. Clear failed multi-gigabyte
+          # downloads before allocating the fresh rebuild, without accepting an
+          # arbitrary cleanup path from the download action or its outputs.
+          if [[ "$ARTIFACTS_PATH" != 'runtime-base-images-cache' ]]; then
+            echo "::error::Unexpected runtime image cache path: $ARTIFACTS_PATH"
+            exit 1
+          fi
+          rm -rf -- "${GITHUB_WORKSPACE:?}/runtime-base-images-cache"
+          rebuilt_path=$(mktemp -d "$RUNNER_TEMP/runtime-base-images.XXXXXX")
+          bash .github/resources/scripts/build-runtime-base-images.sh "$rebuilt_path"
+          DOWNLOAD_PATH="$rebuilt_path" bash .github/resources/scripts/artifact-files.sh verify
+          echo "path=$rebuilt_path" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACTS_PATH }}
+          path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}
           if-no-files-found: error
           retention-days: 1
 

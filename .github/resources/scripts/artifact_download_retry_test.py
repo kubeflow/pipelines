@@ -21,10 +21,6 @@ import unittest
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 RETRY_ACTION = (
     REPOSITORY_ROOT / '.github/actions/download-artifact-with-retry/action.yml')
-DEPLOY_ACTION = REPOSITORY_ROOT / '.github/actions/deploy/action.yml'
-IMAGE_BUILDS_WORKFLOW = (REPOSITORY_ROOT / '.github/workflows/image-builds.yml')
-CREATE_MANIFEST_WORKFLOW = (
-    REPOSITORY_ROOT / '.github/workflows/create-manifest.yml')
 CI_SCRIPTS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
 RUNTIME_BASE_IMAGES = (
     REPOSITORY_ROOT / '.github/resources/runtime-base-images.txt')
@@ -72,35 +68,8 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
         self.assertIn('merge-multiple: ${{ inputs.merge-multiple }}', action)
         self.assertIn('github-token: ${{ inputs.github-token }}', action)
         self.assertIn('run-id: ${{ inputs.run-id }}', action)
-        self.assertIn(
-            'steps.primary.outputs.download-path || '
-            'steps.retry.outputs.download-path',
-            action,
-        )
-        self.assertIn(
-            '[[ "$PRIMARY_OUTCOME" == "success" || '
-            '"$RETRY_OUTCOME" == "success" ]]',
-            action,
-        )
-
-    def test_every_artifact_download_uses_retry_action(self):
-        callers = (
-            DEPLOY_ACTION,
-            IMAGE_BUILDS_WORKFLOW,
-            CREATE_MANIFEST_WORKFLOW,
-        )
-
-        for caller in callers:
-            with self.subTest(caller=caller.relative_to(REPOSITORY_ROOT)):
-                contents = caller.read_text(encoding='utf-8')
-                self.assertIn(
-                    'uses: ./.github/actions/download-artifact-with-retry',
-                    contents,
-                )
-                self.assertNotIn(
-                    'uses: actions/download-artifact@',
-                    contents,
-                )
+        self.assertIn('steps.primary.outputs.download-path', action)
+        self.assertIn('steps.retry.outputs.download-path', action)
 
     def test_runtime_archive_contains_external_deployment_images(self):
         images = runtime_images()

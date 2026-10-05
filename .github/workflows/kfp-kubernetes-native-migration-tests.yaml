@@ -12,6 +12,7 @@ on:
       - ".github/actions/setup-python/**"
       - ".github/workflows/image-builds.yml"
       - ".github/actions/deploy/**"
+      - ".github/actions/download-artifact-with-retry/**"
       - ".github/resources/**"
       - "tools/k8s-native/**"
       - "test/kfp-kubernetes-native-migration-tests/**"
