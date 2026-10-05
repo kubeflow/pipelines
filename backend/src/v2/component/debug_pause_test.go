@@ -21,7 +21,10 @@ import (
 	"testing"
 	"time"
 
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // mockPauseSignaler is a hand-rolled PauseSignaler for testing Pause()'s
@@ -174,6 +177,58 @@ func TestPause_ContextCancellationClearsBestEffort(t *testing.T) {
 	err := Pause(ctx, signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.ErrorIs(t, err, context.Canceled)
 	require.True(t, signaler.clearCalled, "clear must still be attempted after cancellation, via a fresh context")
+}
+
+// seedPausedTask creates a task in the mock API carrying the given custom
+// properties, simulating leftover state from a previous barrier.
+func seedPausedTask(t *testing.T, api *kfpapi.MockAPI, runID, taskID string, props map[string]*structpb.Value) {
+	t.Helper()
+	_, err := api.CreateTask(context.Background(), &apiV2beta1.CreateTaskRequest{
+		RunId: runID,
+		Task: &apiV2beta1.PipelineTask{
+			TaskId: taskID,
+			RunId:  runID,
+			StatusMetadata: &apiV2beta1.PipelineTask_StatusMetadata{
+				CustomProperties: props,
+			},
+		},
+	})
+	require.NoError(t, err)
+}
+
+// TestPublishBarrier_ResetsStaleResumeFlag verifies that publishing a barrier
+// also resets debug_pause_resume_requested. ClearBarrier is best effort, so
+// a resume flag from a previous barrier can survive a failed UpdateTask and
+// would otherwise release the next barrier on its first poll.
+func TestPublishBarrier_ResetsStaleResumeFlag(t *testing.T) {
+	api := kfpapi.NewMockAPI()
+	seedPausedTask(t, api, "run-1", "task-1", map[string]*structpb.Value{
+		customPropDebugPauseBarrier:         structpb.NewStringValue("none"),
+		customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
+	})
+
+	signaler := NewKFPAPIPauseSignaler(api, "run-1", "task-1")
+	require.NoError(t, signaler.PublishBarrier(context.Background(), DebugPauseBarrierAfter))
+
+	resumed, err := signaler.IsResumeRequested(context.Background())
+	require.NoError(t, err)
+	require.False(t, resumed, "publishing a new barrier must reset a stale resume flag")
+}
+
+// TestPause_StaleResumeFlagDoesNotReleaseBarrier reproduces the full scenario
+// end to end: a stale resume flag from a previous barrier sits on the task
+// when Pause() parks at a new barrier. PublishBarrier resets it, so the wait
+// continues to the safety valve instead of releasing on the first poll.
+func TestPause_StaleResumeFlagDoesNotReleaseBarrier(t *testing.T) {
+	api := kfpapi.NewMockAPI()
+	seedPausedTask(t, api, "run-1", "task-1", map[string]*structpb.Value{
+		customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
+	})
+
+	signaler := NewKFPAPIPauseSignaler(api, "run-1", "task-1")
+	err := Pause(context.Background(), signaler, DebugPauseBarrierAfter, fastTestConfig())
+	require.Error(t, err)
+	require.True(t, IsDebugPauseTimeout(err), "stale resume flag must not release the barrier; expected timeout")
 }
 
 func TestBarrierForError(t *testing.T) {
