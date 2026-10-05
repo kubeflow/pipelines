@@ -93,10 +93,15 @@ restore_controller_namespaces() {
   done
 }
 start_forward() {
-  kube -n kubeflow port-forward service/ml-pipeline 8888:8888 >"$state/port-forward.log" 2>&1 &
+  # Own the kubectl process itself so stop_forward closes and reaps the old
+  # listener before the API rollout. A backgrounded kube function adds a shell.
+  (exec kubectl --context "$context" --request-timeout=30s -n kubeflow \
+    port-forward service/ml-pipeline 8888:8888) >"$state/port-forward.log" 2>&1 &
   forward_pid=$!
   for attempt in {1..30}; do
+    kill -0 "$forward_pid" || return 1
     if curl --noproxy '*' --silent --fail --max-time 2 "$endpoint/apis/v2beta1/healthz" >/dev/null; then
+      kill -0 "$forward_pid" || return 1
       return
     fi
     kill -0 "$forward_pid"

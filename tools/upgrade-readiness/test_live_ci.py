@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -137,6 +138,76 @@ class LiveCITests(unittest.TestCase):
                                         fieldRef=dict(
                                             fieldPath='metadata.namespace')))
                             ]))
+
+    def test_forward_lifecycle_owns_and_reaps_the_listener(self):
+        functions = '\n'.join(
+            re.search(r'(' + name + r'\(\) \{[\s\S]*?^\})', SCRIPT.read_text(),
+                      re.MULTILINE).group(1)
+            for name in ('start_forward', 'stop_forward'))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            kubectl = root / 'kubectl'
+            kubectl.write_text(
+                '#!' + sys.executable + '\n'
+                'import os, pathlib, signal\n'
+                'pathlib.Path(os.environ["LISTENER_PID"]).write_text(str(os.getpid()))\n'
+                'signal.pause()\n')
+            kubectl.chmod(0o755)
+            # Use an actual child process: mocking kube as a shell no-op would
+            # hide the wrapper-process leak during the audit rollout.
+            shell = (
+                'set -euo pipefail\n'
+                'context=fixture; endpoint=http://127.0.0.1; state="$FIXTURE_DIR"\n'
+                'kube() { kubectl --context "$context" --request-timeout=30s "$@"; }\n'
+                'curl() { for i in {1..100}; do [[ -s "$LISTENER_PID" ]] && return; sleep 0.01; done; return 1; }\n'
+                'trap \'[[ ! -s "$LISTENER_PID" ]] || kill "$(cat "$LISTENER_PID")" 2>/dev/null || true\' EXIT\n'
+                + functions + '\n'
+                'for mode in enforce audit; do\n'
+                '  rm -f "$LISTENER_PID"\n'
+                '  start_forward\n'
+                '  listener=$(cat "$LISTENER_PID")\n'
+                '  [[ "$forward_pid" == "$listener" ]] || exit 1\n'
+                '  stop_forward\n'
+                '  ! kill -0 "$listener" 2>/dev/null || exit 1\n'
+                '  [[ -z "$forward_pid" ]] || exit 1\n'
+                'done\n')
+            result = subprocess.run(
+                ['bash', '-c', shell],
+                text=True,
+                capture_output=True,
+                timeout=10,
+                env=dict(
+                    os.environ,
+                    PATH=directory + os.pathsep + os.environ['PATH'],
+                    FIXTURE_DIR=directory,
+                    LISTENER_PID=str(root / 'listener.pid')))
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_forward_rejects_health_from_another_listener(self):
+        function = re.search(r'(start_forward\(\) \{[\s\S]*?^\})',
+                             SCRIPT.read_text(), re.MULTILINE).group(1)
+        with tempfile.TemporaryDirectory() as directory:
+            kubectl = Path(directory) / 'kubectl'
+            kubectl.write_text('#!/bin/sh\nexit 1\n')
+            kubectl.chmod(0o755)
+            # A healthy stale listener cannot make a failed replacement pass.
+            shell = (
+                'set -euo pipefail\n'
+                'context=fixture; endpoint=http://127.0.0.1; state="$FIXTURE_DIR"\n'
+                'kube() { kubectl --context "$context" --request-timeout=30s "$@"; }\n'
+                'curl() { wait "$forward_pid" || true; return 0; }\n' +
+                function + '\n'
+                'if start_forward; then exit 1; fi\n')
+            result = subprocess.run(['bash', '-c', shell],
+                                    text=True,
+                                    capture_output=True,
+                                    timeout=10,
+                                    env=dict(
+                                        os.environ,
+                                        PATH=directory + os.pathsep +
+                                        os.environ['PATH'],
+                                        FIXTURE_DIR=directory))
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_embedded_python_compiles(self):
         blocks = [
