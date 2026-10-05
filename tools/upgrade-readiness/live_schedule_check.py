@@ -37,6 +37,36 @@ RUN_STATES = frozenset(
 FAILED_STATES = frozenset(('FAILED', 'CANCELED', 'SKIPPED'))
 POSITIVE_OUTCOMES = ('run_created', 'run_succeeded')
 
+# Only fixed local reason codes may enter published evidence. Exception text
+# can contain tokens, response bodies, file paths, or fixture payloads.
+SAFE_FAILURE_REASONS = frozenset(
+    ('invalid_timestamp', 'invalid_namespace', 'namespace_mismatch',
+     'future_observation_start', 'invalid_cases', 'invalid_case_identifier',
+     'duplicate_schedule', 'invalid_run_baseline', 'invalid_event_baseline',
+     'invalid_outcome', 'incompatible_prediction', 'prediction_mismatch',
+     'positive_control_required', 'invalid_activation_start',
+     'invalid_run_response', 'invalid_run_list', 'invalid_run',
+     'run_schedule_mismatch', 'run_namespace_mismatch', 'invalid_run_id',
+     'invalid_run_pagination', 'run_page_limit', 'invalid_events',
+     'run_account_mismatch', 'input_too_large', 'invalid_input',
+     'invalid_timeout', 'redirect_refused', 'invalid_endpoint',
+     'invalid_token_file', 'invalid_ca_file', 'invalid_api_path',
+     'request_budget_exceeded', 'total_response_limit_exceeded',
+     'invalid_query', 'unexpected_http_status', 'request_timeout',
+     'response_limit_exceeded', 'invalid_json_object', 'api_error',
+     'access_denied', 'not_found', 'http_error', 'request_failed',
+     'collection_timed_out', 'collection_exceeded_16_mib', 'collection_failed',
+     'collection_invalid_json'))
+
+
+def failure_reason(error):
+    reason = error.reason if isinstance(error, CollectionError) else (
+        error.args[0]
+        if type(error) is ValueError and len(error.args) == 1 else None)
+    return reason if isinstance(reason,
+                                str) and reason in SAFE_FAILURE_REASONS else (
+                                    'invalid_or_incomplete_evidence')
+
 
 def timestamp(value):
     if not isinstance(value, str):
@@ -365,11 +395,11 @@ def main():
         report['observation_start'] = start.isoformat()
         print(json.dumps(report, sort_keys=True))
         return 0 if report['outcome'] == 'passed' else 1
-    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
         print(
             json.dumps({
                 'outcome': 'inconclusive',
-                'reason': 'invalid_or_incomplete_evidence'
+                'reason': failure_reason(error)
             }))
         return 1
 

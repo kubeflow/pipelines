@@ -455,6 +455,40 @@ class LiveTests(unittest.TestCase):
         }
         self.assertEqual(live.validate(bundle, report, 'team')[0], [case])
 
+    def test_cli_failures_remain_inconclusive_and_sanitized(self):
+        args = [
+            'check', '--context', 'ctx', '--namespace', 'team',
+            '--kfp-endpoint', 'http://127.0.0.1', '--kfp-token-file', 'token',
+            '--expectations', 'cases', '--prediction-report', 'report',
+            '--not-before', '2026-01-01T00:00:00Z'
+        ]
+        failures = [
+            (CollectionError('request_failed'), 'request_failed'),
+            (CollectionError('run_account_mismatch'), 'run_account_mismatch'),
+            (CollectionError('collection_timed_out'), 'collection_timed_out'),
+            (ValueError('prediction_mismatch'), 'prediction_mismatch'),
+            (ValueError('invalid_activation_start'),
+             'invalid_activation_start'),
+            (CollectionError('private response body'), None),
+            (ValueError('private timestamp or payload'), None),
+            (ValueError({'private': 'payload'}), None),
+            (OSError('private token path'), None),
+            (KeyError('private field'), None),
+            (TypeError('private value'), None),
+            (AttributeError('private object'), None),
+        ]
+        for error, reason in failures:
+            with self.subTest(error=type(error), reason=reason):
+                with patch('sys.argv', args), patch.object(
+                        live, 'load',
+                        side_effect=error), patch('builtins.print') as output:
+                    self.assertEqual(live.main(), 1)
+                self.assertEqual(
+                    json.loads(output.call_args.args[0]), {
+                        'outcome': 'inconclusive',
+                        'reason': reason or 'invalid_or_incomplete_evidence'
+                    })
+
     def test_cli_upgrades_positive_expectations_only(self):
         case = dict(
             self.case,
