@@ -162,7 +162,7 @@ class TestDockerRunner(unittest.TestCase):
     def test_excess_container_args(self):
         with self.assertRaisesRegex(
                 ValueError,
-                r'The following docker run arguments should not be specififed: .*'
+                r'The following docker run arguments should not be specified: .*'
         ):
             local.DockerRunner(image='spaghetti')
 

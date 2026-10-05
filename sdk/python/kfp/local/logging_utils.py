@@ -66,7 +66,8 @@ def _thread_aware_indented_print(*args: Any, **kwargs: Any) -> None:
 
 @contextlib.contextmanager
 def local_logger_context() -> Generator[None, None, None]:
-    """Context manager for creating and reseting the local execution logger."""
+    """Context manager for creating and resetting the local execution
+    logger."""
 
     logger = logging.getLogger()
     original_level = logger.level
@@ -143,7 +144,7 @@ def make_log_lines_for_artifact(artifact: dsl.Artifact,) -> List[str]:
 
 
 def make_log_lines_for_outputs(outputs: Dict[str, Any]) -> List[str]:
-    """Returns a list of log lines to repesent the outputs of a task."""
+    """Returns a list of log lines to represent the outputs of a task."""
     INDENT = ' ' * 4
     SEPARATOR = ': '
     output_lines = []
