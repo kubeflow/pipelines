@@ -266,6 +266,18 @@ class WorkflowTests(unittest.TestCase):
             (root /
              '.github/workflows/image-builds-release.yml').read_text())['jobs']
 
+    def test_cve_scan_uses_the_build_platform(self):
+        build = self.jobs['build-images-for-release']
+        self.assertEqual(build['with']['platforms'],
+                         '${{ matrix.arch.platform }}')
+        root = Path(__file__).resolve().parents[3]
+        workflow = yaml.safe_load(
+            (root / '.github/workflows/build-and-push.yml').read_text())
+        steps = workflow['jobs']['build-and-push-images']['steps']
+        scan = next(step for step in steps if step.get('id') == 'trivy_scan')
+        self.assertEqual(scan['env'].get('TRIVY_PLATFORM'),
+                         '${{ inputs.platforms }}')
+
     def test_validation_runs_natively_after_publication_and_skips_dry_runs(
             self):
         job = self.jobs['validate-release-images']

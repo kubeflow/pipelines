@@ -268,6 +268,8 @@ jobs:
           output: 'trivy-results.json'
           exit-code: '0'
         env:
+          # Remote index resolution defaults to AMD64 even on ARM64 runners.
+          TRIVY_PLATFORM: ${{ inputs.platforms }}
           # Use ECR instead of GitHub Container Registry to avoid rate limiting.
           # Do not skip updates: release decisions must use current advisory data.
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
