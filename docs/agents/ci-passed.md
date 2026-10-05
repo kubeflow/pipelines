@@ -2,10 +2,10 @@
 
 CI Check is the sole publisher of the `ci-passed` commit status. The label with
 the same name is informational. Tide remains the merge authority; human PRs
-still require review. Automatic Dependabot creation holds remain configured for every ecosystem;
-existing PR-specific holds remain separate maintainer decisions and are never
-removed by the publisher. Removing creation holds remains a separate change
-after the deployed merge policy has been verified. Required `ci-passed` protection is intended for
+still require review. Automatic Dependabot creation holds have been removed;
+merging now relies on the required `ci-passed` status and the deployed Tide
+policy. Existing PR-specific holds remain separate maintainer decisions and are
+never removed by the publisher. Required `ci-passed` protection is intended for
 `master` only: older release branches do not publish this commit status.
 
 ## Contract and enforcement
