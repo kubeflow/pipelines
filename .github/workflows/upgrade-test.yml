@@ -162,10 +162,10 @@ jobs:
         with:
           python-version: '3.11'
           cache-scope: readiness-schedules
-          cache-dependency-hash: ${{ hashFiles('.github/workflows/upgrade-test.yml') }}
+          cache-dependency-hash: ${{ hashFiles('tools/upgrade-readiness/requirements.txt') }}
 
       - name: Install fixture manifest reader
-        run: python3 -m pip install 'PyYAML==6.0.3'
+        run: python3 -m pip install -r tools/upgrade-readiness/requirements.txt
 
       - name: Require integrated scheduling policy
         run: bash .github/resources/scripts/readiness-schedules.sh preflight
@@ -191,7 +191,7 @@ jobs:
       - name: Compare live enforce and audit schedule outcomes
         run: bash .github/resources/scripts/readiness-schedules.sh target
 
-      - name: Upload sanitized readiness evidence
+      - name: Upload isolated-fixture readiness evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:

@@ -18,7 +18,7 @@ import collections
 import dataclasses
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Tuple, Union
 import uuid
 
 from google.protobuf import json_format
@@ -389,7 +389,8 @@ class RetryPolicy:
     backoff_duration: Optional[str] = None
     backoff_factor: Optional[float] = None
     backoff_max_duration: Optional[str] = None
-    policy: Optional[str] = None
+    policy: Optional[Literal['Always', 'OnFailure', 'OnError',
+                             'OnTransientError']] = None
 
     def to_proto(self) -> pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy:
         # include defaults so that IR is more reflective of runtime behavior

@@ -23,6 +23,7 @@ import time
 import unittest
 from unittest import mock
 
+import kubectl_inventory
 import readiness
 
 
@@ -422,11 +423,11 @@ class ReadinessTest(unittest.TestCase):
                 return original([sys.executable, '-c', script], **kwargs)
 
             with mock.patch.object(
-                    readiness.subprocess, 'Popen', side_effect=launch):
-                return readiness.kubectl_get('context', 'team-a',
-                                             'deployments.apps')
+                    kubectl_inventory.subprocess, 'Popen', side_effect=launch):
+                return kubectl_inventory.kubectl_get('context', 'team-a',
+                                                     'deployments.apps')
 
-        with mock.patch.object(readiness, 'MAX_BYTES', 128):
+        with mock.patch.object(kubectl_inventory, 'MAX_BYTES', 128):
             data, error = run_script("import sys;sys.stdout.write('x'*1024)")
             self.assertIsNone(data)
             self.assertEqual(error, 'collection_exceeded_16_mib')
@@ -491,11 +492,11 @@ class ReadinessTest(unittest.TestCase):
                 [sys.executable, '-c', 'import time; time.sleep(10)'], **kwargs)
 
         with mock.patch.object(
-                readiness.subprocess, 'Popen', side_effect=launch):
+                kubectl_inventory.subprocess, 'Popen', side_effect=launch):
             with mock.patch.object(
-                    readiness.time, 'monotonic', side_effect=[0, 31]):
-                data, error = readiness.kubectl_get('context', 'team-a',
-                                                    'deployments.apps')
+                    kubectl_inventory.time, 'monotonic', side_effect=[0, 31]):
+                data, error = kubectl_inventory.kubectl_get(
+                    'context', 'team-a', 'deployments.apps')
         self.assertIsNone(data)
         self.assertEqual(error, 'collection_timed_out')
 
@@ -576,17 +577,20 @@ class ReadinessTest(unittest.TestCase):
                     return original([sys.executable, '-c', script], **kwargs)
 
                 with mock.patch.object(
-                        readiness.subprocess, 'Popen', side_effect=launch):
+                        kubectl_inventory.subprocess, 'Popen',
+                        side_effect=launch):
                     if cause == 'timeout':
                         with mock.patch.object(
-                                readiness.time, 'monotonic',
+                                kubectl_inventory.time,
+                                'monotonic',
                                 side_effect=[0, 0, 31]):
-                            _, error = readiness.kubectl_get(
+                            _, error = kubectl_inventory.kubectl_get(
                                 'ctx', 'ns', 'deployments.apps')
                         self.assertEqual(error, 'collection_timed_out')
                     else:
-                        with mock.patch.object(readiness, 'MAX_BYTES', 128):
-                            _, error = readiness.kubectl_get(
+                        with mock.patch.object(kubectl_inventory, 'MAX_BYTES',
+                                               128):
+                            _, error = kubectl_inventory.kubectl_get(
                                 'ctx', 'ns', 'deployments.apps')
                         self.assertEqual(error, 'collection_exceeded_16_mib')
                 time.sleep(0.6)

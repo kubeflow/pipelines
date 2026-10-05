@@ -29,9 +29,9 @@ import subprocess
 import time
 
 from kfp_http import CollectionError
+from kubectl_inventory import kill_process_group
 from live_schedule_check import load
 from live_schedule_check import timestamp
-from readiness import kill_process_group
 
 CONTEXT = 'kind-kfp-readiness'
 NAMESPACE = 'kfp-readiness-test'

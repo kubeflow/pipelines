@@ -4,6 +4,36 @@ Changelog
 
 ### Upgrade notes
 
+#### Breaking changes for multi-user upgrades to 2.18
+
+- **Recreate existing recurring runs through the API:** pre-upgrade schedules
+  stop firing until reviewed and recreated, even if they still appear enabled.
+  The startup migration inventory only logs affected schedules; it does not
+  backfill trusted scheduling state.
+- **Upgrade the API, scheduled-workflow controller, and RBAC together:** the new
+  multi-user controller delegates execution to the API. The new ClusterRole
+  removes Workflow creation permission, so a 2.17.2 controller cannot keep
+  creating Workflows with 2.18 RBAC. Drain old API replicas before recreating
+  schedules; see the procedure below.
+- **Pass a namespace for pipeline-by-name lookup:** with the Kubernetes-native
+  pipeline store in multi-user mode, pipeline-by-name API
+  lookups require an explicit `namespace`; they no longer fall back to the KFP
+  installation namespace. Pass `namespace` to SDK `get_pipeline_id` when looking
+  up private pipelines, then pass the returned ID to `get_pipeline`. Update callers
+  before upgrading from 2.17.2 (for example,
+  `client.get_pipeline_id('my-pipeline', namespace='team-a')`). This requirement
+  does not apply to the SQL pipeline store or single-user mode.
+
+#### Database migration
+
+API startup adds `idx_run_details_job_uuid` to `run_details` for recurring-run
+concurrency checks and bounds `JobUUID` to `varchar(191)`, matching the job ID
+column. Existing run associations are preserved. Allow time for this schema
+migration on large run tables; index creation or column conversion can rebuild
+or lock the table depending on the database version.
+
+#### Scheduling migration details
+
 - **Recurring-run security:** multi-user recurring runs created before API-owned
   scheduling state must be reviewed and recreated through the API. Otherwise they
   stop submitting executions, even when shown as enabled. API startup logs now

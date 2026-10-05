@@ -21,13 +21,13 @@ import json
 
 from kfp_http import Client
 from kfp_http import CollectionError
+from kubectl_inventory import kubectl_get
 from live_schedule_check import list_events
 from live_schedule_check import list_runs
 from live_schedule_check import validate
 from live_schedule_check import validate_baseline
 from provision_live_schedules import CONTEXT
 from provision_live_schedules import NAMESPACE
-from readiness import kubectl_get
 from readiness import read_json
 
 

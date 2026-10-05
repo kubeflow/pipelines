@@ -29,7 +29,7 @@ from kfp_http import Client
 from kfp_http import CollectionError
 from kfp_inventory import field
 from kfp_inventory import identifier
-from readiness import kubectl_get
+from kubectl_inventory import kubectl_get
 
 RUN_STATES = frozenset(
     ('RUNTIME_STATE_UNSPECIFIED', 'PENDING', 'RUNNING', 'SUCCEEDED', 'SKIPPED',

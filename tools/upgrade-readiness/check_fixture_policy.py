@@ -20,10 +20,10 @@ import json
 
 from kfp_http import Client
 from kfp_inventory import collect
+from kubectl_inventory import kubectl_get
 from provision_live_schedules import CONTEXT
 from provision_live_schedules import NAMESPACE
 from provision_live_schedules import read_object
-from readiness import kubectl_get
 import schedule_policy
 
 
