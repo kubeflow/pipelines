@@ -787,8 +787,20 @@ func (c *replaceOnFirstUpdateWorkflowClient) Update(ctx context.Context, execSpe
 		if err := c.Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
 			return nil, err
 		}
+		suspend := true
+		labels := map[string]string{}
+		if execSpec.ExecutionObjectMeta() != nil && execSpec.ExecutionObjectMeta().Labels != nil {
+			for key, value := range execSpec.ExecutionObjectMeta().Labels {
+				labels[key] = value
+			}
+		}
 		_, err := c.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
-			ObjectMeta: v1.ObjectMeta{Name: execSpec.ExecutionName(), Namespace: execSpec.ExecutionNamespace()},
+			ObjectMeta: v1.ObjectMeta{
+				Name:      execSpec.ExecutionName(),
+				Namespace: execSpec.ExecutionNamespace(),
+				Labels:    labels,
+			},
+			Spec: v1alpha1.WorkflowSpec{Suspend: &suspend},
 		}), v1.CreateOptions{})
 		if err != nil {
 			return nil, err
@@ -3359,6 +3371,44 @@ func TestRetryRun_FailedOffloadNodeStatus(t *testing.T) {
 	assert.Contains(t, err.Error(), "hydrating workflow node status")
 }
 
+func TestRetryRun_RejectsForeignSameNameWorkflow(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	originalUID := storedWorkflowUID(t, run)
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+
+	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	foreignWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	createdForeign, err := workflowClient.Create(ctx, foreignWorkflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	foreignUID := createdForeign.ExecutionObjectMeta().UID
+
+	err = manager.RetryRun(ctx, runDetail.UUID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to this run")
+
+	liveForeign, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, foreignUID, liveForeign.ExecutionObjectMeta().UID)
+	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(liveForeign.ExecutionStatus().Condition()))
+
+	unchangedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, unchangedRun.State)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, unchangedRun))
+}
+
 func TestRetryRun_OffloadedNodeStatus_Hydrated(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRunOffloaded(t)
 	defer store.Close()
@@ -3538,6 +3588,37 @@ func TestRetryRun_OffloadedNodeStatus_SurvivesWorkflowAndOffloadGC(t *testing.T)
 
 	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID),
 		"retry must use the hydrated terminal manifest after the Workflow and its offload row are gone")
+}
+
+func TestReportWorkflowResource_TerminalOffloadedHydrateUnavailableFailsClosed(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	manifestBefore := run.WorkflowRuntimeManifest
+	stateBefore := run.State
+
+	util.SetWorkflowHydratorForTest(t, nil)
+
+	terminalWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	terminalWorkflow.SetServiceAccount(runDetail.ServiceAccount)
+	terminalWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	terminalWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	terminalWorkflow.Status.Nodes = nil
+	terminalWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
+	syncWorkflowReportWithFakeCluster(t, store, terminalWorkflow)
+
+	_, err = manager.ReportWorkflowResource(ctx, terminalWorkflow)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "OffloadNodeStatusVersion")
+
+	unchangedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, stateBefore, unchangedRun.State)
+	assert.Equal(t, manifestBefore, unchangedRun.WorkflowRuntimeManifest)
+	assert.NotContains(t, string(unchangedRun.WorkflowRuntimeManifest), "offload-hash")
 }
 
 func TestReportWorkflowResource_RecurringOffloadedTerminalHydratesBeforePersist(t *testing.T) {
