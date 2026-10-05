@@ -612,21 +612,18 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 	workflowName := swf.NextResourceName()
 
-	// Try to fetch this workflow
-	// If it already exists, it means that it was already created in a previous iteration
-	// of this controller but that the controller failed to save this data.
-	_, isNotFoundError, err := c.workflowClient.Get(swf.Namespace,
-		workflowName)
-	if err == nil {
-		// The workflow was already created by a previous iteration of this controller.
-		// Nothing to do except returning the information needed by the controller to update
-		// the ScheduledWorkflow status.
-		return true, workflowName, nextScheduledEpoch, nil
-	}
-
-	if !isNotFoundError {
-		// There was an error while attempting to retrieve the workflow
-		return false, "", nextScheduledEpoch, err
+	// Multi-user recovery must reconcile through the API server, which verifies
+	// persisted recurring-run state and returns the authoritative scheduled time.
+	// A namespace-editable Workflow is not proof of an authorized submission.
+	if !c.multiUser {
+		_, isNotFoundError, err := c.workflowClient.Get(swf.Namespace, workflowName)
+		if err == nil {
+			// Recover a single-user submission whose status update was interrupted.
+			return true, workflowName, nextScheduledEpoch, nil
+		}
+		if !isNotFoundError {
+			return false, "", nextScheduledEpoch, err
+		}
 	}
 
 	// If the workflow is not found, we need to create it.
@@ -707,6 +704,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	// to the protobuf map expected by the CreateRun request.
 	var pluginsInput map[string]*structpb.Struct
 	if len(swf.Spec.PluginsInput) > 0 {
+		var err error
 		pluginsInput, err = crdPluginsInputToProto(swf.Spec.PluginsInput)
 		if err != nil {
 			return false, "", nextScheduledEpoch, fmt.Errorf("failed to parse plugins_input from SWF spec: %w", err)
