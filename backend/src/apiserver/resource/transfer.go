@@ -61,7 +61,7 @@ func (r *ResourceManager) ExportTransfer(ctx context.Context, namespace string, 
 	if err != nil {
 		return nil, err
 	}
-	pipelines, versions, err := r.exportTransferCatalog(namespace)
+	pipelines, versions, err := r.exportTransferCatalog(ctx, namespace, transfer.NewExportBudget(transfer.MaxArchiveBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -79,13 +79,16 @@ func (r *ResourceManager) ExportTransfer(ctx context.Context, namespace string, 
 	}
 	return data, nil
 }
-func (r *ResourceManager) exportTransferCatalog(namespace string) ([]model.Pipeline, []model.PipelineVersion, error) {
-	p, v, err := r.exportTransferCatalogScope(namespace, namespace)
+func (r *ResourceManager) exportTransferCatalog(ctx context.Context, namespace string, budget *transfer.ExportBudget) ([]model.Pipeline, []model.PipelineVersion, error) {
+	if store, ok := r.pipelineStore.(*storage.PipelineStoreKubernetes); ok {
+		return r.exportTransferKubernetesCatalog(ctx, store, namespace, budget)
+	}
+	p, v, err := r.exportTransferCatalogScope(namespace, namespace, budget)
 	if err != nil {
 		return nil, nil, err
 	}
-	if _, kubernetes := r.pipelineStore.(*storage.PipelineStoreKubernetes); namespace == "" && !kubernetes {
-		shared, sharedVersions, err := r.exportTransferCatalogScope(namespace, model.NoNamespace)
+	if namespace == "" {
+		shared, sharedVersions, err := r.exportTransferCatalogScope(namespace, model.NoNamespace, budget)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -97,12 +100,8 @@ func (r *ResourceManager) exportTransferCatalog(namespace string) ([]model.Pipel
 	}
 	return p, v, nil
 }
-func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string) ([]model.Pipeline, []model.PipelineVersion, error) {
-	_, kubernetes := r.pipelineStore.(*storage.PipelineStoreKubernetes)
-	if kubernetes && namespace == "" {
-		scope = common.GetPodNamespace()
-	}
-	opts, err := list.NewOptions(&model.Pipeline{}, 100, "", nil)
+func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string, budget *transfer.ExportBudget) ([]model.Pipeline, []model.PipelineVersion, error) {
+	opts, err := list.NewOptions(&model.Pipeline{}, 1, "", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,9 +119,6 @@ func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string) ([
 			if p.Namespace == model.NoNamespace && namespace == "" {
 				p.Namespace = ""
 			}
-			if kubernetes && namespace == "" && p.Namespace == scope {
-				p.Namespace = ""
-			}
 			if p.Namespace != namespace {
 				return nil, nil, transferPrecondition("Catalog contains a pipeline outside the selected namespace")
 			}
@@ -138,8 +134,11 @@ func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string) ([
 			}
 			delete(p.Tags, transferReceiptTag)
 			delete(p.Tags, transferDigestTag)
+			if err := budget.Add(p); err != nil {
+				return nil, nil, err
+			}
 			pipelines = append(pipelines, p)
-			vo, err := list.NewOptions(&model.PipelineVersion{}, 100, "", nil)
+			vo, err := list.NewOptions(&model.PipelineVersion{}, 1, "", nil)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -164,6 +163,9 @@ func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string) ([
 					}
 					delete(v.Tags, transferReceiptTag)
 					delete(v.Tags, transferDigestTag)
+					if err := budget.Add(v); err != nil {
+						return nil, nil, err
+					}
 					versions = append(versions, v)
 				}
 				if len(pipelines)+len(versions) > history.MaxTransferObjects {
@@ -172,7 +174,7 @@ func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string) ([
 				if vn == "" {
 					break
 				}
-				vo, err = list.NewOptionsFromToken(vn, 100)
+				vo, err = list.NewOptionsFromToken(vn, 1)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -181,7 +183,7 @@ func (r *ResourceManager) exportTransferCatalogScope(namespace, scope string) ([
 		if next == "" {
 			break
 		}
-		opts, err = list.NewOptionsFromToken(next, 100)
+		opts, err = list.NewOptionsFromToken(next, 1)
 		if err != nil {
 			return nil, nil, err
 		}

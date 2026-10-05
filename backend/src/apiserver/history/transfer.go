@@ -58,19 +58,42 @@ func ExportNamespace(ctx context.Context, db *gorm.DB, namespace, runtimeNamespa
 	if err != nil {
 		return nil, err
 	}
+	budget := transfer.NewExportBudget(transfer.MaxArchiveBytes)
+	// Reserve the small top-level object and per-entry collection keys separately.
+	if err := budget.Reserve(4096); err != nil {
+		return nil, err
+	}
+	for _, p := range pipelines {
+		if err := budget.Add(p); err != nil {
+			return nil, err
+		}
+	}
+	for _, v := range versions {
+		if err := budget.Add(v); err != nil {
+			return nil, err
+		}
+	}
 	b := &NamespaceBundle{Bundle: Bundle{Format: TransferFormat, Source: source, Schema: schema, Pipelines: append([]model.Pipeline(nil), pipelines...), Versions: append([]model.PipelineVersion(nil), versions...)}, Namespace: namespace, RuntimeNamespace: runtimeNamespace}
 	for _, p := range pipelines {
 		for k, v := range p.Tags {
-			b.PipelineTags = append(b.PipelineTags, model.PipelineTag{PipelineID: p.UUID, TagKey: k, TagValue: v})
+			tag := model.PipelineTag{PipelineID: p.UUID, TagKey: k, TagValue: v}
+			if err := budget.Add(tag); err != nil {
+				return nil, err
+			}
+			b.PipelineTags = append(b.PipelineTags, tag)
 		}
 	}
 	for _, v := range versions {
 		for k, val := range v.Tags {
-			b.VersionTags = append(b.VersionTags, model.PipelineVersionTag{PipelineVersionID: v.UUID, TagKey: k, TagValue: val})
+			tag := model.PipelineVersionTag{PipelineVersionID: v.UUID, TagKey: k, TagValue: val}
+			if err := budget.Add(tag); err != nil {
+				return nil, err
+			}
+			b.VersionTags = append(b.VersionTags, tag)
 		}
 	}
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := readRows(tx.Where(clause.Eq{Column: "Namespace", Value: namespace}).Limit(MaxTransferObjects+1), &b.Experiments); err != nil {
+		if err := readTransferRows(tx.Where(clause.Eq{Column: "Namespace", Value: namespace}).Limit(MaxTransferObjects+1), &b.Experiments, budget); err != nil {
 			return err
 		}
 		var experimentIDs []string
@@ -83,14 +106,14 @@ func ExportNamespace(ctx context.Context, db *gorm.DB, namespace, runtimeNamespa
 			for i, id := range experimentIDs {
 				values[i] = id
 			}
-			if err := readRows(tx.Where(clause.IN{Column: clause.Column{Name: "ExperimentUUID"}, Values: values}).Limit(MaxTransferObjects+1), &b.Schedules); err != nil {
+			if err := readTransferRows(tx.Where(clause.IN{Column: clause.Column{Name: "ExperimentUUID"}, Values: values}).Limit(MaxTransferObjects+1), &b.Schedules, budget); err != nil {
 				return err
 			}
 			q := tx.Where(clause.IN{Column: clause.Column{Name: "ExperimentUUID"}, Values: values}).Where(clause.Gt{Column: "FinishedAtInSec", Value: 0}).Where(clause.Gte{Column: "FinishedAtInSec", Value: opts.CompletedAfter})
 			if opts.CompletedBefore > 0 {
 				q = q.Where(clause.Lt{Column: "FinishedAtInSec", Value: opts.CompletedBefore})
 			}
-			if err := readRows(q.Limit(MaxTransferRuns+1), &runs); err != nil {
+			if err := readTransferRows(q.Limit(MaxTransferRuns+1), &runs, budget); err != nil {
 				return err
 			}
 			if len(runs) > MaxTransferRuns {
@@ -105,21 +128,24 @@ func ExportNamespace(ctx context.Context, db *gorm.DB, namespace, runtimeNamespa
 			// Re-exporting imported history remains history at the next destination.
 			run.ImportedFrom = ""
 			run.ImportDigest = ""
+			if err := budget.Reserve(128); err != nil {
+				return err
+			}
 			e := Entry{Run: run}
-			if err := find(tx.Limit(MaxTransferRows+1), "RunUUID", []string{run.UUID}, &e.Tasks); err != nil {
+			if err := findTransferRows(tx.Limit(MaxTransferRows+1), "RunUUID", []string{run.UUID}, &e.Tasks, budget); err != nil {
 				return err
 			}
-			if err := find(tx.Limit(MaxTransferRows+1), "RunUUID", []string{run.UUID}, &e.Links); err != nil {
+			if err := findTransferRows(tx.Limit(MaxTransferRows+1), "RunUUID", []string{run.UUID}, &e.Links, budget); err != nil {
 				return err
 			}
-			if err := find(tx.Limit(MaxTransferRows+1), "RunUUID", []string{run.UUID}, &e.Metrics); err != nil {
+			if err := findTransferRows(tx.Limit(MaxTransferRows+1), "RunUUID", []string{run.UUID}, &e.Metrics, budget); err != nil {
 				return err
 			}
 			ids := []string{}
 			for _, l := range e.Links {
 				ids = append(ids, l.ArtifactID)
 			}
-			if err := find(tx.Limit(MaxTransferRows+1), "UUID", unique(ids), &e.Artifacts); err != nil {
+			if err := findTransferRows(tx.Limit(MaxTransferRows+1), "UUID", unique(ids), &e.Artifacts, budget); err != nil {
 				return err
 			}
 			rows += len(e.Tasks) + len(e.Links) + len(e.Metrics) + len(e.Artifacts)

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/google/uuid"
@@ -223,4 +224,71 @@ func TestTransferInlineOnlyScheduleRetainsExecutableWorkflow(t *testing.T) {
 	require.NotNil(t, swf.Spec.Workflow.Spec)
 	require.False(t, swf.Spec.Enabled)
 	require.NoError(t, r.ChangeJobMode(context.Background(), job.UUID, true))
+}
+
+func TestTransferCatalogBudgetStopsKubernetesPagination(t *testing.T) {
+	ctx := context.Background()
+	p := model.Pipeline{UUID: "pipeline", Name: "training", Namespace: "team", Status: model.PipelineReady}
+	kp := kubernetesmodel.FromPipelineModel(p)
+	kp.Spec.DefaultVersionName = "a"
+	kp.CreationTimestamp = metav1.NewTime(metav1.Now().Truncate(1e9))
+	var pages []kubernetesmodel.PipelineVersion
+	for _, name := range []string{"a", "b", "c"} {
+		row := model.PipelineVersion{UUID: name, Name: name, PipelineId: p.UUID, PipelineSpec: model.LargeText(v2SpecHelloWorld), Status: model.PipelineVersionReady}
+		v, err := kubernetesmodel.FromPipelineVersionModel(p, row)
+		require.NoError(t, err)
+		v.CreationTimestamp = kp.CreationTimestamp
+		pages = append(pages, *v)
+	}
+	// The pin must win over newer versions; a broken mutable label must not hide an owned version.
+	pages[2].CreationTimestamp = metav1.NewTime(kp.CreationTimestamp.Add(1e9))
+	pages[0].Labels = map[string]string{"pipelines.kubeflow.org/pipeline-id": "stale"}
+	scheme := runtime.NewScheme()
+	require.NoError(t, kubernetesmodel.AddToScheme(scheme))
+	reads := 0
+	catalog := ctrlfake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{List: func(_ context.Context, _ ctrlclient.WithWatch, obj ctrlclient.ObjectList, opts ...ctrlclient.ListOption) error {
+		options := (&ctrlclient.ListOptions{}).ApplyOptions(opts)
+		require.Equal(t, "team", options.Namespace)
+		require.Equal(t, int64(1), options.Limit)
+		switch page := obj.(type) {
+		case *kubernetesmodel.PipelineList:
+			page.Items = []kubernetesmodel.Pipeline{kp}
+		case *kubernetesmodel.PipelineVersionList:
+			i := 0
+			if options.Continue != "" {
+				var err error
+				i, err = strconv.Atoi(options.Continue)
+				require.NoError(t, err)
+			}
+			reads++
+			page.Items = []kubernetesmodel.PipelineVersion{pages[i]}
+			if i+1 < len(pages) {
+				page.Continue = strconv.Itoa(i + 1)
+			}
+		default:
+			t.Fatalf("unexpected catalog list %T", obj)
+		}
+		return nil
+	}}).Build()
+	store := storage.NewPipelineStoreKubernetes(catalog, catalog)
+	r := &ResourceManager{pipelineStore: store}
+	pipelines, versions, err := r.exportTransferCatalog(ctx, "team", transfer.NewExportBudget(transfer.MaxArchiveBytes))
+	require.NoError(t, err)
+	require.Len(t, pipelines, 1)
+	require.Len(t, versions, 3)
+	require.Equal(t, "a", pipelines[0].DefaultVersionId)
+	require.Equal(t, 3, reads)
+	pipelines[0].DefaultVersionId = ""
+	pipelineBytes, err := json.Marshal(pipelines[0])
+	require.NoError(t, err)
+	versionBytes, err := json.Marshal(versions[0])
+	require.NoError(t, err)
+	reads = 0
+	_, _, err = r.exportTransferCatalog(ctx, "team", transfer.NewExportBudget(len(pipelineBytes)+len(versionBytes)+2))
+	require.ErrorContains(t, err, "transfer byte limit")
+	require.Equal(t, 2, reads, "stop before fetching the third spec")
+	kp.Spec.DefaultVersionName = ""
+	pipelines, _, err = r.exportTransferCatalog(ctx, "team", transfer.NewExportBudget(transfer.MaxArchiveBytes))
+	require.NoError(t, err)
+	require.Equal(t, "c", pipelines[0].DefaultVersionId, "an unpinned pipeline uses its newest owned version")
 }
