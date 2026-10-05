@@ -40,6 +40,7 @@ let pr = {
   user: {login: 'outsider'}, author_association: 'CONTRIBUTOR', labels: [],
   ...options.pr,
 };
+let baseTip = options.baseTip || 'b'.repeat(40);
 const eventPR = structuredClone(pr);
 if (options.oldHead) eventPR.head.sha = 'old-head';
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
@@ -112,6 +113,7 @@ jobs:
       if (options.drift === 'closed') pr.state = 'closed';
     }
   }},
+  git: {getRef: async () => ({data: {object: {sha: baseTip}}})},
 }, paginate: async (method, params) => {
   if (method === methods.statuses) return statusHistory;
   if (method === methods.files) return [{filename: 'frontend/src/mlmd/Api.ts'}];
@@ -258,7 +260,9 @@ const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked',
   number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
   labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: 'NONE',
 }));
-const github = {paginate: async () => prs, rest: {pulls: {list: {}}, repos: {
+const github = {paginate: async () => prs, rest: {pulls: {list: {}}, git: {
+  getRef: async () => ({data: {object: {sha: 'b'.repeat(40)}}}),
+}, repos: {
   getCombinedStatusForRef: async ({ref}) => {
     requests.push(ref);
     const state = ref.endsWith('success') ? 'success' : ref;
@@ -307,6 +311,48 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
             'success', 'failure', 'pending', 'missing', 'untrusted',
             'stale-success', 'legacy-success', 'retarget-success'
         ])
+
+    def test_recovery_revokes_green_when_base_tip_advances(self):
+        script = r"""
+const {recoveryCandidates} = require(process.argv[1]);
+const crypto = require('node:crypto');
+const B1 = 'a'.repeat(40);
+const B2 = 'c'.repeat(40);
+const publishedStamp = crypto.createHash('sha256')
+  .update(JSON.stringify(['master', B1])).digest('hex');
+async function run(liveTip) {
+  const pr = {number: 42, head: {sha: 'H'}, base: {ref: 'master', sha: B1},
+    labels: [], author_association: 'NONE'};
+  const github = {rest: {pulls: {list: {}},
+    git: {getRef: async () => ({data: {object: {sha: liveTip}}})},
+    repos: {getCombinedStatusForRef: async ({ref}) => ({
+      data: {statuses: [{context: 'ci-passed', state: 'success',
+        description: 'Expected CI and all checks passed; base policy ' + publishedStamp + '.'}]}
+    })}}};
+  github.paginate = async () => [pr];
+  github.paginate.iterator = async function* (method, params) {
+    yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+    yield await github.rest.repos.getCombinedStatusForRef(params);
+  };
+  return recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}});
+}
+(async () => {
+  const advancedStamp = crypto.createHash('sha256')
+    .update(JSON.stringify(['master', B2])).digest('hex');
+  const noAdvance = await run(B1);
+  const advanced = await run(B2);
+  console.log(JSON.stringify({noAdvance, advanced, publishedStamp, advancedStamp}));
+})().catch(e => {console.error(e); process.exit(1);});
+"""
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
+        actual = json.loads(result.stdout)
+        self.assertNotEqual(actual['publishedStamp'], actual['advancedStamp'])
+        self.assertEqual(actual['noAdvance'], [])
+        self.assertEqual(actual['advanced'], [{'number': 42, 'head': 'H'}])
 
     def test_success_records_the_validated_base_policy(self):
         result = exercise()

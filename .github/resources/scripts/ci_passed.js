@@ -39,11 +39,26 @@ async function currentStatus(github, context, head) {
   return null;
 }
 
-function successDescription(pr) {
+async function basePolicyStamp(github, context, pr) {
+  // Key the stamp off the LIVE base branch tip so a green status is revoked
+  // when the base advances. GitHub freezes pr.base.sha at the PR's last sync,
+  // so stamping the frozen sha leaves a stale green untouched as master moves.
+  // Release branches do not publish ci-passed; keep their frozen base.sha.
+  let sha = pr.base.sha;
+  if (pr.base.ref === 'master') {
+    const {data} = await github.rest.git.getRef({
+      ...context.repo, ref: `heads/${pr.base.ref}`,
+    });
+    sha = data.object.sha;
+  }
+  return require('node:crypto').createHash('sha256')
+    .update(JSON.stringify([pr.base.ref, sha])).digest('hex');
+}
+
+async function successDescription(github, context, pr) {
   // Bind green evidence to the exact checked-in workflow policy. Legacy
   // statuses and statuses from another base must be reconsidered by recovery.
-  const stamp = require('node:crypto').createHash('sha256')
-    .update(JSON.stringify([pr.base.ref, pr.base.sha])).digest('hex');
+  const stamp = await basePolicyStamp(github, context, pr);
   return `Expected CI and all checks passed; base policy ${stamp}.`;
 }
 
@@ -57,7 +72,8 @@ async function recoveryCandidates({github, context}) {
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
     const status = await currentStatus(github, context, pr.head.sha);
-    if (status?.state === 'success' && status.description === successDescription(pr)) continue;
+    if (status?.state === 'success' &&
+        status.description === await successDescription(github, context, pr)) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -226,7 +242,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     }
     if (state === 'failure') errorReason = reason;
     await publish(github, context, original, state,
-      state === 'success' ? successDescription(pr) : reason);
+      state === 'success' ? await successDescription(github, context, pr) : reason);
     // Status/label writes are not atomic with PR or CI changes. Revalidate
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {
