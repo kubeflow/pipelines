@@ -9,6 +9,7 @@ on:
       - master
   pull_request:
     paths:
+      - '.github/workflows/presubmit-backend.yml'
       - 'backend/**'
       - 'test/cache-deployer/**'
       - 'test/presubmit-backend-test.sh'
@@ -24,6 +25,20 @@ concurrency:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: kfp_test
+          MYSQL_ROOT_HOST: '%'
+          MYSQL_DATABASE: mlmd_transfer_test
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -pkfp_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 24
 
     steps:
     - name: Checkout code
@@ -32,9 +47,36 @@ jobs:
     - name: Set up Go
       uses: ./.github/actions/setup-go
 
+    - name: Start disposable MLMD service
+      env:
+        MYSQL_TEST_PORT: ${{ job.services.mysql.ports['3306'] }}
+      run: |
+        docker exec "${{ job.services.mysql.id }}" mysql -uroot -pkfp_test -e \
+          "CREATE USER 'mlmd_transfer'@'%' IDENTIFIED WITH mysql_native_password BY 'mlmd_test'; GRANT ALL ON mlmd_transfer_test.* TO 'mlmd_transfer'@'%';"
+        docker run --detach --rm --name transfer-mlmd --network host \
+          --entrypoint /bin/metadata_store_server \
+          gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0 \
+          --grpc_port=8080 --mysql_config_database=mlmd_transfer_test \
+          --mysql_config_host=127.0.0.1 --mysql_config_port="$MYSQL_TEST_PORT" \
+          --mysql_config_user=mlmd_transfer --mysql_config_password=mlmd_test \
+          --enable_database_upgrade=true
+        for attempt in $(seq 1 30); do
+          if timeout 1 bash -c '</dev/tcp/127.0.0.1/8080'; then exit 0; fi
+          sleep 2
+        done
+        docker logs transfer-mlmd
+        exit 1
+
     - name: Run Backend Tests
       env:
+        KFP_TRANSFER_MYSQL_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
+        KFP_TRANSFER_MLMD_ADDRESS: 127.0.0.1:8080
+        KFP_TRANSFER_REQUIRE_INTEGRATION: '1'
         GIT_BRANCH: ${{ github.event_name == 'merge_group' && github.sha || github.head_ref || github.ref_name }}
         GIT_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       run: |
         ./test/presubmit-backend-test.sh
+
+    - name: Collect MLMD diagnostics
+      if: failure()
+      run: docker logs transfer-mlmd

@@ -68,6 +68,14 @@ function renderSideNav(
 }
 
 describe('SideNav', () => {
+  it('links to the metadata transfer page', () => {
+    renderSideNav(RoutePage.METADATA_TRANSFER);
+    expect(screen.getByRole('link', { name: 'Export / Import' })).toHaveAttribute(
+      'href',
+      RoutePage.METADATA_TRANSFER,
+    );
+  });
+
   let localStorageHasKeySpy: ReturnType<typeof vi.spyOn>;
   let localStorageIsCollapsedSpy: ReturnType<typeof vi.spyOn>;
 

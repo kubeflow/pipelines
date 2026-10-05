@@ -1,3 +1,0 @@
-# Optional operator/test dependencies; no SDK or server dependency changes.
-mysql-connector-python==9.5.0
-ml-metadata==1.21.0

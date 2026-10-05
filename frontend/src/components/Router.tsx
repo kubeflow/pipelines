@@ -24,6 +24,7 @@ import { classes, stylesheet } from 'typestyle';
 import Banner, { BannerProps } from 'src/components/Banner';
 import { commonCss } from 'src/Css';
 import { Deployments, KFP_FLAGS } from 'src/lib/Flags';
+import MetadataTransferPage from 'src/pages/MetadataTransfer';
 import Page404 from 'src/pages/404';
 import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveTab,
@@ -121,6 +122,7 @@ export const RoutePage = {
   RECURRING_RUN_DETAILS: `/recurringrun/details/:${RouteParams.recurringRunId}`,
   START: '/start',
   FRONTEND_FEATURES: '/frontend_features',
+  METADATA_TRANSFER: '/export-import',
 };
 
 export const RoutePageFactory = {
@@ -219,6 +221,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetailsRouter },
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
+    { path: RoutePage.METADATA_TRANSFER, Component: MetadataTransferPage },
   ];
 
   if (!buildInfo?.apiServerMultiUser) {

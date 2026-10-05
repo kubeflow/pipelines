@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import ImportExportIcon from '@mui/icons-material/ImportExport';
 import ArtifactsIcon from '@mui/icons-material/BubbleChart';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import JupyterhubIcon from '@mui/icons-material/Code';
@@ -492,6 +493,38 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   <ExecutionsIcon />
                   <span className={classes(collapsed && css.collapsedLabel, css.label)}>
                     Executions
+                  </span>
+                </div>
+              </SideNavButton>
+            </Link>
+          </Tooltip>
+          <div
+            className={classes(
+              css.indicator,
+              page !== RoutePage.METADATA_TRANSFER && css.indicatorHidden,
+            )}
+          />
+          <Tooltip
+            title='Export / Import'
+            enterDelay={300}
+            placement='right-start'
+            disableFocusListener={!collapsed}
+            disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}
+          >
+            <Link
+              id='metadataTransferBtn'
+              to={RoutePage.METADATA_TRANSFER}
+              className={commonCss.unstyled}
+            >
+              <SideNavButton
+                collapsed={collapsed}
+                className={page === RoutePage.METADATA_TRANSFER ? css.active : undefined}
+              >
+                <div className={tailwindcss.sideNavItem}>
+                  <ImportExportIcon />
+                  <span className={classes(collapsed && css.collapsedLabel, css.label)}>
+                    Export / Import
                   </span>
                 </div>
               </SideNavButton>

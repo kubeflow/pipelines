@@ -88,5 +88,7 @@ func AllModels() []any {
 		&Task{},
 		&ResourceReference{},
 		&MigrationStatus{},
+		&TransferIdentity{},
+		&TransferReceipt{},
 	}
 }
