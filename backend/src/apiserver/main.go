@@ -95,6 +95,8 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 // allows tests to supply lightweight stubs without constructing real
 // server instances.
 type HTTPRouterDeps struct {
+	ExportTransfer        http.HandlerFunc
+	ImportTransfer        http.HandlerFunc
 	UploadPipeline        http.HandlerFunc
 	UploadPipelineVersion http.HandlerFunc
 	ReadRunLog            http.HandlerFunc
@@ -505,7 +507,10 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	runLogServer := server.NewRunLogServer(resourceManager)
 	runArtifactServer := server.NewRunArtifactServer(resourceManager)
 
+	transferServer := server.NewTransferServer(resourceManager)
 	handlerDeps := HTTPRouterDeps{
+		ExportTransfer:        transferServer.Export,
+		ImportTransfer:        transferServer.Import,
 		UploadPipeline:        sharedPipelineUploadServer.UploadPipeline,
 		UploadPipelineVersion: sharedPipelineUploadServer.UploadPipelineVersion,
 		ReadRunLog:            runLogServer.ReadRunLog,
@@ -566,6 +571,12 @@ func newHealthzResponse(pipelineStore string) healthzResponse {
 // registered. It does not start a listener, making it testable in isolation.
 func buildHTTPRouter(handlerDeps HTTPRouterDeps, grpcGatewayHandler http.Handler, pipelineStore string) *mux.Router {
 	topMux := mux.NewRouter()
+	if handlerDeps.ExportTransfer != nil {
+		topMux.HandleFunc("/apis/v2beta1/transfer/export", handlerDeps.ExportTransfer)
+	}
+	if handlerDeps.ImportTransfer != nil {
+		topMux.HandleFunc("/apis/v2beta1/transfer/import", handlerDeps.ImportTransfer)
+	}
 
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
 	// accept pipeline url for importing.

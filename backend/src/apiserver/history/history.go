@@ -29,7 +29,9 @@ import (
 	"sort"
 	"unicode/utf8"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -71,6 +73,8 @@ type ImportOptions struct {
 	// the same namespace. Without it, the source experiments are preserved.
 	ExperimentID string
 	DryRun       bool
+	// ExternalCatalog has already been staged through the configured Kubernetes store.
+	ExternalCatalog bool
 }
 
 type Result struct {
@@ -81,7 +85,8 @@ type Result struct {
 func models() []any {
 	return []any{&model.Experiment{}, &model.Pipeline{}, &model.PipelineVersion{},
 		&model.PipelineTag{}, &model.PipelineVersionTag{}, &model.Run{},
-		&model.Task{}, &model.Artifact{}, &model.ArtifactTask{}, &model.RunMetricV1{}}
+		&model.Task{}, &model.Artifact{}, &model.ArtifactTask{}, &model.RunMetricV1{},
+		&model.Job{}, &model.RecurringRunState{}}
 }
 
 // schemaSignature rejects schema drift instead of silently discarding columns
@@ -146,7 +151,15 @@ func createRecord(db *gorm.DB, row any) error {
 	if err != nil {
 		return err
 	}
-	return db.Model(row).Omit(clause.Associations).Create(values).Error
+	err = db.Model(row).Omit(clause.Associations).Create(values).Error
+	driver := db.Name()
+	if driver == "postgres" {
+		driver = "pgx"
+	}
+	if err != nil && dialect.NewDBDialect(driver).IsDuplicateKeyError(err) {
+		return util.NewAlreadyExistError("A transferred resource conflicts with an existing destination ID or name")
+	}
+	return err
 }
 
 // readRows restores JSON columns using UseNumber: model JSON scanners serve
@@ -477,7 +490,7 @@ func insertOrCheck[T any](db *gorm.DB, row *T) error {
 		return requireSame(stmt.Table, wanted, actual, "UUID", "Name", "PipelineId", "PipelineSpec", "PipelineSpecURI")
 	default:
 		if !reflect.DeepEqual(wanted, actual) {
-			return fmt.Errorf("conflicting existing %s record; refusing to overwrite", stmt.Table)
+			return util.NewAlreadyExistError("conflicting existing %s record; refusing to overwrite", stmt.Table)
 		}
 		return nil
 	}
@@ -500,7 +513,7 @@ func insertHistoryArtifact(db *gorm.DB, artifact *model.Artifact, source string)
 		Distinct("RunUUID").Pluck("RunUUID", &owners).Error; err != nil {
 		return err
 	}
-	conflict := fmt.Errorf("artifact %s conflicts with destination lineage; existing artifacts must belong only to history imported from source %s", artifact.UUID, source)
+	conflict := util.NewAlreadyExistError("artifact %s conflicts with destination lineage; existing artifacts must belong only to history imported from source %s", artifact.UUID, source)
 	if len(owners) == 0 {
 		return conflict
 	}
@@ -522,7 +535,7 @@ func insertHistoryArtifact(db *gorm.DB, artifact *model.Artifact, source string)
 func requireSame(table string, wanted, actual map[string]any, names ...string) error {
 	for _, name := range names {
 		if !reflect.DeepEqual(wanted[name], actual[name]) {
-			return fmt.Errorf("conflicting existing %s record (%s); refusing to overwrite", table, name)
+			return util.NewAlreadyExistError("conflicting existing %s record (%s); refusing to overwrite", table, name)
 		}
 	}
 	return nil
@@ -546,12 +559,17 @@ func Import(ctx context.Context, db *gorm.DB, bundle *Bundle, opts ImportOptions
 	if err := validate(bundle); err != nil {
 		return result, err
 	}
+	return importValidated(ctx, db, bundle, opts)
+}
+
+func importValidated(ctx context.Context, db *gorm.DB, bundle *Bundle, opts ImportOptions) (Result, error) {
+	var result Result
 	schema, err := schemaSignature(db.WithContext(ctx))
 	if err != nil {
 		return result, err
 	}
 	if bundle.Schema != schema {
-		return result, errors.New("archive schema does not match this history binary and destination")
+		return result, util.NewInvalidInputError("archive schema does not match this server and destination")
 	}
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var target model.Experiment
@@ -582,26 +600,28 @@ func Import(ctx context.Context, db *gorm.DB, bundle *Bundle, opts ImportOptions
 		for _, version := range bundle.Versions {
 			knownVersions[version.UUID] = true
 		}
-		for _, pipeline := range bundle.Pipelines {
-			if !knownVersions[pipeline.DefaultVersionId] {
-				pipeline.DefaultVersionId = ""
+		if !opts.ExternalCatalog {
+			for _, pipeline := range bundle.Pipelines {
+				if !knownVersions[pipeline.DefaultVersionId] {
+					pipeline.DefaultVersionId = ""
+				}
+				pipeline.Name = opts.NamePrefix + pipeline.Name
+				if utf8.RuneCountInString(pipeline.Name) > 128 {
+					return errors.New("prefixed pipeline name exceeds 128 characters")
+				}
+				if err := insertOrCheck(tx, &pipeline); err != nil {
+					return err
+				}
 			}
-			pipeline.Name = opts.NamePrefix + pipeline.Name
-			if utf8.RuneCountInString(pipeline.Name) > 128 {
-				return errors.New("prefixed pipeline name exceeds 128 characters")
-			}
-			if err := insertOrCheck(tx, &pipeline); err != nil {
+			if err := insertAll(tx, bundle.Versions); err != nil {
 				return err
 			}
-		}
-		if err := insertAll(tx, bundle.Versions); err != nil {
-			return err
-		}
-		if err := insertAll(tx, bundle.PipelineTags); err != nil {
-			return err
-		}
-		if err := insertAll(tx, bundle.VersionTags); err != nil {
-			return err
+			if err := insertAll(tx, bundle.PipelineTags); err != nil {
+				return err
+			}
+			if err := insertAll(tx, bundle.VersionTags); err != nil {
+				return err
+			}
 		}
 		for _, entry := range bundle.Entries {
 			sortEntry(&entry)
@@ -623,7 +643,7 @@ func Import(ctx context.Context, db *gorm.DB, bundle *Bundle, opts ImportOptions
 			err = tx.Where(clause.Eq{Column: "UUID", Value: run.UUID}).Take(&existing).Error
 			if err == nil {
 				if existing.ImportedFrom != bundle.Source || existing.ImportDigest != checksum || existing.ExperimentId != run.ExperimentId {
-					return fmt.Errorf("run %s conflicts with destination history; refusing to overwrite", run.UUID)
+					return util.NewAlreadyExistError("run %s conflicts with destination history; refusing to overwrite", run.UUID)
 				}
 				result.Skipped++
 				continue
@@ -690,11 +710,15 @@ func Import(ctx context.Context, db *gorm.DB, bundle *Bundle, opts ImportOptions
 }
 
 func validate(b *Bundle) error {
-	if b == nil || b.Format != Format || !sourcePattern.MatchString(b.Source) {
+	if b == nil || (b.Format != Format && b.Format != TransferFormat) || !sourcePattern.MatchString(b.Source) {
 		return errors.New("unsupported history format or source installation ID")
 	}
-	if len(b.Entries) == 0 || len(b.Entries) > MaxRuns {
-		return fmt.Errorf("archive must contain 1-%d runs", MaxRuns)
+	minRuns, maxRuns := 1, MaxRuns
+	if b.Format == TransferFormat {
+		minRuns, maxRuns = 0, MaxTransferRuns
+	}
+	if len(b.Entries) < minRuns || len(b.Entries) > maxRuns {
+		return fmt.Errorf("archive must contain %d-%d runs", minRuns, maxRuns)
 	}
 	experiments := map[string]model.Experiment{}
 	for _, e := range b.Experiments {

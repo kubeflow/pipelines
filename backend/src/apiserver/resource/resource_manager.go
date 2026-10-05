@@ -1831,6 +1831,29 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
+	scheduledWorkflow, err := r.prepareJobWorkflow(ctx, job)
+	if err != nil {
+		return nil, err
+	}
+	k8sNamespace := job.Namespace
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
+	if err != nil {
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return nil, util.NewUnavailableServerError(err, "Failed to create a recurring run during scheduling a workflow - try again later")
+		}
+		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow")
+	}
+	// Complete modelJob with info coming back from ScheduledWorkflow client.
+	swf := util.NewScheduledWorkflow(newScheduledWorkflow)
+	job.UUID = string(swf.UID)
+	job.K8SName = swf.Name
+	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
+
+	return r.jobStore.CreateJob(job)
+}
+
+// prepareJobWorkflow validates a schedule without creating Kubernetes or SQL resources.
+func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
@@ -1945,20 +1968,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
 
-	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
-	if err != nil {
-		if err, ok := err.(net.Error); ok && err.Timeout() {
-			return nil, util.NewUnavailableServerError(err, "Failed to create a recurring run during scheduling a workflow - try again later")
-		}
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduling a workflow")
-	}
-	// Complete modelJob with info coming back from ScheduledWorkflow client.
-	swf := util.NewScheduledWorkflow(newScheduledWorkflow)
-	job.UUID = string(swf.UID)
-	job.K8SName = swf.Name
-	job.Conditions = model.StatusState(swf.ConditionSummary()).ToString()
-
-	return r.jobStore.CreateJob(job)
+	return scheduledWorkflow, nil
 }
 
 // Enables or disables a recurring run with given id.
@@ -3718,12 +3728,16 @@ func (r *ResourceManager) GetPipelineVersionTemplate(pipelineVersionId string) (
 // target namespace. If the returned error is nil, the authorization passes. Otherwise,
 // authorization fails with a non-nil error.
 func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	return r.isAuthorized(ctx, resourceAttributes, true)
+}
+
+func (r *ResourceManager) isAuthorized(ctx context.Context, resourceAttributes *authorizationv1.ResourceAttributes, allowSharedRead bool) error {
 	if !common.IsMultiUserMode() {
 		// Skip authz if not multi-user mode.
 		return nil
 	}
 
-	if common.IsMultiUserSharedReadMode() &&
+	if allowSharedRead && common.IsMultiUserSharedReadMode() &&
 		(resourceAttributes.Verb == common.RbacResourceVerbGet ||
 			resourceAttributes.Verb == common.RbacResourceVerbList) {
 		glog.Infof("Multi-user shared read mode is enabled. Request allowed: %+v", resourceAttributes)
