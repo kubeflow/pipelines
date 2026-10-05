@@ -207,8 +207,8 @@ run or drain deadline fails the phase.
 
 The audit phase then invokes `verify_live_audit.py`. It requires the successful
 three-scenario audit completion report and reads only the isolated API container
-logs after activation, with a 1 MiB output cap and 30-second process budget. An
-exact main-account audit record for `kfp-readiness-test/readiness-denied` must be
+logs after activation, with a 16 MiB in-memory collection cap and 30-second
+process budget. Oversized or incomplete collection fails closed. An exact main-account audit record for `kfp-readiness-test/readiness-denied` must be
 present. Only a matching count and the limited evidence scope are retained in
 `audit-emission.json`. Raw logs are neither printed nor saved. This establishes
 emission in that isolated namespace/account/window, not per-run correlation or

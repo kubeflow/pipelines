@@ -146,6 +146,12 @@ class LiveAuditTest(unittest.TestCase):
             self.collect_with_script(
                 "import sys; sys.stderr.write('PRIVATE_ERROR'); sys.exit(1)")
 
+    def test_collection_accepts_complete_logs_above_previous_limit(self):
+        size = 1024 * 1024 + 1
+        result = self.collect_with_script(
+            "import sys; sys.stdout.write('x' * " + str(size) + " + '\\n')")
+        self.assertEqual(len(result), size + 1)
+
     def test_truncated_or_oversized_logs_never_pass(self):
         with self.assertRaisesRegex(CollectionError,
                                     '^audit_collection_truncated$'):

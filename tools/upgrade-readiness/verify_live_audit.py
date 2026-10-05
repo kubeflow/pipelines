@@ -36,7 +36,8 @@ from readiness import kill_process_group
 CONTEXT = 'kind-kfp-readiness'
 NAMESPACE = 'kfp-readiness-test'
 ACCOUNT = 'readiness-denied'
-MAX_BYTES = 1024 * 1024
+# Ten-minute fixture observations include normal API request logs as well as audit records.
+MAX_BYTES = 16 * 1024 * 1024
 TIMEOUT = 30
 SCOPE = 'isolated_namespace_account_activation_window'
 DIAGNOSTIC_REASONS = frozenset({
