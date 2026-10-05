@@ -733,7 +733,7 @@ class PipelineTask:
     def set_debug_pause(
         self,
         before: bool = False,
-        after: bool = True,
+        after: bool = False,
         on_error: bool = False,
     ) -> 'PipelineTask':
         """Enable interactive debug-pause for the pipeline task.
@@ -750,19 +750,18 @@ class PipelineTask:
             before: If ``True``, pause before the main process starts.
                 Useful for inspecting the environment, installing tools, or
                 modifying inputs before execution.
-            after: If ``True`` (default), pause after the main process
-                completes. Modified by ``on_error``.
+            after: If ``True``, pause after the main process completes.
+                Modified by ``on_error``.
             on_error: If ``True``, only pause after execution when the
                 component fails (sets ``KFP_DEBUG_PAUSE_ON_ERROR`` instead
-                of ``KFP_DEBUG_PAUSE_AFTER``). Requires ``after=True``.
+                of ``KFP_DEBUG_PAUSE_AFTER``).
 
         Returns:
             Self return to allow chained setting calls.
 
         Raises:
-            ValueError: If ``after=False`` and ``on_error=True``
-                (contradictory).
-            ValueError: If both ``before`` and ``after`` are ``False``.
+            ValueError: If ``before``, ``after`` and ``on_error`` are all
+                ``False`` (no barrier selected).
 
         Example:
           ::
@@ -770,32 +769,26 @@ class PipelineTask:
             @dsl.pipeline
             def my_pipeline():
                 task = my_component()
-                task.set_debug_pause()
+                task.set_debug_pause(after=True)
 
                 task2 = my_component()
-                task2.set_debug_pause(before=True, after=False)
+                task2.set_debug_pause(before=True)
 
                 task3 = my_component()
                 task3.set_debug_pause(on_error=True)
         """
-        if not after and on_error:
+        if not before and not after and not on_error:
             raise ValueError(
-                "'on_error' applies to post-execution pause and requires "
-                'after=True. Got after=False, on_error=True - contradictory '
-                'configuration.')
-
-        if not before and not after:
-            raise ValueError(
-                "At least one of 'before' or 'after' must be True. "
-                'Got before=False, after=False - nothing to pause on.')
+                "At least one of 'before', 'after' or 'on_error' must be "
+                'True. Got before=False, after=False, on_error=False - '
+                'nothing to pause on.')
 
         if before:
             self.set_env_variable('KFP_DEBUG_PAUSE_BEFORE', 'true')
-        if after:
-            if on_error:
-                self.set_env_variable('KFP_DEBUG_PAUSE_ON_ERROR', 'true')
-            else:
-                self.set_env_variable('KFP_DEBUG_PAUSE_AFTER', 'true')
+        if on_error:
+            self.set_env_variable('KFP_DEBUG_PAUSE_ON_ERROR', 'true')
+        elif after:
+            self.set_env_variable('KFP_DEBUG_PAUSE_AFTER', 'true')
 
         return self
 
