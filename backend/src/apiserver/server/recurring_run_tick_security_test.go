@@ -260,7 +260,7 @@ func TestRecurringRunResumesOnlyTheAuthorizedPendingTick(t *testing.T) {
 }
 
 func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T) {
-	for _, replaySource := range []string{"retained", "deleted", "reporter-recovered"} {
+	for _, replaySource := range []string{"retained", "deleted", "reporter-recovered", "legacy-reporter-recovered"} {
 		t.Run(replaySource, func(t *testing.T) {
 			for _, denial := range []string{"disabled-db", "disabled-cr", "revoked-service-account", "removed-allowlist", "denied-namespace"} {
 				t.Run(denial, func(t *testing.T) {
@@ -276,19 +276,29 @@ func TestRecurringRunReplayStillChecksEnabledStateAndAuthorization(t *testing.T)
 					case "deleted":
 						require.NoError(t, manager.DeleteRun(ctx, run.RunId))
 						workflowCount = 0
-					case "reporter-recovered":
+					case "reporter-recovered", "legacy-reporter-recovered":
 						stored, err := manager.GetRun(run.RunId)
 						require.NoError(t, err)
 						workflow, err := clients.ExecClientFake.Execution(job.Namespace).Get(ctx, stored.K8SName, metav1.GetOptions{})
 						require.NoError(t, err)
-						// Recover the missing row from a real Workflow report. The
-						// reporter does not populate the row's ServiceAccount field.
+						// Recover the missing row from a real Workflow report.
 						require.NoError(t, clients.RunStore().DeleteRun(run.RunId))
 						_, err = manager.ReportWorkflowResource(ctx, workflow)
 						require.NoError(t, err)
 						recovered, err := manager.GetRun(run.RunId)
 						require.NoError(t, err)
-						require.Empty(t, recovered.ServiceAccount)
+						require.Equal(t, job.ServiceAccount, recovered.ServiceAccount)
+						if replaySource == "legacy-reporter-recovered" {
+							// Older reporters left this field empty; replay must still
+							// authorize the account retained in the Workflow.
+							recovered.ServiceAccount = ""
+							require.NoError(t, clients.RunStore().DeleteRun(recovered.UUID))
+							_, err = clients.RunStore().CreateRun(recovered)
+							require.NoError(t, err)
+							stored, err := manager.GetRun(run.RunId)
+							require.NoError(t, err)
+							require.Empty(t, stored.ServiceAccount)
+						}
 						require.Equal(t, job.UUID, recovered.RecurringRunId)
 						request.Run.DisplayName = recovered.DisplayName
 					}
