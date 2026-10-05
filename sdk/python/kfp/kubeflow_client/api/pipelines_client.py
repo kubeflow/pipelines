@@ -272,16 +272,13 @@ class PipelinesClient:
         """List runs, optionally filtered by pipeline, experiment, or status.
 
         Note:
-            The ``pipeline`` filter is applied client-side because the KFP
-            v2beta1 API does not support server-side filtering by pipeline ID.
-            When used, the returned page may contain fewer items than
-            ``page_size`` — including zero items with a non-empty
-            ``next_page_token`` if all runs on that server page belong to
-            other pipelines. Callers should continue paginating until
-            ``next_page_token`` is empty.
+            The ``pipeline`` filter is applied server-side, so a page contains
+            up to ``page_size`` matching runs. It requires a KFP runtime that
+            accepts the ``pipeline_id`` filter key; older runtimes reject the
+            request.
 
         Args:
-            pipeline: Filter by pipeline display name (client-side).
+            pipeline: Filter by pipeline display name.
             experiment: Filter by experiment display name.
             status: Filter by run state (e.g. ``"succeeded"``).
             page_token: Token for obtaining the next page.

@@ -689,7 +689,7 @@ func (s *BasePipelineServer) getLatestPipelineVersion(ctx context.Context, pipel
 	if err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes); err != nil {
 		return nil, util.Wrapf(err, "Failed to get the latest pipeline version due authorization error for pipeline id %v", pipelineId)
 	}
-	return s.resourceManager.GetLatestPipelineVersion(pipelineId)
+	return s.resourceManager.GetDefaultPipelineVersion(pipelineId)
 }
 
 // Validates a pipeline version before creating a record in the DB.

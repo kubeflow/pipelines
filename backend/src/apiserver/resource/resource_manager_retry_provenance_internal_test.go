@@ -132,7 +132,7 @@ func TestRetryRun_UsesSelectedPipelineProvenance(t *testing.T) {
 					pipeline.UUID, "newer-v2-version", "", "", v2SpecHelloWorld, "", experiment.Namespace))
 				require.NoError(t, err)
 				require.NoError(t, manager.UpdatePipelineDefaultVersion(pipeline.UUID, newer.UUID))
-				latest, err := manager.pipelineStore.GetLatestPipelineVersion(pipeline.UUID)
+				latest, err := manager.pipelineStore.GetDefaultPipelineVersion(pipeline.UUID)
 				require.NoError(t, err)
 				require.Equal(t, newer.UUID, latest.UUID)
 			}

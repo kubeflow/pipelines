@@ -72,7 +72,7 @@ func TestCreateRunPendingFollowLatestTickKeepsClaimedPipelineVersion(t *testing.
 	require.NoError(t, err)
 	require.True(t, claim.Pending)
 	versionB := publishVersion("version-b")
-	defaultVersion, err := manager.GetLatestPipelineVersion(pipeline.UUID)
+	defaultVersion, err := manager.GetDefaultPipelineVersion(pipeline.UUID)
 	require.NoError(t, err)
 	require.Equal(t, versionB.UUID, defaultVersion.UUID)
 
@@ -192,7 +192,7 @@ func TestCreateRunAcknowledgesTickAfterPipelineVersionDeletion(t *testing.T) {
 				require.NoError(t, manager.DeleteRun(ctx, first.UUID))
 			}
 			require.NoError(t, manager.DeletePipelineVersion(versionA.UUID))
-			defaultVersion, err := manager.GetLatestPipelineVersion(pipeline.UUID)
+			defaultVersion, err := manager.GetDefaultPipelineVersion(pipeline.UUID)
 			require.NoError(t, err)
 			require.Equal(t, versionB.UUID, defaultVersion.UUID)
 			manager.time = fixedRecurringTime{epoch: 210}

@@ -173,7 +173,7 @@ func TestSingleUserRecurringRunReplayAfterIncompatibleLatestVersion(t *testing.T
 		PipelineSpec: model.LargeText(strings.ReplaceAll(v2SpecHelloWorld, "param1", "renamed")),
 	})
 	require.NoError(t, err)
-	defaultVersion, err := fixture.manager.GetLatestPipelineVersion(fixture.first.PipelineId)
+	defaultVersion, err := fixture.manager.GetDefaultPipelineVersion(fixture.first.PipelineId)
 	require.NoError(t, err)
 	require.Equal(t, versionB.UUID, defaultVersion.UUID)
 
