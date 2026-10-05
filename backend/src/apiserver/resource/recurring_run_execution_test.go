@@ -309,7 +309,7 @@ func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			store, manager, experiment := initWithExperiment(t)
 			defer store.Close()
-			for key, value := range map[string]string{common.MultiUserMode: "true"} {
+			for key, value := range map[string]string{common.MultiUserMode: "true", common.AllowedServiceAccountsFlag: "recovery-runner"} {
 				previous := viper.Get(key)
 				viper.Set(key, value)
 				t.Cleanup(func() { viper.Set(key, previous) })
@@ -327,7 +327,8 @@ func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
 			}
 			job, err := manager.CreateJob(ctx, &model.Job{
 				DisplayName: "pending-creator", Namespace: "ns1", ExperimentId: experiment.UUID,
-				Enabled: true, MaxConcurrency: 1, PipelineSpec: pipeline,
+				ServiceAccount: "recovery-runner",
+				Enabled:        true, MaxConcurrency: 1, PipelineSpec: pipeline,
 				Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: util.Int64Pointer(100), IntervalSecond: util.Int64Pointer(10),
 				}},
@@ -377,7 +378,10 @@ func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
 			first := <-firstDone
 			if test.loseResponse {
 				require.ErrorContains(t, first.err, "workflow creation response was lost")
-				_, err = manager.ReportWorkflowResource(ctx, workflow)
+				// Recovery must use the verified live account, not the report payload.
+				reported := util.NewWorkflow(workflow.(*util.Workflow).DeepCopy())
+				reported.SetServiceAccount("untrusted-report-account")
+				_, err = manager.ReportWorkflowResource(ctx, reported)
 				require.NoError(t, err)
 			} else {
 				require.NoError(t, first.err)
@@ -386,6 +390,11 @@ func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, firstInput.UUID, retried.UUID)
 			require.Equal(t, workflow.ExecutionName(), retried.K8SName)
+			require.Equal(t, "recovery-runner", workflow.ServiceAccount())
+			require.Equal(t, workflow.ServiceAccount(), retried.ServiceAccount)
+			persisted, err := manager.GetRun(retried.UUID)
+			require.NoError(t, err)
+			require.Equal(t, workflow.ServiceAccount(), persisted.ServiceAccount)
 			require.Equal(t, "same-tick", retried.DisplayName)
 			require.Equal(t, int64(110), retried.ScheduledAtInSec)
 			require.Equal(t, int64(200), retried.CreatedAtInSec)
