@@ -645,12 +645,15 @@ wheels = [
 
 [[package]]
 name = "docformatter"
-version = "1.4"
+version = "1.7.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "untokenize" },
+    { name = "charset-normalizer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8a/7b/b32b3952ee4e9fd76c7a9b18d4bafb70ed65ac6426d1802103c2eaf1d0de/docformatter-1.4.tar.gz", hash = "sha256:064e6d81f04ac96bc0d176cbaae953a0332482b22d3ad70d47c8a7f2732eef6f", size = 208955, upload-time = "2020-12-27T18:11:12.162Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/e1/f6fb315205e0a8f62ddbd52029b3d39cb5bada768af317193460f0454f6b/docformatter-1.7.8.tar.gz", hash = "sha256:6589b62a8f38c62c4c8c84cb1afa296af007c88c959e4c9d25c74c1f933c4dbf", size = 37754, upload-time = "2026-04-28T20:34:49.39Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/9b/9d2f60e967243aa0d1c6366f4f5feb0740393b5da7dbc66802034afc6331/docformatter-1.7.8-py3-none-any.whl", hash = "sha256:8e518948bacb8d8df5d5f625060e214a200f0a908d8e6797c9ebbdd2cdd17467", size = 59445, upload-time = "2026-04-28T20:34:50.393Z" },
+]
 
 [[package]]
 name = "docker"
@@ -1655,7 +1658,7 @@ requires-dist = [
     { name = "build", marker = "extra == 'ci'" },
     { name = "certifi", marker = "extra == 'legacy-shared'", specifier = ">=14.5.14" },
     { name = "coverage", marker = "extra == 'sagemaker-dev-tools'", specifier = ">=5.2.1" },
-    { name = "docformatter", marker = "extra == 'lint'", specifier = "==1.4" },
+    { name = "docformatter", marker = "extra == 'lint'", specifier = "==1.7.8" },
     { name = "docker", marker = "extra == 'test'" },
     { name = "fire", marker = "extra == 'backend-v2-test'" },
     { name = "flake8", marker = "extra == 'legacy-compatible-runtime'", specifier = "==7.4.*" },
@@ -3711,12 +3714,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/55/e3/70399cb7dd41c10ac
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7", size = 14611, upload-time = "2025-10-01T02:14:40.154Z" },
 ]
-
-[[package]]
-name = "untokenize"
-version = "0.1.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f7/46/e7cea8159199096e1df52da20a57a6665da80c37fb8aeb848a3e47442c32/untokenize-0.1.1.tar.gz", hash = "sha256:3865dbbbb8efb4bb5eaa72f1be7f3e0be00ea8b7f125c69cbd1f5fda926f37a2", size = 3099, upload-time = "2014-02-08T16:30:40.631Z" }
 
 [[package]]
 name = "urllib3"
