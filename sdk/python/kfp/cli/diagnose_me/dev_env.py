@@ -44,14 +44,14 @@ def get_dev_env_configuration(
     """Captures the specified environment configuration.
 
     Captures the development environment configuration including PIP version and
-    Python version as specifeid by configuration
+    Python version as specified by configuration
 
     Args:
       configuration: Commands for specific information to be retrieved
         - PIP3LIST: captures pip3 freeze results
-        - PYTHON3PIPLIST: captuers python3 -m pip freeze results
-        - PIP3VERSION: captuers pip3 -V results
-        - PYHYON3PIPVERSION: captuers python3 -m pip -V results
+        - PYTHON3PIPLIST: captures python3 -m pip freeze results
+        - PIP3VERSION: captures pip3 -V results
+        - PYHYON3PIPVERSION: captures python3 -m pip -V results
       human_readable: If true all output will be in human readable form instead of
         Json.
 

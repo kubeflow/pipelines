@@ -92,7 +92,7 @@ def execute_gsutil_command(
         format is ['config', 'list', '--all']
       project_id: specific project to check the QUOTASs for,if no project id is
         provided will use gcloud default project if one is configured otherwise
-        will return an error massage.
+        will return an error message.
 
     Returns:
       utility.ExecutorResponse with outputs from stdout,stderr and execution code.
