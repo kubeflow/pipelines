@@ -48,12 +48,12 @@ jobs:
         env:
           EXPECTED_PLATFORMS: ${{ inputs.expected_platforms }}
         run: |
-          python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
+          PYTHONPATH=.github/resources/scripts python3 - <<'PYTHON' >> "$GITHUB_OUTPUT"
           import os
 
-          platforms = set(os.environ['EXPECTED_PLATFORMS'].split(','))
-          if not platforms or not platforms <= {'linux/amd64', 'linux/arm64'}:
-              raise SystemExit('Expected platforms must be linux/amd64 and/or linux/arm64')
+          from publish_image_index import parse_platforms
+
+          platforms = parse_platforms(os.environ['EXPECTED_PLATFORMS'])
           print('required-files<<EOF')
           for platform in sorted(platforms):
               print(f"{platform.split('/')[1]}.json")

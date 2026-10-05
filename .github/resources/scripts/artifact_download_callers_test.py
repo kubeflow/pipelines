@@ -236,8 +236,9 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         self.assertIn('> "/tmp/digests/${ARCH}.json"', producer)
 
     def test_shared_runtime_download_requires_both_produced_archives(self):
+        job = workflow('image-builds.yml')['jobs']['runtime-base-images']
         actual = self.required_files('.github/workflows/image-builds.yml',
-                                     'runtime-base-images')
+                                     'runtime-base-images', {'env': job['env']})
         self.assertEqual(actual, {'runtime-base-images.tar', 'modelcar.tar'})
         producer = (ROOT /
                     '.github/resources/scripts/build-runtime-base-images.sh'

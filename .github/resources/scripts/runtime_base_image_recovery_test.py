@@ -22,6 +22,8 @@ import tempfile
 import textwrap
 import unittest
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[3]
 CONSUMER = ROOT / '.github/workflows/image-builds.yml'
 PRODUCER = ROOT / '.github/workflows/runtime-base-images.yml'
@@ -270,6 +272,53 @@ if arguments[0] == 'save':
             any(command[0] == 'save' and MODELCAR_IMAGE in command
                 for command in commands))
 
+    def run_recovery(self, required_files=None):
+        job = yaml.safe_load(
+            CONSUMER.read_text())['jobs']['runtime-base-images']
+        step = next(step for step in job['steps']
+                    if step.get('name') == 'Build runtime base image archives')
+        manifest = (
+            job['env']['RUNTIME_IMAGE_FILES']
+            if required_files is None else required_files)
+        summary = self.directory / 'summary'
+        result = subprocess.run(
+            ['bash', '-e', '-o', 'pipefail', '-c', step['run']],
+            cwd=ROOT,
+            env={
+                **self.environment,
+                'DOCKER_LOG': str(self.docker_log),
+                'DOWNLOAD_OUTCOME': 'failure',
+                'ARTIFACTS_PATH': str(self.output_directory),
+                'DOWNLOAD_PATH': str(self.output_directory),
+                'REQUIRED_FILES': manifest,
+                'GITHUB_STEP_SUMMARY': str(summary),
+            },
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+        return result, summary.read_text() if summary.exists() else ''
+
+    def test_recovery_reports_cache_failure_and_verifies_fresh_archives(self):
+        result, summary = self.run_recovery()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('cache download: failure', summary)
+        self.assertIn('Rebuilding and verifying', summary)
+
+    def test_drifted_manifest_fails_after_rebuild_even_with_stale_cache_file(
+            self):
+        self.output_directory.mkdir()
+        (self.output_directory / 'renamed-modelcar.tar').write_text('stale')
+        result, _ = self.run_recovery(
+            'runtime-base-images.tar\nrenamed-modelcar.tar')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            'Missing or empty required artifact file: renamed-modelcar.tar',
+            result.stdout)
+        self.assertFalse(
+            (self.output_directory / 'renamed-modelcar.tar').exists())
+
 
 class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
 
@@ -300,6 +349,9 @@ class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
         self.assertIn('      actions: read\n      contents: read', job)
         self.assertNotIn(': write', job)
         self.assertNotIn('release-2.18', job)
+        self.assertIn('required-files: ${{ env.RUNTIME_IMAGE_FILES }}',
+                      download)
+        self.assertIn('REQUIRED_FILES: ${{ env.RUNTIME_IMAGE_FILES }}', build)
 
 
 if __name__ == '__main__':

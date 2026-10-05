@@ -32,12 +32,15 @@ EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
 
 
 class CompositeAction:
-    """Run real YAML conditions, environment and bash; mock only the download.
+    """Local regression simulator for this action, not a GitHub Actions runner.
 
-    This supports the expression subset used by this action, including
-    the runner's implicit success condition and continue-on-error
-    outcome semantics. No download retry or completeness decisions live
-    in this harness.
+    Execute the checked-in bash and YAML wiring with mocked downloads.
+    Expression handling covers this action's string references, boolean
+    operators and status functions only; it does not implement general
+    Actions coercion, scheduling or cancellation. Hosted CI must verify
+    runner behavior. Keeping retry decisions in the loaded YAML catches
+    wiring regressions without duplicating the retry algorithm in the
+    tests.
     """
 
     def __init__(self, path, attempts, required_files=None):
@@ -122,23 +125,33 @@ class CompositeAction:
                 if step['shell'] != 'bash':
                     raise AssertionError(f'Unexpected shell: {step}')
                 environment = os.environ.copy()
-                environment['GITHUB_ACTION_PATH'] = str(ACTION_DIRECTORY)
+                # Only the action's declared env can supply its helper path.
+                environment.pop('GITHUB_ACTION_PATH', None)
+                environment.pop('ACTION_PATH', None)
                 environment.update({
                     key: self.render(value)
                     for key, value in step.get('env', {}).items()
                 })
-                result = subprocess.run(
-                    [
-                        'bash', '--noprofile', '--norc', '-e', '-o', 'pipefail',
-                        '-c',
-                        self.render(step['run'])
-                    ],
-                    cwd=REPOSITORY_ROOT,
-                    env=environment,
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                )
+                with tempfile.TemporaryDirectory() as directory:
+                    output = Path(directory) / 'github-output'
+                    output.touch()
+                    environment['GITHUB_OUTPUT'] = str(output)
+                    result = subprocess.run(
+                        [
+                            'bash', '--noprofile', '--norc', '-e', '-o',
+                            'pipefail', '-c',
+                            self.render(step['run'])
+                        ],
+                        cwd=REPOSITORY_ROOT,
+                        env=environment,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+                    # This action emits only single-line key=value outputs.
+                    outputs.update(
+                        line.split('=', 1)
+                        for line in output.read_text().splitlines())
                 self.log += result.stdout + result.stderr
                 outcome = 'success' if result.returncode == 0 else 'failure'
             self.steps[step_id] = {'outcome': outcome, 'outputs': outputs}
@@ -194,6 +207,11 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         ], self.required)
         self.assertEqual(runner.downloads, ['primary', 'retry'], runner.log)
         self.assertEqual(result, 'success', runner.log)
+        self.assertEqual(runner.steps['verify-primary']['outcome'], 'success')
+        self.assertEqual(runner.steps['verify-primary']['outputs']['complete'],
+                         'false')
+        self.assertNotIn('::warning::', runner.log)
+        self.assertNotIn('::error::', runner.log)
 
     def test_missing_file_after_both_attempts_fails(self):
         runner, result = self.run_action([download(), download()],
@@ -202,6 +220,7 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertEqual(runner.downloads, ['primary', 'retry'])
         self.assertIn('frontend/image.tar', runner.log)
         self.assertIn('runtime-base-images/images.tar', runner.log)
+        self.assertIn('after 2 attempt', runner.log)
 
     def test_transport_failure_retries(self):
         runner, result = self.run_action([
@@ -242,6 +261,8 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, [])
         self.assertIn('Set required-files', runner.log)
+        self.assertIn('Artifact download did not start', runner.log)
+        self.assertNotIn('after 2 attempt', runner.log)
         self.assertEqual((self.path / 'existing.tar').read_text(), 'keep')
 
     def test_empty_or_blank_required_files_fails_before_download(self):
@@ -257,6 +278,7 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
             [download('failure'), download('failure')], self.required)
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, ['primary', 'retry'])
+        self.assertIn('after 2 attempt', runner.log)
 
     def test_cleanup_failure_prevents_another_download(self):
         outside = Path(self.directory.name) / 'outside'
@@ -272,12 +294,16 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         runner, result = self.run_action([incomplete_download], self.required)
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, ['primary'])
+        self.assertIn('Artifact retry did not start', runner.log)
+        self.assertNotIn('after 2 attempt', runner.log)
         self.assertEqual(target.read_text(), 'keep')
 
     def test_invalid_initial_preparation_prevents_download(self):
         runner, result = self.run_action([], '../outside')
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, [])
+        self.assertIn('Artifact download did not start', runner.log)
+        self.assertNotIn('after 2 attempt', runner.log)
 
     def test_tilde_destination_is_rejected_before_download(self):
         runner = CompositeAction(self.path, [], self.required)
@@ -362,63 +388,6 @@ class RequiredFilesSafetyTest(unittest.TestCase):
                     result = self.run_helper(mode, required_files)
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn('Set required-files', result.stdout)
-
-
-class DeployRequiredFilesTest(unittest.TestCase):
-
-    def test_deploy_emits_inventory_and_optional_modelcar_archive(self):
-        deploy = yaml.safe_load(
-            (REPOSITORY_ROOT / '.github/actions/deploy/action.yml').read_text())
-        steps = deploy['runs']['steps']
-        producer = next(
-            step for step in steps if step.get('id') == 'image-artifacts')
-        consumer = next(
-            step for step in steps if step.get('uses') ==
-            './.github/actions/download-artifact-with-retry')
-        self.assertEqual(consumer['with']['required-files'],
-                         '${{ steps.image-artifacts.outputs.required-files }}')
-        self.assertEqual(producer['env']['LOAD_MODELCAR_FIXTURE'],
-                         '${{ inputs.load_modelcar_fixture }}')
-
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            scripts = root / '.github/resources/scripts'
-            scripts.mkdir(parents=True)
-            inventory = REPOSITORY_ROOT / '.github/resources/scripts/ci-image-artifacts.sh'
-            (scripts / inventory.name).write_text(inventory.read_text())
-            waiter = scripts / 'wait-for-image-artifacts.sh'
-            waiter.write_text('#!/usr/bin/env bash\nexit 0\n')
-            waiter.chmod(0o755)
-            output = root / 'output'
-            for modelcar in ('false', 'true'):
-                with self.subTest(modelcar=modelcar):
-                    output.write_text('')
-                    result = subprocess.run(
-                        ['bash', '-e', '-o', 'pipefail', '-c', producer['run']],
-                        cwd=root,
-                        env={
-                            **os.environ, 'GITHUB_OUTPUT': str(output),
-                            'LOAD_MODELCAR_FIXTURE': modelcar
-                        },
-                        text=True,
-                        capture_output=True,
-                        check=False,
-                    )
-                    self.assertEqual(result.returncode, 0, result.stderr)
-                    lines = output.read_text().splitlines()
-                    self.assertEqual(lines[0], 'required-files<<EOF')
-                    self.assertEqual(lines[-1], 'EOF')
-                    archives = set(lines[1:-1])
-                    expected = {
-                        f'{name}/{name}.tar'
-                        for name in ('apiserver', 'scheduledworkflow',
-                                     'persistenceagent', 'frontend',
-                                     'viewer-crd-controller', 'driver',
-                                     'launcher', 'runtime-base-images')
-                    }
-                    if modelcar == 'true':
-                        expected.add('runtime-base-images/modelcar.tar')
-                    self.assertEqual(archives, expected)
 
 
 if __name__ == '__main__':

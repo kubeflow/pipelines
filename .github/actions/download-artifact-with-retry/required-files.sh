@@ -69,7 +69,7 @@ for file in "${files[@]}"; do
     # may leave unverified bytes that must not satisfy the next attempt.
     rm -f -- "$file"
   elif [[ ! -s "$file" ]]; then
-    echo "::warning::Missing or empty required artifact file: $file"
+    echo "Missing or empty required artifact file: $file"
     missing=1
   fi
 done

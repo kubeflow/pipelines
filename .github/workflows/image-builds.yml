@@ -35,6 +35,9 @@ jobs:
     env:
       ARTIFACT_NAME: "runtime-base-images"
       ARTIFACTS_PATH: "runtime-base-images-cache"
+      RUNTIME_IMAGE_FILES: |
+        runtime-base-images.tar
+        modelcar.tar
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -99,9 +102,7 @@ jobs:
           path: ${{ env.ARTIFACTS_PATH }}
           github-token: ${{ github.token }}
           run-id: ${{ steps.runtime-base-images-producer.outputs.run-id }}
-          required-files: |
-            runtime-base-images.tar
-            modelcar.tar
+          required-files: ${{ env.RUNTIME_IMAGE_FILES }}
 
       - name: Configure Docker Hub mirror
         if: steps.download-runtime-base-images.outcome != 'success'
@@ -111,7 +112,16 @@ jobs:
       - name: Build runtime base image archives
         if: steps.download-runtime-base-images.outcome != 'success'
         shell: bash
-        run: bash .github/resources/scripts/build-runtime-base-images.sh "${ARTIFACTS_PATH}"
+        env:
+          DOWNLOAD_OUTCOME: ${{ steps.download-runtime-base-images.outcome }}
+          DOWNLOAD_PATH: ${{ env.ARTIFACTS_PATH }}
+          REQUIRED_FILES: ${{ env.RUNTIME_IMAGE_FILES }}
+        run: |
+          echo "Runtime image cache download: $DOWNLOAD_OUTCOME; rebuilding locally"
+          echo "Runtime image cache download: $DOWNLOAD_OUTCOME. Rebuilding and verifying archives locally." >> "$GITHUB_STEP_SUMMARY"
+          bash .github/actions/download-artifact-with-retry/required-files.sh prepare
+          bash .github/resources/scripts/build-runtime-base-images.sh "${ARTIFACTS_PATH}"
+          bash .github/actions/download-artifact-with-retry/required-files.sh verify
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7

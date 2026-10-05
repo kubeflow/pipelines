@@ -46,11 +46,13 @@ runs:
   using: "composite"
   steps:
     - name: Prepare required artifact files
+      id: prepare-primary
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
         DOWNLOAD_PATH: ${{ inputs.path }}
         REQUIRED_FILES: ${{ inputs.required-files }}
-      run: bash "$GITHUB_ACTION_PATH/required-files.sh" prepare
+      run: bash "$ACTION_PATH/required-files.sh" prepare
 
     # The client can fail during transport or succeed with an incomplete list
     # of artifacts. Validate the extracted files before accepting either attempt.
@@ -72,13 +74,18 @@ runs:
       if: ${{ !cancelled() && steps.primary.outcome == 'success' }}
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
         DOWNLOAD_PATH: ${{ steps.primary.outputs.download-path || inputs.path }}
         REQUIRED_FILES: ${{ inputs.required-files }}
-      run: bash "$GITHUB_ACTION_PATH/required-files.sh" verify
-      continue-on-error: true
+      run: |
+        if bash "$ACTION_PATH/required-files.sh" verify; then
+          echo 'complete=true' >> "$GITHUB_OUTPUT"
+        else
+          echo 'complete=false' >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Wait before retrying artifact download
-      if: ${{ !cancelled() && (steps.primary.outcome == 'failure' || steps.verify-primary.outcome == 'failure') }}
+      if: ${{ !cancelled() && (steps.primary.outcome == 'failure' || steps.verify-primary.outputs.complete == 'false') }}
       shell: bash
       env:
         RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
@@ -88,12 +95,13 @@ runs:
 
     - name: Prepare required artifact files for retry
       id: prepare-retry
-      if: ${{ !cancelled() && (steps.primary.outcome == 'failure' || steps.verify-primary.outcome == 'failure') }}
+      if: ${{ !cancelled() && (steps.primary.outcome == 'failure' || steps.verify-primary.outputs.complete == 'false') }}
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
         DOWNLOAD_PATH: ${{ inputs.path }}
         REQUIRED_FILES: ${{ inputs.required-files }}
-      run: bash "$GITHUB_ACTION_PATH/required-files.sh" prepare
+      run: bash "$ACTION_PATH/required-files.sh" prepare
 
     - name: Retry artifact download
       id: retry
@@ -114,23 +122,42 @@ runs:
       if: ${{ !cancelled() && steps.retry.outcome == 'success' }}
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
         DOWNLOAD_PATH: ${{ steps.retry.outputs.download-path || inputs.path }}
         REQUIRED_FILES: ${{ inputs.required-files }}
-      run: bash "$GITHUB_ACTION_PATH/required-files.sh" verify
-      continue-on-error: true
+      run: |
+        if bash "$ACTION_PATH/required-files.sh" verify; then
+          echo 'complete=true' >> "$GITHUB_OUTPUT"
+        else
+          echo 'complete=false' >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Verify artifact download
       if: ${{ always() && !cancelled() }}
       shell: bash
       env:
+        PREPARE_OUTCOME: ${{ steps.prepare-primary.outcome }}
+        RETRY_PREPARE_OUTCOME: ${{ steps.prepare-retry.outcome }}
         PRIMARY_OUTCOME: ${{ steps.primary.outcome }}
-        PRIMARY_FILES_OUTCOME: ${{ steps.verify-primary.outcome }}
+        PRIMARY_FILES_COMPLETE: ${{ steps.verify-primary.outputs.complete }}
         RETRY_OUTCOME: ${{ steps.retry.outcome }}
-        RETRY_FILES_OUTCOME: ${{ steps.verify-retry.outcome }}
+        RETRY_FILES_COMPLETE: ${{ steps.verify-retry.outputs.complete }}
       run: |
-        if [[ "$PRIMARY_OUTCOME" == "success" && "$PRIMARY_FILES_OUTCOME" == "success" ]] ||
-           [[ "$RETRY_OUTCOME" == "success" && "$RETRY_FILES_OUTCOME" == "success" ]]; then
+        if [[ "$PRIMARY_OUTCOME" == "success" && "$PRIMARY_FILES_COMPLETE" == "true" ]] ||
+           [[ "$RETRY_OUTCOME" == "success" && "$RETRY_FILES_COMPLETE" == "true" ]]; then
           exit 0
         fi
-        echo "::error::Artifact download failed or required files are missing after two attempts"
+        if [[ "$PREPARE_OUTCOME" != "success" ]]; then
+          echo "::error::Artifact download did not start: required-file preparation failed"
+        elif [[ "$RETRY_PREPARE_OUTCOME" == "failure" ]]; then
+          echo "::error::Artifact retry did not start: required-file preparation failed after the first download"
+        else
+          attempts=0
+          for outcome in "$PRIMARY_OUTCOME" "$RETRY_OUTCOME"; do
+            case "$outcome" in
+              success|failure) attempts=$((attempts + 1)) ;;
+            esac
+          done
+          echo "::error::Artifact download failed or is incomplete after $attempts attempt(s)"
+        fi
         exit 1
