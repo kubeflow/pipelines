@@ -60,7 +60,7 @@ jobs:
           --mysql_config_host=127.0.0.1 --mysql_config_port="$MYSQL_TEST_PORT" \
           --mysql_config_user=mlmd_transfer --mysql_config_password=mlmd_test \
           --enable_database_upgrade=true
-        for attempt in $(seq 1 30); do
+        for ((attempt = 0; attempt < 30; attempt++)); do
           if timeout 1 bash -c '</dev/tcp/127.0.0.1/8080'; then exit 0; fi
           sleep 2
         done

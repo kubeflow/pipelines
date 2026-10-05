@@ -30,6 +30,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 - The shared runtime-image inventory pins acquisition of the Python 3.12 image used by the cache and proxy fixtures to a Docker Hub digest. Archive creation and direct Kind loading restore its runtime tag before save/load; keep fixture image references and source declarations aligned with that tag. CI script tests check this contract whenever those fixtures change.
 
+- Frontend Vitest snapshots preserve rendered whitespace. The trailing-whitespace hook excludes `frontend/**/*.snap`; update snapshots through Vitest so formatting hooks do not alter expected UI text.
+
 ## Common CI failures
 
 - SDK imports are checked by isort 5.10.1 in both lanes: `sdk/python/requirements-dev.txt` for the SDK presubmit, and the pre-commit hook's `additional_dependencies`. Keep the two pinned together; a newer pre-commit hook wraps long imports differently and conflicts with the SDK formatter.
