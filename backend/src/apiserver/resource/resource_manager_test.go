@@ -620,6 +620,47 @@ func storedWorkflowUID(t *testing.T, run *model.Run) types.UID {
 	return workflow.ExecutionObjectMeta().UID
 }
 
+func persistLegacyRuntimeManifestWithoutUID(t *testing.T, store *FakeClientManager, run *model.Run, clearNamespace bool) {
+	t.Helper()
+	workflow, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	legacyManifest := util.NewWorkflow(workflow.(*util.Workflow).DeepCopy())
+	legacyManifest.UID = ""
+	namespace := run.Namespace
+	if clearNamespace {
+		legacyManifest.Namespace = ""
+		namespace = model.NoNamespace
+	}
+	_, err = store.DB().Exec(
+		`UPDATE run_details SET Namespace = ?, WorkflowRuntimeManifest = ? WHERE UUID = ?`,
+		namespace, legacyManifest.ToStringForStore(), run.UUID)
+	require.NoError(t, err)
+	if clearNamespace {
+		_, err = store.DB().Exec(
+			`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+			run.UUID,
+			model.RunResourceType,
+			model.NamespaceResourceType,
+		)
+		require.NoError(t, err)
+	}
+}
+
+type createNameCollisionWorkflowClient struct {
+	util.ExecutionInterface
+}
+
+func (c *createNameCollisionWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	if _, err := c.ExecutionInterface.Get(ctx, execSpec.ExecutionName(), v1.GetOptions{}); err == nil {
+		return nil, apierrors.NewAlreadyExists(
+			schema.GroupResource{Group: "argoproj.io", Resource: "workflows"},
+			execSpec.ExecutionName())
+	} else if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+	return c.ExecutionInterface.Create(ctx, execSpec, opts)
+}
+
 func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Run) {
 	store, manager, exp := initWithExperiment(t)
 	apiRun := &model.Run{
@@ -3407,6 +3448,65 @@ func TestRetryRun_RejectsForeignSameNameWorkflow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, model.RuntimeStateFailed, unchangedRun.State)
 	assert.Equal(t, originalUID, storedWorkflowUID(t, unchangedRun))
+}
+
+func TestRetryRun_LegacyMissingStoredUIDUpdatesExistingWorkflow(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	live, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	originalUID := live.ExecutionObjectMeta().UID
+
+	persistLegacyRuntimeManifestWithoutUID(t, store, run, false)
+	manager.execClient = &retryWorkflowExecClient{
+		workflowClient: &createNameCollisionWorkflowClient{ExecutionInterface: workflowClient},
+	}
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+
+	retried, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, originalUID, retried.ExecutionObjectMeta().UID)
+
+	updatedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, updatedRun.State)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, updatedRun))
+}
+
+func TestRetryRun_LegacyMissingStoredUIDAndNamespaceUpdatesExistingWorkflow(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	namespace := run.Namespace
+	workflowClient := store.ExecClient().Execution(namespace)
+	live, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	originalUID := live.ExecutionObjectMeta().UID
+
+	persistLegacyRuntimeManifestWithoutUID(t, store, run, true)
+	manager.execClient = &retryWorkflowExecClient{
+		workflowClient: &createNameCollisionWorkflowClient{ExecutionInterface: workflowClient},
+	}
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+
+	retried, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, originalUID, retried.ExecutionObjectMeta().UID)
+
+	updatedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, updatedRun.State)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, updatedRun))
 }
 
 func TestRetryRun_OffloadedNodeStatus_Hydrated(t *testing.T) {

@@ -1562,6 +1562,13 @@ func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, names
 				lastWorkflowError = identityErr
 				return identityErr
 			}
+			repairedIdentity, repairErr := r.repairLegacyStoredWorkflowIdentityBeforeRetryReconcile(
+				ctx, run, latestWorkflow, storedIdentity)
+			if repairErr != nil {
+				lastWorkflowError = repairErr
+				return repairErr
+			}
+			storedIdentity = repairedIdentity
 			if retryReconcileForeignWorkflowNameConflict(runID, storedIdentity.uid, claimGeneration, latestWorkflow) {
 				conflictErr := util.NewInvalidInputError(
 					"Failed to retry run %s because workflow %s does not belong to this run",
@@ -3229,6 +3236,80 @@ func terminalWorkflowReportDeferredError(runID string, execSpec util.ExecutionSp
 // paths age out together.
 func retryClaimGracePeriod() time.Duration {
 	return time.Duration(storage.RetryClaimGraceSeconds) * time.Second
+}
+
+func (r *ResourceManager) repairLegacyStoredWorkflowIdentityBeforeRetryReconcile(
+	ctx context.Context,
+	run *model.Run,
+	live util.ExecutionSpec,
+	storedIdentity storedWorkflowIdentity,
+) (storedWorkflowIdentity, error) {
+	if storedIdentity.uid != "" || common.IsMultiUserMode() {
+		return storedIdentity, nil
+	}
+
+	runID := run.UUID
+	legacySingleUserRow := r.IsEmptyNamespace(run.Namespace)
+	modelNamespace := run.Namespace
+	if storedIdentity.namespace != "" {
+		modelNamespace = storedIdentity.namespace
+	}
+	runNamespace, err := r.resolveWorkflowReportNamespace(
+		"run", runID, modelNamespace, run.ExperimentId, live.ExecutionNamespace())
+	if err != nil {
+		return storedIdentity, err
+	}
+	if err := r.validateWorkflowReportNamespace(
+		"run", runID, runNamespace, live.ExecutionNamespace(), live.ExecutionName()); err != nil {
+		return storedIdentity, err
+	}
+	if run.K8SName != "" && run.K8SName != live.ExecutionName() && storedIdentity.name != live.ExecutionName() {
+		return storedIdentity, r.validateWorkflowReportName(runID, run.K8SName, live.ExecutionName())
+	}
+	verifiedLive, err := r.validateLiveWorkflowReportIdentity(ctx, live, live, runID, "", "", false)
+	if err != nil {
+		return storedIdentity, err
+	}
+
+	expectedWorkflowRuntimeManifest := run.WorkflowRuntimeManifest
+	expectedPipelineRuntimeManifest := run.PipelineRuntimeManifest
+	expectedStoredWorkflowIdentityManifest := storedWorkflowIdentityManifest(run)
+	expectedState := run.State
+
+	run.K8SName = verifiedLive.ExecutionName()
+	if legacySingleUserRow {
+		run.Namespace = verifiedLive.ExecutionNamespace()
+	}
+	run.WorkflowRuntimeManifest = model.LargeText(verifiedLive.ToStringForStore())
+
+	updated, err := r.runStore.UpdateRunFromWorkflow(
+		run,
+		expectedState,
+		expectedWorkflowRuntimeManifest,
+		expectedPipelineRuntimeManifest,
+	)
+	if err != nil {
+		return storedIdentity, err
+	}
+	if !updated {
+		return storedIdentity, util.NewUnavailableServerError(
+			errors.New("stored run changed while repairing legacy workflow identity"),
+			"Failed to repair legacy workflow identity for run %s before retry reconciliation - try again later",
+			runID,
+		)
+	}
+	r.storedWorkflowIdentities.replaceAfterPersist(
+		runID,
+		sha256.Sum256([]byte(expectedStoredWorkflowIdentityManifest)),
+		storedWorkflowIdentity{
+			name:            verifiedLive.ExecutionName(),
+			namespace:       verifiedLive.ExecutionNamespace(),
+			uid:             verifiedLive.ExecutionObjectMeta().UID,
+			retryGeneration: run.RetryGeneration,
+			manifestDigest:  sha256.Sum256([]byte(run.WorkflowRuntimeManifest)),
+		},
+	)
+	return r.storedWorkflowIdentityForRun(run)
 }
 
 func liveWorkflowOwnedForRetryReconcile(
