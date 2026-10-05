@@ -268,3 +268,12 @@ rollouts. Startup requires that process to report its own loopback listener
 before accepting health checks; an unrelated healthy listener cannot satisfy
 readiness. Transport failures remain inconclusive and are not retried by the
 observer.
+
+The enforce window remains 180 seconds. The audit transition is observed for
+600 seconds: the controller can retain up to 360 seconds of retry backoff after
+an enforce-mode denial, followed by execution grace. Toggling a schedule does
+not clear that queue delay. The lane does not restart the controller or promise
+immediate execution after a policy change. Each observation collection uses a
+fresh bounded HTTP client; request and byte limits still fail that collection
+closed, and failure diagnostics report cumulative counters across collections.
+The final collection still starts after the observation deadline.

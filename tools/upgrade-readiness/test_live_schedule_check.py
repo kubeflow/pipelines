@@ -16,12 +16,15 @@
 import copy
 from datetime import datetime
 from datetime import timezone
+import io
 import json
 import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
 
+from kfp_http import Client
 from kfp_http import CollectionError
+from kfp_http import MAX_REQUESTS
 import live_schedule_check as live
 
 
@@ -472,6 +475,149 @@ class LiveTests(unittest.TestCase):
                     progress=progress)
         self.assertEqual(progress, dict(completed_collections=0, stage='runs'))
 
+    def test_long_window_uses_independently_bounded_collection_clients(self):
+        cases = [
+            dict(
+                self.case,
+                schedule_uid=str(index),
+                expected_outcome='run_succeeded',
+                expected_prediction='no_issue_detected') for index in range(3)
+        ]
+        now = [0]
+        clients = []
+
+        def factory():
+            client = Client('http://127.0.0.1')
+
+            def response(*args, **kwargs):
+                result = io.BytesIO(b'{}')
+                result.status = 200
+                return result
+
+            client._opener = Mock()
+            client._opener.open.side_effect = response
+            clients.append(client)
+            return client
+
+        def evidence(client, namespace, case, start):
+            for _ in range(2):
+                client.get('/apis/v2beta1/runs')
+            return ([dict(run_id=case['schedule_uid'], state='SUCCEEDED')]
+                    if now[0] >= 400 else [])
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        progress = {}
+        with patch.object(live, 'run_evidence', side_effect=evidence):
+            with self.assertRaisesRegex(CollectionError,
+                                        'request_budget_exceeded'):
+                live.observe(
+                    factory(),
+                    'ctx',
+                    'team',
+                    cases,
+                    self.start,
+                    600,
+                    get=lambda *args: [],
+                    clock=lambda: now[0],
+                    sleep=sleep)
+            now[0] = 0
+            clients.clear()
+            report = live.observe(
+                None,
+                'ctx',
+                'team',
+                cases,
+                self.start,
+                600,
+                get=lambda *args: [],
+                clock=lambda: now[0],
+                sleep=sleep,
+                client_factory=factory,
+                progress=progress)
+        self.assertEqual(report['outcome'], 'passed')
+        self.assertEqual(now[0], 600)
+        self.assertEqual(len(clients),
+                         61)  # Includes the post-deadline collection.
+        self.assertEqual(progress['completed_collections'], 61)
+        self.assertEqual(progress['http_requests'], 366)
+        self.assertEqual(progress['http_response_bytes'], 732)
+        self.assertTrue(all(client._requests == 6 for client in clients))
+
+        now[0] = 0
+        blocked_cases = copy.deepcopy(cases)
+        blocked_cases[-1].update(
+            expected_outcome='blocked',
+            expected_prediction='operational_impact')
+
+        def late_blocked_run(client, namespace, case, start):
+            records = evidence(client, namespace, case, start)
+            return ([] if case['schedule_uid'] == '2' and now[0] < 600 else
+                    records)
+
+        with patch.object(live, 'run_evidence', side_effect=late_blocked_run):
+            report = live.observe(
+                None,
+                'ctx',
+                'team',
+                blocked_cases,
+                self.start,
+                600,
+                get=lambda *args: [],
+                clock=lambda: now[0],
+                sleep=sleep,
+                client_factory=factory)
+        self.assertEqual(now[0], 600)
+        self.assertEqual(report['outcome'], 'failed')
+
+        # Resetting between rounds never exempts one round from its own limit.
+        def excessive(client, *args):
+            for _ in range(MAX_REQUESTS + 1):
+                client.get('/apis/v2beta1/runs')
+
+        progress = {}
+        with patch.object(live, 'run_evidence', side_effect=excessive):
+            with self.assertRaisesRegex(CollectionError,
+                                        'request_budget_exceeded'):
+                live.observe(
+                    None,
+                    'ctx',
+                    'team',
+                    cases,
+                    self.start,
+                    600,
+                    get=lambda *args: [],
+                    client_factory=factory,
+                    progress=progress)
+        self.assertEqual(progress['completed_collections'], 0)
+        self.assertEqual(progress['http_requests'], MAX_REQUESTS)
+
+        now[0] = 0
+        progress = {}
+
+        def later_failure(client, *args):
+            return evidence(client, *args) if now[0] == 0 else excessive(
+                client, *args)
+
+        with patch.object(live, 'run_evidence', side_effect=later_failure):
+            with self.assertRaisesRegex(CollectionError,
+                                        'request_budget_exceeded'):
+                live.observe(
+                    None,
+                    'ctx',
+                    'team',
+                    cases,
+                    self.start,
+                    600,
+                    get=lambda *args: [],
+                    client_factory=factory,
+                    clock=lambda: now[0],
+                    sleep=sleep,
+                    progress=progress)
+        self.assertEqual(progress['completed_collections'], 1)
+        self.assertEqual(progress['http_requests'], MAX_REQUESTS + 6)
+
     def test_cli_failure_reasons_are_allowlisted_and_remain_inconclusive(self):
         args = [
             'check', '--context', 'ctx', '--namespace', 'team',
@@ -488,7 +634,11 @@ class LiveTests(unittest.TestCase):
             client._bytes = 1234
 
             def fail(*args, **kwargs):
-                kwargs['progress'].update(stage='runs', completed_collections=3)
+                kwargs['progress'].update(
+                    stage='runs',
+                    completed_collections=3,
+                    http_requests=18,
+                    http_response_bytes=1234)
                 raise CollectionError(reason)
 
             with patch('sys.argv', args), patch.object(

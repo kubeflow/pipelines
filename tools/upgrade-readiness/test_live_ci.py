@@ -81,6 +81,14 @@ class LiveCITests(unittest.TestCase):
                         except ProcessLookupError:
                             pass
 
+    def test_audit_window_covers_existing_controller_retry_backoff(self):
+        observe = SCRIPT.read_text().split('observe() {', 1)[1].split('\n}',
+                                                                      1)[0]
+        self.assertIn('local mode=$1 timeout=180', observe)
+        self.assertIn('[[ "$mode" != audit ]] || timeout=600', observe)
+        self.assertIn('--timeout-seconds "$timeout"', observe)
+        self.assertNotIn('rollout restart', observe)
+
     def test_release_upgrade_is_pinned_and_schedule_lane_requires_opt_in(self):
         workflow = SCRIPT.parents[2] / 'workflows/upgrade-test.yml'
         text = workflow.read_text()

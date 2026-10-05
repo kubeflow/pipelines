@@ -336,6 +336,12 @@ kubectl -n kubeflow set env deployment/ml-pipeline KFP_SECURITY_SERVICE_ACCOUNT_
 kubectl -n kubeflow rollout status deployment/ml-pipeline
 ```
 
+A previously denied schedule may retain up to 360 seconds of controller retry
+backoff after permissions or the policy mode change. Disabling and re-enabling
+the schedule does not reset that delay. Allow time for the retry and workload
+completion when validating the change; an immediate absence of audit logs does
+not establish that the schedule was evaluated.
+
 Verify both run types succeed under enforcement before completing migration.
 An absence of audit warnings alone does not prove that unexercised schedules are
 ready. Removing the opt-out does not stop runs already executing.

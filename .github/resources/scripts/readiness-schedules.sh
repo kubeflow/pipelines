@@ -181,12 +181,15 @@ except Exception:
 PYDRAIN
 }
 observe() {
-  local mode=$1
+  local mode=$1 timeout=180
+  # Denials leave up to 360 seconds of controller retry backoff. Observe the
+  # live policy transition with that delay plus execution grace, without reset.
+  [[ "$mode" != audit ]] || timeout=600
   fixture --phase enable
   python3 "$helpers/live_schedule_check.py" --context "$context" --namespace "$namespace" \
     --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
     --expectations "$reports/$mode-baseline.json" --prediction-report "$reports/$mode-prediction.json" \
-    --not-before "$(cat "$state/fixture/activation-start.txt")" --timeout-seconds 180 --require-run-success \
+    --not-before "$(cat "$state/fixture/activation-start.txt")" --timeout-seconds "$timeout" --require-run-success \
     >"$reports/$mode-observed.json"
   fixture --phase disable
   drain "$mode"

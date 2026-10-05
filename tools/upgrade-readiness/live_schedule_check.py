@@ -267,32 +267,52 @@ def observe(client,
             get=list_events,
             clock=time.monotonic,
             sleep=time.sleep,
-            progress=None):
+            progress=None,
+            client_factory=None):
     deadline = clock() + timeout
+    totals = {}
     observed = {c['schedule_uid']: {'runs': {}, 'denial': False} for c in cases}
     if progress is not None:
         progress.update(completed_collections=0, stage='events')
     while True:
         final_collection = clock() >= deadline
-        if progress is not None:
-            progress['stage'] = 'events'
-        events = get(context, namespace)
-        for case in cases:
+        if client_factory is not None:
             if progress is not None:
-                progress['stage'] = 'runs'
-            state = observed[case['schedule_uid']]
-            state['runs'].update({
-                record['run_id']: record['state']
-                for record in run_evidence(client, namespace, case, start)
-            })
+                progress['stage'] = 'client_creation'
+            client = client_factory()
+        try:
             if progress is not None:
-                progress['stage'] = 'denial_events'
-            state['denial'] |= denied(events, namespace, case, start)
-            if case['expected_outcome'] == 'blocked' and state['runs']:
-                return result(cases, observed, 'failed')
-            if case['expected_outcome'] == 'run_succeeded' and any(
-                    value in FAILED_STATES for value in state['runs'].values()):
-                return result(cases, observed, 'failed')
+                progress['stage'] = 'events'
+            events = get(context, namespace)
+            for case in cases:
+                if progress is not None:
+                    progress['stage'] = 'runs'
+                state = observed[case['schedule_uid']]
+                state['runs'].update({
+                    record['run_id']: record['state']
+                    for record in run_evidence(client, namespace, case, start)
+                })
+                if progress is not None:
+                    progress['stage'] = 'denial_events'
+                state['denial'] |= denied(events, namespace, case, start)
+                if case['expected_outcome'] == 'blocked' and state['runs']:
+                    return result(cases, observed, 'failed')
+                if case['expected_outcome'] == 'run_succeeded' and any(
+                        value in FAILED_STATES
+                        for value in state['runs'].values()):
+                    return result(cases, observed, 'failed')
+        finally:
+            # Keep cumulative diagnostics while retaining each collection's
+            # independent request/byte limits, including its failed request.
+            for field, attribute in (('http_requests', '_requests'),
+                                     ('http_response_bytes', '_bytes')):
+                value = getattr(client, attribute, None)
+                if type(value) is int and value >= 0:
+                    totals[field] = (
+                        totals.get(field, 0) +
+                        value if client_factory is not None else value)
+                    if progress is not None:
+                        progress[field] = totals[field]
         if progress is not None:
             progress['completed_collections'] += 1
         # Finish with evidence collected after the entire observation window,
@@ -371,7 +391,6 @@ def main():
     )
     args = parser.parse_args()
     progress = dict(stage='input_validation', completed_collections=0)
-    client = None
     started = time.monotonic()
     try:
         if not 30 <= args.timeout_seconds <= 600:
@@ -386,16 +405,20 @@ def main():
                 for case in cases
             ]
         start = activation_start(start, args.not_before)
-        client = Client(args.kfp_endpoint, args.kfp_token_file,
-                        args.kfp_ca_file)
+
+        def make_client():
+            return Client(args.kfp_endpoint, args.kfp_token_file,
+                          args.kfp_ca_file)
+
         report = observe(
-            client,
+            None,
             args.context,
             args.namespace,
             cases,
             start,
             args.timeout_seconds,
-            progress=progress)
+            progress=progress,
+            client_factory=make_client)
         report['observation_start'] = start.isoformat()
         print(json.dumps(report, sort_keys=True))
         return 0 if report['outcome'] == 'passed' else 1
@@ -404,11 +427,6 @@ def main():
             error) in DIAGNOSTIC_REASONS else 'invalid_or_incomplete_evidence'
         diagnostics = dict(
             progress, elapsed_seconds=round(time.monotonic() - started, 3))
-        for field, attribute in (('http_requests', '_requests'),
-                                 ('http_response_bytes', '_bytes')):
-            value = getattr(client, attribute, None)
-            if type(value) is int and value >= 0:
-                diagnostics[field] = value
         print(
             json.dumps(
                 dict(
