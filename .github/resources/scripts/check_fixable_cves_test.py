@@ -87,6 +87,20 @@ def package_entry(value):
 
 class FindBlockingCvesTest(unittest.TestCase):
 
+    def test_real_alpine_report_uses_group_alias_and_upstream_fallback(self):
+        # Reduced from OSV-Scanner 2.5.0 scanning the Alpine 3.18.0 ARM64 image.
+        value = json.loads((Path(__file__).parent / "testdata" /
+                            "osv_alpine_3_18.json").read_text())
+        expected = [("/lib/apk/db/installed", "CVE-2023-2650", "Alpine:v3.18",
+                     "openssl", "3.1.0-r4", "3.1.1-r0")]
+        self.assertEqual(check_fixable_cves.find_blocking_cves(value), expected)
+        without_upstream = copy.deepcopy(value)
+        del package_entry(without_upstream)["vulnerabilities"][0]["upstream"]
+        self.assertEqual(
+            check_fixable_cves.find_blocking_cves(without_upstream), expected)
+        del package_entry(value)["groups"]
+        self.assertEqual(check_fixable_cves.find_blocking_cves(value), expected)
+
     def test_osv_go_advisory_fixture_matches_cve_alias_and_fixed_version(self):
         # Consumed fields from OSV-Scanner v2.5.0's GO-2021-0053 fixture:
         # internal/sourceanalysis/testdata/go-integration/GO-2021-0053.json.
@@ -146,28 +160,82 @@ class FindBlockingCvesTest(unittest.TestCase):
             check_fixable_cves.find_blocking_cves(
                 report(vulnerability(advisory_id="GHSA-abcd-1234-5678"))), [])
 
-    def test_fixed_version_for_different_package_or_ecosystem_does_not_block(
-            self):
+    def test_unmatched_package_or_ecosystem_is_undetermined_not_clean(self):
         for name, ecosystem in (("other", "npm"), ("example", "PyPI")):
             with self.subTest(name=name, ecosystem=ecosystem):
-                self.assertEqual(
-                    check_fixable_cves.find_blocking_cves(
-                        report(vulnerability(name=name, ecosystem=ecosystem))),
-                    [])
+                findings = check_fixable_cves.find_blocking_cves(
+                    report(vulnerability(name=name, ecosystem=ecosystem)))
+                self.assertEqual(findings[0][-1],
+                                 "UNDETERMINED: no matching affected package")
 
     def test_versioned_ecosystem_matching_follows_osv_scanner(self):
         advisory = vulnerability(ecosystem="Debian:12")
-        for ecosystem, blocks in (("Debian:12", True), ("Debian", True),
-                                  ("Debian:11", False), ("Ubuntu:12", False)):
+        for ecosystem, matches in (("Debian:12", True), ("Debian", True),
+                                   ("Debian:11", False), ("Ubuntu:12", False)):
             with self.subTest(ecosystem=ecosystem):
                 findings = check_fixable_cves.find_blocking_cves(
                     report(advisory, ecosystem=ecosystem))
-                self.assertEqual(bool(findings), blocks)
+                expected = "2.0.0" if matches else "UNDETERMINED: no matching affected package"
+                self.assertEqual(findings[0][-1], expected)
+        findings = check_fixable_cves.find_blocking_cves(
+            report(vulnerability(ecosystem="Debian"), ecosystem="Debian:12"))
+        self.assertTrue(findings[0][-1].startswith("UNDETERMINED:"))
+
+    def test_pypi_names_follow_pep503_normalization(self):
+        for scanned, affected in (("Django_Rest.Framework",
+                                   "django-rest-framework"),
+                                  ("django-rest-framework",
+                                   "Django...Rest__Framework")):
+            with self.subTest(scanned=scanned, affected=affected):
+                findings = check_fixable_cves.find_blocking_cves(
+                    report(
+                        vulnerability(name=affected, ecosystem="PyPI"),
+                        name=scanned,
+                        ecosystem="PyPI"))
+                self.assertEqual(findings[0][-1], "2.0.0")
+
+    def test_ubuntu_variants_match_without_crossing_release_boundaries(self):
+        for scanned, affected, matches in (("Ubuntu:22.04", "Ubuntu:22.04:LTS",
+                                            True), ("Ubuntu:22.04:LTS",
+                                                    "Ubuntu:22.04", True),
+                                           ("Ubuntu:Pro:22.04:LTS",
+                                            "Ubuntu:22.04", True),
+                                           ("Ubuntu:22.04", "Ubuntu:24.04:LTS",
+                                            False)):
+            with self.subTest(scanned=scanned, affected=affected):
+                findings = check_fixable_cves.find_blocking_cves(
+                    report(
+                        vulnerability(ecosystem=affected), ecosystem=scanned))
+                expected = "2.0.0" if matches else "UNDETERMINED: no matching affected package"
+                self.assertEqual(findings[0][-1], expected)
+
+    def test_purl_only_language_package_can_supply_a_fix(self):
+        for purl, name, ecosystem in (("pkg:pypi/Example_Package",
+                                       "example-package", "PyPI"),
+                                      ("pkg:npm/%40example/package@1.0.0",
+                                       "@example/package", "npm"),
+                                      ("pkg:golang/example.com/module",
+                                       "example.com/module", "Go")):
+            with self.subTest(purl=purl):
+                advisory = vulnerability()
+                advisory["affected"][0]["package"] = {"purl": purl}
+                findings = check_fixable_cves.find_blocking_cves(
+                    report(advisory, name=name, ecosystem=ecosystem))
+                self.assertEqual(findings[0][-1], "2.0.0")
+
+    def test_unrelated_purl_package_does_not_abort_or_supply_a_fix(self):
+        advisory = vulnerability(fixed_version="")
+        unrelated = vulnerability()["affected"][0]
+        unrelated["package"] = {"purl": "pkg:deb/debian/other?arch=source"}
+        advisory["affected"].append(unrelated)
         self.assertEqual(
-            check_fixable_cves.find_blocking_cves(
-                report(
-                    vulnerability(ecosystem="Debian"), ecosystem="Debian:12")),
-            [])
+            check_fixable_cves.find_blocking_cves(report(advisory)), [])
+
+    def test_unsupported_purl_only_cve_is_undetermined(self):
+        advisory = vulnerability()
+        advisory["affected"][0]["package"] = {"purl": "pkg:deb/debian/example"}
+        findings = check_fixable_cves.find_blocking_cves(report(advisory))
+        self.assertTrue(findings[0][-1].startswith("UNDETERMINED:"))
 
     def test_os_package_name_is_not_used_to_match_source_package(self):
         value = report(
@@ -231,14 +299,14 @@ class MainTest(unittest.TestCase):
     def test_fixable_cves_fail_by_default(self):
         status, _, stderr = self.run_policy(json.dumps(report(vulnerability())))
         self.assertEqual(status, 1)
-        self.assertIn("FAIL: found 1 fixable CVE(s)", stderr)
+        self.assertIn("FAIL: found 1 blocking CVE finding(s)", stderr)
         self.assertIn("CVE-2026-12345 | npm | example | 1.0.0 | 2.0.0", stderr)
 
     def test_override_warns_and_lists_allowed_findings(self):
         status, _, stderr = self.run_policy(
             json.dumps(report(vulnerability())), True)
         self.assertEqual(status, 0)
-        self.assertIn("WARNING: allowing 1 fixable CVE(s)", stderr)
+        self.assertIn("WARNING: allowing 1 blocking CVE finding(s)", stderr)
         self.assertIn("--allow-fixable-cves was explicitly set", stderr)
         self.assertIn("CVE-2026-12345 | npm | example | 1.0.0 | 2.0.0", stderr)
 
@@ -253,8 +321,37 @@ class MainTest(unittest.TestCase):
                     status, stdout, stderr = self.run_policy(
                         json.dumps(clean), allow)
                     self.assertEqual(status, 0)
-                    self.assertIn("PASS: no fixable CVEs found", stdout)
+                    self.assertIn("PASS: no blocking CVE findings", stdout)
                     self.assertEqual(stderr, "")
+
+    def test_nullable_aliases_and_unmatched_identity_preserve_override(self):
+        for name in ("example", "unmatched"):
+            advisory = vulnerability(name=name)
+            advisory["aliases"] = None
+            for allow in (False, True):
+                with self.subTest(name=name, allow=allow):
+                    status, stdout, stderr = self.run_policy(
+                        json.dumps(report(advisory)), allow)
+                    self.assertEqual(status, 0 if allow else 1)
+                    self.assertEqual(stdout, "")
+                    self.assertIn("blocking CVE finding(s)", stderr)
+                    if name == "unmatched":
+                        self.assertIn(
+                            "UNDETERMINED: no matching affected package",
+                            stderr)
+
+    def test_nullable_affected_is_an_overrideable_unresolved_finding(self):
+        for affected in (None, []):
+            advisory = vulnerability()
+            advisory["affected"] = affected
+            for allow in (False, True):
+                with self.subTest(affected=affected, allow=allow):
+                    status, stdout, stderr = self.run_policy(
+                        json.dumps(report(advisory)), allow)
+                    self.assertEqual(status, 0 if allow else 1)
+                    self.assertEqual(stdout, "")
+                    self.assertIn("UNDETERMINED: no matching affected package",
+                                  stderr)
 
     def test_missing_or_invalid_reports_fail_even_with_override(self):
         invalid_reports = [
@@ -275,8 +372,8 @@ class MainTest(unittest.TestCase):
             ("results", 0, "packages", 0, "vulnerabilities"),
         ]
         vuln_path = ("results", 0, "packages", 0, "vulnerabilities", 0)
-        paths.extend(
-            vuln_path + (field,) for field in ("id", "aliases", "affected"))
+        paths.extend(vuln_path + (field,)
+                     for field in ("id", "aliases", "upstream", "affected"))
         affected_path = vuln_path + ("affected", 0)
         paths.extend(affected_path + suffix
                      for suffix in (("package", "name"), ("package",

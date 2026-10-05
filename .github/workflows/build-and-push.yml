@@ -61,6 +61,11 @@ on:
         default: false
         description: 'Fail before publishing tags when the image contains fixable CVEs'
         required: false
+      release_policy_sha:
+        type: string
+        default: ''
+        description: 'Trusted workflow commit for the release policy; required when scanning'
+        required: false
       allow_fixable_cves:
         type: boolean
         default: false
@@ -256,12 +261,49 @@ jobs:
             echo "digest=$digest" >> "$GITHUB_OUTPUT"
           fi
 
+      # Fetch policy after the build so it is excluded from the image context.
+      - name: Prepare release policy checkout
+        if: >-
+          steps.check_tag.outcome == 'success' &&
+          inputs.push &&
+          inputs.scan_fixable_cves
+        shell: bash
+        env:
+          RELEASE_POLICY_SHA: ${{ inputs.release_policy_sha }}
+        run: |
+          if [[ ! "$RELEASE_POLICY_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::Release scanning requires the caller's immutable workflow commit in release_policy_sha"
+            exit 1
+          fi
+          if [[ -L .release-policy ]]; then
+            echo "::error::The source checkout must not provide a .release-policy symlink"
+            exit 1
+          fi
+
+      - name: Checkout release policy
+        if: >-
+          steps.check_tag.outcome == 'success' &&
+          inputs.push &&
+          inputs.scan_fixable_cves
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.release_policy_sha }}
+          path: .release-policy
+          clean: true
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            .github/actions/setup-osv-scanner
+            .github/actions/upload-artifact-with-retry
+            .github/resources/scripts/helper-functions.sh
+            .github/resources/scripts/check_fixable_cves.py
+
       - name: Install OSV-Scanner
         if: >-
           steps.check_tag.outcome == 'success' &&
           inputs.push &&
           inputs.scan_fixable_cves
-        uses: ./.github/actions/setup-osv-scanner
+        uses: ./.release-policy/.github/actions/setup-osv-scanner
 
       - name: Scan image for fixable CVEs
         id: osv_scan
@@ -274,7 +316,7 @@ jobs:
           IMAGE_REF: ${{ format('{0}/{1}/{2}@{3}', env.IMAGE_REGISTRY, env.IMAGE_ORG, inputs.app_to_build, steps.push.outputs.digest) }}
           PLATFORM: ${{ inputs.platforms }}
         run: |
-          source .github/resources/scripts/helper-functions.sh
+          source .release-policy/.github/resources/scripts/helper-functions.sh
           archive=$(mktemp "${RUNNER_TEMP}/release-image-XXXXXX.tar")
           trap 'rm -f "$archive"' EXIT
 
@@ -301,14 +343,14 @@ jobs:
           if [ "$ALLOW_FIXABLE_CVES" = "true" ]; then
             policy_args+=(--allow-fixable-cves)
           fi
-          python3 .github/resources/scripts/check_fixable_cves.py \
+          python3 .release-policy/.github/resources/scripts/check_fixable_cves.py \
             osv-results.json "${policy_args[@]}"
 
       - name: Upload CVE scan report
         if: ${{ always() && steps.osv_scan.outcome != 'skipped' }}
-        uses: actions/upload-artifact@v4
+        uses: ./.release-policy/.github/actions/upload-artifact-with-retry
         with:
-          name: fixable-cve-scan-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}
+          name: fixable-cve-scan-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}-${{ github.run_attempt }}
           path: osv-results.json
           if-no-files-found: error
           retention-days: 30

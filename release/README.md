@@ -178,35 +178,41 @@ without dispatching a new workflow run.
 ## Release image CVE gate
 
 The current 3.x non-dry-run `publish-images` workflow scans each
-architecture-specific image by immutable digest before publishing the versioned
+architecture-specific image by immutable digest before publishing its versioned
 or `latest` manifests. Release and reporting workflows share the checksum-verified
-OSV-Scanner 2.5.0 installation. The release scan queries OSV for advisories and
-includes findings of every severity. The policy blocks CVEs (including CVE aliases
-of other advisories) with a fixed version for the scanned package and ecosystem.
-Findings without a published fix or CVE identifier/alias do not block the release.
-Each image is pulled by its immutable digest with an explicit platform, exported
-for that same platform, and scanned as an archive. To proceed despite fixable CVEs,
-maintainers must explicitly enable the override for each invocation. The scan and its report are retained. Scanner
-failures and missing, invalid, or malformed reports remain fatal even with the
-override.
+OSV-Scanner 2.5.0 installation. The installer, retry helper, and enforcement policy
+come from the release workflow's immutable commit, independently of the image
+source commit. Each image is pulled and exported with its platform explicitly
+selected, then scanned as an archive with findings of every severity included.
 
-To allow fixable CVEs for one image publication:
+The policy blocks CVEs with a published fix for the scanned package and ecosystem.
+It recognizes advisory IDs, aliases, grouped aliases, and upstream CVE IDs, and
+normalizes PyPI package names and Ubuntu LTS/Pro ecosystem variants. A CVE whose
+affected package cannot be matched also blocks, with an `UNDETERMINED` explanation;
+it is never silently treated as having no fix. Matched findings without a
+published fix, or advisories without a CVE identifier, do not block publication.
+
+Maintainers can explicitly allow findings for selected images. For example, to
+allow the legacy proxy while retaining enforcement for the API server and driver:
 
 ```bash
 kfpr run publish-images \
   --release-type minor \
   --version 3.0.0 \
   --state-file release-3.0-state.json \
-  --allow-fixable-cves \
+  --allow-fixable-cves-for-image kfp-inverse-proxy-agent \
   --done
 ```
 
-The flag is also available on the full `kfpr run` flow. It is never saved in the
-checkpoint: pass it again if a later invocation needs the same override. Add
-`--dry-run` and omit `--done` to preview the single-step command without dispatching.
+Repeat `--allow-fixable-cves-for-image` for multiple images. Use bare image names
+from the release workflow's matrix; an unmatched name grants no exception.
+`--allow-fixable-cves` allows findings for **all** images instead. Both flags are
+available on the full `kfpr run` flow and are never saved in the checkpoint: pass
+them again when a later invocation needs the same exception. Add `--dry-run` and
+omit `--done` to preview the single-step command without dispatching.
 
-For direct GitHub Actions dispatch, set the boolean `allow_fixable_cves` input
-(default: `false`):
+For direct GitHub Actions dispatch, supply the JSON array input
+`allow_fixable_cves_images` (default: `[]`):
 
 ```bash
 gh workflow run image-builds-release.yml \
@@ -217,33 +223,44 @@ gh workflow run image-builds-release.yml \
   -f overwrite_imgs=false \
   -f set_latest=true \
   -f dry_run=false \
-  -f allow_fixable_cves=true
+  -f 'allow_fixable_cves_images=["kfp-inverse-proxy-agent"]'
 ```
 
-The GitHub **Run workflow** form exposes the same override. Each image's policy
-step prints a warning and the findings when it uses the override; the JSON scan
-report is uploaded as usual. No override skips the scanner or allows a failed
-scan to publish tags.
+The boolean `allow_fixable_cves=true` input enables the all-image exception.
+The GitHub **Run workflow** form exposes both inputs. An overridden policy step
+prints a warning and its findings, and still uploads the JSON report. Scanner
+failures and missing, invalid, or malformed reports remain fatal. Exit 128
+("no packages found") remains fatal because it provides no package coverage;
+none of these exceptions skips scanning or turns a failed scan into a pass.
 
 The 2.18 CLI path dispatches the workflow from `release-2.18`, so merging this
-policy into master alone does not gate 2.18 publication. Apply a selective
-backport of the shared OSV installer, scan and override inputs, enforcement helper,
-tests, and release-workflow wiring to that branch before relying on the gate or requesting
-the override there. `kfpr` omits the override input unless explicitly requested,
-so default dispatch still works with older release workflows. Preserve the 2.18
-image inventory; do not backport the 3.x ARM64 requirements for this policy.
+policy into master alone does not gate 2.18 publication. Selectively backport the
+shared OSV installer, trusted policy checkout and its commit input, retry uploader,
+scan and exception inputs, enforcement helper, tests, and release-workflow wiring
+before relying on this gate or requesting exceptions there. `kfpr` omits exception
+inputs unless requested, preserving default dispatch to older release workflows.
+Preserve the 2.18 image inventory; do not backport the 3.x ARM64 requirements.
 
 If the gate fails:
 
-1. Download the `fixable-cve-scan-<image>-<architecture>` artifacts from the
-   workflow run; each contains `osv-results.json`.
+1. Download the `fixable-cve-scan-<image>-<architecture>-<attempt>` artifacts;
+   each contains `osv-results.json`. An upload retry may append a retry suffix.
+   Image jobs continue after another image's failure so all completed scans can
+   report their findings.
 2. Update the affected dependency, base image, or build toolchain to the fixed
-   version reported by OSV-Scanner.
-3. Merge the fix into the release branch and rerun `publish-images` with image
-   overwrite enabled.
+   version, or investigate an `UNDETERMINED` package match.
+3. Merge the fix into the release branch and start a new `publish-images`
+   invocation, or explicitly allow the affected images for that invocation.
+   A failed gate leaves images pushed only by digest; release tags are created
+   after the entire matrix passes, so this recovery does not require overwrite.
+   `kfpr` always sends `overwrite_imgs=false` and has no overwrite flag.
 
-Resolve the findings or rerun image publication with the explicit override before
-running `create-backend-release`. `kfpr` watches the image workflow with failure
+For transient failures with unchanged source and inputs, use GitHub's **Re-run all
+jobs**. Scan report names include the attempt number to avoid artifact conflicts.
+The downstream manifest job requires digest artifacts from that same attempt,
+so rerunning only failed jobs cannot reuse successful lanes' earlier artifacts.
+Resolve the findings or explicitly allow them before running
+`create-backend-release`. `kfpr` watches the image workflow with failure
 propagation enabled, so a failed gate stops the release flow and leaves
 `publish-images` incomplete in the checkpoint.
 

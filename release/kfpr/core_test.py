@@ -3,6 +3,7 @@
 
 import contextlib
 import io
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -215,6 +216,31 @@ class GithubCommandTest(unittest.TestCase):
         self.assertEqual(
             core.image_workflow_command(metadata, allow_fixable_cves=False),
             core.image_workflow_command(metadata))
+
+    def test_image_workflow_command_scopes_override_to_named_images(self):
+        metadata = core.ReleaseMetadata.from_version('minor', '2.18.0')
+        images = ('kfp-inverse-proxy-agent', 'kfp-cache-server')
+        command = core.image_workflow_command(
+            metadata, allow_fixable_cves_images=images)
+        override = next(
+            arg for arg in command
+            if arg.startswith('allow_fixable_cves_images='))
+        self.assertEqual(json.loads(override.split('=', 1)[1]), list(images))
+        self.assertNotIn('allow_fixable_cves=true', command)
+        self.assertEqual(command[:-2], core.image_workflow_command(metadata))
+
+    def test_image_override_names_are_validated_and_deduplicated(self):
+        self.assertEqual(
+            core.normalize_cve_override_images(
+                ['kfp-inverse-proxy-agent', 'kfp-inverse-proxy-agent']),
+            ('kfp-inverse-proxy-agent',))
+        for image in ('', ' ', 'kfp-driver:3.0.0', 'kubeflow/kfp-driver',
+                      'kfp-driver@sha256:abc', 'kfp-driver kfp-api-server'):
+            with self.subTest(image=image), self.assertRaisesRegex(
+                    ValueError, 'without a registry, tag, or digest'):
+                core.image_workflow_command(
+                    core.ReleaseMetadata.from_version('major', '3.0.0'),
+                    allow_fixable_cves_images=(image,))
 
     def test_sdk_workflow_command(self):
         metadata = core.ReleaseMetadata.from_version('minor', '3.2.0')
@@ -755,17 +781,24 @@ class PromptValidationTest(unittest.TestCase):
                 'fork_remote': 'upstream',
                 'previous_release': '2.18.0',
             })
-            args = type('Args', (), {
-                'dry_run': True,
-                'allow_fixable_cves': True,
-            })()
+            args = type(
+                'Args', (), {
+                    'dry_run': True,
+                    'allow_fixable_cves': True,
+                    'allow_fixable_cves_images': ['kfp-inverse-proxy-agent'],
+                })()
             context = core.collect_context(args, state)
             self.assertTrue(context.allow_fixable_cves)
+            self.assertEqual(context.allow_fixable_cves_images,
+                             ('kfp-inverse-proxy-agent',))
             saved = ReleaseState.load(state.path)
             self.assertNotIn('allow_fixable_cves', saved.answers)
+            self.assertNotIn('allow_fixable_cves_images', saved.answers)
             args.allow_fixable_cves = False
-            self.assertFalse(
-                core.collect_context(args, saved).allow_fixable_cves)
+            args.allow_fixable_cves_images = []
+            resumed = core.collect_context(args, saved)
+            self.assertFalse(resumed.allow_fixable_cves)
+            self.assertEqual(resumed.allow_fixable_cves_images, ())
 
     def test_collect_context_reasks_for_invalid_version_and_fork_remote(self):
         with TemporaryDirectory() as tmpdir:

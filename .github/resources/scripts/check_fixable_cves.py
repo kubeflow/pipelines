@@ -16,7 +16,9 @@
 
 import argparse
 import json
+import re
 import sys
+from urllib.parse import unquote
 
 
 def _records(value, field):
@@ -26,7 +28,9 @@ def _records(value, field):
     return value
 
 
-def _strings(value, field):
+def _strings(value, field, nullable=False):
+    if value is None and nullable:
+        return []
     if not isinstance(value, list) or any(
             not isinstance(item, str) or not item for item in value):
         raise ValueError(f"{field} must be an array of nonempty strings")
@@ -41,20 +45,66 @@ def _package(value):
     return value
 
 
+def _normalized_package(package):
+    name, ecosystem = package["name"], package["ecosystem"]
+    # Match OSV's PyPI name and Ubuntu variant normalization while retaining
+    # the distribution release (e.g. Ubuntu:22.04 must not match Ubuntu:24.04).
+    if ecosystem == "PyPI":
+        name = re.sub(r"[-_.]+", "-", name).lower()
+    if ecosystem.startswith("Ubuntu:"):
+        ecosystem = ":".join(
+            part for part in ecosystem.split(":") if part not in {"Pro", "LTS"})
+    return name, ecosystem
+
+
+def _affected_package(value):
+    if not isinstance(value, dict):
+        raise ValueError("Affected package must be an object")
+    if "name" in value or "ecosystem" in value:
+        return _package(value)
+    purl = value.get("purl")
+    if not isinstance(purl, str) or not purl.startswith("pkg:"):
+        raise ValueError("Affected package must contain an identity or PURL")
+    # Handle only unambiguous language PURLs. A distribution PURL may omit
+    # its release; unknown identities remain unresolved instead of guessing.
+    path = purl[4:].split("#", 1)[0].split("?", 1)[0]
+    kind, separator, name = path.partition("/")
+    ecosystem = {"pypi": "PyPI", "npm": "npm", "golang": "Go"}.get(kind)
+    if not separator or not name:
+        raise ValueError("Affected package PURL must contain a type and name")
+    if not ecosystem:
+        return None
+    if "@" in name.rsplit("/", 1)[-1]:
+        name = name.rsplit("@", 1)[0]
+    name = unquote(name)
+    if ecosystem == "PyPI" and "/" in name:
+        return None
+    return {"name": name, "ecosystem": ecosystem}
+
+
 def _fixed_versions(vulnerability, package):
     fixed_versions = set()
-    for affected in _records(vulnerability.get("affected", []), "affected"):
+    matched_package = False
+    package_name, package_ecosystem = _normalized_package(package)
+    affected_entries = vulnerability.get("affected")
+    for affected in _records(
+        [] if affected_entries is None else affected_entries, "affected"):
         affected_package = affected.get("package")
         if affected_package is None:
             continue
-        _package(affected_package)
+        affected_package = _affected_package(affected_package)
         # Match OSV-Scanner's GetFixedVersions: versioned ecosystems also map
         # to their unversioned name, never to another distribution version.
-        ecosystems = {affected_package["ecosystem"]}
-        ecosystems.add(affected_package["ecosystem"].split(":", 1)[0])
-        matches = (
-            affected_package["name"] == package["name"] and
-            package["ecosystem"] in ecosystems)
+        matches = False
+        if affected_package is not None:
+            affected_name, affected_ecosystem = _normalized_package(
+                affected_package)
+            ecosystems = {affected_ecosystem}
+            ecosystems.add(affected_ecosystem.split(":", 1)[0])
+            matches = (
+                affected_name == package_name and
+                package_ecosystem in ecosystems)
+            matched_package |= matches
         for affected_range in _records(affected.get("ranges", []), "ranges"):
             for event in _records(affected_range.get("events"), "events"):
                 if not event or any(not isinstance(value, str) or not value
@@ -66,11 +116,11 @@ def _fixed_versions(vulnerability, package):
                     raise ValueError("Fixed version must be a string")
                 if matches and fixed:
                     fixed_versions.add(fixed)
-    return fixed_versions
+    return fixed_versions, matched_package
 
 
 def find_blocking_cves(report):
-    """Returns unique fixable CVE findings."""
+    """Returns CVEs with fixes or unresolved affected-package identities."""
     if not isinstance(report, dict):
         raise ValueError("Expected an OSV-Scanner JSON report object")
     results = _records(report.get("results"), "results")
@@ -99,11 +149,17 @@ def find_blocking_cves(report):
                 if not isinstance(advisory_id, str) or not advisory_id:
                     raise ValueError(
                         "Vulnerability ID must be a nonempty string")
-                aliases = _strings(vulnerability.get("aliases", []), "aliases")
+                aliases = _strings(
+                    vulnerability.get("aliases", []), "aliases", nullable=True)
+                upstream = _strings(
+                    vulnerability.get("upstream", []), "upstream")
                 ids = {
-                    advisory_id, *aliases, *group_aliases.get(advisory_id, [])
+                    advisory_id, *aliases, *upstream,
+                    *group_aliases.get(advisory_id, [])
                 }
-                fixed = _fixed_versions(vulnerability, package)
+                fixed, matched_package = _fixed_versions(vulnerability, package)
+                if not matched_package:
+                    fixed = {"UNDETERMINED: no matching affected package"}
                 for cve in ids:
                     if not cve.startswith("CVE-") or not fixed:
                         continue
@@ -135,17 +191,19 @@ def main(argv):
         return 2
 
     if not findings:
-        print("PASS: no fixable CVEs found")
+        print("PASS: no blocking CVE findings")
         return 0
 
     if args.allow_fixable_cves:
         print(
-            f"WARNING: allowing {len(findings)} fixable CVE(s) because "
+            f"WARNING: allowing {len(findings)} blocking CVE finding(s) because "
             "--allow-fixable-cves was explicitly set.",
             file=sys.stderr,
         )
     else:
-        print(f"FAIL: found {len(findings)} fixable CVE(s).", file=sys.stderr)
+        print(
+            f"FAIL: found {len(findings)} blocking CVE finding(s).",
+            file=sys.stderr)
     print(
         "Target | CVE | Ecosystem | Package | Installed | Fixed",
         file=sys.stderr,

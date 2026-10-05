@@ -37,6 +37,11 @@ on:
         default: false
         description: 'Allow release publication with fixable CVEs; scanning and reports remain required.'
         required: false
+      allow_fixable_cves_images:
+        type: string
+        default: '[]'
+        description: 'JSON array of image names allowed to have CVE findings, e.g. ["kfp-inverse-proxy-agent"].'
+        required: false
 jobs:
   resolve-source:
     runs-on: ubuntu-latest
@@ -56,13 +61,32 @@ jobs:
         run: |
           python3 .github/resources/scripts/release_image_validation.py source \
             --target-tag "$TARGET_TAG" --version-file release-source/VERSION
+      - name: Validate scoped CVE overrides
+        env:
+          ALLOW_FIXABLE_CVES_IMAGES: ${{ inputs.allow_fixable_cves_images }}
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          import os
+          import re
+
+          images = json.loads(os.environ['ALLOW_FIXABLE_CVES_IMAGES'])
+          if not isinstance(images, list) or any(
+              not isinstance(name, str) or
+              not re.fullmatch(r'[a-z0-9]+(?:[._-][a-z0-9]+)*', name)
+              for name in images
+          ):
+              raise SystemExit('allow_fixable_cves_images must be a JSON array of image names')
+          if images:
+              print('CVE exceptions requested for: ' + ', '.join(images))
+          PYTHON
       - id: commit
         run: echo "sha=$(git -C release-source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build-images-for-release:
     needs: resolve-source
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         image:
           - name: kfp-api-server
@@ -118,7 +142,9 @@ jobs:
       runs_on: ${{ matrix.arch.runs_on }}
       push: ${{ !inputs.dry_run }}
       scan_fixable_cves: ${{ !inputs.dry_run }}
-      allow_fixable_cves: ${{ inputs.allow_fixable_cves }}
+      # Local reusable workflows are loaded from this same workflow commit.
+      release_policy_sha: ${{ github.workflow_sha }}
+      allow_fixable_cves: ${{ inputs.allow_fixable_cves || contains(fromJSON(inputs.allow_fixable_cves_images), matrix.image.name) }}
 
   create-manifests:
     needs: [resolve-source, build-images-for-release]

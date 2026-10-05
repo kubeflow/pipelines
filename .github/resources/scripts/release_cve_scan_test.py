@@ -63,22 +63,33 @@ class ReleaseCveScanTest(unittest.TestCase):
     def setUpClass(cls):
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/build-and-push.yml').read_text())
-        cls.scan = next(
-            step for step in workflow['jobs']['build-and-push-images']['steps']
-            if step.get('id') == 'osv_scan')
+        steps = workflow['jobs']['build-and-push-images']['steps']
+        cls.scan = next(step for step in steps if step.get('id') == 'osv_scan')
+        cls.prepare = next(
+            step for step in steps
+            if step.get('name') == 'Prepare release policy checkout')
+        cls.policy = next(
+            step for step in steps
+            if step.get('name') == 'Enforce fixable CVE policy')
 
     def run_scan(self,
                  platform='linux/arm64',
                  scanner_exit=0,
                  pull_failures=0,
-                 save_exit=0):
+                 save_exit=0,
+                 source_has_policy=True):
         with tempfile.TemporaryDirectory(prefix='release cve scan ') as tmp:
             directory = Path(tmp)
-            helper = directory / '.github/resources/scripts/helper-functions.sh'
+            helper = directory / '.release-policy/.github/resources/scripts/helper-functions.sh'
             helper.parent.mkdir(parents=True)
             helper.write_text(
                 (ROOT /
                  '.github/resources/scripts/helper-functions.sh').read_text())
+            if source_has_policy:
+                source_helper = directory / '.github/resources/scripts/helper-functions.sh'
+                source_helper.parent.mkdir(parents=True)
+                source_helper.write_text(
+                    'echo "Untrusted source helper ran" >&2\nexit 97\n')
             binaries = directory / 'bin'
             binaries.mkdir()
             for name in ('docker', 'osv-scanner', 'sleep'):
@@ -181,6 +192,117 @@ class ReleaseCveScanTest(unittest.TestCase):
                 self.assertFalse(report_exists)
                 self.assertFalse(
                     any(call['tool'] == 'osv-scanner' for call in calls))
+
+    def test_scan_supports_source_without_release_policy_files(self):
+        result, _, report_exists = self.run_scan(source_has_policy=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(report_exists)
+
+    def test_policy_checkout_requires_an_immutable_commit(self):
+        for revision, expected in (('', 1), ('release-3.0', 1), ('a' * 39, 1),
+                                   ('a' * 40, 0)):
+            with self.subTest(
+                    revision=revision), tempfile.TemporaryDirectory() as tmp:
+                result = subprocess.run(
+                    ['bash', '-eo', 'pipefail', '-c', self.prepare['run']],
+                    cwd=tmp,
+                    env={
+                        **os.environ, 'RELEASE_POLICY_SHA': revision
+                    },
+                    text=True,
+                    capture_output=True,
+                    check=False)
+                self.assertEqual(result.returncode, expected, result.stderr)
+
+    def test_policy_checkout_rejects_source_symlinks_without_touching_target(
+            self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            target = directory / 'source-target'
+            target.mkdir()
+            sentinel = target / 'keep'
+            sentinel.write_text('unchanged')
+            (directory / '.release-policy').symlink_to(
+                target, target_is_directory=True)
+            result = subprocess.run(
+                ['bash', '-eo', 'pipefail', '-c', self.prepare['run']],
+                cwd=directory,
+                env={
+                    **os.environ, 'RELEASE_POLICY_SHA': 'a' * 40
+                },
+                text=True,
+                capture_output=True,
+                check=False)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertIn('.release-policy symlink', result.stdout)
+            self.assertEqual(sentinel.read_text(), 'unchanged')
+
+    def test_source_policy_cannot_replace_trusted_policy(self):
+        report = {
+            'results': [{
+                'source': {
+                    'path': '/app/package-lock.json',
+                    'type': 'artifact'
+                },
+                'packages': [{
+                    'package': {
+                        'name': 'example',
+                        'ecosystem': 'npm',
+                        'version': '1.0.0'
+                    },
+                    'vulnerabilities': [{
+                        'id':
+                            'CVE-2026-12345',
+                        'affected': [{
+                            'package': {
+                                'name': 'example',
+                                'ecosystem': 'npm'
+                            },
+                            'ranges': [{
+                                'type':
+                                    'ECOSYSTEM',
+                                'events': [{
+                                    'introduced': '0'
+                                }, {
+                                    'fixed': '2.0.0'
+                                }],
+                            }],
+                        }],
+                    }],
+                }],
+            }],
+        }
+        for source_has_policy in (False, True):
+            with self.subTest(source_has_policy=source_has_policy
+                             ), tempfile.TemporaryDirectory() as tmp:
+                directory = Path(tmp)
+                helper_path = Path(
+                    '.github/resources/scripts/check_fixable_cves.py')
+                trusted_helper = directory / '.release-policy' / helper_path
+                trusted_helper.parent.mkdir(parents=True)
+                trusted_helper.write_text((ROOT / helper_path).read_text())
+                if source_has_policy:
+                    source_helper = directory / helper_path
+                    source_helper.parent.mkdir(parents=True)
+                    source_helper.write_text(
+                        'print("Source policy silently allowed everything")\n')
+                (directory / 'osv-results.json').write_text(json.dumps(report))
+                result = subprocess.run(
+                    ['bash', '-eo', 'pipefail', '-c', self.policy['run']],
+                    cwd=directory,
+                    env={
+                        **os.environ,
+                        **{
+                            name: '' for name in self.policy.get('env', {})
+                        },
+                        'ALLOW_FIXABLE_CVES': 'false',
+                    },
+                    text=True,
+                    capture_output=True,
+                    check=False)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn('CVE-2026-12345', result.stderr)
+                self.assertNotIn('Source policy', result.stdout)
 
 
 if __name__ == '__main__':

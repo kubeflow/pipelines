@@ -271,15 +271,34 @@ class ReleaseContext:
     skip_local_review: bool = False
     previous_release: str = ''
     allow_fixable_cves: bool = False
+    allow_fixable_cves_images: tuple[str, ...] = ()
 
 
-def image_workflow_command(metadata: ReleaseMetadata,
-                           allow_fixable_cves: bool = False) -> list[str]:
+def normalize_cve_override_images(
+        images: list[str] | tuple[str, ...]) -> tuple[str, ...]:
+    """Validate image basenames without fixing the release branch's
+    inventory."""
+    if not isinstance(images, (list, tuple)) or any(
+            not isinstance(image, str) or
+            not re.fullmatch(r'[a-z0-9]+(?:[._-][a-z0-9]+)*', image)
+            for image in images):
+        raise ValueError(
+            'CVE override images must be image names without a registry, tag, or digest'
+        )
+    return tuple(dict.fromkeys(images))
+
+
+def image_workflow_command(
+    metadata: ReleaseMetadata,
+    allow_fixable_cves: bool = False,
+    allow_fixable_cves_images: tuple[str, ...] = ()
+) -> list[str]:
     """Build command to trigger image-builds-release.yml workflow.
 
     Args:
       metadata: Release metadata for version and branch info.
       allow_fixable_cves: Allow publication despite fixable CVE findings.
+      allow_fixable_cves_images: Image names with a scoped findings override.
 
     Returns:
       Command list for gh workflow run with appropriate parameters.
@@ -304,7 +323,11 @@ def image_workflow_command(metadata: ReleaseMetadata,
         '-f',
         'dry_run=false',
     ]
-    # Omit the new input by default for older release-branch workflows.
+    # Omit new inputs by default for older release-branch workflows.
+    images = normalize_cve_override_images(allow_fixable_cves_images)
+    if images:
+        command.extend(
+            ['-f', f'allow_fixable_cves_images={json.dumps(images)}'])
     if allow_fixable_cves:
         command.extend(['-f', 'allow_fixable_cves=true'])
     return command
@@ -859,6 +882,8 @@ def collect_context(args: argparse.Namespace,
     Returns:
       ReleaseContext instance with all required fields.
     """
+    allow_fixable_cves_images = normalize_cve_override_images(
+        getattr(args, 'allow_fixable_cves_images', None) or ())
     root = Path(
         subprocess.check_output(['git', 'rev-parse', '--show-toplevel'],
                                 text=True).strip())
@@ -920,4 +945,5 @@ def collect_context(args: argparse.Namespace,
         skip_local_review=bool(answers.get('skip_local_review', False)),
         previous_release=str(answers.get('previous_release', '')),
         allow_fixable_cves=bool(getattr(args, 'allow_fixable_cves', False)),
+        allow_fixable_cves_images=allow_fixable_cves_images,
     )

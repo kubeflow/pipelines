@@ -3,6 +3,7 @@
 
 import contextlib
 import io
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -216,13 +217,13 @@ class PreflightStepTest(unittest.TestCase):
 class PublishImagesStepTest(unittest.TestCase):
 
     def test_failed_publication_does_not_complete_checkpoint(self):
-        for release_type, version, allow_cves in (('minor', '2.18.0', False),
-                                                  ('major', '3.0.0', False),
-                                                  ('patch', '3.0.1', False),
-                                                  ('major', '3.0.0', True)):
+        for release_type, version, allow_cves, images in (
+            ('minor', '2.18.0', False, ()), ('major', '3.0.0', False, ()),
+            ('patch', '3.0.1', False, ()), ('major', '3.0.0', True, ()),
+            ('major', '3.0.0', False, ('kfp-inverse-proxy-agent',))):
             with self.subTest(
-                    version=version,
-                    allow_cves=allow_cves), TemporaryDirectory() as tmpdir:
+                    version=version, allow_cves=allow_cves,
+                    images=images), TemporaryDirectory() as tmpdir:
                 runner = mock.Mock(dry_run=False)
                 runner.capture.return_value = (
                     '12345\thttps://github.com/kubeflow/pipelines/actions/runs/12345'
@@ -251,13 +252,23 @@ class PublishImagesStepTest(unittest.TestCase):
                     fork_remote='origin',
                     include_backend=True,
                     include_sdk=False,
-                    allow_fixable_cves=allow_cves)
+                    allow_fixable_cves=allow_cves,
+                    allow_fixable_cves_images=images)
                 with mock.patch('time.time', return_value=1783537500):
                     with self.assertRaises(subprocess.CalledProcessError):
                         steps.run_steps(context)
                 dispatch = runner.run.call_args_list[0].args[0]
                 self.assertEqual('allow_fixable_cves=true' in dispatch,
                                  allow_cves)
+                if images:
+                    self.assertIn(
+                        f'allow_fixable_cves_images={json.dumps(images)}',
+                        dispatch)
+                else:
+                    self.assertFalse(
+                        any(
+                            arg.startswith('allow_fixable_cves_images=')
+                            for arg in dispatch))
                 self.assertEqual(state.completed_steps, before)
                 self.assertFalse(state.path.exists())
 

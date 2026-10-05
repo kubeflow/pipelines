@@ -68,7 +68,7 @@
     {
       "path": ".github/workflows/build-and-push.yml",
       "name": "Build and Push images",
-      "header_sha256": "ebc69e1ac559c4ac79167195dd0be533aa8254b7494d558a91067ba59ee39718",
+      "header_sha256": "6f344b3ec095d3d4b596e4416886774e2713cfa2433b78d8387367323ea73108",
       "pull_request": null
     },
     {
@@ -380,7 +380,7 @@
     {
       "path": ".github/workflows/image-builds-release.yml",
       "name": "Build and Push for Release",
-      "header_sha256": "d4c46d433910b302296b83e4b8a12f85da3ef8f5a0869fd55bf507da314146fb",
+      "header_sha256": "b4b3e98d8d8576c5ce5b3567531155a12a2ba73670f678308d773de74ec5d40f",
       "pull_request": null
     },
     {

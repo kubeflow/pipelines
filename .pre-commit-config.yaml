@@ -46,7 +46,12 @@ repos:
     rev: "v0.43.0"
     hooks:
       - id: yapf
-        exclude: ^kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
+        exclude: ^(kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py|release/kfpr/cli\.py)$
+      # Keep the CLI's existing style so flag changes stay easy to backport.
+      - id: yapf
+        name: yapf (release CLI)
+        files: ^release/kfpr/cli\.py$
+        args: ['--style={based_on_style: yapf, indent_width: 2, column_limit: 160, split_before_named_assigns: false}']
   - repo: https://github.com/pycqa/docformatter
     # v1.7.8 corrupts continuation and blank-line tokens, conflicting with YAPF.
     rev: v1.7.7

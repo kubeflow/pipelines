@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the kfpr CLI."""
 
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -199,6 +200,50 @@ class CliTest(unittest.TestCase):
                 else:
                     self.assertNotIn('allow_fixable_cves=', result.stdout)
 
+    def test_publish_images_scoped_override_supports_multiple_images(self):
+        with TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / 'state.json'
+            images = ['kfp-inverse-proxy-agent', 'kfp-cache-server']
+            result = CliRunner().invoke(app, [
+                'run',
+                'publish-images',
+                '--state-file',
+                str(state_file),
+                '--release-type',
+                'minor',
+                '--version',
+                '2.18.0',
+                '--fork-remote',
+                'upstream',
+                '--dry-run',
+                '--allow-fixable-cves-for-image',
+                images[0],
+                '--allow-fixable-cves-for-image',
+                images[1],
+            ])
+            self.assertEqual(result.exit_code, 0, result.stdout)
+            self.assertIn(f'allow_fixable_cves_images={json.dumps(images)}',
+                          result.stdout)
+            self.assertNotIn('allow_fixable_cves=true', result.stdout)
+            self.assertFalse(state_file.exists())
+
+    def test_publish_images_rejects_invalid_override_image(self):
+        with TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / 'state.json'
+            result = CliRunner().invoke(app, [
+                'run',
+                'publish-images',
+                '--state-file',
+                str(state_file),
+                '--allow-fixable-cves-for-image',
+                'ghcr.io/kubeflow/kfp-driver',
+                '--dry-run',
+            ])
+            self.assertEqual(result.exit_code, 2, result.stdout)
+            self.assertIn('without a registry, tag, or digest',
+                          _strip_ansi(result.output))
+            self.assertFalse(state_file.exists())
+
     def test_full_run_and_next_cve_override_is_invocation_only(self):
         for command in ('run', 'next'):
             with self.subTest(command=command), TemporaryDirectory() as tmpdir:
@@ -223,17 +268,28 @@ class CliTest(unittest.TestCase):
                 handler = mock.Mock()
                 with mock.patch('kfpr.cli.run_steps', handler), mock.patch.dict(
                         'kfpr.cli.STEP_HANDLERS', {'publish-images': handler}):
-                    result = CliRunner().invoke(app,
-                                                args + ['--allow-fixable-cves'])
+                    result = CliRunner().invoke(
+                        app, args + [
+                            '--allow-fixable-cves',
+                            '--allow-fixable-cves-for-image',
+                            'kfp-inverse-proxy-agent'
+                        ])
                     self.assertEqual(result.exit_code, 0, result.stdout)
                     self.assertTrue(
                         handler.call_args.args[0].allow_fixable_cves)
+                    self.assertEqual(
+                        handler.call_args.args[0].allow_fixable_cves_images,
+                        ('kfp-inverse-proxy-agent',))
+                    self.assertNotIn('allow_fixable_cves_images',
+                                     ReleaseState.load(state.path).answers)
                     self.assertNotIn('allow_fixable_cves',
                                      ReleaseState.load(state.path).answers)
                     result = CliRunner().invoke(app, args)
                     self.assertEqual(result.exit_code, 0, result.stdout)
                     self.assertFalse(
                         handler.call_args.args[0].allow_fixable_cves)
+                    self.assertEqual(
+                        handler.call_args.args[0].allow_fixable_cves_images, ())
 
     def test_watch_publish_images_watches_without_dispatching(self):
         with TemporaryDirectory() as tmpdir:
