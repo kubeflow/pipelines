@@ -404,6 +404,58 @@ class ProvisionTests(unittest.TestCase):
             all(c.args[1]['pipeline_spec'] == pipeline
                 for c in client.post.call_args_list[1:]))
 
+    def test_recreation_uses_distinct_experiment_name(self):
+        pipeline, report = self.migration_fixture()
+        source_name = 'readiness-' + self.state['owner_marker']
+        names = {source_name}
+        client = mock.Mock()
+        next_id = [0]
+
+        def post(path, payload):
+            if path == '/apis/v2beta1/experiments':
+                if payload['display_name'] in names:
+                    raise fixture.FixtureError('duplicate')
+                names.add(payload['display_name'])
+                return dict(experiment_id='replacement')
+            next_id[0] += 1
+            return dict(recurring_run_id='new-' + str(next_id[0]))
+
+        client.post.side_effect = post
+        with mock.patch.object(
+                fixture,
+                'schedule_identity',
+                side_effect=[
+                    'default', 'scoped', 'denied', 'new-default', 'new-scoped',
+                    'new-denied'
+                ]):
+            fixture.recreate(fixture.CONTEXT, self.path, self.state, client,
+                             pipeline, report)
+        self.assertEqual(names, {source_name, source_name + '-recreated'})
+        self.assertEqual(
+            fixture.read_object(
+                self.path / 'legacy-state.json')['experiment_id'], 'original')
+
+    def test_fixture_failure_reports_only_allowlisted_reason_and_phase(self):
+        for error, reason in ((
+                fixture.FixtureError('fixture_experiment_create_failed'),
+                'fixture_experiment_create_failed'),
+                              (fixture.FixtureError('private-secret'),
+                               'fixture_validation_or_collection_failed')):
+            output = io.StringIO()
+            args = [
+                'fixture', '--context', fixture.CONTEXT,
+                '--allow-test-cluster-mutations', '--phase', 'rbac',
+                '--state-dir',
+                str(self.path)
+            ]
+            with mock.patch('sys.argv', args), mock.patch.object(
+                    fixture, 'provision_rbac',
+                    side_effect=error), redirect_stderr(output):
+                with self.assertRaises(SystemExit):
+                    fixture.main()
+            self.assertIn('phase=rbac, reason=' + reason, output.getvalue())
+            self.assertNotIn('private-secret', output.getvalue())
+
     def test_recreation_rejects_missing_evidence_or_changed_pipeline(self):
         pipeline, report = self.migration_fixture()
         for candidate, evidence in ((dict(pipeline, unexpected=True), report),

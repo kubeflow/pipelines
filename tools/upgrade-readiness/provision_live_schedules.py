@@ -507,11 +507,17 @@ def prepare(context, state_dir, state, client, pipeline_spec):
         raise FixtureError('compiled_v2_pipeline_required')
     state['pipeline_digest'] = hashlib.sha256(
         json.dumps(pipeline_spec, sort_keys=True).encode()).hexdigest()
-    experiment = client.post(
-        '/apis/v2beta1/experiments',
-        dict(
-            display_name='readiness-' + state['owner_marker'],
-            namespace=NAMESPACE))
+    # Preserve the source experiment and its history; names are unique within
+    # a namespace, so replacement fixtures must use a distinct name.
+    experiment_name = 'readiness-' + state['owner_marker']
+    if state.get('recreated'):
+        experiment_name += '-recreated'
+    try:
+        experiment = client.post(
+            '/apis/v2beta1/experiments',
+            dict(display_name=experiment_name, namespace=NAMESPACE))
+    except FixtureError:
+        raise FixtureError('fixture_experiment_create_failed') from None
     state['experiment_id'] = api_identifier(
         experiment.get('experiment_id', experiment.get('experimentId')))
     write_object(state_dir / 'state.json', state)
@@ -526,7 +532,10 @@ def prepare(context, state_dir, state, client, pipeline_spec):
             trigger=dict(periodic_schedule=dict(interval_second='30')))
         if scenario != 'default':
             payload['service_account'] = account
-        response = client.post('/apis/v2beta1/recurringruns', payload)
+        try:
+            response = client.post('/apis/v2beta1/recurringruns', payload)
+        except FixtureError:
+            raise FixtureError('fixture_schedule_create_failed') from None
         uid = api_identifier(
             response.get('recurring_run_id', response.get('recurringRunId')))
         record = dict(
@@ -659,10 +668,23 @@ def main():
             else:
                 set_enabled(state_dir, state, client, args.phase == 'enable')
     except (OSError, ValueError, TypeError, KeyError, AttributeError,
-            subprocess.TimeoutExpired):
+            subprocess.TimeoutExpired) as error:
+        # Emit only fixed local categories, never backend response/error text.
+        reason = str(error) if isinstance(
+            error, FixtureError) and str(error) in {
+                'fixture_experiment_create_failed',
+                'fixture_schedule_create_failed',
+                'fixture_activation_change_failed',
+                'fixture_schedule_not_disabled',
+                'fixture_not_ready_for_reviewed_recreation',
+                'legacy_rejection_evidence_required',
+                'legacy_schedule_identity_changed',
+                'fixture_recreation_already_started',
+                'fixture_namespace_ownership_mismatch'
+            } else 'fixture_validation_or_collection_failed'
         parser.exit(
             1,
-            'Fixture operation failed; inspect the isolated cluster and fixture state before retrying.\n'
+            f'Fixture operation failed (phase={args.phase}, reason={reason}); inspect the isolated cluster and fixture state before retrying.\n'
         )
 
 
