@@ -59,7 +59,9 @@ class LiveCITests(unittest.TestCase):
         self.assertLess(
             target.index('capture enforce'), target.index('observe enforce'))
         self.assertIn('source-$mode-prediction.json', script)
-        self.assertIn('remap_predictions(source, legacy, replacement)', target)
+        self.assertIn('check_fixture_policy.py', target)
+        self.assertIn('--legacy-migration', script)
+        self.assertNotIn('remap_predictions', script)
 
     def test_embedded_python_compiles(self):
         blocks = [

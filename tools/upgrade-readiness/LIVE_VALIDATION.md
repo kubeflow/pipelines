@@ -1,4 +1,4 @@
-# Live schedule prediction acceptance
+# Live schedule migration and target-policy acceptance
 
 The read-only baseline and observation helpers inspect **prepared schedules in an
 isolated multi-user test installation**. The separate `provision_live_schedules.py`
@@ -6,11 +6,14 @@ CI helper creates fixtures and changes their activation state; it is never invok
 by the operator readiness scan.
 No passing live-cluster result has yet been recorded for this fixture protocol.
 
-The release acceptance sequence is: prepare on 2.17.2, capture predictions and
+The release acceptance sequence is: prepare on 2.17.2, preserve scanner reports and
 baselines, upgrade to the exact candidate, and verify that the old schedules
 are rejected for missing trusted scheduling state. Recreate the controlled fixtures
 through the target API from the same reviewed local pipeline, then compare their
-main-account behavior with the source-generated expectations. The `readiness-schedules`
+main-account behavior with checks derived from the recreated target records.
+The source scanner correctly reports embedded workflows as unresolved. This lane
+therefore does **not** validate pre-upgrade scanner predictions; it validates the
+legacy migration boundary and subsequent target behavior. The `readiness-schedules`
 job contains scaffolding for a separate multi-user fixture lane alongside the
 single-user persistence tests. The schedule lane requires either the repository variable
 `KFP_218_READINESS_SCHEDULES=enabled` or the explicit manual dispatch input
@@ -80,18 +83,22 @@ Audit mode does not bypass missing trusted state; the fixture observes this boun
 in enforce mode, with audit non-bypass separately covered by backend policy behavior.
 
 `legacy-migration.json` preserves the observed result. Original source reports and
-baselines remain under `source-*` names. Recreation requires disabled original
+baseline remain under `source-*` names. The legacy baseline verifies exact schedule
+identities and existing run/Event IDs independently of unresolved source predictions. Recreation requires disabled original
 identities and the same digest of the reviewed local compiled pipeline; it never
 copies execution inputs from a source CR or API row. The provisioner retains
-`legacy-state.json`, creates new disabled schedules, and maps only the original
-main-account expectations to their new identities. The mapped report is explicitly
-scoped to recreated fixture expectations and records old/new UIDs; it is not a
-fresh operator scan of 2.18. Fresh target baselines precede functional observation.
+`legacy-state.json` and creates new disabled schedules. `check_fixture_policy.py`
+then collects only the fixture namespace's persisted target recurring runs and
+experiments, matches the new CR identities, and evaluates the unchanged account
+policy model. Its report explicitly states `post_recreation_target_policy_check`
+and `pre_upgrade_prediction_validated=false`. Unknown or incomplete target evidence
+fails; source `unknown` findings remain intact. Fresh target baselines precede
+functional observation. The fixture owner receives no access to system-namespace
+recurring runs merely to satisfy evidence collection.
 
-## Capture the pre-upgrade baseline
+## Capture a functional baseline after recreation
 
-Generate a readiness JSON report using the intended target policy and source
-KFP evidence. Create a local cases file with actual schedule names/UIDs and account
+Use the explicit target-policy report for the recreated fixtures. Create a local cases file with actual schedule names/UIDs and account
 names (these are fixture selectors, not credentials):
 
 ```json
@@ -135,9 +142,9 @@ Secrets or controller logs. Failed baseline collection exits nonzero; never reus
 a stale/partial baseline after failure. Reports and baselines contain resource
 identifiers and should remain access-controlled.
 
-## Observe after upgrade and activation
+## Observe after upgrade, recreation, and activation
 
-After upgrading the isolated installation, record a UTC activation timestamp
+After upgrading and recreating the fixtures in the isolated installation, record a UTC activation timestamp
 **before** enabling its fixtures (for example `2026-09-18T15:00:00Z`). Pass that
 actual timestamp below. This excludes source-version runs that appeared between
 baseline capture and upgrade; the baseline timestamp alone is insufficient.

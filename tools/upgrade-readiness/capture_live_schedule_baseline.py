@@ -24,21 +24,39 @@ from kfp_http import CollectionError
 from live_schedule_check import list_events
 from live_schedule_check import list_runs
 from live_schedule_check import validate
+from live_schedule_check import validate_baseline
+from provision_live_schedules import CONTEXT
+from provision_live_schedules import NAMESPACE
 from readiness import kubectl_get
 from readiness import read_json
 
 
-def capture(client, context, namespace, definitions, report):
+def capture(client,
+            context,
+            namespace,
+            definitions,
+            report,
+            *,
+            legacy_migration=False):
+    if legacy_migration and (context != CONTEXT or namespace != NAMESPACE):
+        raise CollectionError('isolated_legacy_fixture_required')
     start = datetime.now(timezone.utc).isoformat()
     # Validate case/prediction association before any API request.
     cases = []
     for definition in definitions.get('cases', []):
         case = dict(definition)
+        if legacy_migration:
+            case.pop('expected_outcome', None)
+            case.pop('expected_prediction', None)
         case['baseline_run_ids'] = []
         case['baseline_event_counts'] = {}
         cases.append(case)
     result = dict(namespace=namespace, observation_start=start, cases=cases)
-    validate(result, report, namespace)
+    if legacy_migration:
+        result['scope'] = 'legacy_migration_baseline'
+        validate_baseline(result, namespace)
+    else:
+        validate(result, report, namespace)
     data, error = kubectl_get(context, namespace,
                               'scheduledworkflows.kubeflow.org')
     if error or not isinstance(data, dict) or not isinstance(
@@ -69,23 +87,34 @@ def capture(client, context, namespace, definitions, report):
                     uid, str) or not uid or type(count) is not int or count < 0:
                 raise CollectionError('invalid_event_baseline')
             case['baseline_event_counts'][uid] = count
-    validate(result, report, namespace)
+    if legacy_migration:
+        result['scope'] = 'legacy_migration_baseline'
+        validate_baseline(result, namespace)
+    else:
+        validate(result, report, namespace)
     return result
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('context', 'namespace', 'kfp-endpoint', 'kfp-token-file',
-                 'cases', 'prediction-report'):
+                 'cases'):
         parser.add_argument('--' + name, required=True)
+    parser.add_argument('--prediction-report')
+    parser.add_argument('--legacy-migration', action='store_true')
     parser.add_argument('--kfp-ca-file')
     args = parser.parse_args()
     try:
         client = Client(args.kfp_endpoint, args.kfp_token_file,
                         args.kfp_ca_file)
-        result = capture(client, args.context, args.namespace,
-                         read_json(args.cases),
-                         read_json(args.prediction_report))
+        result = capture(
+            client,
+            args.context,
+            args.namespace,
+            read_json(args.cases),
+            read_json(args.prediction_report)
+            if args.prediction_report else None,
+            legacy_migration=args.legacy_migration)
     except (OSError, ValueError, TypeError, KeyError, AttributeError):
         parser.exit(
             1,

@@ -23,7 +23,7 @@ from live_schedule_check import activation_start
 from live_schedule_check import list_events
 from live_schedule_check import runs
 from live_schedule_check import timestamp
-from live_schedule_check import validate
+from live_schedule_check import validate_baseline
 from provision_live_schedules import CONTEXT
 from provision_live_schedules import NAMESPACE
 from provision_live_schedules import read_object
@@ -96,17 +96,18 @@ def observe(client,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ('context', 'baseline', 'prediction-report', 'not-before',
-                 'kfp-endpoint', 'kfp-token-file'):
+    for name in ('context', 'baseline', 'not-before', 'kfp-endpoint',
+                 'kfp-token-file'):
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--timeout-seconds', type=int, default=180)
     args = parser.parse_args()
     try:
         if args.context != CONTEXT or not 30 <= args.timeout_seconds <= 600:
             raise ValueError('invalid_disposable_fixture_scope')
-        cases, baseline_start = validate(
-            read_object(args.baseline), read_object(args.prediction_report),
-            NAMESPACE)
+        baseline = read_object(args.baseline)
+        if baseline.get('scope') != 'legacy_migration_baseline':
+            raise ValueError('legacy_baseline_required')
+        cases, baseline_start = validate_baseline(baseline, NAMESPACE)
         if len(cases) != 3:
             raise ValueError('three_source_fixtures_required')
         start = activation_start(baseline_start, args.not_before)

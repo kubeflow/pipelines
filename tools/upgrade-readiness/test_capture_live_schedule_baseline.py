@@ -81,6 +81,40 @@ class BaselineTest(unittest.TestCase):
         self.assertNotIn('private', json.dumps(result))
         self.assertNotIn('baseline_run_ids', definitions['cases'][0])
 
+    def test_legacy_baseline_records_identity_without_asserting_a_prediction(
+            self):
+        definitions, _ = inputs()
+        definitions['cases'][0]['expected_prediction'] = 'unknown'
+        schedules = dict(items=[
+            dict(
+                metadata=dict(
+                    uid='uid', name='nightly', namespace=capture.NAMESPACE))
+        ])
+        with mock.patch.object(
+                capture, 'kubectl_get',
+                return_value=(schedules, None)), mock.patch.object(
+                    capture, 'list_events', return_value=[]), mock.patch.object(
+                        capture, 'list_runs', return_value=[]):
+            result = capture.capture(
+                None,
+                capture.CONTEXT,
+                capture.NAMESPACE,
+                definitions,
+                None,
+                legacy_migration=True)
+        self.assertEqual(result['scope'], 'legacy_migration_baseline')
+        self.assertNotIn('expected_prediction', result['cases'][0])
+        self.assertNotIn('expected_outcome', result['cases'][0])
+        with self.assertRaisesRegex(ValueError,
+                                    'isolated_legacy_fixture_required'):
+            capture.capture(
+                None,
+                'production',
+                capture.NAMESPACE,
+                definitions,
+                None,
+                legacy_migration=True)
+
     def test_identity_and_prediction_mismatch_fail(self):
         definitions, report = inputs()
         with mock.patch.object(

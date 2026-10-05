@@ -240,9 +240,10 @@ PY
       --kfp-token-file "$state/token" --format json >"$reports/$mode-prediction.json" || result=$?
     [[ "$result" == 2 ]] # Reports remain explicitly incomplete, even in this fixture.
     cp "$reports/$mode-prediction.json" "$reports/source-$mode-prediction.json"
-    capture "$mode"
-    cp "$reports/$mode-baseline.json" "$reports/source-$mode-baseline.json"
   done
+  python3 "$helpers/capture_live_schedule_baseline.py" --context "$context" --namespace "$namespace" \
+    --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
+    --cases "$state/fixture/cases.json" --legacy-migration >"$reports/source-legacy-baseline.json"
   printf '{"source_version":"2.17.2","target_revision":"%s"}\n' "$revision" >"$reports/revisions.json"
 else
   configure_api enforce
@@ -255,8 +256,7 @@ else
   fixture --phase enable
   python3 "$helpers/verify_legacy_schedules.py" --context "$context" \
     --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
-    --baseline "$reports/source-enforce-baseline.json" \
-    --prediction-report "$reports/source-enforce-prediction.json" \
+    --baseline "$reports/source-legacy-baseline.json" \
     --not-before "$(cat "$state/fixture/activation-start.txt")" \
     >"$reports/legacy-migration.json"
   fixture --phase disable
@@ -265,14 +265,9 @@ else
   python3 - "$state" <<'PYRECREATE'
 from pathlib import Path
 import sys
-from provision_live_schedules import read_object, remap_predictions, write_object
+from provision_live_schedules import read_object, write_object
 state = Path(sys.argv[1])
-legacy = read_object(state / 'fixture/legacy-state.json')
-replacement = read_object(state / 'fixture/state.json')
 for mode in ('enforce', 'audit'):
-    source = read_object(state / f'reports/source-{mode}-prediction.json')
-    write_object(state / f'reports/{mode}-prediction.json',
-                 remap_predictions(source, legacy, replacement))
     cases = read_object(state / 'fixture/cases.json')
     if mode == 'audit':
         for case in cases['cases']:
@@ -281,12 +276,17 @@ for mode in ('enforce', 'audit'):
                 case['expected_prediction'] = 'operational_impact'
     write_object(state / f'{mode}-cases.json', cases)
 PYRECREATE
+  for mode in enforce audit; do
+    python3 "$helpers/check_fixture_policy.py" --context "$context" \
+      --fixture-state "$state/fixture/state.json" --policy "$state/$mode-policy.json" \
+      --endpoint "$endpoint" --token-file "$state/token" >"$reports/$mode-prediction.json"
+  done
   capture enforce
   observe enforce
   stop_forward
   configure_api audit
   start_forward
-  # Use the source-generated audit prediction, with a fresh baseline after enforce.
+  # Use the recreated-fixture target policy check, with a fresh baseline after enforce.
   capture audit
   observe audit
   python3 "$helpers/verify_live_audit.py" --context "$context" \

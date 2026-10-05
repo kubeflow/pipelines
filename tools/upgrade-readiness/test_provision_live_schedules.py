@@ -14,7 +14,6 @@
 """Safety and API contract tests for the mutating disposable CI helper."""
 
 from contextlib import redirect_stderr
-import copy
 import hashlib
 import io
 import json
@@ -441,32 +440,6 @@ class ProvisionTests(unittest.TestCase):
             fixture.recreate(fixture.CONTEXT, self.path, saved, client,
                              pipeline, report)
         self.assertEqual(client.post.call_count, 2)
-
-    def test_remap_preserves_source_and_rejects_account_changes(self):
-        self.migration_fixture()
-        replacement = copy.deepcopy(self.state)
-        replacement['recreated'] = True
-        for record in replacement['schedules']:
-            record['schedule_uid'] = 'new-' + record['schedule_uid']
-            record['schedule_name'] = 'new-' + record['schedule_name']
-        source = dict(findings=[
-            dict(
-                rule='schedule.targetMainAccount',
-                status='unknown',
-                resource='ScheduledWorkflow/' + fixture.NAMESPACE + '/' +
-                record['schedule_name']) for record in self.state['schedules']
-        ])
-        original = copy.deepcopy(source)
-        result = fixture.remap_predictions(source, self.state, replacement)
-        self.assertEqual(source, original)
-        self.assertEqual(result['scope'],
-                         'recreated_fixture_main_account_expectations')
-        self.assertEqual(len(result['identity_mapping']), 3)
-        self.assertTrue(
-            all('/new-' in f['resource'] for f in result['findings']))
-        replacement['schedules'][0]['service_account'] = 'different'
-        with self.assertRaises(fixture.FixtureError):
-            fixture.remap_predictions(source, self.state, replacement)
 
     def test_prepare_requires_matching_disabled_schedule(self):
         obj = dict(

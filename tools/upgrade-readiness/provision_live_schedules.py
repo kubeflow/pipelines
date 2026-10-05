@@ -588,46 +588,6 @@ def recreate(context, state_dir, state, client, pipeline_spec, legacy_report):
     prepare(context, state_dir, replacement, client, pipeline_spec)
 
 
-def remap_predictions(source_report, legacy, replacement):
-    """Transfer only main-account expectations for identical reviewed
-    fixtures."""
-    if (not replacement.get('recreated') or
-            not replacement.get('pipeline_digest') or
-            replacement['pipeline_digest'] != legacy.get('pipeline_digest')):
-        raise FixtureError('fixture_pipeline_changed')
-    old = {case['scenario']: case for case in legacy['schedules']}
-    new = {case['scenario']: case for case in replacement['schedules']}
-    if len(old) != 3 or set(old) != set(new):
-        raise FixtureError('fixture_scenarios_changed')
-    result = dict(
-        scope='recreated_fixture_main_account_expectations',
-        source_ruleset=source_report.get('ruleset'),
-        findings=[],
-        identity_mapping=[])
-    for scenario, previous in old.items():
-        current = new[scenario]
-        if current['service_account'] != previous['service_account']:
-            raise FixtureError('fixture_account_changed')
-        matches = [
-            f for f in source_report.get('findings', [])
-            if f.get('rule') == 'schedule.targetMainAccount' and
-            f.get('resource') == 'ScheduledWorkflow/' + NAMESPACE + '/' +
-            previous['schedule_name']
-        ]
-        if len(matches) != 1:
-            raise FixtureError('source_prediction_missing_or_ambiguous')
-        finding = copy.deepcopy(matches[0])
-        finding['resource'] = 'ScheduledWorkflow/' + NAMESPACE + '/' + current[
-            'schedule_name']
-        result['findings'].append(finding)
-        result['identity_mapping'].append(
-            dict(
-                scenario=scenario,
-                source_schedule_uid=previous['schedule_uid'],
-                recreated_schedule_uid=current['schedule_uid']))
-    return result
-
-
 def set_enabled(state_dir, state, client, enabled):
     if enabled and not state.get('prepared'):
         raise FixtureError('fixture_not_prepared')

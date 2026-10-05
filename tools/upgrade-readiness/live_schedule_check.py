@@ -47,7 +47,7 @@ def timestamp(value):
     return result
 
 
-def validate(bundle, report, namespace):
+def validate_baseline(bundle, namespace):
     if not isinstance(namespace,
                       str) or len(namespace) > 63 or not re.fullmatch(
                           r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', namespace):
@@ -70,13 +70,6 @@ def validate(bundle, report, namespace):
         if case['schedule_uid'] in seen:
             raise ValueError('duplicate_schedule')
         seen.add(case['schedule_uid'])
-        if case.get('expected_outcome') not in (*POSITIVE_OUTCOMES, 'blocked'):
-            raise ValueError('invalid_outcome')
-        allowed = (
-            'policy_rejection',) if case['expected_outcome'] == 'blocked' else (
-                'no_issue_detected', 'operational_impact')
-        if case.get('expected_prediction') not in allowed:
-            raise ValueError('incompatible_prediction')
         baseline = case.get('baseline_run_ids')
         counts = case.get('baseline_event_counts')
         if not isinstance(baseline, list) or len(baseline) > 10000 or not all(
@@ -86,6 +79,19 @@ def validate(bundle, report, namespace):
                 isinstance(k, str) and k and type(v) is int and v >= 0
                 for k, v in counts.items()):
             raise ValueError('invalid_event_baseline')
+    return cases, start
+
+
+def validate(bundle, report, namespace):
+    cases, start = validate_baseline(bundle, namespace)
+    for case in cases:
+        if case.get('expected_outcome') not in (*POSITIVE_OUTCOMES, 'blocked'):
+            raise ValueError('invalid_outcome')
+        allowed = (
+            'policy_rejection',) if case['expected_outcome'] == 'blocked' else (
+                'no_issue_detected', 'operational_impact')
+        if case.get('expected_prediction') not in allowed:
+            raise ValueError('incompatible_prediction')
         matches = [
             f for f in report.get('findings', [])
             if f.get('rule') == 'schedule.targetMainAccount' and
