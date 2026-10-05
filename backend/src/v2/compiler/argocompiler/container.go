@@ -713,7 +713,7 @@ func (c *workflowCompiler) getTaskRetryStrategyFromInput(maxCount string, backOf
 
 // protoRetryPolicyToArgo maps a KFP proto RetryPolicy_Policy enum value to the
 // corresponding Argo Workflows RetryPolicy string. An empty string is returned
-// for POLICY_UNSPECIFIED, which causes Argo to use its default (OnFailure).
+// for POLICY_UNSPECIFIED, leaving the policy to the deployment's Argo configuration.
 func protoRetryPolicyToArgo(policy pipelinespec.PipelineTaskSpec_RetryPolicy_Policy) string {
 	switch policy {
 	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ALWAYS:
@@ -725,7 +725,7 @@ func protoRetryPolicyToArgo(policy pipelinespec.PipelineTaskSpec_RetryPolicy_Pol
 	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ON_TRANSIENT_ERROR:
 		return string(wfapi.RetryPolicyOnTransientError)
 	default:
-		return "" // POLICY_UNSPECIFIED → Argo uses OnFailure by default
+		return "" // POLICY_UNSPECIFIED inherits the deployment configuration.
 	}
 }
 
