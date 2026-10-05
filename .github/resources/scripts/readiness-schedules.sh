@@ -80,6 +80,18 @@ configure_controllers() {
     kube -n kubeflow rollout status "deployment/$controller" --timeout=300s
   done
 }
+restore_controller_namespaces() {
+  # Restore the canonical downward-API shape before kubectl apply. A literal
+  # value added with set env otherwise survives alongside candidate valueFrom.
+  local controller patch
+  for controller in ml-pipeline-scheduledworkflow ml-pipeline-persistenceagent; do
+    patch=$(jq -cn --arg name "$controller" '{spec:{template:{spec:{containers:[{name:$name,env:[{name:"NAMESPACE",value:null,valueFrom:{fieldRef:{fieldPath:"metadata.namespace"}}}]}]}}}}')
+    kube -n kubeflow patch "deployment/$controller" --type=strategic -p "$patch"
+    kube -n kubeflow rollout status "deployment/$controller" --timeout=300s
+    kube -n kubeflow get "deployment/$controller" -o json |
+      jq -e --arg name "$controller" '[.spec.template.spec.containers[] | select(.name == $name) | .env[] | select(.name == "NAMESPACE")] | length == 1 and (.[0] | (has("value") | not) and .valueFrom.fieldRef.fieldPath == "metadata.namespace")' >/dev/null
+  done
+}
 start_forward() {
   kube -n kubeflow port-forward service/ml-pipeline 8888:8888 >"$state/port-forward.log" 2>&1 &
   forward_pid=$!
@@ -245,6 +257,9 @@ PY
     --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
     --cases "$state/fixture/cases.json" --legacy-migration >"$reports/source-legacy-baseline.json"
   printf '{"source_version":"2.17.2","target_revision":"%s"}\n' "$revision" >"$reports/revisions.json"
+  # Fixtures are disabled and source runs drained before controllers leave the
+  # fixture namespace. Target configuration restores this scope after upgrade.
+  restore_controller_namespaces
 else
   configure_api enforce
   configure_controllers

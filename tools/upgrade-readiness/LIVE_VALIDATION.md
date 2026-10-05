@@ -71,6 +71,13 @@ in memory, each limited to 64 KiB and 15 seconds, and only fixed error categorie
 specifications, server error text, credentials, or logs are included. Diagnostic
 categories are clues for investigation, not proof of a root cause or a passing run.
 
+After source fixtures are disabled, completed, and captured, the CI restores the
+scheduler and persistence-agent `NAMESPACE` environment entries to their canonical
+downward-API form and waits for rollout. This prevents a fixture-only literal value
+from conflicting with `valueFrom` during candidate manifest application. No fixture
+schedule is active during this transition; the target phase restores its namespace
+scope before enabling the legacy rejection checks.
+
 ## Legacy migration acceptance
 
 The CI lane separately checks all three source schedules for fresh, UID-correlated

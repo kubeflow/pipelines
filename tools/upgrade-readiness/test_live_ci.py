@@ -63,6 +63,81 @@ class LiveCITests(unittest.TestCase):
         self.assertIn('--legacy-migration', script)
         self.assertNotIn('remap_predictions', script)
 
+    def test_source_namespace_restore_occurs_after_drain_and_baseline(self):
+        text = SCRIPT.read_text()
+        restore = text.index('\n  restore_controller_namespaces\n')
+        self.assertLess(text.index('\n  drain source\n'), restore)
+        self.assertLess(text.index('--legacy-migration'), restore)
+        self.assertLess(restore, text.index('else\n  configure_api enforce'))
+
+    def test_namespace_restore_removes_literal_and_checks_live_shape(self):
+        function = re.search(
+            r'(restore_controller_namespaces\(\) \{[\s\S]*?^\})',
+            SCRIPT.read_text(), re.MULTILINE).group(1)
+        for invalid in (False, True):
+            # Only kubectl is replaced; execute the real jq patch construction
+            # and live-shape assertion to cover this shell transition.
+            environment = dict(
+                name='NAMESPACE',
+                valueFrom=dict(fieldRef=dict(fieldPath='metadata.namespace')))
+            if invalid:
+                environment['value'] = 'fixture'
+            deployments = {
+                name:
+                    dict(
+                        spec=dict(
+                            template=dict(
+                                spec=dict(containers=[
+                                    dict(name=name, env=[environment])
+                                ]))))
+                for name in ('ml-pipeline-scheduledworkflow',
+                             'ml-pipeline-persistenceagent')
+            }
+            with tempfile.TemporaryDirectory() as directory:
+                for name, deployment in deployments.items():
+                    (Path(directory) / name).write_text(json.dumps(deployment))
+                kube = (
+                    'kube() {\n'
+                    '  case "$3" in\n'
+                    '    patch) printf "%s\\n" "$7" ;;\n'
+                    '    rollout) ;;\n'
+                    '    get) cat "$FIXTURE_DEPLOYMENTS/${4#deployment/}" ;;\n'
+                    '    *) return 1 ;;\n'
+                    '  esac\n'
+                    '}\n')
+                result = subprocess.run([
+                    'bash', '-c', 'set -euo pipefail\n' + kube + function +
+                    '\nrestore_controller_namespaces\n'
+                ],
+                                        text=True,
+                                        capture_output=True,
+                                        env=dict(
+                                            os.environ,
+                                            FIXTURE_DEPLOYMENTS=directory))
+            if invalid:
+                self.assertNotEqual(result.returncode, 0)
+            else:
+                self.assertEqual(result.returncode, 0, result.stderr)
+                patches = [
+                    json.loads(line) for line in result.stdout.splitlines()
+                ]
+                self.assertEqual(len(patches), 2)
+                for patch, name in zip(patches, deployments):
+                    container = patch['spec']['template']['spec']['containers'][
+                        0]
+                    self.assertEqual(
+                        container,
+                        dict(
+                            name=name,
+                            env=[
+                                dict(
+                                    name='NAMESPACE',
+                                    value=None,
+                                    valueFrom=dict(
+                                        fieldRef=dict(
+                                            fieldPath='metadata.namespace')))
+                            ]))
+
     def test_embedded_python_compiles(self):
         blocks = [
             body for _, body in re.findall(r"<<'(PY[A-Z]*)'\n(.*?)\n\1\n",
