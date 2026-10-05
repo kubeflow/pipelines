@@ -199,7 +199,7 @@ jobs:
         id: save-image
         continue-on-error: true
         # A step timeout remains retryable; the job timeout cancels recovery.
-        timeout-minutes: ${{ matrix.image == 'frontend' && 10 || 30 }}
+        timeout-minutes: ${{ matrix.image == 'frontend' && 9 || 30 }}
         env:
           # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
@@ -222,7 +222,8 @@ jobs:
 
       - name: Reset frontend builder before retry
         if: ${{ matrix.image == 'frontend' && steps.save-image.outcome == 'failure' }}
-        timeout-minutes: 3
+        # Allow 120s of helper backoff, 45s of cleanup, and time for Docker work.
+        timeout-minutes: 5
         shell: bash
         env:
           BUILDER_NAME: ${{ steps.buildx.outputs.builder_name }}
@@ -236,7 +237,7 @@ jobs:
         uses: docker/build-push-action@v7
         if: ${{ steps.save-image.outcome == 'failure' }}
         id: rebuild
-        timeout-minutes: ${{ matrix.image == 'frontend' && 10 || 30 }}
+        timeout-minutes: ${{ matrix.image == 'frontend' && 9 || 30 }}
         env:
           # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false

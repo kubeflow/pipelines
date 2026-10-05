@@ -102,7 +102,11 @@ class FrontendImageRetryTest(unittest.TestCase):
         self.assertLess(
             self.steps.index(self.retry), self.steps.index(self.upload))
 
-    def _run_reset(self, inspect_fails=False, remove_fails=False):
+    def _run_reset(self,
+                   inspect_fails=False,
+                   remove_fails=False,
+                   pull_failures=0,
+                   inspect_failures=0):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             commands = directory / 'commands.log'
@@ -113,11 +117,17 @@ class FrontendImageRetryTest(unittest.TestCase):
 printf 'docker %s\\n' "$*" >> "$COMMAND_LOG"
 # The diagnostics command fails, as it can when the builder is unhealthy.
 [[ "$1" == logs ]] && exit 1
+if [[ "$1" == pull && "$PULL_FAILURES" -gt 0 ]]; then
+  pulls=$(grep -Fxc "docker pull $BUILDKIT_MIRROR_IMAGE" "$COMMAND_LOG")
+  [[ "$pulls" -le "$PULL_FAILURES" ]] && exit 1
+fi
 if [[ "$1 $2" == "buildx rm" && "$REMOVE_FAILS" == true ]]; then
   exit 1
 fi
-if [[ "$1 $2" == "buildx inspect" && "$INSPECT_FAILS" == true ]]; then
-  exit 1
+if [[ "$1 $2" == "buildx inspect" ]]; then
+  [[ "$INSPECT_FAILS" == true ]] && exit 1
+  inspections=$(grep -c '^docker buildx inspect ' "$COMMAND_LOG")
+  [[ "$inspections" -le "$INSPECT_FAILURES" ]] && exit 1
 fi
 exit 0
 ''',
@@ -128,7 +138,9 @@ shift
 exec "$@"
 ''',
                 'sleep':
-                    '#!/usr/bin/env bash\nexit 0\n',
+                    '''#!/usr/bin/env bash
+printf 'sleep %s\\n' "$*" >> "$COMMAND_LOG"
+''',
             }
             for name, script in scripts.items():
                 executable = directory / name
@@ -154,6 +166,10 @@ exec "$@"
                         str(inspect_fails).lower(),
                     'REMOVE_FAILS':
                         str(remove_fails).lower(),
+                    'PULL_FAILURES':
+                        str(pull_failures),
+                    'INSPECT_FAILURES':
+                        str(inspect_failures),
                     'BUILDKIT_IMAGE':
                         'moby/buildkit:buildx-stable-1',
                     'BUILDKIT_MIRROR_IMAGE':
@@ -165,6 +181,39 @@ exec "$@"
                 timeout=10)
             return (result, commands.read_text().splitlines(),
                     output.read_text() if output.exists() else '')
+
+    def test_reset_budget_covers_full_backoff_and_docker_operations(self):
+        helper = (ROOT / '.github/resources/scripts/'
+                  'setup-buildx-with-retry.sh').read_text()
+        retries = {
+            name: (int(attempts), int(interval))
+            for attempts, interval, name in re.findall(
+                r'^retry (\d+) (\d+) (pull_buildkit_image|setup_builder)$',
+                helper, re.MULTILINE)
+        }
+        pull_attempts, pull_interval = retries['pull_buildkit_image']
+        setup_attempts, setup_interval = retries['setup_builder']
+        result, commands, output = self._run_reset(
+            pull_failures=pull_attempts - 1,
+            inspect_failures=setup_attempts - 1)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output, 'builder_name=frontend-retry-test\n')
+        sleeps = [
+            int(command.split()[1])
+            for command in commands
+            if command.startswith('sleep ')
+        ]
+        self.assertEqual(sleeps, [pull_interval] * (pull_attempts - 1) +
+                         [setup_interval] * (setup_attempts - 1))
+        cleanup_seconds = sum(
+            int(command.split()[1].removesuffix('s'))
+            for command in commands
+            if command.startswith('timeout '))
+        # Backoff must leave at least two minutes for actual Docker work.
+        # The reset step still terminates recovery if those calls stall.
+        self.assertGreaterEqual(
+            self.reset['timeout-minutes'] * 60 - cleanup_seconds - sum(sleeps),
+            120)
 
     def test_failed_diagnostics_do_not_prevent_removing_and_recreating_builder(
             self):
