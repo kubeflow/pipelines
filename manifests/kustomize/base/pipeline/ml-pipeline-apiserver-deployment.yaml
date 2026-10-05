@@ -137,6 +137,30 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: dbType
+            - name: DB_CREDENTIAL_PROVIDER_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbCredentialProviderEnabled
+                  optional: true
+            - name: DB_CREDENTIAL_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbCredentialProvider
+                  optional: true
+            - name: DB_TLS_CA_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbTLSCAPath
+                  optional: true
+            - name: DB_CREDENTIAL_PROVIDER_SETTINGS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbCredentialProviderSettings
+                  optional: true
             # MySQL Config
             - name: DBCONFIG_MYSQLCONFIG_USER
               valueFrom:
