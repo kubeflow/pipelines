@@ -70,6 +70,16 @@ pull_image_with_backoff() {
   done
 }
 
+pull_runtime_image_for_archive() {
+  local image=$1
+  pull_image_with_backoff "$image" || return 1
+  # The inventory may pin acquisition with tag@digest. Docker archives must
+  # retain the tag used by the fixture: RepoDigests need not survive save/load.
+  if [[ "$image" == *@* ]]; then
+    docker tag "$image" "${image%@*}" || return 1
+  fi
+}
+
 pull_and_save_runtime_base_images() {
   local images_file=$1
   local archive_path=$2
@@ -78,8 +88,8 @@ pull_and_save_runtime_base_images() {
   pull_runtime_base_image() {
     local image=$1
 
-    pull_image_with_backoff "$image" || return 1
-    runtime_base_images+=("$image")
+    pull_runtime_image_for_archive "$image" || return 1
+    runtime_base_images+=("${image%@*}")
   }
 
   for_each_runtime_base_image "$images_file" pull_runtime_base_image || return 1
@@ -94,9 +104,9 @@ load_runtime_base_images_into_kind() {
   load_runtime_base_image() {
     local image=$1
 
-    pull_image_with_backoff "$image" || return 1
-    kind --name "$cluster_name" load docker-image "$image" || return 1
-    docker image rm "$image" || true
+    pull_runtime_image_for_archive "$image" || return 1
+    kind --name "$cluster_name" load docker-image "${image%@*}" || return 1
+    docker image rm "${image%@*}" || true
   }
 
   for_each_runtime_base_image "$images_file" load_runtime_base_image
@@ -140,13 +150,13 @@ deploy_with_retries () {
     then
         echo "Usage: deploy_with_retries (-f FILENAME | -k DIRECTORY) manifest max_retries sleep_time"
         return 1
-    fi 
+    fi
 
     local flag="$1"
     local manifest="$2"
     local max_retries="$3"
     local sleep_time="$4"
-    
+
     local i=0
 
     while [[ $i -lt $max_retries ]]
@@ -159,7 +169,7 @@ deploy_with_retries () {
         then
             return 0
         fi
-        
+
         echo "Deploy unsuccessful with error code $exit_code. Trying again in ${sleep_time}s."
         sleep "$sleep_time"
         i=$((i+1))

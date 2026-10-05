@@ -23,7 +23,7 @@ if [ "${SETUP_ENV}" = "true" ]; then
   source venv/bin/activate
 
   python3 -m pip install --upgrade pip
-  python3 -m pip install -r sdk/python/requirements.txt 
+  python3 -m pip install -r sdk/python/requirements.txt
   python3 -m pip install -r sdk/python/requirements-dev.txt
   python3 -m pip install setuptools
   python3 -m pip install wheel==0.42.0
@@ -43,7 +43,10 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -I api/v2alpha1/python
 fi
 
-if [[ -z "${PULL_NUMBER}" ]]; then
+if [[ "${GITHUB_EVENT_NAME:-}" == "merge_group" ]]; then
+  : "${GITHUB_SHA:?merge_group requires the queued commit SHA}"
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${GITHUB_SHA}#egg=kfp&subdirectory=sdk/python"
+elif [[ -z "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
 else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"

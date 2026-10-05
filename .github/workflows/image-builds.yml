@@ -41,6 +41,7 @@ jobs:
             .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
             .github/resources/runtime-base-images.txt \
             .github/resources/scripts/helper-functions.sh \
+            .github/resources/scripts/build-runtime-base-images.sh \
             .github/workflows/runtime-base-images.yml \
             test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
           echo "artifact-name=runtime-base-images-${archive_fingerprint}" >> "$GITHUB_OUTPUT"
@@ -52,18 +53,43 @@ jobs:
           ARTIFACT_NAME: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
           GH_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REQUIRE_SOURCE_SHA: ${{ github.event_name == 'merge_group' }}
         run: |
           set -euo pipefail
 
-          for attempt in $(seq 1 80); do
+          queue_runs_file=""
+          if [[ "${REQUIRE_SOURCE_SHA}" == "true" ]]; then
+            queue_runs_file=$(mktemp)
+            trap 'rm -f "${queue_runs_file}"' EXIT
+          fi
+
+          for attempt in $(seq 1 3); do
             producer_run_id=""
             if artifacts=$(gh api --method GET \
                 "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
                 -f name="${ARTIFACT_NAME}" \
                 -f per_page=100); then
-              producer_run_id=$(python3 \
-                .github/resources/scripts/runtime_base_image_artifacts.py \
-                select-producer --source-sha "${SOURCE_SHA}" <<< "${artifacts}")
+              producer_args=(--source-sha "${SOURCE_SHA}")
+              producer_runs_available=true
+              if [[ "${REQUIRE_SOURCE_SHA}" == "true" ]]; then
+                producer_args+=(--require-source-sha)
+                if gh api --method GET \
+                    "repos/${GITHUB_REPOSITORY}/actions/workflows/runtime-base-images-merge-group.yml/runs" \
+                    -f head_sha="${SOURCE_SHA}" \
+                    -f event=merge_group \
+                    -f per_page=100 > "${queue_runs_file}"; then
+                  producer_args+=(--queue-runs-file "${queue_runs_file}")
+                else
+                  echo "::warning::Failed to query runtime base image producer runs"
+                  producer_runs_available=false
+                fi
+              fi
+              if [[ "${producer_runs_available}" == "true" ]]; then
+                producer_run_id=$(python3 \
+                  .github/resources/scripts/runtime_base_image_artifacts.py \
+                  select-producer \
+                  "${producer_args[@]}" <<< "${artifacts}")
+              fi
             else
               echo "::warning::Failed to query runtime base image artifacts"
             fi
@@ -73,22 +99,34 @@ jobs:
               exit 0
             fi
 
-            if [[ "${attempt}" -lt 80 ]]; then
-              echo "Runtime base image artifact not ready; retrying in 15 seconds..."
-              sleep 15
+            if [[ "${attempt}" -lt 3 ]]; then
+              echo "Runtime base image artifact not ready; retrying in 10 seconds..."
+              sleep 10
             fi
           done
 
-          echo "::error::No runtime base image producer artifact found for ${ARTIFACT_NAME}"
-          exit 1
+          echo "::warning::No eligible shared runtime image archive found; building from this checkout."
 
       - name: Download runtime base images from producer
+        id: download-runtime-base-images
+        if: steps.runtime-base-images-producer.outputs.run-id != ''
+        continue-on-error: true
         uses: ./.github/actions/download-artifact-with-retry
         with:
           name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
           path: ${{ env.ARTIFACTS_PATH }}
           github-token: ${{ github.token }}
           run-id: ${{ steps.runtime-base-images-producer.outputs.run-id }}
+
+      - name: Configure Docker Hub mirror
+        if: steps.download-runtime-base-images.outcome != 'success'
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
+      - name: Build runtime base image archives
+        if: steps.download-runtime-base-images.outcome != 'success'
+        shell: bash
+        run: bash .github/resources/scripts/build-runtime-base-images.sh "${ARTIFACTS_PATH}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7

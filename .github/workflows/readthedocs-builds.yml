@@ -1,6 +1,9 @@
 name: KFP Readthedocs Release Readiness
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
   push:
     branches: [ master ]
   pull_request:
@@ -13,6 +16,9 @@ on:
       - .github/actions/setup-python-pip-cache/**
       - .readthedocs.yml
 
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -62,8 +68,8 @@ jobs:
       - name: Test K8s platform docs release step
         run: |
           KFP_KUBERNETES_VERSION="$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')"
-          RELEASE_TYPE=patch
-          case "$KFP_KUBERNETES_VERSION" in *.0) RELEASE_TYPE=minor ;; esac
+          RELEASE_TYPE='patch'
+          case "$KFP_KUBERNETES_VERSION" in *.0) RELEASE_TYPE='minor' ;; esac
           kfpr run create-kfp-kubernetes-docs-branch \
             --release-type "$RELEASE_TYPE" \
             --version "$KFP_KUBERNETES_VERSION" \

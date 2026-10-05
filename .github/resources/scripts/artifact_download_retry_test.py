@@ -41,6 +41,14 @@ ARGO_CONFIG_PATCH = (
     REPOSITORY_ROOT / 'manifests/kustomize/third-party/argo/base/'
     'workflow-controller-configmap-patch.yaml')
 
+RUNTIME_PYTHON_FIXTURES = (
+    'backend/test/v2/resources/env-var.yaml',
+    'backend/test/v2/resources/hello-world-with-returning-component.yaml',
+    'test_data/sdk_compiled_pipelines/valid/env-var.yaml',
+)
+PROXY_FIXTURE_SOURCE = 'test_data/sdk_compiled_pipelines/valid/env_var.py'
+PROXY_WORKFLOW_GOLDEN = 'test_data/compiled-workflows/env-var.yaml'
+
 
 def runtime_images():
     return {
@@ -101,6 +109,34 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
                     'uses: actions/download-artifact@',
                     contents,
                 )
+
+    def test_cache_and_proxy_images_are_preloaded(self):
+        tags = {image.split('@', 1)[0] for image in runtime_images()}
+        for fixture in RUNTIME_PYTHON_FIXTURES:
+            with self.subTest(fixture=fixture):
+                contents = (REPOSITORY_ROOT / fixture).read_text()
+                images = re.findall(r'^        image: (\S+)$', contents,
+                                    re.MULTILINE)
+                self.assertTrue(images)
+                for image in images:
+                    if '/' not in image:
+                        image = f'docker.io/library/{image}'
+                    self.assertIn(image, tags)
+                    self.assertNotIn('imagePullPolicy: Always', contents)
+
+    def test_proxy_source_matches_compiled_image(self):
+        source = (REPOSITORY_ROOT / PROXY_FIXTURE_SOURCE).read_text()
+        match = re.search(r'base_image=["\']([^"\']+)["\']', source)
+        self.assertIsNotNone(match)
+        compiled = (REPOSITORY_ROOT / RUNTIME_PYTHON_FIXTURES[-1]).read_text()
+        self.assertIn(f'        image: {match.group(1)}\n', compiled)
+
+    def test_proxy_workflow_golden_matches_compiled_image(self):
+        compiled = (REPOSITORY_ROOT / RUNTIME_PYTHON_FIXTURES[-1]).read_text()
+        match = re.search(r'^        image: (\S+)$', compiled, re.MULTILINE)
+        self.assertIsNotNone(match)
+        golden = (REPOSITORY_ROOT / PROXY_WORKFLOW_GOLDEN).read_text()
+        self.assertIn(f'"image":"{match.group(1)}"', golden)
 
     def test_runtime_archive_contains_external_deployment_images(self):
         images = runtime_images()
@@ -167,6 +203,13 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
         self.assertIn(canonical_image, runtime_images())
         # A pinned tag with no override uses Kubernetes' IfNotPresent default.
         self.assertNotIn('imagePullPolicy: Always', deployment)
+
+    def test_fixture_changes_run_ci_script_tests(self):
+        workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
+        for fixture in (*RUNTIME_PYTHON_FIXTURES, PROXY_FIXTURE_SOURCE,
+                        PROXY_WORKFLOW_GOLDEN):
+            with self.subTest(fixture=fixture):
+                self.assertIn(f"'{fixture}'", workflow)
 
     def test_ci_runs_for_retry_wiring_and_runtime_image_changes(self):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')

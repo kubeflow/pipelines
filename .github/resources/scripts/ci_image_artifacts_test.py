@@ -50,6 +50,18 @@ class CiImageArtifactsTest(unittest.TestCase):
 
         self.assertEqual(configured_artifacts, expected_artifacts)
 
+    def test_merge_group_requires_exact_runtime_base_image_producer_sha(self):
+        workflow = IMAGE_BUILDS_WORKFLOW.read_text(encoding='utf-8')
+        self.assertIn(
+            "REQUIRE_SOURCE_SHA: ${{ github.event_name == 'merge_group' }}",
+            workflow)
+        self.assertIn('producer_args+=(--require-source-sha)', workflow)
+        self.assertIn(
+            'actions/workflows/runtime-base-images-merge-group.yml/runs',
+            workflow)
+        self.assertIn('producer_args+=(--queue-runs-file "${queue_runs_file}")',
+                      workflow)
+
     def test_metadata_envoy_changes_trigger_its_image_build(self):
         frontend_e2e_workflow = FRONTEND_E2E_WORKFLOW.read_text(
             encoding='utf-8')
@@ -64,7 +76,11 @@ class CiImageArtifactsTest(unittest.TestCase):
         self.assertIn("      - 'third_party/metadata_envoy/**'",
                       pull_request_block)
         self.assertIn(
-            '  build:\n    uses: ./.github/workflows/image-builds.yml',
+            '  build:\n'
+            '    permissions:\n'
+            '      actions: read\n'
+            '      contents: read\n'
+            '    uses: ./.github/workflows/image-builds.yml',
             frontend_e2e_workflow,
         )
         self.assertIn(
