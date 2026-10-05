@@ -56,13 +56,17 @@ func newLazyOffloadHydrator(initFn func(context.Context) (hydrator.Interface, er
 }
 
 // TryInitLazyOffloadHydrator attempts to initialize the underlying hydrator once at startup.
-func TryInitLazyOffloadHydrator(h hydrator.Interface, ctx context.Context) error {
+// The returned bool is true when node status offload is enabled and a real hydrator was created.
+func TryInitLazyOffloadHydrator(h hydrator.Interface, ctx context.Context) (bool, error) {
 	lazy, ok := h.(*lazyOffloadHydrator)
 	if !ok {
-		return nil
+		return false, nil
 	}
-	_, err := lazy.ensureInner(ctx)
-	return err
+	inner, err := lazy.ensureInner(ctx)
+	if err != nil {
+		return false, err
+	}
+	return inner != hydratorfake.Noop, nil
 }
 
 func (l *lazyOffloadHydrator) ensureInner(ctx context.Context) (hydrator.Interface, error) {
@@ -111,17 +115,20 @@ func (l *lazyOffloadHydrator) Dehydrate(ctx context.Context, wf *wfv1.Workflow) 
 		return nil
 	}
 	ctx = withArgoLogger(ctx)
-	err := packer.CompressWorkflowIfNeeded(ctx, wf)
-	if err == nil {
+	compressErr := packer.CompressWorkflowIfNeeded(ctx, wf)
+	if compressErr == nil {
 		wf.Status.OffloadNodeStatusVersion = ""
 		return nil
 	}
-	if !packer.IsTooLargeError(err) {
-		return err
+	if !packer.IsTooLargeError(compressErr) {
+		return compressErr
 	}
 	inner, err := l.ensureInner(ctx)
 	if err != nil {
 		return fmt.Errorf("argo offload hydrator is not ready: %w", err)
+	}
+	if inner == hydratorfake.Noop {
+		return compressErr
 	}
 	return inner.Dehydrate(ctx, wf)
 }
