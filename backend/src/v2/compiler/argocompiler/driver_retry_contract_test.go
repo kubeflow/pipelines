@@ -68,9 +68,7 @@ func TestCompileTaskRetryIncludesDrivers(t *testing.T) {
 			if driverPolicy == "" {
 				driverPolicy = wfapi.RetryPolicyAlways
 			}
-			if tc.configured {
-				assert.Equal(t, "0", wf.Annotations[util.AnnotationKeyRetryGeneration])
-			}
+			assert.Equal(t, "0", wf.Annotations[util.AnnotationKeyRetryGeneration])
 
 			for _, name := range []string{"system-container-driver", "system-dag-driver"} {
 				driver := templateByName(t, wf, name)
@@ -96,6 +94,7 @@ func TestCompileTaskRetryIncludesDrivers(t *testing.T) {
 				task := retryContractTaskByName(t, tmpl, pair.task)
 				assert.Equal(t, pair.task+"-driver.Succeeded", task.Depends)
 				if !tc.configured || pair.template == tmplEntrypoint {
+					assert.Empty(t, driver.Hooks)
 					assert.Equal(t, pair.driver, driver.Template)
 					for _, parameter := range retryParameters {
 						assert.NotContains(t, parameterNames(driver.Arguments.Parameters), parameter)
@@ -122,11 +121,14 @@ func TestCompileTaskRetryIncludesDrivers(t *testing.T) {
 				assert.Equal(t, inputParameter(paramRetryBackOffFactor), driverTemplate.RetryStrategy.Backoff.Factor.String())
 				assert.Equal(t, inputParameter(paramRetryBackOffMaxDuration), driverTemplate.RetryStrategy.Backoff.MaxDuration)
 				assert.Equal(t, "true", driverTemplate.Metadata.Annotations[util.AnnotationKeyTaskDriverRetry])
-				assert.Contains(t, driverTemplate.Container.Args, "--driver_retry_enabled=true")
-				assertAdjacentArgPair(t, driverTemplate.Container.Args, "--driver_retry_attempt", "{{retries}}")
+				assert.Contains(t, driverTemplate.Container.Args, "--driver_retry_enabled="+inputParameter(util.DriverRetryEnabledParameter))
+				assert.Equal(t, "true", driverTemplate.Inputs.GetParameterByName(util.DriverRetryEnabledParameter).Default.String())
+				assert.Equal(t, "{{retries}}", driverTemplate.Inputs.GetParameterByName(util.DriverRetryAttemptParameter).Default.String())
+				assertAdjacentArgPair(t, driverTemplate.Container.Args, "--driver_retry_attempt", inputParameter(util.DriverRetryAttemptParameter))
 				assertAdjacentArgPair(t, driverTemplate.Container.Args, "--driver_retry_max_count", inputParameter(paramRetryMaxCount))
 				assertAdjacentArgPair(t, driverTemplate.Container.Args, "--driver_retry_generation", "{{workflow.annotations."+util.AnnotationKeyRetryGeneration+"}}")
 				assertRegisteredDriverArgs(t, driverTemplate.Container.Args)
+				assertDriverFinalizer(t, wf, driver)
 			}
 
 			// Driver retry settings do not consume or change the executor budget.
@@ -236,6 +238,7 @@ func TestCompileDriverRetryInsideLoop(t *testing.T) {
 	loop := templateByName(t, wf, loopTask.Template)
 	loopDriver := retryContractTaskByName(t, loop, "iteration-driver")
 	assert.Equal(t, "retry-system-dag-driver-always", loopDriver.Template)
+	assertDriverFinalizer(t, wf, loopDriver)
 	assert.Equal(t, "2", loopDriver.Arguments.GetParameterByName(paramRetryMaxCount).Value.String())
 	for _, location := range []struct{ template, task string }{
 		{"comp-nested", "child-driver"}, {"comp-nested", "inner-driver"}, {"comp-inner", "leaf-driver"},
@@ -246,6 +249,7 @@ func TestCompileDriverRetryInsideLoop(t *testing.T) {
 		require.NotNil(t, parameter)
 		require.NotNil(t, parameter.Value)
 		assert.Equal(t, inputParameter(paramIterationIndex), parameter.Value.String())
+		assertDriverFinalizer(t, wf, driver)
 	}
 }
 
@@ -338,4 +342,56 @@ func retryContractTaskByName(t *testing.T, template wfapi.Template, name string)
 	}
 	t.Fatalf("task %q not found in template %q", name, template.Name)
 	return wfapi.DAGTask{}
+}
+
+func assertDriverFinalizer(t *testing.T, wf *wfapi.Workflow, driver wfapi.DAGTask) {
+	t.Helper()
+	hook, exists := driver.Hooks[wfapi.ExitLifecycleEvent]
+	require.True(t, exists, driver.Name)
+	assert.Equal(t, "tasks['"+driver.Name+"'].status in ['Failed', 'Error']", hook.Expression)
+	finalizer := templateByName(t, wf, hook.Template)
+	assert.Nil(t, finalizer.RetryStrategy)
+	assert.Empty(t, finalizer.Outputs)
+	assert.Equal(t, "0", finalizer.Inputs.GetParameterByName(util.DriverRetryAttemptParameter).Default.String())
+	assert.Contains(t, finalizer.Container.Args, "--driver_retry_finalize=true")
+	assertAdjacentArgPair(t, finalizer.Container.Args, "--driver_retry_status", inputParameter(paramDriverRetryStatus))
+	assert.Equal(t, "{{tasks."+driver.Name+".status}}", hook.Arguments.GetParameterByName(paramDriverRetryStatus).Value.String())
+	for _, parameter := range driver.Arguments.Parameters {
+		assert.Equal(t, &parameter, hook.Arguments.GetParameterByName(parameter.Name), parameter.Name)
+	}
+	for _, name := range []string{util.DriverRetryEnabledParameter, util.DriverRetryAttemptParameter} {
+		assert.Nil(t, driver.Arguments.GetParameterByName(name), "control parameters must remain template defaults")
+		assert.Nil(t, hook.Arguments.GetParameterByName(name), "hook control parameters must remain template defaults")
+	}
+	assertRegisteredDriverArgs(t, finalizer.Container.Args)
+}
+
+func TestRuntimeTemplatesCarryGenerationWithoutTaskRetries(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	wf := compileDriverRetryContract(t, nil)
+	assert.Equal(t, "0", wf.Annotations[util.AnnotationKeyRetryGeneration])
+	drivers, launchers := 0, 0
+	for _, tmpl := range wf.Spec.Templates {
+		switch tmpl.Metadata.Annotations[util.AnnotationKeyRuntimeRole] {
+		case string(util.ExecutionRuntimeRoleDriver):
+			drivers++
+		case string(util.ExecutionRuntimeRoleLauncher):
+			launchers++
+		default:
+			continue
+		}
+		require.NotNil(t, tmpl.Container)
+		found := false
+		for _, env := range tmpl.Container.Env {
+			if env.Name == util.DriverRetryGenerationEnv {
+				found = true
+				assert.Equal(t, "{{workflow.annotations."+util.AnnotationKeyRetryGeneration+"}}", env.Value)
+			}
+		}
+		assert.True(t, found, tmpl.Name)
+	}
+	assert.Positive(t, drivers)
+	assert.Positive(t, launchers)
 }

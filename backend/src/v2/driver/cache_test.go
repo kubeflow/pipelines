@@ -16,6 +16,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -359,6 +360,10 @@ func (f *fakeCacheLookupAPI) GetRun(context.Context, *apiv2beta1.GetRunRequest) 
 
 func (f *fakeCacheLookupAPI) ListRuns(context.Context, *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
 	return &apiv2beta1.ListRunsResponse{}, nil
+}
+
+func (f *fakeCacheLookupAPI) FinalizeStoppedDriver(context.Context, string, int64, string, string, *int64) error {
+	return errors.New("unexpected FinalizeStoppedDriver call in cache lookup test")
 }
 
 func (f *fakeCacheLookupAPI) CreateTask(context.Context, *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {

@@ -484,7 +484,17 @@ func (c *workflowCompiler) propagateIterationIndexToNestedDAGTemplates(templateN
 
 		for event, hook := range task.Hooks {
 			hookTemplate := c.templates[hook.Template]
-			if hookTemplate == nil || hookTemplate.DAG == nil {
+			if hookTemplate == nil {
+				continue
+			}
+			if hookTemplate.Metadata.Annotations[util.AnnotationKeyTaskDriverRetry] == "true" {
+				// Driver finalizers target the same loop iteration as their driver.
+				if iteration := task.Arguments.GetParameterByName(paramIterationIndex); iteration != nil && iteration.Value != nil {
+					hook.Arguments.Parameters = setParameterValue(hook.Arguments.Parameters, paramIterationIndex, iteration.Value.String())
+					task.Hooks[event] = hook
+				}
+			}
+			if hookTemplate.DAG == nil {
 				continue
 			}
 			hook.Arguments.Parameters = setParameterValue(hook.Arguments.Parameters, paramIterationIndex, inputParameter(paramIterationIndex))
@@ -571,6 +581,7 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 		},
 	}
 	c.configureExitDriver(t, inputs.exitTaskName, inputs.exitTaskStatus)
+	c.configureDriverRetryFinalizer(t)
 	return t, &dagDriverOutputs{
 		taskID:         taskOutputParameter(name, paramParentDagTaskIDPath),
 		iterationCount: taskOutputParameter(name, paramIterationCount),

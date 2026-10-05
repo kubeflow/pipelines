@@ -42,6 +42,7 @@ type API interface {
 	ListRuns(ctx context.Context, req *gc.ListRunsRequest) (*gc.ListRunsResponse, error)
 
 	// Task operations
+	FinalizeStoppedDriver(ctx context.Context, runID string, generation int64, taskName, parentTaskID string, iterationIndex *int64) error
 	CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error)
 	UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error)
 	UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasksBulkRequest) (*gc.UpdateTasksBulkResponse, error)
@@ -69,12 +70,18 @@ type API interface {
 // It is a thin wrapper delegating to the generated gRPC clients.
 
 type clientAdapter struct {
-	c *apiclient.Client
+	c          *apiclient.Client
+	generation int64
 }
 
 // New wraps the apiclient.Client into an API interface.
 func New(c *apiclient.Client) API {
-	return &clientAdapter{c: c}
+	return NewWithRetryGeneration(c, 0)
+}
+
+// NewWithRetryGeneration captures the workflow generation before runtime work starts.
+func NewWithRetryGeneration(c *apiclient.Client, generation int64) API {
+	return &clientAdapter{c: c, generation: generation}
 }
 
 // Implement API by forwarding calls to typed clients.
@@ -85,22 +92,6 @@ func (k *clientAdapter) GetRun(ctx context.Context, req *gc.GetRunRequest) (*gc.
 
 func (k *clientAdapter) ListRuns(ctx context.Context, req *gc.ListRunsRequest) (*gc.ListRunsResponse, error) {
 	return k.c.Run.ListRuns(ctx, req)
-}
-
-func (k *clientAdapter) CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.CreateTask(taskRecoveryContext(ctx), req)
-}
-
-func (k *clientAdapter) UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.UpdateTask(taskRecoveryContext(ctx), req)
-}
-
-func (k *clientAdapter) UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasksBulkRequest) (*gc.UpdateTasksBulkResponse, error) {
-	return k.c.Run.UpdateTasksBulk(ctx, req)
-}
-
-func (k *clientAdapter) GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.GetTask(taskRecoveryContext(ctx), req)
 }
 
 func (k *clientAdapter) ListTasks(ctx context.Context, req *gc.ListTasksRequest) (*gc.ListTasksResponse, error) {

@@ -15,7 +15,7 @@
 package storage
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -25,10 +25,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func retryInt(value int64) *int64 { return &value }
 func attemptedDriverTask(generation, attempt string) *model.Task {
 	task := driverRetryWriteTask(generation)
-	driverTaskProperties(task)[util.DriverRetryAttemptKey] = attempt
+	value, err := strconv.ParseInt(attempt, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	task.DriverRetryGeneration = retryInt(task.DriverWriteAuthority.Generation)
+	task.DriverRetryAttempt = retryInt(value)
+	task.DriverWriteAuthority.SourceAttempt = retryInt(value)
+	task.DriverClaim = true
 	return task
+}
+func driverWrite(task *model.Task, generation int64, attempt *int64) *model.Task {
+	request := *task
+	request.DriverWriteAuthority = &model.DriverTaskAuthority{Generation: generation, SourceAttempt: attempt}
+	request.DriverClaim = false
+	return &request
+}
+
+// Fixtures are newly created owners; race tests always capture explicit authority.
+func driverFixtureWrite(task *model.Task) *model.Task {
+	generation := int64(0)
+	if task.DriverRetryGeneration != nil {
+		generation = *task.DriverRetryGeneration
+	}
+	return driverWrite(task, generation, task.DriverRetryAttempt)
 }
 
 func TestDriverRetryAttemptClaimPreservesCompletedHandoff(t *testing.T) {
@@ -36,29 +59,23 @@ func TestDriverRetryAttemptClaimPreservesCompletedHandoff(t *testing.T) {
 	defer db.Close()
 	created, err := tasks.CreateTask(attemptedDriverTask("0", "0"))
 	require.NoError(t, err)
-	late, err := tasks.GetTask(created.UUID)
-	require.NoError(t, err)
-	completed, err := tasks.GetTask(created.UUID)
-	require.NoError(t, err)
+	late := driverWrite(created, 0, retryInt(0))
+	completed := driverWrite(created, 0, retryInt(0))
 	completed.State = model.TaskStatus(api.PipelineTask_CACHED)
 	completed.FinishedInSec = 42
-	driverTaskProperties(completed)["_kfp_driver_checkpoint"] = "saved handoff"
-	driverTaskProperties(completed)["_kfp_driver_cached_outputs"] = "saved cache decision"
+	completed.DriverRecoveryUpdate = true
+	completed.DriverCheckpoint = util.StringPointer(`{"handoff":"saved"}`)
+	completed.DriverCachedOutputs = util.StringPointer(`{"cache":"saved"}`)
 	completed, err = tasks.UpdateTask(completed)
 	require.NoError(t, err)
-
 	claimed, err := tasks.CreateTask(attemptedDriverTask("0", "1"))
 	require.NoError(t, err)
-	assert.Equal(t, completed.UUID, claimed.UUID)
 	assert.Equal(t, completed.State, claimed.State)
 	assert.Equal(t, completed.FinishedInSec, claimed.FinishedInSec)
 	assert.Equal(t, completed.StateHistory, claimed.StateHistory)
-	assert.Equal(t, completed.Pods, claimed.Pods)
-	assert.Equal(t, "saved handoff", driverTaskProperties(claimed)["_kfp_driver_checkpoint"])
-	assert.Equal(t, "saved cache decision", driverTaskProperties(claimed)["_kfp_driver_cached_outputs"])
-	assert.Equal(t, "1", driverTaskProperties(claimed)[util.DriverRetryAttemptKey])
-	// Retrying a claim after losing its response must leave the same owner and
-	// recovery data, while delayed older claims and writes cannot erase them.
+	assert.Equal(t, completed.DriverCheckpoint, claimed.DriverCheckpoint)
+	assert.Equal(t, completed.DriverCachedOutputs, claimed.DriverCachedOutputs)
+	assert.Equal(t, int64(1), *claimed.DriverRetryAttempt)
 	repeated, err := tasks.CreateTask(attemptedDriverTask("0", "1"))
 	require.NoError(t, err)
 	assert.Equal(t, claimed, repeated)
@@ -66,27 +83,16 @@ func TestDriverRetryAttemptClaimPreservesCompletedHandoff(t *testing.T) {
 	require.ErrorContains(t, err, "different driver retry attempt")
 	_, err = tasks.UpdateTask(late)
 	require.ErrorContains(t, err, "different driver retry attempt")
-	unclaimed := attemptedDriverTask("0", "2")
-	unclaimed.UUID = created.UUID
-	_, err = tasks.UpdateTask(unclaimed)
+	_, err = tasks.UpdateTask(driverWrite(created, 0, retryInt(2)))
 	require.ErrorContains(t, err, "different driver retry attempt")
-	for _, tagged := range []bool{true, false} {
-		missing := driverRetryWriteTask("0")
-		if !tagged {
-			missing.StatusMetadata = nil
-		}
-		_, err = tasks.CreateTask(missing)
-		require.ErrorContains(t, err, "different driver retry attempt")
-		missing.UUID = created.UUID
-		_, err = tasks.UpdateTask(missing)
-		require.ErrorContains(t, err, "different driver retry attempt")
-	}
+	_, err = tasks.UpdateTask(claimed)
+	require.ErrorContains(t, err, "different driver retry attempt", "reads never grant authority")
+	_, err = tasks.CreateTask(driverRetryWriteTask("0"))
+	require.ErrorContains(t, err, "different driver retry attempt")
 	after, err := tasks.GetTask(created.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, claimed, after)
-	// The rightful owner can continue using the saved handoff.
-	after.StatusMetadata["message"] = "acknowledged"
-	_, err = tasks.UpdateTask(after)
+	_, err = tasks.UpdateTask(driverWrite(after, 0, retryInt(1)))
 	require.NoError(t, err)
 }
 
@@ -97,197 +103,143 @@ func TestDriverRetryAttemptManualGeneration(t *testing.T) {
 			defer db.Close()
 			task, err := tasks.CreateTask(attemptedDriverTask("0", "2"))
 			require.NoError(t, err)
-			task.State = model.TaskStatus(state)
-			driverTaskProperties(task)["_kfp_driver_checkpoint"] = "saved handoff"
-			_, err = tasks.UpdateTask(task)
+			old := driverWrite(task, 0, retryInt(2))
+			old.State = model.TaskStatus(state)
+			old.DriverRecoveryUpdate = true
+			old.DriverCheckpoint = util.StringPointer(`{"saved":true}`)
+			task, err = tasks.UpdateTask(old)
 			require.NoError(t, err)
-			_, err = db.Exec("UPDATE run_details SET RetryGeneration = 1 WHERE UUID = ?", "run-1")
+			_, err = db.Exec("UPDATE run_details SET RetryGeneration=1 WHERE UUID=?", "run-1")
 			require.NoError(t, err)
 			if state == api.PipelineTask_FAILED {
 				_, err = tasks.CreateTask(attemptedDriverTask("1", "0"))
 				require.ErrorContains(t, err, "must be reset")
-				require.NoError(t, tasks.ResetTasksForRetry([]string{task.UUID}))
+				require.NoError(t, tasks.ResetTasksForRetry("run-1", 1, []string{task.UUID}))
 			}
 			claimed, err := tasks.CreateTask(attemptedDriverTask("1", "0"))
 			require.NoError(t, err)
-			assert.Equal(t, task.UUID, claimed.UUID)
-			assert.Equal(t, "1", driverTaskProperties(claimed)[util.DriverRetryGenerationKey])
-			assert.Equal(t, "0", driverTaskProperties(claimed)[util.DriverRetryAttemptKey])
-			if state != api.PipelineTask_FAILED {
-				assert.Equal(t, model.TaskStatus(state), claimed.State)
-				assert.Equal(t, "saved handoff", driverTaskProperties(claimed)["_kfp_driver_checkpoint"])
+			assert.Equal(t, int64(1), *claimed.DriverRetryGeneration)
+			assert.Equal(t, int64(0), *claimed.DriverRetryAttempt)
+			if state == api.PipelineTask_FAILED {
+				assert.Nil(t, claimed.DriverCheckpoint)
 			} else {
-				assert.NotContains(t, driverTaskProperties(claimed), "_kfp_driver_checkpoint")
+				assert.Equal(t, task.DriverCheckpoint, claimed.DriverCheckpoint)
+				assert.Equal(t, task.State, claimed.State)
 			}
-			_, err = tasks.UpdateTask(task)
+			_, err = tasks.UpdateTask(old)
 			require.ErrorContains(t, err, "different retry generation")
 		})
 	}
 }
 
 func TestDriverRetryAttemptSourceFencesParentWrites(t *testing.T) {
-	db, tasks, _ := initializeTaskStore()
-	defer db.Close()
-	tasks.uuid = util.NewUUIDGenerator()
-	parentRequest := attemptedDriverTask("0", "4")
-	parentRequest.Name, parentRequest.ScopePath = "parent", "root.parent"
-	parent, err := tasks.CreateTask(parentRequest)
-	require.NoError(t, err)
-	driverTaskProperties(parent)["_kfp_driver_checkpoint"] = "parent handoff"
-	parent, err = tasks.UpdateTask(parent)
-	require.NoError(t, err)
-	child, err := tasks.CreateTask(attemptedDriverTask("0", "1"))
-	require.NoError(t, err)
-	parentWrite := func(attempt string) *model.Task {
-		request := attemptedDriverTask("0", "0") // A stale parent snapshot is not its source's claim.
-		request.UUID = parent.UUID
-		request.Name, request.ScopePath = "parent", "root.parent"
-		request.State = model.TaskStatus(api.PipelineTask_CACHED)
-		properties := driverTaskProperties(request)
-		properties[util.DriverRetrySourceTaskKey] = child.UUID
-		properties[util.DriverRetrySourceAttemptKey] = attempt
-		properties["_kfp_driver_checkpoint"] = "stale parent handoff"
-		return request
-	}
-	updated, err := tasks.UpdateTask(parentWrite("1"))
-	require.NoError(t, err)
-	assert.Equal(t, model.TaskStatus(api.PipelineTask_CACHED), updated.State)
-	assert.Equal(t, "4", driverTaskProperties(updated)[util.DriverRetryAttemptKey])
-	assert.Equal(t, "parent handoff", driverTaskProperties(updated)["_kfp_driver_checkpoint"])
-	assert.NotContains(t, driverTaskProperties(updated), util.DriverRetrySourceTaskKey)
-	assert.NotContains(t, driverTaskProperties(updated), util.DriverRetrySourceAttemptKey)
-	_, err = tasks.UpdateTask(parentWrite("0"))
-	require.ErrorContains(t, err, "different driver retry attempt")
-	_, err = tasks.CreateTask(attemptedDriverTask("0", "2"))
-	require.NoError(t, err)
-	_, err = tasks.UpdateTask(parentWrite("1"))
-	require.ErrorContains(t, err, "different driver retry attempt")
-	_, err = tasks.UpdateTask(parentWrite("2"))
-	require.NoError(t, err)
-
-	// A source from another run cannot authorize the write.
-	_, err = db.Exec("UPDATE run_details SET State = 'RUNNING' WHERE UUID = ?", "run-2")
-	require.NoError(t, err)
-	foreign := attemptedDriverTask("0", "2")
-	foreign.RunUUID = "run-2"
-	foreign, err = tasks.CreateTask(foreign)
-	require.NoError(t, err)
-	crossRun := parentWrite("2")
-	driverTaskProperties(crossRun)[util.DriverRetrySourceTaskKey] = foreign.UUID
-	_, err = tasks.UpdateTask(crossRun)
-	require.ErrorContains(t, err, "different driver retry attempt")
-}
-
-func TestDriverRetryAttemptMalformedFences(t *testing.T) {
-	invalidAttempts := []interface{}{"", "-1", "01", "+1", "invalid", "9223372036854775808", float64(1), true, nil}
-	for _, key := range []string{util.DriverRetryAttemptKey, util.DriverRetrySourceAttemptKey} {
-		for _, value := range invalidAttempts {
-			t.Run(fmt.Sprintf("%s/%v", key, value), func(t *testing.T) {
-				db, tasks, _ := initializeTaskStore()
-				defer db.Close()
-				created, err := tasks.CreateTask(attemptedDriverTask("0", "0"))
-				require.NoError(t, err)
-				request := attemptedDriverTask("0", "0")
-				request.UUID = created.UUID
-				driverTaskProperties(request)[key] = value
-				_, err = tasks.CreateTask(request)
-				require.ErrorContains(t, err, "nonnegative decimal string")
-				_, err = tasks.UpdateTask(request)
-				require.ErrorContains(t, err, "nonnegative decimal string")
-			})
-		}
-	}
-	for _, properties := range []map[string]interface{}{
-		{util.DriverRetryAttemptKey: "0"},
-		{util.DriverRetryGenerationKey: "0", util.DriverRetrySourceTaskKey: "source"},
-		{util.DriverRetryGenerationKey: "0", util.DriverRetrySourceAttemptKey: "0"},
-		{util.DriverRetryGenerationKey: "0", util.DriverRetrySourceTaskKey: "", util.DriverRetrySourceAttemptKey: "0"},
-		{util.DriverRetryGenerationKey: "0", util.DriverRetrySourceTaskKey: float64(1), util.DriverRetrySourceAttemptKey: "0"},
-		{util.DriverRetrySourceTaskKey: "source", util.DriverRetrySourceAttemptKey: "0"},
-	} {
-		t.Run(fmt.Sprint(properties), func(t *testing.T) {
+	for _, claimedChild := range []bool{false, true} {
+		t.Run(strconv.FormatBool(claimedChild), func(t *testing.T) {
 			db, tasks, _ := initializeTaskStore()
 			defer db.Close()
-			created, err := tasks.CreateTask(attemptedDriverTask("0", "0"))
+			tasks.uuid = util.NewUUIDGenerator()
+			request := attemptedDriverTask("0", "4")
+			request.Name = "parent"
+			request.ScopePath = "root.parent"
+			parent, err := tasks.CreateTask(request)
 			require.NoError(t, err)
-			request := attemptedDriverTask("0", "0")
-			request.UUID = created.UUID
-			request.StatusMetadata["customProperties"] = properties
-			_, err = tasks.CreateTask(request)
-			require.Error(t, err)
-			_, err = tasks.UpdateTask(request)
-			require.Error(t, err)
+			request = driverWrite(parent, 0, retryInt(4))
+			request.DriverRecoveryUpdate = true
+			request.DriverCheckpoint = util.StringPointer(`{"parent":true}`)
+			parent, err = tasks.UpdateTask(request)
+			require.NoError(t, err)
+			childRequest := driverRetryWriteTask("0")
+			var attempt *int64
+			if claimedChild {
+				childRequest = attemptedDriverTask("0", "1")
+				attempt = retryInt(1)
+			}
+			childRequest.ParentTaskUUID = &parent.UUID
+			child, err := tasks.CreateTask(childRequest)
+			require.NoError(t, err)
+			propagation := driverWrite(parent, 0, attempt)
+			propagation.DriverWriteAuthority.SourceTaskID = child.UUID
+			propagation.StatusMetadata = nil // Omitting metadata must preserve the parent's user metadata.
+			propagation.DriverRetryAttempt = retryInt(99)
+			propagation.DriverCheckpoint = util.StringPointer(`{"stale":true}`)
+			propagation.State = model.TaskStatus(api.PipelineTask_CACHED)
+			updated, err := tasks.UpdateTask(propagation)
+			require.NoError(t, err)
+			assert.Equal(t, int64(4), *updated.DriverRetryAttempt)
+			assert.Equal(t, parent.DriverCheckpoint, updated.DriverCheckpoint)
+			assert.Equal(t, parent.StatusMetadata, updated.StatusMetadata)
+			if claimedChild {
+				next := attemptedDriverTask("0", "2")
+				next.ParentTaskUUID = &parent.UUID
+				_, err = tasks.CreateTask(next)
+				require.NoError(t, err)
+				_, err = tasks.UpdateTask(propagation)
+				require.ErrorContains(t, err, "different driver retry attempt")
+			} else {
+				propagation.DriverWriteAuthority.SourceAttempt = retryInt(4) // A refreshed parent cannot confer its claim.
+				_, err = tasks.UpdateTask(propagation)
+				require.ErrorContains(t, err, "different driver retry attempt")
+			}
+			propagation.DriverWriteAuthority.Generation = 1
+			_, err = tasks.UpdateTask(propagation)
+			require.ErrorContains(t, err, "different retry generation")
 		})
 	}
 }
 
-func TestDriverRetryAttemptClaimUpgradesGenerationOnlyTask(t *testing.T) {
+func TestDriverRetryRejectsInvalidAuthorityAndPublicRecovery(t *testing.T) {
 	db, tasks, _ := initializeTaskStore()
 	defer db.Close()
-	legacy, err := tasks.CreateTask(driverRetryWriteTask("0"))
+	for _, mutate := range []func(*model.Task){
+		func(task *model.Task) { task.DriverWriteAuthority = nil },
+		func(task *model.Task) { task.DriverWriteAuthority.Generation = -1 },
+		func(task *model.Task) { task.DriverRetryAttempt = retryInt(-1) },
+		func(task *model.Task) { task.DriverRetryGeneration = nil },
+		func(task *model.Task) { task.DriverWriteAuthority.SourceTaskID = "another" },
+		func(task *model.Task) {
+			task.DriverRecoveryUpdate = true
+			task.DriverCheckpoint = util.StringPointer("not JSON")
+		},
+	} {
+		request := attemptedDriverTask("0", "0")
+		mutate(request)
+		_, err := tasks.CreateTask(request)
+		require.Error(t, err)
+	}
+	public := driverRetryWriteTask("0")
+	public.DriverWriteAuthority = nil
+	public.StatusMetadata = model.JSONData{"customProperties": map[string]interface{}{util.DriverRetryGenerationKey: "0", util.DriverRetryAttemptKey: "999"}}
+	public.DriverRetryGeneration = retryInt(0)
+	public.DriverRetryAttempt = retryInt(999)
+	public.DriverCheckpoint = util.StringPointer(`{"forged":true}`)
+	created, err := tasks.CreateTask(public)
 	require.NoError(t, err)
-	_, err = tasks.UpdateTask(legacy)
+	assert.Nil(t, created.DriverRetryGeneration)
+	assert.Nil(t, created.DriverRetryAttempt)
+	assert.Nil(t, created.DriverCheckpoint)
+	public.UUID = created.UUID
+	_, err = tasks.UpdateTask(public)
 	require.NoError(t, err)
-	claimed, err := tasks.CreateTask(attemptedDriverTask("0", "1"))
+	after, err := tasks.GetTask(created.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, legacy.UUID, claimed.UUID)
-	assert.Equal(t, "1", driverTaskProperties(claimed)[util.DriverRetryAttemptKey])
-	_, err = tasks.UpdateTask(legacy)
-	require.ErrorContains(t, err, "different driver retry attempt")
+	assert.Nil(t, after.DriverCheckpoint)
+	assert.Nil(t, after.DriverRetryAttempt)
 }
 
-func TestDriverRetryAttemptSourcePreservesParentGeneration(t *testing.T) {
-	db, tasks, _ := initializeTaskStore()
-	defer db.Close()
-	tasks.uuid = util.NewUUIDGenerator()
-	parentRequest := attemptedDriverTask("0", "4")
-	parentRequest.Name, parentRequest.ScopePath = "parent", "root.parent"
-	parentRequest.State = model.TaskStatus(api.PipelineTask_SUCCEEDED)
-	parent, err := tasks.CreateTask(parentRequest)
-	require.NoError(t, err)
-	_, err = db.Exec("UPDATE run_details SET RetryGeneration = 1 WHERE UUID = ?", "run-1")
-	require.NoError(t, err)
-	child, err := tasks.CreateTask(attemptedDriverTask("1", "0"))
-	require.NoError(t, err)
-	metadata, properties := copyDriverTaskMetadata(parent)
-	properties[util.DriverRetryGenerationKey] = "1"
-	properties[util.DriverRetrySourceTaskKey] = child.UUID
-	properties[util.DriverRetrySourceAttemptKey] = "0"
-	parent.StatusMetadata = metadata
-	parent.State = model.TaskStatus(api.PipelineTask_CACHED)
-	updated, err := tasks.UpdateTask(parent)
-	require.NoError(t, err)
-	assert.Equal(t, "0", driverTaskProperties(updated)[util.DriverRetryGenerationKey])
-	assert.Equal(t, "4", driverTaskProperties(updated)[util.DriverRetryAttemptKey])
-	assert.NotContains(t, driverTaskProperties(updated), util.DriverRetrySourceTaskKey)
-	assert.NotContains(t, driverTaskProperties(updated), util.DriverRetrySourceAttemptKey)
-	// A dependent write must not accidentally adopt the preserved parent into
-	// the new generation; its own new driver must explicitly claim it.
-	parentRequest = attemptedDriverTask("1", "0")
-	parentRequest.Name, parentRequest.ScopePath = "parent", "root.parent"
-	claimed, err := tasks.CreateTask(parentRequest)
-	require.NoError(t, err)
-	assert.Equal(t, parent.UUID, claimed.UUID)
-	assert.Equal(t, "1", driverTaskProperties(claimed)[util.DriverRetryGenerationKey])
-	assert.Equal(t, "0", driverTaskProperties(claimed)[util.DriverRetryAttemptKey])
-}
-
-func TestDriverRetryAttemptClaimFailureRollsBack(t *testing.T) {
+func TestDriverRetryAttemptClaimRollsBack(t *testing.T) {
 	db, tasks, _ := initializeTaskStore()
 	defer db.Close()
 	before, err := tasks.CreateTask(attemptedDriverTask("0", "0"))
 	require.NoError(t, err)
-	_, err = db.Exec(`CREATE TRIGGER reject_driver_claim BEFORE UPDATE ON tasks
-		BEGIN SELECT RAISE(ABORT, 'injected claim failure'); END`)
+	_, err = db.Exec(`CREATE TRIGGER reject_claim BEFORE UPDATE ON tasks BEGIN SELECT RAISE(FAIL,'injected claim failure'); END`)
 	require.NoError(t, err)
 	_, err = tasks.CreateTask(attemptedDriverTask("0", "1"))
 	require.ErrorContains(t, err, "injected claim failure")
 	after, err := tasks.GetTask(before.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, before, after)
-	_, err = db.Exec("DROP TRIGGER reject_driver_claim")
+	_, err = db.Exec("DROP TRIGGER reject_claim")
 	require.NoError(t, err)
-	claimed, err := tasks.CreateTask(attemptedDriverTask("0", "1"))
+	_, err = tasks.CreateTask(attemptedDriverTask("0", "1"))
 	require.NoError(t, err)
-	assert.Equal(t, "1", driverTaskProperties(claimed)[util.DriverRetryAttemptKey])
 }

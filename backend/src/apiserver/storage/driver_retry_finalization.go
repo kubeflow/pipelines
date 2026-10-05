@@ -19,13 +19,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -38,19 +36,32 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 		return nil
 	}
 
+	q := dbDialect.QuoteIdentifier
+	query, args, err := dbDialect.QueryBuilder().Select(q("DriverRetryTasksPresent"), q("DriverRetryFinalizedGeneration")).From(q("run_details")).Where(sq.Eq{q("UUID"): run.UUID}).ToSql()
+	if err != nil {
+		return err
+	}
+	var present bool
+	var finalized *int64
+	if err := tx.QueryRow(query, args...).Scan(&present, &finalized); err != nil {
+		return err
+	}
+	if !present || (finalized != nil && *finalized == run.RetryGeneration) {
+		return nil
+	}
+
 	tasks, orderedTasks, err := loadDriverRetryFinalizationTasks(tx, dbDialect, run)
 	if err != nil {
 		return err
 	}
 
-	generation := strconv.FormatInt(run.RetryGeneration, 10)
 	// A completion-only walk must not block a later failed descendant from
 	// correcting the same ancestor's premature successful state.
 	visited := make(map[string]bool)
 	var failedTasks []*model.Task
+	queued := make(map[string]bool)
 	for _, task := range orderedTasks {
-		properties, ok := task.StatusMetadata["customProperties"].(map[string]interface{})
-		if !ok || properties[util.DriverRetryGenerationKey] != generation {
+		if task.DriverRetryGeneration == nil || *task.DriverRetryGeneration != run.RetryGeneration {
 			continue
 		}
 		// A terminal native/cache task may still have unfinished ancestors when
@@ -64,7 +75,10 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 			visited[ancestor.UUID] = failedDescendant
 			prematureSuccess := ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED) || ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_CACHED) || ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED)
 			if ancestor.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) || (failedDescendant && prematureSuccess) {
-				failedTasks = append(failedTasks, ancestor)
+				if !queued[ancestor.UUID] {
+					queued[ancestor.UUID] = true
+					failedTasks = append(failedTasks, ancestor)
+				}
 			}
 			if ancestor.ParentTaskUUID == nil {
 				break
@@ -77,7 +91,12 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 			return err
 		}
 	}
-	return nil
+	query, args, err = dbDialect.QueryBuilder().Update(q("run_details")).SetMap(sq.Eq{q("DriverRetryFinalizedGeneration"): run.RetryGeneration}).Where(sq.Eq{q("UUID"): run.UUID}).ToSql()
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(query, args...)
+	return err
 }
 
 // The caller holds the exclusive run lock, which excludes every tagged write.
@@ -85,11 +104,10 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 // retries never lock or deserialize all of their task inputs and outputs.
 func loadDriverRetryFinalizationTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *model.Run) (map[string]*model.Task, []*model.Task, error) {
 	q := dbDialect.QuoteIdentifier
-	generation := strconv.FormatInt(run.RetryGeneration, 10)
 	query, args, err := dbDialect.QueryBuilder().Select(q("UUID")).
 		From(q(tableName)).
 		Where(sq.Eq{q("RunUUID"): run.UUID}).
-		Where(sq.Eq{dbDialect.JSONExtractText(q("StatusMetadata"), "customProperties", util.DriverRetryGenerationKey): generation}).
+		Where(sq.Eq{q("DriverRetryGeneration"): run.RetryGeneration}).
 		OrderBy(q("UUID")).ToSql()
 	if err != nil {
 		return nil, nil, err
@@ -127,7 +145,7 @@ func loadDriverRetryFinalizationTasks(tx *sql.Tx, dbDialect dialect.DBDialect, r
 		batchSize := min(len(pending), 500)
 		batch := pending[:batchSize]
 		pending = pending[batchSize:]
-		query, args, err := dbDialect.QueryBuilder().Select(dialect.QuoteAll(q, taskColumns)...).
+		query, args, err := dbDialect.QueryBuilder().Select(taskColumnsWithoutRecovery(q)...).
 			From(q(tableName)).
 			Where(sq.Eq{q("RunUUID"): run.UUID, q("UUID"): batch}).
 			OrderBy(q("UUID")).ToSql()

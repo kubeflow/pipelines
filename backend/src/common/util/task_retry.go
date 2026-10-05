@@ -20,12 +20,11 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// CopyDriverRetryGeneration carries the originating attempt's fence onto a
-// dependent task write without copying task-specific recovery checkpoints or
-// replacing the target's own attempt claim.
+// CopyDriverRetryGeneration identifies the child authorizing a parent update.
+// Unclaimed children still carry their identity; the runtime adapter supplies
+// their immutable workflow generation separately from target ownership.
 func CopyDriverRetryGeneration(target, source *api.PipelineTask) {
-	value, present := source.GetStatusMetadata().GetCustomProperties()[DriverRetryGenerationKey]
-	if target == nil || !present {
+	if target == nil || source == nil || source.GetTaskId() == "" {
 		return
 	}
 	if target.StatusMetadata == nil {
@@ -34,17 +33,15 @@ func CopyDriverRetryGeneration(target, source *api.PipelineTask) {
 	if target.StatusMetadata.CustomProperties == nil {
 		target.StatusMetadata.CustomProperties = make(map[string]*structpb.Value)
 	}
-	if value != nil {
-		value = proto.Clone(value).(*structpb.Value)
+	properties := target.StatusMetadata.CustomProperties
+	properties[DriverRetrySourceTaskKey] = structpb.NewStringValue(source.GetTaskId())
+	delete(properties, DriverRetrySourceAttemptKey)
+	// Generation belongs to the caller, never to the refreshed parent.
+	delete(properties, DriverRetryGenerationKey)
+	if value := source.GetStatusMetadata().GetCustomProperties()[DriverRetryGenerationKey]; value != nil {
+		properties[DriverRetryGenerationKey] = proto.Clone(value).(*structpb.Value)
 	}
-	target.StatusMetadata.CustomProperties[DriverRetryGenerationKey] = value
-	delete(target.StatusMetadata.CustomProperties, DriverRetrySourceTaskKey)
-	delete(target.StatusMetadata.CustomProperties, DriverRetrySourceAttemptKey)
-	if attempt, present := source.GetStatusMetadata().GetCustomProperties()[DriverRetryAttemptKey]; present {
-		target.StatusMetadata.CustomProperties[DriverRetrySourceTaskKey] = structpb.NewStringValue(source.GetTaskId())
-		if attempt != nil {
-			attempt = proto.Clone(attempt).(*structpb.Value)
-		}
-		target.StatusMetadata.CustomProperties[DriverRetrySourceAttemptKey] = attempt
+	if attempt := source.GetStatusMetadata().GetCustomProperties()[DriverRetryAttemptKey]; attempt != nil {
+		properties[DriverRetrySourceAttemptKey] = proto.Clone(attempt).(*structpb.Value)
 	}
 }

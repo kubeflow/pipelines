@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"time"
 
+	runtimeapi "github.com/kubeflow/pipelines/backend/api/runtime/go_client"
 	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
@@ -42,11 +43,12 @@ const (
 
 // Client provides typed clients for KFP v2beta1 API services used by driver/launcher.
 type Client struct {
-	Run      gc.RunServiceClient
-	Pipeline gc.PipelineServiceClient
-	Artifact gc.ArtifactServiceClient
-	Conn     *grpc.ClientConn
-	Endpoint string
+	DriverTask runtimeapi.DriverTaskServiceClient
+	Run        gc.RunServiceClient
+	Pipeline   gc.PipelineServiceClient
+	Artifact   gc.ArtifactServiceClient
+	Conn       *grpc.ClientConn
+	Endpoint   string
 }
 
 // Config holds connection options.
@@ -118,11 +120,12 @@ func New(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 		return nil, fmt.Errorf("failed to connect to KFP API at %s: %w", cfg.Endpoint, err)
 	}
 	return &Client{
-		Run:      gc.NewRunServiceClient(conn),
-		Pipeline: gc.NewPipelineServiceClient(conn),
-		Artifact: gc.NewArtifactServiceClient(conn),
-		Conn:     conn,
-		Endpoint: cfg.Endpoint,
+		Run:        gc.NewRunServiceClient(conn),
+		DriverTask: runtimeapi.NewDriverTaskServiceClient(conn),
+		Pipeline:   gc.NewPipelineServiceClient(conn),
+		Artifact:   gc.NewArtifactServiceClient(conn),
+		Conn:       conn,
+		Endpoint:   cfg.Endpoint,
 	}, nil
 }
 

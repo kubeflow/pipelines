@@ -62,6 +62,8 @@ var runColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"DriverRetryTasksPresent",
+	"DriverRetryFinalizedGeneration",
 }
 
 // runListColumns is a lightweight version of runColumns for List endpoints.
@@ -101,6 +103,8 @@ var runListColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"DriverRetryTasksPresent",
+	"DriverRetryFinalizedGeneration",
 }
 
 // terminalRunStateStrings lists every raw value that a terminal run can carry
@@ -484,7 +488,7 @@ func (s *RunStore) hydrateTasksForRuns(runs []*model.Run) error {
 	// Select only needed columns from tasks; scan and attach in Go.
 	q := s.dbDialect.QuoteIdentifier
 	sqlQuery, args, err := s.dbDialect.QueryBuilder().
-		Select(dialect.QuoteAll(q, taskColumns)...).
+		Select(taskColumnsWithoutRecovery(q)...).
 		From(q("tasks")).
 		Where(sq.Eq{q("RunUUID"): ids}).
 		OrderBy(q("RunUUID")+" ASC", q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
@@ -645,6 +649,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
 
+		var driverRetryTasksPresent bool
+		var driverRetryFinalizedGeneration *int64
+
 		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
 			&uuid,
@@ -679,6 +686,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&retryGeneration,
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
+			&driverRetryTasksPresent,
+			&driverRetryFinalizedGeneration,
 			&resourceReferencesInString,
 		}
 
@@ -730,19 +739,21 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			Description:    description,
 			RecurringRunId: jID,
 			RunDetails: model.RunDetails{
-				CreatedAtInSec:          createdAtInSec.Int64,
-				ScheduledAtInSec:        scheduledAtInSec.Int64,
-				FinishedAtInSec:         finishedAtInSec.Int64,
-				Conditions:              conditions,
-				State:                   model.RuntimeState(state.String),
-				PipelineRuntimeManifest: model.LargeText(pipelineRuntimeManifest),
-				WorkflowRuntimeManifest: model.LargeText(workflowRuntimeManifest),
-				PipelineContextId:       pipelineContextID.Int64,
-				PipelineRunContextId:    pipelineRunContextID.Int64,
-				RetryGeneration:         retryGeneration.Int64,
-				RetryClaimedAtInSec:     retryClaimedAtInSec.Int64,
-				ArchivedAtInSec:         archivedAtInSec.Int64,
-				StateHistory:            stateHistoryNew,
+				CreatedAtInSec:                 createdAtInSec.Int64,
+				ScheduledAtInSec:               scheduledAtInSec.Int64,
+				FinishedAtInSec:                finishedAtInSec.Int64,
+				Conditions:                     conditions,
+				State:                          model.RuntimeState(state.String),
+				PipelineRuntimeManifest:        model.LargeText(pipelineRuntimeManifest),
+				WorkflowRuntimeManifest:        model.LargeText(workflowRuntimeManifest),
+				PipelineContextId:              pipelineContextID.Int64,
+				PipelineRunContextId:           pipelineRunContextID.Int64,
+				RetryGeneration:                retryGeneration.Int64,
+				RetryClaimedAtInSec:            retryClaimedAtInSec.Int64,
+				ArchivedAtInSec:                archivedAtInSec.Int64,
+				DriverRetryTasksPresent:        driverRetryTasksPresent,
+				DriverRetryFinalizedGeneration: driverRetryFinalizedGeneration,
+				StateHistory:                   stateHistoryNew,
 			},
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,

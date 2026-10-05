@@ -95,7 +95,7 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 				}
 				current, err := tasks[0].GetTask(created[0].UUID)
 				require.NoError(t, err)
-				require.Equal(t, strconv.Itoa(len(tasks)), driverTaskProperties(current)[util.DriverRetryAttemptKey])
+				require.Equal(t, int64(len(tasks)), *current.DriverRetryAttempt)
 				count, err := tasks[0].GetTaskCountForRun("claims")
 				require.NoError(t, err)
 				require.Equal(t, 1, count)
@@ -103,6 +103,7 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 
 			t.Run("insert-conflict-keeps-claim-transaction-usable", func(t *testing.T) {
 				createRun("insert-conflict")
+				require.NoError(t, tasks[0].ensureDriverRetryPresence("insert-conflict"))
 				tx, err := dbs[0].Begin()
 				require.NoError(t, err)
 				defer tx.Rollback()
@@ -114,7 +115,7 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 					var err error
 					recovered, err = tasks[0].createTaskWithExecutor(gate, request("insert-conflict", "task", 0), true)
 					if err == nil {
-						_, err = tasks[0].claimDriverTaskAttempt(tx, recovered, driverTaskFence{generation: 0, tagged: true, attempt: 0, claimed: true})
+						_, err = tasks[0].claimDriverTaskAttempt(tx, recovered, request("insert-conflict", "task", 0))
 					}
 					if err == nil {
 						err = tx.Commit()
@@ -135,6 +136,33 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 				require.Equal(t, canonical.UUID, recovered.UUID)
 			})
 
+			t.Run("stopped-identity-serializes-with-delayed-create", func(t *testing.T) {
+				createRun("stop-race")
+				require.NoError(t, tasks[0].ensureDriverRetryPresence("stop-race"))
+				tx, err := dbs[0].Begin()
+				require.NoError(t, err)
+				defer tx.Rollback()
+				require.NoError(t, tasks[0].lockRunForDriverTaskWrite(tx, "stop-race", 0))
+				pending := request("stop-race", "delayed", 0)
+				require.NoError(t, tasks[0].checkDriverTaskStop(tx, pending))
+				stopSession := sessionID(1)
+				result := make(chan error, 1)
+				go func() { result <- tasks[1].FinalizeStoppedDriver("stop-race", 0, "delayed", "", nil) }()
+				recurringWaitForLock(t, dbs[2], driver, stopSession)
+				created, err := tasks[0].createTaskWithExecutor(tx, pending, true)
+				require.NoError(t, err)
+				require.NoError(t, tx.Commit())
+				require.NoError(t, waitDriverDatabaseResult(t, result))
+				stopped, err := tasks[0].GetTask(created.UUID)
+				require.NoError(t, err)
+				require.Equal(t, model.TaskStatus(api.PipelineTask_FAILED), stopped.State)
+				require.NoError(t, tasks[0].FinalizeStoppedDriver("stop-race", 0, "missing", "", nil))
+				_, err = tasks[0].CreateTask(request("stop-race", "missing", 0))
+				require.ErrorContains(t, err, "different driver retry attempt")
+				_, err = tasks[0].CreateTask(request("stop-race", "sibling", 0))
+				require.NoError(t, err)
+			})
+
 			t.Run("blocked-task-does-not-block-independent-task", func(t *testing.T) {
 				createRun("parallel-writes")
 				first, err := tasks[0].CreateTask(request("parallel-writes", "first", 0))
@@ -149,10 +177,10 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 				_, err = tasks[0].getTaskForUpdate(tx, first.UUID)
 				require.NoError(t, err)
 				blocked := make(chan error, 1)
-				go func() { _, err := tasks[1].UpdateTask(first); blocked <- err }()
+				go func() { _, err := tasks[1].UpdateTask(driverWrite(first, 0, retryInt(0))); blocked <- err }()
 				recurringWaitForLock(t, dbs[2], driver, blockedSession)
 				independent := make(chan error, 1)
-				go func() { _, err := tasks[3].UpdateTask(second); independent <- err }()
+				go func() { _, err := tasks[3].UpdateTask(driverWrite(second, 0, retryInt(0))); independent <- err }()
 				require.NoError(t, waitDriverDatabaseResult(t, independent))
 				require.NoError(t, tx.Commit())
 				require.NoError(t, waitDriverDatabaseResult(t, blocked))
@@ -165,9 +193,7 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 				child, err := tasks[0].CreateTask(request("source-race", "child", 0))
 				require.NoError(t, err)
 				queued := *parent
-				queued.StatusMetadata, _ = copyDriverTaskMetadata(parent)
-				driverTaskProperties(&queued)[util.DriverRetrySourceTaskKey] = child.UUID
-				driverTaskProperties(&queued)[util.DriverRetrySourceAttemptKey] = "0"
+				queued.DriverWriteAuthority = &model.DriverTaskAuthority{Generation: 0, SourceTaskID: child.UUID, SourceAttempt: retryInt(0)}
 				queued.State = model.TaskStatus(api.PipelineTask_CACHED)
 				blockedSession := sessionID(1)
 				tx, err := dbs[0].Begin()
@@ -179,7 +205,7 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 				result := make(chan error, 1)
 				go func() { _, err := tasks[1].UpdateTask(&queued); result <- err }()
 				recurringWaitForLock(t, dbs[2], driver, blockedSession)
-				_, err = tasks[0].claimDriverTaskAttempt(tx, locked, driverTaskFence{tagged: true, claimed: true, attempt: 1})
+				_, err = tasks[0].claimDriverTaskAttempt(tx, locked, request("source-race", "child", 1))
 				require.NoError(t, err)
 				require.NoError(t, tx.Commit())
 				require.ErrorContains(t, waitDriverDatabaseResult(t, result), "different driver retry attempt")
@@ -208,7 +234,7 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 				recurringWaitForLock(t, dbs[2], driver, blockedSession)
 				require.NoError(t, tx.Commit())
 				require.NoError(t, waitDriverDatabaseResult(t, finished))
-				_, err = tasks[0].UpdateTask(task)
+				_, err = tasks[0].UpdateTask(driverWrite(task, 0, retryInt(0)))
 				require.ErrorContains(t, err, "has finished")
 				final, err := tasks[0].GetTask(task.UUID)
 				require.NoError(t, err)
@@ -228,7 +254,7 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 				recurringWaitForLock(t, dbs[2], driver, blockedSession)
 				require.NoError(t, tx.Commit())
 				require.NoError(t, waitDriverDatabaseResult(t, claimed))
-				_, err = tasks[0].UpdateTask(task)
+				_, err = tasks[0].UpdateTask(driverWrite(task, 0, retryInt(0)))
 				require.ErrorContains(t, err, "different retry generation")
 			})
 
@@ -237,11 +263,17 @@ func TestDriverRetryProductionDatabases(t *testing.T) {
 					id := fmt.Sprintf("closure-%t", tagged)
 					createRun(id)
 					parentRequest := request(id, "parent", 0)
-					parentRequest.StatusMetadata = nil
+					parentRequest.DriverClaim = false
+					parentRequest.DriverRetryGeneration = nil
+					parentRequest.DriverRetryAttempt = nil
+					parentRequest.DriverWriteAuthority.SourceAttempt = nil
 					parent, err := tasks[0].CreateTask(parentRequest)
 					require.NoError(t, err)
 					unrelatedRequest := request(id, "unrelated", 0)
-					unrelatedRequest.StatusMetadata = nil
+					unrelatedRequest.DriverClaim = false
+					unrelatedRequest.DriverRetryGeneration = nil
+					unrelatedRequest.DriverRetryAttempt = nil
+					unrelatedRequest.DriverWriteAuthority.SourceAttempt = nil
 					_, err = tasks[0].CreateTask(unrelatedRequest)
 					require.NoError(t, err)
 					if tagged {

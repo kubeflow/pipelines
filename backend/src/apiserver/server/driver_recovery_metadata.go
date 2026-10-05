@@ -15,25 +15,16 @@
 package server
 
 import (
-	"context"
+	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"google.golang.org/grpc/metadata"
 )
 
-// Only single-task RPCs honor this projection. Run/list/bulk responses must not
-// multiply durable replay payloads by the number of tasks in a fan-out.
-func driverRecoveryView(ctx context.Context) string {
-	md, _ := metadata.FromIncomingContext(ctx)
-	values := md.Get(util.DriverRecoveryViewHeader)
-	if len(values) == 1 {
-		return values[0]
+// Legacy draft checkpoints are never exposed or promoted into trusted columns.
+func publicTaskStatusMetadata(stored model.JSONData) model.JSONData {
+	if stored == nil {
+		return nil
 	}
-	return ""
-}
-
-func taskStatusMetadataForView(stored model.JSONData, view string) model.JSONData {
 	result := make(model.JSONData, len(stored))
 	for key, value := range stored {
 		result[key] = value
@@ -44,19 +35,9 @@ func taskStatusMetadataForView(stored model.JSONData, view string) model.JSONDat
 	}
 	filtered := make(map[string]interface{}, len(properties))
 	for key, value := range properties {
-		switch key {
-		case util.DriverCheckpointKey, util.DriverCachedOutputsKey:
-			if view != util.DriverRecoveryViewFull {
-				continue
-			}
-		case util.DriverRetryGenerationKey, util.DriverRetryAttemptKey:
-			if view != util.DriverRecoveryViewFull && view != util.DriverRecoveryViewOwnership {
-				continue
-			}
-		case util.DriverRetrySourceTaskKey, util.DriverRetrySourceAttemptKey:
-			continue // transient request authority is never response metadata
+		if !strings.HasPrefix(key, "_kfp_driver_") {
+			filtered[key] = value
 		}
-		filtered[key] = value
 	}
 	result["customProperties"] = filtered
 	return result

@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -27,139 +26,135 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-type driverTaskFence struct {
-	generation    int64
-	tagged        bool
-	attempt       int64
-	claimed       bool
-	sourceTaskID  string
-	sourceAttempt int64
-}
-
-func driverTaskProperties(task *model.Task) map[string]interface{} {
-	properties, _ := task.StatusMetadata["customProperties"].(map[string]interface{})
-	return properties
-}
-
-func decimalDriverRetryProperty(properties map[string]interface{}, key, property string) (int64, bool, error) {
-	value, present := properties[key]
-	if !present {
-		return 0, false, nil
-	}
-	text, ok := value.(string)
-	attempt, err := strconv.ParseInt(text, 10, 64)
-	if !ok || err != nil || attempt < 0 || strconv.FormatInt(attempt, 10) != text {
-		return 0, true, util.NewInvalidInputError("Driver retry %s must be a nonnegative decimal string; resubmit the task with its original %s", property, property)
-	}
-	return attempt, true, nil
-}
-
-func parseDriverTaskFence(task *model.Task) (driverTaskFence, error) {
-	var fence driverTaskFence
-	var err error
-	fence.generation, fence.tagged, err = taskRetryGeneration(task)
-	if err != nil {
-		return fence, err
-	}
-	properties := driverTaskProperties(task)
-	fence.attempt, fence.claimed, err = decimalDriverRetryProperty(properties, util.DriverRetryAttemptKey, "attempt")
-	if err != nil {
-		return fence, err
-	}
-	sourceValue, hasSource := properties[util.DriverRetrySourceTaskKey]
-	var hasSourceAttempt bool
-	fence.sourceAttempt, hasSourceAttempt, err = decimalDriverRetryProperty(properties, util.DriverRetrySourceAttemptKey, "source attempt")
-	if err != nil {
-		return fence, err
-	}
-	if hasSource || hasSourceAttempt {
-		var validSource bool
-		fence.sourceTaskID, validSource = sourceValue.(string)
-		if !hasSource || !hasSourceAttempt || !validSource || fence.sourceTaskID == "" {
-			return fence, util.NewInvalidInputError("Driver retry source requires both a task ID and attempt; resubmit with the originating driver's fence")
-		}
-	}
-	if (fence.claimed || hasSource) && !fence.tagged {
-		return fence, util.NewInvalidInputError("Driver retry attempt requires a run generation; resubmit with the originating driver's fence")
-	}
-	return fence, nil
-}
-
 func staleDriverAttempt(taskID string) error {
 	return util.NewFailedPreconditionError(fmt.Errorf("driver task attempt does not match its owner"),
 		"Task %s has a different driver retry attempt; discard this stale driver attempt", taskID)
 }
 
-func copyDriverTaskMetadata(task *model.Task) (model.JSONData, map[string]interface{}) {
-	metadata := make(model.JSONData, len(task.StatusMetadata))
-	for key, value := range task.StatusMetadata {
-		metadata[key] = value
-	}
-	properties := make(map[string]interface{}, len(driverTaskProperties(task)))
-	for key, value := range driverTaskProperties(task) {
-		properties[key] = value
-	}
-	metadata["customProperties"] = properties
-	return metadata, properties
+func clearDriverTaskAuthority(task *model.Task) *model.Task {
+	result := *task
+	result.DriverWriteAuthority = nil
+	result.DriverClaim = false
+	result.DriverRecoveryUpdate = false
+	return &result
 }
 
-// CreateTask is the only operation that can advance ownership. The caller holds
-// a shared run lock and the exclusive task lock before reading this owner.
-func (s *TaskStore) claimDriverTaskAttempt(tx *sql.Tx, task *model.Task, incoming driverTaskFence) (*model.Task, error) {
-	stored, err := parseDriverTaskFence(task)
+func validateDriverTaskRequest(task *model.Task) error {
+	authority := task.DriverWriteAuthority
+	if authority == nil {
+		if task.DriverClaim || task.DriverRecoveryUpdate {
+			return util.NewInvalidInputError("Driver recovery writes require authenticated runtime authority")
+		}
+		return nil
+	}
+	if authority.Generation < 0 || (authority.SourceAttempt != nil && *authority.SourceAttempt < 0) {
+		return util.NewInvalidInputError("Driver retry generation and attempt must be nonnegative")
+	}
+	if task.DriverClaim {
+		if authority.SourceTaskID != "" || task.DriverRetryGeneration == nil || task.DriverRetryAttempt == nil ||
+			*task.DriverRetryGeneration != authority.Generation || *task.DriverRetryAttempt < 0 {
+			return util.NewInvalidInputError("Driver claims require their own generation and nonnegative attempt")
+		}
+		if authority.SourceAttempt != nil && *authority.SourceAttempt != *task.DriverRetryAttempt {
+			return util.NewInvalidInputError("Driver claim attempt must match its runtime authority")
+		}
+	}
+	if task.DriverRecoveryUpdate {
+		if authority.SourceTaskID != "" && authority.SourceTaskID != task.UUID {
+			return util.NewInvalidInputError("Dependent task writes cannot update driver recovery state")
+		}
+		for _, value := range []*string{task.DriverCheckpoint, task.DriverCachedOutputs} {
+			if value != nil && !json.Valid([]byte(*value)) {
+				return util.NewInvalidInputError("Driver recovery data must be valid JSON")
+			}
+		}
+	}
+	return nil
+}
+
+// Presence is monotonic. Initialize it before any shared run lock is held, so
+// independent task claims never upgrade a shared lock and deadlock each other.
+func (s *TaskStore) ensureDriverRetryPresence(runID string) error {
+	q := s.dbDialect.QuoteIdentifier
+	query, args, err := s.dbDialect.QueryBuilder().Select(q("DriverRetryTasksPresent")).From(q("run_details")).Where(sq.Eq{q("UUID"): runID}).ToSql()
+	if err != nil {
+		return err
+	}
+	var present bool
+	if err := s.db.QueryRow(query, args...).Scan(&present); err != nil {
+		return err
+	}
+	if present {
+		return nil
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(query), args...).Scan(&present); err != nil {
+		return err
+	}
+	if !present {
+		update, values, err := s.dbDialect.QueryBuilder().Update(q("run_details")).SetMap(sq.Eq{q("DriverRetryTasksPresent"): true}).Where(sq.Eq{q("UUID"): runID}).ToSql()
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(update, values...); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// CreateTask alone advances ownership, under shared run and exclusive task locks.
+func (s *TaskStore) claimDriverTaskAttempt(tx *sql.Tx, stored, request *model.Task) (*model.Task, error) {
+	if !request.DriverClaim {
+		if stored.DriverRetryGeneration != nil {
+			return nil, staleDriverAttempt(stored.UUID)
+		}
+		return stored, nil
+	}
+	generation, attempt := *request.DriverRetryGeneration, *request.DriverRetryAttempt
+	if stored.DriverStoppedGeneration != nil && *stored.DriverStoppedGeneration == generation {
+		return nil, staleDriverAttempt(stored.UUID)
+	}
+	if stored.DriverRetryGeneration != nil {
+		if *stored.DriverRetryGeneration > generation {
+			return nil, staleDriverAttempt(stored.UUID)
+		}
+		if *stored.DriverRetryGeneration < generation {
+			switch api.PipelineTask_TaskState(stored.State) {
+			case api.PipelineTask_SUCCEEDED, api.PipelineTask_CACHED, api.PipelineTask_SKIPPED:
+			default:
+				return nil, util.NewFailedPreconditionError(fmt.Errorf("unfinished task belongs to an older retry generation"), "Task %s must be reset before claiming a new retry generation; retry the run through the API", stored.UUID)
+			}
+		} else if stored.DriverRetryAttempt != nil {
+			if attempt < *stored.DriverRetryAttempt {
+				return nil, staleDriverAttempt(stored.UUID)
+			}
+			if attempt == *stored.DriverRetryAttempt {
+				return stored, nil
+			}
+		}
+	}
+	q := s.dbDialect.QuoteIdentifier
+	query, args, err := s.dbDialect.QueryBuilder().Update(q(tableName)).SetMap(sq.Eq{
+		q("DriverRetryGeneration"): generation, q("DriverRetryAttempt"): attempt, q("DriverStoppedGeneration"): nil,
+	}).Where(sq.Eq{q("UUID"): stored.UUID, q("RunUUID"): stored.RunUUID}).ToSql()
 	if err != nil {
 		return nil, err
 	}
-	if !incoming.claimed {
-		if stored.claimed {
-			return nil, staleDriverAttempt(task.UUID)
-		}
-		return task, nil
-	}
-	if stored.tagged {
-		if stored.generation > incoming.generation {
-			return nil, staleDriverAttempt(task.UUID)
-		}
-		if stored.generation < incoming.generation {
-			switch api.PipelineTask_TaskState(task.State) {
-			case api.PipelineTask_SUCCEEDED, api.PipelineTask_CACHED, api.PipelineTask_SKIPPED:
-			default:
-				return nil, util.NewFailedPreconditionError(fmt.Errorf("unfinished task belongs to an older retry generation"),
-					"Task %s must be reset before claiming a new retry generation; retry the run through the API", task.UUID)
-			}
-		} else if stored.claimed {
-			if incoming.attempt < stored.attempt {
-				return nil, staleDriverAttempt(task.UUID)
-			}
-			if incoming.attempt == stored.attempt {
-				return task, nil
-			}
-		}
-	}
-	metadata, properties := copyDriverTaskMetadata(task)
-	properties[util.DriverRetryGenerationKey] = strconv.FormatInt(incoming.generation, 10)
-	properties[util.DriverRetryAttemptKey] = strconv.FormatInt(incoming.attempt, 10)
-	encoded, err := json.Marshal(metadata)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to marshal driver task claim")
-	}
-	q := s.dbDialect.QuoteIdentifier
-	query, args, err := s.dbDialect.QueryBuilder().Update(q(tableName)).
-		SetMap(sq.Eq{q("StatusMetadata"): string(encoded)}).
-		Where(sq.Eq{q("UUID"): task.UUID, q("RunUUID"): task.RunUUID}).ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to build driver task claim")
-	}
 	if _, err := tx.Exec(query, args...); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to claim driver task attempt")
+		return nil, err
 	}
-	claimed := *task
-	claimed.StatusMetadata = metadata
+	claimed := *stored
+	claimed.DriverRetryGeneration, claimed.DriverRetryAttempt = &generation, &attempt
+	claimed.DriverStoppedGeneration = nil
 	return &claimed, nil
 }
 
-// Always take source and target task locks in UUID order: sibling propagation
-// and attempt claims can proceed concurrently under a shared run lock.
+// Lock source and target in UUID order, preserving parallel independent writes.
 func (s *TaskStore) lockDriverTaskWriteRows(tx *sql.Tx, targetID, sourceID string) (*model.Task, *model.Task, error) {
 	ids := []string{targetID}
 	if sourceID != "" && sourceID != targetID {
@@ -182,66 +177,51 @@ func (s *TaskStore) lockDriverTaskWriteRows(tx *sql.Tx, targetID, sourceID strin
 	return target, source, nil
 }
 
-func (s *TaskStore) validateDriverTaskAttempt(incoming, stored, source *model.Task, fence driverTaskFence) (*model.Task, error) {
-	owner, err := parseDriverTaskFence(stored)
-	if err != nil {
-		return nil, err
+func (s *TaskStore) validateDriverTaskAttempt(incoming, stored, source *model.Task) (*model.Task, error) {
+	authority := incoming.DriverWriteAuthority
+	stopped := stored.DriverStoppedGeneration != nil && (authority == nil || authority.Generation <= *stored.DriverStoppedGeneration)
+	dependent := authority != nil && authority.SourceTaskID != "" && authority.SourceTaskID != stored.UUID
+	if stopped && !dependent {
+		return nil, staleDriverAttempt(stored.UUID)
 	}
-	if fence.sourceTaskID == "" {
-		if owner.claimed != fence.claimed || (owner.claimed &&
-			(owner.generation != fence.generation || owner.attempt != fence.attempt)) {
+	if authority == nil {
+		if stored.DriverRetryGeneration != nil {
 			return nil, staleDriverAttempt(stored.UUID)
 		}
-		// Ordinary task responses omit large recovery payloads. Their absence
-		// must not erase a handoff or frozen cache decision during an update.
-		missingRecovery := false
-		for _, key := range []string{util.DriverCheckpointKey, util.DriverCachedOutputsKey} {
-			_, supplied := driverTaskProperties(incoming)[key]
-			_, present := driverTaskProperties(stored)[key]
-			missingRecovery = missingRecovery || (!supplied && present)
+	} else {
+		owner := stored
+		if authority.SourceTaskID != "" {
+			owner = source
 		}
-		if !missingRecovery {
-			return incoming, nil
+		if owner == nil || owner.RunUUID != stored.RunUUID || owner.RunUUID != incoming.RunUUID {
+			return nil, staleDriverAttempt(authority.SourceTaskID)
 		}
-		updated := *incoming
-		metadata, properties := copyDriverTaskMetadata(incoming)
-		for _, key := range []string{util.DriverCheckpointKey, util.DriverCachedOutputsKey} {
-			if _, supplied := properties[key]; !supplied {
-				if value, present := driverTaskProperties(stored)[key]; present {
-					properties[key] = value
-				}
-			}
+		if (owner.DriverStoppedGeneration != nil && authority.Generation <= *owner.DriverStoppedGeneration) ||
+			(owner.DriverRetryGeneration != nil && *owner.DriverRetryGeneration != authority.Generation) ||
+			(owner.DriverRetryAttempt == nil) != (authority.SourceAttempt == nil) ||
+			(owner.DriverRetryAttempt != nil && *owner.DriverRetryAttempt != *authority.SourceAttempt) {
+			return nil, staleDriverAttempt(owner.UUID)
 		}
-		if incoming.StatusMetadata != nil || len(properties) > 0 {
-			updated.StatusMetadata = metadata
+		if incoming.DriverRecoveryUpdate && owner.DriverRetryAttempt == nil {
+			return nil, staleDriverAttempt(owner.UUID)
 		}
-		return &updated, nil
-	}
-	sourceOwner, err := parseDriverTaskFence(source)
-	if err != nil {
-		return nil, err
-	}
-	if source.RunUUID != incoming.RunUUID || !sourceOwner.claimed ||
-		sourceOwner.generation != fence.generation || sourceOwner.attempt != fence.sourceAttempt {
-		return nil, staleDriverAttempt(fence.sourceTaskID)
 	}
 	updated := *incoming
-	metadata, properties := copyDriverTaskMetadata(incoming)
-	delete(properties, util.DriverRetrySourceTaskKey)
-	delete(properties, util.DriverRetrySourceAttemptKey)
-	// A child authorizes this write, but cannot replace its parent's ownership
-	// or the parent's saved handoff with recovery data from a stale snapshot.
-	keys := []string{util.DriverRetryAttemptKey, util.DriverCheckpointKey, util.DriverCachedOutputsKey}
-	if owner.claimed {
-		keys = append(keys, util.DriverRetryGenerationKey)
+	if stopped {
+		// A completed sibling may still contribute outputs to a failed ancestor.
+		// Preserve the failure while accepting that independently fenced write.
+		updated.State, updated.FinishedInSec = stored.State, stored.FinishedInSec
+		updated.StatusMetadata = stored.StatusMetadata
 	}
-	storedProperties := driverTaskProperties(stored)
-	for _, key := range keys {
-		delete(properties, key)
-		if value, present := storedProperties[key]; present {
-			properties[key] = value
-		}
+	// Ownership is never taken from the request or target snapshot. Omitted
+	// public metadata stays nil, preserving UpdateTask's established semantics.
+	updated.DriverRetryGeneration, updated.DriverRetryAttempt = stored.DriverRetryGeneration, stored.DriverRetryAttempt
+	updated.DriverStoppedGeneration = stored.DriverStoppedGeneration
+	if !incoming.DriverRecoveryUpdate || incoming.DriverCheckpoint == nil {
+		updated.DriverCheckpoint = stored.DriverCheckpoint
 	}
-	updated.StatusMetadata = metadata
+	if !incoming.DriverRecoveryUpdate || incoming.DriverCachedOutputs == nil {
+		updated.DriverCachedOutputs = stored.DriverCachedOutputs
+	}
 	return &updated, nil
 }

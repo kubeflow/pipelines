@@ -27,7 +27,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -36,14 +35,13 @@ func createUnfinishedResourceDriver(t *testing.T, tasks storage.TaskStoreInterfa
 	t.Helper()
 	metadata, err := model.ProtoMessageToJSONData(&api.PipelineTask_StatusMetadata{
 		Message: "driver stopped before retry exhaustion",
-		CustomProperties: map[string]*structpb.Value{
-			util.DriverRetryGenerationKey: structpb.NewStringValue(strconv.FormatInt(run.RetryGeneration, 10)),
-			util.DriverRetryAttemptKey:    structpb.NewStringValue("0"),
-		},
 	})
 	require.NoError(t, err)
+	attempt := int64(0)
 	task, err := tasks.CreateTask(&model.Task{
-		Namespace: "ns1", RunUUID: run.UUID, Name: "retry-driver", ScopePath: "root.retry-driver",
+		DriverRetryGeneration: &run.RetryGeneration, DriverRetryAttempt: &attempt, DriverClaim: true,
+		DriverWriteAuthority: &model.DriverTaskAuthority{Generation: run.RetryGeneration},
+		Namespace:            "ns1", RunUUID: run.UUID, Name: "retry-driver", ScopePath: "root.retry-driver",
 		Type: model.TaskType(api.PipelineTask_RUNTIME), State: model.TaskStatus(api.PipelineTask_RUNNING),
 		TypeAttrs: model.JSONData{}, Pods: model.JSONSlice{}, StatusMetadata: metadata,
 	})

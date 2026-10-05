@@ -37,6 +37,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	runtimeapi "github.com/kubeflow/pipelines/backend/api/runtime/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -820,6 +821,7 @@ func registerRPCServices(s *grpc.Server, resourceManager *resource.ResourceManag
 	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
 	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
 	apiv2beta1.RegisterRunServiceServer(s, RunServer)
+	runtimeapi.RegisterDriverTaskServiceServer(s, server.NewDriverTaskServer(RunServer))
 	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
 	apiv2beta1.RegisterArtifactServiceServer(s, ArtifactServer)
 }

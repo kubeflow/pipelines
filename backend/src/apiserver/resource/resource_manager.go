@@ -1373,8 +1373,8 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 					}
 				}
 				run.PluginsOutputString = nil
-				if updateError := r.persistRetriedRun(run, liveWorkflow.ExecutionStatus().IsInFinalState(), expectedWorkflowRuntimeManifest, expectedPipelineRuntimeManifest); updateError != nil {
-					return util.NewInternalServerError(updateError, "Failed to adopt in-flight retry for run %s", runId)
+				if updateError := r.persistRetriedRun(run, liveWorkflow, expectedWorkflowRuntimeManifest, expectedPipelineRuntimeManifest); updateError != nil {
+					return util.Wrapf(updateError, "Failed to adopt in-flight retry for run %s", runId)
 				}
 				r.storedWorkflowIdentities.delete(runId)
 				return nil
@@ -1502,29 +1502,43 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run.State = model.RuntimeState(condition).ToV2()
 	// OnRunRetry persists plugin output independently; leave PluginsOutput unchanged here.
 	run.PluginsOutputString = nil
-	err = r.persistRetriedRun(run, newExecSpec.ExecutionStatus().IsInFinalState(), expectedWorkflowRuntimeManifest, expectedPipelineRuntimeManifest)
+	err = r.persistRetriedRun(run, newExecSpec, expectedWorkflowRuntimeManifest, expectedPipelineRuntimeManifest)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
+		return util.Wrapf(err, "Failed to retry run %s due to error updating entry", runId)
 	}
 	r.storedWorkflowIdentities.delete(runId)
 	return nil
 }
 
-// A retry can finish before its workflow mutation is acknowledged. Persist that
-// terminal observation through the same guard and task cleanup as a report.
-func (r *ResourceManager) persistRetriedRun(run *model.Run, terminal bool, expectedWorkflow, expectedPipeline model.LargeText) error {
-	if !terminal {
-		return r.runStore.UpdateRun(run)
-	}
+// A retry can finish before its workflow mutation is acknowledged. Guard even
+// running observations so they cannot overwrite a concurrent terminal report.
+func (r *ResourceManager) persistRetriedRun(run *model.Run, workflow util.ExecutionSpec, expectedWorkflow, expectedPipeline model.LargeText) error {
 	updated, err := r.runStore.UpdateRunIfRuntimeManifestsUnchanged(run, expectedWorkflow, expectedPipeline)
-	if err != nil {
+	if err != nil || updated {
 		return err
 	}
-	if !updated {
-		return util.NewUnavailableServerError(errors.New("stored run changed while adopting retry workflow"),
-			"Run %s changed concurrently while adopting its retry workflow; retry the request", run.UUID)
+	current, err := r.GetRunWithHydration(run.UUID, false)
+	if err != nil {
+		return util.Wrapf(err, "Failed to verify acknowledgment of retry generation %d for run %s", run.RetryGeneration, run.UUID)
 	}
-	return nil
+	if current.RetryGeneration == run.RetryGeneration && run.RetryGeneration > 0 {
+		persisted, parseErr := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(current.WorkflowRuntimeManifest))
+		if parseErr == nil && current.State.ToV2() == workflowReportState(persisted) {
+			persistedMeta := persisted.ExecutionObjectMeta()
+			adoptedMeta := workflow.ExecutionObjectMeta()
+			if persistedMeta.UID != "" && persistedMeta.UID == adoptedMeta.UID &&
+				persisted.ExecutionName() != "" && persisted.ExecutionName() == workflow.ExecutionName() &&
+				persisted.ExecutionNamespace() != "" && persisted.ExecutionNamespace() == workflow.ExecutionNamespace() &&
+				reportedRetryGeneration(persistedMeta) == run.RetryGeneration &&
+				reportedRetryGeneration(adoptedMeta) == run.RetryGeneration {
+				// The reporter persisted this exact retry first. Acknowledge it
+				// without rewriting its state or inviting an additional retry.
+				return nil
+			}
+		}
+	}
+	return util.NewFailedPreconditionError(errors.New("stored run changed while acknowledging the applied retry"),
+		"Retry generation %d for run %s was applied, but the current run no longer matches its observed workflow; inspect the current run before starting another retry", run.RetryGeneration, run.UUID)
 }
 
 func (r *ResourceManager) updateOrCreateRetryWorkflow(ctx context.Context, namespace string, runID string, newExecSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
@@ -1636,7 +1650,7 @@ func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
 	// Output parameters and output artifact links are attempt-local. Resetting
 	// them here prevents a retried task from exposing stale failed-attempt
 	// outputs while leaving successful sibling results intact.
-	return r.taskStore.ResetTasksForRetry(taskIDsToReset)
+	return r.taskStore.ResetTasksForRetry(run.UUID, run.RetryGeneration, taskIDsToReset)
 }
 
 func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
@@ -3722,6 +3736,10 @@ func (r *ResourceManager) IsAuthorized(ctx context.Context, resourceAttributes *
 		return util.NewUnauthenticatedError(utilerrors.NewAggregate(errlist), "Failed to check authorization. User identity is empty in the request header")
 	}
 
+	return r.isAuthorizedForIdentity(ctx, userIdentity, resourceAttributes)
+}
+
+func (r *ResourceManager) isAuthorizedForIdentity(ctx context.Context, userIdentity string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	glog.Infof("User: %s, ResourceAttributes: %+v", userIdentity, resourceAttributes)
 	glog.Info("Authorizing request")
 	result, err := r.subjectAccessReviewClient.Create(

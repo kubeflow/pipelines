@@ -633,7 +633,7 @@ func TestResetTasksForRetry_ClearsAttemptLocalStateAndPreservesHistory(t *testin
 	})
 	require.NoError(t, err)
 
-	err = taskStore.ResetTasksForRetry([]string{created.UUID})
+	err = taskStore.ResetTasksForRetry("run-1", 0, []string{created.UUID})
 	require.NoError(t, err)
 
 	retried, err := taskStore.GetTask(created.UUID)

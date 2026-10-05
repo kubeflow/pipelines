@@ -16,26 +16,29 @@ package storage
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func driverRetryWriteTask(generation interface{}) *model.Task {
+func driverRetryWriteTask(generation string) *model.Task {
+	value, err := strconv.ParseInt(generation, 10, 64)
+	if err != nil {
+		panic(err)
+	}
 	return &model.Task{
-		Namespace: "ns1",
-		RunUUID:   "run-1",
-		Name:      "driver-task",
-		ScopePath: "root.driver-task",
-		Type:      model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:     model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
-		StatusMetadata: model.JSONData{"customProperties": map[string]interface{}{
-			util.DriverRetryGenerationKey: generation,
-		}},
+		Namespace:            "ns1",
+		RunUUID:              "run-1",
+		Name:                 "driver-task",
+		ScopePath:            "root.driver-task",
+		Type:                 model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
+		State:                model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		StatusMetadata:       model.JSONData{"customProperties": map[string]interface{}{"user": "value"}},
+		DriverWriteAuthority: &model.DriverTaskAuthority{Generation: value},
 	}
 }
 
@@ -124,21 +127,14 @@ func TestDriverRetryTaskWriteRejectsFinalizedRun(t *testing.T) {
 }
 
 func TestDriverRetryTaskWriteMalformedGeneration(t *testing.T) {
-	for _, generation := range []interface{}{"", "-1", "01", "+1", "invalid", "9223372036854775808", float64(0), true, nil} {
-		t.Run(fmt.Sprintf("%v", generation), func(t *testing.T) {
-			db, tasks, _ := initializeTaskStore()
-			defer db.Close()
-			valid := driverRetryWriteTask("0")
-			created, err := tasks.CreateTask(valid)
-			require.NoError(t, err)
-			request := driverRetryWriteTask(generation)
-			_, err = tasks.CreateTask(request)
-			require.ErrorContains(t, err, "nonnegative decimal string")
-			request.UUID = created.UUID
-			_, err = tasks.UpdateTask(request)
-			require.ErrorContains(t, err, "nonnegative decimal string")
-		})
-	}
+	db, tasks, _ := initializeTaskStore()
+	defer db.Close()
+	request := driverRetryWriteTask("-1")
+	_, err := tasks.CreateTask(request)
+	require.ErrorContains(t, err, "nonnegative")
+	request.UUID = "task"
+	_, err = tasks.UpdateTask(request)
+	require.ErrorContains(t, err, "nonnegative")
 }
 
 func TestDriverRetryTaskWriteRequiresMatchingRun(t *testing.T) {
@@ -179,6 +175,7 @@ func TestDriverRetryTaskWriteClearsPreviousEndTime(t *testing.T) {
 			if !tagged {
 				// Existing untagged behavior permits writes after a run finishes.
 				request.RunUUID = "run-2"
+				request.DriverWriteAuthority = nil
 				request.StatusMetadata = model.JSONData{"customProperties": map[string]interface{}{"unrelated": "value"}}
 			}
 			created, err := tasks.CreateTask(request)

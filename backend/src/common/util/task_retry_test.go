@@ -23,7 +23,7 @@ import (
 )
 
 func TestCopyDriverRetryGeneration(t *testing.T) {
-	source := &api.PipelineTask{StatusMetadata: &api.PipelineTask_StatusMetadata{CustomProperties: map[string]*structpb.Value{
+	source := &api.PipelineTask{TaskId: "child", StatusMetadata: &api.PipelineTask_StatusMetadata{CustomProperties: map[string]*structpb.Value{
 		DriverRetryGenerationKey: structpb.NewStringValue("7"),
 		"_kfp_driver_checkpoint": structpb.NewStringValue("child-only"),
 	}}}
@@ -71,7 +71,25 @@ func TestCopyDriverRetryGenerationFencesSourceWithoutReplacingTargetClaim(t *tes
 
 	delete(source.StatusMetadata.CustomProperties, DriverRetryAttemptKey)
 	CopyDriverRetryGeneration(target, source)
-	assert.NotContains(t, properties, DriverRetrySourceTaskKey)
+	assert.Equal(t, "child", properties[DriverRetrySourceTaskKey].GetStringValue())
 	assert.NotContains(t, properties, DriverRetrySourceAttemptKey)
 	assert.Equal(t, "0", properties[DriverRetryAttemptKey].GetStringValue())
+}
+
+func TestCopyDriverRetryGenerationUsesUnclaimedChildIdentity(t *testing.T) {
+	source := &api.PipelineTask{TaskId: "child"}
+	target := &api.PipelineTask{TaskId: "parent", StatusMetadata: &api.PipelineTask_StatusMetadata{
+		CustomProperties: map[string]*structpb.Value{
+			DriverRetryGenerationKey:    structpb.NewStringValue("9"),
+			DriverRetryAttemptKey:       structpb.NewStringValue("2"),
+			DriverRetrySourceTaskKey:    structpb.NewStringValue("older-child"),
+			DriverRetrySourceAttemptKey: structpb.NewStringValue("1"),
+		},
+	}}
+	CopyDriverRetryGeneration(target, source)
+	properties := target.GetStatusMetadata().GetCustomProperties()
+	assert.Equal(t, "child", properties[DriverRetrySourceTaskKey].GetStringValue())
+	assert.NotContains(t, properties, DriverRetrySourceAttemptKey)
+	assert.NotContains(t, properties, DriverRetryGenerationKey, "the runtime adapter supplies the child's immutable generation")
+	assert.Equal(t, "2", properties[DriverRetryAttemptKey].GetStringValue(), "retain the parent's attempt")
 }

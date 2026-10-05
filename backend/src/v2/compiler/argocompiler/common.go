@@ -110,6 +110,10 @@ func kfpTokenExpirationSecondsPtr() *int64 {
 
 var commonEnvs = []k8score.EnvVar{
 	{
+		Name:  util.DriverRetryGenerationEnv,
+		Value: "{{workflow.annotations." + util.AnnotationKeyRetryGeneration + "}}",
+	},
+	{
 		Name: "KFP_POD_NAME",
 		ValueFrom: &k8score.EnvVarSource{
 			FieldRef: &k8score.ObjectFieldSelector{

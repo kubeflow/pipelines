@@ -1443,38 +1443,49 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 
 func Test_initPodSpecPatch_RejectsReservedRuntimeEnvVar(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image: "python:3.11",
-		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
-			Name:  "NAMESPACE",
-			Value: "user-controlled",
-		}},
-	}
+	for _, name := range []string{"NAMESPACE", util.DriverRetryGenerationEnv} {
+		for _, source := range []string{"component", "plugin"} {
+			t.Run(name+"/"+source, func(t *testing.T) {
+				containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+					Image: "python:3.11",
+					Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
+						Name:  name,
+						Value: "user-controlled",
+					}},
+				}
 
-	_, err := initPodSpecPatch(
-		containerSpec,
-		&pipelinespec.ComponentSpec{},
-		&pipelinespec.ExecutorInput{},
-		"27",
-		"",
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		&TaskConfig{},
-		"",
-		nil,
-		"",
-		false,
-		"",
-		"ml-pipeline.kubeflow",
-		"8887",
-		nil,
-	)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+				var pluginEnv []k8score.EnvVar
+				if source == "plugin" {
+					containerSpec.Env = nil
+					pluginEnv = []k8score.EnvVar{{Name: name, Value: "plugin-controlled"}}
+				}
+				_, err := initPodSpecPatch(
+					containerSpec,
+					&pipelinespec.ComponentSpec{},
+					&pipelinespec.ExecutorInput{},
+					"27",
+					"",
+					"test",
+					"run",
+					"my-run-name",
+					"1",
+					"false",
+					"false",
+					&TaskConfig{},
+					"",
+					nil,
+					"",
+					false,
+					"",
+					"ml-pipeline.kubeflow",
+					"8887",
+					pluginEnv,
+				)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+			})
+		}
+	}
 }
 
 func Test_extendPodSpecPatch_RejectsReservedSecretEnvVar(t *testing.T) {

@@ -15,8 +15,8 @@
 package storage
 
 import (
-	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -43,15 +43,15 @@ func createDriverRetryFinalizationTask(t *testing.T, store *TaskStore, name stri
 		task.ParentTaskUUID = util.StringPointer(parent.UUID)
 	}
 	if generation != nil {
-		metadata, err := model.ProtoMessageToJSONData(&apiv2beta1.PipelineTask_StatusMetadata{
-			CustomProperties: map[string]*structpb.Value{
-				util.DriverRetryGenerationKey: structpb.NewStringValue(*generation),
-				"plugin_resource_id":          structpb.NewStringValue("existing-resource"),
-			},
-		})
+		value, err := strconv.ParseInt(*generation, 10, 64)
 		require.NoError(t, err)
-		task.StatusMetadata = metadata
+		task.DriverRetryGeneration = retryInt(value)
+		task.DriverRetryAttempt = retryInt(0)
+		task.DriverClaim = true
+		task.DriverWriteAuthority = &model.DriverTaskAuthority{Generation: value, SourceAttempt: retryInt(0)}
+		task.StatusMetadata = model.JSONData{"customProperties": map[string]interface{}{"plugin_resource_id": "existing-resource"}}
 	}
+
 	store.uuid = util.NewUUIDGenerator()
 	created, err := store.CreateTask(task)
 	require.NoError(t, err)
@@ -89,7 +89,7 @@ func TestDriverRetryFinalizationPropagatesToAncestors(t *testing.T) {
 			}})
 			require.NoError(t, err)
 			child.OutputParameters = parameters
-			child, err = tasks.UpdateTask(child)
+			child, err = tasks.UpdateTask(driverFixtureWrite(child))
 			require.NoError(t, err)
 			unrelated := createDriverRetryFinalizationTask(t, tasks, "unrelated", root, apiv2beta1.PipelineTask_RUNNING, nil)
 
@@ -133,7 +133,7 @@ func TestDriverRetryFinalizationPreservesTerminalTasks(t *testing.T) {
 			parent := createDriverRetryFinalizationTask(t, tasks, "parent", nil, apiv2beta1.PipelineTask_RUNNING, nil)
 			child := createDriverRetryFinalizationTask(t, tasks, "terminal-child", parent, state, util.StringPointer("0"))
 			child.FinishedInSec = 99
-			child, err := tasks.UpdateTask(child)
+			child, err := tasks.UpdateTask(driverFixtureWrite(child))
 			require.NoError(t, err)
 
 			reportDriverRetryTerminalRun(t, runs, model.RuntimeStateFailed)
@@ -169,14 +169,14 @@ func TestDriverRetryFinalizationCorrectsPrematureSuccessfulAncestors(t *testing.
 				}
 				parent := createOrderedTask(parentOrder, "parent", grandparent, parentState)
 				parent.FinishedInSec = 99
-				parent, err := tasks.UpdateTask(parent)
+				parent, err := tasks.UpdateTask(driverFixtureWrite(parent))
 				require.NoError(t, err)
 				// A lost response after propagating a cache hit reopens only the
 				// child. Its previously committed successful ancestors must follow
 				// the child's final failure, regardless of task UUID ordering.
 				child := createOrderedTask(childOrder, "reopened-child", parent, apiv2beta1.PipelineTask_RUNNING)
 				child.StatusMetadata["message"] = "status update response lost"
-				child, err = tasks.UpdateTask(child)
+				child, err = tasks.UpdateTask(driverFixtureWrite(child))
 				require.NoError(t, err)
 				sibling := createOrderedTask(4, "successful-sibling", root, apiv2beta1.PipelineTask_SUCCEEDED)
 				completedChild := createOrderedTask(5, "cached-sibling-child", sibling, apiv2beta1.PipelineTask_CACHED)
@@ -218,7 +218,7 @@ func TestDriverRetryFinalizationPropagatesExistingFailureToSuccessfulAncestor(t 
 	parent := createDriverRetryFinalizationTask(t, tasks, "parent", nil, apiv2beta1.PipelineTask_CACHED, util.StringPointer("0"))
 	child := createDriverRetryFinalizationTask(t, tasks, "failed-child", parent, apiv2beta1.PipelineTask_FAILED, util.StringPointer("0"))
 	child.FinishedInSec = 99
-	child, err := tasks.UpdateTask(child)
+	child, err := tasks.UpdateTask(driverFixtureWrite(child))
 	require.NoError(t, err)
 
 	reportDriverRetryTerminalRun(t, runs, model.RuntimeStateFailed)
@@ -235,20 +235,18 @@ func TestDriverRetryFinalizationRequiresMatchingGeneration(t *testing.T) {
 	db, tasks, runs := initializeTaskStore()
 	defer db.Close()
 	parent := createDriverRetryFinalizationTask(t, tasks, "parent", nil, apiv2beta1.PipelineTask_RUNNING, nil)
-	changeStoredGeneration := func(task *model.Task, generation string) *model.Task {
-		task.StatusMetadata["customProperties"].(map[string]interface{})[util.DriverRetryGenerationKey] = generation
-		metadata, err := json.Marshal(task.StatusMetadata)
-		require.NoError(t, err)
-		_, err = db.Exec("UPDATE tasks SET StatusMetadata = ? WHERE UUID = ?", string(metadata), task.UUID)
+	changeStoredGeneration := func(task *model.Task, generation int64) *model.Task {
+		_, err := db.Exec("UPDATE tasks SET DriverRetryGeneration=? WHERE UUID=?", generation, task.UUID)
 		require.NoError(t, err)
 		stored, err := tasks.GetTask(task.UUID)
 		require.NoError(t, err)
 		return stored
 	}
+
 	stale := createDriverRetryFinalizationTask(t, tasks, "stale", parent, apiv2beta1.PipelineTask_RUNNING, util.StringPointer("0"))
-	stale = changeStoredGeneration(stale, "1")
+	stale = changeStoredGeneration(stale, 1)
 	invalid := createDriverRetryFinalizationTask(t, tasks, "invalid", parent, apiv2beta1.PipelineTask_RUNNING, util.StringPointer("0"))
-	invalid = changeStoredGeneration(invalid, "invalid")
+	invalid = changeStoredGeneration(invalid, -1)
 	otherRun := createDriverRetryFinalizationTask(t, tasks, "other-run", nil, apiv2beta1.PipelineTask_RUNNING, util.StringPointer("0"))
 	_, err := db.Exec("UPDATE tasks SET RunUUID = ? WHERE UUID = ?", "run-2", otherRun.UUID)
 	require.NoError(t, err)
@@ -363,6 +361,7 @@ func TestDriverRetryFinalizationRejectsQueuedAncestorUpdate(t *testing.T) {
 	queuedUpdate := &model.Task{
 		UUID: parent.UUID, RunUUID: parent.RunUUID,
 		State: model.TaskStatus(apiv2beta1.PipelineTask_CACHED), StatusMetadata: metadata,
+		DriverWriteAuthority: &model.DriverTaskAuthority{Generation: 0},
 	}
 	reportDriverRetryTerminalRun(t, runs, model.RuntimeStateFailed)
 	_, err = tasks.UpdateTask(queuedUpdate)

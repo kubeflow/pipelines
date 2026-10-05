@@ -120,11 +120,11 @@ func TestDriverTaskWritesShareRunLockAndLockOnlyTheirTasks(t *testing.T) {
 			recorder.shared, recorder.exclusive = nil, nil
 			request, err := tasks.GetTask(child.UUID)
 			require.NoError(t, err)
+			request = driverWrite(request, 0, retryInt(1))
 			if source {
 				request, err = tasks.GetTask(parent.UUID)
 				require.NoError(t, err)
-				driverTaskProperties(request)[util.DriverRetrySourceTaskKey] = child.UUID
-				driverTaskProperties(request)[util.DriverRetrySourceAttemptKey] = "1"
+				request.DriverWriteAuthority = &model.DriverTaskAuthority{Generation: 0, SourceTaskID: child.UUID, SourceAttempt: retryInt(1)}
 			}
 			_, err = tasks.UpdateTask(request)
 			require.NoError(t, err)
@@ -190,20 +190,26 @@ func TestDriverTaskUpdatePreservesOmittedRecoveryPayload(t *testing.T) {
 	defer db.Close()
 	task, err := tasks.CreateTask(attemptedDriverTask("0", "0"))
 	require.NoError(t, err)
-	driverTaskProperties(task)[util.DriverCheckpointKey] = "saved handoff"
-	driverTaskProperties(task)[util.DriverCachedOutputsKey] = "frozen decision"
-	task, err = tasks.UpdateTask(task)
+	request := driverWrite(task, 0, retryInt(0))
+	request.DriverRecoveryUpdate = true
+	request.DriverCheckpoint = util.StringPointer(`{"saved":true}`)
+	request.DriverCachedOutputs = util.StringPointer(`{"frozen":true}`)
+	task, err = tasks.UpdateTask(request)
 	require.NoError(t, err)
-	delete(driverTaskProperties(task), util.DriverCheckpointKey)
-	delete(driverTaskProperties(task), util.DriverCachedOutputsKey)
-	task.State = model.TaskStatus(api.PipelineTask_CACHED)
-	updated, err := tasks.UpdateTask(task)
+	request = driverWrite(task, 0, retryInt(0))
+	request.DriverCheckpoint = nil
+	request.DriverCachedOutputs = nil
+	request.StatusMetadata = nil
+	request.State = model.TaskStatus(api.PipelineTask_CACHED)
+	updated, err := tasks.UpdateTask(request)
 	require.NoError(t, err)
-	assert.Equal(t, "saved handoff", driverTaskProperties(updated)[util.DriverCheckpointKey])
-	assert.Equal(t, "frozen decision", driverTaskProperties(updated)[util.DriverCachedOutputsKey])
-	driverTaskProperties(task)[util.DriverCheckpointKey] = "updated handoff"
-	updated, err = tasks.UpdateTask(task)
+	assert.Equal(t, task.StatusMetadata, updated.StatusMetadata)
+	assert.Equal(t, task.DriverCheckpoint, updated.DriverCheckpoint)
+	assert.Equal(t, task.DriverCachedOutputs, updated.DriverCachedOutputs)
+	request.DriverRecoveryUpdate = true
+	request.DriverCheckpoint = util.StringPointer(`{"updated":true}`)
+	updated, err = tasks.UpdateTask(request)
 	require.NoError(t, err)
-	assert.Equal(t, "updated handoff", driverTaskProperties(updated)[util.DriverCheckpointKey])
-	assert.Equal(t, "frozen decision", driverTaskProperties(updated)[util.DriverCachedOutputsKey])
+	assert.Equal(t, request.DriverCheckpoint, updated.DriverCheckpoint)
+	assert.Equal(t, task.DriverCachedOutputs, updated.DriverCachedOutputs)
 }

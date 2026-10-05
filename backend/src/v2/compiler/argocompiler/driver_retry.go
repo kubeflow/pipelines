@@ -24,6 +24,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/driverflags"
 )
 
+const paramDriverRetryStatus = "driver-retry-status"
+
 func validateDriverRetryPolicy(policy *pipelinespec.PipelineTaskSpec_RetryPolicy) error {
 	if policy == nil {
 		return nil
@@ -57,6 +59,8 @@ func (c *workflowCompiler) addTaskRetryDriverTemplate(baseName string, task *pip
 	template := c.templates[baseName].DeepCopy()
 	template.Name = name
 	template.Inputs.Parameters = append(template.Inputs.Parameters, []wfapi.Parameter{
+		{Name: util.DriverRetryEnabledParameter, Default: wfapi.AnyStringPtr("true")},
+		{Name: util.DriverRetryAttemptParameter, Default: wfapi.AnyStringPtr("{{retries}}")},
 		{Name: paramRetryMaxCount, Default: wfapi.AnyStringPtr("0")},
 		{Name: paramRetryBackOffDuration, Default: wfapi.AnyStringPtr("0")},
 		{Name: paramRetryBackOffFactor, Default: wfapi.AnyStringPtr("2")},
@@ -70,20 +74,14 @@ func (c *workflowCompiler) addTaskRetryDriverTemplate(baseName string, task *pip
 		policy,
 	)
 	template.Container.Args = append(template.Container.Args,
-		"--"+driverflags.DriverRetryEnabledArg+"=true",
-		"--"+driverflags.DriverRetryAttemptArg, "{{retries}}",
+		"--"+driverflags.DriverRetryEnabledArg+"="+inputValue(util.DriverRetryEnabledParameter),
+		"--"+driverflags.DriverRetryAttemptArg, inputValue(util.DriverRetryAttemptParameter),
 		"--driver_retry_max_count", inputValue(paramRetryMaxCount),
 		"--driver_retry_generation", "{{workflow.annotations."+util.AnnotationKeyRetryGeneration+"}}",
 	)
 	template.Metadata.Annotations[util.AnnotationKeyTaskDriverRetry] = "true"
 	template.Metadata.Annotations[systemTemplateNameAnnotationKey] = name
 
-	if c.wf.Annotations == nil {
-		c.wf.Annotations = make(map[string]string)
-	}
-	// RetryRun replaces this generation before an explicit retry. Automatic
-	// driver retries retain it and therefore reuse their output allocations.
-	c.wf.Annotations[util.AnnotationKeyRetryGeneration] = "0"
 	c.templates[name] = template
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
 	return name
@@ -101,4 +99,54 @@ func (c *workflowCompiler) getDriverRetryParametersWithValues(task *pipelinespec
 		}
 	}
 	return parameters
+}
+
+// configureDriverRetryFinalizer runs after the retry node becomes terminal,
+// including when its policy or backoff deadline stops retries before the limit.
+// Successful drivers hand off directly to their executor without a finalizer.
+func (c *workflowCompiler) configureDriverRetryFinalizer(task *wfapi.DAGTask) {
+	base := c.templates[task.Template]
+	if base.Metadata.Annotations[util.AnnotationKeyTaskDriverRetry] != "true" {
+		return
+	}
+	name := "finalize-" + task.Template
+	if _, exists := c.templates[name]; !exists {
+		tmpl := base.DeepCopy()
+		tmpl.Name = name
+		tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey] = name
+		tmpl.RetryStrategy = nil
+		// Finalizers publish no driver outputs. Remove their path references
+		// from the inherited arguments before clearing the output declarations.
+		for _, output := range tmpl.Outputs.Parameters {
+			for i, arg := range tmpl.Container.Args {
+				tmpl.Container.Args[i] = strings.ReplaceAll(arg, outputPath(output.Name), "")
+			}
+		}
+		tmpl.Outputs = wfapi.Outputs{}
+		// A hook is outside the retry node, so {{retries}} is unavailable.
+		// The API finalizes the current private owner under the generation fence.
+		for i := range tmpl.Inputs.Parameters {
+			if tmpl.Inputs.Parameters[i].Name == util.DriverRetryAttemptParameter {
+				tmpl.Inputs.Parameters[i].Default = wfapi.AnyStringPtr("0")
+			}
+		}
+		tmpl.Inputs.Parameters = append(tmpl.Inputs.Parameters, wfapi.Parameter{Name: paramDriverRetryStatus})
+		tmpl.Container.Args = append(tmpl.Container.Args,
+			"--"+driverflags.DriverRetryFinalizeArg+"=true",
+			"--"+driverflags.DriverRetryStatusArg, inputValue(paramDriverRetryStatus),
+		)
+		c.templates[name] = tmpl
+		c.wf.Spec.Templates = append(c.wf.Spec.Templates, *tmpl)
+	}
+	arguments := task.Arguments.DeepCopy()
+	arguments.Parameters = append(arguments.Parameters, wfapi.Parameter{
+		Name: paramDriverRetryStatus, Value: wfapi.AnyStringPtr("{{tasks." + task.Name + ".status}}"),
+	})
+	if task.Hooks == nil {
+		task.Hooks = wfapi.LifecycleHooks{}
+	}
+	task.Hooks[wfapi.ExitLifecycleEvent] = wfapi.LifecycleHook{
+		Template: name, Arguments: *arguments,
+		Expression: "tasks['" + task.Name + "'].status in ['Failed', 'Error']",
+	}
 }

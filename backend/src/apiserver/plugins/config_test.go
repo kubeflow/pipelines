@@ -25,7 +25,11 @@ func TestInjectPluginRuntimeEnv_DisablesTaskDriverRetries(t *testing.T) {
 					util.AnnotationKeyRuntimeRole:     string(util.ExecutionRuntimeRoleDriver),
 					util.AnnotationKeyTaskDriverRetry: "true",
 				}},
-				Container:     &corev1.Container{Args: []string{"--driver_retry_enabled=true", "--driver_retry_attempt={{retries}}"}},
+				Inputs: workflowapi.Inputs{Parameters: []workflowapi.Parameter{
+					{Name: util.DriverRetryEnabledParameter, Default: workflowapi.AnyStringPtr("true")},
+					{Name: util.DriverRetryAttemptParameter, Default: workflowapi.AnyStringPtr("{{retries}}")},
+				}},
+				Container:     &corev1.Container{Args: []string{"--driver_retry_enabled={{inputs.parameters.driver-retry-enabled}}", "--driver_retry_attempt={{inputs.parameters.driver-retry-attempt}}"}},
 				RetryStrategy: &workflowapi.RetryStrategy{Limit: &limit},
 			},
 			{
@@ -39,10 +43,13 @@ func TestInjectPluginRuntimeEnv_DisablesTaskDriverRetries(t *testing.T) {
 		}},
 	})
 	env := []corev1.EnvVar{{Name: "PLUGIN_CONFIG", Value: "enabled"}}
+	originalArgs := append([]string{}, workflow.Spec.Templates[0].Container.Args...)
 
 	require.NoError(t, InjectPluginRuntimeEnv(workflow, env))
 	assert.Nil(t, workflow.Spec.Templates[0].RetryStrategy, "plugin drivers must retain deployment retry defaults")
-	assert.Equal(t, []string{"--driver_retry_enabled=false", "--driver_retry_attempt=0"}, workflow.Spec.Templates[0].Container.Args)
+	assert.Equal(t, originalArgs, workflow.Spec.Templates[0].Container.Args)
+	assert.Equal(t, "false", workflow.Spec.Templates[0].Inputs.GetParameterByName(util.DriverRetryEnabledParameter).Default.String())
+	assert.Equal(t, "0", workflow.Spec.Templates[0].Inputs.GetParameterByName(util.DriverRetryAttemptParameter).Default.String())
 	assert.Equal(t, "3", workflow.Spec.Templates[1].RetryStrategy.Limit.String())
 	for _, tmpl := range workflow.Spec.Templates {
 		assert.Equal(t, env, tmpl.Container.Env)

@@ -15,12 +15,15 @@
 package argocompiler
 
 import (
+	"encoding/json"
 	"flag"
 	"regexp"
 	"strings"
 	"testing"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	argologging "github.com/argoproj/argo-workflows/v4/util/logging"
+	argocommon "github.com/argoproj/argo-workflows/v4/workflow/common"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	apiserverplugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
@@ -69,10 +72,23 @@ func TestCompilePluginDriversDisableTaskRetryFlags(t *testing.T) {
 				}
 				assert.Nil(t, tmpl.RetryStrategy, tmpl.Name)
 				assert.NotContains(t, tmpl.Metadata.Annotations, util.AnnotationKeyTaskDriverRetry)
-				args := append([]string{}, tmpl.Container.Args...)
+				serialized, err := json.Marshal(tmpl)
+				require.NoError(t, err)
+				assert.NotContains(t, string(serialized), "{{retries}}", "disabled driver templates must not retain retry-only expressions")
+				arguments := wfapi.Arguments{}
+				for _, input := range tmpl.Inputs.Parameters {
+					if input.Default == nil && input.Value == nil {
+						arguments.Parameters = append(arguments.Parameters, wfapi.Parameter{Name: input.Name, Value: wfapi.AnyStringPtr("0")})
+					}
+				}
+				resolved, err := argocommon.ProcessArgs(argologging.NewSlogLogger(argologging.Info, argologging.Text).NewBackgroundContext(), &tmpl, &arguments, nil, argocommon.Parameters{"retries": "7"}, false, "", nil)
+				require.NoError(t, err)
+				assert.Equal(t, before.Spec.Templates[i].Container.Args, tmpl.Container.Args, "plugin admission must not parse or rewrite CLI arguments")
+				args := append([]string{}, resolved.Container.Args...)
 				for j, arg := range args {
 					// Resolve controller expressions to parseable values. A surviving
 					// retry expression must yield a nonzero attempt and fail below.
+					assert.NotContains(t, arg, "{{inputs.parameters.", tmpl.Name)
 					arg = strings.ReplaceAll(arg, "{{retries}}", "7")
 					args[j] = parameter.ReplaceAllString(arg, "0")
 				}

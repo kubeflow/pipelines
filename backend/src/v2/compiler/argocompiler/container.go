@@ -182,6 +182,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 		)
 	}
 	c.configureExitDriver(dagTask, inputs.exitTaskName, inputs.exitTaskStatus)
+	c.configureDriverRetryFinalizer(dagTask)
 	outputs := &containerDriverOutputs{
 		podSpecPatch: taskOutputParameter(name, paramPodSpecPatch),
 		cached:       taskOutputParameter(name, paramCachedDecision),

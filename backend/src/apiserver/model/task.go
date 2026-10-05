@@ -133,9 +133,9 @@ type TaskStatus apiv2beta1.PipelineTask_TaskState
 type Task struct {
 	// idx_tasks_uuid_run is a composite candidate key so artifact_tasks can enforce
 	// (TaskID, RunUUID) consistency against the owning task row.
-	UUID             string     `gorm:"column:UUID; not null; primaryKey; type:varchar(191); uniqueIndex:idx_tasks_uuid_run,priority:1;"`
+	UUID             string     `gorm:"column:UUID; not null; primaryKey; type:varchar(191); index:idx_task_driver_retry,priority:3; uniqueIndex:idx_tasks_uuid_run,priority:1;"`
 	Namespace        string     `gorm:"column:Namespace; not null; type:varchar(63); index:idx_task_cache_lookup,priority:3;"`
-	RunUUID          string     `gorm:"column:RunUUID; type:varchar(191); not null; index:idx_parent_run,priority:1; uniqueIndex:idx_tasks_uuid_run,priority:2;"`
+	RunUUID          string     `gorm:"column:RunUUID; type:varchar(191); not null; index:idx_parent_run,priority:1; index:idx_task_driver_retry,priority:1; uniqueIndex:idx_tasks_uuid_run,priority:2;"`
 	Run              Run        `gorm:"foreignKey:RunUUID;references:UUID;constraint:tasks_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"`
 	Pods             JSONSlice  `gorm:"column:pods; not null; type:json;"`
 	CreatedAtInSec   int64      `gorm:"column:CreatedAtInSec; not null; index:idx_task_created_timestamp; index:idx_task_cache_lookup,priority:4,sort:desc;"`
@@ -156,9 +156,27 @@ type Task struct {
 	ScopePath        string     `gorm:"column:ScopePath; type:text; default:null;"`
 	LogicalKey       *string    `gorm:"column:LogicalKey; type:varchar(64); default:null; uniqueIndex:idx_tasks_logical_key;"`
 
+	// Recovery state is internal and is never populated from public task metadata.
+	DriverRetryGeneration   *int64               `gorm:"column:DriverRetryGeneration; default:null; index:idx_task_driver_retry,priority:2;"`
+	DriverRetryAttempt      *int64               `gorm:"column:DriverRetryAttempt; default:null;"`
+	DriverStoppedGeneration *int64               `gorm:"column:DriverStoppedGeneration; default:null;"`
+	DriverCheckpoint        *string              `gorm:"column:DriverCheckpoint; type:json; default:null;"`
+	DriverCachedOutputs     *string              `gorm:"column:DriverCachedOutputs; type:json; default:null;"`
+	DriverWriteAuthority    *DriverTaskAuthority `gorm:"-"`
+	DriverClaim             bool                 `gorm:"-"`
+	DriverRecoveryUpdate    bool                 `gorm:"-"`
+
 	// Transient fields populated during hydration (not stored in DB)
 	InputArtifactsHydrated  []TaskArtifactHydrated `gorm:"-"`
 	OutputArtifactsHydrated []TaskArtifactHydrated `gorm:"-"`
+}
+
+// DriverTaskAuthority identifies the immutable runtime caller, independently of
+// the target task's owner. Only authenticated runtime RPCs populate this field.
+type DriverTaskAuthority struct {
+	Generation    int64
+	SourceTaskID  string
+	SourceAttempt *int64
 }
 
 func (t Task) ToString() string {

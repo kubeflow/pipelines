@@ -194,6 +194,13 @@ creating a new task for each attempt. A manual retry of the pipeline run starts
 a new recovery generation for tasks that need to run again. Completed tasks
 and their saved results remain preserved.
 
+When Argo stops retrying a failed driver because of its policy, retry count, or
+backoff deadline, a finalizer marks the task and its unfinished parent DAGs
+failed while independent branches can continue. The API server also reconciles
+unfinished retry tasks when it receives a failed or canceled workflow report.
+Recovery checkpoints and ownership are stored separately from public task
+status metadata and are available only through the authenticated runtime API.
+
 Driver retry coverage has these limits:
 
 - The root pipeline driver has no task-level retry policy and retains the

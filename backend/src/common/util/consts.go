@@ -75,8 +75,9 @@ const (
 	// AnnotationKeyTaskDriverRetry marks driver templates using a task's retry policy.
 	AnnotationKeyTaskDriverRetry = "pipelines.kubeflow.org/task-driver-retry"
 
-	// DriverRetryGenerationKey identifies the run generation recorded with a
-	// terminal task so a driver replay cannot finalize a newer run attempt.
+	// These keys are the driver's in-process representation of recovery state.
+	// The runtime adapter transfers them as typed private RPC fields; neither
+	// public task metadata nor the database StatusMetadata column stores them.
 	DriverRetryGenerationKey = "_kfp_driver_retry_generation"
 	// DriverRetryAttemptKey identifies the automatic driver attempt owning a task.
 	DriverRetryAttemptKey = "_kfp_driver_retry_attempt"
@@ -87,11 +88,6 @@ const (
 	// DriverCheckpointKey and DriverCachedOutputsKey hold durable replay payloads.
 	DriverCheckpointKey    = "_kfp_driver_checkpoint"
 	DriverCachedOutputsKey = "_kfp_driver_cached_outputs"
-	// DriverRecoveryViewHeader selects internal metadata on single-task RPCs.
-	// It is a response projection, not an authorization mechanism.
-	DriverRecoveryViewHeader    = "x-kfp-driver-recovery-view"
-	DriverRecoveryViewOwnership = "ownership"
-	DriverRecoveryViewFull      = "full"
 )
 
 // GetMaxParameterBytes returns the maximum byte size of parameters.

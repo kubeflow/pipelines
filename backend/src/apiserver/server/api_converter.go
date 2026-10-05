@@ -1793,6 +1793,12 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 		return nil, util.NewInvalidInputError("Task cannot be nil")
 	}
 
+	for key := range apiTask.GetStatusMetadata().GetCustomProperties() {
+		if strings.HasPrefix(key, "_kfp_driver_") {
+			return nil, util.NewInvalidInputError("Driver recovery properties are reserved for the runtime protocol")
+		}
+	}
+
 	task := &model.Task{
 		UUID:           apiTask.GetTaskId(),
 		RunUUID:        apiTask.GetRunId(),
@@ -1888,10 +1894,6 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 // InputArtifactsHydrated/OutputArtifactsHydrated, so callers that need
 // Inputs.Artifacts or Outputs.Artifacts populated must hydrate artifact links first.
 func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.PipelineTask, error) {
-	return toAPITaskWithRecoveryView(modelTask, childTasks, "")
-}
-
-func toAPITaskWithRecoveryView(modelTask *model.Task, childTasks []*model.Task, recoveryView string) (*apiv2beta1.PipelineTask, error) {
 	if modelTask == nil {
 		return nil, util.NewInvalidInputError("Task cannot be nil")
 	}
@@ -1937,7 +1939,7 @@ func toAPITaskWithRecoveryView(modelTask *model.Task, childTasks []*model.Task, 
 	// Convert status metadata to new StatusMetadata struct
 	if modelTask.StatusMetadata != nil {
 		statusMeta, err := model.JSONDataToProtoMessage(
-			taskStatusMetadataForView(modelTask.StatusMetadata, recoveryView),
+			publicTaskStatusMetadata(modelTask.StatusMetadata),
 			func() *apiv2beta1.PipelineTask_StatusMetadata {
 				return &apiv2beta1.PipelineTask_StatusMetadata{}
 			})

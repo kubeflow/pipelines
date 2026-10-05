@@ -76,6 +76,7 @@ func TestCompileExitDriverReceivesCompletedProducerStatus(t *testing.T) {
 						assert.Equal(t, policy.argo, driverTemplate.RetryStrategy.RetryPolicy)
 						assert.Equal(t, "true", driverTemplate.Metadata.Annotations[util.AnnotationKeyTaskDriverRetry])
 						assert.Equal(t, "2", exitStatusParameter(t, driver.Arguments.Parameters, paramRetryMaxCount))
+						assertDriverFinalizer(t, wf, driver)
 					}
 				}
 				for _, base := range []string{"system-container-driver", "system-dag-driver"} {
@@ -117,6 +118,7 @@ func TestCompileExitDriverPreservesNestedLoopIteration(t *testing.T) {
 		exitTemplate := templateByName(t, wf, hook.Template)
 		driver := retryContractTaskByName(t, exitTemplate, "notify-driver")
 		assert.Equal(t, inputParameter(paramIterationIndex), exitStatusParameter(t, driver.Arguments.Parameters, paramIterationIndex))
+		assertDriverFinalizer(t, wf, driver)
 	}
 }
 

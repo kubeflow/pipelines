@@ -58,6 +58,15 @@ ${PROTOCCOMPILER} \
   --plugin=protoc-gen-go-grpc=/go/bin/protoc-gen-go-grpc \
   backend/api/${API_VERSION}/*.proto
 
+# Runtime-only gRPC protocol has no public REST/Swagger/client surface.
+${PROTOCCOMPILER} \
+  -I. -Ibackend/api/${API_VERSION} -I/googleapis -I/protoc-gen-openapiv2 -I/usr/include -I/ \
+  --go_out=. --go_opt=module=github.com/kubeflow/pipelines \
+  --go-grpc_out=. --go-grpc_opt=module=github.com/kubeflow/pipelines \
+  --plugin=protoc-gen-go=/go/bin/protoc-gen-go \
+  --plugin=protoc-gen-go-grpc=/go/bin/protoc-gen-go-grpc \
+  backend/api/runtime/*.proto
+
 # Generate *.pb.gw.go (grpc api rest client) from *.proto.
 ${PROTOCCOMPILER} \
     -I. \

@@ -363,7 +363,14 @@ func resolvePipelineJobTimes(
 
 func drive() (err error) {
 	ctx := context.Background()
-	if err = validateRequiredFlags(providedFlags, *driverType); err != nil {
+	if *driverFlagValues.DriverRetryFinalize {
+		if !*driverFlagValues.DriverRetryEnabled {
+			return nil
+		}
+		if err := validateDriverFinalization(driverFlagValues); err != nil {
+			return err
+		}
+	} else if err = validateRequiredFlags(providedFlags, *driverType); err != nil {
 		return err
 	}
 
@@ -381,6 +388,9 @@ func drive() (err error) {
 	glog.Infof("Initialized Client Manager.")
 
 	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
+	if *driverFlagValues.DriverRetryFinalize {
+		return finalizeStoppedDriver(ctx, clientManager.KFPAPIClient(), driverFlagValues)
+	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	if *runtimeConfigJSON != "" {
 		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJSON))

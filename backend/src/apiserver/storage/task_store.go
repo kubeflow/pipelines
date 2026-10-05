@@ -60,6 +60,22 @@ var taskColumns = []string{
 	"TypeAttrs",
 	"ScopePath",
 	"LogicalKey",
+	"DriverRetryGeneration",
+	"DriverRetryAttempt",
+	"DriverStoppedGeneration",
+	"DriverCheckpoint",
+	"DriverCachedOutputs",
+}
+
+// Bulk reads retain column order while omitting private recovery payloads.
+func taskColumnsWithoutRecovery(q func(string) string) []string {
+	columns := dialect.QuoteAll(q, taskColumns)
+	for i, column := range taskColumns {
+		if column == "DriverCheckpoint" || column == "DriverCachedOutputs" {
+			columns[i] = "NULL AS " + q(column)
+		}
+	}
+	return columns
 }
 
 // Ensure TaskStore implements TaskStoreInterface
@@ -87,7 +103,10 @@ type TaskStoreInterface interface {
 
 	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
 	// from a clean RUNNING attempt while preserving task history.
-	ResetTasksForRetry(taskIDs []string) error
+	ResetTasksForRetry(runID string, generation int64, taskIDs []string) error
+
+	// FinalizeStoppedDriver closes unfinished state when Argo stops driver retries.
+	FinalizeStoppedDriver(runID string, generation int64, taskName, parentTaskID string, iterationIndex *int64) error
 
 	// GetChildTasks Fetches all child tasks for a given task UUID.
 	GetChildTasks(taskID string) ([]*model.Task, error)
@@ -128,6 +147,8 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 	var name, displayName, parentTaskID, pods, statusMetadata, stateHistory, inputParams, outputParams, typeAttrs, scopePath, logicalKey sql.NullString
 	var createdAtInSec, startedInSec, finishedInSec sql.NullInt64
 	var taskState, taskType int32
+	var driverGeneration, driverAttempt, driverStoppedGeneration *int64
+	var driverCheckpoint, driverCachedOutputs *string
 	if err := rowscanner.Scan(
 		&uuid,
 		&namespace,
@@ -149,6 +170,11 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		&typeAttrs,
 		&scopePath,
 		&logicalKey,
+		&driverGeneration,
+		&driverAttempt,
+		&driverStoppedGeneration,
+		&driverCheckpoint,
+		&driverCachedOutputs,
 	); err != nil {
 		return nil, err
 	}
@@ -201,26 +227,31 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 		logicalKeyNew = &logicalKey.String
 	}
 	return &model.Task{
-		UUID:             uuid,
-		Namespace:        namespace,
-		RunUUID:          runUUID,
-		Pods:             podsNew,
-		CreatedAtInSec:   createdAtInSec.Int64,
-		StartedInSec:     startedInSec.Int64,
-		FinishedInSec:    finishedInSec.Int64,
-		Fingerprint:      fingerprint,
-		Name:             name.String,
-		DisplayName:      displayName.String,
-		ParentTaskUUID:   parentTaskIDNew,
-		State:            model.TaskStatus(taskState),
-		StatusMetadata:   statusMetadataNew,
-		StateHistory:     stateHistoryNew,
-		InputParameters:  inputParameters,
-		OutputParameters: outputParameters,
-		Type:             model.TaskType(taskType),
-		TypeAttrs:        typeAttrsData,
-		ScopePath:        scopePathStr,
-		LogicalKey:       logicalKeyNew,
+		UUID:                    uuid,
+		Namespace:               namespace,
+		RunUUID:                 runUUID,
+		Pods:                    podsNew,
+		CreatedAtInSec:          createdAtInSec.Int64,
+		StartedInSec:            startedInSec.Int64,
+		FinishedInSec:           finishedInSec.Int64,
+		Fingerprint:             fingerprint,
+		Name:                    name.String,
+		DisplayName:             displayName.String,
+		ParentTaskUUID:          parentTaskIDNew,
+		State:                   model.TaskStatus(taskState),
+		StatusMetadata:          statusMetadataNew,
+		StateHistory:            stateHistoryNew,
+		InputParameters:         inputParameters,
+		OutputParameters:        outputParameters,
+		Type:                    model.TaskType(taskType),
+		TypeAttrs:               typeAttrsData,
+		ScopePath:               scopePathStr,
+		LogicalKey:              logicalKeyNew,
+		DriverRetryGeneration:   driverGeneration,
+		DriverRetryAttempt:      driverAttempt,
+		DriverStoppedGeneration: driverStoppedGeneration,
+		DriverCheckpoint:        driverCheckpoint,
+		DriverCachedOutputs:     driverCachedOutputs,
 	}, nil
 }
 
@@ -558,62 +589,70 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	if task == nil {
 		return nil, util.NewInvalidInputError("Failed to create task: task cannot be nil")
 	}
-	fence, err := parseDriverTaskFence(task)
-	if err != nil {
+	if err := validateDriverTaskRequest(task); err != nil {
 		return nil, err
 	}
-	if fence.sourceTaskID != "" {
-		return nil, util.NewInvalidInputError("Driver retry source fences cannot claim tasks; create the originating driver task first")
+	request := *task
+	// Only an authenticated explicit claim can initialize ownership. Reading a
+	// task and sending it through the public API never transfers its authority.
+	if !request.DriverClaim {
+		request.DriverRetryGeneration, request.DriverRetryAttempt = nil, nil
 	}
-	if !fence.tagged {
-		created, err := s.createTaskWithExecutor(s.db, task, false)
+	request.DriverStoppedGeneration = nil
+	if !request.DriverRecoveryUpdate {
+		request.DriverCheckpoint, request.DriverCachedOutputs = nil, nil
+	}
+	if request.DriverWriteAuthority == nil {
+		created, err := s.createTaskWithExecutor(s.db, &request, false)
 		if err != nil {
 			return nil, err
 		}
-		stored, err := parseDriverTaskFence(created)
-		if err != nil {
-			return nil, err
-		}
-		if stored.claimed {
+		if created.DriverRetryGeneration != nil {
 			return nil, staleDriverAttempt(created.UUID)
 		}
-		return created, nil
+		return clearDriverTaskAuthority(created), nil
+	}
+	if request.DriverClaim {
+		if err := s.ensureDriverRetryPresence(request.RunUUID); err != nil {
+			return nil, err
+		}
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to start transaction for driver task creation")
 	}
 	defer tx.Rollback()
-	if err := s.lockRunForDriverTaskWrite(tx, task.RunUUID, fence.generation); err != nil {
+	if err := s.lockRunForDriverTaskWrite(tx, request.RunUUID, request.DriverWriteAuthority.Generation); err != nil {
 		return nil, err
 	}
-	created, err := s.createTaskWithExecutor(tx, task, true)
+	if err := s.checkDriverTaskStop(tx, &request); err != nil {
+		return nil, err
+	}
+	created, err := s.createTaskWithExecutor(tx, &request, true)
 	if err != nil {
 		return nil, err
 	}
-	// A shared run lock fences manual retries without serializing independent
-	// tasks. Lock this task before advancing automatic-attempt ownership.
 	created, err = s.getTaskForUpdate(tx, created.UUID)
 	if err != nil {
 		return nil, err
 	}
-	created, err = s.claimDriverTaskAttempt(tx, created, fence)
+	created, err = s.claimDriverTaskAttempt(tx, created, &request)
 	if err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to commit driver task creation")
 	}
-	return created, nil
-}
-
-func taskRetryGeneration(task *model.Task) (int64, bool, error) {
-	return decimalDriverRetryProperty(driverTaskProperties(task), util.DriverRetryGenerationKey, "generation")
+	return clearDriverTaskAuthority(created), nil
 }
 
 // Share-lock the run before task rows. Independent tasks can write concurrently,
 // while RetryRun and terminal finalization must acquire the exclusive run lock.
 func (s *TaskStore) lockRunForDriverTaskWrite(tx *sql.Tx, runID string, generation int64) error {
+	return s.lockRunForDriverTask(tx, runID, generation, false)
+}
+
+func (s *TaskStore) lockRunForDriverTask(tx *sql.Tx, runID string, generation int64, exclusive bool) error {
 	if runID == "" {
 		return util.NewInvalidInputError("Driver task writes require a run ID; include the task's run ID")
 	}
@@ -628,7 +667,12 @@ func (s *TaskStore) lockRunForDriverTaskWrite(tx *sql.Tx, runID string, generati
 	}
 	var state, conditions sql.NullString
 	var currentGeneration int64
-	if err := tx.QueryRow(s.dbDialect.SelectForShare(query), args...).Scan(&state, &conditions, &currentGeneration); err != nil {
+	if exclusive {
+		query = s.dbDialect.SelectForUpdate(query)
+	} else {
+		query = s.dbDialect.SelectForShare(query)
+	}
+	if err := tx.QueryRow(query, args...).Scan(&state, &conditions, &currentGeneration); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return util.NewResourceNotFoundError("Run", runID)
 		}
@@ -751,26 +795,31 @@ func (s *TaskStore) createTaskWithExecutor(db taskWriteExecutor, task *model.Tas
 	}
 	sql, args, err := insert.SetMap(
 		sq.Eq{
-			q("UUID"):             newTask.UUID,
-			q("Namespace"):        newTask.Namespace,
-			q("RunUUID"):          newTask.RunUUID,
-			q("pods"):             podsString,
-			q("CreatedAtInSec"):   newTask.CreatedAtInSec,
-			q("StartedInSec"):     newTask.StartedInSec,
-			q("FinishedInSec"):    newTask.FinishedInSec,
-			q("Fingerprint"):      newTask.Fingerprint,
-			q("Name"):             newTask.Name,
-			q("DisplayName"):      newTask.DisplayName,
-			q("ParentTaskUUID"):   newTask.ParentTaskUUID,
-			q("ScopePath"):        newTask.ScopePath,
-			q("State"):            newTask.State,
-			q("StatusMetadata"):   statusMetadataString,
-			q("StateHistory"):     stateHistoryString,
-			q("InputParameters"):  inputParamsString,
-			q("OutputParameters"): outputParamsString,
-			q("Type"):             newTask.Type,
-			q("TypeAttrs"):        typeAttrsString,
-			q("LogicalKey"):       newTask.LogicalKey,
+			q("UUID"):                    newTask.UUID,
+			q("Namespace"):               newTask.Namespace,
+			q("RunUUID"):                 newTask.RunUUID,
+			q("pods"):                    podsString,
+			q("CreatedAtInSec"):          newTask.CreatedAtInSec,
+			q("StartedInSec"):            newTask.StartedInSec,
+			q("FinishedInSec"):           newTask.FinishedInSec,
+			q("Fingerprint"):             newTask.Fingerprint,
+			q("Name"):                    newTask.Name,
+			q("DisplayName"):             newTask.DisplayName,
+			q("ParentTaskUUID"):          newTask.ParentTaskUUID,
+			q("ScopePath"):               newTask.ScopePath,
+			q("State"):                   newTask.State,
+			q("StatusMetadata"):          statusMetadataString,
+			q("StateHistory"):            stateHistoryString,
+			q("InputParameters"):         inputParamsString,
+			q("OutputParameters"):        outputParamsString,
+			q("Type"):                    newTask.Type,
+			q("TypeAttrs"):               typeAttrsString,
+			q("LogicalKey"):              newTask.LogicalKey,
+			q("DriverRetryGeneration"):   newTask.DriverRetryGeneration,
+			q("DriverRetryAttempt"):      newTask.DriverRetryAttempt,
+			q("DriverStoppedGeneration"): nil,
+			q("DriverCheckpoint"):        newTask.DriverCheckpoint,
+			q("DriverCachedOutputs"):     newTask.DriverCachedOutputs,
 		},
 	).
 		ToSql()
@@ -808,7 +857,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	}
 
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := qb.Select(dialect.QuoteAll(q, taskColumns)...).From(q("tasks"))
+	sqlBuilder := qb.Select(taskColumnsWithoutRecovery(q)...).From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
@@ -918,7 +967,7 @@ func (s *TaskStore) ListChildTasksByParentAndRun(parentTaskID, runID string, opt
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
 
-	sqlBuilder := qb.Select(dialect.QuoteAll(q, taskColumns)...).From(q("tasks")).
+	sqlBuilder := qb.Select(taskColumnsWithoutRecovery(q)...).From(q("tasks")).
 		Where(sq.Eq{q("RunUUID"): runID}).
 		Where(sq.Eq{q("ParentTaskUUID"): parentTaskID})
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder, q)
@@ -1031,7 +1080,7 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	sqlBuilder := qb.
-		Select(dialect.QuoteAll(q, taskColumns)...).
+		Select(taskColumnsWithoutRecovery(q)...).
 		From(q("tasks")).
 		Where(sq.Eq{
 			q("Fingerprint"): fingerprint,
@@ -1093,7 +1142,7 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 	}
 
 	rowsSQL, rowsArgs, err := qb.
-		Select(dialect.QuoteAll(q, taskColumns)...).
+		Select(taskColumnsWithoutRecovery(q)...).
 		From(q("tasks")).
 		Where(sq.Eq{q("UUID"): dedupedTaskIDs}).
 		OrderBy(q("RunUUID")+" ASC", q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
@@ -1123,11 +1172,19 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 // The lock ensures that no other transaction can modify this row until the current transaction completes.
 // For MySQL/PostgreSQL, this adds FOR UPDATE. For SQLite (tests), it's a no-op since SQLite doesn't support row locks.
 func (s *TaskStore) getTaskForUpdate(tx *sql.Tx, id string) (*model.Task, error) {
+	return s.getTaskForUpdateWithRecovery(tx, id, true)
+}
+
+func (s *TaskStore) getTaskForUpdateWithRecovery(tx *sql.Tx, id string, recovery bool) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
+	columns := taskColumnsWithoutRecovery(q)
+	if recovery {
+		columns = dialect.QuoteAll(q, taskColumns)
+	}
 	// Build SELECT query
 	sqlStr, args, err := qb.
-		Select(dialect.QuoteAll(q, taskColumns)...).
+		Select(columns...).
 		From(q("tasks")).
 		Where(sq.Eq{q("tasks") + "." + q("UUID"): id}).
 		Limit(1).
@@ -1165,11 +1222,15 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	if new.UUID == "" {
 		return nil, util.NewInvalidInputError("Failed to update task: task ID cannot be empty")
 	}
-	fence, err := parseDriverTaskFence(new)
-	if err != nil {
+	if err := validateDriverTaskRequest(new); err != nil {
 		return nil, err
 	}
-	generation, tagged := fence.generation, fence.tagged
+	authority := new.DriverWriteAuthority
+	tagged := authority != nil
+	var sourceID string
+	if authority != nil {
+		sourceID = authority.SourceTaskID
+	}
 
 	// Start a transaction to ensure atomic read-merge-write with row locking
 	tx, err := s.db.Begin()
@@ -1182,21 +1243,21 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		}
 	}()
 	if tagged {
-		if err := s.lockRunForDriverTaskWrite(tx, new.RunUUID, generation); err != nil {
+		if err := s.lockRunForDriverTaskWrite(tx, new.RunUUID, authority.Generation); err != nil {
 			return nil, err
 		}
 	}
 
 	// Get the current task state with a row-level lock (SELECT ... FOR UPDATE)
 	// This prevents other concurrent updates from reading the same old state
-	lockedOld, source, err := s.lockDriverTaskWriteRows(tx, new.UUID, fence.sourceTaskID)
+	lockedOld, source, err := s.lockDriverTaskWriteRows(tx, new.UUID, sourceID)
 	if err != nil {
 		return nil, err
 	}
 	if tagged && lockedOld.RunUUID != new.RunUUID {
 		return nil, util.NewInvalidInputError("Driver task run ID does not match the stored task; use the task's original run ID")
 	}
-	new, err = s.validateDriverTaskAttempt(new, lockedOld, source, fence)
+	new, err = s.validateDriverTaskAttempt(new, lockedOld, source)
 	if err != nil {
 		return nil, err
 	}
@@ -1206,6 +1267,15 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 
 	// Build SET map dynamically so we only update provided fields.
 	setMap := sq.Eq{}
+
+	if new.DriverRecoveryUpdate {
+		if new.DriverCheckpoint != nil {
+			setMap[q("DriverCheckpoint")] = *new.DriverCheckpoint
+		}
+		if new.DriverCachedOutputs != nil {
+			setMap[q("DriverCachedOutputs")] = *new.DriverCachedOutputs
+		}
+	}
 
 	// Simple scalar/string fields: update if non-empty OR explicitly zero is meaningful.
 	// For strings: only update when not empty to avoid erasing existing values unintentionally.
@@ -1370,7 +1440,7 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	return s.GetTask(new.UUID)
 }
 
-func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
+func (s *TaskStore) ResetTasksForRetry(runID string, generation int64, taskIDs []string) error {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	if len(taskIDs) == 0 {
@@ -1387,11 +1457,15 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 		}
 	}()
 
+	if err := s.lockRunForDriverTaskWrite(tx, runID, generation); err != nil {
+		return err
+	}
+
 	sqlStr, args, err := qb.
-		Select(dialect.QuoteAll(q, taskColumns)...).
+		Select(taskColumnsWithoutRecovery(q)...).
 		From(q(tableName)).
-		Where(sq.Eq{q("UUID"): taskIDs}).
-		OrderBy(q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
+		Where(sq.Eq{q("UUID"): taskIDs, q("RunUUID"): runID}).
+		OrderBy(q("UUID") + " ASC").
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to read retry tasks: %v", err.Error())
@@ -1437,16 +1511,25 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 			return util.NewInternalServerError(err, "Failed to marshal retry task state history")
 		}
 
+		var retryGeneration *int64
+		if task.DriverRetryGeneration != nil {
+			retryGeneration = &generation
+		}
 		updateSQL, updateArgs, err := qb.
 			Update(q(tableName)).
 			SetMap(sq.Eq{
-				q("State"):            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
-				q("StartedInSec"):     retryStartedAt,
-				q("FinishedInSec"):    0,
-				q("StatusMetadata"):   nil,
-				q("pods"):             emptyJSONArray,
-				q("OutputParameters"): emptyJSONArray,
-				q("StateHistory"):     string(historyBytes),
+				q("State"):                   model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+				q("StartedInSec"):            retryStartedAt,
+				q("FinishedInSec"):           0,
+				q("StatusMetadata"):          nil,
+				q("DriverRetryGeneration"):   retryGeneration,
+				q("DriverRetryAttempt"):      nil,
+				q("DriverStoppedGeneration"): nil,
+				q("DriverCheckpoint"):        nil,
+				q("DriverCachedOutputs"):     nil,
+				q("pods"):                    emptyJSONArray,
+				q("OutputParameters"):        emptyJSONArray,
+				q("StateHistory"):            string(historyBytes),
 			}).
 			Where(sq.Eq{q("UUID"): task.UUID}).
 			ToSql()
@@ -1550,7 +1633,7 @@ func (s *TaskStore) GetChildTasks(taskID string) ([]*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	toSQL, args, err := qb.
-		Select(dialect.QuoteAll(q, taskColumns)...).
+		Select(taskColumnsWithoutRecovery(q)...).
 		From(q("tasks")).
 		Where(sq.Eq{q("ParentTaskUUID"): taskID}).
 		OrderBy(q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
