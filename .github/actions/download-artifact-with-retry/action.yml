@@ -1,5 +1,5 @@
 name: "Download artifact with retry"
-description: "Download workflow artifacts and retry one transient failure"
+description: "Download workflow artifacts and retry one failed or incomplete download"
 
 inputs:
   name:
@@ -7,7 +7,7 @@ inputs:
     required: false
     default: ''
   path:
-    description: "Destination path"
+    description: "Destination path; use an absolute or workspace-relative path with required-files"
     required: true
   pattern:
     description: "Glob pattern matching artifacts to download"
@@ -33,18 +33,28 @@ inputs:
     description: "Delay before the retry attempt"
     required: false
     default: '20'
+  required-files:
+    description: "Newline-separated paths relative to the destination that each attempt must download as nonempty files"
+    required: false
+    default: ''
 
 outputs:
   download-path:
     description: "Absolute path where artifacts were downloaded"
-    value: ${{ steps.primary.outputs.download-path || steps.retry.outputs.download-path }}
+    value: ${{ steps.retry.outputs.download-path || steps.primary.outputs.download-path }}
 
 runs:
   using: "composite"
   steps:
-    # The artifact client can return transport failures such as ECONNRESET
-    # without retrying the overall operation. A partial first download is safe
-    # to retry in place because download-artifact overwrites matching files.
+    - name: Prepare required artifact files
+      shell: bash
+      env:
+        DOWNLOAD_PATH: ${{ inputs.path }}
+        REQUIRED_FILES: ${{ inputs.required-files }}
+      run: bash "$GITHUB_ACTION_PATH/required-files.sh" prepare
+
+    # The client can fail during transport or succeed with an incomplete list
+    # of artifacts. Validate the extracted files before accepting either attempt.
     - name: Download artifact
       id: primary
       uses: actions/download-artifact@v8
@@ -58,18 +68,37 @@ runs:
         run-id: ${{ inputs.run-id }}
       continue-on-error: true
 
+    - name: Verify required artifact files
+      id: verify-primary
+      if: ${{ !cancelled() && steps.primary.outcome == 'success' }}
+      shell: bash
+      env:
+        DOWNLOAD_PATH: ${{ steps.primary.outputs.download-path || inputs.path }}
+        REQUIRED_FILES: ${{ inputs.required-files }}
+      run: bash "$GITHUB_ACTION_PATH/required-files.sh" verify
+      continue-on-error: true
+
     - name: Wait before retrying artifact download
-      if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
+      if: ${{ !cancelled() && (steps.primary.outcome == 'failure' || steps.verify-primary.outcome == 'failure') }}
       shell: bash
       env:
         RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
       run: |
-        echo "Artifact download failed; retrying in ${RETRY_DELAY_SECONDS}s"
+        echo "Artifact download failed or is incomplete; retrying in ${RETRY_DELAY_SECONDS}s"
         sleep "$RETRY_DELAY_SECONDS"
+
+    - name: Prepare required artifact files for retry
+      id: prepare-retry
+      if: ${{ !cancelled() && (steps.primary.outcome == 'failure' || steps.verify-primary.outcome == 'failure') }}
+      shell: bash
+      env:
+        DOWNLOAD_PATH: ${{ inputs.path }}
+        REQUIRED_FILES: ${{ inputs.required-files }}
+      run: bash "$GITHUB_ACTION_PATH/required-files.sh" prepare
 
     - name: Retry artifact download
       id: retry
-      if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
+      if: ${{ !cancelled() && steps.prepare-retry.outcome == 'success' }}
       uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.name }}
@@ -81,15 +110,28 @@ runs:
         run-id: ${{ inputs.run-id }}
       continue-on-error: true
 
+    - name: Verify required artifact files after retry
+      id: verify-retry
+      if: ${{ !cancelled() && steps.retry.outcome == 'success' }}
+      shell: bash
+      env:
+        DOWNLOAD_PATH: ${{ steps.retry.outputs.download-path || inputs.path }}
+        REQUIRED_FILES: ${{ inputs.required-files }}
+      run: bash "$GITHUB_ACTION_PATH/required-files.sh" verify
+      continue-on-error: true
+
     - name: Verify artifact download
       if: ${{ always() && !cancelled() }}
       shell: bash
       env:
         PRIMARY_OUTCOME: ${{ steps.primary.outcome }}
+        PRIMARY_FILES_OUTCOME: ${{ steps.verify-primary.outcome }}
         RETRY_OUTCOME: ${{ steps.retry.outcome }}
+        RETRY_FILES_OUTCOME: ${{ steps.verify-retry.outcome }}
       run: |
-        if [[ "$PRIMARY_OUTCOME" == "success" || "$RETRY_OUTCOME" == "success" ]]; then
+        if [[ "$PRIMARY_OUTCOME" == "success" && "$PRIMARY_FILES_OUTCOME" == "success" ]] ||
+           [[ "$RETRY_OUTCOME" == "success" && "$RETRY_FILES_OUTCOME" == "success" ]]; then
           exit 0
         fi
-        echo "::error::Artifact download failed after two attempts"
+        echo "::error::Artifact download failed or required files are missing after two attempts"
         exit 1

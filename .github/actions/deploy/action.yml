@@ -59,16 +59,31 @@ runs:
   using: "composite"
   steps:
     - name: Wait for branch image artifacts
+      id: image-artifacts
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-      run: ./.github/resources/scripts/wait-for-image-artifacts.sh
+        LOAD_MODELCAR_FIXTURE: ${{ inputs.load_modelcar_fixture }}
+      run: |
+        ./.github/resources/scripts/wait-for-image-artifacts.sh
+        source .github/resources/scripts/ci-image-artifacts.sh
+        {
+          echo 'required-files<<EOF'
+          for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+            echo "$artifact/$artifact.tar"
+          done
+          if [[ "$LOAD_MODELCAR_FIXTURE" == 'true' ]]; then
+            echo 'runtime-base-images/modelcar.tar'
+          fi
+          echo 'EOF'
+        } >> "$GITHUB_OUTPUT"
 
     - name: Download Docker Images
       uses: ./.github/actions/download-artifact-with-retry
       with:
         path: "images_${{ github.run_id }}"
         pattern: "!*.dockerbuild"
+        required-files: ${{ steps.image-artifacts.outputs.required-files }}
 
     - name: Load Control Plane Images Into Kind
       shell: bash

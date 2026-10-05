@@ -85,7 +85,7 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             encoding='utf-8')
 
         wait_position = deploy_action.index(
-            'run: ./.github/resources/scripts/wait-for-image-artifacts.sh')
+            './.github/resources/scripts/wait-for-image-artifacts.sh')
         download_position = deploy_action.index(
             '- name: Download Docker Images')
         self.assertLess(wait_position, download_position)

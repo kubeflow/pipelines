@@ -72,16 +72,8 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
         self.assertIn('merge-multiple: ${{ inputs.merge-multiple }}', action)
         self.assertIn('github-token: ${{ inputs.github-token }}', action)
         self.assertIn('run-id: ${{ inputs.run-id }}', action)
-        self.assertIn(
-            'steps.primary.outputs.download-path || '
-            'steps.retry.outputs.download-path',
-            action,
-        )
-        self.assertIn(
-            '[[ "$PRIMARY_OUTCOME" == "success" || '
-            '"$RETRY_OUTCOME" == "success" ]]',
-            action,
-        )
+        self.assertIn('steps.primary.outputs.download-path', action)
+        self.assertIn('steps.retry.outputs.download-path', action)
 
     def test_every_artifact_download_uses_retry_action(self):
         callers = (
