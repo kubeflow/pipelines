@@ -114,6 +114,7 @@ func (c *workflowCompiler) configureDriverRetryFinalizer(task *wfapi.DAGTask) {
 		tmpl := base.DeepCopy()
 		tmpl.Name = name
 		tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey] = name
+		tmpl.Metadata.Annotations[util.AnnotationKeyDriverRetryFinalizer] = "true"
 		tmpl.RetryStrategy = nil
 		// Finalizers publish no driver outputs. Remove their path references
 		// from the inherited arguments before clearing the output declarations.

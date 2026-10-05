@@ -350,6 +350,8 @@ func assertDriverFinalizer(t *testing.T, wf *wfapi.Workflow, driver wfapi.DAGTas
 	require.True(t, exists, driver.Name)
 	assert.Equal(t, "tasks['"+driver.Name+"'].status in ['Failed', 'Error']", hook.Expression)
 	finalizer := templateByName(t, wf, hook.Template)
+	assert.Equal(t, "true", finalizer.Metadata.Annotations[util.AnnotationKeyDriverRetryFinalizer])
+	assert.NotContains(t, templateByName(t, wf, driver.Template).Metadata.Annotations, util.AnnotationKeyDriverRetryFinalizer)
 	assert.Nil(t, finalizer.RetryStrategy)
 	assert.Empty(t, finalizer.Outputs)
 	assert.Equal(t, "0", finalizer.Inputs.GetParameterByName(util.DriverRetryAttemptParameter).Default.String())
@@ -394,4 +396,32 @@ func TestRuntimeTemplatesCarryGenerationWithoutTaskRetries(t *testing.T) {
 	}
 	assert.Positive(t, drivers)
 	assert.Positive(t, launchers)
+}
+
+func TestCompiledDriverFinalizerSurvivesManualRetryAsFreshHook(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	wf := compileDriverRetryContract(t, &pipelinespec.PipelineTaskSpec_RetryPolicy{MaxRetryCount: 2})
+	driver := retryContractTaskByName(t, templateByName(t, wf, "root"), "ordinary-driver")
+	hook := driver.Hooks[wfapi.ExitLifecycleEvent]
+	wf.Name = "wf"
+	wf.Labels = map[string]string{}
+	wf.Status.Phase = wfapi.WorkflowFailed
+	wf.Status.Nodes = wfapi.Nodes{
+		"driver":    {ID: "driver", Name: "wf.ordinary-driver", Type: wfapi.NodeTypeRetry, Phase: wfapi.NodeFailed, TemplateName: driver.Template},
+		"finalizer": {ID: "finalizer", Name: "wf.ordinary-driver.onExit", Type: wfapi.NodeTypePod, Phase: wfapi.NodeSucceeded, TemplateName: hook.Template},
+	}
+	before := wf.Spec.DeepCopy()
+	execution, pods, err := util.NewWorkflow(wf).GenerateRetryExecution()
+	require.NoError(t, err)
+	retried := execution.(*util.Workflow)
+	retried.Annotations[util.AnnotationKeyRetryGeneration] = "1"
+	assert.Empty(t, retried.Status.Nodes)
+	assert.Equal(t, []string{"finalizer"}, pods)
+	assert.Equal(t, *before, retried.Spec)
+	require.NoError(t, retried.Validate(true, false))
+	assertDriverFinalizer(t, retried.Workflow, driver)
+	finalizer := templateByName(t, retried.Workflow, hook.Template)
+	assertAdjacentArgPair(t, finalizer.Container.Args, "--driver_retry_generation", "{{workflow.annotations."+util.AnnotationKeyRetryGeneration+"}}")
 }

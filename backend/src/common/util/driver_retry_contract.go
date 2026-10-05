@@ -14,6 +14,10 @@
 
 package util
 
+// AnnotationKeyDriverRetryFinalizer identifies generation-specific retry hooks
+// whose completed nodes must be replayed after a manual run retry.
+const AnnotationKeyDriverRetryFinalizer = "pipelines.kubeflow.org/driver-retry-finalizer"
+
 // These template inputs let admission-time workflow configuration disable
 // task-derived driver recovery without depending on the driver's CLI spelling.
 // They are template defaults only: DAG task arguments must never override them.

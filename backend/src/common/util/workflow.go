@@ -500,14 +500,17 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 	var podsToDelete []string
 	for _, node := range w.Status.Nodes {
 		oldNodeID := RetrievePodName(*w.Workflow, node)
+		// A completed driver finalizer belongs to the previous generation.
+		// Retaining it would suppress finalization if the driver fails again.
+		mustReplay := strings.HasPrefix(node.Name, onExitNodeName) || w.isDriverRetryFinalizerNode(node)
 		switch node.Phase {
 		case workflowapi.NodeSucceeded, workflowapi.NodeSkipped:
-			if !strings.HasPrefix(node.Name, onExitNodeName) {
+			if !mustReplay {
 				newWF.Status.Nodes[node.ID] = node
 				continue
 			}
 		case workflowapi.NodeError, workflowapi.NodeFailed, workflowapi.NodeOmitted:
-			if !strings.HasPrefix(node.Name, onExitNodeName) && node.Type == workflowapi.NodeTypeDAG {
+			if !mustReplay && node.Type == workflowapi.NodeTypeDAG {
 				newNode := node.DeepCopy()
 				newNode.Phase = workflowapi.NodeRunning
 				newNode.Message = ""
@@ -544,6 +547,18 @@ func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
 		newWF.Status.Nodes[node.ID] = node
 	}
 	return NewWorkflow(newWF), podsToDelete, nil
+}
+
+func (w *Workflow) isDriverRetryFinalizerNode(node workflowapi.NodeStatus) bool {
+	scope, resourceName := node.GetTemplateScope()
+	var template *workflowapi.Template
+	if node.TemplateRef != nil || scope != workflowapi.ResourceScopeLocal {
+		// Resolve the exact stored reference rather than a same-named local template.
+		template = w.GetStoredTemplate(scope, resourceName, &node)
+	} else {
+		template = w.GetTemplateByName(node.TemplateName)
+	}
+	return template != nil && template.Metadata.Annotations[AnnotationKeyDriverRetryFinalizer] == "true"
 }
 
 func (w *Workflow) Version() string {
@@ -674,7 +689,11 @@ func RetrievePodName(wf workflowapi.Workflow, node workflowapi.NodeStatus) strin
 
 	prefix := wf.Name
 	if !strings.Contains(node.Name, ".inline") {
-		prefix = fmt.Sprintf("%s-%s", wf.Name, node.TemplateName)
+		templateName := node.TemplateName
+		if node.TemplateRef != nil {
+			templateName = node.TemplateRef.Template
+		}
+		prefix = fmt.Sprintf("%s-%s", wf.Name, templateName)
 	}
 
 	return fmt.Sprintf("%s-%s", prefix, hash)

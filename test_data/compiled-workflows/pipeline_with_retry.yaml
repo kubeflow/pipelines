@@ -435,6 +435,7 @@ spec:
       - name: driver-retry-status
     metadata:
       annotations:
+        pipelines.kubeflow.org/driver-retry-finalizer: "true"
         pipelines.kubeflow.org/runtime-role: driver
         pipelines.kubeflow.org/task-driver-retry: "true"
         pipelines.kubeflow.org/template-name: finalize-retry-system-container-driver-always
