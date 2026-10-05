@@ -354,7 +354,68 @@ def infrastructure_rbac(context):
                     namespace='kubeflow')
             ])
     ]
+    # ReportServer in 2.17.2 and this candidate intentionally checks these
+    # synthetic API resources without a namespace. Mirror the multi-user
+    # installation's report permission in this disposable fixture only.
+    report_name = 'kfp-readiness-fixture-reporting'
+    objects += [
+        dict(
+            apiVersion='rbac.authorization.k8s.io/v1',
+            kind='ClusterRole',
+            metadata=dict(name=report_name),
+            rules=[
+                dict(
+                    apiGroups=['pipelines.kubeflow.org'],
+                    resources=['workflows', 'scheduledworkflows'],
+                    verbs=['report'])
+            ]),
+        dict(
+            apiVersion='rbac.authorization.k8s.io/v1',
+            kind='ClusterRoleBinding',
+            metadata=dict(name=report_name),
+            roleRef=dict(
+                apiGroup='rbac.authorization.k8s.io',
+                kind='ClusterRole',
+                name=report_name),
+            subjects=[
+                dict(
+                    kind='ServiceAccount',
+                    name='ml-pipeline-persistenceagent',
+                    namespace='kubeflow')
+            ])
+    ]
     return objects
+
+
+def verify_reporting_access(context):
+    for name in ('workflows', 'scheduledworkflows'):
+        review = dict(
+            apiVersion='authorization.k8s.io/v1',
+            kind='SubjectAccessReview',
+            spec=dict(
+                user='system:serviceaccount:kubeflow:ml-pipeline-persistenceagent',
+                resourceAttributes=dict(
+                    group='pipelines.kubeflow.org',
+                    resource=name,
+                    verb='report')))
+        try:
+            result = subprocess.run([
+                'kubectl', '--context', context, '--request-timeout=20s',
+                'create', '-f', '-', '-o', 'json'
+            ],
+                                    input=json.dumps(review),
+                                    text=True,
+                                    capture_output=True,
+                                    timeout=30,
+                                    check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            raise FixtureError('fixture_reporting_review_failed') from None
+        if result.returncode or len(result.stdout) > 65536:
+            raise FixtureError('fixture_reporting_review_failed')
+        status = json.loads(result.stdout).get('status', {})
+        if status.get('allowed') is not True or status.get(
+                'denied') or status.get('evaluationError'):
+            raise FixtureError('fixture_reporting_not_authorized')
 
 
 def verify_state(context, state):
@@ -392,6 +453,7 @@ def provision_rbac(context, state_dir):
     ])
     verify_state(context, state)
     kubectl_create(context, fixture_rbac(role['rules']) + extra_roles)
+    verify_reporting_access(context)
     state['rbac_ready'] = True
     write_object(path, state)
 
@@ -630,7 +692,8 @@ def main():
                          read_object(args.legacy_report))
             else:
                 set_enabled(state_dir, state, client, args.phase == 'enable')
-    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+    except (OSError, ValueError, TypeError, KeyError, AttributeError,
+            subprocess.TimeoutExpired):
         parser.exit(
             1,
             'Fixture operation failed; inspect the isolated cluster and fixture state before retrying.\n'

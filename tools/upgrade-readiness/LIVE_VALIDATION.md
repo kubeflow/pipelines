@@ -55,6 +55,15 @@ RBAC before interpreting results. Template/plugin identities and broader workloa
 representativeness remain outside this main-account fixture. Successful completion
 of these small fixtures is required but cannot stand in for representative pipelines.
 
+The 2.17.2 embedded-workflow scheduling path does not persist the run API's
+`service_account` field. Source preparation and completion therefore also verify
+the live Workflow: exact API run-ID label and display-name match, namespace,
+fresh creation time, schedule controller owner UID/name, and expected service
+account. A conflicting API account still fails. Target verification continues to
+require the API account directly. Failed source preparation and completion retain
+sanitized workload counts and enumerated pod/workflow phases; no raw specifications,
+server error text, credentials, or logs are included.
+
 ## Legacy migration acceptance
 
 The CI lane separately checks all three source schedules for fresh, UID-correlated
@@ -198,7 +207,12 @@ are allowlisted so the denied case isolates the controller's RBAC check. Runner
 permissions are cloned from the source installation's `pipeline-runner` Role.
 The isolated setup also grants the API, scheduler, persistence agent and Argo
 controller namespace-scoped workload access and gives the API cluster-scoped
-TokenReview/SubjectAccessReview access. The fixture copies the test installation's
+TokenReview/SubjectAccessReview access. A separate fixture ClusterRole gives only
+the persistence agent `report` on the synthetic `pipelines.kubeflow.org`
+`workflows` and `scheduledworkflows` resources: both source and target ReportServer
+authorize these requests without a namespace. Two exact SubjectAccessReviews
+verify this permission before fixture preparation. No additional execution or
+service-account-use permission is granted by that role. The fixture copies the test installation's
 artifact Secret and launcher ConfigMap into the fresh namespace without printing
 or writing their contents to reports. These mutations and Secret reads belong
 only to this disposable CI provisioner; the operator scanner never performs them.

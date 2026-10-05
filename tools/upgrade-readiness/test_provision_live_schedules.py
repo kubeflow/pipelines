@@ -137,17 +137,77 @@ class ProvisionTests(unittest.TestCase):
         self.assertTrue(
             all(o['metadata']['namespace'] == fixture.NAMESPACE for o in roles))
         cluster_roles = [o for o in objects if o['kind'] == 'ClusterRole']
-        self.assertEqual(len(cluster_roles), 1)
+        self.assertEqual(len(cluster_roles), 2)
+        reporting = cluster_roles[1]
+        self.assertEqual(reporting['rules'], [
+            dict(
+                apiGroups=['pipelines.kubeflow.org'],
+                resources=['workflows', 'scheduledworkflows'],
+                verbs=['report'])
+        ])
         self.assertEqual([r['resources'] for r in cluster_roles[0]['rules']],
                          [['tokenreviews'], ['subjectaccessreviews']])
         cluster_binding = [
             o for o in objects if o['kind'] == 'ClusterRoleBinding'
         ][0]
+        report_binding = [
+            o for o in objects if o['kind'] == 'ClusterRoleBinding' and
+            o['metadata']['name'] == 'kfp-readiness-fixture-reporting'
+        ][0]
+        self.assertEqual(
+            report_binding['roleRef'],
+            dict(
+                apiGroup='rbac.authorization.k8s.io',
+                kind='ClusterRole',
+                name='kfp-readiness-fixture-reporting'))
+        self.assertEqual(report_binding['subjects'], [
+            dict(
+                kind='ServiceAccount',
+                namespace='kubeflow',
+                name='ml-pipeline-persistenceagent')
+        ])
         self.assertEqual(cluster_binding['subjects'], [{
             'kind': 'ServiceAccount',
             'name': 'ml-pipeline',
             'namespace': 'kubeflow'
         }])
+
+    def test_reporting_review_uses_exact_cluster_scoped_synthetic_resources(
+            self):
+        with mock.patch.object(
+                fixture.subprocess,
+                'run',
+                return_value=mock.Mock(
+                    returncode=0, stdout='{"status":{"allowed":true}}')) as run:
+            fixture.verify_reporting_access(fixture.CONTEXT)
+        specs = [
+            json.loads(call.kwargs['input'])['spec']
+            for call in run.call_args_list
+        ]
+        self.assertEqual([s['resourceAttributes'] for s in specs], [
+            dict(group='pipelines.kubeflow.org', resource=name, verb='report')
+            for name in ('workflows', 'scheduledworkflows')
+        ])
+        self.assertTrue(
+            all(s['user'] ==
+                'system:serviceaccount:kubeflow:ml-pipeline-persistenceagent'
+                for s in specs))
+        for status in ({
+                'allowed': False
+        }, {
+                'allowed': True,
+                'evaluationError': 'private'
+        }, {
+                'allowed': True,
+                'denied': True
+        }):
+            with mock.patch.object(
+                    fixture.subprocess,
+                    'run',
+                    return_value=mock.Mock(
+                        returncode=0, stdout=json.dumps(dict(status=status)))):
+                with self.assertRaises(fixture.FixtureError):
+                    fixture.verify_reporting_access(fixture.CONTEXT)
 
     def test_copied_infrastructure_cannot_grant_custom_account_use(self):
         for resources, verbs in [(['serviceaccounts'], ['use']),

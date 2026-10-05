@@ -117,6 +117,7 @@ import sys
 import time
 from kfp_http import Client
 from live_schedule_check import FAILED_STATES, run_evidence, timestamp
+from source_schedule_check import source_run_evidence, diagnostics
 state = Path(sys.argv[1])
 fixture = json.loads((state / 'fixture/state.json').read_text())
 mode = sys.argv[2]
@@ -133,7 +134,8 @@ try:
         complete = True
         evidence = []
         for case in cases:
-            records = run_evidence(client, fixture['namespace'], case, start)
+            collect = source_run_evidence if mode == 'source' else run_evidence
+            records = collect(client, fixture['namespace'], case, start)
             if case['expected_outcome'] == 'blocked':
                 if records:
                     raise ValueError('blocked_schedule_created_run')
@@ -154,6 +156,9 @@ try:
     else:
         raise ValueError('fixture_runs_not_drained')
 except Exception:
+    (state / f'reports/{mode}-completion.json').write_text(json.dumps({
+        'scope': 'fixture_run_completion', 'mode': mode, 'outcome': 'inconclusive',
+        'diagnostics': diagnostics()}))
     sys.exit('Fixture completion failed: disable schedules and establish successful expected runs before continuing.')
 PYDRAIN
 }
@@ -193,39 +198,10 @@ with open(sys.argv[1], 'w') as stream:
 PY
   fixture --phase prepare --pipeline-spec "$state/pipeline.json"
   fixture --phase enable
-  # Establish source-version run creation for every fixture before predicting an upgrade.
-  python3 - "$state" <<'PY'
-import json
-from pathlib import Path
-import sys
-import time
-from kfp_http import Client
-from live_schedule_check import field, list_runs, timestamp
-state = Path(sys.argv[1])
-fixture = json.loads((state / 'fixture/state.json').read_text())
-start = timestamp(fixture['activation_start'])
-seen = set()
-try:
-    deadline = time.monotonic() + 180
-    while time.monotonic() < deadline:
-        client = Client('http://127.0.0.1:8888', state / 'token')
-        for case in fixture['schedules']:
-            records = list_runs(client, fixture['namespace'], case['schedule_uid'])
-            if any(timestamp(field(r, 'created_at', 'createdAt')) >= start and
-                   field(r, 'service_account', 'serviceAccount') == case['service_account']
-                   for r in records):
-                seen.add(case['scenario'])
-        if len(seen) == 3:
-            break
-        time.sleep(5)
-    if len(seen) != 3:
-        raise ValueError('source_schedule_firing_not_established')
-except Exception:
-    sys.exit('Source schedule-firing preparation failed; no upgrade will be attempted.')
-(state / 'reports/source-observed.json').write_text(json.dumps({
-    'source_version': '2.17.2', 'scope': 'run_creation_only',
-    'scenarios': sorted(seen), 'outcome': 'passed'}))
-PY
+  # Source 2.17.2 persistence omits API service_account for embedded workflows.
+  python3 "$helpers/source_schedule_check.py" --state-dir "$state/fixture" \
+    --endpoint "$endpoint" --token-file "$state/token" \
+    --output "$reports/source-observed.json"
   fixture --phase disable
   drain source
   # Full cluster snapshot is intentional for this controlled RBAC-only fixture.

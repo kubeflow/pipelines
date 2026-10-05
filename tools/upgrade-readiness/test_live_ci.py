@@ -106,14 +106,18 @@ class LiveCITests(unittest.TestCase):
              'fixture/activation-start.txt').write_text('2026-01-01T00:00:00Z')
             (root / f'reports/{phase}-baseline.json').write_text(
                 json.dumps({'cases': [case]}))
-            with mock.patch('sys.argv',
-                            ['drain', directory, phase
-                            ]), mock.patch('kfp_http.Client'), mock.patch(
-                                'live_schedule_check.run_evidence',
-                                return_value=records) as evidence, mock.patch(
-                                    'time.monotonic',
-                                    side_effect=[0, 0, 301
-                                                ]), mock.patch('time.sleep'):
+            with mock.patch(
+                    'sys.argv',
+                ['drain', directory, phase
+                ]), mock.patch('kfp_http.Client'), mock.patch(
+                    'source_schedule_check.source_run_evidence' if phase
+                    == 'source' else 'live_schedule_check.run_evidence',
+                    return_value=records) as evidence, mock.patch(
+                        'time.monotonic',
+                        side_effect=[0, 0, 301
+                                    ]), mock.patch('time.sleep'), mock.patch(
+                                        'source_schedule_check.diagnostics',
+                                        return_value={}):
                 if passes:
                     exec(compile(body, str(SCRIPT), 'exec'), {})
                 else:
@@ -122,7 +126,10 @@ class LiveCITests(unittest.TestCase):
             self.assertEqual(evidence.call_args.args[2]['baseline_run_ids'],
                              [] if phase == 'source' else ['source-run'])
             report = root / f'reports/{phase}-completion.json'
-            self.assertEqual(report.exists(), passes)
+            self.assertTrue(report.exists())
+            value = json.loads(report.read_text())
+            self.assertEqual(value['outcome'],
+                             'passed' if passes else 'inconclusive')
             if passes:
                 value = json.loads(report.read_text())
                 self.assertEqual(value['cases'][0]['runs'], records)
