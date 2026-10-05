@@ -27,12 +27,8 @@ from kfp.dsl import Output
 from kfp.local import subprocess_task_handler
 from kfp.local import testing_utilities
 
-# NOTE: When testing SubprocessRunner, use_venv=True throughout to avoid
-# modifying current code under test.
-# If the dsl.component mocks are modified in a way that makes them not work,
-# the code may install kfp from PyPI rather from source. To mitigate the
-# impact of such an error we should not install into the main test process'
-# environment.
+# LocalRunnerEnvironmentTestCase isolates installs from the pytest worker,
+# including tests that disable per-task virtual environments.
 
 
 class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
