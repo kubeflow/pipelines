@@ -1,14 +1,14 @@
 /* eslint-disable */
-import Long from 'long';
-import _m0 from 'protobufjs/minimal';
+import Long from "long";
+import _m0 from "protobufjs/minimal";
 
-export const protobufPackage = 'google.protobuf';
+export const protobufPackage = "google.protobuf";
 
 /**
  * `NullValue` is a singleton enumeration to represent the null value for the
  * `Value` type union.
  *
- *  The JSON representation for `NullValue` is JSON `null`.
+ * The JSON representation for `NullValue` is JSON `null`.
  */
 export enum NullValue {
   /** NULL_VALUE - Null value. */
@@ -19,10 +19,10 @@ export enum NullValue {
 export function nullValueFromJSON(object: any): NullValue {
   switch (object) {
     case 0:
-    case 'NULL_VALUE':
+    case "NULL_VALUE":
       return NullValue.NULL_VALUE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return NullValue.UNRECOGNIZED;
   }
@@ -31,9 +31,9 @@ export function nullValueFromJSON(object: any): NullValue {
 export function nullValueToJSON(object: NullValue): string {
   switch (object) {
     case NullValue.NULL_VALUE:
-      return 'NULL_VALUE';
+      return "NULL_VALUE";
     default:
-      return 'UNKNOWN';
+      return "UNKNOWN";
   }
 }
 
@@ -60,8 +60,8 @@ export interface Struct_FieldsEntry {
 /**
  * `Value` represents a dynamically typed value which can be either
  * null, a number, a string, a boolean, a recursive struct value, or a
- * list of values. A producer of value is expected to set one of that
- * variants, absence of any variant indicates an error.
+ * list of values. A producer of value is expected to set one of these
+ * variants. Absence of any variant indicates an error.
  *
  * The JSON representation for `Value` is JSON value.
  */
@@ -93,10 +93,16 @@ export interface ListValue {
 const baseStruct: object = {};
 
 export const Struct = {
-  encode(message: Struct, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: Struct,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     Object.entries(message.fields).forEach(([key, value]) => {
       if (value !== undefined) {
-        Struct_FieldsEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
+        Struct_FieldsEntry.encode(
+          { key: key as any, value },
+          writer.uint32(10).fork()
+        ).ldelim();
       }
     });
     return writer;
@@ -126,13 +132,12 @@ export const Struct = {
 
   fromJSON(object: any): Struct {
     const message = { ...baseStruct } as Struct;
-    message.fields = Object.entries(object.fields ?? {}).reduce<{ [key: string]: any | undefined }>(
-      (acc, [key, value]) => {
-        acc[key] = value as any | undefined;
-        return acc;
-      },
-      {},
-    );
+    message.fields = Object.entries(object.fields ?? {}).reduce<{
+      [key: string]: any | undefined;
+    }>((acc, [key, value]) => {
+      acc[key] = value as any | undefined;
+      return acc;
+    }, {});
     return message;
   },
 
@@ -149,15 +154,14 @@ export const Struct = {
 
   fromPartial<I extends Exact<DeepPartial<Struct>, I>>(object: I): Struct {
     const message = { ...baseStruct } as Struct;
-    message.fields = Object.entries(object.fields ?? {}).reduce<{ [key: string]: any | undefined }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = value;
-        }
-        return acc;
-      },
-      {},
-    );
+    message.fields = Object.entries(object.fields ?? {}).reduce<{
+      [key: string]: any | undefined;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
     return message;
   },
 
@@ -180,15 +184,21 @@ export const Struct = {
   },
 };
 
-const baseStruct_FieldsEntry: object = { key: '' };
+const baseStruct_FieldsEntry: object = { key: "" };
 
 export const Struct_FieldsEntry = {
-  encode(message: Struct_FieldsEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== '') {
+  encode(
+    message: Struct_FieldsEntry,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
+    if (message.key !== "") {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
-      Value.encode(Value.wrap(message.value), writer.uint32(18).fork()).ldelim();
+      Value.encode(
+        Value.wrap(message.value),
+        writer.uint32(18).fork()
+      ).ldelim();
     }
     return writer;
   },
@@ -216,7 +226,8 @@ export const Struct_FieldsEntry = {
 
   fromJSON(object: any): Struct_FieldsEntry {
     const message = { ...baseStruct_FieldsEntry } as Struct_FieldsEntry;
-    message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+    message.key =
+      object.key !== undefined && object.key !== null ? String(object.key) : "";
     message.value = object.value;
     return message;
   },
@@ -228,9 +239,11 @@ export const Struct_FieldsEntry = {
     return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<Struct_FieldsEntry>, I>>(object: I): Struct_FieldsEntry {
+  fromPartial<I extends Exact<DeepPartial<Struct_FieldsEntry>, I>>(
+    object: I
+  ): Struct_FieldsEntry {
     const message = { ...baseStruct_FieldsEntry } as Struct_FieldsEntry;
-    message.key = object.key ?? '';
+    message.key = object.key ?? "";
     message.value = object.value ?? undefined;
     return message;
   },
@@ -253,10 +266,16 @@ export const Value = {
       writer.uint32(32).bool(message.boolValue);
     }
     if (message.structValue !== undefined) {
-      Struct.encode(Struct.wrap(message.structValue), writer.uint32(42).fork()).ldelim();
+      Struct.encode(
+        Struct.wrap(message.structValue),
+        writer.uint32(42).fork()
+      ).ldelim();
     }
     if (message.listValue !== undefined) {
-      ListValue.encode(ListValue.wrap(message.listValue), writer.uint32(50).fork()).ldelim();
+      ListValue.encode(
+        ListValue.wrap(message.listValue),
+        writer.uint32(50).fork()
+      ).ldelim();
     }
     return writer;
   },
@@ -281,10 +300,14 @@ export const Value = {
           message.boolValue = reader.bool();
           break;
         case 5:
-          message.structValue = Struct.unwrap(Struct.decode(reader, reader.uint32()));
+          message.structValue = Struct.unwrap(
+            Struct.decode(reader, reader.uint32())
+          );
           break;
         case 6:
-          message.listValue = ListValue.unwrap(ListValue.decode(reader, reader.uint32()));
+          message.listValue = ListValue.unwrap(
+            ListValue.decode(reader, reader.uint32())
+          );
           break;
         default:
           reader.skipType(tag & 7);
@@ -312,8 +335,11 @@ export const Value = {
       object.boolValue !== undefined && object.boolValue !== null
         ? Boolean(object.boolValue)
         : undefined;
-    message.structValue = typeof object.structValue === 'object' ? object.structValue : undefined;
-    message.listValue = Array.isArray(object?.listValue) ? [...object.listValue] : undefined;
+    message.structValue =
+      typeof object.structValue === "object" ? object.structValue : undefined;
+    message.listValue = Array.isArray(object?.listValue)
+      ? [...object.listValue]
+      : undefined;
     return message;
   },
 
@@ -321,11 +347,16 @@ export const Value = {
     const obj: any = {};
     message.nullValue !== undefined &&
       (obj.nullValue =
-        message.nullValue !== undefined ? nullValueToJSON(message.nullValue) : undefined);
-    message.numberValue !== undefined && (obj.numberValue = message.numberValue);
-    message.stringValue !== undefined && (obj.stringValue = message.stringValue);
+        message.nullValue !== undefined
+          ? nullValueToJSON(message.nullValue)
+          : undefined);
+    message.numberValue !== undefined &&
+      (obj.numberValue = message.numberValue);
+    message.stringValue !== undefined &&
+      (obj.stringValue = message.stringValue);
     message.boolValue !== undefined && (obj.boolValue = message.boolValue);
-    message.structValue !== undefined && (obj.structValue = message.structValue);
+    message.structValue !== undefined &&
+      (obj.structValue = message.structValue);
     message.listValue !== undefined && (obj.listValue = message.listValue);
     return obj;
   },
@@ -344,24 +375,26 @@ export const Value = {
   wrap(value: any): Value {
     if (value === null) {
       return { nullValue: NullValue.NULL_VALUE } as Value;
-    } else if (typeof value === 'boolean') {
+    } else if (typeof value === "boolean") {
       return { boolValue: value } as Value;
-    } else if (typeof value === 'number') {
+    } else if (typeof value === "number") {
       return { numberValue: value } as Value;
-    } else if (typeof value === 'string') {
+    } else if (typeof value === "string") {
       return { stringValue: value } as Value;
     } else if (Array.isArray(value)) {
       return { listValue: value } as Value;
-    } else if (typeof value === 'object') {
+    } else if (typeof value === "object") {
       return { structValue: value } as Value;
-    } else if (typeof value === 'undefined') {
+    } else if (typeof value === "undefined") {
       return {} as Value;
     } else {
-      throw new Error('Unsupported any value type: ' + typeof value);
+      throw new Error("Unsupported any value type: " + typeof value);
     }
   },
 
-  unwrap(message: Value): string | number | boolean | Object | null | Array<any> | undefined {
+  unwrap(
+    message: Value
+  ): string | number | boolean | Object | null | Array<any> | undefined {
     if (message?.stringValue !== undefined) {
       return message.stringValue;
     } else if (message?.numberValue !== undefined) {
@@ -382,7 +415,10 @@ export const Value = {
 const baseListValue: object = {};
 
 export const ListValue = {
-  encode(message: ListValue, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ListValue,
+    writer: _m0.Writer = _m0.Writer.create()
+  ): _m0.Writer {
     for (const v of message.values) {
       Value.encode(Value.wrap(v!), writer.uint32(10).fork()).ldelim();
     }
@@ -398,7 +434,9 @@ export const ListValue = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.values.push(Value.unwrap(Value.decode(reader, reader.uint32())));
+          message.values.push(
+            Value.unwrap(Value.decode(reader, reader.uint32()))
+          );
           break;
         default:
           reader.skipType(tag & 7);
@@ -424,7 +462,9 @@ export const ListValue = {
     return obj;
   },
 
-  fromPartial<I extends Exact<DeepPartial<ListValue>, I>>(object: I): ListValue {
+  fromPartial<I extends Exact<DeepPartial<ListValue>, I>>(
+    object: I
+  ): ListValue {
     const message = { ...baseListValue } as ListValue;
     message.values = object.values?.map((e) => e) || [];
     return message;
@@ -439,7 +479,14 @@ export const ListValue = {
   },
 };
 
-type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+type Builtin =
+  | Date
+  | Function
+  | Uint8Array
+  | string
+  | number
+  | boolean
+  | undefined;
 
 export type DeepPartial<T> = T extends Builtin
   ? T
@@ -454,7 +501,10 @@ export type DeepPartial<T> = T extends Builtin
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin
   ? P
-  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<Exclude<keyof I, KeysOfUnion<P>>, never>;
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & Record<
+        Exclude<keyof I, KeysOfUnion<P>>,
+        never
+      >;
 
 if (_m0.util.Long !== Long) {
   _m0.util.Long = Long as any;

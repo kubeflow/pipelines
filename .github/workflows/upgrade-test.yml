@@ -13,7 +13,15 @@ on:
     types: [checks_requested]
     branches: [release-2.18]
   push:
-    branches: [master]
+    branches: [release-2.18]
+
+  workflow_dispatch:
+    inputs:
+      run_readiness_schedules:
+        description: 'Run isolated scheduling acceptance after candidate policy review'
+        type: boolean
+        required: false
+        default: false
 
   pull_request:
     paths:
@@ -23,6 +31,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
+      - 'tools/upgrade-readiness/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/metadata_writer/**'
@@ -69,32 +78,10 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Get last release tag
+      - name: Select source release
         shell: bash
         id: get-tag
-        run: |
-          lastRelease=""
-          for attempt in 1 2 3; do
-            lastRelease=$(curl -sSL --fail-with-body --connect-timeout 10 --max-time 60 \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              "https://api.github.com/repos/kubeflow/pipelines/releases/latest" | jq -r .tag_name 2>/dev/null || echo "")
-            if [[ -n "$lastRelease" && "$lastRelease" != "null" ]]; then
-              break
-            fi
-            if [[ "$attempt" -lt 3 ]]; then
-              echo "Attempt $attempt: Failed to fetch release tag. Retrying in 5s..."
-              sleep 5
-            fi
-          done
-
-          if [[ -z "$lastRelease" || "$lastRelease" == "null" ]]; then
-            echo "::error::Could not fetch latest release tag from GitHub API after 3 attempts."
-            exit 1
-          fi
-
-          echo "Fetched last release tag: $lastRelease"
-          echo "lastRelease=$lastRelease" >> "$GITHUB_OUTPUT"
+        run: echo "lastRelease=2.17.2" >> "$GITHUB_OUTPUT"
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -109,6 +96,7 @@ jobs:
           kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=${{ steps.get-tag.outputs.lastRelease }}
           kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=${{ steps.get-tag.outputs.lastRelease }}
           source "./.github/resources/scripts/helper-functions.sh"
+          EXIT_CODE=0
           wait_for_pods || EXIT_CODE=$?
           if [[ $EXIT_CODE -ne 0 ]]; then
             echo "Deploy unsuccessful. Not all pods running."
@@ -120,7 +108,6 @@ jobs:
         if: ${{ steps.deploy-release.outcome == 'success' }}
         shell: bash
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-        continue-on-error: true
 
       - name: Prepare for Upgrade
         id: prepare-upgrade
@@ -128,7 +115,6 @@ jobs:
         working-directory: ${{ env.TESTS_DIR }}
         run: |
           go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
-        continue-on-error: true
 
       - name: Stop port forwarding
         run: |
@@ -137,7 +123,7 @@ jobs:
 
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ success() && steps.prepare-upgrade.outcome == 'success' }}
         id: deploy
         with:
           image_path: images_${{ github.run_id }}
@@ -155,3 +141,65 @@ jobs:
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "Upgrade Verification"
+
+
+  readiness-schedules:
+    # Explicitly activate only after reviewing the candidate scheduling policy.
+    if: ${{ vars.KFP_218_READINESS_SCHEDULES == 'enabled' || (github.event_name == 'workflow_dispatch' && inputs.run_readiness_schedules) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CLUSTER_NAME: kfp-readiness
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-pip-cache
+        with:
+          python-version: '3.11'
+          cache-scope: readiness-schedules
+          cache-dependency-hash: ${{ hashFiles('.github/workflows/upgrade-test.yml') }}
+
+      - name: Install fixture manifest reader
+        run: python3 -m pip install 'PyYAML==6.0.3'
+
+      - name: Require integrated scheduling policy
+        run: bash .github/resources/scripts/readiness-schedules.sh preflight
+
+      - name: Create isolated readiness cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: 'v1.36.1'
+          cluster_name: kfp-readiness
+
+      - name: Populate 2.17.2 and capture target predictions
+        run: bash .github/resources/scripts/readiness-schedules.sh source
+
+      - name: Deploy same-run candidate images
+        uses: ./.github/actions/deploy
+        with:
+          cluster_name: kfp-readiness
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          forward_port: 'false'
+
+      - name: Compare live enforce and audit schedule outcomes
+        run: bash .github/resources/scripts/readiness-schedules.sh target
+
+      - name: Upload sanitized readiness evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: readiness-schedules-${{ github.run_id }}
+          path: ${{ runner.temp }}/readiness-schedules/reports/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Remove isolated readiness cluster
+        if: ${{ always() }}
+        run: kind delete cluster --name kfp-readiness

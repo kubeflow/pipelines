@@ -24,6 +24,32 @@ concurrency:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: kfp_test
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -pkfp_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 24
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kfp_test
+          POSTGRES_PASSWORD: kfp_test
+          POSTGRES_DB: kfp_native_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U kfp_test -d kfp_native_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
 
     steps:
     - name: Checkout code
@@ -34,6 +60,8 @@ jobs:
 
     - name: Run Backend Tests
       env:
+        KFP_RECURRING_MYSQL_TEST_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
+        KFP_RECURRING_POSTGRES_TEST_DSN: postgres://kfp_test:kfp_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/kfp_native_test?sslmode=disable
         GIT_BRANCH: ${{ github.event_name == 'merge_group' && github.sha || github.head_ref || github.ref_name }}
         GIT_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       run: |

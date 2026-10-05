@@ -189,6 +189,8 @@ spec:
     metadata: {}
     name: retry-system-container-executor
     outputs: {}
+    retryStrategy:
+      limit: 0
   - container:
       command:
       - should-be-overridden-during-runtime
@@ -336,6 +338,8 @@ spec:
     metadata: {}
     name: root
     outputs: {}
+    retryStrategy:
+      limit: 0
   - container:
       args:
       - --type
@@ -472,6 +476,8 @@ spec:
     metadata: {}
     name: entrypoint
     outputs: {}
+    retryStrategy:
+      limit: 0
 status:
   finishedAt: null
   startedAt: null

@@ -1,0 +1,27 @@
+{
+  "policy_contract": "14363-main-account-preview.1",
+  "target_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "multi_user": true,
+  "mode": "enforce",
+  "default_service_account": "pipeline-runner",
+  "allowed_service_accounts": [
+    "training-runner"
+  ],
+  "controller_user": "system:serviceaccount:kubeflow:example-controller",
+  "rbac_complete": true,
+  "rbac_only": true,
+  "rbac": [],
+  "recurring_runs": [
+    {
+      "recurring_run_id": "example-recurring-run",
+      "experiment_id": "example-experiment",
+      "service_account": "training-runner"
+    }
+  ],
+  "experiments": [
+    {
+      "experiment_id": "example-experiment",
+      "namespace": "team-a"
+    }
+  ]
+}

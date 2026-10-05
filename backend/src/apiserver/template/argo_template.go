@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo-workflows/v4/workflow/validate"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -28,6 +27,7 @@ import (
 
 func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
+	workflow.Status = workflowapi.WorkflowStatus{}
 
 	// Overwrite namespace from the run object
 	if modelRun.Namespace != "" {
@@ -53,6 +53,17 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 
 	// Replace macros
 	formatter := util.NewRunParameterFormatter(options.RunID, options.RunAt)
+	if modelRun.RecurringRunId != "" {
+		scheduledAt := options.RunAt
+		if modelRun.ScheduledAtInSec > 0 {
+			scheduledAt = modelRun.ScheduledAtInSec
+		}
+		index := int64(-1)
+		if options.RecurringRunIndex != nil {
+			index = *options.RecurringRunIndex
+		}
+		formatter = util.NewSWFParameterFormatter(options.RunID, scheduledAt, options.RunAt, index)
+	}
 	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
 	workflow.OverrideParameters(formattedParams)
 
@@ -101,6 +112,7 @@ var _ Template = &Argo{}
 
 func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
+	workflow.Status = workflowapi.WorkflowStatus{}
 	// Overwrite namespace from the job object
 	if modelJob.Namespace != "" {
 		workflow.SetExecutionNamespace(modelJob.Namespace)
@@ -217,15 +229,15 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	if wf.Kind != argoK8sResource {
 		return nil, util.NewInvalidInputError("Unexpected resource type. Expected: %v. Received: %v", argoK8sResource, wf.Kind)
 	}
-	err = validate.Workflow(util.ArgoContext(), nil, nil, &wf, nil, validate.Opts{
-		Lint:                       true,
-		IgnoreEntrypoint:           true,
-		WorkflowTemplateValidation: false, // not used by kubeflow
-	})
+	// Status belongs to Argo, not the submitted pipeline. In particular, its
+	// cached templates must not participate in fresh workflow validation.
+	wf.Status = workflowapi.WorkflowStatus{}
+	workflow := util.NewWorkflow(&wf)
+	err = workflow.Validate(true, true)
 	if err != nil {
 		return nil, err
 	}
-	return util.NewWorkflow(&wf), nil
+	return workflow, nil
 }
 
 func AddRuntimeMetadata(wf *workflowapi.Workflow) {
