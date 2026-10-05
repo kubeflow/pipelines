@@ -18,6 +18,7 @@ import (
 	"context"
 	"testing"
 
+	argoconfig "github.com/argoproj/argo-workflows/v4/config"
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	hydratorfake "github.com/argoproj/argo-workflows/v4/workflow/hydrator/fake"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -180,6 +181,31 @@ func TestLoadArgoPersistConfig_MissingConfigMap(t *testing.T) {
 
 	_, _, err := loadArgoPersistConfig(context.Background(), k8sfake.NewClientset())
 	require.Error(t, err)
+}
+
+func TestTryInitLazyOffloadHydrator_DisabledWhenPersistenceAbsent(t *testing.T) {
+	t.Cleanup(viper.Reset)
+	viper.Reset()
+	viper.Set(common.PodNamespace, "kubeflow-pipelines")
+	viper.Set(common.ArgoWorkflowControllerConfigMap, "workflow-controller-configmap")
+	viper.AutomaticEnv()
+
+	kube := k8sfake.NewClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "workflow-controller-configmap",
+			Namespace: "kubeflow-pipelines",
+		},
+		Data: map[string]string{
+			"containerRuntimeExecutor": "emissary",
+		},
+	})
+	lazy := util.NewLazyOffloadHydrator(kube, func(ctx context.Context) (persistCfg *argoconfig.PersistConfig, ns string, err error) {
+		return loadArgoPersistConfig(ctx, kube)
+	})
+
+	offloadEnabled, err := util.TryInitLazyOffloadHydrator(lazy, context.Background())
+	require.NoError(t, err)
+	assert.False(t, offloadEnabled)
 }
 
 func TestInitWorkflowHydrator_InstallsLazyWhenConfigMapMissing(t *testing.T) {
