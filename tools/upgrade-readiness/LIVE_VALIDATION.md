@@ -201,7 +201,10 @@ metrics coverage; the backend producer does not include run/schedule identifiers
 `provision_live_schedules.py` requires the exact context `kind-kfp-readiness` and
 `--allow-test-cluster-mutations`. Its `rbac` phase creates a fresh
 `kfp-readiness-test` namespace with a unique ownership marker; it refuses an
-existing namespace. Later phases require matching private state and namespace
+existing namespace. The namespace also carries the standard
+`app.kubernetes.io/part-of=kubeflow-profile` label required by the installed
+SeaweedFS NetworkPolicy for cross-namespace artifact traffic. The fixture does not
+remove or relax that policy. Later phases require matching private state and namespace
 ownership. This is a guard against accidental use, not proof that a context name
 points to a disposable cluster: create the dedicated Kind cluster first.
 

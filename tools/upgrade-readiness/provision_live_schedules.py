@@ -34,6 +34,8 @@ from readiness import kubectl_get
 CONTEXT = 'kind-kfp-readiness'
 NAMESPACE = 'kfp-readiness-test'
 LABEL = 'pipelines.kubeflow.org/readiness-fixture'
+PROFILE_LABEL = 'app.kubernetes.io/part-of'
+PROFILE_VALUE = 'kubeflow-profile'
 OWNER = 'fixture-owner'
 ACCOUNTS = ('pipeline-runner', 'readiness-granted', 'readiness-denied')
 MAX_BYTES = 4 * 1024 * 1024
@@ -449,7 +451,11 @@ def provision_rbac(context, state_dir):
             apiVersion='v1',
             kind='Namespace',
             metadata=dict(
-                name=NAMESPACE, labels={LABEL: state['owner_marker']}))
+                name=NAMESPACE,
+                labels={
+                    LABEL: state['owner_marker'],
+                    PROFILE_LABEL: PROFILE_VALUE
+                }))
     ])
     verify_state(context, state)
     kubectl_create(context, fixture_rbac(role['rules']) + extra_roles)

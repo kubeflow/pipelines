@@ -90,9 +90,31 @@ class ProvisionTests(unittest.TestCase):
                 fixture.provision_rbac(fixture.CONTEXT, self.path)
             self.assertEqual(create.call_count, 1)
             self.assertEqual(create.call_args.args[1][0]['kind'], 'Namespace')
+            namespace = create.call_args.args[1][0]
+            self.assertEqual(
+                namespace['metadata']['labels'], {
+                    fixture.LABEL:
+                        json.loads((self.path / 'state.json').read_text())
+                        ['owner_marker'],
+                    fixture.PROFILE_LABEL:
+                        fixture.PROFILE_VALUE
+                })
         self.assertFalse(
             json.loads(
                 (self.path / 'state.json').read_text()).get('rbac_ready'))
+
+    def test_fixture_profile_label_matches_artifact_network_policy(self):
+        root = Path(__file__).resolve().parents[2]
+        policy = (
+            root /
+            'manifests/kustomize/third-party/seaweedfs/base/seaweedfs/seaweedfs-networkpolicy.yaml'
+        ).read_text()
+        self.assertEqual(fixture.PROFILE_LABEL, 'app.kubernetes.io/part-of')
+        self.assertEqual(fixture.PROFILE_VALUE, 'kubeflow-profile')
+        self.assertRegex(
+            policy,
+            r'key: app\.kubernetes\.io/part-of\s+operator: In\s+values:\s+- kubeflow-profile'
+        )
 
     def test_infrastructure_roles_remain_namespaced_except_authentication(self):
 
