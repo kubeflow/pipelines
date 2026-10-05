@@ -189,6 +189,10 @@ catch an unexpected run after an earlier rejection. The controller error signatu
 is source-derived and still needs confirmation against actual candidate Events.
 
 Treat only a successful verifier exit as a pass for the selected firing checks.
+Observer collection failures include only an allowlisted local reason, fixed collection
+stage, elapsed time, completed collection count, and HTTP request/byte counters.
+These diagnostics preserve a nonzero inconclusive result and never expose backend
+responses or credentials.
 All other exits require investigation; do not interpret an inconclusive observation
 as a rejected workload or a successful upgrade. Retain candidate/source revisions,
 predictions, baselines and sanitized results in CI artifacts. A release gate must

@@ -37,6 +37,20 @@ RUN_STATES = frozenset(
 FAILED_STATES = frozenset(('FAILED', 'CANCELED', 'SKIPPED'))
 POSITIVE_OUTCOMES = ('run_created', 'run_succeeded')
 
+# Exact local error codes only: never echo backend exception text or payloads.
+DIAGNOSTIC_REASONS = frozenset({
+    'request_timeout', 'request_failed', 'request_budget_exceeded',
+    'total_response_limit_exceeded', 'response_limit_exceeded', 'access_denied',
+    'not_found', 'http_error', 'redirect_refused', 'unexpected_http_status',
+    'invalid_json_object', 'api_error', 'collection_timed_out',
+    'collection_exceeded_16_mib', 'collection_failed',
+    'collection_invalid_json', 'invalid_events', 'invalid_timestamp',
+    'run_account_mismatch', 'run_namespace_mismatch', 'run_schedule_mismatch',
+    'invalid_run_id', 'invalid_run', 'invalid_run_response', 'invalid_run_list',
+    'invalid_run_pagination', 'run_page_limit', 'conflicting_fields',
+    'prediction_mismatch', 'invalid_activation_start', 'invalid_timeout'
+})
+
 
 def timestamp(value):
     if not isinstance(value, str):
@@ -252,24 +266,35 @@ def observe(client,
             timeout,
             get=list_events,
             clock=time.monotonic,
-            sleep=time.sleep):
+            sleep=time.sleep,
+            progress=None):
     deadline = clock() + timeout
     observed = {c['schedule_uid']: {'runs': {}, 'denial': False} for c in cases}
+    if progress is not None:
+        progress.update(completed_collections=0, stage='events')
     while True:
         final_collection = clock() >= deadline
+        if progress is not None:
+            progress['stage'] = 'events'
         events = get(context, namespace)
         for case in cases:
+            if progress is not None:
+                progress['stage'] = 'runs'
             state = observed[case['schedule_uid']]
             state['runs'].update({
                 record['run_id']: record['state']
                 for record in run_evidence(client, namespace, case, start)
             })
+            if progress is not None:
+                progress['stage'] = 'denial_events'
             state['denial'] |= denied(events, namespace, case, start)
             if case['expected_outcome'] == 'blocked' and state['runs']:
                 return result(cases, observed, 'failed')
             if case['expected_outcome'] == 'run_succeeded' and any(
                     value in FAILED_STATES for value in state['runs'].values()):
                 return result(cases, observed, 'failed')
+        if progress is not None:
+            progress['completed_collections'] += 1
         # Finish with evidence collected after the entire observation window,
         # including when an earlier collection crosses the deadline.
         if final_collection:
@@ -345,6 +370,9 @@ def main():
         help='Require SUCCEEDED for every positive case; reject failed, canceled or skipped runs.'
     )
     args = parser.parse_args()
+    progress = dict(stage='input_validation', completed_collections=0)
+    client = None
+    started = time.monotonic()
     try:
         if not 30 <= args.timeout_seconds <= 600:
             raise ValueError('invalid_timeout')
@@ -360,17 +388,33 @@ def main():
         start = activation_start(start, args.not_before)
         client = Client(args.kfp_endpoint, args.kfp_token_file,
                         args.kfp_ca_file)
-        report = observe(client, args.context, args.namespace, cases, start,
-                         args.timeout_seconds)
+        report = observe(
+            client,
+            args.context,
+            args.namespace,
+            cases,
+            start,
+            args.timeout_seconds,
+            progress=progress)
         report['observation_start'] = start.isoformat()
         print(json.dumps(report, sort_keys=True))
         return 0 if report['outcome'] == 'passed' else 1
-    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+        reason = str(error) if str(
+            error) in DIAGNOSTIC_REASONS else 'invalid_or_incomplete_evidence'
+        diagnostics = dict(
+            progress, elapsed_seconds=round(time.monotonic() - started, 3))
+        for field, attribute in (('http_requests', '_requests'),
+                                 ('http_response_bytes', '_bytes')):
+            value = getattr(client, attribute, None)
+            if type(value) is int and value >= 0:
+                diagnostics[field] = value
         print(
-            json.dumps({
-                'outcome': 'inconclusive',
-                'reason': 'invalid_or_incomplete_evidence'
-            }))
+            json.dumps(
+                dict(
+                    outcome='inconclusive',
+                    reason=reason,
+                    diagnostics=diagnostics)))
         return 1
 
 

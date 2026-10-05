@@ -455,6 +455,60 @@ class LiveTests(unittest.TestCase):
         }
         self.assertEqual(live.validate(bundle, report, 'team')[0], [case])
 
+    def test_collection_failure_preserves_safe_progress_without_passing(self):
+        progress = {}
+        with patch.object(
+                live,
+                'run_evidence',
+                side_effect=CollectionError('request_timeout')):
+            with self.assertRaises(CollectionError):
+                live.observe(
+                    None,
+                    'ctx',
+                    'team', [self.case],
+                    self.start,
+                    30,
+                    get=lambda *args: [],
+                    progress=progress)
+        self.assertEqual(progress, dict(completed_collections=0, stage='runs'))
+
+    def test_cli_failure_reasons_are_allowlisted_and_remain_inconclusive(self):
+        args = [
+            'check', '--context', 'ctx', '--namespace', 'team',
+            '--kfp-endpoint', 'http://127.0.0.1', '--kfp-token-file', 'token',
+            '--expectations', 'cases', '--prediction-report', 'report',
+            '--not-before', '2026-01-01T00:00:00Z'
+        ]
+        for reason, expected in (('total_response_limit_exceeded',
+                                  'total_response_limit_exceeded'),
+                                 ('private-server-response',
+                                  'invalid_or_incomplete_evidence')):
+            client = Mock()
+            client._requests = 18
+            client._bytes = 1234
+
+            def fail(*args, **kwargs):
+                kwargs['progress'].update(stage='runs', completed_collections=3)
+                raise CollectionError(reason)
+
+            with patch('sys.argv', args), patch.object(
+                    live, 'load'), patch.object(
+                        live,
+                        'validate',
+                        return_value=([self.case], self.start)), patch.object(
+                            live, 'Client', return_value=client), patch.object(
+                                live, 'observe', side_effect=fail), patch(
+                                    'builtins.print') as output:
+                self.assertEqual(live.main(), 1)
+            report = json.loads(output.call_args.args[0])
+            self.assertEqual(report['outcome'], 'inconclusive')
+            self.assertEqual(report['reason'], expected)
+            self.assertEqual(report['diagnostics']['http_requests'], 18)
+            self.assertEqual(report['diagnostics']['http_response_bytes'], 1234)
+            self.assertEqual(report['diagnostics']['completed_collections'], 3)
+            self.assertEqual(report['diagnostics']['stage'], 'runs')
+            self.assertNotIn('private-server-response', str(report))
+
     def test_cli_upgrades_positive_expectations_only(self):
         case = dict(
             self.case,
