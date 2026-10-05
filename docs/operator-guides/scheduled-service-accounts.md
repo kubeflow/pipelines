@@ -54,9 +54,12 @@ Metadata-only acknowledgements and retained static workflows do not require the
 original pipeline version to remain available. Retained workflows that need the
 V2 compiler-patch exception must still establish their authoritative V2 source,
 as described below. A schedule without a pipeline version ID resolves the
-pipeline's latest version again for its next tick. SQL storage selects the newest
-ready version; Kubernetes-native storage selects the newest version.
-Already-claimed ticks retain their selected version even if a newer one is uploaded.
+pipeline's default version again for its next tick. SQL storage selects the newest
+ready version. Kubernetes-native storage selects the version configured in the
+Pipeline's `spec.defaultVersionName`; only when that field is unset does it select
+the newest owned version. An invalid configured default fails resolution rather
+than falling back to the newest version. Already-claimed ticks retain their
+selected version even if the default changes or a newer version is uploaded.
 Recurring-run request keys (the run display names) must contain at most 255
 characters so the run and its scheduling state can both be stored.
 
@@ -274,7 +277,7 @@ live schedule firing, coordinated rollout, or populated-cluster upgrade acceptan
 
 ## Scheduling regression test
 
-The live integration suite includes an opt-in test for both latest and pinned
+The live integration suite includes an opt-in test for both default-following and pinned
 custom-account schedules. It modifies the backing CR before activation and checks
 that the run succeeds with the original API-stored account and parameters.
 Backend regression tests also cover rejected scheduling-state tampering and
@@ -370,7 +373,7 @@ both the schedule-creation caller and the controller identity that submits ticks
 Audit findings are not a complete inventory when inspection stops at a dynamic or
 malformed patch. A warning records a permitted policy violation or incomplete
 inspection, not success of the overall request. Exercise immediate runs, pinned and
-follow-latest schedules, plugin changes, retries, and re-enabling schedules. Return
+default-following schedules, plugin changes, retries, and re-enabling schedules. Return
 each control to enforcement independently and verify the next scheduled execution;
 changing a setting does not retroactively stop existing workloads.
 
