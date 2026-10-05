@@ -20,6 +20,7 @@ extending it.
 """
 
 import argparse
+from collections.abc import Callable
 from dataclasses import dataclass
 import json
 from pathlib import Path
@@ -28,7 +29,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
