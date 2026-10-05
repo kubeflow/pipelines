@@ -111,8 +111,10 @@ python3 tools/upgrade-readiness/live_schedule_check.py \
   --not-before "$ACTIVATION_TIME" --timeout-seconds 120 > observed.json
 ```
 
-The observer permits 30–600 seconds and at most 20 cases. The polling interval can overrun by one in-flight collection cycle; individual
-HTTP/Kubernetes request budgets still apply. Source transport byte,
+The observer permits 30–600 seconds and at most 20 cases. It collects final evidence
+at or after the deadline, so an in-flight collection and the final collection can
+both extend the observation window; individual HTTP/Kubernetes request budgets
+still apply. Source transport byte,
 request and response budgets also apply; use small fixture sets. It follows run
 pagination, verifies recurring-run association and experiment namespace, and
 excludes baseline IDs and pre-observation timestamps. It verifies the service

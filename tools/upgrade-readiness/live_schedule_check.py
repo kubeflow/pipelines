@@ -233,7 +233,8 @@ def observe(client,
             'denial': False
         } for c in cases
     }
-    while clock() < deadline:
+    while True:
+        final_collection = clock() >= deadline
         events = get(context, namespace)
         for case in cases:
             state = observed[case['schedule_uid']]
@@ -241,7 +242,10 @@ def observe(client,
             state['denial'] |= denied(events, namespace, case, start)
             if case['expected_outcome'] == 'blocked' and state['run']:
                 return result(cases, observed, 'failed')
-        # Observe the full interval even after denial, to catch unexpected runs.
+        # Finish with evidence collected after the entire observation window,
+        # including when an earlier collection crosses the deadline.
+        if final_collection:
+            break
         sleep(min(10, max(0, deadline - clock())))
     control = any(observed[c['schedule_uid']]['run']
                   for c in cases

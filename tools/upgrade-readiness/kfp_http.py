@@ -13,7 +13,9 @@
 # limitations under the License.
 """Bounded, authenticated, read-only transport for KFP readiness collection."""
 
+from functools import partial
 import http.client
+import io
 import ipaddress
 import json
 import re
@@ -43,6 +45,69 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         fp.close()
         raise CollectionError('redirect_refused')
+
+
+class _DeadlineReader(io.RawIOBase):
+    """Apply the remaining budget to every receive, including HTTP framing."""
+
+    def __init__(self, raw, sock, deadline):
+        super().__init__()
+        self._raw = raw
+        self._socket = sock
+        self._deadline = deadline
+
+    def readable(self):
+        return True
+
+    def readinto(self, buffer):
+        remaining = self._deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError()
+        self._socket.settimeout(remaining)
+        count = self._raw.readinto(buffer)
+        if time.monotonic() >= self._deadline:
+            raise TimeoutError()
+        return count
+
+    def close(self):
+        try:
+            self._raw.close()
+        finally:
+            super().close()
+
+
+class _DeadlineResponse(http.client.HTTPResponse):
+
+    def __init__(self, sock, *args, deadline, **kwargs):
+        super().__init__(sock, *args, **kwargs)
+        # No bytes have been read yet. Retain the makefile stream's socket
+        # ownership when urllib closes its connection after reading headers.
+        self.fp = io.BufferedReader(
+            _DeadlineReader(self.fp.detach(), sock, deadline))
+
+
+def _deadline_connection(connection_type, deadline, *args, **kwargs):
+    connection = connection_type(*args, **kwargs)
+    connection.response_class = partial(_DeadlineResponse, deadline=deadline)
+    return connection
+
+
+class _DeadlineHTTPHandler(urllib.request.HTTPHandler):
+
+    def http_open(self, request):
+        return self.do_open(
+            partial(_deadline_connection, http.client.HTTPConnection,
+                    request.readiness_deadline), request)
+
+
+class _DeadlineHTTPSHandler(urllib.request.HTTPSHandler):
+
+    def https_open(self, request):
+        return self.do_open(
+            partial(_deadline_connection, http.client.HTTPSConnection,
+                    request.readiness_deadline),
+            request,
+            context=self._context)
 
 
 def _safe_path(path):
@@ -92,7 +157,7 @@ class Client:
             context = ssl.create_default_context(cafile=ca_file)
             self._opener = urllib.request.build_opener(
                 urllib.request.ProxyHandler({}), _NoRedirect(),
-                urllib.request.HTTPSHandler(context=context))
+                _DeadlineHTTPHandler(), _DeadlineHTTPSHandler(context=context))
         except (OSError, ValueError, ssl.SSLError):
             raise CollectionError('invalid_ca_file') from None
         self._requests = 0
@@ -119,6 +184,7 @@ class Client:
         request = urllib.request.Request(url, headers=headers, method='GET')
         self._requests += 1
         deadline = time.monotonic() + TIMEOUT_SECONDS
+        request.readiness_deadline = deadline
         chunks = []
         size = 0
         try:
@@ -131,12 +197,6 @@ class Client:
                     remaining_time = deadline - time.monotonic()
                     if remaining_time <= 0:
                         raise CollectionError('request_timeout')
-                    # urllib exposes the response socket through its buffered
-                    # reader; cap each read by the remaining request budget.
-                    raw = getattr(getattr(response, 'fp', None), 'raw', None)
-                    sock = getattr(raw, '_sock', None)
-                    if sock is not None:
-                        sock.settimeout(remaining_time)
                     remaining = min(MAX_RESPONSE_BYTES - size,
                                     MAX_TOTAL_BYTES - self._bytes)
                     chunk = read(min(65536, remaining + 1))
