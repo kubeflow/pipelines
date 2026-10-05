@@ -55,6 +55,30 @@ func (f *driverRetryFaultAPI) CreateTask(ctx context.Context, req *api.CreateTas
 	if err != nil {
 		return nil, err
 	}
+	// Model the server's ownership claim before returning the existing task.
+	// General MockAPI.CreateTask intentionally does not implement this contract.
+	if req.GetTask().GetStatusMetadata().GetCustomProperties()[util.DriverRetryAttemptKey] != nil {
+		generation, attempt, ownerErr := driverAttemptOwner(req.GetTask())
+		if ownerErr != nil {
+			return nil, ownerErr
+		}
+		oldGeneration, oldAttempt, ownerErr := driverAttemptOwner(task)
+		if ownerErr != nil {
+			return nil, ownerErr
+		}
+		preserved := task.GetState() == api.PipelineTask_CACHED || task.GetState() == api.PipelineTask_SUCCEEDED || task.GetState() == api.PipelineTask_SKIPPED
+		if oldGeneration > generation || (oldGeneration == generation && oldAttempt > attempt) || (oldGeneration < generation && !preserved) {
+			return nil, fmt.Errorf("driver task belongs to retry generation %d attempt %d", oldGeneration, oldAttempt)
+		}
+		task = proto.Clone(task).(*api.PipelineTask)
+		properties := driverRecoveryMetadata(task).CustomProperties
+		properties[util.DriverRetryGenerationKey] = proto.Clone(req.Task.StatusMetadata.CustomProperties[util.DriverRetryGenerationKey]).(*structpb.Value)
+		properties[util.DriverRetryAttemptKey] = proto.Clone(req.Task.StatusMetadata.CustomProperties[util.DriverRetryAttemptKey]).(*structpb.Value)
+		task, err = f.MockAPI.UpdateTask(ctx, &api.UpdateTaskRequest{RunId: task.RunId, TaskId: task.TaskId, Task: task})
+		if err != nil {
+			return nil, err
+		}
+	}
 	if f.createCalls == f.loseCreate {
 		return nil, fmt.Errorf("lost create response")
 	}

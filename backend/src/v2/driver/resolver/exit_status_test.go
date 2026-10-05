@@ -52,16 +52,24 @@ func TestExitTaskFinalStatusUsesCompletedArgoPhase(t *testing.T) {
 		{name: "deadline or deleted pod", phase: "Error", state: api.PipelineTask_RUNNING, want: api.PipelineTask_FAILED},
 		{name: "premature cached aggregate", phase: "Failed", state: api.PipelineTask_CACHED, want: api.PipelineTask_FAILED},
 		{name: "failure before task creation", phase: "Failed", want: api.PipelineTask_FAILED, missing: true},
-		{name: "success", phase: "Succeeded", state: api.PipelineTask_RUNNING, want: api.PipelineTask_SUCCEEDED},
+		{name: "success before native finalization", phase: "Succeeded", state: api.PipelineTask_RUNNING, want: api.PipelineTask_RUNNING},
+		{name: "native failure despite controller success", phase: "Succeeded", state: api.PipelineTask_FAILED, want: api.PipelineTask_FAILED},
+		{name: "native success", phase: "Succeeded", state: api.PipelineTask_SUCCEEDED, want: api.PipelineTask_SUCCEEDED},
 		{name: "cached success", phase: "Succeeded", state: api.PipelineTask_CACHED, want: api.PipelineTask_CACHED},
 		{name: "skipped success", phase: "Succeeded", state: api.PipelineTask_SKIPPED, want: api.PipelineTask_SKIPPED},
 		{name: "skipped", phase: "Skipped", state: api.PipelineTask_RUNNING, want: api.PipelineTask_SKIPPED},
+		{name: "omitted", phase: "Omitted", state: api.PipelineTask_RUNNING, want: api.PipelineTask_SKIPPED},
+		{name: "failure before skip", phase: "Skipped", state: api.PipelineTask_FAILED, want: api.PipelineTask_FAILED},
+		{name: "failure before omission", phase: "Omitted", state: api.PipelineTask_FAILED, want: api.PipelineTask_FAILED},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			opts, spec := exitStatusOptions()
 			opts.ExitTaskStatus = tc.phase
 			if !tc.missing {
 				opts.Run.Tasks = []*api.PipelineTask{{TaskId: "producer-id", Name: "producer", ParentTaskId: proto.String("parent"), Type: api.PipelineTask_DAG, State: tc.state}}
+				if tc.state == api.PipelineTask_FAILED {
+					opts.Run.Tasks[0].StatusMetadata = &api.PipelineTask_StatusMetadata{Message: "native failure"}
+				}
 			}
 			snapshot := proto.Clone(opts.Run).(*api.Run)
 			value, err := resolveTaskFinalStatus(opts, spec)
@@ -73,6 +81,9 @@ func TestExitTaskFinalStatusUsesCompletedArgoPhase(t *testing.T) {
 			if tc.want == api.PipelineTask_FAILED {
 				code = codes.Unknown
 				assert.NotEmpty(t, fields["error"].GetStructValue().GetFields()["message"].GetStringValue())
+				if tc.state == api.PipelineTask_FAILED {
+					assert.Equal(t, "native failure", fields["error"].GetStructValue().GetFields()["message"].GetStringValue())
+				}
 			}
 			assert.EqualValues(t, code, fields["error"].GetStructValue().GetFields()["code"].GetNumberValue())
 			assert.True(t, proto.Equal(snapshot, opts.Run), "exit status resolution must not reopen or finalize persisted task snapshots")
@@ -107,10 +118,21 @@ func TestExitTaskFinalStatusScopesFailureToProducerIteration(t *testing.T) {
 	assert.Equal(t, "RUNNING", value.GetStructValue().GetFields()["state"].GetStringValue())
 }
 
-func TestExitTaskFinalStatusRejectsNonterminalControllerPhase(t *testing.T) {
-	opts, spec := exitStatusOptions()
-	opts.ExitTaskStatus = "Running"
-	opts.Run.Tasks = []*api.PipelineTask{{TaskId: "producer-id", Name: "producer", ParentTaskId: proto.String("parent"), State: api.PipelineTask_RUNNING, Type: api.PipelineTask_RUNTIME}}
-	_, err := resolveTaskFinalStatus(opts, spec)
-	require.ErrorContains(t, err, "terminal")
+func TestExitTaskFinalStatusFallsBackToNativeState(t *testing.T) {
+	for _, phase := range []string{"", "Pending", "Running", "Unknown"} {
+		for _, state := range []api.PipelineTask_TaskState{api.PipelineTask_RUNNING, api.PipelineTask_FAILED, api.PipelineTask_SUCCEEDED, api.PipelineTask_CACHED, api.PipelineTask_SKIPPED} {
+			t.Run(phase+"/"+state.String(), func(t *testing.T) {
+				opts, spec := exitStatusOptions()
+				opts.ExitTaskStatus = phase
+				opts.Run.Tasks = []*api.PipelineTask{{TaskId: "producer-id", Name: "producer", ParentTaskId: proto.String("parent"), State: state, Type: api.PipelineTask_RUNTIME, StatusMetadata: &api.PipelineTask_StatusMetadata{Message: "native status message"}}}
+				snapshot := proto.Clone(opts.Run)
+				value, err := resolveTaskFinalStatus(opts, spec)
+				require.NoError(t, err)
+				fields := value.GetStructValue().GetFields()
+				assert.Equal(t, state.String(), fields["state"].GetStringValue())
+				assert.Equal(t, "native status message", fields["error"].GetStructValue().GetFields()["message"].GetStringValue())
+				assert.True(t, proto.Equal(snapshot, opts.Run))
+			})
+		}
+	}
 }

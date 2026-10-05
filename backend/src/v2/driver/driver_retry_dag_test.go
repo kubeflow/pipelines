@@ -41,6 +41,7 @@ func newDAGRetryTestContext(t *testing.T) (*TestContext, common.Options) {
 	opts := tc.setupDagOptions(tc.RootTask, task, nil)
 	opts.DriverRetryEnabled = true
 	opts.DriverRetryMaxCount = 2
+	tc.ClientManager = client_manager.NewFakeClientManager(tc.ClientManager.K8sClient(), &driverRetryFaultAPI{MockAPI: tc.MockAPI})
 	return tc, opts
 }
 
@@ -197,7 +198,7 @@ func TestDAGDriverRetryDoesNotInheritParentCheckpoint(t *testing.T) {
 	_, err = tc.MockAPI.UpdateTask(context.Background(), &api.UpdateTaskRequest{RunId: tc.Run.GetRunId(), TaskId: parent.GetTaskId(), Task: parent})
 	require.NoError(t, err)
 	opts.ParentTask = parent
-	failingAPI := &dagRetryCheckpointFailureAPI{API: tc.MockAPI, parentCheckpoint: parentCheckpoint, failCheckpoint: true}
+	failingAPI := &dagRetryCheckpointFailureAPI{API: tc.ClientManager.KFPAPIClient(), parentCheckpoint: parentCheckpoint, failCheckpoint: true}
 	manager := client_manager.NewFakeClientManager(tc.ClientManager.K8sClient(), failingAPI)
 
 	_, err = DAG(context.Background(), opts, manager)

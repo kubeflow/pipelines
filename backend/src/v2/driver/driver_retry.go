@@ -37,8 +37,8 @@ import (
 )
 
 const (
-	driverCheckpointKey    = "_kfp_driver_checkpoint"
-	driverCachedOutputsKey = "_kfp_driver_cached_outputs"
+	driverCheckpointKey    = util.DriverCheckpointKey
+	driverCachedOutputsKey = util.DriverCachedOutputsKey
 )
 
 // driverCheckpoint preserves the handoff if the pod dies after driver work but
@@ -84,6 +84,7 @@ func recoverDriver(ctx context.Context, opts common.Options, manager client_mana
 		task.Type = api.PipelineTask_DAG
 		applyInferredDAGTaskType(opts, task)
 	}
+	ctx = kfpapi.WithDriverRecovery(ctx)
 	generation := strconv.FormatInt(opts.DriverRetryGeneration, 10)
 	setDriverRetryOwner(task, opts)
 	stored, err := manager.KFPAPIClient().CreateTask(ctx, &api.CreateTaskRequest{RunId: task.RunId, Task: task})
@@ -95,31 +96,30 @@ func recoverDriver(ctx context.Context, opts common.Options, manager client_mana
 	}
 	stored = proto.Clone(stored).(*api.PipelineTask)
 	metadata := driverRecoveryMetadata(stored)
-	storedGeneration := metadata.CustomProperties[util.DriverRetryGenerationKey].GetStringValue()
-	if storedGeneration != "" && storedGeneration != generation {
-		previousGeneration, parseErr := strconv.ParseInt(storedGeneration, 10, 64)
-		preserved := stored.GetState() == api.PipelineTask_SUCCEEDED || stored.GetState() == api.PipelineTask_CACHED || stored.GetState() == api.PipelineTask_SKIPPED
-		// RetryRun preserves completed native tasks even when their driver pod
-		// failed to publish the handoff. CreateTask has already fenced this
-		// request against the current run generation, so a newer manual retry
-		// can finish acknowledging that preserved result.
-		if parseErr != nil || previousGeneration < 0 || strconv.FormatInt(previousGeneration, 10) != storedGeneration || previousGeneration >= opts.DriverRetryGeneration || !preserved {
-			return nil, fmt.Errorf("driver task belongs to retry generation %s, not %s; retry the run through the API", storedGeneration, generation)
-		}
+	if metadata.CustomProperties[util.DriverRetryGenerationKey].GetStringValue() != generation ||
+		metadata.CustomProperties[util.DriverRetryAttemptKey].GetStringValue() != strconv.Itoa(opts.DriverRetryAttempt) {
+		return nil, fmt.Errorf("driver task ownership changed during creation; discard this stale driver attempt")
 	}
 	setDriverRetryOwner(stored, opts)
 	if checkpoint := metadata.CustomProperties[driverCheckpointKey].GetStringValue(); checkpoint != "" {
 		execution, err := restoreDriverCheckpoint(checkpoint, stored.GetTaskId())
 		if err != nil {
+			if opts.DriverRetryAttempt == opts.DriverRetryMaxCount {
+				err = errors.Join(err, persistDriverRetryFailure(ctx, opts, manager, stored, err))
+			}
 			return nil, err
 		}
+		metadata.Message = ""
 		stored.Pods = appendDriverPod(stored.GetPods(), task.Pods[0])
 		_, err = updateDriverTask(ctx, manager.KFPAPIClient(), stored)
+		if err != nil && opts.DriverRetryAttempt == opts.DriverRetryMaxCount {
+			err = errors.Join(err, persistDriverRetryFailure(ctx, opts, manager, stored, err))
+		}
 		return execution, err
 	}
-	// Keep the native task nonterminal while Argo owns retry scheduling. The
-	// guarded terminal workflow report closes unfinished tasks after any form
-	// of exhaustion, including policy rejection, deadlines and pod deletion.
+	// Start the claimed attempt nonterminal. The final scheduled attempt reports
+	// its own failure; terminal workflow reports also cover earlier policy stops,
+	// deadlines and pod deletion.
 	stored.State = api.PipelineTask_RUNNING
 	stored.EndTime = nil
 	metadata.Message = ""
@@ -141,24 +141,31 @@ func recoverDriver(ctx context.Context, opts common.Options, manager client_mana
 	latestMetadata := driverRecoveryMetadata(latest)
 	setDriverRetryOwner(latest, opts)
 	if driveErr != nil {
-		latest.State = api.PipelineTask_RUNNING
-		latest.EndTime = nil
-		latestMetadata.Message = driveErr.Error()
-		_, updateErr := updateDriverTask(ctx, manager.KFPAPIClient(), latest)
-		return execution, errors.Join(driveErr, updateErr)
+		return execution, errors.Join(driveErr, persistDriverRetryFailure(ctx, opts, manager, latest, driveErr))
 	}
 	if execution == nil || execution.TaskID != stored.TaskId {
-		return nil, fmt.Errorf("driver handoff does not match its recovered task identity")
+		err := fmt.Errorf("driver handoff does not match its recovered task identity")
+		if opts.DriverRetryAttempt == opts.DriverRetryMaxCount {
+			err = errors.Join(err, persistDriverRetryFailure(ctx, opts, manager, latest, err))
+		}
+		return nil, err
 	}
 	checkpoint, err := marshalDriverCheckpoint(execution)
 	if err != nil {
+		if opts.DriverRetryAttempt == opts.DriverRetryMaxCount {
+			err = errors.Join(err, persistDriverRetryFailure(ctx, opts, manager, latest, err))
+		}
 		return execution, err
 	}
 	latestMetadata.Message = ""
 	latestMetadata.CustomProperties[driverCheckpointKey] = structpb.NewStringValue(checkpoint)
 	_, err = updateDriverTask(ctx, manager.KFPAPIClient(), latest)
 	if err != nil {
-		return execution, fmt.Errorf("failed to persist driver handoff: %w", err)
+		err = fmt.Errorf("failed to persist driver handoff: %w", err)
+		if opts.DriverRetryAttempt == opts.DriverRetryMaxCount {
+			err = errors.Join(err, persistDriverRetryFailure(ctx, opts, manager, latest, err))
+		}
+		return execution, err
 	}
 	return execution, nil
 }

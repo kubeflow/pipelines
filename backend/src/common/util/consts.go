@@ -84,6 +84,14 @@ const (
 	// writes against their originating driver. Storage does not persist them.
 	DriverRetrySourceTaskKey    = "_kfp_driver_retry_source_task"
 	DriverRetrySourceAttemptKey = "_kfp_driver_retry_source_attempt"
+	// DriverCheckpointKey and DriverCachedOutputsKey hold durable replay payloads.
+	DriverCheckpointKey    = "_kfp_driver_checkpoint"
+	DriverCachedOutputsKey = "_kfp_driver_cached_outputs"
+	// DriverRecoveryViewHeader selects internal metadata on single-task RPCs.
+	// It is a response projection, not an authorization mechanism.
+	DriverRecoveryViewHeader    = "x-kfp-driver-recovery-view"
+	DriverRecoveryViewOwnership = "ownership"
+	DriverRecoveryViewFull      = "full"
 )
 
 // GetMaxParameterBytes returns the maximum byte size of parameters.

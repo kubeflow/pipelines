@@ -88,11 +88,11 @@ func (k *clientAdapter) ListRuns(ctx context.Context, req *gc.ListRunsRequest) (
 }
 
 func (k *clientAdapter) CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.CreateTask(ctx, req)
+	return k.c.Run.CreateTask(taskRecoveryContext(ctx), req)
 }
 
 func (k *clientAdapter) UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.UpdateTask(ctx, req)
+	return k.c.Run.UpdateTask(taskRecoveryContext(ctx), req)
 }
 
 func (k *clientAdapter) UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasksBulkRequest) (*gc.UpdateTasksBulkResponse, error) {
@@ -100,7 +100,7 @@ func (k *clientAdapter) UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasks
 }
 
 func (k *clientAdapter) GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.GetTask(ctx, req)
+	return k.c.Run.GetTask(taskRecoveryContext(ctx), req)
 }
 
 func (k *clientAdapter) ListTasks(ctx context.Context, req *gc.ListTasksRequest) (*gc.ListTasksResponse, error) {

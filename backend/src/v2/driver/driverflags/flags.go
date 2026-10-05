@@ -19,10 +19,12 @@ package driverflags
 import "flag"
 
 const (
-	DriverTypeArg = "type"
-	HTTPProxyArg  = "http_proxy"
-	HTTPSProxyArg = "https_proxy"
-	NoProxyArg    = "no_proxy"
+	DriverTypeArg         = "type"
+	HTTPProxyArg          = "http_proxy"
+	HTTPSProxyArg         = "https_proxy"
+	NoProxyArg            = "no_proxy"
+	DriverRetryEnabledArg = "driver_retry_enabled"
+	DriverRetryAttemptArg = "driver_retry_attempt"
 )
 
 // Values stores pointers returned by flag registration so callers can continue
@@ -71,8 +73,8 @@ func RegisterDriverFlags(fs *flag.FlagSet) *Values {
 	return &Values{
 		ExitTaskName:            fs.String("exit_task_name", "", "Completed task that triggered this exit hook."),
 		ExitTaskStatus:          fs.String("exit_task_status", "", "Terminal Argo phase of the task that triggered this exit hook."),
-		DriverRetryEnabled:      fs.Bool("driver_retry_enabled", false, "Enable recovery of task-derived driver retries."),
-		DriverRetryAttempt:      fs.Int("driver_retry_attempt", 0, "Zero-based automatic driver retry attempt."),
+		DriverRetryEnabled:      fs.Bool(DriverRetryEnabledArg, false, "Enable recovery of task-derived driver retries."),
+		DriverRetryAttempt:      fs.Int(DriverRetryAttemptArg, 0, "Zero-based automatic driver retry attempt."),
 		DriverRetryMaxCount:     fs.Int("driver_retry_max_count", 0, "Maximum automatic driver retries."),
 		DriverRetryGeneration:   fs.Int64("driver_retry_generation", 0, "Manual run retry generation used to isolate driver recovery."),
 		DriverType:              fs.String(DriverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER"),

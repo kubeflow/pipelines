@@ -498,7 +498,7 @@ func (s *RunServer) CreateTask(ctx context.Context, request *apiv2beta1.CreateTa
 	// A newly created task has no children
 	var noChildTasks []*model.Task
 
-	return toAPITask(createdTask, noChildTasks)
+	return toAPITaskWithRecoveryView(createdTask, noChildTasks, driverRecoveryView(ctx))
 }
 
 // UpdateTask updates an existing task with the specified task ID and details provided in the request.
@@ -558,7 +558,7 @@ func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2beta1.UpdateTa
 		return nil, util.Wrap(err, "Failed to get task children")
 	}
 	taskChildren = filterTaskChildrenByRun(taskChildren, updatedTask.RunUUID)
-	return toAPITask(updatedTask, taskChildren)
+	return toAPITaskWithRecoveryView(updatedTask, taskChildren, driverRecoveryView(ctx))
 }
 
 // UpdateTasksBulk updates multiple tasks in bulk.
@@ -676,7 +676,7 @@ func (s *RunServer) GetTask(ctx context.Context, request *apiv2beta1.GetTaskRequ
 		return nil, util.Wrap(err, "Failed to get task children")
 	}
 	childTasks = filterTaskChildrenByRun(childTasks, task.RunUUID)
-	return toAPITask(task, childTasks)
+	return toAPITaskWithRecoveryView(task, childTasks, driverRecoveryView(ctx))
 }
 
 // ListTasks retrieves tasks for a specified run and can optionally narrow the results to a parent task.

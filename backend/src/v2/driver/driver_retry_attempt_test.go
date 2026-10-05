@@ -41,6 +41,7 @@ type driverAttemptAPI struct {
 	queueUpdate             bool
 	queuedUpdate            *api.UpdateTaskRequest
 	supersedeOnGet          bool
+	supersedeCreateResponse bool
 	supersedeUpdateResponse bool
 }
 
@@ -90,6 +91,10 @@ func (f *driverAttemptAPI) CreateTask(ctx context.Context, request *api.CreateTa
 	if f.loseClaim {
 		f.loseClaim = false
 		return nil, fmt.Errorf("lost claim response")
+	}
+	if f.supersedeCreateResponse {
+		f.supersedeCreateResponse = false
+		return f.advanceOwner(ctx, stored)
 	}
 	return proto.Clone(stored).(*api.PipelineTask), nil
 }
@@ -318,4 +323,25 @@ func TestDriverRetryAttemptManualGenerationRestartsAtZero(t *testing.T) {
 	opts.DriverRetryAttempt = 2
 	_, err = Container(ctx, opts, tc.ClientManager)
 	require.ErrorContains(t, err, "stale driver generation")
+}
+
+func TestDriverRetryAttemptCannotAdoptCreateResponseOwner(t *testing.T) {
+	tc, opts, client := retryAttemptContext(t)
+	client.supersedeCreateResponse = true
+	operations := 0
+	_, err := recoverDriver(context.Background(), opts, tc.ClientManager, func(context.Context, common.Options, client_manager.ClientManagerInterface) (*Execution, error) {
+		operations++
+		return nil, fmt.Errorf("stale operation should not run")
+	})
+	require.ErrorContains(t, err, "ownership changed during creation")
+	require.Zero(t, operations)
+	task := getOnlyDAGRetryTask(t, tc, opts)
+	generation, attempt, err := driverAttemptOwner(task)
+	require.NoError(t, err)
+	require.EqualValues(t, 0, generation)
+	require.EqualValues(t, 1, attempt)
+	require.Equal(t, api.PipelineTask_CACHED, task.GetState())
+	require.Equal(t, "owned by the newer attempt", task.GetStatusMetadata().GetMessage())
+	require.NotEmpty(t, task.GetStatusMetadata().GetCustomProperties()[driverCheckpointKey].GetStringValue())
+	assertDAGRetryParentRunning(t, tc)
 }

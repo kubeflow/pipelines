@@ -18,6 +18,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
@@ -40,7 +41,7 @@ func driverTaskProperties(task *model.Task) map[string]interface{} {
 	return properties
 }
 
-func driverAttemptProperty(properties map[string]interface{}, key string) (int64, bool, error) {
+func decimalDriverRetryProperty(properties map[string]interface{}, key, property string) (int64, bool, error) {
 	value, present := properties[key]
 	if !present {
 		return 0, false, nil
@@ -48,7 +49,7 @@ func driverAttemptProperty(properties map[string]interface{}, key string) (int64
 	text, ok := value.(string)
 	attempt, err := strconv.ParseInt(text, 10, 64)
 	if !ok || err != nil || attempt < 0 || strconv.FormatInt(attempt, 10) != text {
-		return 0, true, util.NewInvalidInputError("Driver retry attempt must be a nonnegative decimal string; resubmit the task with its original attempt")
+		return 0, true, util.NewInvalidInputError("Driver retry %s must be a nonnegative decimal string; resubmit the task with its original %s", property, property)
 	}
 	return attempt, true, nil
 }
@@ -61,13 +62,13 @@ func parseDriverTaskFence(task *model.Task) (driverTaskFence, error) {
 		return fence, err
 	}
 	properties := driverTaskProperties(task)
-	fence.attempt, fence.claimed, err = driverAttemptProperty(properties, util.DriverRetryAttemptKey)
+	fence.attempt, fence.claimed, err = decimalDriverRetryProperty(properties, util.DriverRetryAttemptKey, "attempt")
 	if err != nil {
 		return fence, err
 	}
 	sourceValue, hasSource := properties[util.DriverRetrySourceTaskKey]
 	var hasSourceAttempt bool
-	fence.sourceAttempt, hasSourceAttempt, err = driverAttemptProperty(properties, util.DriverRetrySourceAttemptKey)
+	fence.sourceAttempt, hasSourceAttempt, err = decimalDriverRetryProperty(properties, util.DriverRetrySourceAttemptKey, "source attempt")
 	if err != nil {
 		return fence, err
 	}
@@ -103,7 +104,7 @@ func copyDriverTaskMetadata(task *model.Task) (model.JSONData, map[string]interf
 }
 
 // CreateTask is the only operation that can advance ownership. The caller holds
-// the run lock, so a delayed claim or write cannot overtake a newer attempt.
+// a shared run lock and the exclusive task lock before reading this owner.
 func (s *TaskStore) claimDriverTaskAttempt(tx *sql.Tx, task *model.Task, incoming driverTaskFence) (*model.Task, error) {
 	stored, err := parseDriverTaskFence(task)
 	if err != nil {
@@ -157,7 +158,31 @@ func (s *TaskStore) claimDriverTaskAttempt(tx *sql.Tx, task *model.Task, incomin
 	return &claimed, nil
 }
 
-func (s *TaskStore) validateDriverTaskAttempt(tx *sql.Tx, incoming, stored *model.Task, fence driverTaskFence) (*model.Task, error) {
+// Always take source and target task locks in UUID order: sibling propagation
+// and attempt claims can proceed concurrently under a shared run lock.
+func (s *TaskStore) lockDriverTaskWriteRows(tx *sql.Tx, targetID, sourceID string) (*model.Task, *model.Task, error) {
+	ids := []string{targetID}
+	if sourceID != "" && sourceID != targetID {
+		ids = append(ids, sourceID)
+	}
+	sort.Strings(ids)
+	var target, source *model.Task
+	for _, id := range ids {
+		task, err := s.getTaskForUpdate(tx, id)
+		if err != nil {
+			return nil, nil, err
+		}
+		if id == targetID {
+			target = task
+		}
+		if id == sourceID {
+			source = task
+		}
+	}
+	return target, source, nil
+}
+
+func (s *TaskStore) validateDriverTaskAttempt(incoming, stored, source *model.Task, fence driverTaskFence) (*model.Task, error) {
 	owner, err := parseDriverTaskFence(stored)
 	if err != nil {
 		return nil, err
@@ -167,13 +192,30 @@ func (s *TaskStore) validateDriverTaskAttempt(tx *sql.Tx, incoming, stored *mode
 			(owner.generation != fence.generation || owner.attempt != fence.attempt)) {
 			return nil, staleDriverAttempt(stored.UUID)
 		}
-		return incoming, nil
-	}
-	// All claimed writes lock their run first, serializing source and target
-	// locks with CreateTask claims, manual retries, and terminal finalization.
-	source, err := s.getTaskForUpdate(tx, fence.sourceTaskID)
-	if err != nil {
-		return nil, err
+		// Ordinary task responses omit large recovery payloads. Their absence
+		// must not erase a handoff or frozen cache decision during an update.
+		missingRecovery := false
+		for _, key := range []string{util.DriverCheckpointKey, util.DriverCachedOutputsKey} {
+			_, supplied := driverTaskProperties(incoming)[key]
+			_, present := driverTaskProperties(stored)[key]
+			missingRecovery = missingRecovery || (!supplied && present)
+		}
+		if !missingRecovery {
+			return incoming, nil
+		}
+		updated := *incoming
+		metadata, properties := copyDriverTaskMetadata(incoming)
+		for _, key := range []string{util.DriverCheckpointKey, util.DriverCachedOutputsKey} {
+			if _, supplied := properties[key]; !supplied {
+				if value, present := driverTaskProperties(stored)[key]; present {
+					properties[key] = value
+				}
+			}
+		}
+		if incoming.StatusMetadata != nil || len(properties) > 0 {
+			updated.StatusMetadata = metadata
+		}
+		return &updated, nil
 	}
 	sourceOwner, err := parseDriverTaskFence(source)
 	if err != nil {
@@ -189,7 +231,7 @@ func (s *TaskStore) validateDriverTaskAttempt(tx *sql.Tx, incoming, stored *mode
 	delete(properties, util.DriverRetrySourceAttemptKey)
 	// A child authorizes this write, but cannot replace its parent's ownership
 	// or the parent's saved handoff with recovery data from a stale snapshot.
-	keys := []string{util.DriverRetryAttemptKey, "_kfp_driver_checkpoint", "_kfp_driver_cached_outputs"}
+	keys := []string{util.DriverRetryAttemptKey, util.DriverCheckpointKey, util.DriverCachedOutputsKey}
 	if owner.claimed {
 		keys = append(keys, util.DriverRetryGenerationKey)
 	}

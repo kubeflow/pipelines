@@ -19,6 +19,7 @@ import (
 	"context"
 	stdjson "encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,6 +36,7 @@ import (
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/driverflags"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -876,18 +878,34 @@ func (w *Workflow) DisableTaskDriverRetries() int {
 		// Restore the same deployment recovery policy as unconfigured drivers.
 		tmpl.RetryStrategy = nil
 		delete(tmpl.Metadata.Annotations, AnnotationKeyTaskDriverRetry)
-		for j, arg := range tmpl.Container.Args {
-			switch {
-			case strings.HasPrefix(arg, "--driver_retry_enabled="):
-				tmpl.Container.Args[j] = "--driver_retry_enabled=false"
-			case strings.HasPrefix(arg, "--driver_retry_attempt="):
-				tmpl.Container.Args[j] = "--driver_retry_attempt=0"
-			case arg == "--driver_retry_enabled" && j+1 < len(tmpl.Container.Args):
-				tmpl.Container.Args[j+1] = "false"
-			case arg == "--driver_retry_attempt" && j+1 < len(tmpl.Container.Args):
-				tmpl.Container.Args[j+1] = "0"
+		args := tmpl.Container.Args[:0]
+		for j := 0; j < len(tmpl.Container.Args); j++ {
+			arg := tmpl.Container.Args[j]
+			name, _, hasValue := strings.Cut(strings.TrimPrefix(strings.TrimPrefix(arg, "-"), "-"), "=")
+			if strings.HasPrefix(arg, "-") {
+				switch name {
+				case driverflags.DriverRetryEnabledArg:
+					arg = "--" + name + "=false"
+					// Go bool flags require '=' for explicit values. Also accept
+					// the previously supported separate-value representation.
+					if !hasValue && j+1 < len(tmpl.Container.Args) {
+						if _, err := strconv.ParseBool(tmpl.Container.Args[j+1]); err == nil {
+							j++
+						}
+					}
+				case driverflags.DriverRetryAttemptArg:
+					arg = "--" + name + "=0"
+					if !hasValue && j+1 < len(tmpl.Container.Args) {
+						next := tmpl.Container.Args[j+1]
+						if _, err := strconv.ParseInt(next, 10, 64); err == nil || !strings.HasPrefix(next, "-") {
+							j++
+						}
+					}
+				}
 			}
+			args = append(args, arg)
 		}
+		tmpl.Container.Args = args
 		disabled++
 	}
 	return disabled

@@ -1888,6 +1888,10 @@ func toModelTask(apiTask *apiv2beta1.PipelineTask) (*model.Task, error) {
 // InputArtifactsHydrated/OutputArtifactsHydrated, so callers that need
 // Inputs.Artifacts or Outputs.Artifacts populated must hydrate artifact links first.
 func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.PipelineTask, error) {
+	return toAPITaskWithRecoveryView(modelTask, childTasks, "")
+}
+
+func toAPITaskWithRecoveryView(modelTask *model.Task, childTasks []*model.Task, recoveryView string) (*apiv2beta1.PipelineTask, error) {
 	if modelTask == nil {
 		return nil, util.NewInvalidInputError("Task cannot be nil")
 	}
@@ -1933,7 +1937,7 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 	// Convert status metadata to new StatusMetadata struct
 	if modelTask.StatusMetadata != nil {
 		statusMeta, err := model.JSONDataToProtoMessage(
-			modelTask.StatusMetadata,
+			taskStatusMetadataForView(modelTask.StatusMetadata, recoveryView),
 			func() *apiv2beta1.PipelineTask_StatusMetadata {
 				return &apiv2beta1.PipelineTask_StatusMetadata{}
 			})

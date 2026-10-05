@@ -50,7 +50,11 @@ func TestDriverRetryExitHandlerReceivesFailureBeforeWorkflowEnds(t *testing.T) {
 			tc.RefreshRun()
 			currentParent, err := tc.MockAPI.GetTask(context.Background(), &api.GetTaskRequest{RunId: tc.Run.RunId, TaskId: parent.TaskId})
 			require.NoError(t, err)
-			require.Equal(t, api.PipelineTask_RUNNING, currentParent.State)
+			if test.attempt == opts.DriverRetryMaxCount {
+				require.Equal(t, api.PipelineTask_FAILED, currentParent.State)
+			} else {
+				require.Equal(t, api.PipelineTask_RUNNING, currentParent.State)
+			}
 			require.Equal(t, api.RuntimeState_RUNNING, tc.Run.State, "exit hooks run before the workflow terminal report")
 
 			require.NoError(t, tc.Push("echo-state"))

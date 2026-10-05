@@ -516,10 +516,10 @@ type taskWriteExecutor interface {
 }
 
 func (s *TaskStore) findTaskByLogicalKey(logicalKey string) (*model.Task, error) {
-	return s.findTaskByLogicalKeyWithExecutor(s.db, logicalKey)
+	return s.findTaskByLogicalKeyWithExecutor(s.db, logicalKey, false)
 }
 
-func (s *TaskStore) findTaskByLogicalKeyWithExecutor(db taskWriteExecutor, logicalKey string) (*model.Task, error) {
+func (s *TaskStore) findTaskByLogicalKeyWithExecutor(db taskWriteExecutor, logicalKey string, lock bool) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	rowSQL, rowArgs, err := qb.
@@ -529,6 +529,9 @@ func (s *TaskStore) findTaskByLogicalKeyWithExecutor(db taskWriteExecutor, logic
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create logical task key query: %v", err.Error())
+	}
+	if lock {
+		rowSQL = s.dbDialect.SelectForUpdate(rowSQL)
 	}
 	task, err := scanTaskRow(db.QueryRow(rowSQL, rowArgs...))
 	if errors.Is(err, sql.ErrNoRows) {
@@ -563,7 +566,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInvalidInputError("Driver retry source fences cannot claim tasks; create the originating driver task first")
 	}
 	if !fence.tagged {
-		created, err := s.createTaskWithExecutor(s.db, task)
+		created, err := s.createTaskWithExecutor(s.db, task, false)
 		if err != nil {
 			return nil, err
 		}
@@ -584,7 +587,13 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	if err := s.lockRunForDriverTaskWrite(tx, task.RunUUID, fence.generation); err != nil {
 		return nil, err
 	}
-	created, err := s.createTaskWithExecutor(tx, task)
+	created, err := s.createTaskWithExecutor(tx, task, true)
+	if err != nil {
+		return nil, err
+	}
+	// A shared run lock fences manual retries without serializing independent
+	// tasks. Lock this task before advancing automatic-attempt ownership.
+	created, err = s.getTaskForUpdate(tx, created.UUID)
 	if err != nil {
 		return nil, err
 	}
@@ -599,24 +608,11 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 }
 
 func taskRetryGeneration(task *model.Task) (int64, bool, error) {
-	properties, ok := task.StatusMetadata["customProperties"].(map[string]interface{})
-	if !ok {
-		return 0, false, nil
-	}
-	value, tagged := properties[util.DriverRetryGenerationKey]
-	if !tagged {
-		return 0, false, nil
-	}
-	text, ok := value.(string)
-	generation, err := strconv.ParseInt(text, 10, 64)
-	if !ok || err != nil || generation < 0 || strconv.FormatInt(generation, 10) != text {
-		return 0, true, util.NewInvalidInputError("Driver retry generation must be a nonnegative decimal string; resubmit the task with the current run retry generation")
-	}
-	return generation, true, nil
+	return decimalDriverRetryProperty(driverTaskProperties(task), util.DriverRetryGenerationKey, "generation")
 }
 
-// Lock the run before the task, matching RetryRun and terminal finalization.
-// Holding this lock through the task write fences stale driver processes.
+// Share-lock the run before task rows. Independent tasks can write concurrently,
+// while RetryRun and terminal finalization must acquire the exclusive run lock.
 func (s *TaskStore) lockRunForDriverTaskWrite(tx *sql.Tx, runID string, generation int64) error {
 	if runID == "" {
 		return util.NewInvalidInputError("Driver task writes require a run ID; include the task's run ID")
@@ -632,7 +628,7 @@ func (s *TaskStore) lockRunForDriverTaskWrite(tx *sql.Tx, runID string, generati
 	}
 	var state, conditions sql.NullString
 	var currentGeneration int64
-	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(query), args...).Scan(&state, &conditions, &currentGeneration); err != nil {
+	if err := tx.QueryRow(s.dbDialect.SelectForShare(query), args...).Scan(&state, &conditions, &currentGeneration); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return util.NewResourceNotFoundError("Run", runID)
 		}
@@ -651,7 +647,7 @@ func (s *TaskStore) lockRunForDriverTaskWrite(tx *sql.Tx, runID string, generati
 	return nil
 }
 
-func (s *TaskStore) createTaskWithExecutor(db taskWriteExecutor, task *model.Task) (*model.Task, error) {
+func (s *TaskStore) createTaskWithExecutor(db taskWriteExecutor, task *model.Task, lockExisting bool) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	logicalKey, err := taskLogicalKey(task)
@@ -659,7 +655,7 @@ func (s *TaskStore) createTaskWithExecutor(db taskWriteExecutor, task *model.Tas
 		return nil, util.NewInternalServerError(err, "Failed to build logical task identity")
 	}
 	if logicalKey != nil {
-		existingTask, err := s.findTaskByLogicalKeyWithExecutor(db, *logicalKey)
+		existingTask, err := s.findTaskByLogicalKeyWithExecutor(db, *logicalKey, false)
 		if err != nil {
 			return nil, err
 		}
@@ -747,32 +743,36 @@ func (s *TaskStore) createTaskWithExecutor(db taskWriteExecutor, task *model.Tas
 		return nil, util.NewInternalServerError(err, "Failed to marshal type attributes in a new task")
 	}
 
-	sql, args, err := qb.
-		Insert(q(tableName)).
-		SetMap(
-			sq.Eq{
-				q("UUID"):             newTask.UUID,
-				q("Namespace"):        newTask.Namespace,
-				q("RunUUID"):          newTask.RunUUID,
-				q("pods"):             podsString,
-				q("CreatedAtInSec"):   newTask.CreatedAtInSec,
-				q("StartedInSec"):     newTask.StartedInSec,
-				q("FinishedInSec"):    newTask.FinishedInSec,
-				q("Fingerprint"):      newTask.Fingerprint,
-				q("Name"):             newTask.Name,
-				q("DisplayName"):      newTask.DisplayName,
-				q("ParentTaskUUID"):   newTask.ParentTaskUUID,
-				q("ScopePath"):        newTask.ScopePath,
-				q("State"):            newTask.State,
-				q("StatusMetadata"):   statusMetadataString,
-				q("StateHistory"):     stateHistoryString,
-				q("InputParameters"):  inputParamsString,
-				q("OutputParameters"): outputParamsString,
-				q("Type"):             newTask.Type,
-				q("TypeAttrs"):        typeAttrsString,
-				q("LogicalKey"):       newTask.LogicalKey,
-			},
-		).
+	insert := qb.Insert(q(tableName))
+	if logicalKey != nil {
+		// Resolve the logical-identity race without aborting a PostgreSQL
+		// transaction on a duplicate INSERT.
+		insert = s.dbDialect.Upsert(tableName, []string{"LogicalKey"}, false, []string{"UUID"})
+	}
+	sql, args, err := insert.SetMap(
+		sq.Eq{
+			q("UUID"):             newTask.UUID,
+			q("Namespace"):        newTask.Namespace,
+			q("RunUUID"):          newTask.RunUUID,
+			q("pods"):             podsString,
+			q("CreatedAtInSec"):   newTask.CreatedAtInSec,
+			q("StartedInSec"):     newTask.StartedInSec,
+			q("FinishedInSec"):    newTask.FinishedInSec,
+			q("Fingerprint"):      newTask.Fingerprint,
+			q("Name"):             newTask.Name,
+			q("DisplayName"):      newTask.DisplayName,
+			q("ParentTaskUUID"):   newTask.ParentTaskUUID,
+			q("ScopePath"):        newTask.ScopePath,
+			q("State"):            newTask.State,
+			q("StatusMetadata"):   statusMetadataString,
+			q("StateHistory"):     stateHistoryString,
+			q("InputParameters"):  inputParamsString,
+			q("OutputParameters"): outputParamsString,
+			q("Type"):             newTask.Type,
+			q("TypeAttrs"):        typeAttrsString,
+			q("LogicalKey"):       newTask.LogicalKey,
+		},
+	).
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert task to task table: %v",
@@ -780,14 +780,20 @@ func (s *TaskStore) createTaskWithExecutor(db taskWriteExecutor, task *model.Tas
 	}
 	_, err = db.Exec(sql, args...)
 	if err != nil {
-		if newTask.LogicalKey != nil {
-			existingTask, findErr := s.findTaskByLogicalKeyWithExecutor(db, *newTask.LogicalKey)
-			if findErr == nil && existingTask != nil {
-				return existingTask, nil
-			}
-		}
 		return nil, util.NewInternalServerError(err, "Failed to add task to task table: %v",
 			err.Error())
+	}
+	if logicalKey != nil {
+		// A locking read also observes a concurrently committed identity under
+		// MySQL's REPEATABLE READ, even if the initial lookup saw no task.
+		canonical, err := s.findTaskByLogicalKeyWithExecutor(db, *logicalKey, lockExisting)
+		if err != nil {
+			return nil, err
+		}
+		if canonical == nil {
+			return nil, util.NewInternalServerError(fmt.Errorf("inserted logical task was not found"), "Failed to resolve logical task identity")
+		}
+		return canonical, nil
 	}
 	return &newTask, nil
 }
@@ -1183,14 +1189,14 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 
 	// Get the current task state with a row-level lock (SELECT ... FOR UPDATE)
 	// This prevents other concurrent updates from reading the same old state
-	lockedOld, err := s.getTaskForUpdate(tx, new.UUID)
+	lockedOld, source, err := s.lockDriverTaskWriteRows(tx, new.UUID, fence.sourceTaskID)
 	if err != nil {
 		return nil, err
 	}
 	if tagged && lockedOld.RunUUID != new.RunUUID {
 		return nil, util.NewInvalidInputError("Driver task run ID does not match the stored task; use the task's original run ID")
 	}
-	new, err = s.validateDriverTaskAttempt(tx, new, lockedOld, fence)
+	new, err = s.validateDriverTaskAttempt(new, lockedOld, source, fence)
 	if err != nil {
 		return nil, err
 	}

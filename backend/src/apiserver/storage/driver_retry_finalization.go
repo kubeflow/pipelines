@@ -18,6 +18,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
@@ -37,35 +38,8 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 		return nil
 	}
 
-	q := dbDialect.QuoteIdentifier
-	qb := dbDialect.QueryBuilder()
-	query, args, err := qb.Select(dialect.QuoteAll(q, taskColumns)...).
-		From(q(tableName)).
-		Where(sq.Eq{q("RunUUID"): run.UUID}).
-		OrderBy(q("UUID")).
-		ToSql()
+	tasks, orderedTasks, err := loadDriverRetryFinalizationTasks(tx, dbDialect, run)
 	if err != nil {
-		return err
-	}
-	rows, err := tx.Query(dbDialect.SelectForUpdate(query), args...)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	tasks := make(map[string]*model.Task)
-	var orderedTasks []*model.Task
-	for rows.Next() {
-		task, err := scanTaskRow(rows)
-		if err != nil {
-			return err
-		}
-		tasks[task.UUID] = task
-		orderedTasks = append(orderedTasks, task)
-	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	if err := rows.Close(); err != nil {
 		return err
 	}
 
@@ -104,6 +78,92 @@ func finalizeDriverRetryTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *mode
 		}
 	}
 	return nil
+}
+
+// The caller holds the exclusive run lock, which excludes every tagged write.
+// Discover only lightweight candidate identities first, so runs without driver
+// retries never lock or deserialize all of their task inputs and outputs.
+func loadDriverRetryFinalizationTasks(tx *sql.Tx, dbDialect dialect.DBDialect, run *model.Run) (map[string]*model.Task, []*model.Task, error) {
+	q := dbDialect.QuoteIdentifier
+	generation := strconv.FormatInt(run.RetryGeneration, 10)
+	query, args, err := dbDialect.QueryBuilder().Select(q("UUID")).
+		From(q(tableName)).
+		Where(sq.Eq{q("RunUUID"): run.UUID}).
+		Where(sq.Eq{dbDialect.JSONExtractText(q("StatusMetadata"), "customProperties", util.DriverRetryGenerationKey): generation}).
+		OrderBy(q("UUID")).ToSql()
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, err := tx.Query(query, args...)
+	if err != nil {
+		return nil, nil, err
+	}
+	var pending []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, nil, err
+		}
+		pending = append(pending, id)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, nil, err
+	}
+
+	tasks := make(map[string]*model.Task)
+	requested := make(map[string]bool, len(pending))
+	for _, id := range pending {
+		requested[id] = true
+	}
+	var orderedTasks []*model.Task
+	for len(pending) > 0 {
+		// Bound placeholders for large fan-outs and retain deterministic locks
+		// within each frontier. Only tagged tasks and their ancestors are read.
+		batchSize := min(len(pending), 500)
+		batch := pending[:batchSize]
+		pending = pending[batchSize:]
+		query, args, err := dbDialect.QueryBuilder().Select(dialect.QuoteAll(q, taskColumns)...).
+			From(q(tableName)).
+			Where(sq.Eq{q("RunUUID"): run.UUID, q("UUID"): batch}).
+			OrderBy(q("UUID")).ToSql()
+		if err != nil {
+			return nil, nil, err
+		}
+		rows, err := tx.Query(dbDialect.SelectForUpdate(query), args...)
+		if err != nil {
+			return nil, nil, err
+		}
+		for rows.Next() {
+			task, err := scanTaskRow(rows)
+			if err != nil {
+				rows.Close()
+				return nil, nil, err
+			}
+			if _, seen := tasks[task.UUID]; !seen {
+				tasks[task.UUID] = task
+				orderedTasks = append(orderedTasks, task)
+			}
+			if task.ParentTaskUUID != nil && !requested[*task.ParentTaskUUID] {
+				requested[*task.ParentTaskUUID] = true
+				pending = append(pending, *task.ParentTaskUUID)
+			}
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return nil, nil, err
+		}
+		if err := rows.Close(); err != nil {
+			return nil, nil, err
+		}
+
+	}
+	sort.Slice(orderedTasks, func(i, j int) bool { return orderedTasks[i].UUID < orderedTasks[j].UUID })
+	return tasks, orderedTasks, nil
 }
 
 func finalizeDriverTaskFailure(tx *sql.Tx, dbDialect dialect.DBDialect, run *model.Run, task *model.Task) error {

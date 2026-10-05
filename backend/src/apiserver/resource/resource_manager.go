@@ -1335,6 +1335,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		namespace = common.GetPodNamespace()
 	}
 
+	expectedWorkflowRuntimeManifest := run.WorkflowRuntimeManifest
+	expectedPipelineRuntimeManifest := run.PipelineRuntimeManifest
+
 	// If a previous retry claim has aged out, reconcile against Kubernetes
 	// before deciding anything: an expired claim is not necessarily an
 	// abandoned one. If the claim's workflow exists (the previous API server
@@ -1370,7 +1373,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 					}
 				}
 				run.PluginsOutputString = nil
-				if updateError := r.runStore.UpdateRun(run); updateError != nil {
+				if updateError := r.persistRetriedRun(run, liveWorkflow.ExecutionStatus().IsInFinalState(), expectedWorkflowRuntimeManifest, expectedPipelineRuntimeManifest); updateError != nil {
 					return util.NewInternalServerError(updateError, "Failed to adopt in-flight retry for run %s", runId)
 				}
 				r.storedWorkflowIdentities.delete(runId)
@@ -1499,11 +1502,28 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run.State = model.RuntimeState(condition).ToV2()
 	// OnRunRetry persists plugin output independently; leave PluginsOutput unchanged here.
 	run.PluginsOutputString = nil
-	err = r.runStore.UpdateRun(run)
+	err = r.persistRetriedRun(run, newExecSpec.ExecutionStatus().IsInFinalState(), expectedWorkflowRuntimeManifest, expectedPipelineRuntimeManifest)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
 	r.storedWorkflowIdentities.delete(runId)
+	return nil
+}
+
+// A retry can finish before its workflow mutation is acknowledged. Persist that
+// terminal observation through the same guard and task cleanup as a report.
+func (r *ResourceManager) persistRetriedRun(run *model.Run, terminal bool, expectedWorkflow, expectedPipeline model.LargeText) error {
+	if !terminal {
+		return r.runStore.UpdateRun(run)
+	}
+	updated, err := r.runStore.UpdateRunIfRuntimeManifestsUnchanged(run, expectedWorkflow, expectedPipeline)
+	if err != nil {
+		return err
+	}
+	if !updated {
+		return util.NewUnavailableServerError(errors.New("stored run changed while adopting retry workflow"),
+			"Run %s changed concurrently while adopting its retry workflow; retry the request", run.UUID)
+	}
 	return nil
 }
 
@@ -2351,6 +2371,12 @@ func (r *ResourceManager) reportWorkflowResource(
 		runId = run.UUID
 		updateError = nil
 		createdFromRecurringReport = true
+		// CreateRun can return a concurrently inserted row. Guard terminal
+		// persistence against that row, and finalize any native driver tasks.
+		expectedWorkflowRuntimeManifest = run.WorkflowRuntimeManifest
+		expectedPipelineRuntimeManifest = run.PipelineRuntimeManifest
+		expectedState = run.State
+		expectedStoredWorkflowIdentityManifest = storedWorkflowIdentityManifest(run)
 		if err := r.experimentStore.SetLastRunTimestamp(run); err != nil {
 			return nil, util.Wrapf(err, "Failed to report a workflow for existing run %s during updating the owning experiment.", runId)
 		}
@@ -2428,7 +2454,7 @@ func (r *ResourceManager) reportWorkflowResource(
 		}
 	}
 
-	if updateError == nil && !createdFromRecurringReport {
+	if updateError == nil && (!createdFromRecurringReport || execStatus.IsInFinalState()) {
 		run.K8SName = execSpec.ExecutionName()
 		run.State = state
 		run.Conditions = string(state.ToExecutionPhase())

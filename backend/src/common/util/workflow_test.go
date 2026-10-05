@@ -16,6 +16,7 @@ package util
 
 import (
 	"context"
+	"flag"
 	"testing"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	argoinformer "github.com/argoproj/argo-workflows/v4/pkg/client/informers/externalversions"
 	argolister "github.com/argoproj/argo-workflows/v4/pkg/client/listers/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/driverflags"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -2530,18 +2532,32 @@ func TestDisableTaskDriverRetries_OnlyMarkedDrivers(t *testing.T) {
 	assert.Equal(t, after, w.Workflow)
 }
 
-func TestDisableTaskDriverRetries_SeparateFlagValues(t *testing.T) {
-	driver := annotatedTemplate("task-driver", ExecutionRuntimeRoleDriver)
-	driver.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
-	driver.Container.Args = []string{
-		"--driver_retry_enabled", "true", "--task_name", "task", "--driver_retry_attempt", "{{retries}}",
-	}
-	w := workflowWithTemplates(driver)
+func TestDisableTaskDriverRetries_FlagSpellings(t *testing.T) {
+	for _, args := range [][]string{
+		{"--driver_retry_enabled=true", "--driver_retry_attempt={{retries}}"},
+		{"-driver_retry_enabled=true", "-driver_retry_attempt={{retries}}"},
+		{"--driver_retry_enabled", "--driver_retry_attempt", "{{retries}}"},
+		{"-driver_retry_enabled", "-driver_retry_attempt", "{{retries}}"},
+		{"--driver_retry_enabled", "true", "--driver_retry_attempt", "{{retries}}"},
+		{"--driver_retry_attempt", "{{retries}}", "--driver_retry_enabled"},
+		{"--driver_retry_attempt=8", "--driver_retry_enabled=true", "--driver_retry_enabled=true"},
+	} {
+		t.Run(args[0], func(t *testing.T) {
+			driver := annotatedTemplate("task-driver", ExecutionRuntimeRoleDriver)
+			driver.Metadata.Annotations[AnnotationKeyTaskDriverRetry] = "true"
+			driver.Container.Args = append(append([]string{}, args...), "--task_name", "driver_retry_enabled")
+			w := workflowWithTemplates(driver)
 
-	assert.Equal(t, 1, w.DisableTaskDriverRetries())
-	assert.Equal(t, []string{
-		"--driver_retry_enabled", "false", "--task_name", "task", "--driver_retry_attempt", "0",
-	}, w.Spec.Templates[0].Container.Args)
+			assert.Equal(t, 1, w.DisableTaskDriverRetries())
+			fs := flag.NewFlagSet("driver", flag.ContinueOnError)
+			values := driverflags.RegisterDriverFlags(fs)
+			require.NoError(t, fs.Parse(w.Spec.Templates[0].Container.Args))
+			assert.Empty(t, fs.Args(), "all flags must be parsed")
+			assert.False(t, *values.DriverRetryEnabled)
+			assert.Zero(t, *values.DriverRetryAttempt)
+			assert.Equal(t, "driver_retry_enabled", *values.TaskName)
+		})
+	}
 }
 
 func TestDisableTaskDriverRetries_EmptyWorkflow(t *testing.T) {

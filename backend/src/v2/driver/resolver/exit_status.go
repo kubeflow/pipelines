@@ -39,15 +39,14 @@ func taskStatusAtExit(opts common.Options, name string, task *api.PipelineTask) 
 	case "Failed", "Error":
 		state = api.PipelineTask_FAILED
 	case "Succeeded":
-		if state != api.PipelineTask_CACHED && state != api.PipelineTask_SKIPPED {
-			state = api.PipelineTask_SUCCEEDED
-		}
+		// Controller completion does not establish native execution success.
+		return task, nil
 	case "Skipped", "Omitted":
 		if state != api.PipelineTask_FAILED {
 			state = api.PipelineTask_SKIPPED
 		}
 	default:
-		return nil, fmt.Errorf("exit task %q has nonterminal or unsupported controller status %q; invoke the handler after the task completes", name, opts.ExitTaskStatus)
+		return task, nil
 	}
 	message := ""
 	if state == api.PipelineTask_FAILED {

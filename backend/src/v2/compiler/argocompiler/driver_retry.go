@@ -21,6 +21,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/driverflags"
 )
 
 func validateDriverRetryPolicy(policy *pipelinespec.PipelineTaskSpec_RetryPolicy) error {
@@ -69,8 +70,8 @@ func (c *workflowCompiler) addTaskRetryDriverTemplate(baseName string, task *pip
 		policy,
 	)
 	template.Container.Args = append(template.Container.Args,
-		"--driver_retry_enabled=true",
-		"--driver_retry_attempt", "{{retries}}",
+		"--"+driverflags.DriverRetryEnabledArg+"=true",
+		"--"+driverflags.DriverRetryAttemptArg, "{{retries}}",
 		"--driver_retry_max_count", inputValue(paramRetryMaxCount),
 		"--driver_retry_generation", "{{workflow.annotations."+util.AnnotationKeyRetryGeneration+"}}",
 	)
