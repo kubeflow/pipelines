@@ -37,14 +37,19 @@ func (c *ClientManager) initWorkflowHydrator(ctx context.Context) {
 		return loadArgoPersistConfig(ctx, kube)
 	})
 	util.SetWorkflowHydrator(lazy)
-	if err := util.TryInitLazyOffloadHydrator(lazy, ctx); err != nil {
+	offloadEnabled, err := util.TryInitLazyOffloadHydrator(lazy, ctx)
+	if err != nil {
 		glog.Warningf(
 			"Failed to initialize Argo offload hydrator: %v. ConfigMap and Secret access will be retried on demand.",
 			err,
 		)
 		return
 	}
-	glog.Info("Argo offload hydrator initialized")
+	if offloadEnabled {
+		glog.Info("Argo offload hydrator initialized")
+		return
+	}
+	glog.Info("Argo node status offload is disabled; inline and compressed node status hydration only")
 }
 
 func loadArgoPersistConfig(ctx context.Context, kube kubernetes.Interface) (*argoconfig.PersistConfig, string, error) {

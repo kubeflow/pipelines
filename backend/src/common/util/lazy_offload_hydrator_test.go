@@ -17,6 +17,7 @@ package util
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -233,7 +234,9 @@ func TestLazyOffloadHydrator_DisabledOffloadReloadable(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	require.NoError(t, TryInitLazyOffloadHydrator(lazy, ctx))
+	offloadEnabled, err := TryInitLazyOffloadHydrator(lazy, ctx)
+	require.NoError(t, err)
+	assert.False(t, offloadEnabled)
 	assert.Equal(t, int32(1), loadCalls.Load())
 
 	wf := &workflowapi.Workflow{
@@ -256,6 +259,45 @@ func TestLazyOffloadHydrator_DisabledOffloadReloadable(t *testing.T) {
 
 	require.NoError(t, lazy.Hydrate(ctx, wf))
 	assert.Equal(t, int32(3), loadCalls.Load())
+}
+
+func TestTryInitLazyOffloadHydrator_OffloadEnabled(t *testing.T) {
+	repo := NewMemoryOffloadNodeStatusRepo()
+	inner := NewMemoryWorkflowHydrator(repo)
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		return inner, nil
+	})
+
+	offloadEnabled, err := TryInitLazyOffloadHydrator(lazy, context.Background())
+	require.NoError(t, err)
+	assert.True(t, offloadEnabled)
+}
+
+func TestLazyOffloadHydrator_DehydrateTooLargeOffloadDisabled(t *testing.T) {
+	cleanup := packer.SetMaxWorkflowSize(1)
+	t.Cleanup(cleanup)
+
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		return hydratorfake.Noop, nil
+	})
+
+	nodes := make(workflowapi.Nodes, 32)
+	for i := 0; i < 32; i++ {
+		id := fmt.Sprintf("node-%d", i)
+		nodes[id] = workflowapi.NodeStatus{
+			ID:   id,
+			Name: fmt.Sprintf("my-wf.%s", id),
+			Type: workflowapi.NodeTypePod,
+		}
+	}
+	wf := &workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{Nodes: nodes},
+	}
+
+	err := lazy.Dehydrate(withArgoLogger(context.Background()), wf)
+	require.Error(t, err)
+	assert.True(t, packer.IsTooLargeError(err))
+	assert.NotEmpty(t, wf.Status.Nodes)
 }
 
 func TestLazyOffloadHydrator_ConcurrentInit(t *testing.T) {
