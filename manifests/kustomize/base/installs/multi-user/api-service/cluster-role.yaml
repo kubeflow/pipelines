@@ -80,4 +80,6 @@ rules:
   - get
 # If Argo nodeStatusOffLoad is enabled, grant get on the Secret names from
 # workflow-controller-configmap persistence.{postgresql,mysql}.{userNameSecret,passwordSecret}
-# in a site overlay. Do not hard-code those names here.
+# in a site overlay and ensure DB connectivity. Terminal workflow reports fail
+# closed without hydration rather than persisting a bare offload pointer.
+# Do not hard-code those Secret names here.
