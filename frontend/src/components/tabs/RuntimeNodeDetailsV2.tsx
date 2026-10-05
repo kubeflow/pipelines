@@ -222,7 +222,16 @@ function TaskNodeDetail({
 
   return (
     <div className={commonCss.page}>
-      {runId && <DebugPauseResumeBanner runId={runId} task={task} />}
+      {runId && (
+        <DebugPauseResumeBanner
+          // Key on the barrier so a task that parks at a second barrier
+          // (e.g. before -> after) remounts with fresh mutation state -
+          // otherwise the Resume button stays disabled from the first click.
+          key={getDebugPauseBarrier(task) ?? 'none'}
+          runId={runId}
+          task={task}
+        />
+      )}
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}

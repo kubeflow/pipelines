@@ -839,5 +839,45 @@ describe('RuntimeNodeDetailsV2', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Details' }));
       await screen.findByText(/Failed to request resume: server unreachable/);
     });
+
+    it('re-enables the Resume button when the task parks at a second barrier', async () => {
+      vi.spyOn(Apis.runServiceApiV2, 'task_2').mockResolvedValue({
+        task_id: TEST_TASK_ID,
+      });
+
+      const view = (barrier: string | undefined) => (
+        <CommonTestWrapper>
+          <RuntimeNodeDetailsV2
+            layers={['root']}
+            onLayerChange={() => {}}
+            runId={TEST_RUN_ID}
+            element={executionElement}
+            elementRuntimeInfo={{
+              task: createTask({
+                state: PipelineTaskTaskState.RUNNING,
+                status_metadata: {
+                  custom_properties: (barrier ? { debug_pause_barrier: barrier } : {}) as {
+                    [key: string]: object;
+                  },
+                },
+              }),
+            }}
+            namespace={TEST_NAMESPACE}
+          />
+        </CommonTestWrapper>
+      );
+
+      const { rerender } = render(view('before'));
+      fireEvent.click(screen.getByText('Resume'));
+      await screen.findByRole('button', { name: 'Details' });
+      expect(screen.getByText('Resume')).toBeDisabled();
+
+      // Task resumes, runs, then parks again at the "after" barrier.
+      rerender(view(undefined));
+      rerender(view('after'));
+
+      expect(screen.getByText(/paused after running for debugging/)).toBeInTheDocument();
+      expect(screen.getByText('Resume')).toBeEnabled();
+    });
   });
 });

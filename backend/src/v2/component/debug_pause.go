@@ -155,8 +155,13 @@ func NewKFPAPIPauseSignaler(client kfpapi.API, runID, taskID string) PauseSignal
 }
 
 func (s *kfpAPIPauseSignaler) PublishBarrier(ctx context.Context, barrier DebugPauseBarrier) error {
+	// The resume flag must be reset at every publish, not just by
+	// ClearBarrier: ClearBarrier is best effort, so a stale "true" from a
+	// previous barrier can survive if its UpdateTask failed - and would
+	// otherwise release this barrier on the very first poll.
 	return s.mergeCustomProperties(ctx, map[string]*structpb.Value{
-		customPropDebugPauseBarrier: structpb.NewStringValue(string(barrier)),
+		customPropDebugPauseBarrier:         structpb.NewStringValue(string(barrier)),
+		customPropDebugPauseResumeRequested: structpb.NewStringValue("false"),
 	})
 }
 
