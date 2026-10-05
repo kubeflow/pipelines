@@ -28,7 +28,7 @@ SCRIPT = Path(__file__).resolve(
 
 class LiveCITests(unittest.TestCase):
 
-    def test_release_upgrade_is_pinned_and_schedule_lane_stays_disabled(self):
+    def test_release_upgrade_is_pinned_and_schedule_lane_requires_opt_in(self):
         workflow = SCRIPT.parents[2] / 'workflows/upgrade-test.yml'
         text = workflow.read_text()
         self.assertIn('lastRelease=2.17.2', text)
@@ -36,6 +36,14 @@ class LiveCITests(unittest.TestCase):
         self.assertIn('branches: [release-2.18]', text)
         lane = text.split('  readiness-schedules:', 1)[1]
         self.assertIn("vars.KFP_218_READINESS_SCHEDULES == 'enabled'", lane)
+        self.assertIn("github.event_name == 'workflow_dispatch'", lane)
+        self.assertIn('inputs.run_readiness_schedules', lane)
+        dispatch = text.split('  workflow_dispatch:',
+                              1)[1].split('  pull_request:', 1)[0]
+        self.assertRegex(
+            dispatch,
+            r'run_readiness_schedules:[\s\S]*type: boolean[\s\S]*default: false'
+        )
         self.assertIn("steps.prepare-upgrade.outcome == 'success'", text)
         self.assertNotIn('KFP_ENABLE_MLMD_UPGRADE_TESTS', text)
 
@@ -48,44 +56,87 @@ class LiveCITests(unittest.TestCase):
         for block in blocks:
             compile(block, str(SCRIPT), 'exec')
 
-    def test_phase_drain_requires_terminal_runs_and_source_success(self):
+    def test_phase_drain_requires_successful_runs_after_schedules_stop(self):
         body = re.search(r"<<'PYDRAIN'\n(.*?)\nPYDRAIN\n", SCRIPT.read_text(),
                          re.DOTALL).group(1)
-        for phase, run_state, passes in [('target', 'RUNNING', False),
-                                         ('source', 'FAILED', False),
-                                         ('source', 'SUCCEEDED', True),
-                                         ('target', 'FAILED', True)]:
-            with self.subTest(
-                    phase=phase, state=run_state), tempfile.TemporaryDirectory(
-                    ) as directory:
-                root = Path(directory)
-                (root / 'fixture').mkdir()
-                (root / 'reports').mkdir()
-                (root / 'fixture/state.json').write_text(
-                    json.dumps({
-                        'namespace': 'fixture',
-                        'schedules': [{
-                            'schedule_uid': 'uid'
-                        }]
-                    }))
-                with mock.patch(
-                        'sys.argv',
-                    ['drain', directory, phase
-                    ]), mock.patch('kfp_http.Client'), mock.patch(
-                        'live_schedule_check.list_runs',
-                        return_value=[{
+        for phase in ('source', 'enforce', 'audit'):
+            for run_state in ('RUNNING', 'FAILED', 'CANCELED', 'SKIPPED',
+                              'UNKNOWN', 'SUCCEEDED'):
+                with self.subTest(phase=phase, state=run_state):
+                    self.run_drain(
+                        body,
+                        phase, [{
+                            'run_id': 'new',
                             'state': run_state
-                        }]), mock.patch(
-                            'time.monotonic',
-                            side_effect=[0, 0, 301]), mock.patch('time.sleep'):
-                    if passes:
+                        }],
+                        passes=run_state == 'SUCCEEDED')
+
+    def run_drain(self, body, phase, records, *, passes, blocked=False):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'fixture').mkdir()
+            (root / 'reports').mkdir()
+            case = {
+                'schedule_uid': 'uid',
+                'scenario': 'test',
+                'service_account': 'runner',
+                'baseline_run_ids': ['source-run'],
+                'expected_outcome': 'blocked' if blocked else 'run_created'
+            }
+            (root / 'fixture/state.json').write_text(
+                json.dumps({
+                    'namespace': 'fixture',
+                    'schedules': [case]
+                }))
+            (root /
+             'fixture/activation-start.txt').write_text('2026-01-01T00:00:00Z')
+            (root / f'reports/{phase}-baseline.json').write_text(
+                json.dumps({'cases': [case]}))
+            with mock.patch('sys.argv',
+                            ['drain', directory, phase
+                            ]), mock.patch('kfp_http.Client'), mock.patch(
+                                'live_schedule_check.run_evidence',
+                                return_value=records) as evidence, mock.patch(
+                                    'time.monotonic',
+                                    side_effect=[0, 0, 301
+                                                ]), mock.patch('time.sleep'):
+                if passes:
+                    exec(compile(body, str(SCRIPT), 'exec'), {})
+                else:
+                    with self.assertRaises(SystemExit):
                         exec(compile(body, str(SCRIPT), 'exec'), {})
-                    else:
-                        with self.assertRaises(SystemExit):
-                            exec(compile(body, str(SCRIPT), 'exec'), {})
-                self.assertEqual(
-                    (root / 'reports/source-completion.json').exists(),
-                    phase == 'source' and passes)
+            self.assertEqual(evidence.call_args.args[2]['baseline_run_ids'],
+                             [] if phase == 'source' else ['source-run'])
+            report = root / f'reports/{phase}-completion.json'
+            self.assertEqual(report.exists(), passes)
+            if passes:
+                value = json.loads(report.read_text())
+                self.assertEqual(value['cases'][0]['runs'], records)
+                self.assertTrue(value['all_expected_runs_succeeded'])
+
+    def test_target_completion_rejects_late_blocked_or_failed_runs(self):
+        body = re.search(r"<<'PYDRAIN'\n(.*?)\nPYDRAIN\n", SCRIPT.read_text(),
+                         re.DOTALL).group(1)
+        self.run_drain(body, 'enforce', [], passes=True, blocked=True)
+        self.run_drain(
+            body,
+            'enforce', [{
+                'run_id': 'late',
+                'state': 'RUNNING'
+            }],
+            passes=False,
+            blocked=True)
+        self.run_drain(
+            body,
+            'audit', [{
+                'run_id': 'first',
+                'state': 'SUCCEEDED'
+            }, {
+                'run_id': 'late',
+                'state': 'FAILED'
+            }],
+            passes=False)
+        self.run_drain(body, 'audit', [], passes=False)
 
     def test_absent_first_policy_marker_fails_even_with_later_markers(self):
         with tempfile.TemporaryDirectory() as directory:

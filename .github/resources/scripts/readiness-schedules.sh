@@ -109,39 +109,52 @@ capture() {
     >"$reports/$mode-baseline.json"
 }
 drain() {
-  local require_success=$1
-  python3 - "$state" "$require_success" <<'PYDRAIN'
+  local mode=$1
+  python3 - "$state" "$mode" <<'PYDRAIN'
 import json
 from pathlib import Path
 import sys
 import time
 from kfp_http import Client
-from live_schedule_check import list_runs
+from live_schedule_check import FAILED_STATES, run_evidence, timestamp
 state = Path(sys.argv[1])
 fixture = json.loads((state / 'fixture/state.json').read_text())
-terminal = {'SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED'}
+mode = sys.argv[2]
+start = timestamp((state / 'fixture/activation-start.txt').read_text().strip())
+if mode == 'source':
+    cases = [dict(case, baseline_run_ids=[], expected_outcome='run_succeeded')
+             for case in fixture['schedules']]
+else:
+    cases = json.loads((state / f'reports/{mode}-baseline.json').read_text())['cases']
 try:
     deadline = time.monotonic() + 300
     while time.monotonic() < deadline:
         client = Client('http://127.0.0.1:8888', state / 'token')
         complete = True
-        for case in fixture['schedules']:
-            records = list_runs(client, fixture['namespace'], case['schedule_uid'])
-            if any(run.get('state') not in terminal for run in records):
+        evidence = []
+        for case in cases:
+            records = run_evidence(client, fixture['namespace'], case, start)
+            if case['expected_outcome'] == 'blocked':
+                if records:
+                    raise ValueError('blocked_schedule_created_run')
+            elif any(run['state'] in FAILED_STATES for run in records):
+                raise ValueError('fixture_run_did_not_succeed')
+            elif not records or any(run['state'] != 'SUCCEEDED' for run in records):
                 complete = False
-            if sys.argv[2] == 'source' and not any(run.get('state') == 'SUCCEEDED' for run in records):
-                complete = False
+            evidence.append({'scenario': case['scenario'], 'schedule_uid': case['schedule_uid'],
+                             'service_account': case['service_account'],
+                             'runs': records})
         if complete:
-            if sys.argv[2] == 'source':
-                (state / 'reports/source-completion.json').write_text(json.dumps({
-                    'source_version': '2.17.2', 'scope': 'fixture_run_completion',
-                    'outcome': 'passed', 'all_scenarios_succeeded': True}))
+            (state / f'reports/{mode}-completion.json').write_text(json.dumps({
+                'scope': 'fixture_run_completion', 'mode': mode, 'outcome': 'passed',
+                'namespace': fixture['namespace'], 'observation_start': start.isoformat(),
+                'all_expected_runs_succeeded': True, 'cases': evidence}))
             break
         time.sleep(5)
     else:
         raise ValueError('fixture_runs_not_drained')
 except Exception:
-    sys.exit('Fixture drain failed: disable schedules and establish terminal runs before continuing.')
+    sys.exit('Fixture completion failed: disable schedules and establish successful expected runs before continuing.')
 PYDRAIN
 }
 observe() {
@@ -150,10 +163,10 @@ observe() {
   python3 "$helpers/live_schedule_check.py" --context "$context" --namespace "$namespace" \
     --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
     --expectations "$reports/$mode-baseline.json" --prediction-report "$reports/$mode-prediction.json" \
-    --not-before "$(cat "$state/fixture/activation-start.txt")" --timeout-seconds 180 \
+    --not-before "$(cat "$state/fixture/activation-start.txt")" --timeout-seconds 180 --require-run-success \
     >"$reports/$mode-observed.json"
   fixture --phase disable
-  drain target
+  drain "$mode"
 }
 
 if [[ "$phase" == source ]]; then
@@ -267,4 +280,7 @@ else
   # Use the source-generated audit prediction, with a fresh baseline after enforce.
   capture audit
   observe audit
+  python3 "$helpers/verify_live_audit.py" --context "$context" \
+    --not-before "$(cat "$state/fixture/activation-start.txt")" \
+    --completion-report "$reports/audit-completion.json" >"$reports/audit-emission.json"
 fi
