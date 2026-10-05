@@ -138,6 +138,8 @@ version was accessible. Reads are not an atomic snapshot; rerun near upgrade tim
 Failures and repeated pagination tokens remain unknown, retaining earlier evidence.
 Limits are 100 pages per namespace, 10000 recurring-run records, 200 HTTP requests,
 16 MiB per response and cumulatively, and a 20-second request/body budget.
+The remaining budget applies to every socket read, including response headers
+and chunk framing, so a slowly arriving response cannot reset the deadline.
 The 10000-record target budget is shared with experiments and target RBAC. DNS
 resolution is subject to operating-system timeouts. Requests stop succeeding when
 a budget is exhausted; reduce the explicit scope. Target bundle limits still apply.
@@ -340,7 +342,7 @@ that monthly schedules or unobserved clients will work.
 python3 -m unittest discover -s tools/upgrade-readiness -p 'test_*.py' -v
 ```
 
-Tests use synthetic inventories and subprocesses, never a real cluster. They cover
+Tests use synthetic inventories, subprocesses and loopback HTTP servers, never a real cluster. They cover
 role scope/wildcards, unresolved aggregation, missing permissions, environment
 imports, sensitive-value exclusion, output bounds, CLI errors and incomplete
 assessment semantics, opt-in schedule scope, unresolved defaults and embedded

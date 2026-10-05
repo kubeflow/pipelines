@@ -11,9 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import io
 from pathlib import Path
+import socket
 import tempfile
+import threading
+import time
 import unittest
 from unittest import mock
 import urllib.error
@@ -27,6 +31,38 @@ class Response(io.BytesIO):
 
 
 class ClientTest(unittest.TestCase):
+
+    @contextlib.contextmanager
+    def server(self, prefix, suffix=b'', slow_bytes=0):
+        with socket.socket() as listener:
+            listener.bind(('127.0.0.1', 0))
+            listener.listen()
+            listener.settimeout(3)
+            stop = threading.Event()
+
+            def serve():
+                try:
+                    connection, _ = listener.accept()
+                    with connection:
+                        connection.settimeout(3)
+                        connection.recv(4096)
+                        connection.sendall(prefix)
+                        for _ in range(slow_bytes):
+                            connection.sendall(b'x')
+                            if stop.wait(0.025):
+                                return
+                        connection.sendall(suffix)
+                except OSError:
+                    pass
+
+            server = threading.Thread(target=serve)
+            server.start()
+            try:
+                yield f'http://127.0.0.1:{listener.getsockname()[1]}'
+            finally:
+                stop.set()
+                server.join(4)
+            self.assertFalse(server.is_alive())
 
     def client(self, body=b'{}'):
         client = kfp_http.Client('http://127.0.0.1:8888/pipeline')
@@ -87,9 +123,11 @@ class ClientTest(unittest.TestCase):
             {'HTTPS_PROXY': 'http://untrusted:8080'
             }), mock.patch('kfp_http.urllib.request.build_opener') as build:
             kfp_http.Client('https://host')
-        proxy, redirect, https = build.call_args.args
+        proxy, redirect, http, https = build.call_args.args
         self.assertEqual({}, proxy.proxies)
         self.assertIsInstance(redirect, kfp_http._NoRedirect)
+        self.assertIsInstance(http, kfp_http._DeadlineHTTPHandler)
+        self.assertIsInstance(https, kfp_http._DeadlineHTTPSHandler)
         self.assertTrue(https._context.check_hostname)
         self.assertEqual(2, https._context.verify_mode)
 
@@ -172,6 +210,35 @@ class ClientTest(unittest.TestCase):
             with self.assertRaisesRegex(kfp_http.CollectionError,
                                         '^request_timeout$'):
                 self.client().get('/apis/v2beta1/runs')
+
+    def test_deadline_interrupts_slow_http_framing(self):
+        for prefix, suffix in (
+            (b'HTTP/1.1 200 OK\r\nX-Slow: ',
+             b'\r\nContent-Length: 2\r\n\r\n{}'),
+            (b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n2;',
+             b'\r\n{}\r\n0\r\n\r\n'),
+            (b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n'
+             b'2\r\n{}\r\n0\r\nX-Slow: ', b'\r\n\r\n'),
+        ):
+            with self.subTest(prefix=prefix), self.server(
+                    prefix, suffix, slow_bytes=80) as endpoint:
+                client = kfp_http.Client(endpoint)
+                with mock.patch.object(kfp_http, 'TIMEOUT_SECONDS', 0.25):
+                    started = time.monotonic()
+                    with self.assertRaisesRegex(kfp_http.CollectionError,
+                                                '^request_timeout$'):
+                        client.get('/apis/v2beta1/runs')
+                    self.assertLess(time.monotonic() - started, 1.25)
+
+    def test_deadline_reader_preserves_complete_responses(self):
+        for response in (
+                b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}',
+                b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n'
+                b'2;key=value\r\n{}\r\n0\r\nX-Trailer: value\r\n\r\n'):
+            with self.subTest(
+                    response=response), self.server(response) as endpoint:
+                self.assertEqual(
+                    kfp_http.Client(endpoint).get('/apis/v2beta1/runs'), {})
 
 
 if __name__ == '__main__':

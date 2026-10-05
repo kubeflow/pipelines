@@ -221,6 +221,80 @@ class LiveTests(unittest.TestCase):
             sleep=lambda _: None)
         self.assertEqual(report['outcome'], 'passed')
 
+    def test_final_collection_covers_sleep_and_inflight_request(self):
+        control = dict(
+            self.case,
+            schedule_uid='control',
+            schedule_name='control',
+            expected_prediction='no_issue_detected',
+            expected_outcome='run_created')
+        control_run = dict(
+            self.run,
+            recurring_run_id='control',
+            created_at='2026-01-01T00:00:01Z')
+        late_run_record = dict(self.run, created_at='2026-01-01T00:00:25Z')
+        event = dict(self.event, lastTimestamp='2026-01-01T00:00:01Z')
+        for slow_request in (False, True):
+            for late_run in (False, True):
+                with self.subTest(slow_request=slow_request, late_run=late_run):
+                    clock = Mock(return_value=0)
+                    client = Mock()
+                    blocked_queries = []
+
+                    def get(path, params=None):
+                        if '/experiments/' in path:
+                            return {'experiment_id': 'exp', 'namespace': 'team'}
+                        if 'control' in params['filter']:
+                            if slow_request:
+                                clock.return_value += 11
+                            return {'runs': [control_run]}
+                        blocked_queries.append(clock.return_value)
+                        if late_run and clock.return_value >= 25:
+                            return {'runs': [late_run_record]}
+                        return {'runs': []}
+
+                    def sleep(seconds):
+                        clock.return_value += seconds
+
+                    client.get.side_effect = get
+                    report = live.observe(
+                        client,
+                        'ctx',
+                        'team', [self.case, control],
+                        self.start,
+                        30,
+                        get=lambda *_: [event],
+                        clock=clock,
+                        sleep=sleep)
+                    self.assertEqual(report['outcome'],
+                                     'failed' if late_run else 'passed')
+                    self.assertGreaterEqual(blocked_queries[-1], 30)
+                    self.assertEqual(sum(t >= 30 for t in blocked_queries), 1)
+
+    def test_final_collection_failure_is_not_ignored(self):
+        case = dict(
+            self.case,
+            expected_prediction='no_issue_detected',
+            expected_outcome='run_created')
+        client = Mock()
+        client.get.side_effect = lambda path, *args: ({
+            'experiment_id': 'exp',
+            'namespace': 'team'
+        } if '/experiments/' in path else {
+            'runs': [self.run]
+        })
+        events = Mock(side_effect=[[], CollectionError('request_failed')])
+        with self.assertRaises(CollectionError):
+            live.observe(
+                client,
+                'ctx',
+                'team', [case],
+                self.start,
+                30,
+                get=events,
+                clock=Mock(side_effect=[0, 0, 30, 30]),
+                sleep=lambda _: None)
+
     def test_experiment_namespace_mismatch(self):
         client = Mock()
         client.get.side_effect = lambda path, *args: ({
