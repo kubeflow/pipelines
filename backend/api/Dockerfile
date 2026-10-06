@@ -33,7 +33,8 @@ RUN set -eu; \
     case "${TARGETARCH}" in \
         amd64) protoc_arch=x86_64 ;; \
         arm64) protoc_arch=aarch_64 ;; \
-        *) echo "Unsupported TARGETARCH: ${TARGETARCH}. Use amd64 or arm64." >&2; exit 1 ;; \
+        ppc64le) protoc_arch=ppcle_64 ;; \
+        *) echo "Unsupported TARGETARCH: ${TARGETARCH}. Use amd64, arm64 or ppc64le" >&2; exit 1 ;; \
     esac; \
     curl -fL -o protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${protoc_arch}.zip"
 RUN unzip -o protoc.zip -d /tmp/protoc && \
