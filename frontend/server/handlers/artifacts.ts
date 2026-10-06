@@ -48,7 +48,11 @@ import { isAllowedDomain, isTrustedArtifactEndpoint } from './domain-checker.js'
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import { validateArtifactNamespace, buildArtifactUri } from '../helpers/mlmd-validator.js';
+import {
+  validateArtifactNamespace,
+  buildArtifactUri,
+  decideFromPrefixFallback,
+} from '../helpers/mlmd-validator.js';
 import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
 import {
   AuthorizeRequestResources,
@@ -76,6 +80,30 @@ interface ArtifactsQueryStrings {
 }
 
 type ArtifactSource = ArtifactsQueryStrings['source'];
+
+type AuthorizedArtifact = {
+  source: string;
+  bucket: string;
+  key: string;
+  namespace: string;
+  auditCustomRoot: boolean;
+  envoyAddress?: string;
+};
+
+// Keep authorization evidence separate from mutable Express route/query objects.
+const authorizedArtifacts = new WeakMap<Request, Readonly<AuthorizedArtifact>>();
+
+function matchesAuthorizedArtifact(
+  authorized: Readonly<AuthorizedArtifact>,
+  coordinates: { source: string; bucket: string; key: string; namespace: string },
+): boolean {
+  return (
+    authorized.source === coordinates.source &&
+    authorized.bucket === coordinates.bucket &&
+    authorized.key === coordinates.key &&
+    authorized.namespace === coordinates.namespace
+  );
+}
 
 const ARTIFACT_SOURCES = new Set<ArtifactSource>(['minio', 's3', 'gcs', 'http', 'https', 'volume']);
 const ARTIFACT_QUERY_PARAMETER_NAMES = [
@@ -339,6 +367,7 @@ export function getArtifactsAuthMiddleware(
       return;
     }
     const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
+    let auditCustomRoot = false;
     if (mlmdTrackedSources.has(coords.source) && coords.bucket && coords.key) {
       if (!envoyAddress) {
         sendArtifactError(response, 503, 'Artifact ownership validation is unavailable');
@@ -348,6 +377,7 @@ export function getArtifactsAuthMiddleware(
       const validation = await validateArtifactNamespace(envoyAddress, artifactUri, namespace);
 
       if (validation.valid && validation.reason === 'audit-custom-root') {
+        auditCustomRoot = true;
         console.warn('[SECURITY] artifact_ownership_audit', {
           namespace,
           source: coords.source,
@@ -369,6 +399,10 @@ export function getArtifactsAuthMiddleware(
         return;
       }
     }
+    authorizedArtifacts.set(
+      request,
+      Object.freeze({ ...coords, namespace, auditCustomRoot, envoyAddress }),
+    );
     next();
   };
 }
@@ -422,6 +456,14 @@ export function getArtifactsHandler({
       return;
     }
     const { source, bucket, key, peek, providerInfo, namespace, download } = artifactRequest;
+    const authorized = authorizedArtifacts.get(req);
+    if (
+      (options.auth.enabled && !authorized) ||
+      (authorized && !matchesAuthorizedArtifact(authorized, artifactRequest))
+    ) {
+      sendArtifactError(res, 403, 'Artifact request differs from the authorized artifact');
+      return;
+    }
     const keyBaseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
     const setArtifactFilename = (transformed: boolean) => {
       res.setHeader(
@@ -662,6 +704,42 @@ export function getArtifactsHandler({
           http.auth,
           peek,
           absoluteHttpBase ? new URL(http.baseUrl.trim()) : undefined,
+          authorized
+            ? async (target: URL) => {
+                const initial = new URL(httpUrl);
+                if (target.origin !== initial.origin || target.search || target.hash) return false;
+                // Audit evidence covers the initial custom-root object, not a new
+                // object selected by the storage server's redirect response.
+                if (authorized.auditCustomRoot) return target.href === initial.href;
+                let redirectedKey = target.pathname.slice(1);
+                if (!absoluteHttpBase) {
+                  const root = new URL(getHttpUrl(source, http.baseUrl, bucket, '')!);
+                  root.pathname = root.pathname.replace(/\/?$/, '/');
+                  if (!target.pathname.startsWith(root.pathname)) return false;
+                  try {
+                    redirectedKey = decodeURIComponent(target.pathname.slice(root.pathname.length));
+                  } catch {
+                    return false;
+                  }
+                }
+                const redirectedUri = buildArtifactUri(source, bucket, redirectedKey);
+                if (
+                  !authorized.envoyAddress ||
+                  !decideFromPrefixFallback(redirectedUri, authorized.namespace, 'mlmd-then-prefix')
+                    .valid
+                )
+                  return false;
+                // A matching prefix alone must not override strict MLMD mode
+                // or conflicting ownership evidence for the redirected object.
+                return (
+                  await validateArtifactNamespace(
+                    authorized.envoyAddress,
+                    redirectedUri,
+                    authorized.namespace,
+                  )
+                ).valid;
+              }
+            : undefined,
         )(req, res);
         break;
       }
@@ -941,6 +1019,7 @@ function getHttpArtifactsHandler(
   } = { key: '', defaultValue: '' },
   peek: number = 0,
   approvedBase?: URL,
+  authorizeRedirect?: (target: URL) => Promise<boolean>,
 ) {
   return async (req: Request, res: Response) => {
     const headers: Record<string, string> = {};
@@ -974,6 +1053,10 @@ function getHttpArtifactsHandler(
           400,
           'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.',
         );
+        return;
+      }
+      if (hop > 0 && authorizeRedirect && !(await authorizeRedirect(new URL(allowedUrl)))) {
+        sendArtifactError(res, 403, 'Redirected artifact is outside the authorized artifact scope');
         return;
       }
       if (new URL(allowedUrl).origin !== credentialOrigin) {
@@ -1637,7 +1720,7 @@ export function getArtifactsProxyHandler({
       const key = url.searchParams.getAll('key');
       const download = url.searchParams.getAll('download');
       if (
-        url.pathname.endsWith('/artifacts/get') &&
+        /\/artifacts\/get\/?$/i.test(url.pathname) &&
         source.length === 1 &&
         bucket.length === 1 &&
         key.length === 1 &&
@@ -1654,7 +1737,7 @@ export function getArtifactsProxyHandler({
         url.searchParams.delete('bucket');
         url.searchParams.delete('key');
         url.searchParams.delete('download');
-        const artifactPath = url.pathname.slice(0, -'get'.length);
+        const artifactPath = url.pathname.replace(/get\/?$/i, '');
         return (
           `${artifactPath}${encodeURIComponent(source[0])}/${encodeURIComponent(bucket[0])}/` +
           `${encodeURIComponent(key[0])}${url.search}`
@@ -1681,6 +1764,34 @@ export function getArtifactsProxyHandler({
   return (req, res, next) => {
     hardenArtifactResponse(res);
     const namespace = getNamespaceFromUrl(req.url || '');
+    const authorized = authorizedArtifacts.get(req);
+    if (authorized) {
+      // The proxy consumes req.url, not Express's parsed query/params. Check
+      // that actual forwarding input before removing namespace or rewriting
+      // query-based downloads for older tenant artifact services.
+      const forwardedUrl = new URL(req.url, DUMMY_BASE_PATH);
+      const forwardedQuery = Object.fromEntries(forwardedUrl.searchParams);
+      const forwardedCoordinates = resolveArtifactCoordinates({
+        path: forwardedUrl.pathname,
+        query: forwardedQuery,
+      });
+      const duplicateParameter = ARTIFACT_QUERY_PARAMETER_NAMES.some(
+        (name) => forwardedUrl.searchParams.getAll(name).length > 1,
+      );
+      if (
+        duplicateParameter ||
+        !forwardedCoordinates ||
+        !matchesAuthorizedArtifact(authorized, {
+          ...forwardedCoordinates,
+          namespace: namespace || '',
+        })
+      ) {
+        sendArtifactError(res, 403, 'Artifact request differs from the authorized artifact');
+        return;
+      }
+      // Older tenant services cannot enforce the central HTTP redirect policy.
+      if (authorized.source === 'http' || authorized.source === 'https') return next();
+    }
     if (namespace && !isAllowedResourceName(namespace)) {
       sendArtifactError(res, 400, 'Invalid namespace');
       return;

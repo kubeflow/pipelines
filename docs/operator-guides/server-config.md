@@ -193,6 +193,25 @@ the namespace ownership policy apply: artifact keys and redirects must stay unde
 use `https://files.example:9443/private-artifacts/` as the base for namespace-scoped
 URIs; the `/reports/` example above applies to standalone deployments.
 
+Multi-user HTTP redirects cannot change origin or logical gateway bucket, and
+each redirected object must remain under the authorized namespace prefix. This
+object is also revalidated against the configured MLMD ownership policy: strict
+`mlmd-only` mode and conflicting ownership evidence continue to deny access. The
+check runs on the shared UI before contacting the redirect destination, including
+during rolling upgrades with older tenant proxies. Keep HTTP credentials and
+network access available to the shared UI; configuring them only on tenant
+proxies is insufficient. Redirect destinations containing queries or fragments
+are rejected, including redirects to query-signed download URLs. Use the supported
+HTTP header authentication configuration instead.
+
+The temporary `ARTIFACT_OWNERSHIP_ENFORCEMENT=audit` setting still permits an
+initial custom-root read with matching MLMD evidence. That evidence does not
+authorize another object chosen by an HTTP redirect: custom-root redirects are
+denied unless the destination is the identical URL. Use the final artifact URL
+directly while migrating custom roots. Standalone deployments retain approved-base
+redirect behavior without namespace checks. Object-store downloads continue to
+use tenant proxies and support their legacy download route during rolling upgrades.
+
 The installation also propagates the base to profile proxies for their direct
 HTTP serving configuration. Restart `kubeflow-pipelines-profile-controller` and
 wait for its rollout to finish. The controller watches enabled Namespace objects;
