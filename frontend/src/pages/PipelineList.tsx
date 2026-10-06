@@ -34,7 +34,7 @@ import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
-import { Box, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 interface DisplayPipeline extends V2beta1Pipeline {
@@ -115,37 +115,6 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Tooltip title='More actions'>
-            <IconButton
-              id='pipeline-more-actions'
-              aria-label='More actions'
-              aria-haspopup='menu'
-              aria-controls={
-                this.state.moreActionsAnchor ? 'pipeline-more-actions-menu' : undefined
-              }
-              aria-expanded={!!this.state.moreActionsAnchor}
-              onClick={(event) => this.setState({ moreActionsAnchor: event.currentTarget })}
-            >
-              <MoreVertIcon />
-            </IconButton>
-          </Tooltip>
-          <Menu
-            id='pipeline-more-actions-menu'
-            anchorEl={this.state.moreActionsAnchor}
-            open={!!this.state.moreActionsAnchor}
-            onClose={() => this.setState({ moreActionsAnchor: null })}
-            MenuListProps={{ 'aria-labelledby': 'pipeline-more-actions' }}
-          >
-            <MenuItem
-              component={Link}
-              to={RoutePage.METADATA_TRANSFER}
-              onClick={() => this.setState({ moreActionsAnchor: null })}
-            >
-              Import / export namespace data…
-            </MenuItem>
-          </Menu>
-        </Box>
         <CustomTable
           ref={this._tableRef}
           columns={columns}
@@ -157,6 +126,39 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
           filterLabel='Filter pipelines'
+          filterActions={
+            <>
+              <Tooltip title='More actions'>
+                <IconButton
+                  id='pipeline-more-actions'
+                  aria-label='More actions'
+                  aria-haspopup='menu'
+                  aria-controls={
+                    this.state.moreActionsAnchor ? 'pipeline-more-actions-menu' : undefined
+                  }
+                  aria-expanded={!!this.state.moreActionsAnchor}
+                  onClick={(event) => this.setState({ moreActionsAnchor: event.currentTarget })}
+                >
+                  <MoreVertIcon />
+                </IconButton>
+              </Tooltip>
+              <Menu
+                id='pipeline-more-actions-menu'
+                anchorEl={this.state.moreActionsAnchor}
+                open={!!this.state.moreActionsAnchor}
+                onClose={() => this.setState({ moreActionsAnchor: null })}
+                MenuListProps={{ 'aria-labelledby': 'pipeline-more-actions' }}
+              >
+                <MenuItem
+                  component={Link}
+                  to={RoutePage.METADATA_TRANSFER}
+                  onClick={() => this.setState({ moreActionsAnchor: null })}
+                >
+                  Import / export namespace data…
+                </MenuItem>
+              </Menu>
+            </>
+          }
           emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
         />
       </div>
