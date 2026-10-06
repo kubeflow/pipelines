@@ -10,13 +10,13 @@ import http.client
 import json
 from pathlib import Path
 import subprocess
+import time
 from urllib.parse import urlencode
 
 CONTEXT = 'kind-kfp-custom-roles'
 TEAM = 'kfp-roles-team'
 OTHER = 'kfp-roles-other'
 LIMIT = 4 * 1024 * 1024
-USERS = ('author', 'publisher', 'no-reader', 'log-reader', 'viewer', 'manager')
 
 
 def kube(*args, value=None):
@@ -94,6 +94,7 @@ def resources():
     for namespace in (TEAM, OTHER):
         service = role(namespace, 'api-service', [
             rule('argoproj.io', ['workflows'], ['create', 'get']),
+            rule('kubeflow.org', ['scheduledworkflows'], ['create', 'get']),
             rule('', ['pods', 'pods/log', 'configmaps'], ['get']),
         ])
         service[1]['subjects'] = [
@@ -201,6 +202,13 @@ class Matrix:
                 passed=status == expected))
         if status != expected:
             raise RuntimeError('unexpected_status_' + name)
+        if expected == 401:
+            verb = {'GET': 'GET', 'POST': 'CREATE', 'DELETE': 'DELETE'}[method]
+            diagnostic = f'User is not authorized to {verb} VIEWERS in namespace {namespace}:'
+            if diagnostic.encode() not in raw:
+                self.cases[-1]['passed'] = False
+                raise RuntimeError('missing_viewer_authorization_diagnostic_' +
+                                   name)
         return raw
 
     def run(self):
@@ -248,6 +256,8 @@ class Matrix:
             'POST',
             '/apis/v2beta1/pipelines/upload?name=shared',
             upload=pipeline)
+        if private.get('namespace') != TEAM or shared.get('namespace', ''):
+            raise RuntimeError('uploaded_pipeline_scope_mismatch')
         private_id, shared_id = private['pipeline_id'], shared['pipeline_id']
         version = self.check(
             'private_version_parent_scope',
@@ -319,12 +329,29 @@ class Matrix:
             '/apis/v2beta1/runs',
             value=body(OTHER),
             expected=403)
-        self.check(
+        other_run = self.check(
             'shared_reference_other_namespace',
             'author',
             'POST',
             '/apis/v2beta1/runs',
             value=body(OTHER, dict(pipeline_id=shared_id)))
+        for namespace, actor, expected, name in (
+            (TEAM, 'author', 200, 'private_recurring_reference'),
+            (TEAM, 'no-reader', 403, 'private_recurring_reference_without_get'),
+            (OTHER, 'author', 403, 'private_recurring_cross_namespace')):
+            schedule = body(namespace)
+            schedule.update(
+                max_concurrency='1',
+                mode='DISABLE',
+                no_catchup=True,
+                trigger=dict(periodic_schedule=dict(interval_second='60')))
+            self.check(
+                name,
+                actor,
+                'POST',
+                '/apis/v2beta1/recurringruns',
+                expected=expected,
+                value=schedule)
         run_id = own_run['run_id']
         # Controlled real Pod tests the log handler and run ownership, without
         # claiming this helper executes an Argo workload or tests archived logs.
@@ -348,8 +375,17 @@ class Matrix:
                         ])
                 ]))
         kube('create', '-f', '-', value=pod)
-        kube('-n', TEAM, 'wait', '--for=condition=Ready', 'pod/role-log',
-             '--timeout=30s')
+        deadline = time.monotonic() + 120
+        while True:
+            pod_state = json.loads(
+                kube('-n', TEAM, 'get', 'pod/role-log', '-o', 'json'))
+            if any(
+                    c.get('type') == 'Ready' and c.get('status') == 'True'
+                    for c in pod_state.get('status', {}).get('conditions', [])):
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError('log_pod_not_ready')
+            time.sleep(2)
         log_path = f'/apis/v1alpha1/runs/{run_id}/nodes/role-log/log'
         status, raw = request(8888, 'log-reader', 'GET', log_path)
         passed = status == 200 and b'custom-role-log-evidence' in raw
@@ -366,6 +402,12 @@ class Matrix:
             'publisher',
             'GET',
             log_path,
+            expected=403)
+        self.check(
+            'readLog_cannot_cross_namespace',
+            'log-reader',
+            'GET',
+            f"/apis/v1alpha1/runs/{other_run['run_id']}/nodes/role-log/log",
             expected=403)
         self.ui('manager_create', 'manager', 'POST')
         viewers = json.loads(kube('-n', TEAM, 'get', 'viewers', '-o',

@@ -61,6 +61,24 @@ class CustomRoleAcceptanceTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'unexpected_status'):
                 MODULE.Matrix().ui('denied', 'viewer', 'DELETE', expected=401)
 
+    def test_unrelated_ui_unauthorized_response_fails(self):
+        with mock.patch.object(
+                MODULE,
+                'request',
+                return_value=(401, b'authentication unavailable')):
+            matrix = MODULE.Matrix()
+            with self.assertRaisesRegex(RuntimeError,
+                                        'missing_viewer_authorization'):
+                matrix.ui('denied', 'viewer', 'DELETE', expected=401)
+            self.assertFalse(matrix.cases[0]['passed'])
+
+    def test_exact_ui_denial_is_retained(self):
+        raw = b'User is not authorized to DELETE VIEWERS in namespace kfp-roles-team: Permission denied'
+        with mock.patch.object(MODULE, 'request', return_value=(401, raw)):
+            matrix = MODULE.Matrix()
+            matrix.ui('denied', 'viewer', 'DELETE', expected=401)
+            self.assertTrue(matrix.cases[0]['passed'])
+
     def test_end_users_have_only_namespaced_bindings(self):
         objects = MODULE.resources()
         for binding in objects:
