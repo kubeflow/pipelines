@@ -55,6 +55,14 @@ class PaginationTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     fixture.walk([8888], 'criteria', ['a', 'b'])
 
+    def test_saved_source_trace_is_explicit(self):
+        result = fixture.walk([8888], 'criteria', ['a'], response(['a']))
+        self.assertEqual(result['ports'], ['saved_source_page'])
+
+    def test_source_image_pin_is_required(self):
+        with self.assertRaisesRegex(ValueError, 'pinned'):
+            fixture.source(None, 'example/api:latest')
+
     def test_token_cycle_fails(self):
         with mock.patch.object(
                 fixture, 'page', return_value=response(['a'], 'same')):

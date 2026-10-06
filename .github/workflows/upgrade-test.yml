@@ -119,7 +119,7 @@ jobs:
       - name: Capture 2.17.2 filtered pages and retain old API replica
         shell: bash
         run: |
-          python3 tools/upgrade-readiness/live_pagination.py source --state "$RUNNER_TEMP/pagination-source.json"
+          python3 tools/upgrade-readiness/live_pagination.py source --state "$RUNNER_TEMP/pagination-source.json" --source-image "$(kubectl -n kubeflow get deployment ml-pipeline -o jsonpath='{.spec.template.spec.containers[0].image}')"
           # Keep the old API on the same database, isolated from the normal
           # service selector, to route each mixed-version page deliberately.
           kubectl -n kubeflow get deployment ml-pipeline -o json | python3 -c '
@@ -157,11 +157,12 @@ jobs:
           trap 'kill "$OLD_API_FORWARD_PID" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 30); do
             kill -0 "$OLD_API_FORWARD_PID"
-            if curl --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null; then
+            if curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null; then
               break
             fi
             sleep 1
           done
+          curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null
           python3 tools/upgrade-readiness/live_pagination.py target --state "$RUNNER_TEMP/pagination-source.json" --report "$RUNNER_TEMP/pagination-report.json"
 
       - name: Upload pagination acceptance evidence

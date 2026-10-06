@@ -16,6 +16,7 @@ import argparse
 import http.client
 import itertools
 import json
+import os
 from pathlib import Path
 import urllib.parse
 import uuid
@@ -95,7 +96,8 @@ def walk(ports, spec, expected, first=None, repeat=True):
         value = first if index == 0 and first is not None else page(
             port, spec, token, repeat)
         result.extend(ids(value))
-        trace.append(port)
+        trace.append(
+            'saved_source_page' if index == 0 and first is not None else port)
         token = value.get('next_page_token', '')
         if not token:
             break
@@ -114,7 +116,9 @@ def walk(ports, spec, expected, first=None, repeat=True):
     }
 
 
-def source(state_path):
+def source(state_path, source_image):
+    if not source_image.endswith(':2.17.2'):
+        raise ValueError('source API image is not pinned to 2.17.2')
     marker = 'pagination-' + uuid.uuid4().hex
     expected = []
     for index in range(7):
@@ -142,6 +146,7 @@ def source(state_path):
     state_path.write_text(
         json.dumps({
             'source_version': '2.17.2',
+            'source_image': source_image,
             'expected': expected,
             'cases': cases
         }))
@@ -202,6 +207,10 @@ def target(state_path, report_path):
                     'v2_experiments_mysql_stable_lowercase_data',
                 'source_version':
                     '2.17.2',
+                'source_image':
+                    state['source_image'],
+                'candidate_revision':
+                    os.environ['GITHUB_SHA'],
                 'candidate_port':
                     8888,
                 'source_port':
@@ -221,12 +230,21 @@ def main():
     parser.add_argument('phase', choices=('source', 'target'))
     parser.add_argument('--state', required=True, type=Path)
     parser.add_argument('--report', type=Path)
+    parser.add_argument('--source-image')
     args = parser.parse_args()
     if args.phase == 'source':
-        source(args.state)
+        if not args.source_image:
+            parser.error('--source-image is required for source')
+        source(args.state, args.source_image)
     else:
         if not args.report:
             parser.error('--report is required for target')
+        args.report.write_text(
+            json.dumps({
+                'outcome': 'inconclusive',
+                'candidate_revision': os.environ.get('GITHUB_SHA'),
+                'reason': 'validation_not_completed'
+            }) + '\n')
         target(args.state, args.report)
 
 
