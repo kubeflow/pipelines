@@ -33,35 +33,44 @@ type TransferCatalog struct {
 	RuntimeNamespace string
 }
 
-func (a TransferCatalog) Export(ctx context.Context, namespace string) ([]model.Pipeline, []model.PipelineVersion, error) {
+func (a TransferCatalog) Export(ctx context.Context, namespace string) ([]model.Pipeline, []model.PipelineVersion, map[string]string, error) {
 	scope := namespace
 	if scope == "" {
 		scope = a.RuntimeNamespace
 	}
 	if scope == "" {
-		return nil, nil, util.NewInvalidInputError("Runtime namespace is required for catalog transfer")
+		return nil, nil, nil, util.NewInvalidInputError("Runtime namespace is required for catalog transfer")
 	}
 	filter := &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: scope}}
 	rows, _, _, err := a.Store.ListPipelines(filter, list.EmptyOptions(), nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+	defaults := map[string]string{}
 	var pipelines []model.Pipeline
 	var versions []model.PipelineVersion
 	for _, p := range rows {
+		object := &crd.Pipeline{}
+		if err := a.Store.clientNoCache.Get(ctx, types.NamespacedName{Namespace: scope, Name: p.Name}, object); err != nil {
+			return nil, nil, nil, err
+		}
+		if object.Spec.DefaultVersionName != "" {
+			defaults[p.UUID] = object.Spec.DefaultVersionName
+		}
+
 		p.Status = model.PipelineReady
 		p.Namespace = namespace
 		pipelines = append(pipelines, *p)
 		vs, _, _, err := a.Store.ListPipelineVersions(p.UUID, list.EmptyOptions(), nil)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		for _, v := range vs {
 			v.Status = model.PipelineVersionReady
 			versions = append(versions, *v)
 		}
 	}
-	return pipelines, versions, ctx.Err()
+	return pipelines, versions, defaults, ctx.Err()
 }
 
 func catalogDigest(row any) string {
@@ -70,8 +79,12 @@ func catalogDigest(row any) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (a TransferCatalog) Prepare(ctx context.Context, source, namespace string, pipelines []model.Pipeline, versions []model.PipelineVersion, dry bool) (map[string]string, map[string]string, error) {
+func (a TransferCatalog) Prepare(ctx context.Context, source, namespace string, pipelines []model.Pipeline, versions []model.PipelineVersion, defaults map[string]string, dry bool) (map[string]string, map[string]string, map[string]string, error) {
 	pmap, vmap := map[string]string{}, map[string]string{}
+	effectiveDefaults := map[string]string{}
+	for id, name := range defaults {
+		effectiveDefaults[id] = name
+	}
 	parents := map[string]model.Pipeline{}
 	stage := func(object ctrlclient.Object, original any, id string) error {
 		want := map[string]string{transferSourceAnnotation: source, transferIDAnnotation: id, transferDigestAnnotation: catalogDigest(original)}
@@ -88,6 +101,13 @@ func (a TransferCatalog) Prepare(ctx context.Context, source, namespace string, 
 			}
 			switch desired := object.(type) {
 			case *crd.Pipeline:
+				// Later batches retain the destination's explicit default.
+				desired.Spec.DefaultVersionName = current.(*crd.Pipeline).Spec.DefaultVersionName
+				if desired.Spec.DefaultVersionName == "" {
+					delete(effectiveDefaults, id)
+				} else {
+					effectiveDefaults[id] = desired.Spec.DefaultVersionName
+				}
 				if !reflect.DeepEqual(desired.Spec, current.(*crd.Pipeline).Spec) {
 					return util.NewAlreadyExistError("Previously staged pipeline was modified; restore it before retrying")
 				}
@@ -116,21 +136,22 @@ func (a TransferCatalog) Prepare(ctx context.Context, source, namespace string, 
 	}
 	for _, p := range pipelines {
 		if problems := k8svalidation.IsDNS1123Subdomain(p.Name); len(problems) > 0 {
-			return nil, nil, util.NewInvalidInputError("Pipeline name with prefix is not a valid Kubernetes name")
+			return nil, nil, nil, util.NewInvalidInputError("Pipeline name with prefix is not a valid Kubernetes name")
 		}
 		if p.Namespace != namespace {
-			return nil, nil, util.NewInvalidInputError("Catalog namespace differs from transfer namespace")
+			return nil, nil, nil, util.NewInvalidInputError("Catalog namespace differs from transfer namespace")
 		}
 		if err := model.ValidateTags(p.Tags); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		owner := p
 		if owner.Namespace == "" {
 			owner.Namespace = a.RuntimeNamespace
 		}
 		object := crd.FromPipelineModel(owner)
+		object.Spec.DefaultVersionName = defaults[p.UUID]
 		if err := stage(&object, p, p.UUID); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		pmap[p.UUID] = string(object.UID)
 		parent := owner
@@ -140,19 +161,19 @@ func (a TransferCatalog) Prepare(ctx context.Context, source, namespace string, 
 	for _, v := range versions {
 		parent, ok := parents[v.PipelineId]
 		if !ok {
-			return nil, nil, util.NewInvalidInputError("Pipeline version parent is missing")
+			return nil, nil, nil, util.NewInvalidInputError("Pipeline version parent is missing")
 		}
 		if err := model.ValidateTags(v.Tags); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		object, err := crd.FromPipelineVersionModel(parent, v)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if err := stage(object, v, v.UUID); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		vmap[v.UUID] = string(object.UID)
 	}
-	return pmap, vmap, nil
+	return pmap, vmap, effectiveDefaults, nil
 }

@@ -40,6 +40,10 @@ updates:
       go-minor-and-patch:
         patterns:
           - "*"
+        # Argo also needs runtime, manifest, and CI synchronization. Complete
+        # its separate PR using third_party/argo/UPGRADE.md.
+        exclude-patterns:
+          - "github.com/argoproj/argo-workflows/*"
         update-types:
           - "minor"
           - "patch"
@@ -113,6 +117,7 @@ updates:
       - "/release"
       - "/sdk/python"
       - "/test/kfp-kubernetes-native-migration-tests"
+      - "/tools/upgrade-readiness"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

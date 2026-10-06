@@ -305,7 +305,13 @@ func (c *ClientManager) init(options *Options) error {
 		glog.Fatalf("Failed to initialize experiment store: %v", err)
 	}
 	c.experimentStore = experimentStore
-	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef, c.dbDialect)
+	jobStore := storage.NewJobStore(db, c.time, pipelineStoreForRef, c.dbDialect)
+	c.jobStore = jobStore
+	if common.IsMultiUserMode() {
+		if err := reportRecurringRunMigration(jobStore, glog.Warningf); err != nil {
+			glog.Errorf("recurring_run_migration inventory_failed: %v; run the operator-guide inventory before enabling recurring runs", err)
+		}
+	}
 	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid, c.dbDialect)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef, c.dbDialect)
 	dBStatusStore, err := storage.NewDBStatusStore(db, c.dbDialect)

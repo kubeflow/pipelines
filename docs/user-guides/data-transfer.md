@@ -40,7 +40,8 @@ reuse their own previously imported data; they do not overwrite unrelated native
 resources. Use the same archive and options after an interrupted request. This is a
 snapshot transfer, not continuous synchronization: changes to previously imported
 definitions can conflict with later batches. Adding pipeline versions is supported;
-existing explicit Kubernetes-catalog defaults are retained. SQL catalogs keep
+existing explicit Kubernetes-catalog defaults are retained. Archives with pinned
+Kubernetes defaults require a Kubernetes-catalog destination. SQL catalogs keep
 their normal newest-version selection, so adding a newer version can change which
 version a floating schedule uses. Keep existing version contents and schedule
 definitions stable until the transfer is complete.

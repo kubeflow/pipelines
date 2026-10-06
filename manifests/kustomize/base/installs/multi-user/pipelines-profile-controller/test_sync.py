@@ -100,6 +100,7 @@ ENV_ARTIFACT_PROXY_WITH_ALLOWED_ENDPOINTS = dict(
     ENV_KFP_VERSION_ONLY, **{
         "ALLOWED_ARTIFACT_ENDPOINTS": "https://objects.example.com:9443",
         "ARTIFACTS_PROXY_ENABLED": "true",
+        "HTTP_BASE_URL": "https://artifacts.example.com:9443/pipelines/",
     })
 
 
@@ -336,6 +337,11 @@ def test_artifact_proxy_receives_allowed_endpoints(sync_server):
         child.get('metadata', {}).get('name') == 'ml-pipeline-ui-artifact')
     container_env = artifact_deployment['spec']['template']['spec'][
         'containers'][0]['env']
+
+    assert {
+        'name': 'HTTP_BASE_URL',
+        'value': 'https://artifacts.example.com:9443/pipelines/',
+    } in container_env
 
     assert {
         'name': 'ALLOWED_ARTIFACT_ENDPOINTS',

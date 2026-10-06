@@ -123,6 +123,12 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: autoUpdatePipelineDefaultVersion
+
+            - name: CRON_SCHEDULE_TIMEZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: cronScheduleTimezone
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

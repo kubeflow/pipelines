@@ -22,6 +22,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -202,7 +203,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: apiv1beta1.Relationship_OWNER},
 				},
 			},
-			"Failed to fetch a pipeline version from pipeline not_exist_pipeline: Failed to get the latest " +
+			"Failed to fetch a pipeline version from pipeline not_exist_pipeline: Failed to get the default " +
 				"pipeline version as pipeline was not found: ResourceNotFoundError: Pipeline not_exist_pipeline not found",
 		},
 		{
@@ -314,6 +315,8 @@ func TestCreateJob_pipelineVersion(t *testing.T) {
 	job, err := server.CreateJob(nil, &apiv1beta1.CreateJobRequest{Job: apiJob})
 	assert.Nil(t, err)
 
+	expectedWorkflow := testWorkflow.DeepCopy()
+	expectedWorkflow.Status = v1alpha1.WorkflowStatus{}
 	expectedJob := &apiv1beta1.Job{
 		Id:             "123e4567-e89b-12d3-a456-426655440000",
 		Name:           "job1",
@@ -330,7 +333,7 @@ func TestCreateJob_pipelineVersion(t *testing.T) {
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       "123e4567-e89b-12d3-a456-426655440000",
 			PipelineName:     "p1",
-			WorkflowManifest: testWorkflow.ToStringForStore(),
+			WorkflowManifest: util.NewWorkflow(expectedWorkflow).ToStringForStore(),
 		},
 	}
 	matched := 0
@@ -499,7 +502,6 @@ func TestCreateJob_V2(t *testing.T) {
 		Status:    "STATUS_UNSPECIFIED",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineManifest: v2SpecHelloWorldParams,
-			WorkflowManifest: v2SpecHelloWorldParams,
 			RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
 				Parameters:   v2RuntimeParams,
 				PipelineRoot: "model-pipeline-root",

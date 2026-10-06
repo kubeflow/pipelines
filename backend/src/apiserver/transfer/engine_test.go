@@ -36,11 +36,16 @@ func (f *emptyRPC) Call(_ context.Context, method string, _ Node) (Node, error) 
 
 type fakeSchedules struct {
 	writes int
+	specs  map[string]string
 	rows   map[string]*model.Job
 }
 
-func (f *fakeSchedules) Prepare(_ context.Context, source string, j *model.Job, _ string, _ []byte, dry bool) (*model.Job, error) {
+func (f *fakeSchedules) Prepare(_ context.Context, source string, j *model.Job, _ string, spec []byte, dry bool) (*model.Job, error) {
 	copy := *j
+	if f.specs == nil {
+		f.specs = map[string]string{}
+	}
+	f.specs[j.UUID] = string(spec)
 	if dry {
 		return &copy, nil
 	}
@@ -120,6 +125,7 @@ func TestNamespaceExportIncludesEmptyExperimentsAndFullCatalog(t *testing.T) {
 
 func TestNamespaceImportPreviewApplyRepeat(t *testing.T) {
 	src := fixture(t, testDB(t))
+	require.NoError(t, create(src.DB, &model.RecurringRunState{JobUUID: "schedule", RequestKey: "source-tick", PipelineVersionID: "version", LastRunIndex: 50, Pending: true}))
 	data, err := src.Export(context.Background(), "team", ExportOptions{})
 	require.NoError(t, err)
 	rpc := &emptyRPC{}
@@ -145,6 +151,10 @@ func TestNamespaceImportPreviewApplyRepeat(t *testing.T) {
 	require.NoError(t, dst.DB.First(&job, "UUID = ?", run.RecurringRunId).Error)
 	require.False(t, job.Enabled)
 	require.True(t, job.NoCatchup)
+	var state model.RecurringRunState
+	require.NoError(t, dst.DB.Where(equal("JobUUID", job.UUID)).First(&state).Error)
+	require.Equal(t, model.RecurringRunState{JobUUID: job.UUID}, state)
+	require.NoError(t, dst.DB.Model(&model.RecurringRunState{}).Where(equal("JobUUID", job.UUID)).Updates(map[string]any{"LastRunIndex": 2, "Pending": true}).Error)
 	var task model.Task
 	require.NoError(t, dst.DB.First(&task, "UUID = ?", "task").Error)
 	require.Empty(t, task.Fingerprint)
@@ -153,6 +163,9 @@ func TestNamespaceImportPreviewApplyRepeat(t *testing.T) {
 	require.Zero(t, repeat.Imported)
 	require.Equal(t, 7, repeat.Skipped)
 	require.Equal(t, 1, schedules.writes)
+	require.NoError(t, dst.DB.Where(equal("JobUUID", job.UUID)).First(&state).Error)
+	require.EqualValues(t, 2, state.LastRunIndex)
+	require.True(t, state.Pending)
 }
 
 func TestNamespaceImportLaterBatchReusesSchedule(t *testing.T) {
@@ -210,6 +223,9 @@ func TestNamespaceImportRejectsConflictsBeforeStaging(t *testing.T) {
 		{"missing experiment", func(b *Bundle) { b.Runs[0].Run.ExperimentId = "absent" }},
 		{"missing task parent", func(b *Bundle) { b.Runs[0].Tasks[0].ParentTaskId = "absent" }},
 		{"cycle", func(b *Bundle) { b.Runs[0].Tasks[0].ParentTaskId = b.Runs[0].Tasks[0].UUID }},
+		{"missing pinned version", func(b *Bundle) { b.CatalogDefaults = map[string]string{"pipeline": "missing"} }},
+		{"missing pinned pipeline", func(b *Bundle) { b.CatalogDefaults = map[string]string{"missing": "v1"} }},
+		{"SQL cannot honor Kubernetes pin", func(b *Bundle) { b.CatalogDefaults = map[string]string{"pipeline": "v1"} }},
 		{"source URI", func(b *Bundle) { b.Versions[0].PipelineSpecURI = "s3://source/catalog" }},
 		{"missing inline definition", func(b *Bundle) { b.Versions[0].PipelineSpec = "" }},
 		{"cross generation", func(b *Bundle) { b.Format = "kfp-native/v1" }},
@@ -411,4 +427,37 @@ func TestNamespaceExportHydratesAndClearsSourceCatalogURI(t *testing.T) {
 	require.NoError(t, dst.DB.Where(equal("UUID", "version")).First(&version).Error)
 	require.Empty(t, version.PipelineSpecURI)
 	require.Equal(t, model.LargeText("hydrated definition"), version.PipelineSpec)
+}
+
+type retainedDefaultCatalog struct{ name string }
+
+func (retainedDefaultCatalog) Export(context.Context, string) ([]model.Pipeline, []model.PipelineVersion, map[string]string, error) {
+	return nil, nil, nil, nil
+}
+func (c retainedDefaultCatalog) Prepare(_ context.Context, _, _ string, pipelines []model.Pipeline, versions []model.PipelineVersion, _ map[string]string, _ bool) (map[string]string, map[string]string, map[string]string, error) {
+	pmap, vmap := map[string]string{}, map[string]string{}
+	for _, p := range pipelines {
+		pmap[p.UUID] = p.UUID
+	}
+	for _, v := range versions {
+		vmap[v.UUID] = v.UUID
+	}
+	return pmap, vmap, map[string]string{"pipeline": c.name}, nil
+}
+
+func TestTransferScheduleValidatesRetainedDestinationDefault(t *testing.T) {
+	src := fixture(t, testDB(t))
+	require.NoError(t, src.DB.Model(&model.Job{}).Where(equal("UUID", "schedule")).Update("PipelineVersionId", "").Error)
+	data, err := src.Export(context.Background(), "team", ExportOptions{})
+	require.NoError(t, err)
+	data = rewriteArchive(t, data, func(b *Bundle) { b.CatalogDefaults = map[string]string{"pipeline": "v2"} })
+	schedules := &fakeSchedules{}
+	dst := &Engine{DB: testDB(t), RuntimeNamespace: "team", Metadata: &Metadata{RPC: &emptyRPC{}}, Schedules: schedules, Catalog: retainedDefaultCatalog{name: "v1"}}
+	_, err = dst.Import(context.Background(), "team", data, ImportOptions{DryRun: true})
+	require.NoError(t, err)
+	require.Equal(t, "spec", schedules.specs["schedule"])
+	dst.Catalog = retainedDefaultCatalog{name: "destination-only"}
+	_, err = dst.Import(context.Background(), "team", data, ImportOptions{DryRun: true})
+	require.ErrorContains(t, err, "destination catalog default is absent")
+	require.Zero(t, schedules.writes)
 }

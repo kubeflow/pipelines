@@ -73,9 +73,15 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc, c
 		return nil, fmt.Errorf("Invalid method %q, only POST requests are allowed", r.Method)
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 32<<20) // 32 MiB
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
 		return nil, fmt.Errorf("Could not read request body: %v", err)
 	}
 

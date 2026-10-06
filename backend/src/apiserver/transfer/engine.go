@@ -32,8 +32,8 @@ const maxRecords = 100000
 
 // Catalog stages Kubernetes-backed catalog records; SQL catalogs use the transaction.
 type Catalog interface {
-	Export(context.Context, string) ([]model.Pipeline, []model.PipelineVersion, error)
-	Prepare(context.Context, string, string, []model.Pipeline, []model.PipelineVersion, bool) (map[string]string, map[string]string, error)
+	Export(context.Context, string) ([]model.Pipeline, []model.PipelineVersion, map[string]string, error)
+	Prepare(context.Context, string, string, []model.Pipeline, []model.PipelineVersion, map[string]string, bool) (map[string]string, map[string]string, map[string]string, error)
 }
 
 // Schedules creates or resumes a disabled, provenance-owned ScheduledWorkflow.
@@ -60,6 +60,7 @@ type Bundle struct {
 	Schema           string                    `json:"schema"`
 	Experiments      []model.Experiment        `json:"experiments"`
 	Pipelines        []model.Pipeline          `json:"pipelines"`
+	CatalogDefaults  map[string]string         `json:"catalog_defaults,omitempty"`
 	Versions         []model.PipelineVersion   `json:"pipeline_versions"`
 	Schedules        []model.Job               `json:"schedules"`
 	Runs             []RunHistory              `json:"runs"`
@@ -86,7 +87,7 @@ func equal(column string, value any) clause.Expression {
 
 func schemaSignature(db *gorm.DB) (string, error) {
 	shape := []string{db.Name()}
-	for _, row := range []any{&model.Experiment{}, &model.Pipeline{}, &model.PipelineVersion{}, &model.PipelineTag{}, &model.PipelineVersionTag{}, &model.Run{}, &model.Task{}, &model.Job{}, &model.RunMetric{}, &model.ResourceReference{}} {
+	for _, row := range []any{&model.Experiment{}, &model.Pipeline{}, &model.PipelineVersion{}, &model.PipelineTag{}, &model.PipelineVersionTag{}, &model.Run{}, &model.Task{}, &model.Job{}, &model.RecurringRunState{}, &model.RunMetric{}, &model.ResourceReference{}} {
 		stmt := &gorm.Statement{DB: db}
 		if err := stmt.Parse(row); err != nil {
 			return "", err
@@ -259,7 +260,7 @@ func (e *Engine) Export(ctx context.Context, namespace string, opts ExportOption
 		return nil, err
 	}
 	if e.Catalog != nil {
-		b.Pipelines, b.Versions, err = e.Catalog.Export(ctx, namespace)
+		b.Pipelines, b.Versions, b.CatalogDefaults, err = e.Catalog.Export(ctx, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -461,6 +462,20 @@ func validateBundle(b *Bundle) error {
 		}
 		if x.Pipeline.UUID != "" {
 			return util.NewInvalidInputError("nested pipeline records are not accepted")
+		}
+	}
+	for pipelineID, name := range b.CatalogDefaults {
+		if !sets["pipeline"][pipelineID] || name == "" {
+			return util.NewInvalidInputError("Catalog default has a missing pipeline or version name")
+		}
+		matches := 0
+		for _, version := range b.Versions {
+			if version.PipelineId == pipelineID && version.Name == name {
+				matches++
+			}
+		}
+		if matches != 1 {
+			return util.NewInvalidInputError("Catalog default must resolve to exactly one archived pipeline version")
 		}
 	}
 	for _, x := range b.Schedules {
@@ -695,6 +710,9 @@ func (e *Engine) Import(ctx context.Context, namespace string, data []byte, opts
 		}
 		return nil
 	}
+	if len(b.CatalogDefaults) > 0 && e.Catalog == nil {
+		return result, util.NewInvalidInputError("Pinned Kubernetes catalog defaults require a Kubernetes catalog destination")
+	}
 	for _, p := range b.Pipelines {
 		if err := model.ValidateTags(p.Tags); err != nil {
 			return result, err
@@ -749,7 +767,7 @@ func (e *Engine) Import(ctx context.Context, namespace string, data []byte, opts
 		versionMap[v.UUID] = v.UUID
 	}
 	if e.Catalog != nil {
-		pipelineMap, versionMap, err = e.Catalog.Prepare(ctx, b.Source, namespace, b.Pipelines, b.Versions, true)
+		pipelineMap, versionMap, b.CatalogDefaults, err = e.Catalog.Prepare(ctx, b.Source, namespace, b.Pipelines, b.Versions, b.CatalogDefaults, true)
 		if err != nil {
 			return result, err
 		}
@@ -769,10 +787,20 @@ func (e *Engine) Import(ctx context.Context, namespace string, data []byte, opts
 					break
 				}
 			} else if j.PipelineId != "" && v.PipelineId == j.PipelineId {
+				if name := b.CatalogDefaults[j.PipelineId]; name != "" {
+					if v.Name == name {
+						selected = v
+						break
+					}
+					continue
+				}
 				if selected == nil || v.CreatedAtInSec > selected.CreatedAtInSec || (v.CreatedAtInSec == selected.CreatedAtInSec && v.UUID > selected.UUID) {
 					selected = v
 				}
 			}
+		}
+		if selected == nil && j.PipelineVersionId == "" && b.CatalogDefaults[j.PipelineId] != "" {
+			return result, util.NewInvalidInputError("The destination catalog default is absent from the archive; include its definition before importing this schedule")
 		}
 		if selected != nil {
 			manifest = selected.PipelineSpec
@@ -797,7 +825,7 @@ func (e *Engine) Import(ctx context.Context, namespace string, data []byte, opts
 		return result, nil
 	}
 	if e.Catalog != nil {
-		pipelineMap, versionMap, err = e.Catalog.Prepare(ctx, b.Source, namespace, b.Pipelines, b.Versions, false)
+		pipelineMap, versionMap, b.CatalogDefaults, err = e.Catalog.Prepare(ctx, b.Source, namespace, b.Pipelines, b.Versions, b.CatalogDefaults, false)
 		if err != nil {
 			return result, err
 		}
@@ -928,6 +956,11 @@ func (e *Engine) Import(ctx context.Context, namespace string, data []byte, opts
 			}
 			if !skip {
 				if err := create(tx, j); err != nil {
+					return err
+				}
+				// Scheduling progress is destination-owned. Imported history must not
+				// claim an execution or advance the new controller's first tick.
+				if err := create(tx, &model.RecurringRunState{JobUUID: j.UUID}); err != nil {
 					return err
 				}
 			}

@@ -198,6 +198,15 @@ func validatedListOptions(listable list.Listable, pageToken string, pageSize int
 		return nil, err
 	}
 
+	if listable == nil {
+		return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs")
+	}
+	if opts.Filter != nil {
+		// Comparison metadata is derived from the current model, not part of
+		// the user's criteria. Restore it even when only a token is supplied.
+		opts.Filter.SetCaseInsensitiveFields(listable.APIToModelFieldMap(), listable.GetModelName(), listable.CaseInsensitiveFields())
+	}
+
 	if sortBy != "" || filterSpec != "" {
 		// Sanity check that these match the page token.
 		do, err := defaultOpts()
