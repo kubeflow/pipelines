@@ -152,17 +152,21 @@ jobs:
       - name: Verify upgraded and mixed-version filtered pagination
         shell: bash
         run: |
-          kubectl -n kubeflow port-forward deployment/pagination-source 8889:8888 > "$RUNNER_TEMP/pagination-forward.log" 2>&1 &
+          kubectl -n kubeflow port-forward --address=127.0.0.1 deployment/pagination-source 8889:8888 > "$RUNNER_TEMP/pagination-forward.log" 2>&1 &
           OLD_API_FORWARD_PID=$!
-          trap 'kill "$OLD_API_FORWARD_PID" 2>/dev/null || true' EXIT
+          trap 'kill "$OLD_API_FORWARD_PID" 2>/dev/null || true; wait "$OLD_API_FORWARD_PID" 2>/dev/null || true' EXIT
           for ((attempt=0; attempt<30; attempt++)); do
             kill -0 "$OLD_API_FORWARD_PID"
-            if curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null; then
+            if grep -Fq 'Forwarding from 127.0.0.1:8889' "$RUNNER_TEMP/pagination-forward.log" &&
+              curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null &&
+              kill -0 "$OLD_API_FORWARD_PID"; then
               break
             fi
             sleep 1
           done
+          grep -Fq 'Forwarding from 127.0.0.1:8889' "$RUNNER_TEMP/pagination-forward.log"
           curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null
+          kill -0 "$OLD_API_FORWARD_PID"
           python3 tools/upgrade-readiness/live_pagination.py target --state "$RUNNER_TEMP/pagination-source.json" --report "$RUNNER_TEMP/pagination-report.json"
 
       - name: Upload pagination acceptance evidence
