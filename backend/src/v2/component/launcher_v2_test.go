@@ -60,6 +60,21 @@ type finalizationFailureAPI struct {
 	updateStatusesErr  error
 }
 
+// captureBulkUpdateAPI records the most recent UpdateTasksBulk request so a
+// test can assert exactly what the batch flush persisted.
+type captureBulkUpdateAPI struct {
+	kfpapi.API
+	lastBulkUpdate *apiv2beta1.UpdateTasksBulkRequest
+}
+
+func (api *captureBulkUpdateAPI) UpdateTasksBulk(
+	ctx context.Context,
+	req *apiv2beta1.UpdateTasksBulkRequest,
+) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+	api.lastBulkUpdate = req
+	return api.API.UpdateTasksBulk(ctx, req)
+}
+
 func (api *finalizationFailureAPI) UpdateTasksBulk(
 	ctx context.Context,
 	req *apiv2beta1.UpdateTasksBulkRequest,
@@ -195,6 +210,64 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestFinalizeExecutionStripsDebugPauseProperties reproduces the stale-barrier
+// bug: the launcher's in-memory task can still carry debug-pause custom
+// properties (published at a barrier whose best-effort ClearBarrier was lost
+// or overwritten), and the final batched update replaces StatusMetadata
+// wholesale - resurrecting the keys on a finished task. finalizeExecution
+// strips them from the final write, while leaving unrelated custom
+// properties intact.
+func TestFinalizeExecutionStripsDebugPauseProperties(t *testing.T) {
+	baseAPI := kfpapi.NewMockAPI()
+	run := &apiv2beta1.Run{
+		RunId: "run",
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: &structpb.Struct{},
+		},
+	}
+	baseAPI.AddRun(run)
+	task := &apiv2beta1.PipelineTask{
+		TaskId: "task",
+		RunId:  run.GetRunId(),
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				customPropDebugPauseBarrier:         structpb.NewStringValue("before"),
+				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
+				"unrelated_property":                structpb.NewStringValue("keep-me"),
+			},
+		},
+	}
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		Task:  task,
+		RunId: run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	capturingAPI := &captureBulkUpdateAPI{API: baseAPI}
+	launcher := &LauncherV2{
+		options: LauncherV2Options{
+			Run:  run,
+			Task: task,
+		},
+		clientManager: client_manager.NewFakeClientManager(fake.NewSimpleClientset(), capturingAPI),
+		pipelineSpec:  &structpb.Struct{},
+		batchUpdater:  NewBatchUpdater(),
+	}
+
+	// finalizeExecution may return a downstream error (status propagation
+	// needs a full pipeline spec) - what matters is the batched task update
+	// it flushed first.
+	_ = launcher.finalizeExecution(context.Background(), nil)
+
+	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
+	flushedTask := capturingAPI.lastBulkUpdate.GetTasks()[task.GetTaskId()]
+	require.NotNil(t, flushedTask)
+	props := flushedTask.GetStatusMetadata().GetCustomProperties()
+	assert.NotContains(t, props, customPropDebugPauseBarrier, "finished task must not retain a pause barrier")
+	assert.NotContains(t, props, customPropDebugPauseResumeRequested, "finished task must not retain the resume flag")
+	assert.Equal(t, "keep-me", props["unrelated_property"].GetStringValue(), "unrelated custom properties must survive the strip")
 }
 
 func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {

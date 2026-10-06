@@ -298,6 +298,10 @@ func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) 
 		}
 	}
 	l.options.Task.EndTime = timestamppb.New(time.Now())
+	// Drop the debug-pause overlay from the final write: the in-memory task
+	// may still hold keys published by a barrier whose best-effort clear was
+	// lost, and this queued update is the last write the record will get.
+	stripDebugPauseProperties(l.options.Task.GetStatusMetadata())
 	l.batchUpdater.QueueTaskUpdate(l.options.Task)
 
 	if flushErr := l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); flushErr != nil {
