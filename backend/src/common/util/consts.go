@@ -63,6 +63,14 @@ const (
 	// reports from stale pre-retry workflow snapshots.
 	AnnotationKeyRetryGeneration = "pipelines.kubeflow.org/retry-generation"
 
+	// AnnotationKeyRetryPlaceholderClaim authenticates a status-free retry
+	// placeholder created for a specific run and ClaimRunForRetry generation.
+	// Value format is "<runID>/<generation>". It is set on NewRetryPlaceholder
+	// (which omits AnnotationKeyRetryGeneration until activation) so RetryRun
+	// can adopt the placeholder's UID without treating a foreign suspended
+	// same-name Workflow as owned.
+	AnnotationKeyRetryPlaceholderClaim = "pipelines.kubeflow.org/retry-placeholder-claim"
+
 	// AnnotationKeyTerminationReason and AnnotationKeyFailedImage are stamped
 	// on a Workflow that the persistence agent terminated because one of its
 	// pods could not pull its image. They describe a single attempt and are
