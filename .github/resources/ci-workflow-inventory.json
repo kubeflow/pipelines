@@ -126,7 +126,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "b0ff1829b2fa57f442e8788dd333f60b40bae8b8ba6cf9d5de609bcbad5c0ad4",
+      "header_sha256": "976b6300a1b67e5cdcd7d5d2dc516687e432b2d1748532ad500697c089540f43",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -192,11 +192,15 @@
           ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
+          "api/v2alpha1/python/generate_proto.py",
+          "kubernetes_platform/python/generate_proto.py",
+          "sdk/python/hatch_build.py",
+          "test/presubmit-tests-sdk.sh",
           "hack/update-requirements.sh",
           ".readthedocs.yml",
           "kubernetes_platform/python/docs/.readthedocs.yml",
           "sdk/python/kfp/version.py",
-          "kubernetes_platform/python/kfp/kubernetes/__init__.py",
+          "sdk/python/kfp/kubernetes/__init__.py",
           "kubernetes_platform/python/release.sh",
           "backend/src/common/types.go",
           "go.mod",
@@ -394,13 +398,14 @@
     {
       "path": ".github/workflows/kfp-kubernetes-library-test.yml",
       "name": "kfp-kubernetes library tests",
-      "header_sha256": "711362741347b9d71eda5800f52aad34248f06d4caf13a08058a470ba37e9064",
+      "header_sha256": "8e2396bf7e4da40d14f2abb430f45108206da64e24e35734197563cdd7834156",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           ".github/workflows/kfp-kubernetes-library-test.yml",
           ".github/actions/setup-python/**",
+          ".github/actions/protobuf/**",
           "sdk/python/**",
           "api/v2alpha1/**",
           "kubernetes_platform/**",
@@ -480,13 +485,17 @@
     {
       "path": ".github/workflows/kfp-sdk-unit-tests.yml",
       "name": "KFP SDK Unit Tests",
-      "header_sha256": "79f6d98236de3477785b82361da29501ee7a66770e04c9f0f416307996fbb914",
+      "header_sha256": "831442d8a0b8cdf53fd4da52dc6d754874cfd840256036ddcd8c78055afb65b4",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           "api/**",
           "sdk/**",
+          "kubernetes_platform/**",
+          "backend/api/**",
+          ".github/actions/protobuf/**",
+          ".github/resources/scripts/check_python_distribution.py",
           "test/presubmit-tests-sdk-unit.sh",
           ".github/workflows/kfp-sdk-unit-tests.yml",
           ".github/actions/setup-python/**",
@@ -592,7 +601,7 @@
     {
       "path": ".github/workflows/publish-packages.yml",
       "name": "Publish Python Packages",
-      "header_sha256": "a88257f1a5fb99eb258ddd181b078935a6f2b9de047928273f9118597001db03",
+      "header_sha256": "5355713ae4439bbbedf068e2e248da978fcb388bf3ef4f9eec47d446bf69dfdb",
       "pull_request": null
     },
     {
@@ -748,7 +757,7 @@
     {
       "path": ".github/workflows/validate-generated-files.yml",
       "name": "Validate Generated Files",
-      "header_sha256": "b65ed6bb523012eb7ca9c6aa74b86abf87b6d025314c9ef25c6a7d0987158702",
+      "header_sha256": "cd931fc1ab9eb5e276af0d1258f93fd80bb5641d66fc836eb8348ec498876b7c",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -772,9 +781,14 @@
           "api/Makefile",
           "api/**/*.proto",
           "api/**/*.go",
+          "api/v2alpha1/python/generate_proto.py",
           "kubernetes_platform/Makefile",
           "kubernetes_platform/**/*.proto",
           "kubernetes_platform/**/*.go",
+          "kubernetes_platform/python/generate_proto.py",
+          ".github/actions/protobuf/**",
+          ".github/actions/kfp-k8s/**",
+          "backend/api/**/python_http_client_template/**",
           "sdk/Makefile",
           "backend/src/crd/kubernetes/**/*.go",
           "manifests/kustomize/base/crds/*.yaml",

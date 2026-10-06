@@ -111,8 +111,7 @@ class TestPipInstallSerialization(
         """Test SubprocessRunner without virtual environment."""
         local.init(
             local.SubprocessRunner(use_venv=False),
-            pipeline_root=ROOT_FOR_TESTING,
-            raise_on_error=False)  # Don't fail pipeline due to build conflicts
+            pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component
         def simple_task(message: str) -> str:
@@ -126,10 +125,9 @@ class TestPipInstallSerialization(
         task = test_pipeline()
         self.assertIsInstance(task, pipeline_task.PipelineTask)
 
-        # KFP installations occur due to test environment monkey-patching kfp_package_path
-        # Some tasks may fail due to build conflicts, but serialization should still work
+        # Source-backed components install KFP into the per-test interpreter.
         stats = pip_install_manager.get_stats()
-        self.assertGreaterEqual(stats['total_installs'], 2)
+        self.assertEqual(stats['total_installs'], 3)
         self.assertGreater(stats['total_wait_time'], 0)
 
     def test_pip_install_manager_stats(self):

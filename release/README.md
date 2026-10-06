@@ -38,8 +38,10 @@ the saved status and asks before resuming; pass `--force` to resume without that
 For major and minor releases, pass `--release-source-branch BRANCH` to skip the source
 branch prompt.
 
-Patch releases also update the persistent `release-<major>.<minor>` and
-`kfp-kubernetes-<major>.<minor>` documentation branches.
+Patch releases update the persistent `release-<major>.<minor>` documentation
+branch. Unified SDK releases include Kubernetes API documentation in the SDK
+docs. Split-package releases also create or reuse
+`kfp-kubernetes-<major>.<minor>` and update the separate ReadTheDocs project.
 
 For `--fork-remote`, you can pass either a full remote URL or just your GitHub username. `kfpr`
 expands `droctothorpe` to `https://github.com/droctothorpe/pipelines.git`.
@@ -79,12 +81,10 @@ Single-step commands do not update the checkpoint unless `--done` is passed.
 `update-version-tags` cuts `<version>-update-version-tags` from the release branch
 before committing version changes. When SDK release steps are enabled, this same PR also updates
 SDK package versions, requirements, docs versions, and `sdk/RELEASE.md`.
-Branches with `uv.lock` require uv: release updates synchronize the four package
-manifests, regenerate the lockfile and requirements exports, and build with
-`uv build`. All four Python distributions follow the SDK release version,
-independently of the backend `VERSION`. The server API generator reads the SDK
-version and runs before locking or building the workspace, including for
-SDK-only releases. Older release branches retain the pip-compile build path.
+The unified workspace requires uv: release updates regenerate the Python bindings,
+lockfile, and two requirements exports, then build only `kfp`. Bundled modules
+share `kfp.version`, independently of backend `VERSION`. This also applies to
+SDK-only releases. Older checkout layouts retain their legacy build path.
 
 Requirements exports retain editable workspace packages and pinned dependencies,
 but omit hashes because pip cannot hash editable sources. Consume these files
@@ -96,6 +96,27 @@ release branch. The current `publish-packages.yml` also accepts pre-uv tags:
 tool setup is independent of the selected checkout, and package builds use that
 tag's Makefiles or a setuptools-compatible source-path build. Use `dry_run=true`
 to build and validate distributions without uploading them to PyPI.
+For unified tags, `all` selects only `kfp`; explicitly selecting a retired
+distribution is an error. After SDK tag creation, the current CLI inspects
+`sdk/python/kfp` at that tag through the GitHub API. This selects installation
+instructions, PyPI polling/retries, and documentation projects from the target
+layout, regardless of which checkout supplied the running CLI. Missing or
+unreadable tag contents stop the step instead of guessing a layout.
+
+Unified tags publish and poll only `kfp`; their release notes include the
+[migration instructions](../sdk/python/README.md#migrating-from-the-split-packages)
+to remove legacy file owners before installing the unified wheel. Split tags
+(including the supported 2.18 line) retain all four package installation
+instructions and PyPI checks, without uninstalling Kubernetes helpers.
+`create-kfp-kubernetes-docs-branch` remains a checkpoint and individual command,
+but skips branch changes for unified tags. For split tags, it requires a clean
+working tree before any branch operations, including when resuming after
+preflight; commit or stash staged, unstaged, and untracked changes first.
+Unified-tag no-ops and dry runs do not require a clean working tree.
+Both automated ReadTheDocs updates and the manual fallback select the same
+projects. Status output and dry runs
+show the conditional legacy checklist without querying an SDK tag that may
+not exist yet.
 
 ### Architecture support and release validation
 

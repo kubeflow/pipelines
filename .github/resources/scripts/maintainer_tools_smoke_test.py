@@ -44,6 +44,55 @@ class SnapshotTests(unittest.TestCase):
                               capture_output=True,
                               text=True)
 
+    def api_source_directories(self) -> list[str]:
+        """Read the inventory used by the real cross-image comparison."""
+        result = subprocess.run([
+            'bash', '-c',
+            'source "$1"; printf "%s\\n" "${API_SOURCE_DIRECTORIES[@]}"',
+            'test',
+            str(SCRIPT)
+        ],
+                                check=True,
+                                capture_output=True,
+                                text=True)
+        return result.stdout.splitlines()
+
+    def test_api_inventory_tracks_sdk_client_and_documentation(self) -> None:
+        """Changes to either relocated modules or retained docs affect
+        hashes."""
+        directories = self.api_source_directories()
+        self.assertIn('sdk/python/kfp/server_api', directories)
+        self.assertIn('backend/api/v2beta1/python_http_client', directories)
+        self.assertIn(
+            'snapshot_sources "$source_dir" "${API_SOURCE_DIRECTORIES[@]}"',
+            SCRIPT.read_text())
+        for directory in directories:
+            self.write(f'{directory}/generated.txt', 'source')
+        for path in (
+                'sdk/python/kfp/server_api/api_client.py',
+                'backend/api/v2beta1/python_http_client/docs/RunServiceApi.md',
+        ):
+            with self.subTest(path=path):
+                self.write(path, 'before')
+                before = self.snapshot(*directories)
+                self.assertEqual(before.returncode, 0, before.stderr)
+                self.assertIn(path, before.stdout)
+                self.write(path, 'after')
+                after = self.snapshot(*directories)
+                self.assertEqual(after.returncode, 0, after.stderr)
+                self.assertNotEqual(before.stdout, after.stdout)
+
+    def test_missing_sdk_client_fails_api_snapshot(self) -> None:
+        """Retained docs cannot hide a missing SDK-owned client."""
+        directories = self.api_source_directories()
+        for directory in directories:
+            if directory != 'sdk/python/kfp/server_api':
+                self.write(f'{directory}/generated.txt', 'source')
+        result = self.snapshot(*directories)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('No generated files in sdk/python/kfp/server_api',
+                      result.stderr)
+
     def test_snapshot_hashes_sorted_relative_source_paths(self):
         self.write('generated/z.go', 'last')
         self.write('generated/a.py', 'first')
@@ -180,6 +229,17 @@ class ScriptContractTests(unittest.TestCase):
 
     def test_shell_syntax(self):
         subprocess.run(['bash', '-n', str(SCRIPT)], check=True)
+
+    def test_builds_unified_sdk_instead_of_standalone_client(self) -> None:
+        """Both tooling images must check the new client and SDK artifact."""
+        script = SCRIPT.read_text()
+        self.assertIn('test -s sdk/python/kfp/server_api/api_client.py', script)
+        self.assertIn(
+            'python3 -m pip wheel --no-deps ./sdk/python '
+            '--wheel-dir /tmp/kfp-smoke-dist', script)
+        self.assertIn("compgen -G '/tmp/kfp-smoke-dist/kfp-*.whl'", script)
+        self.assertNotIn('python_http_client/kfp_server_api/', script)
+        self.assertNotIn('python_http_client/dist/', script)
 
     def test_real_generators_and_release_preparation_are_isolated(self):
         script = SCRIPT.read_text()

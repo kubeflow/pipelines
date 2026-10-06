@@ -16,5 +16,5 @@
 source_root=$(pwd)
 
 # Dependencies are already installed via 'uv sync' in CI
-uv run pycln --check "${source_root}/sdk/python"
-uv run isort --check --profile google "${source_root}/sdk/python"
+uv run pycln --check --exclude 'server_api/|_pb2\.py$' "${source_root}/sdk/python"
+uv run isort --check --profile google --skip-glob '*/server_api/*' --skip-glob '*_pb2.py' "${source_root}/sdk/python"

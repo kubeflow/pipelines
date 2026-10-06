@@ -12,3 +12,5 @@ API Reference
    client
    registry
    local
+   kubernetes
+   server_api
