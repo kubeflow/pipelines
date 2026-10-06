@@ -73,7 +73,7 @@ jobs:
           docker run --detach --name artifact-seaweedfs -p 127.0.0.1:8333:8333 \
             -v /tmp/artifact-s3.json:/etc/seaweedfs/s3.json:ro "$image" \
             server -s3 -filer -s3.config=/etc/seaweedfs/s3.json
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             if curl --fail --silent --connect-timeout 2 --max-time 5 http://127.0.0.1:8333/status >/dev/null; then exit 0; fi
             sleep 2
           done
