@@ -116,6 +116,24 @@ jobs:
         run: |
           go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
 
+      - name: Capture 2.17.2 filtered pages and retain old API replica
+        shell: bash
+        run: |
+          python3 tools/upgrade-readiness/live_pagination.py source --state "$RUNNER_TEMP/pagination-source.json"
+          # Keep the old API on the same database, isolated from the normal
+          # service selector, to route each mixed-version page deliberately.
+          kubectl -n kubeflow get deployment ml-pipeline -o json | python3 -c '
+          import json, sys
+          deployment = json.load(sys.stdin)
+          deployment["metadata"] = {"name": "pagination-source", "namespace": "kubeflow"}
+          deployment.pop("status", None)
+          deployment["spec"]["replicas"] = 1
+          deployment["spec"]["selector"] = {"matchLabels": {"app": "pagination-source"}}
+          deployment["spec"]["template"]["metadata"]["labels"]["app"] = "pagination-source"
+          json.dump(deployment, sys.stdout)
+          ' | kubectl apply -f -
+          kubectl -n kubeflow rollout status deployment/pagination-source --timeout=180s
+
       - name: Stop port forwarding
         run: |
           pkill -f "port-forward"
@@ -130,6 +148,30 @@ jobs:
           image_tag: latest
           image_registry: kind-registry:5000
           forward_port: 'true'
+
+      - name: Verify upgraded and mixed-version filtered pagination
+        shell: bash
+        run: |
+          kubectl -n kubeflow port-forward deployment/pagination-source 8889:8888 > "$RUNNER_TEMP/pagination-forward.log" 2>&1 &
+          OLD_API_FORWARD_PID=$!
+          trap 'kill "$OLD_API_FORWARD_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            kill -0 "$OLD_API_FORWARD_PID"
+            if curl --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          python3 tools/upgrade-readiness/live_pagination.py target --state "$RUNNER_TEMP/pagination-source.json" --report "$RUNNER_TEMP/pagination-report.json"
+
+      - name: Upload pagination acceptance evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: pagination-acceptance-${{ github.run_id }}
+          path: ${{ runner.temp }}/pagination-report.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Verify Upgrade
         uses: ./.github/actions/test-and-report
