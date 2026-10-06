@@ -363,3 +363,17 @@ func BarrierForError(cfg DebugPauseConfig, commandFailed bool) DebugPauseBarrier
 	}
 	return debugPauseBarrierNone
 }
+
+// stripDebugPauseProperties removes the debug-pause overlay keys from a
+// task's StatusMetadata custom properties. The launcher calls this on its
+// in-memory task before the final status write (finalizeExecution): that
+// write replaces StatusMetadata wholesale, so whatever the in-memory copy
+// holds - including stale keys published before a best-effort ClearBarrier
+// that may have been lost or overwritten since - lands on the record.
+// Stripping here makes it impossible for pause markers to outlive the task.
+// Unrelated custom properties are preserved.
+func stripDebugPauseProperties(metadata *apiV2beta1.PipelineTask_StatusMetadata) {
+	props := metadata.GetCustomProperties()
+	delete(props, customPropDebugPauseBarrier)
+	delete(props, customPropDebugPauseResumeRequested)
+}
