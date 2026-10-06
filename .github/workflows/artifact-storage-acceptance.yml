@@ -1,0 +1,96 @@
+name: Artifact storage acceptance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [release-2.18]
+    paths:
+      - '.github/workflows/artifact-storage-acceptance.yml'
+      - 'frontend/server/integration-tests/artifact-storage-live.test.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      KFP_LIVE_ARTIFACT_STORAGE: 'true'
+      FRONTEND_SERVER_NAMESPACE: kfp-artifact-acceptance
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Create disposable Kubernetes cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: v1.36.1
+          cluster_name: kfp-artifact-acceptance
+      - name: Prepare Kubernetes archive metadata and credentials
+        run: |
+          kubectl create namespace kfp-artifact-acceptance
+          kubectl -n kfp-artifact-acceptance create secret generic artifact-store \
+            --from-literal=accesskey=fixture --from-literal=secretkey=fixture-secret
+          # Only the API schema is needed: retained Workflow statuses are test data.
+          # No controller executes these synthetic archive records.
+          kubectl apply -f - <<'EOF'
+          apiVersion: apiextensions.k8s.io/v1
+          kind: CustomResourceDefinition
+          metadata:
+            name: workflows.argoproj.io
+          spec:
+            group: argoproj.io
+            scope: Namespaced
+            names:
+              plural: workflows
+              singular: workflow
+              kind: Workflow
+            versions:
+              - name: v1alpha1
+                served: true
+                storage: true
+                schema:
+                  openAPIV3Schema:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+          EOF
+          kubectl wait --for=condition=Established crd/workflows.argoproj.io --timeout=60s
+      - name: Start real SeaweedFS using the stock release image
+        run: |
+          set -euo pipefail
+          image=$(python3 -c 'import re; from pathlib import Path; print(re.search(r"image: \"([^\"]+)\"", Path("manifests/kustomize/third-party/seaweedfs/base/seaweedfs/seaweedfs-deployment.yaml").read_text()).group(1))')
+          printf '%s\n' '{"identities":[{"name":"fixture","credentials":[{"accessKey":"fixture","secretKey":"fixture-secret"}],"actions":["Admin","Read","Write","List","Tagging"]}]}' > /tmp/artifact-s3.json
+          docker run --detach --name artifact-seaweedfs -p 127.0.0.1:8333:8333 \
+            -v /tmp/artifact-s3.json:/etc/seaweedfs/s3.json:ro "$image" \
+            server -s3 -filer -s3.config=/etc/seaweedfs/s3.json
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8333/status >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: |
+          npm install --global "$(node -p 'require("./package.json").packageManager')"
+          npm ci
+      - name: Exercise actual handler, Kubernetes and storage clients
+        working-directory: frontend/server
+        run: |
+          npm exec vitest run integration-tests/artifact-storage-live.test.ts -- \
+            --reporter=default --reporter=json --outputFile=/tmp/artifact-storage-results.json
+      - name: Retain exact-revision evidence
+        if: always()
+        run: |
+          git rev-parse HEAD > /tmp/artifact-storage-revision.txt
+      - uses: ./.github/actions/upload-artifact-with-retry
+        if: always()
+        with:
+          name: artifact-storage-acceptance-${{ github.run_id }}
+          path: |
+            /tmp/artifact-storage-results.json
+            /tmp/artifact-storage-revision.txt
+      - name: Delete disposable storage
+        if: always()
+        run: docker rm -f artifact-seaweedfs || true

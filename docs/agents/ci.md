@@ -68,3 +68,15 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   payloads, and workflow specifications, but reports retain namespace, resource,
   service-account and run identifiers. Use only the synthetic CI cluster and
   review report contents before sharing; these artifacts are not anonymized.
+
+- `artifact-storage-acceptance.yml` runs on explicit dispatch and changes to its
+  fixture. It exercises the real standalone UI handlers, HTTP fetch, Kubernetes
+  Secret/Workflow reads and S3 client against the stock SeaweedFS image. Stored
+  artifact and archived-log bytes are seeded once, then read under default and
+  explicitly migrated origin/base configuration. Rejections assert policy errors
+  and zero outbound requests, not incidental network failures. The retained
+  Vitest JSON and revision identify the exact candidate. This component lane
+  does not run a 2.17-to-2.18 installation upgrade, authenticate tenants, execute
+  the synthetic Workflow records, or reconcile profile-controller proxies; those
+  remain separate live acceptance scopes. Its fixtures use only disposable
+  credentials and a dedicated Kind namespace.
