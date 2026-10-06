@@ -99,21 +99,21 @@ function providerInfoFromAdminConfig(
   bucketName: string,
   keyPrefix: string,
 ): S3ProviderInfo {
-  const base = config.default!;
+  const base = config.default;
   const override = getOverrideByPrefix(config.Overrides, bucketName, keyPrefix);
 
-  const endpoint = override?.endpoint || base.endpoint;
-  const region = override?.region ?? base.region;
-  const disableSSL = override?.disableSSL ?? base.disableSSL ?? false;
-  const credentials = override?.credentials ?? base.credentials;
+  const endpoint = override?.endpoint || base?.endpoint || '';
+  const region = override?.region ?? base?.region;
+  const disableSSL = override?.disableSSL ?? base?.disableSSL ?? false;
+  const credentials = override?.credentials ?? base?.credentials;
 
   const params: S3ProviderInfo['Params'] = {
-    fromEnv: String(credentials.fromEnv ?? false),
+    fromEnv: String(credentials?.fromEnv ?? false),
     endpoint,
     region,
     disableSSL: String(disableSSL),
   };
-  if (!credentials.fromEnv && credentials.secretRef) {
+  if (credentials && !credentials.fromEnv && credentials.secretRef) {
     params.secretName = credentials.secretRef.secretName;
     params.accessKeyKey = credentials.secretRef.accessKeyKey;
     params.secretKeyKey = credentials.secretRef.secretKeyKey;

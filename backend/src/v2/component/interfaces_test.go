@@ -43,7 +43,7 @@ func TestResolveArtifactBucketConfig_UsesPathLookupForDefaultMinioRoot(t *testin
 	launcherConfig, err := config.FetchLauncherConfigMap(ctx, clientSet, "kubeflow")
 	require.NoError(t, err)
 
-	bucketConfig, sessionLookupPath, err := resolveArtifactBucketConfig(
+	bucketConfig, sessionLookupPath, _, err := resolveArtifactBucketConfig(
 		launcherConfig,
 		"minio://mlpipeline/v2/artifacts/run-1/system-container/executor-logs",
 	)
@@ -59,7 +59,7 @@ func TestResolveArtifactBucketConfig_UsesPathLookupForDefaultMinioRoot(t *testin
 		bucketConfig.BucketURL(),
 	)
 
-	sessionInfo, err := launcherConfig.GetStoreSessionInfo(sessionLookupPath)
+	sessionInfo, err := launcherConfig.GetStoreSessionInfo(sessionLookupPath, false)
 	require.NoError(t, err)
 	assert.Equal(t, "minio", sessionInfo.Provider)
 	assert.Equal(t, "false", sessionInfo.Params["fromEnv"])
@@ -81,7 +81,7 @@ func TestResolveArtifactBucketConfig_PreservesExplicitProviderQueryString(t *tes
 	launcherConfig, err := config.FetchLauncherConfigMap(ctx, clientSet, "kubeflow")
 	require.NoError(t, err)
 
-	_, sessionLookupPath, err := resolveArtifactBucketConfig(
+	_, sessionLookupPath, _, err := resolveArtifactBucketConfig(
 		launcherConfig,
 		"minio://mlpipeline/v2/artifacts/run-1/system-container/executor-logs",
 	)
@@ -93,14 +93,14 @@ func TestResolveArtifactBucketConfig_PreservesExplicitProviderQueryString(t *tes
 	)
 	assert.NotContains(t, sessionLookupPath, "prefix=")
 
-	sessionInfo, err := launcherConfig.GetStoreSessionInfo(sessionLookupPath)
+	sessionInfo, err := launcherConfig.GetStoreSessionInfo(sessionLookupPath, false)
 	require.NoError(t, err)
 	assert.Equal(t, "minio", sessionInfo.Provider)
 	assert.Equal(t, "true", sessionInfo.Params["fromEnv"])
 }
 
 func TestResolveArtifactBucketConfig_NilConfigRejectsOutsideRootURI(t *testing.T) {
-	_, _, err := resolveArtifactBucketConfig(
+	_, _, _, err := resolveArtifactBucketConfig(
 		nil,
 		"s3://other-bucket/outside/path",
 	)
@@ -109,7 +109,7 @@ func TestResolveArtifactBucketConfig_NilConfigRejectsOutsideRootURI(t *testing.T
 }
 
 func TestResolveArtifactBucketConfig_NilConfigAllowsUnderDefaultRoot(t *testing.T) {
-	bucketConfig, sessionLookupPath, err := resolveArtifactBucketConfig(
+	bucketConfig, sessionLookupPath, _, err := resolveArtifactBucketConfig(
 		nil,
 		"minio://mlpipeline/v2/artifacts/run-1/system-container/executor-logs",
 	)

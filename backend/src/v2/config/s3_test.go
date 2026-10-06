@@ -108,7 +108,7 @@ func TestS3ProvideSessionInfoMaxRetries(t *testing.T) {
 				},
 			}
 
-			sessionInfo, err := providerConfig.ProvideSessionInfo(path)
+			sessionInfo, err := providerConfig.ProvideSessionInfo(path, false)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedMaxRetries, sessionInfo.Params["maxRetries"])
 		})
@@ -140,7 +140,7 @@ func TestS3ProvideSessionInfoOverrideKeepsRemainingParams(t *testing.T) {
 		},
 	}
 
-	sessionInfo, err := providerConfig.ProvideSessionInfo("s3://team-bucket/team-a/model")
+	sessionInfo, err := providerConfig.ProvideSessionInfo("s3://team-bucket/team-a/model", false)
 	require.NoError(t, err)
 	assert.Equal(t, objectstore.SessionInfo{
 		Provider: "s3",

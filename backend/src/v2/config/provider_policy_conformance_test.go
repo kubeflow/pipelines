@@ -102,7 +102,7 @@ func TestProviderPolicyConformance(t *testing.T) {
 				if isAdminConfigPresent(tc.AdminConfig) {
 					require.NoError(t, json.Unmarshal(tc.AdminConfig, &cfg))
 				}
-				info, e := cfg.ProvideSessionInfo(uri)
+				info, e := cfg.ProvideSessionInfo(uri, false)
 				provideErr = e
 				params = info.Params
 			case "minio":
@@ -110,7 +110,7 @@ func TestProviderPolicyConformance(t *testing.T) {
 				if isAdminConfigPresent(tc.AdminConfig) {
 					require.NoError(t, json.Unmarshal(tc.AdminConfig, &cfg))
 				}
-				info, e := cfg.ProvideSessionInfo(uri)
+				info, e := cfg.ProvideSessionInfo(uri, false)
 				provideErr = e
 				params = info.Params
 			default:

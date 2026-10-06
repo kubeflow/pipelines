@@ -53,29 +53,19 @@ func OpenBucket(
 	if sessionInfo != nil {
 		switch sessionInfo.Provider {
 		case "minio", "s3":
-			// When admin policy resolved structured S3 settings (endpoint,
-			// region, etc.), the URI's own query string must not be honored —
-			// it could redirect the client to an attacker-controlled endpoint.
-			// Strip it so we always enter createS3BucketSession below.
-			if config.QueryString != "" && sessionInfo != nil && HasStructuredS3Settings(sessionInfo.Params) {
-				glog.V(4).Infof("OpenBucket: stripping query string from URI for bucket %q — admin-resolved session takes precedence", config.BucketName)
-				config.QueryString = ""
+			s3Client, err1 := createS3BucketSession(ctx, namespace, sessionInfo, k8sClient)
+			if err1 != nil {
+				return nil, fmt.Errorf("failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
 			}
-			if config.QueryString == "" {
-				s3Client, err1 := createS3BucketSession(ctx, namespace, sessionInfo, k8sClient)
-				if err1 != nil {
-					return nil, fmt.Errorf("failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
+			if s3Client != nil {
+				// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic.
+				openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+				if err2 != nil {
+					return nil, err2
 				}
-				if s3Client != nil {
-					// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic.
-					openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
-					if err2 != nil {
-						return nil, err2
-					}
-					// Directly calling s3blob.OpenBucketV2 does not allow overriding prefix via bucketConfig.BucketURL().
-					// Therefore, we need to explicitly configure the prefixed bucket.
-					return blob.PrefixedBucket(openedBucket, config.Prefix), nil
-				}
+				// Directly calling s3blob.OpenBucketV2 does not allow overriding prefix via bucketConfig.BucketURL().
+				// Therefore, we need to explicitly configure the prefixed bucket.
+				return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 			}
 		case "gs":
 			client, err1 := getGCSTokenClient(ctx, namespace, sessionInfo, k8sClient)

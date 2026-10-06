@@ -80,7 +80,7 @@ type S3SecretRef struct {
 	SecretKeyKey string `json:"secretKeyKey"`
 }
 
-func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionInfo, error) {
+func (p S3ProviderConfig) ProvideSessionInfo(path string, isTrustedQuery bool) (objectstore.SessionInfo, error) {
 	bucketConfig, err := objectstore.ParseBucketPathToConfig(path)
 	if err != nil {
 		return objectstore.SessionInfo{}, err
@@ -105,14 +105,35 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 	// is always authoritative below: a query string can never bypass it.
 	if p.Default == nil && p.Overrides == nil {
 		if queryString != "" {
-			if !p.allowUnmanagedProviderQueries() {
-				return objectstore.SessionInfo{}, fmt.Errorf(
-					"artifact URI provider query for bucket %q rejected: no S3 provider configuration exists and allowUnmanagedProviderQueries is disabled", bucketName)
+			if !isTrustedQuery {
+				if !p.allowUnmanagedProviderQueries() {
+					return objectstore.SessionInfo{}, fmt.Errorf(
+						"artifact URI provider query for bucket %q rejected: no S3 provider configuration exists and allowUnmanagedProviderQueries is disabled", bucketName)
+				}
+				if err := validateUnmanagedProviderQuery(queryString); err != nil {
+					return objectstore.SessionInfo{}, fmt.Errorf("artifact URI provider query for bucket %q rejected: %w", bucketName, err)
+				}
+				glog.Warningf("DEPRECATED: honoring an artifact URI's own provider query for bucket %q with no admin S3 provider configuration; a future release will require allowUnmanagedProviderQueries=true for this", bucketName)
 			}
-			if err := validateUnmanagedProviderQuery(queryString); err != nil {
-				return objectstore.SessionInfo{}, fmt.Errorf("artifact URI provider query for bucket %q rejected: %w", bucketName, err)
+			values, err := url.ParseQuery(strings.TrimPrefix(queryString, "?"))
+			if err != nil {
+				return objectstore.SessionInfo{}, fmt.Errorf("invalid provider query: %w", err)
 			}
-			glog.Warningf("DEPRECATED: honoring an artifact URI's own provider query for bucket %q with no admin S3 provider configuration; a future release will require allowUnmanagedProviderQueries=true for this", bucketName)
+			if endpoint := values.Get(objectstore.S3ParamEndpoint); endpoint != "" {
+				params[objectstore.S3ParamEndpoint] = endpoint
+			}
+			if region := values.Get(objectstore.S3ParamRegion); region != "" {
+				params[objectstore.S3ParamRegion] = region
+			}
+			if disableSSL := values.Get(objectstore.S3ParamDisableSSL); disableSSL != "" {
+				params[objectstore.S3ParamDisableSSL] = disableSSL
+			}
+			if forcePathStyle := values.Get(objectstore.S3ParamForcePathStyle); forcePathStyle != "" {
+				params[objectstore.S3ParamForcePathStyle] = forcePathStyle
+			}
+			if disableHTTPS := values.Get("disable_https"); disableHTTPS != "" {
+				params[objectstore.S3ParamDisableSSL] = disableHTTPS
+			}
 		}
 		params["fromEnv"] = strconv.FormatBool(true)
 		return objectstore.SessionInfo{
