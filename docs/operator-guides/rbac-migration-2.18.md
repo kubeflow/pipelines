@@ -1,5 +1,8 @@
 # RBAC and client migration for 2.18
 
+Start with the [2.18 upgrade checklist](upgrade-2.18.md) for rollout ordering,
+legacy schedule recreation, pipeline lookup namespaces, and UI startup.
+
 In multi-user deployments, review these permissions before upgrading to 2.18.
 The current server exposes V2 APIs; these checks also apply to V1 callers on the 2.18 release branch. They do not currently have an audit/enforce
 switch: update the caller or its namespace-scoped role instead of disabling

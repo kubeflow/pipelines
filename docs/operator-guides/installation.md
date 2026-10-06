@@ -1,5 +1,12 @@
 # Installation
 
+:::{warning}
+Upgrading an existing installation to 2.18? Read the
+[2.18 upgrade checklist](upgrade-2.18.md) before applying manifests. It covers
+schedule recreation, coordinated API/controller/RBAC rollout, explicit pipeline
+lookup namespaces, and the UI signing-key startup requirement.
+:::
+
 As an alternative to deploying Kubeflow Pipelines (KFP) as part of the [Community distribution](https://www.kubeflow.org/docs/started/installing-kubeflow),
 you can also choose to deploy only Kubeflow Pipelines standalone.
 
@@ -48,9 +55,9 @@ kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-man
 
 ## Deploying Kubeflow Pipelines with Pod-to-Pod TLS Enabled
 
-Kubeflow Pipelines can be deployed with pod-to-pod TLS enabled. The API server serves over TLS, and all connecting deployments are mounted with CA certificates. This mode provides enhanced security. 
+Kubeflow Pipelines can be deployed with pod-to-pod TLS enabled. The API server serves over TLS, and all connecting deployments are mounted with CA certificates. This mode provides enhanced security.
 
-Deploy KFP on a KinD cluster with pod-to-pod TLS enabled using the Makefile target [here](https://github.com/kubeflow/pipelines/blob/master/backend/Makefile). The corresponding manifests can be manually accessed [here](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls). 
+Deploy KFP on a KinD cluster with pod-to-pod TLS enabled using the Makefile target [here](https://github.com/kubeflow/pipelines/blob/master/backend/Makefile). The corresponding manifests can be manually accessed [here](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls).
 
 ## Accessing the Kubeflow Pipelines UI
 
