@@ -65,12 +65,9 @@ function renderSideNav(
 }
 
 describe('SideNav', () => {
-  it('links to the metadata transfer page', () => {
+  it('keeps namespace transfer out of the sidebar', () => {
     renderSideNav(RoutePage.METADATA_TRANSFER);
-    expect(screen.getByRole('link', { name: 'Export / Import' })).toHaveAttribute(
-      'href',
-      RoutePage.METADATA_TRANSFER,
-    );
+    expect(screen.queryByRole('link', { name: 'Export / Import' })).not.toBeInTheDocument();
   });
 
   let localStorageHasKeySpy: ReturnType<typeof vi.spyOn>;

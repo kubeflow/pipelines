@@ -1,13 +1,13 @@
 # Export and import pipeline data
 
-Use **Export / Import** in the Pipelines navigation to move data between
+Use **Pipelines → More actions (⋮) → Import / export namespace data…** to move data between
 installations with separate databases. Both installations can continue accepting
 new work during the overlap. This transfers metadata and definitions; artifact
 files stay at their existing storage locations.
 
 ## Export from the source
 
-1. Choose your namespace and open **Export / Import**.
+1. Choose your namespace and open **Pipelines → More actions (⋮) → Import / export namespace data…**.
 2. Optionally select a completed-history UTC time range. The range limits completed
    runs only; every archive includes all experiments, pipeline definitions and
    versions, tags, and schedules in the namespace, including unused definitions
@@ -26,7 +26,7 @@ artifact file bytes and no pod log files.
 ## Validate and import in the destination
 
 1. Open the destination installation, select the same namespace name, and open
-   **Export / Import**.
+   **Pipelines → More actions (⋮) → Import / export namespace data…**.
 2. Select the archive. A name prefix helps avoid collisions with existing
    experiments and pipelines, such as the destination's `Default` experiment.
 3. Select **Validate archive**. Review the resource counts and warnings. Resolve
