@@ -73,8 +73,9 @@ jobs:
         shell: bash
         run: |
           source ./.github/resources/scripts/helper-functions.sh
+          source .github/resources/scripts/ci-image-artifacts.sh
           retry 3 20 env DOCKER_BUILDKIT=1 docker build --platform "$PLATFORM" \
-            --file backend/api/Dockerfile --tag kfp-api-generator:ci .
+            --file backend/api/Dockerfile --tag "$TOOL_GENERATOR_IMAGE:ci" .
 
       - name: Build release tools from this generator
         shell: bash
@@ -82,10 +83,11 @@ jobs:
           NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
         run: |
           source ./.github/resources/scripts/helper-functions.sh
+          source .github/resources/scripts/ci-image-artifacts.sh
           retry 3 20 env DOCKER_BUILDKIT=1 docker build --platform "$PLATFORM" \
             --file release/Dockerfile.release \
-            --build-arg BASE_IMAGE=kfp-api-generator:ci \
-            --build-arg "NODE_VERSION=$NODE_VERSION" --tag kfp-release:ci .
+            --build-arg "BASE_IMAGE=$TOOL_GENERATOR_IMAGE:ci" \
+            --build-arg "NODE_VERSION=$NODE_VERSION" --tag "$TOOL_RELEASE_IMAGE:ci" .
 
       - name: Execute tools and generate sources natively
         run: bash .github/resources/scripts/maintainer_tools_smoke.sh "$ARCH" "$RUNNER_TEMP/tool-output"
@@ -101,7 +103,8 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           source ./.github/resources/scripts/helper-functions.sh
-          for image in kfp-api-generator kfp-release; do
+          source .github/resources/scripts/ci-image-artifacts.sh
+          for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
             repository="${IMAGE_REGISTRY}/${IMAGE_ORG}/${image}"
             uploaded="${repository}:${RUN_TAG}-${ARCH}-image"
             docker tag "${image}:ci" "$uploaded"
@@ -134,10 +137,17 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+      - name: List required generated tool outputs
+        id: tool-outputs
+        shell: bash
+        env:
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output tool-output-artifacts "$RUN_ATTEMPT"
       - uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: tool-output-*-${{ github.run_attempt }}
           path: tool-output
+          required-files: ${{ steps.tool-outputs.outputs.required-files }}
       - name: Require architecture-independent generated output
         env:
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -151,11 +161,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+      - name: List required tool digest records
+        id: tool-digests
+        shell: bash
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output tool-digest-files
       - uses: ./.github/actions/download-artifact-with-retry
         with:
           pattern: tool-digests-*-${{ github.run_attempt }}
           path: tool-digests
           merge-multiple: 'true'
+          required-files: ${{ steps.tool-digests.outputs.required-files }}
       - uses: docker/login-action@v4
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
@@ -169,7 +184,8 @@ jobs:
           SOURCE_SHA: ${{ github.sha }}
           RUN_TAG: run-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          for image in kfp-api-generator kfp-release; do
+          source .github/resources/scripts/ci-image-artifacts.sh
+          for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
             python3 .github/resources/scripts/publish_image_index.py \
               --image "${IMAGE_REGISTRY}/${IMAGE_ORG}/${image}" --source-sha "$SOURCE_SHA" \
               --platforms linux/amd64,linux/arm64 --digests "tool-digests/$image" \

@@ -55,11 +55,11 @@ The following packages will be merged into `kfp`:
 
 ### Build System Modernization
 
-We will move away from `setup.py` and `requirements.txt` files to a single `pyproject.toml` file. This aligns with modern Python packaging standards and simplifies dependency specification.
+The prerequisite uv migration introduced `pyproject.toml` and the workspace lockfile. Consolidation leaves one SDK distribution in `sdk/python/pyproject.toml`; the root `pyproject.toml` manages development tooling. Root and SDK `requirements.txt` files remain generated compatibility exports.
 
 ### Version Alignment
 
-The consolidated package will use a unified version number (starting with 3.0.0) to signify this major structural change and ensure users get compatible versions of all components.
+The consolidated package will use the SDK's version for all bundled modules. The version bump is deferred to the release process; this implementation does not publish packages or change existing release branches.
 
 ## Design Details
 
@@ -84,22 +84,24 @@ We will update internal imports to use relative imports or full `kfp.*` paths. F
 ## Test Plan
 
 1.  **Unit Tests**: Migrate existing unit tests from the separate repositories/directories into the `kfp` test suite.
-    *   Specifically, `kubernetes_platform` tests will be moved to `sdk/python/kfp/kubernetes/test/`.
+    *   Specifically, `kubernetes_platform` tests will be moved to `sdk/python/test/kubernetes/`.
 2.  **Integration Tests**: Verify that the consolidated package works with existing integration tests.
 3.  **Installation Tests**: Verify that `pip install .` and `pip install kfp` work correctly in a fresh environment.
+4.  **Generation and Artifacts**: Preserve CI's explicit generate, build, then test sequence. Commit generated Python bindings so Git installs work from a clean checkout. Regenerate them in CI and reject drift; verify wheel and standalone sdist installs include all bundled modules.
 
 ## Migration Strategy
 
-Users will simply need to upgrade to the new `kfp` version:
+Users upgrading an existing split-package installation must remove the old file owners **before** installing the unified SDK. Set `KFP_VERSION` to the release containing consolidation, then run:
 
 ```bash
-pip install --upgrade kfp
+python -m pip uninstall -y kfp-pipeline-spec kfp-server-api kfp-kubernetes &&
+python -m pip install --upgrade --force-reinstall "kfp==$KFP_VERSION"
 ```
 
-This will install the consolidated package. The old packages (`kfp-pipeline-spec`, etc.) will no longer be needed as dependencies, though they may remain on PyPI for older versions.
+Pip does not automatically remove distributions that are no longer dependencies. Removing them after installing the unified SDK can delete shared files; recover by force-reinstalling `kfp`. Restart Python processes and notebook kernels after upgrading. Fresh environments need only `kfp`. Historical packages remain on PyPI for older releases; third-party dependencies that require them must be updated before migration.
 
 **Breaking Changes**:
-*   Users directly importing `kfp_pipeline_spec`, `kfp_server_api`, or `kfp_kubernetes` will need to update their imports to `kfp.pipeline_spec`, `kfp.server_api`, and `kfp.kubernetes` respectively.
+*   Users directly importing the v2 `kfp_server_api` client must use `kfp.server_api`. The existing `kfp.pipeline_spec` and `kfp.kubernetes` import paths remain unchanged.
 
 ## Alternatives
 
@@ -108,8 +110,4 @@ This will install the consolidated package. The old packages (`kfp-pipeline-spec
 
 **Question**: Should `kfp.kubernetes` be an optional dependency?
 
-**Recommendation**: **Yes**.
-- The `kfp.kubernetes` module depends on the `kubernetes` Python client, which is a significant dependency.
-- To keep the base `kfp` package lightweight and avoid unnecessary overhead in execution environments (executioners/launchers), `kfp.kubernetes` will be an optional dependency.
-- Users needing Kubernetes-specific features (e.g., `use_secret_as_env`, `add_node_affinity`) must install `kfp[kubernetes]`.
-- The code for `kfp.kubernetes` is included in the package, but importing it without the optional dependency installed will raise a helpful `ImportError` instructing the user to install `kfp[kubernetes]`.
+**Decision**: Preserve existing runtime behavior in this consolidation. The base SDK already depends on the `kubernetes` Python client, so Kubernetes helpers are included without an additional install. Keep `kfp[kubernetes]` as a compatibility extra. Making the client optional would be a separate behavioral change.

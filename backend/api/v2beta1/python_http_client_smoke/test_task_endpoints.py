@@ -28,12 +28,12 @@ import sys
 import unittest
 
 _CLIENT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "python_http_client"))
+    os.path.join(os.path.dirname(__file__), "../../../../sdk/python"))
 if _CLIENT_ROOT not in sys.path:
     sys.path.insert(0, _CLIENT_ROOT)
 
-from kfp_server_api.api.artifact_service_api import ArtifactServiceApi
-from kfp_server_api.api.run_service_api import RunServiceApi
+from kfp.server_api.api.artifact_service_api import ArtifactServiceApi
+from kfp.server_api.api.run_service_api import RunServiceApi
 
 
 class RecordingApiClient(object):

@@ -65,8 +65,8 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
                                       '--file backend/api/Dockerfile')
         release = self.step_running(self.build,
                                     '--file release/Dockerfile.release')
-        self.assertIn('--tag kfp-api-generator:ci', generator['run'])
-        self.assertIn('--build-arg BASE_IMAGE=kfp-api-generator:ci',
+        self.assertIn('--tag "$TOOL_GENERATOR_IMAGE:ci"', generator['run'])
+        self.assertIn('--build-arg "BASE_IMAGE=$TOOL_GENERATOR_IMAGE:ci"',
                       release['run'])
         for step in (generator, release):
             self.assertIn('docker build --platform "$PLATFORM"', step['run'])
@@ -145,7 +145,7 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
         promotion = self.step_running(self.publish, 'publish_image_index.py')
         self.assertEqual(promotion['env']['SOURCE_SHA'], '${{ github.sha }}')
         command = promotion['run']
-        self.assertIn('for image in kfp-api-generator kfp-release;', command)
+        self.assertIn('for image in "${TOOL_IMAGE_ARTIFACTS[@]}";', command)
         self.assertIn('--source-sha "$SOURCE_SHA"', command)
         self.assertIn('--platforms linux/amd64,linux/arm64', command)
         self.assertIn('--digests "tool-digests/$image"', command)
