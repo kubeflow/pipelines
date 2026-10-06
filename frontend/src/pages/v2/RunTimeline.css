@@ -1,0 +1,236 @@
+.run-timeline {
+  overflow: auto;
+  padding: 16px 20px 24px;
+  color: #28344a;
+  background: #f8fafc;
+  flex: 1;
+  min-height: 0;
+}
+.run-timeline h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.run-timeline p {
+  color: #637087;
+  margin: 6px 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.rt-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  color: #68758b;
+}
+.rt-refresh-warning {
+  margin-bottom: 12px;
+}
+.rt-status {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.rt-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 18px;
+  align-items: start;
+}
+.rt-panel {
+  background: white;
+  border: 1px solid #dee5ee;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.rt-chart-scroll {
+  overflow-x: auto;
+}
+.rt-chart {
+  min-width: 640px;
+  padding-bottom: 14px;
+}
+.rt-chart-row {
+  box-sizing: border-box;
+  padding-right: 16px;
+  display: grid;
+  grid-template-columns: 225px minmax(220px, 1fr) 70px;
+  gap: 14px;
+  align-items: center;
+  min-height: 46px;
+  border-bottom: 1px solid #f0f3f7;
+}
+.rt-chart-row:last-child {
+  border-bottom: 0;
+}
+.rt-chart-row:not(.rt-axis) {
+  cursor: pointer;
+}
+.rt-chart-row:not(.rt-axis):hover {
+  background: #f7faff;
+}
+.rt-selected {
+  background: #edf4ff !important;
+}
+.rt-axis {
+  min-height: 44px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #68758b;
+}
+.rt-axis > span:first-child {
+  padding-left: 12px;
+}
+.rt-task-label {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  padding-left: 12px;
+}
+.rt-task-label > button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 0;
+  color: #28344a;
+}
+.rt-task-label > small {
+  color: #637087;
+  font-size: 10px;
+}
+.rt-track {
+  position: relative;
+  height: 46px;
+  background: repeating-linear-gradient(
+    to right,
+    #e9eef5 0,
+    #e9eef5 1px,
+    transparent 1px,
+    transparent 16.6667%
+  );
+}
+.rt-bar {
+  position: absolute;
+  top: 13px;
+  height: 20px;
+  min-width: 5px;
+  max-width: 100%;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.88;
+}
+.rt-bar:hover {
+  opacity: 1;
+  outline: 2px solid #a6c7f6;
+  outline-offset: 2px;
+}
+.rt-bar:focus-visible,
+.run-timeline button:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: 3px;
+}
+.rt-cached {
+  min-width: 9px;
+  width: 9px !important;
+  height: 9px;
+  top: 18px;
+  transform: rotate(45deg);
+  border-radius: 1px;
+}
+.rt-running {
+  background-image: repeating-linear-gradient(
+    110deg,
+    transparent 0,
+    transparent 7px,
+    #ffffff35 7px,
+    #ffffff35 14px
+  );
+}
+.rt-row-duration {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.rt-now-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #1a73e8;
+  pointer-events: none;
+}
+.rt-untimed {
+  line-height: 46px;
+  font-size: 10px;
+  color: #68758b;
+  background: white;
+  padding-right: 8px;
+}
+.rt-inspector {
+  padding: 20px;
+}
+.rt-inspector h2 {
+  margin: 14px 0 8px;
+  font-size: 17px;
+}
+.rt-big-duration {
+  font-size: 34px;
+  margin: 18px 0;
+  font-variant-numeric: tabular-nums;
+}
+.rt-big-duration small {
+  display: block;
+  font-size: 11px;
+  color: #68758b;
+  margin-top: 4px;
+}
+.rt-inspector dl {
+  display: grid;
+  grid-template-columns: 65px 1fr;
+  gap: 15px;
+  font-size: 11px;
+  margin: 20px 0;
+}
+.rt-inspector dt {
+  color: #68758b;
+}
+.rt-inspector dd {
+  margin: 0;
+}
+.rt-inspector .MuiAlert-root {
+  font-size: 11px;
+  margin-bottom: 16px;
+}
+@media (min-width: 1251px) {
+  .run-timeline {
+    /* Keep long charts from expanding the outer flex layout; this is the scroll owner. */
+    container-type: size;
+  }
+  .rt-inspector {
+    position: sticky;
+    top: 0;
+    box-sizing: border-box;
+    max-height: 100cqh;
+    overflow-y: auto;
+  }
+}
+@media (max-width: 1250px) {
+  .rt-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 800px) {
+  .run-timeline {
+    padding: 16px 12px 32px;
+  }
+}

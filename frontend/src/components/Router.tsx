@@ -249,7 +249,16 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
               key={i}
               exact={!route.notExact}
               path={path}
-              render={(props) => <RoutedPage key={props.location.key} route={route} />}
+              render={(props) => (
+                <RoutedPage
+                  key={
+                    path === RoutePage.RUN_DETAILS || path === RoutePage.RUN_DETAILS_WITH_EXECUTION
+                      ? props.location.pathname
+                      : props.location.key
+                  }
+                  route={route}
+                />
+              )}
             />
           );
         })}
@@ -413,9 +422,10 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
 export default Router;
 
+// Allow route scroll regions to shrink even when navigation is taller than the viewport.
 const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className={classes(commonCss.page)}>
-    <div className={classes(commonCss.flexGrow)}>
+    <div className={classes(commonCss.flexGrow)} style={{ minHeight: 0 }}>
       <Route
         render={({ ...props }) => <SideNavigation page={props.location.pathname} {...props} />}
       />

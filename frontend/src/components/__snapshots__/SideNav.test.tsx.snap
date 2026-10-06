@@ -8,7 +8,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870"
@@ -462,7 +462,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Cluster name: some-cluster-name, Project ID: some-project-id"
@@ -525,7 +525,7 @@ exports[`SideNav > populates the display build information using the default pro
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870"
@@ -979,7 +979,7 @@ exports[`SideNav > populates the display build information using the default pro
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -1025,7 +1025,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870"
@@ -1479,7 +1479,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -1525,7 +1525,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870"
@@ -1979,7 +1979,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -2025,7 +2025,7 @@ exports[`SideNav > renders collapsed state 1`] = `
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870"
@@ -2525,7 +2525,7 @@ exports[`SideNav > renders expanded state 1`] = `
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870"
@@ -2979,7 +2979,7 @@ exports[`SideNav > renders expanded state 1`] = `
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -3025,7 +3025,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -3479,7 +3479,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -3525,7 +3525,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -3979,7 +3979,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -4025,7 +4025,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -4479,7 +4479,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -4525,7 +4525,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -4979,7 +4979,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -5025,7 +5025,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -5479,7 +5479,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -5525,7 +5525,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -5979,7 +5979,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -6025,7 +6025,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -6479,7 +6479,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -6525,7 +6525,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -6979,7 +6979,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -7025,7 +7025,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -7479,7 +7479,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -7525,7 +7525,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -7979,7 +7979,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"
@@ -8025,7 +8025,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
     id="sideNav"
   >
     <div
-      style="flex-grow: 1;"
+      style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
     >
       <div
         class="indicator_f1itm870 indicatorHidden_fnu5k6u"
@@ -8530,7 +8530,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       </button>
     </div>
     <div
-      class="infoVisible_f9kvncf"
+      class="infoVisible_f4qpich"
     >
       <div
         aria-label="Build date: 10/23/2018, Commit hash: 0a7b9e3"

@@ -12,8 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  MouseEvent as ReactMouseEvent,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Alert } from '@mui/material';
+import { getMlmdTimelineTasks } from 'src/lib/v2/MlmdTaskTiming';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { useKeyedState } from 'src/hooks/useKeyedState';
@@ -54,7 +64,8 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
-const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
+const TAB_NAMES = ['Graph', 'Timeline', 'Detail', 'Pipeline Spec'];
+const RunTimeline = lazy(() => import('./v2/RunTimeline'));
 
 interface MlmdPackage {
   executions: Execution[];
@@ -96,6 +107,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
   const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
+  const [timelineNavigationError, setTimelineNavigationError] = useState(false);
+  const tabParam = new URLSearchParams(props.location.search).get('tab');
+  const activeTab = tabParam === 'timeline' || tabParam === 'waterfall' ? 1 : selectedTab;
+  const switchTab = (tab: number) => {
+    setSelectedTab(tab === 1 ? 0 : tab);
+    const search = new URLSearchParams(props.location.search);
+    if (tab === 1) search.set('tab', 'timeline');
+    else search.delete('tab');
+    props.history.replace({ ...props.location, search: search.toString() });
+  };
   const [, forceUpdate] = useState();
   const runStateKey = `${run.run_id || runId}:${run.state || ''}`;
   const [retriedCurrentRunState, setRetriedCurrentRunState] = useKeyedState(runStateKey, false);
@@ -115,6 +136,39 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     staleTime: QUERY_STALE_TIME,
     refetchInterval: QUERY_REFETCH_INTERVAL,
   });
+
+  const timelineTasks = useMemo(
+    () => getMlmdTimelineTasks(pipelineSpec, data?.executions || []),
+    [pipelineSpec, data],
+  );
+  const openTimelineTask = (executionId: string) => {
+    const target = timelineTasks.find((task) => task.id === executionId)?.graphTarget;
+    if (!target || !data) return;
+    try {
+      const elements = updateFlowElementsState(
+        target.layers,
+        convertSubDagToRuntimeFlowElements(pipelineSpec, target.layers, data.executions),
+        data.executions,
+        data.events,
+        data.artifacts,
+      );
+      const element = elements.find(
+        (node) => node.id === target.nodeId && node.data?.mlmdId === target.executionId,
+      );
+      // Never select a namesake execution in a different DAG/iteration or retry record.
+      if (!element) throw new Error('Execution is not represented in this graph snapshot');
+      setLayers(target.layers);
+      setFlowElements(elements);
+      setSelectedNode(element);
+      setSelectedNodeMlmdInfo(
+        getNodeMlmdInfo(element, data.executions, data.events, data.artifacts),
+      );
+      setTimelineNavigationError(false);
+      switchTab(0);
+    } catch {
+      setTimelineNavigationError(true);
+    }
+  };
 
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
@@ -209,9 +263,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   return (
     <>
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs selectedTab={selectedTab} tabs={TAB_NAMES} onSwitch={setSelectedTab} />
+        <MD2Tabs selectedTab={activeTab} tabs={TAB_NAMES} onSwitch={switchTab} />
         {/* DAG tab */}
-        {selectedTab === 0 && (
+        {activeTab === 0 && (
           <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
             <DagCanvas
               layers={layers}
@@ -244,7 +298,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         )}
 
         {/* Run details tab */}
-        {selectedTab === 1 && (
+        {activeTab === 2 && (
           <div className={padding()}>
             <DetailsTable title='Run details' fields={getDetailsFields(run)} />
 
@@ -260,8 +314,28 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           </div>
         )}
 
+        {activeTab === 1 && (
+          <>
+            {timelineNavigationError && (
+              <Alert severity='warning'>
+                This execution could not be located in the graph. Refresh the page to load its
+                latest parent execution metadata.
+              </Alert>
+            )}
+            <Suspense fallback={<div className={padding()}>Loading component tasks…</div>}>
+              <RunTimeline
+                run={run}
+                tasks={timelineTasks}
+                loading={!data && !isError}
+                error={isError ? error : undefined}
+                onOpenTask={openTimelineTask}
+              />
+            </Suspense>
+          </>
+        )}
+
         {/* Pipeline Spec tab */}
-        {selectedTab === 2 && (
+        {activeTab === 3 && (
           <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
             <PipelineSpecTabContent templateString={pipelineJobStr || ''} />
           </div>

@@ -14,7 +14,19 @@
  * limitations under the License.
  */
 
-import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  queryByText,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Router as ReactRouter } from 'react-router';
+import { createMemoryHistory } from 'history';
+import Router from 'src/components/Router';
 import userEvent from '@testing-library/user-event';
 
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
@@ -28,6 +40,8 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import {
   Context,
+  Execution,
+  Value,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
   GetExecutionsByContextResponse,
@@ -54,8 +68,8 @@ describe('RunDetailsV2', () => {
 
   function generateProps(): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
+      history: { push: historyPushSpy, replace: vi.fn() } as any,
+      location: { pathname: '/runs/details/1', search: '' } as any,
       match: {
         params: {
           [RouteParams.runId]: RUN_ID,
@@ -451,7 +465,147 @@ describe('RunDetailsV2', () => {
     await waitFor(() => expect(getLatestTerminateDisabled()).toBe(false));
   });
 
+  function renderRunDetailsWithSearch(search: string) {
+    const root = new Execution().setId(1).setType('system.DAGExecution');
+    root.getCustomPropertiesMap().set('task_name', new Value().setStringValue(''));
+    const train = new Execution()
+      .setId(2)
+      .setType('system.ContainerExecution')
+      .setLastKnownState(Execution.State.COMPLETE)
+      .setCreateTimeSinceEpoch(TEST_RUN.created_at!.getTime())
+      .setLastUpdateTimeSinceEpoch(TEST_RUN.created_at!.getTime() + 10_000);
+    train.getCustomPropertiesMap().set('task_name', new Value().setStringValue('train'));
+    train.getCustomPropertiesMap().set('parent_dag_id', new Value().setIntValue(1));
+    vi.mocked(Api.getInstance().metadataStoreService.getExecutionsByContext).mockResolvedValue(
+      new GetExecutionsByContextResponse().setExecutionsList([root, train]),
+    );
+    const history = createMemoryHistory({ initialEntries: [`/runs/details/1${search}`] });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <ReactRouter history={history}>
+          <Router
+            configs={[
+              {
+                path: RoutePage.RUN_DETAILS,
+                Component: (props) => (
+                  <RunDetailsV2 {...props} run={TEST_RUN} pipeline_job={v2YamlTemplateString} />
+                ),
+              },
+            ]}
+          />
+        </ReactRouter>
+      </QueryClientProvider>,
+    );
+    return { ...view, history, queryClient, train, root };
+  }
+
   describe('topbar tabs', () => {
+    it.each(['timeline', 'waterfall'])(
+      'opens Timeline from the %s URL using existing task data',
+      async (tab) => {
+        renderRunDetailsWithSearch(`?tab=${tab}`);
+        expect(
+          await screen.findByRole('table', { name: 'Component timeline timings' }),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Timeline', exact: true })).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', { name: 'Waterfall', exact: true }),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it('responds to browser history changes without leaving Timeline selected', async () => {
+      const { history } = renderRunDetailsWithSearch('');
+      await userEvent.click(screen.getByRole('button', { name: 'Timeline', exact: true }));
+      await screen.findByRole('table', { name: 'Component timeline timings' });
+      act(() => history.push('/runs/details/1'));
+      expect(screen.getByTestId('DagCanvas')).toBeInTheDocument();
+      act(() => history.goBack());
+      expect(
+        await screen.findByRole('table', { name: 'Component timeline timings' }),
+      ).toBeInTheDocument();
+    });
+
+    it('opens Timeline and navigates back to a component in the graph', async () => {
+      const { history } = renderRunDetailsWithSearch('?keep=value');
+      const getNodeInfo = vi.spyOn(DynamicFlow, 'getNodeMlmdInfo');
+      await userEvent.click(screen.getByRole('button', { name: 'Timeline', exact: true }));
+      expect(history.location.search).toBe('?keep=value&tab=timeline');
+      await screen.findByRole('table', { name: 'Component timeline timings' });
+      await userEvent.click(screen.getByRole('button', { name: 'train', exact: true }));
+      await userEvent.click(screen.getByRole('button', { name: 'Open task in graph' }));
+      expect(history.location.search).toBe('?keep=value');
+      expect(screen.getByTestId('DagCanvas')).toBeInTheDocument();
+      expect(getNodeInfo.mock.results.at(-1)?.value.execution.getId()).toBe(2);
+      expect(
+        screen.queryByRole('table', { name: 'Component timeline timings' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('reuses MLMD query refreshes, preserves selection, and retains data on refresh failure', async () => {
+      const { queryClient, root, train } = renderRunDetailsWithSearch('?tab=timeline');
+      await screen.findByRole('table', { name: 'Component timeline timings' });
+      await userEvent.click(screen.getByRole('button', { name: 'train', exact: true }));
+      const preprocess = new Execution()
+        .setId(3)
+        .setType('system.ContainerExecution')
+        .setLastKnownState(Execution.State.COMPLETE)
+        .setCreateTimeSinceEpoch(TEST_RUN.created_at!.getTime())
+        .setLastUpdateTimeSinceEpoch(TEST_RUN.created_at!.getTime() + 100_000);
+      preprocess
+        .getCustomPropertiesMap()
+        .set('task_name', new Value().setStringValue('preprocess'));
+      preprocess.getCustomPropertiesMap().set('parent_dag_id', new Value().setIntValue(1));
+      const service = Api.getInstance().metadataStoreService;
+      vi.mocked(service.getExecutionsByContext).mockResolvedValue(
+        new GetExecutionsByContextResponse().setExecutionsList([root, train, preprocess]),
+      );
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+      expect(
+        await screen.findByRole('button', { name: 'preprocess', exact: true }),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('complementary', { name: 'Selected task' })).getByRole('heading', {
+          name: 'train',
+        }),
+      ).toBeInTheDocument();
+      vi.mocked(service.getExecutionsByContext).mockRejectedValue(new Error('offline'));
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+      expect(await screen.findByText(/Showing the last available snapshot/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'preprocess', exact: true })).toBeInTheDocument();
+    });
+
+    it('keeps Timeline open rather than navigating to a same-name retry execution', async () => {
+      const { queryClient, root, train } = renderRunDetailsWithSearch('?tab=timeline');
+      await screen.findByRole('table', { name: 'Component timeline timings' });
+      const retry = new Execution()
+        .setId(3)
+        .setType('system.ContainerExecution')
+        .setLastKnownState(Execution.State.COMPLETE);
+      retry.getCustomPropertiesMap().set('task_name', new Value().setStringValue('train'));
+      retry.getCustomPropertiesMap().set('parent_dag_id', new Value().setIntValue(1));
+      vi.mocked(Api.getInstance().metadataStoreService.getExecutionsByContext).mockResolvedValue(
+        new GetExecutionsByContextResponse().setExecutionsList([root, train, retry]),
+      );
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+      await waitFor(() =>
+        expect(screen.getAllByRole('button', { name: 'train', exact: true })).toHaveLength(2),
+      );
+      await userEvent.click(screen.getAllByRole('button', { name: 'train', exact: true })[1]);
+      await userEvent.click(screen.getByRole('button', { name: 'Open task in graph' }));
+      expect(
+        screen.getByText(/This execution could not be located in the graph/),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('table', { name: 'Component timeline timings' })).toBeInTheDocument();
+    });
+
     it('switches to Detail tab', async () => {
       render(
         <CommonTestWrapper>

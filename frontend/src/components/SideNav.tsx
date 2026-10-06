@@ -145,6 +145,7 @@ export const css = stylesheet({
     height: 0,
   },
   infoVisible: {
+    flexShrink: 0,
     opacity: 'initial',
     transition: 'opacity 0.2s',
     transitionDelay: '0.3s',
@@ -280,7 +281,15 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           collapsed && css.collapsedRoot,
         )}
       >
-        <div style={{ flexGrow: 1 }}>
+        <div
+          style={{
+            flexGrow: 1,
+            minHeight: 0,
+            overflowX: 'hidden',
+            overflowY: 'auto',
+            position: 'relative',
+          }}
+        >
           {KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE && (
             <>
               <div
