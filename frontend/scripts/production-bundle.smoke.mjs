@@ -134,9 +134,9 @@ test(
         },
         '/apis/v2beta1/runs/timeline-layout-test/tasks': { tasks },
       });
-      await page.goto('http://kfp.test/#/runs/details/timeline-layout-test?tab=waterfall');
-      const timeline = page.getByRole('region', { name: 'Run waterfall' });
-      const chart = page.getByRole('table', { name: 'Component waterfall timings' });
+      await page.goto('http://kfp.test/#/runs/details/timeline-layout-test?tab=timeline');
+      const timeline = page.getByRole('region', { name: 'Run timeline' });
+      const chart = page.getByRole('table', { name: 'Component timeline timings' });
       await chart.waitFor();
       const inspector = page.getByRole('complementary', { name: 'Selected task' });
       for (const height of [900, 500]) {

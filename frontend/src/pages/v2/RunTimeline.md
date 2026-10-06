@@ -1,6 +1,6 @@
 # Run Timeline
 
-The **Timeline** tab presents a waterfall chart of component task executions in chronological order, including individual loop iterations. It reuses the run-details task query for completed and in-progress runs.
+The **Timeline** tab charts component task executions in chronological order, including individual loop iterations. It reuses the run-details task query for completed and in-progress runs.
 
 Click anywhere on a row to inspect task status, timestamps, elapsed time, and state history. Component-name and bar buttons also support keyboard selection. The details panel links back to the corresponding task in the graph.
 
@@ -18,4 +18,4 @@ On wide layouts, the Timeline owns its scroll area and the selected-task inspect
 
 ## Development
 
-Use the [frontend development setup](../../../README.md#local-development) with a KFP backend, then open a run's **Timeline** tab. The existing ten-second run/task pollers discover state changes and newly created tasks; active bars update every second.
+Use the [frontend development setup](../../../README.md#local-development) with a KFP backend, then open a run's **Timeline** tab. New links use `?tab=timeline`; existing `?tab=waterfall` links remain supported. The existing ten-second run/task pollers discover state changes and newly created tasks; active bars update every second.

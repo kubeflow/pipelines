@@ -80,7 +80,7 @@ const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS = 3;
 const TAB_NAMES = ['Graph', 'Timeline', 'Detail', 'Pipeline Spec'];
-const RunWaterfall = lazy(() => import('./v2/RunWaterfall'));
+const RunTimeline = lazy(() => import('./v2/RunTimeline'));
 
 interface RunDetailsV2Info {
   onRetryStarted?: () => void;
@@ -172,11 +172,11 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
   const tabParam = new URLSearchParams(props.location.search).get('tab');
-  const activeTab = tabParam === 'waterfall' ? 1 : selectedTab;
+  const activeTab = tabParam === 'timeline' || tabParam === 'waterfall' ? 1 : selectedTab;
   const switchTab = (tab: number) => {
     setSelectedTab(tab === 1 ? 0 : tab);
     const search = new URLSearchParams(props.location.search);
-    if (tab === 1) search.set('tab', 'waterfall');
+    if (tab === 1) search.set('tab', 'timeline');
     else search.delete('tab');
     props.navigate(
       { pathname: props.location.pathname, search: search.toString() },
@@ -624,7 +624,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
         {activeTab === 1 && (
           <Suspense fallback={<div className={padding()}>Loading component tasks…</div>}>
-            <RunWaterfall
+            <RunTimeline
               run={run}
               tasks={tasks || []}
               loading={!isSuccess && !isError}

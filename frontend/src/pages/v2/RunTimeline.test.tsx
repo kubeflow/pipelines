@@ -7,7 +7,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { getContrastRatio } from '@mui/material/styles';
 import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
-import RunWaterfall, { RunWaterfallProps } from './RunWaterfall';
+import RunTimeline, { RunTimelineProps } from './RunTimeline';
 
 const base = Date.parse('2026-01-01T00:00:00Z');
 const at = (seconds: number) => new Date(base + seconds * 1000);
@@ -40,20 +40,20 @@ const tasks = [
   task('Unknown', 0, undefined, { state: 'SKIPPED' }),
   task('Cached', 5, 5, { state: 'CACHED' }),
 ];
-function setup(overrides: Partial<RunWaterfallProps> = {}) {
-  const props: RunWaterfallProps = {
+function setup(overrides: Partial<RunTimelineProps> = {}) {
+  const props: RunTimelineProps = {
     run,
     tasks,
     loading: false,
     onOpenTask: vi.fn(),
     ...overrides,
   };
-  const view = render(<RunWaterfall {...props} />);
+  const view = render(<RunTimeline {...props} />);
   return {
     ...view,
     props,
-    update: (next: Partial<RunWaterfallProps>) =>
-      view.rerender(<RunWaterfall {...props} {...next} />),
+    update: (next: Partial<RunTimelineProps>) =>
+      view.rerender(<RunTimeline {...props} {...next} />),
   };
 }
 
@@ -79,7 +79,7 @@ it.each([
 
 it('renders components chronologically and preserves selection across refreshes', async () => {
   const { update } = setup();
-  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   expect(
     within(chart)
       .getAllByRole('columnheader')
@@ -109,7 +109,7 @@ it.each(['name', 'bar', 'track', 'elapsed', 'row'] as const)(
   'opens component details when clicking the %s area',
   async (area) => {
     setup();
-    const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+    const chart = screen.getByRole('table', { name: 'Component timeline timings' });
     const name = within(chart).getByRole('button', { name: 'Alpha', exact: true });
     const row = name.closest('[role="row"]') as HTMLElement;
     const cells = within(row).getAllByRole('cell');
@@ -185,7 +185,7 @@ it('keeps status in metadata as selection and task state change, without a relat
   expect(inspector.querySelector('.rt-status-badge')).toBeNull();
   expect(inspector.querySelector(':scope > .rt-status')).toBeNull();
   expect(within(inspector).queryByText(/into run/)).not.toBeInTheDocument();
-  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   await userEvent.click(within(chart).getByRole('button', { name: 'Cached', exact: true }));
   const cachedMetadata = screen
     .getByRole('complementary', { name: 'Selected task' })
@@ -201,7 +201,7 @@ it('keeps status in metadata as selection and task state change, without a relat
 
 it('preserves details scrolling on refresh but resets it when selecting another task', async () => {
   const { update } = setup();
-  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   await userEvent.click(within(chart).getByRole('button', { name: 'Alpha', exact: true }));
   const inspector = screen.getByRole('complementary', { name: 'Selected task' });
   inspector.scrollTop = 120;
@@ -220,7 +220,7 @@ it('renders all 25 components and selects the last row without pagination', asyn
       task(`Component ${index + 1}`, index * 10, index * 10 + 50),
     ),
   });
-  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   expect(within(chart).getAllByRole('row')).toHaveLength(26);
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   const lastRow = within(chart)
@@ -237,7 +237,7 @@ it('renders all 25 components and selects the last row without pagination', asyn
 
 it('opens the selected component in the graph', async () => {
   const { props } = setup();
-  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   await userEvent.click(within(chart).getByRole('button', { name: 'Alpha', exact: true }));
   await userEvent.click(screen.getByRole('button', { name: 'Open task in graph' }));
   expect(props.onOpenTask).toHaveBeenCalledWith('Alpha');
@@ -255,7 +255,7 @@ it('distinguishes cached, retried, and unknown timing in task details', async ()
   expect(
     screen.getByText('This task span includes retries and waiting between attempts.'),
   ).toBeInTheDocument();
-  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   await userEvent.click(within(chart).getByRole('button', { name: 'Cached', exact: true }));
   expect(screen.getByText(/This span is cache-resolution overhead/)).toBeInTheDocument();
   expect(within(chart).getByRole('button', { name: 'Select Cached, 0s' })).toBeInTheDocument();
@@ -271,7 +271,7 @@ it('updates active elapsed times, freezes terminal tasks, and cleans up the cloc
   const activeTask = task('Active', 0, undefined, { state: 'RUNNING' });
   const runningRun: V2beta1Run = { ...run, state: 'RUNNING', finished_at: undefined };
   const { update, unmount } = setup({ run: runningRun, tasks: [activeTask] });
-  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   expect(within(chart).getByRole('button', { name: 'Select Active, 1m 00s' })).toBeInTheDocument();
   act(() => vi.advanceTimersByTime(2000));
   expect(within(chart).getByRole('button', { name: 'Select Active, 1m 02s' })).toBeInTheDocument();
@@ -292,13 +292,13 @@ it.each(['RUNNING', 'SUCCEEDED'] as const)('keeps the header minimal for a %s ru
   expect(screen.queryByText('Completed snapshot')).not.toBeInTheDocument();
   expect(screen.queryByText(/Synthetic local data/)).not.toBeInTheDocument();
   expect(screen.queryByText('EXECUTION INSIGHTS')).not.toBeInTheDocument();
-  expect(screen.queryByRole('heading', { name: /waterfall/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: /timeline/i })).not.toBeInTheDocument();
   expect(screen.queryByRole('group', { name: 'Run timing summary' })).not.toBeInTheDocument();
   expect(screen.queryByText('Run elapsed')).not.toBeInTheDocument();
   expect(screen.queryByText('Component tasks')).not.toBeInTheDocument();
   expect(screen.queryByText('Longest task span')).not.toBeInTheDocument();
   expect(screen.queryByText(/into run/)).not.toBeInTheDocument();
-  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
   expect(
     within(chart)
       .getAllByRole('columnheader')
@@ -313,5 +313,5 @@ it('shows loading, empty, and refresh-error states', () => {
   expect(screen.getByText(/No component task data yet/)).toBeInTheDocument();
   update({ loading: false, error: new Error('offline') });
   expect(screen.getByText(/Showing the last available snapshot/)).toBeInTheDocument();
-  expect(screen.getByRole('table', { name: 'Component waterfall timings' })).toBeInTheDocument();
+  expect(screen.getByRole('table', { name: 'Component timeline timings' })).toBeInTheDocument();
 });

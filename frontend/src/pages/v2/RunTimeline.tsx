@@ -15,7 +15,7 @@ import {
   taskTimestamp,
   TaskTiming,
 } from 'src/lib/v2/RunTaskTiming';
-import './RunWaterfall.css';
+import './RunTimeline.css';
 
 const NEUTRAL_STATE_COLOR = '#637087';
 const STATE_COLORS: Record<string, string> = {
@@ -40,7 +40,7 @@ function Status({ state }: { state?: string }) {
   );
 }
 
-export interface RunWaterfallProps {
+export interface RunTimelineProps {
   run: V2beta1Run;
   tasks: V2beta1PipelineTask[];
   loading: boolean;
@@ -48,13 +48,7 @@ export interface RunWaterfallProps {
   onOpenTask: (taskId: string) => void;
 }
 
-export default function RunWaterfall({
-  run,
-  tasks,
-  loading,
-  error,
-  onOpenTask,
-}: RunWaterfallProps) {
+export default function RunTimeline({ run, tasks, loading, error, onOpenTask }: RunTimelineProps) {
   const [now, setNow] = useState(Date.now);
   const [selectedId, setSelectedId] = useState<string>();
   const active = !hasFinishedV2(run.state);
@@ -77,7 +71,7 @@ export default function RunWaterfall({
   const selected = timing.rows.find((row) => row.id === selectedId) || longest || timing.rows[0];
 
   return (
-    <section className='run-waterfall' aria-label='Run waterfall'>
+    <section className='run-timeline' aria-label='Run timeline'>
       {error && (
         <Alert severity='warning' className='rt-refresh-warning'>
           Unable to refresh component tasks.{' '}
@@ -94,7 +88,7 @@ export default function RunWaterfall({
       ) : (
         <div className='rt-split'>
           <div className='rt-panel'>
-            <Waterfall
+            <TimelineChart
               rows={ordered}
               origin={timing.origin}
               span={timing.span}
@@ -178,7 +172,7 @@ function TaskInspector({
   );
 }
 
-function Waterfall({
+function TimelineChart({
   rows,
   origin,
   span,
@@ -197,7 +191,7 @@ function Waterfall({
     now === undefined ? undefined : Math.max(0, Math.min(100, ((now - origin) / span) * 100));
   return (
     <div className='rt-chart-scroll'>
-      <div className='rt-chart' role='table' aria-label='Component waterfall timings'>
+      <div className='rt-chart' role='table' aria-label='Component timeline timings'>
         <div className='rt-chart-row rt-axis' role='row'>
           <span role='columnheader'>Component</span>
           <span role='columnheader' aria-label='Timeline' />

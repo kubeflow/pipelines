@@ -1,4 +1,4 @@
-.run-waterfall {
+.run-timeline {
   overflow: auto;
   padding: 16px 20px 24px;
   color: #28344a;
@@ -6,19 +6,19 @@
   flex: 1;
   min-height: 0;
 }
-.run-waterfall h2 {
+.run-timeline h2 {
   font-size: 15px;
   font-weight: 600;
   margin: 0 0 6px;
 }
-.run-waterfall h3 {
+.run-timeline h3 {
   font-size: 12px;
   font-weight: 600;
   margin: 24px 0 12px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
-.run-waterfall p {
+.run-timeline p {
   color: #637087;
   margin: 6px 0;
   font-size: 12px;
@@ -145,7 +145,7 @@
   outline-offset: 2px;
 }
 .rt-bar:focus-visible,
-.run-waterfall button:focus-visible {
+.run-timeline button:focus-visible {
   outline: 2px solid #1a73e8;
   outline-offset: 3px;
 }
@@ -244,7 +244,7 @@
   width: 100%;
 }
 @media (min-width: 1251px) {
-  .run-waterfall {
+  .run-timeline {
     /* Keep long charts from expanding the outer flex layout; this is the scroll owner. */
     container-type: size;
   }
@@ -262,7 +262,7 @@
   }
 }
 @media (max-width: 800px) {
-  .run-waterfall {
+  .run-timeline {
     padding: 16px 12px 32px;
   }
 }
