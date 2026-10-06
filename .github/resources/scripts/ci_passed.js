@@ -39,11 +39,33 @@ async function currentStatus(github, context, head) {
   return null;
 }
 
-function successDescription(pr) {
+async function baseRevision(github, context, pr) {
+  // ONE validated base revision for policy loading, execution freshness,
+  // publication, and the post-publication check. GitHub freezes pr.base.sha at
+  // the PR's last sync, so any use of the frozen sha leaves a stale green
+  // untouched as the base advances. Key every use off the LIVE base branch tip
+  // instead, so an advance revokes the green and forces fresh CI against the
+  // new base. Release branches keep their frozen base.sha behavior.
+  let sha = pr.base.sha;
+  if (pr.base.ref === 'master') {
+    const {data} = await github.rest.git.getRef({
+      ...context.repo, ref: `heads/${pr.base.ref}`,
+    });
+    sha = data.object.sha;
+  }
+  return sha;
+}
+
+async function basePolicyStamp(github, context, pr) {
+  const sha = await baseRevision(github, context, pr);
+  return require('node:crypto').createHash('sha256')
+    .update(JSON.stringify([pr.base.ref, sha])).digest('hex');
+}
+
+async function successDescription(github, context, pr) {
   // Bind green evidence to the exact checked-in workflow policy. Legacy
   // statuses and statuses from another base must be reconsidered by recovery.
-  const stamp = require('node:crypto').createHash('sha256')
-    .update(JSON.stringify([pr.base.ref, pr.base.sha])).digest('hex');
+  const stamp = await basePolicyStamp(github, context, pr);
   return `Expected CI and all checks passed; base policy ${stamp}.`;
 }
 
@@ -57,7 +79,8 @@ async function recoveryCandidates({github, context}) {
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
     const status = await currentStatus(github, context, pr.head.sha);
-    if (status?.state === 'success' && status.description === successDescription(pr)) continue;
+    if (status?.state === 'success' &&
+        status.description === await successDescription(github, context, pr)) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -143,11 +166,12 @@ async function freshAfter(github, context, pr) {
 }
 
 async function evidence(github, context, pr, root) {
+  const baseSha = await baseRevision(github, context, pr);
   const [inventory, cutoff] = await Promise.all([
-    loadBaseInventory({github, ...context.repo, pullRequest: pr, root}),
+    loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root}),
     freshAfter(github, context, pr),
   ]);
-  const args = {github, ...context.repo, pullRequest: pr, ...inventory, freshAfter: cutoff};
+  const args = {github, ...context.repo, pullRequest: pr, baseSha, ...inventory, freshAfter: cutoff};
   let result = await verifyExpectedWorkflows(args);
   if (result.missing.length) {
     // The earliest publication on this SHA starts the registration grace.
@@ -226,7 +250,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     }
     if (state === 'failure') errorReason = reason;
     await publish(github, context, original, state,
-      state === 'success' ? successDescription(pr) : reason);
+      state === 'success' ? await successDescription(github, context, pr) : reason);
     // Status/label writes are not atomic with PR or CI changes. Revalidate
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {

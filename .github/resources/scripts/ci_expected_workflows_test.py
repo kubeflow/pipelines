@@ -42,7 +42,9 @@ def verify(runs=None,
            fresh_after=None,
            workflow_paths=None,
            registration_started_at=None,
-           now=0):
+           now=0,
+           base_sha=None,
+           compare=None):
     if runs is None:
         runs = [good_run()]
     if files is None:
@@ -51,6 +53,13 @@ def verify(runs=None,
         trigger = {'branches': ['master'], 'paths': ['frontend/**']}
     if workflow_paths is None:
         workflow_paths = ['.github/workflows/frontend.yml']
+    if compare is None:
+        compare = {
+            'status': 'ahead',
+            'ahead_by': 1,
+            'behind_by': 0,
+            'total_commits': 1
+        }
     fixture = {
         'runs': runs,
         'files': files,
@@ -82,6 +91,7 @@ def verify(runs=None,
             'path': path,
             'header_sha256': 'header',
         } for path in workflow_paths],
+        'baseSha': base_sha,
         'freshAfter': fresh_after,
         'registrationStartedAt': registration_started_at,
         'now': now,
@@ -89,15 +99,21 @@ def verify(runs=None,
     return node(f'''
 const fixture = {json.dumps(fixture)};
 const requests = [];
+const compares = [];
+const compareData = {json.dumps(compare)};
 const github = {{
-  rest: {{pulls: {{listFiles: 'files'}}, actions: {{listWorkflowRunsForRepo: 'runs'}}}},
+  rest: {{pulls: {{listFiles: 'files'}}, actions: {{listWorkflowRunsForRepo: 'runs'}},
+    repos: {{compareCommits: async ({{base, head}}) => {{
+      compares.push({{base, head}});
+      return {{data: compareData}};
+    }}}}}},
   paginate: async (route, options) => {{
     requests.push({{route, options}});
     return fixture[route];
   }},
 }};
 gate.verifyExpectedWorkflows({{...fixture, github, owner: 'owner', repo: 'repo'}})
-  .then(result => console.log(JSON.stringify({{...result, requests}})))
+  .then(result => console.log(JSON.stringify({{...result, requests, compares}})))
   .catch(error => console.log(JSON.stringify({{error: error.message}})));
 ''')
 
@@ -396,6 +412,166 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
                     })
                 self.assertEqual(result['state'], 'failure')
                 self.assertFalse(result['passed'])
+
+    def test_head_reuse_does_not_pass_stale_run_as_fresh(self):
+        # Head H succeeded against B1; master advanced B1 -> B2; the branch then
+        # returned to H (H -> H2 -> H). GitHub has mutated the old run's
+        # association to report the current base B2, but H predates B2. The
+        # immutable head_sha ancestry check must reject it as stale even though
+        # the mutable association now matches.
+        result = verify(
+            base_sha='c' * 40,
+            compare={
+                'status': 'behind',
+                'ahead_by': 0,
+                'behind_by': 1,
+                'total_commits': 1
+            },
+            runs=[
+                good_run(pull_requests=[{
+                    'number': 7,
+                    'base': {
+                        'ref': 'master',
+                        'sha': 'c' * 40
+                    },
+                }])
+            ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+        self.assertEqual(result['compares'], [{
+            'base': 'c' * 40,
+            'head': 'head'
+        }])
+
+    def test_rerunning_old_execution_is_not_fresh(self):
+        # Rerunning an old successful execution preserves its execution SHA but
+        # its association base is mutated to the current base. The preserved
+        # head_sha ancestry, not the mutated association, decides freshness.
+        result = verify(
+            base_sha='c' * 40,
+            compare={
+                'status': 'behind',
+                'ahead_by': 0,
+                'behind_by': 1,
+                'total_commits': 1
+            },
+            runs=[
+                good_run(
+                    run_attempt=2,
+                    pull_requests=[{
+                        'number': 7,
+                        'base': {
+                            'ref': 'master',
+                            'sha': 'c' * 40
+                        },
+                    }])
+            ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+
+    def test_empty_association_fails_closed_on_head_ancestry(self):
+        # Forked PRs can carry an empty pull_requests array. The fallback must
+        # still use head_sha ancestry rather than the current PR base, and fail
+        # closed (pending, never fresh) when the head predates the base.
+        result = verify(
+            base_sha='c' * 40,
+            compare={
+                'status': 'behind',
+                'ahead_by': 0,
+                'behind_by': 1,
+                'total_commits': 1
+            },
+            runs=[good_run(pull_requests=[])])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['compares'], [{
+            'base': 'c' * 40,
+            'head': 'head'
+        }])
+
+    def test_head_containing_base_is_fresh(self):
+        # Positive control: a head whose ancestry genuinely contains the
+        # validated base is accepted as fresh evidence and passes.
+        result = verify(
+            base_sha='c' * 40,
+            compare={
+                'status': 'ahead',
+                'ahead_by': 1,
+                'behind_by': 0,
+                'total_commits': 1
+            },
+            runs=[good_run()])
+        self.assertTrue(result['passed'])
+        self.assertEqual(result['state'], 'success')
+        self.assertEqual(result['compares'], [{
+            'base': 'c' * 40,
+            'head': 'head'
+        }])
+
+    def test_latest_stale_success_cannot_outrank_fresh_failure(self):
+        # Jeff's "latest-attempt ordering" attack (#14705): an old successful
+        # run against a base the head no longer contains sorts latest by
+        # attempt time, so the ordering selects it over a genuinely fresh
+        # failed execution. The immutable head_sha freshness check must
+        # downgrade that stale success to pending so it never aggregates to
+        # success.
+        result = verify(
+            base_sha='c' * 40,
+            compare={
+                'status': 'behind',
+                'ahead_by': 0,
+                'behind_by': 1,
+                'total_commits': 1
+            },
+            runs=[
+                # Stale success: LATER attempt time, association already
+                # mutated to the current base, but the head predates it.
+                good_run(
+                    run_started_at='2026-09-07T14:00:00Z',
+                    pull_requests=[{
+                        'number': 7,
+                        'base': {
+                            'ref': 'master',
+                            'sha': 'c' * 40
+                        },
+                    }]),
+                # Fresh failure: EARLIER attempt time, genuinely failed.
+                good_run(
+                    id=101,
+                    conclusion='failure',
+                    run_started_at='2026-09-07T12:00:00Z')
+            ])
+        self.assertEqual(result['state'], 'pending')
+        self.assertFalse(result['passed'])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][0])
+        self.assertEqual(result['compares'], [{
+            'base': 'c' * 40,
+            'head': 'head'
+        }])
+
+    def test_failure_dominates_stale_pending_across_workflows(self):
+        # Cross-workflow ordering lock: a stale success in one workflow only
+        # degrades to pending, while a fresh failure in another is a hard
+        # failure. The aggregate must be failure (failure > pending > success).
+        paths = [
+            '.github/workflows/frontend.yml', '.github/workflows/backend.yml'
+        ]
+        result = verify(
+            base_sha='c' * 40,
+            compare={
+                'status': 'behind',
+                'ahead_by': 0,
+                'behind_by': 1,
+                'total_commits': 1
+            },
+            workflow_paths=paths,
+            runs=[good_run(),
+                  good_run(path=paths[1], conclusion='failure')])
+        self.assertEqual(result['state'], 'failure')
+        self.assertFalse(result['passed'])
+        self.assertIn('completed/failure', result['reasons'][0])
+        self.assertIn('awaiting a fresh CI run', result['reasons'][1])
 
     def test_renamed_source_still_requires_its_workflow(self):
         result = verify(files=[{

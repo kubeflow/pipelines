@@ -106,7 +106,27 @@ function invalidRunMetadata(run) {
   return null;
 }
 
-async function verifyExpectedWorkflows({github, owner, repo, pullRequest, inventory,
+async function runTestsBase({github, owner, repo, baseSha, headSha}) {
+  // A run is fresh evidence for base `baseSha` only if `baseSha` is an ancestor
+  // of the commit the run actually executed (its immutable head_sha). GitHub
+  // rewrites run.pull_requests base data to the PR's CURRENT base over time, so
+  // neither a run-scoped association nor the current pullRequest.base.sha proves
+  // which base a run tested. Compare the content-addressed commit hashes
+  // instead, and fail closed when ancestry cannot be established.
+  if (!baseSha || !headSha) return false;
+  try {
+    const {data} = await github.rest.repos.compareCommits({owner, repo,
+      base: baseSha, head: headSha});
+    // behind_by === 0 means `head` contains every commit in `base`; a status of
+    // `ahead` or `identical` confirms the base is an ancestor rather than a
+    // diverged or trailing history.
+    return data?.behind_by === 0 && (data?.status === 'ahead' || data?.status === 'identical');
+  } catch (error) {
+    return false;
+  }
+}
+
+async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSha, inventory,
   workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now()}) {
   validateInventory(inventory, workflowFiles);
   const cutoff = freshAfter === null ? null : Date.parse(freshAfter);
@@ -145,6 +165,12 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, invent
     owner, repo, event: 'pull_request', head_sha: pullRequest.head.sha, per_page: 100,
   });
   if (runs.length >= 1000) throw new Error('Workflow run history truncated for this PR head');
+  // Freshness is a property of (base, head), not of any individual run: every
+  // candidate run is filtered to run.head_sha === pullRequest.head.sha, so each
+  // ran the same immutable commit and the ancestry proof is identical for all
+  // of them. Prove it once rather than once per workflow.
+  const headTestsBase = baseSha ? await runTestsBase({github, owner, repo, baseSha,
+    headSha: pullRequest.head.sha}) : true;
   for (const workflow of expected) {
     const matching = runs.filter(run => run.path === workflow.path && run.event === 'pull_request' &&
       run.head_sha === pullRequest.head.sha && run.head_branch === pullRequest.head.ref &&
@@ -190,16 +216,27 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, invent
     if (association?.base?.ref && association.base.ref !== pullRequest.base.ref) {
       failures.push(`${workflow.path}: workflow ran for a different base branch`);
     }
+    // A run is fresh evidence only if the validated base revision is an
+    // ancestor of the commit the run actually executed (its immutable
+    // head_sha). The run-scoped base association and pullRequest.base.sha are
+    // MUTABLE (GitHub rewrites them to the PR's current base), so neither can
+    // prove which base a run tested: head reuse or an old-run rerun would
+    // otherwise pass stale evidence as fresh. Fail closed -- the PR stays
+    // pending until fresh CI runs against the current base.
+    if (baseSha && !headTestsBase) {
+      pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
+    }
   }
   const state = failures.length ? 'failure' : pending.length ? 'pending' : 'success';
   return {state, passed: state === 'success', reasons: [...failures, ...pending],
     expected: expected.map(workflow => workflow.path), disabled, missing};
 }
 
-async function loadBaseInventory({github, owner, repo, pullRequest, root}) {
+async function loadBaseInventory({github, owner, repo, pullRequest, baseSha, root}) {
   const base = pullRequest.base;
   const fullName = `${owner}/${repo}`;
-  if (!/^[0-9a-f]{40}$/.test(base?.sha || '') ||
+  const sha = baseSha ?? base?.sha;
+  if (!/^[0-9a-f]{40}$/.test(sha || '') ||
       base.repo?.full_name?.toLowerCase() !== fullName.toLowerCase()) {
     throw new Error('Workflow inventory requires an immutable trusted base repository SHA');
   }
@@ -216,7 +253,7 @@ async function loadBaseInventory({github, owner, repo, pullRequest, root}) {
         } } }
       }
     }
-  }`, {owner, repo, expression: `${base.sha}:.github/workflows`});
+  }`, {owner, repo, expression: `${sha}:.github/workflows`});
   const repository = result?.repository;
   const tree = repository?.object;
   if (repository?.nameWithOwner?.toLowerCase() !== fullName.toLowerCase() ||
