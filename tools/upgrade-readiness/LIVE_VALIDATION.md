@@ -83,6 +83,12 @@ scope before enabling the legacy rejection checks.
 
 ## Policy transitions and V1 acceptance
 
+API mode changes must wait for all old/terminating API Pods to disappear and
+for every remaining API Pod to be ready with the requested mode. A Deployment
+rollout readiness result alone is insufficient: existing controller connections
+can still reach an old process during termination. Keep schedules disabled
+through this cutover and retain sanitized Pod UID/mode evidence.
+
 After audit completion and audit-log verification, disable and drain the same
 three schedules before restoring API enforcement. Capture a new baseline and
 require default/granted success plus a fresh denial and no new run for the denied

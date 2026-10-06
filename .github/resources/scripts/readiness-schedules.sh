@@ -69,6 +69,40 @@ configure_api() {
     COMPILED_PIPELINE_SPEC_PATCH='{}' \
     KFP_SECURITY_SERVICE_ACCOUNT_MODE="$mode" KFP_SECURITY_WORKFLOW_IDENTITY_MODE=enforce
   kube -n kubeflow rollout status deployment/ml-pipeline --timeout=300s
+  # Rollout readiness excludes terminating replicas. Existing controller gRPC
+  # connections can still reach an old audit process during its grace period.
+  # Establish full policy cutover before enabling any fixture schedules.
+  local deadline=$((SECONDS + 120)) pods
+  while ((SECONDS < deadline)); do
+    if pods=$(kube -n kubeflow get pods -l app=ml-pipeline -o json) &&
+      jq -e --arg mode "$mode" '
+        (.items | type == "array" and length > 0) and
+        all(.items[];
+          .kind == "Pod" and .metadata.namespace == "kubeflow" and
+          (.metadata.uid | type == "string" and length > 0) and
+          .metadata.deletionTimestamp == null and .status.phase == "Running" and
+          ([.status.conditions[] | select(.type == "Ready")] |
+            length == 1 and .[0].status == "True") and
+          ([.spec.containers[] | select(.name == "ml-pipeline-api-server")] |
+            length == 1 and (.[0].env |
+              ([.[] | select(.name == "MULTIUSER")] |
+                length == 1 and .[0].value == "true" and (.[0] | has("valueFrom") | not)) and
+              ([.[] | select(.name == "KFP_SECURITY_SERVICE_ACCOUNT_MODE")] |
+                length == 1 and .[0].value == $mode and (.[0] | has("valueFrom") | not)) and
+              ([.[] | select(.name == "KFP_SECURITY_WORKFLOW_IDENTITY_MODE")] |
+                length == 1 and .[0].value == "enforce" and (.[0] | has("valueFrom") | not)))))
+      ' <<<"$pods" >/dev/null 2>&1; then
+      api_policy_cutover_count=$(( ${api_policy_cutover_count:-0} + 1 ))
+      jq --arg mode "$mode" '{scope: "isolated_api_policy_cutover", outcome: "passed",
+        service_account_mode: $mode, workflow_identity_mode: "enforce",
+        observed_at: (now | todateiso8601), pod_uids: ([.items[].metadata.uid] | sort)}' \
+        <<<"$pods" >"$reports/api-policy-cutover-$phase-$api_policy_cutover_count-$mode.json"
+      return
+    fi
+    sleep 2
+  done
+  echo '::error::API policy cutover could not exclude stale, terminating, or unready Pods.'
+  return 1
 }
 configure_controllers() {
   kube -n kubeflow set env deployment/ml-pipeline-scheduledworkflow MULTIUSER=true NAMESPACE="$namespace"
