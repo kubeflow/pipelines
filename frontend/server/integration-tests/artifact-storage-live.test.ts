@@ -90,6 +90,15 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
   }
+  function parseBytes(
+    response: NodeJS.ReadableStream,
+    done: (error: Error | null, body?: Buffer) => void,
+  ) {
+    const chunks: Buffer[] = [];
+    response.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    response.on('end', () => done(null, Buffer.concat(chunks)));
+    response.on('error', done);
+  }
   function attachment(response: requests.Response) {
     expect(response.headers['content-disposition']).toMatch(/^attachment/);
     expect(response.headers['x-content-type-options']).toBe('nosniff');
@@ -141,6 +150,8 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
     const response = await ui()
       .get('/artifacts/get')
       .query({ source: 'minio', bucket, key: 'existing.html', download: 'true' })
+      .buffer(true)
+      .parse(parseBytes)
       .expect(200);
     attachment(response);
     expect(Buffer.from(response.body).toString()).toBe(content);
@@ -149,6 +160,8 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
     const response = await ui()
       .get('/artifacts/get')
       .query({ source: 'minio', bucket, key: 'existing.gz', download: 'true' })
+      .buffer(true)
+      .parse(parseBytes)
       .expect(200);
     attachment(response);
     expect(response.body).toEqual(archive);
@@ -157,6 +170,8 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
     const response = await ui()
       .get('/artifacts/get')
       .query({ source: 's3', bucket, key: 'existing.html', download: 'true' })
+      .buffer(true)
+      .parse(parseBytes)
       .expect(200);
     expect(Buffer.from(response.body).toString()).toBe(content);
   });
@@ -174,6 +189,8 @@ describe.skipIf(!enabled)('live standalone artifact storage migration', () => {
     const response = await ui({ ALLOWED_ARTIFACT_ENDPOINTS: alias })
       .get('/artifacts/get')
       .query(query)
+      .buffer(true)
+      .parse(parseBytes)
       .expect(200);
     attachment(response);
     expect(Buffer.from(response.body).toString()).toBe(content);

@@ -7,6 +7,14 @@ on:
     paths:
       - '.github/workflows/artifact-storage-acceptance.yml'
       - 'frontend/server/integration-tests/artifact-storage-live.test.ts'
+      - 'frontend/server/handlers/artifacts.ts'
+      - 'frontend/server/handlers/domain-checker.ts'
+      - 'frontend/server/handlers/pod-logs.ts'
+      - 'frontend/server/configs.ts'
+      - 'frontend/server/k8s-helper.ts'
+      - 'frontend/server/minio-helper.ts'
+      - 'frontend/server/workflow-helper.ts'
+      - 'manifests/kustomize/third-party/seaweedfs/base/seaweedfs/seaweedfs-deployment.yaml'
 
 permissions:
   contents: read
@@ -66,7 +74,7 @@ jobs:
             -v /tmp/artifact-s3.json:/etc/seaweedfs/s3.json:ro "$image" \
             server -s3 -filer -s3.config=/etc/seaweedfs/s3.json
           for i in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:8333/status >/dev/null; then exit 0; fi
+            if curl --fail --silent --connect-timeout 2 --max-time 5 http://127.0.0.1:8333/status >/dev/null; then exit 0; fi
             sleep 2
           done
           exit 1
