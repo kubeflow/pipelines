@@ -313,3 +313,10 @@ If audit-emission verification fails, its report includes an allowlisted local
 reason, validation/collection stage, elapsed time, and available collected-byte
 and process-exit counters. Raw log lines and subprocess error text remain private;
 collection limits and exact audit-record requirements remain mandatory.
+
+The post-disable drain allows 600 seconds for successful API run completion,
+covering the persistence agent's existing maximum 360-second retry backoff plus
+execution and reporting grace. A drain failure retains a fixed reason category
+and the last collected run IDs/states for each case, alongside Kubernetes state
+counts. Successful Kubernetes Workflows alone do not satisfy the API completion
+check; blocked runs, failed runs, and collection failures still fail closed.

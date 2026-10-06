@@ -141,6 +141,100 @@ sleep() { if [[ "$TIMES_OUT" == 1 ]]; then SECONDS=$((SECONDS + 121)); fi; }
                         self.assertEqual(evidence['outcome'], 'passed')
                         self.assertNotIn('env', evidence)
 
+    def test_drain_covers_persistence_backoff_and_retains_failure_evidence(
+            self):
+        import time
+
+        import kfp_http
+        import live_schedule_check
+        import source_schedule_check
+
+        program = SCRIPT.read_text().split("<<'PYDRAIN'\n",
+                                           1)[1].split('\nPYDRAIN', 1)[0]
+        scenarios = [
+            ('late_success', 360, None),
+            ('timeout', 900, 'fixture_runs_not_drained'),
+            ('failed', 0, 'fixture_run_did_not_succeed'),
+            ('blocked', 0, 'blocked_schedule_created_run'),
+            ('collection', 0, 'collection_failed'),
+        ]
+        for scenario, ready_at, reason in scenarios:
+            with self.subTest(
+                    scenario=scenario), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / 'fixture').mkdir()
+                (root / 'reports').mkdir()
+                (root / 'fixture/state.json').write_text(
+                    json.dumps(dict(namespace='test')))
+                (root / 'fixture/activation-start.txt'
+                ).write_text('2026-01-01T00:00:00Z')
+                cases = [
+                    dict(
+                        scenario=name,
+                        schedule_uid=name,
+                        service_account=name,
+                        expected_outcome='blocked'
+                        if name == 'denied' else 'run_succeeded')
+                    for name in ('default', 'scoped', 'denied')
+                ]
+                (root / 'reports/restored-baseline.json').write_text(
+                    json.dumps(dict(cases=cases)))
+                clock = [0]
+
+                def collect(client, namespace, case, start):
+                    if scenario == 'collection':
+                        raise ValueError(
+                            'secret/raw response must not reach the report')
+                    if case['scenario'] == 'denied' and scenario != 'blocked':
+                        return []
+                    state = 'FAILED' if scenario == 'failed' else (
+                        'SUCCEEDED' if clock[0] >= ready_at else 'RUNNING')
+                    return [dict(run_id='run-' + case['scenario'], state=state)]
+
+                def sleep(seconds):
+                    clock[0] += seconds
+
+                with mock.patch.object(sys, 'argv', ['drain', tmp, 'restored', str(root / 'fixture')]), \
+                     mock.patch.object(time, 'monotonic', side_effect=lambda: clock[0]), \
+                     mock.patch.object(time, 'sleep', side_effect=sleep), \
+                     mock.patch.object(kfp_http, 'Client'), \
+                     mock.patch.object(live_schedule_check, 'run_evidence', side_effect=collect), \
+                     mock.patch.object(source_schedule_check, 'diagnostics', return_value={'safe_counts': True}):
+                    if reason is None:
+                        exec(compile(program, str(SCRIPT), 'exec'), {})
+                    else:
+                        with self.assertRaises(SystemExit) as failure:
+                            exec(compile(program, str(SCRIPT), 'exec'), {})
+                        self.assertIn('Fixture completion failed',
+                                      str(failure.exception))
+                report = json.loads(
+                    (root / 'reports/restored-completion.json').read_text())
+                self.assertNotIn('secret', json.dumps(report))
+                if reason is None:
+                    self.assertEqual(report['outcome'], 'passed')
+                    self.assertEqual(clock[0], 360)
+                    self.assertEqual(len(report['cases']), 3)
+                else:
+                    self.assertEqual(report['outcome'], 'inconclusive')
+                    self.assertEqual(report['reason'], reason)
+                    self.assertEqual(report['evidence_scope'],
+                                     'last_successful_collection_per_case')
+                    if scenario == 'timeout':
+                        self.assertEqual(clock[0], 600)
+                        self.assertEqual(report['cases'][0]['runs'][0]['state'],
+                                         'RUNNING')
+                    elif scenario == 'failed':
+                        self.assertEqual(report['cases'][0]['runs'][0]['state'],
+                                         'FAILED')
+                    elif scenario == 'blocked':
+                        self.assertEqual(report['cases'][-1]['scenario'],
+                                         'denied')
+                        self.assertEqual(
+                            report['cases'][-1]['runs'][0]['run_id'],
+                            'run-denied')
+                    else:
+                        self.assertEqual(report['cases'], [])
+
     def test_controller_namespace_replaces_existing_flags(self):
         script = SCRIPT.read_text()
         function = script[script.index('configure_controllers() {'):script

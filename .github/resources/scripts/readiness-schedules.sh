@@ -193,8 +193,12 @@ if mode == 'source':
              for case in fixture['schedules']]
 else:
     cases = json.loads((state / f'reports/{mode}-baseline.json').read_text())['cases']
+last_evidence = {}
+failure_reason = 'collection_failed'
 try:
-    deadline = time.monotonic() + 300
+    # Persistence retries back off for up to 360 seconds. Allow that existing
+    # delay plus execution/report grace; do not reset either controller.
+    deadline = time.monotonic() + 600
     while time.monotonic() < deadline:
         client = Client('http://127.0.0.1:8888', state / 'token')
         complete = True
@@ -202,16 +206,19 @@ try:
         for case in cases:
             collect = source_run_evidence if mode == 'source' else run_evidence
             records = collect(client, fixture['namespace'], case, start)
+            record = {'scenario': case['scenario'], 'schedule_uid': case['schedule_uid'],
+                      'service_account': case['service_account'], 'runs': records}
+            evidence.append(record)
+            last_evidence[case['scenario']] = record
             if case['expected_outcome'] == 'blocked':
                 if records:
-                    raise ValueError('blocked_schedule_created_run')
+                    failure_reason = 'blocked_schedule_created_run'
+                    raise ValueError(failure_reason)
             elif any(run['state'] in FAILED_STATES for run in records):
-                raise ValueError('fixture_run_did_not_succeed')
+                failure_reason = 'fixture_run_did_not_succeed'
+                raise ValueError(failure_reason)
             elif not records or any(run['state'] != 'SUCCEEDED' for run in records):
                 complete = False
-            evidence.append({'scenario': case['scenario'], 'schedule_uid': case['schedule_uid'],
-                             'service_account': case['service_account'],
-                             'runs': records})
         if complete:
             (state / f'reports/{mode}-completion.json').write_text(json.dumps({
                 'scope': 'fixture_run_completion', 'mode': mode, 'outcome': 'passed',
@@ -220,11 +227,13 @@ try:
             break
         time.sleep(5)
     else:
-        raise ValueError('fixture_runs_not_drained')
+        failure_reason = 'fixture_runs_not_drained'
+        raise ValueError(failure_reason)
 except Exception:
     (state / f'reports/{mode}-completion.json').write_text(json.dumps({
         'scope': 'fixture_run_completion', 'mode': mode, 'outcome': 'inconclusive',
-        'diagnostics': diagnostics()}))
+        'reason': failure_reason, 'evidence_scope': 'last_successful_collection_per_case',
+        'cases': list(last_evidence.values()), 'diagnostics': diagnostics()}))
     sys.exit('Fixture completion failed: disable schedules and establish successful expected runs before continuing.')
 PYDRAIN
 }
