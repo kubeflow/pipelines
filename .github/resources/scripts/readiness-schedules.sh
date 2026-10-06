@@ -13,6 +13,8 @@ context=kind-kfp-readiness
 namespace=kfp-readiness-test
 state=${RUNNER_TEMP:?RUNNER_TEMP is required}/readiness-schedules
 reports=$state/reports
+fixture_dir=$state/fixture
+fixture_helper=provision_live_schedules.py
 helpers=tools/upgrade-readiness
 endpoint=http://127.0.0.1:8888
 export PYTHONPATH="$PWD/$helpers${PYTHONPATH:+:$PYTHONPATH}"
@@ -40,13 +42,13 @@ fi
 preflight
 kube() { kubectl --context "$context" --request-timeout=30s "$@"; }
 fixture() {
-  python3 "$helpers/provision_live_schedules.py" --context "$context" \
-    --allow-test-cluster-mutations --state-dir "$state/fixture" \
+  python3 "$helpers/$fixture_helper" --context "$context" \
+    --allow-test-cluster-mutations --state-dir "$fixture_dir" \
     --endpoint "$endpoint" --token-file "$state/token" "$@"
 }
 cleanup() {
   # Disable only schedules owned by this fixture. Never print token or raw API/log data.
-  if [[ -f "$state/token" && -f "$state/fixture/state.json" ]]; then
+  if [[ -f "$state/token" && -f "$fixture_dir/state.json" ]]; then
     fixture --phase disable >/dev/null 2>&1 || true
   fi
   if [[ -n "${forward_pid:-}" ]]; then
@@ -139,7 +141,7 @@ capture() {
 }
 drain() {
   local mode=$1
-  python3 - "$state" "$mode" <<'PYDRAIN'
+  python3 - "$state" "$mode" "$fixture_dir" <<'PYDRAIN'
 import json
 from pathlib import Path
 import sys
@@ -148,9 +150,10 @@ from kfp_http import Client
 from live_schedule_check import FAILED_STATES, run_evidence, timestamp
 from source_schedule_check import source_run_evidence, diagnostics
 state = Path(sys.argv[1])
-fixture = json.loads((state / 'fixture/state.json').read_text())
+fixture_dir = Path(sys.argv[3]) if len(sys.argv) > 3 else state / 'fixture'
+fixture = json.loads((fixture_dir / 'state.json').read_text())
 mode = sys.argv[2]
-start = timestamp((state / 'fixture/activation-start.txt').read_text().strip())
+start = timestamp((fixture_dir / 'activation-start.txt').read_text().strip())
 if mode == 'source':
     cases = [dict(case, baseline_run_ids=[], expected_outcome='run_succeeded')
              for case in fixture['schedules']]
@@ -195,12 +198,13 @@ observe() {
   local mode=$1 timeout=180
   # Denials leave up to 360 seconds of controller retry backoff. Observe the
   # live policy transition with that delay plus execution grace, without reset.
-  [[ "$mode" != audit ]] || timeout=600
+  [[ "$mode" == enforce || "$mode" == v1 ]] || timeout=600
+  mint_token
   fixture --phase enable
   python3 "$helpers/live_schedule_check.py" --context "$context" --namespace "$namespace" \
     --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
     --expectations "$reports/$mode-baseline.json" --prediction-report "$reports/$mode-prediction.json" \
-    --not-before "$(cat "$state/fixture/activation-start.txt")" --timeout-seconds "$timeout" --require-run-success \
+    --not-before "$(cat "$fixture_dir/activation-start.txt")" --timeout-seconds "$timeout" --require-run-success \
     >"$reports/$mode-observed.json"
   fixture --phase disable
   drain "$mode"
@@ -327,4 +331,29 @@ PYRECREATE
   python3 "$helpers/verify_live_audit.py" --context "$context" \
     --not-before "$(cat "$state/fixture/activation-start.txt")" \
     --completion-report "$reports/audit-completion.json" >"$reports/audit-emission.json"
+  # All schedules are disabled and every audit run is terminal before enforcing.
+  stop_forward
+  configure_api enforce
+  start_forward
+  for transition in audit-enforce revoked restored; do
+    mint_token
+    python3 "$helpers/prepare_schedule_transition.py" --context "$context" \
+      --state-dir "$state" --phase "$transition"
+    python3 "$helpers/check_fixture_policy.py" --context "$context" \
+      --fixture-state "$state/fixture/state.json" --policy "$state/$transition-policy.json" \
+      --endpoint "$endpoint" --token-file "$state/token" >"$reports/$transition-prediction.json"
+    capture "$transition"
+    observe "$transition"
+  done
+  # Retained V1 API and raw Workflow path: runtime contract, not scanner output.
+  fixture_dir=$state/v1-fixture
+  fixture_helper=provision_v1_schedules.py
+  mint_token
+  fixture --phase prepare --parent-state "$state/fixture/state.json"
+  cp "$fixture_dir/cases.json" "$state/v1-cases.json"
+  cp "$fixture_dir/expectations.json" "$reports/v1-prediction.json"
+  capture v1
+  observe v1
+  fixture --phase verify
+  cp "$fixture_dir/workflow-evidence.json" "$reports/v1-workflow-evidence.json"
 fi

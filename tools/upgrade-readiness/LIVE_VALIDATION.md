@@ -4,7 +4,10 @@ The read-only baseline and observation helpers inspect **prepared schedules in a
 isolated multi-user test installation**. The separate `provision_live_schedules.py`
 CI helper creates fixtures and changes their activation state; it is never invoked
 by the operator readiness scan.
-No passing live-cluster result has yet been recorded for this fixture protocol.
+The original V2 protocol passed on release revision `b7a875f3b` in
+[run 37387996475](https://github.com/kubeflow/pipelines/actions/runs/37387996475).
+The transition and V1 extensions below require their own candidate-specific
+acceptance record; the earlier pass does not cover them.
 
 The release acceptance sequence is: prepare on 2.17.2, preserve scanner reports and
 baselines, upgrade to the exact candidate, and verify that the old schedules
@@ -20,7 +23,7 @@ single-user persistence tests. The schedule lane requires either the repository 
 `run_readiness_schedules=true`. Enable it only after the
 scheduling prerequisites land and activation has been reviewed. Preflight rejects
 a candidate missing those prerequisites. The reviewed manual dispatch input permits
-a single isolated acceptance run without changing the repository-wide gate. Integration and an actual passing candidate run remain open in #14421.
+a single isolated acceptance run without changing the repository-wide gate. Record each candidate and the exact scenarios that passed in #14421.
 
 ## Fixture contract
 
@@ -77,6 +80,28 @@ downward-API form and waits for rollout. This prevents a fixture-only literal va
 from conflicting with `valueFrom` during candidate manifest application. No fixture
 schedule is active during this transition; the target phase restores its namespace
 scope before enabling the legacy rejection checks.
+
+## Policy transitions and V1 acceptance
+
+After audit completion and audit-log verification, disable and drain the same
+three schedules before restoring API enforcement. Capture a new baseline and
+require default/granted success plus a fresh denial and no new run for the denied
+account. This verifies return to enforcement after successful audit execution.
+
+Next remove only the fixture controller's named `readiness-granted` use grant.
+Keep the owner's grant and the controller's run-creation access. Verify the actual
+SubjectAccessReview results before activating schedules. Require a working default
+control and fresh rejections with no new runs for the revoked and denied accounts.
+Restore the exact grant afterward and require successful custom-account execution
+again. Each phase retains its own baseline, cutover, observation and completion
+reports. Existing controller retry backoff can delay a fresh tick, so observations
+remain bounded but allow that delay; the fixture does not reset controller state.
+
+The V1 lane creates jobs through `/apis/v1beta1/jobs` using a reviewed, minimal raw
+Argo workflow. It checks default and explicitly granted accounts complete while the
+denied custom account cannot create runs under enforcement. This covers the retained
+V1 scheduling path; it does not claim all V1 components, plugins or customer workloads
+are compatible. All mutations remain restricted to the disposable fixture namespace.
 
 ## Legacy migration acceptance
 

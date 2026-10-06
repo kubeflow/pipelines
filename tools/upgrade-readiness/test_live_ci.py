@@ -135,7 +135,8 @@ class LiveCITests(unittest.TestCase):
         observe = SCRIPT.read_text().split('observe() {', 1)[1].split('\n}',
                                                                       1)[0]
         self.assertIn('local mode=$1 timeout=180', observe)
-        self.assertIn('[[ "$mode" != audit ]] || timeout=600', observe)
+        self.assertIn(
+            '[[ "$mode" == enforce || "$mode" == v1 ]] || timeout=600', observe)
         self.assertIn('--timeout-seconds "$timeout"', observe)
         self.assertNotIn('rollout restart', observe)
 
