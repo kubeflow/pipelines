@@ -651,7 +651,7 @@ type createNameCollisionWorkflowClient struct {
 }
 
 func (c *createNameCollisionWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
-	if _, err := c.ExecutionInterface.Get(ctx, execSpec.ExecutionName(), v1.GetOptions{}); err == nil {
+	if _, err := c.Get(ctx, execSpec.ExecutionName(), v1.GetOptions{}); err == nil {
 		return nil, apierrors.NewAlreadyExists(
 			schema.GroupResource{Group: "argoproj.io", Resource: "workflows"},
 			execSpec.ExecutionName())
