@@ -235,7 +235,15 @@ A separate initialization Job generates the key only if the field is absent.
 It preserves existing keys, including operator-provided keys, and concurrent
 initializers use Kubernetes resource versions to avoid overwriting each other.
 The Job can only get and update this named Secret; the UI receives no additional
-Secret permissions. UI pods wait for the required Secret field before starting.
+Secret permissions. There is no Deployment-to-Job ordering dependency: `Recreate`
+only orders old and new UI pods. The non-optional `secretKeyRef` for
+`signing-secret` is the startup gate. On a fresh installation, a UI pod may
+briefly show `CreateContainerConfigError` while the Job populates the empty
+Secret; kubelet retries and starts the container when the key exists. This is
+expected and does not require an init container or Secret-read RBAC for the UI.
+Wait for the initializer Job to complete and then for the UI rollout before
+routing traffic. An existing valid shared key lets new UI pods start immediately,
+without waiting for the idempotent Job.
 If initialization fails, check the Job status, its get/update permissions, and
 whether an existing key is valid UTF-8 of at least 32 bytes with no NUL characters.
 An invalid existing key is never replaced automatically. After correcting a failed

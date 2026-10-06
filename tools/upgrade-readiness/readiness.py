@@ -19,17 +19,13 @@ from collections import Counter
 from datetime import datetime
 from datetime import timezone
 import json
-import os
 from pathlib import Path
 import re
-import selectors
-import signal
-import subprocess
 import sys
-import time
 
 from kfp_http import Client
 import kfp_inventory
+from kubectl_inventory import kubectl_get
 import schedule_policy
 
 MAX_BYTES = 16 * 1024 * 1024
@@ -116,62 +112,6 @@ def validate_inventory(inventory):
                         raise ValueError(
                             'Role rule fields must be string lists.')
     return inventory
-
-
-def kill_process_group(process):
-    """Stop kubectl and inherited exec-plugin processes in its private
-    session."""
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-
-
-def kubectl_get(context, namespace, resource):
-    """Bound time and buffered output; never print kubectl stderr or raw
-    objects."""
-    command = ['kubectl', '--context', context, '--request-timeout=20s']
-    if namespace:
-        command += ['--namespace', namespace]
-    command += ['get', resource, '--chunk-size=200', '-o', 'json']
-    # Cap bytes while streaming, not after kubectl has filled memory or disk.
-    chunks = bytearray()
-    try:
-        with subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True) as process:
-            with selectors.DefaultSelector() as selector:
-                selector.register(process.stdout, selectors.EVENT_READ)
-                deadline = time.monotonic() + 30
-                while True:
-                    remaining = deadline - time.monotonic()
-                    if remaining <= 0 or not selector.select(remaining):
-                        kill_process_group(process)
-                        return None, 'collection_timed_out'
-                    chunk = process.stdout.read1(
-                        min(65536, MAX_BYTES + 1 - len(chunks)))
-                    if not chunk:
-                        break
-                    chunks.extend(chunk)
-                    if len(chunks) > MAX_BYTES:
-                        kill_process_group(process)
-                        return None, 'collection_exceeded_16_mib'
-                try:
-                    code = process.wait(
-                        timeout=max(0.01, deadline - time.monotonic()))
-                except subprocess.TimeoutExpired:
-                    kill_process_group(process)
-                    return None, 'collection_timed_out'
-                if code:
-                    return None, 'collection_failed'
-    except OSError:
-        return None, 'collection_failed'
-    try:
-        return json.loads(chunks), None
-    except (ValueError, UnicodeError):
-        return None, 'collection_invalid_json'
 
 
 def collect(context, namespaces, include_schedules=False):

@@ -117,6 +117,7 @@ updates:
       - "/release"
       - "/sdk/python"
       - "/test/kfp-kubernetes-native-migration-tests"
+      - "/tools/upgrade-readiness"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

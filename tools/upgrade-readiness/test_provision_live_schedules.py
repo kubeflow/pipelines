@@ -22,6 +22,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+import fixture_http
 import provision_live_schedules as fixture
 
 
@@ -598,7 +599,8 @@ class ProvisionTests(unittest.TestCase):
         connection = mock.Mock()
         connection.getresponse.return_value.status = 302
         with mock.patch.object(
-                fixture.http.client, 'HTTPConnection', return_value=connection):
+                fixture_http.http.client, 'HTTPConnection',
+                return_value=connection):
             with self.assertRaisesRegex(fixture.FixtureError,
                                         '^fixture_api_request_failed$'):
                 client.post('/apis/v2beta1/experiments', {})
@@ -615,9 +617,10 @@ class ProvisionTests(unittest.TestCase):
             response.status = 200
             response.read1.side_effect = [body, b'']
             with mock.patch.object(
-                    fixture.http.client, 'HTTPConnection',
+                    fixture_http.http.client,
+                    'HTTPConnection',
                     return_value=connection), mock.patch.object(
-                        fixture, 'MAX_BYTES', 10):
+                        fixture_http, 'MAX_BYTES', 10):
                 with self.assertRaisesRegex(fixture.FixtureError,
                                             '^fixture_api_request_failed$'):
                     client.post('/apis/v2beta1/experiments', {})

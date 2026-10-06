@@ -313,6 +313,7 @@ func recurringIntegrationDatabases(t *testing.T, driver string) ([]*sql.DB, dial
 	orm, err := gorm.Open(ormDialector(dbs[0]), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, orm.AutoMigrate(model.AllModels()...))
+	testRecurringRunIndexMigration(t, orm)
 	return dbs, d
 }
 

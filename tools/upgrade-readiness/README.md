@@ -391,3 +391,18 @@ The paused release upgrade lane is designed to provision isolated fixtures and c
 predictions with target enforce/audit observations. Fixture RBAC has been checked
 against a real Kubernetes API; an actual passing candidate upgrade run remains
 open until the scheduling policy prerequisites are integrated.
+
+## Development boundaries
+
+`readiness.py` coordinates CLI input, policy analysis, and report rendering.
+`kubectl_inventory.py` owns bounded read-only subprocess collection, and
+`kfp_http.py` owns read-only API transport. `provision_live_schedules.py`
+coordinates the mutating CI fixture; its loopback POST transport and redacted
+errors live in `fixture_http.py`.
+
+The scanner and standalone tests use only the Python standard library. The live
+CI shell fixture additionally reads YAML manifests; install its pinned dependency
+with `python3 -m pip install -r tools/upgrade-readiness/requirements.txt`.
+CI uploads fixture JSON reports without an additional redaction pass. Reports
+omit raw payloads and credentials but retain resource and run identifiers; they
+are not anonymized and must come only from the isolated synthetic fixture.

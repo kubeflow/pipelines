@@ -402,7 +402,6 @@ func clearTagsMiddleware(next http.Handler) http.Handler {
 				w.Header().Set("Content-Type", "application/json")
 				var maxBytesErr *http.MaxBytesError
 				if errors.As(err, &maxBytesErr) {
-					_ = common.NewSizeLimitError("pipeline_update_body", int64(limits.UpdateBodyBytes), common.MaxPipelineUpdateBodyBytesEnv)
 					w.WriteHeader(http.StatusRequestEntityTooLarge)
 					json.NewEncoder(w).Encode(map[string]interface{}{
 						"code":    3, // InvalidArgument

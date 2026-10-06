@@ -1,0 +1,2 @@
+# Only the live CI fixture manifest reader needs third-party packages.
+PyYAML==6.0.3

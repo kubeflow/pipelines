@@ -71,10 +71,21 @@ configure_api() {
 configure_controllers() {
   kube -n kubeflow set env deployment/ml-pipeline-scheduledworkflow MULTIUSER=true NAMESPACE="$namespace"
   kube -n kubeflow set env deployment/ml-pipeline-persistenceagent NAMESPACE="$namespace"
-  if ! kube -n kubeflow get deployment/workflow-controller -o json |
-      jq -e --arg flag "--managed-namespace=$namespace" '.spec.template.spec.containers[0].args | index($flag)' >/dev/null; then
-    kube -n kubeflow patch deployment/workflow-controller --type=json \
-      -p "[{\"op\":\"add\",\"path\":\"/spec/template/spec/containers/0/args/-\",\"value\":\"--managed-namespace=$namespace\"}]"
+  local patch
+  patch=$(kube -n kubeflow get deployment/workflow-controller -o json |
+    jq -c --arg namespace "$namespace" '
+      .spec.template.spec.containers[0].args as $old |
+      reduce (($old // [])[]) as $arg ({args: [], skip: false};
+        if .skip then .skip = false
+        elif $arg == "--managed-namespace" then .skip = true
+        elif ($arg | startswith("--managed-namespace=")) then .
+        else .args += [$arg] end) |
+      .args += ["--managed-namespace=" + $namespace] |
+      if .args == $old then [] else
+        [{op: "add", path: "/spec/template/spec/containers/0/args", value: .args}]
+      end')
+  if [[ "$patch" != '[]' ]]; then
+    kube -n kubeflow patch deployment/workflow-controller --type=json -p "$patch"
   fi
   for controller in ml-pipeline-scheduledworkflow ml-pipeline-persistenceagent workflow-controller; do
     kube -n kubeflow rollout status "deployment/$controller" --timeout=300s

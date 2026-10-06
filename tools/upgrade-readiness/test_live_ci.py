@@ -29,6 +29,56 @@ SCRIPT = Path(__file__).resolve(
 
 class LiveCITests(unittest.TestCase):
 
+    def test_controller_namespace_replaces_existing_flags(self):
+        script = SCRIPT.read_text()
+        function = script[script.index('configure_controllers() {'):script
+                          .index('restore_controller_namespaces() {')]
+        target = '--managed-namespace=kfp-readiness-test'
+        cases = [
+            (None, [target]),
+            ([], [target]),
+            (['--loglevel=info'], ['--loglevel=info', target]),
+            (['--managed-namespace=old',
+              '--loglevel=info'], ['--loglevel=info', target]),
+            (['--managed-namespace', 'old',
+              '--loglevel=info'], ['--loglevel=info', target]),
+            ([target, '--managed-namespace=old'], [target]),
+            ([target], None),
+        ]
+        for args, expected in cases:
+            with self.subTest(args=args), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                container = {} if args is None else {'args': args}
+                deployment = {
+                    'spec': {
+                        'template': {
+                            'spec': {
+                                'containers': [container]
+                            }
+                        }
+                    }
+                }
+                (root / 'deployment.json').write_text(json.dumps(deployment))
+                setup = 'set -euo pipefail\nnamespace=kfp-readiness-test\nkube() {\n  case "$*" in\n    *" get "*) cat "$TEST_DIR/deployment.json" ;;\n    *" patch "*) printf \'%s\' "${@: -1}" > "$TEST_DIR/patch.json" ;;\n  esac\n}\n'
+                result = subprocess.run([
+                    'bash', '-c', setup + function + '\nconfigure_controllers'
+                ],
+                                        env=dict(os.environ, TEST_DIR=tmp),
+                                        capture_output=True,
+                                        text=True,
+                                        timeout=5)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                patch_file = root / 'patch.json'
+                if expected is None:
+                    self.assertFalse(patch_file.exists())
+                else:
+                    patch = json.loads(patch_file.read_text())
+                    self.assertEqual(patch, [{
+                        'op': 'add',
+                        'path': '/spec/template/spec/containers/0/args',
+                        'value': expected
+                    }])
+
     def test_forward_owns_and_reaps_listener_and_rejects_unrelated_health(self):
         script = SCRIPT.read_text()
         functions = script[script.index('start_forward() {'):script

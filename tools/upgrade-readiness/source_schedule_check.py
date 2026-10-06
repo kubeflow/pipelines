@@ -21,6 +21,7 @@ from fixture_diagnostics import container_diagnostics
 from fixture_diagnostics import node_diagnostics
 from kfp_http import Client
 from kfp_http import CollectionError
+from kubectl_inventory import kubectl_get
 from live_schedule_check import field
 from live_schedule_check import list_runs
 from live_schedule_check import RUN_STATES
@@ -29,7 +30,6 @@ from provision_live_schedules import CONTEXT
 from provision_live_schedules import NAMESPACE
 from provision_live_schedules import read_object
 from provision_live_schedules import write_object
-from readiness import kubectl_get
 
 
 def source_run_evidence(client, namespace, case, start, get=kubectl_get):

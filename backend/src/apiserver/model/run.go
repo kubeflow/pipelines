@@ -217,8 +217,9 @@ type Run struct {
 	// e.g., ExperimentId(varchar(64)) + Conditions(varchar(125)) + FinishedAtInSec(8 bytes) = 764 bytes < 767 bytes
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-	ExperimentId   string `gorm:"column:ExperimentUUID;type:varchar(64); not null; index:experimentuuid_createatinsec,priority:1; index:experimentuuid_conditions_finishedatinsec,priority:1"`
-	RecurringRunId string `gorm:"column:JobUUID; default:null;"`
+	ExperimentId string `gorm:"column:ExperimentUUID;type:varchar(64); not null; index:experimentuuid_createatinsec,priority:1; index:experimentuuid_conditions_finishedatinsec,priority:1"`
+	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
+	RecurringRunId string `gorm:"column:JobUUID; type:varchar(191); default:null; index:idx_run_details_job_uuid;"`
 
 	StorageState   StorageState `gorm:"column:StorageState; not null;"`
 	ServiceAccount string       `gorm:"column:ServiceAccount; not null;"`

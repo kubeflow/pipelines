@@ -58,3 +58,13 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - The release-2.18 upgrade workflow always upgrades from 2.17.2, including merge-group runs, and fails before target deployment if source preparation fails. The independent readiness schedule lane is off by default. After candidate policy review, activate it with repository variable `KFP_218_READINESS_SCHEDULES=enabled` or the manual `run_readiness_schedules=true` dispatch input, then record live acceptance in #14421. Its preflight rejects missing prerequisites. The isolated fixture verifies source reporting permissions, correlates 2.17.2 runs with their Workflows, requires legacy schedule rejection before reviewed recreation, and checks successful enforce/audit runs plus scoped audit emission. It does not introduce master MLMD-to-native migration.
 - `upgrade-readiness.yml` runs standalone preview tests and conformance against the explicitly pinned proposed scheduling policy; neither substitutes for a populated candidate upgrade run. Python 3.11 and 3.13 tests use synthetic inventories, subprocesses and loopback HTTP servers, never cluster credentials. Slow-header/chunk-framing probes enforce the response deadline, and fake-clock observations cover the final collection interval.
 - CI Scripts Tests installs PyYAML 6.0.3 for Dependabot configuration validation. Argo dependency updates use `third_party/argo/Makefile` and the coordinated updater; update both runtime slots only after checking compatibility, module major version, and manifest downloads.
+
+- The live readiness fixture installs `tools/upgrade-readiness/requirements.txt`
+  and uses its hash for the pip cache. The read-only scanner and unit tests remain
+  standard-library-only. `kubectl_inventory.py` owns bounded read-only subprocess
+  collection; `fixture_http.py` owns the mutating fixture's loopback HTTP client.
+- Upgrade CI uploads JSON evidence from the isolated fixture for seven days.
+  There is no upload-time redaction step: collectors omit tokens, raw API/log
+  payloads, and workflow specifications, but reports retain namespace, resource,
+  service-account and run identifiers. Use only the synthetic CI cluster and
+  review report contents before sharing; these artifacts are not anonymized.

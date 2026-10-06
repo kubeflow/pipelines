@@ -19,9 +19,9 @@ import subprocess
 import time
 
 from kfp_http import CollectionError
+from kubectl_inventory import kill_process_group
 from provision_live_schedules import CONTEXT
 from provision_live_schedules import NAMESPACE
-from readiness import kill_process_group
 
 MAX_BYTES = 65536
 TIMEOUT = 15
