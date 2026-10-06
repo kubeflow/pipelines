@@ -39,6 +39,27 @@ function elapsedBetween(start?: number, end?: number): number | undefined {
   return start !== undefined && end !== undefined && end >= start ? end - start : undefined;
 }
 
+function hasRetryEvidence(task: V2beta1PipelineTask): boolean {
+  let started = false;
+  let failed = false;
+  for (const { state } of task.state_history || []) {
+    if (state === 'RUNNING') {
+      if (started || failed) return true;
+      started = true;
+    }
+    // Automatic executor retries need not publish a second RUNNING transition.
+    if (failed && (state === 'SUCCEEDED' || state === 'CACHED')) return true;
+    if (state === 'FAILED') failed = true;
+  }
+
+  // A driver plus an executor is normal. Distinct executor identities can reveal
+  // attempts whose repeated terminal state was deduplicated from state history.
+  const executors = (task.pods || []).filter((pod) => pod.type === 'EXECUTOR');
+  const uids = new Set(executors.flatMap((pod) => (pod.uid ? [pod.uid] : [])));
+  const names = new Set(executors.flatMap((pod) => (pod.name ? [pod.name] : [])));
+  return uids.size > 1 || names.size > 1;
+}
+
 /** Build component spans without double-counting their enclosing DAG/loop groups. */
 export function getRunTaskTiming(run: V2beta1Run, tasks: V2beta1PipelineTask[], now: number) {
   const active = !hasFinishedV2(run.state);
@@ -63,8 +84,7 @@ export function getRunTaskTiming(run: V2beta1Run, tasks: V2beta1PipelineTask[], 
         elapsed: elapsedBetween(created, end),
         iteration: Number.isSafeInteger(iteration) && iteration >= 0 ? iteration : undefined,
         active: running,
-        retried:
-          (task.state_history || []).filter((status) => status.state === 'RUNNING').length > 1,
+        retried: hasRetryEvidence(task),
       };
     });
   const runStart = taskTimestamp(run.created_at);

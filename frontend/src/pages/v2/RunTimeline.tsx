@@ -143,7 +143,9 @@ function TaskInspector({
       )}
       {row.task.state === 'CACHED' && (
         <Alert severity='info'>
-          Cache hit. This span is cache-resolution overhead, not component computation.
+          {row.retried
+            ? 'The latest attempt was a cache hit; elapsed time also includes earlier attempts.'
+            : 'Cache hit. This span is cache-resolution overhead, not component computation.'}
         </Alert>
       )}
       {row.elapsed === undefined && (

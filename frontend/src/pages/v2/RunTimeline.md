@@ -8,7 +8,8 @@ Click anywhere on a row to inspect task status, timestamps, elapsed time, and st
 
 - Task elapsed time runs from `create_time` to `end_time`. It includes startup, waiting, and retries—not just user-code execution.
 - Active tasks in an unfinished run grow with wall time. Completed tasks remain fixed. Missing, invalid, or reversed timestamps do not become inferred durations.
-- Cached task spans describe cache-resolution overhead. Enclosing DAG/loop rows are excluded to avoid double-counting.
+- Cached task spans describe cache-resolution overhead unless the task also has earlier attempts. Enclosing DAG/loop rows are excluded to avoid double-counting.
+- Retry indicators use failure/recovery history, repeated starts, or distinct executor pod identities. A second `RUNNING` entry is not required, and a normal driver/executor pair is not considered a retry.
 - Components are ordered by creation time, with missing creation times last and ties resolved by task identity.
 - Task selection survives query refreshes. The view does not add a second API poller.
 

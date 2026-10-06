@@ -89,6 +89,104 @@ it('retains legitimate zero-duration tasks and marks retries without splitting a
   });
 });
 
+it.each([
+  ['automatic executor retry', ['RUNNING', 'FAILED', 'SUCCEEDED']],
+  ['manual retry after driver failure', ['FAILED', 'RUNNING', 'SUCCEEDED']],
+] as const)('recognizes %s without two RUNNING entries', (_name, states) => {
+  const retried = task({ state_history: states.map((state) => ({ state })) });
+  expect(getRunTaskTiming(run, [retried], base).rows[0]).toMatchObject({
+    elapsed: 120_000,
+    retried: true,
+  });
+});
+
+it.each([
+  ['FAILED', 'RUNNING'],
+  ['RUNNING', 'FAILED', 'CACHED'],
+] as const)('recognizes retry progress or cached recovery in %j', (...states) => {
+  const retried = task({ state_history: states.map((state) => ({ state })) });
+  expect(getRunTaskTiming(run, [retried], base).rows[0].retried).toBe(true);
+});
+
+it.each([
+  [],
+  ['RUNNING', 'SUCCEEDED'],
+  ['RUNNING', 'FAILED'],
+  ['FAILED'],
+  ['RUNNING', 'CACHED'],
+  ['RUNNING', 'SKIPPED'],
+  ['RUNNING', 'FAILED', 'FAILED'],
+  ['RUNNING', 'FAILED', 'RUNTIME_STATE_UNSPECIFIED'],
+] as const)('does not infer a retry from a single attempt history %j', (...states) => {
+  const singleAttempt = task({ state_history: states.map((state) => ({ state })) });
+  expect(getRunTaskTiming(run, [singleAttempt], base).rows[0].retried).toBe(false);
+});
+
+it.each<{ name: string; pods: NonNullable<V2beta1PipelineTask['pods']>; retried: boolean }>([
+  {
+    name: 'driver and executor',
+    pods: [
+      { type: 'DRIVER', name: 'driver', uid: 'driver-uid' },
+      { type: 'EXECUTOR', name: 'executor', uid: 'executor-uid' },
+    ],
+    retried: false,
+  },
+  {
+    name: 'duplicate executor records',
+    pods: [
+      { type: 'EXECUTOR', name: 'executor', uid: 'uid' },
+      { type: 'EXECUTOR', name: 'executor', uid: 'uid' },
+    ],
+    retried: false,
+  },
+  {
+    name: 'executor enriched with UID',
+    pods: [
+      { type: 'EXECUTOR', name: 'executor' },
+      { type: 'EXECUTOR', name: 'executor', uid: 'uid' },
+    ],
+    retried: false,
+  },
+  {
+    name: 'distinct executor UIDs',
+    pods: [
+      { type: 'EXECUTOR', name: 'executor', uid: 'uid-1' },
+      { type: 'EXECUTOR', name: 'executor', uid: 'uid-2' },
+    ],
+    retried: true,
+  },
+  {
+    name: 'distinct executor names',
+    pods: [
+      { type: 'EXECUTOR', name: 'executor-1' },
+      { type: 'EXECUTOR', name: 'executor-2' },
+    ],
+    retried: true,
+  },
+  {
+    name: 'unidentified executor records',
+    pods: [{ type: 'EXECUTOR' }, { type: 'EXECUTOR' }],
+    retried: false,
+  },
+  {
+    name: 'multiple drivers only',
+    pods: [
+      { type: 'DRIVER', name: 'driver-1' },
+      { type: 'DRIVER', name: 'driver-2' },
+    ],
+    retried: false,
+  },
+])('uses executor attempt evidence: $name', ({ pods, retried }) => {
+  const failed = task({
+    state: 'FAILED',
+    state_history: [{ state: 'RUNNING' }, { state: 'FAILED' }],
+    pods,
+  });
+  expect(getRunTaskTiming({ ...run, state: 'FAILED' }, [failed], base).rows[0].retried).toBe(
+    retried,
+  );
+});
+
 it('uses the earliest component timestamp as a chart fallback, without inventing run elapsed', () => {
   const result = getRunTaskTiming(
     { state: 'SUCCEEDED' },

@@ -265,6 +265,46 @@ it('distinguishes cached, retried, and unknown timing in task details', async ()
   ).toBeInTheDocument();
 });
 
+it.each([
+  ['RUNNING', 'FAILED', 'SUCCEEDED'],
+  ['FAILED', 'RUNNING', 'SUCCEEDED'],
+] as const)('qualifies retries without two RUNNING transitions: %j', (...states) => {
+  setup({
+    tasks: [task('Recovered', 10, 130, { state_history: states.map((state) => ({ state })) })],
+  });
+  const chart = screen.getByRole('table', { name: 'Component timeline timings' });
+  expect(within(chart).getByLabelText('Retried task')).toBeInTheDocument();
+  expect(screen.getByText('Elapsed across retries')).toBeInTheDocument();
+  expect(
+    screen.getByText('This task span includes retries and waiting between attempts.'),
+  ).toBeInTheDocument();
+  expect(
+    within(chart).getByRole('button', { name: 'Select Recovered, 2m 00s' }),
+  ).toBeInTheDocument();
+});
+
+it('does not describe earlier failed attempts as only cache overhead', () => {
+  setup({
+    tasks: [
+      task('Recovered from cache', 10, 130, {
+        state: 'CACHED',
+        state_history: [{ state: 'RUNNING' }, { state: 'FAILED' }, { state: 'CACHED' }],
+      }),
+    ],
+  });
+  expect(screen.getByText('Elapsed across retries')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'The latest attempt was a cache hit; elapsed time also includes earlier attempts.',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(
+      'Cache hit. This span is cache-resolution overhead, not component computation.',
+    ),
+  ).not.toBeInTheDocument();
+});
+
 it('updates active elapsed times, freezes terminal tasks, and cleans up the clock', () => {
   vi.useFakeTimers();
   vi.setSystemTime(at(60));
