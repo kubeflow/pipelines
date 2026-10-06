@@ -155,7 +155,7 @@ jobs:
           kubectl -n kubeflow port-forward deployment/pagination-source 8889:8888 > "$RUNNER_TEMP/pagination-forward.log" 2>&1 &
           OLD_API_FORWARD_PID=$!
           trap 'kill "$OLD_API_FORWARD_PID" 2>/dev/null || true' EXIT
-          for attempt in $(seq 1 30); do
+          for ((attempt=0; attempt<30; attempt++)); do
             kill -0 "$OLD_API_FORWARD_PID"
             if curl --max-time 2 --fail --silent http://127.0.0.1:8889/apis/v2beta1/healthz > /dev/null; then
               break
