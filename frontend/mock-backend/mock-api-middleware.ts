@@ -542,6 +542,19 @@ export default (app: express.Application) => {
     res.json({ tasks: req.params.rid === mockNativeRunId ? mockV2Tasks : [] });
   });
 
+  app.get(v2beta1Prefix + '/runs/:rid/tasks/:taskId', (req, res) => {
+    const task = mockV2Tasks.find(
+      (candidate) => candidate.run_id === req.params.rid && candidate.task_id === req.params.taskId,
+    );
+    if (!task) {
+      res
+        .status(404)
+        .send(`No task was found with ID: ${req.params.taskId} in run: ${req.params.rid}`);
+      return;
+    }
+    res.json(task);
+  });
+
   app.get(v2beta1Prefix + '/artifacts', (_req, res) => {
     res.json({ artifacts: mockV2Artifacts, total_size: mockV2Artifacts.length });
   });
