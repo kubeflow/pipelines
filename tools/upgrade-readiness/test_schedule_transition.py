@@ -125,8 +125,11 @@ class TransitionTests(unittest.TestCase):
                     side_effect=OSError()) as popen:
                 kubectl_get(
                     'context', None, 'roles', all_namespaces=all_namespaces)
-            self.assertEqual('--all-namespaces' in popen.call_args.args[0],
-                             all_namespaces)
+            command = popen.call_args.args[0]
+            self.assertEqual('--all-namespaces' in command, all_namespaces)
+            if all_namespaces:
+                self.assertGreater(
+                    command.index('--all-namespaces'), command.index('get'))
         with self.assertRaises(ValueError):
             kubectl_get('context', 'namespace', 'roles', all_namespaces=True)
 
