@@ -30,6 +30,26 @@ SCRIPT = Path(__file__).resolve(
 
 class LiveCITests(unittest.TestCase):
 
+    def test_v1_executes_before_policy_transitions_and_restores_v2_fixture(
+            self):
+        script = SCRIPT.read_text()
+        start = script.index('  observe enforce\n')
+        v1 = script.index('  observe v1\n', start)
+        restored = script.index('  fixture_dir=$state/fixture\n', v1)
+        audit = script.index('  observe audit\n', restored)
+        self.assertLess(start, v1)
+        self.assertLess(restored, audit)
+        self.assertIn('fixture_helper=provision_live_schedules.py',
+                      script[restored:audit])
+        observation = script[script.index('observe() {'):script
+                             .index('if [[ "$phase" == source ]]')]
+        self.assertLess(
+            observation.index('--wait-enabled'),
+            observation.index('live_schedule_check.py'))
+        self.assertLess(
+            observation.index('-failed-scheduler.json'),
+            observation.index('fixture --phase disable'))
+
     def test_api_policy_cutover_waits_for_actual_pods_and_fails_closed(self):
         script = SCRIPT.read_text()
         function = script[script.index('configure_api() {'):script

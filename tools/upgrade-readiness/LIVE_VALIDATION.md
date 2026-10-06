@@ -320,3 +320,10 @@ execution and reporting grace. A drain failure retains a fixed reason category
 and the last collected run IDs/states for each case, alongside Kubernetes state
 counts. Successful Kubernetes Workflows alone do not satisfy the API completion
 check; blocked runs, failed runs, and collection failures still fail closed.
+
+The target fixture runs retained V1 execution immediately after initial enforce
+validation, before audit and permission transitions. Each activation verifies the
+ScheduledWorkflow enabled state. Activation and failed-observation reports retain
+bounded, sanitized scheduler state, Workflow completion labels, and Event counts
+and classifications. These distinguish API completion from the controller's
+concurrency view without retaining Workflow specs or raw Event messages.

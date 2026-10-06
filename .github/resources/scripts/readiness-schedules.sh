@@ -244,11 +244,17 @@ observe() {
   [[ "$mode" == enforce || "$mode" == v1 ]] || timeout=600
   mint_token
   fixture --phase enable
-  python3 "$helpers/live_schedule_check.py" --context "$context" --namespace "$namespace" \
+  python3 "$helpers/schedule_diagnostics.py" --context "$context" --namespace "$namespace" \
+    --cases "$reports/$mode-baseline.json" --wait-enabled >"$reports/$mode-activation-scheduler.json"
+  if ! python3 "$helpers/live_schedule_check.py" --context "$context" --namespace "$namespace" \
     --kfp-endpoint "$endpoint" --kfp-token-file "$state/token" \
     --expectations "$reports/$mode-baseline.json" --prediction-report "$reports/$mode-prediction.json" \
     --not-before "$(cat "$fixture_dir/activation-start.txt")" --timeout-seconds "$timeout" --require-run-success \
-    >"$reports/$mode-observed.json"
+    >"$reports/$mode-observed.json"; then
+    python3 "$helpers/schedule_diagnostics.py" --context "$context" --namespace "$namespace" \
+      --cases "$reports/$mode-baseline.json" >"$reports/$mode-failed-scheduler.json" || true
+    return 1
+  fi
   fixture --phase disable
   drain "$mode"
 }
@@ -365,6 +371,19 @@ PYRECREATE
   done
   capture enforce
   observe enforce
+  # Retained V1 API and raw Workflow path: runtime contract, not scanner output.
+  fixture_dir=$state/v1-fixture
+  fixture_helper=provision_v1_schedules.py
+  mint_token
+  fixture --phase prepare --parent-state "$state/fixture/state.json"
+  cp "$fixture_dir/cases.json" "$state/v1-cases.json"
+  cp "$fixture_dir/expectations.json" "$reports/v1-prediction.json"
+  capture v1
+  observe v1
+  fixture --phase verify
+  cp "$fixture_dir/workflow-evidence.json" "$reports/v1-workflow-evidence.json"
+  fixture_dir=$state/fixture
+  fixture_helper=provision_live_schedules.py
   stop_forward
   configure_api audit
   start_forward
@@ -388,15 +407,5 @@ PYRECREATE
     capture "$transition"
     observe "$transition"
   done
-  # Retained V1 API and raw Workflow path: runtime contract, not scanner output.
-  fixture_dir=$state/v1-fixture
-  fixture_helper=provision_v1_schedules.py
-  mint_token
-  fixture --phase prepare --parent-state "$state/fixture/state.json"
-  cp "$fixture_dir/cases.json" "$state/v1-cases.json"
-  cp "$fixture_dir/expectations.json" "$reports/v1-prediction.json"
-  capture v1
-  observe v1
-  fixture --phase verify
-  cp "$fixture_dir/workflow-evidence.json" "$reports/v1-workflow-evidence.json"
+
 fi
