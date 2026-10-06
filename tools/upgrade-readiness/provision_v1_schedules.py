@@ -22,13 +22,15 @@ import argparse
 import json
 from pathlib import Path
 import re
+import uuid
 
 from fixture_http import FixtureClient
 from fixture_http import FixtureError
 from kfp_http import Client
+from kfp_http import CollectionError
+from kubectl_inventory import kubectl_get
 import live_schedule_check as live
 import provision_live_schedules as fixture
-from source_schedule_check import source_run_evidence
 
 
 def reference(kind, uid):
@@ -47,7 +49,7 @@ def workflow():
                 dict(
                     name='hello',
                     container=dict(
-                        image='busybox:1.36',
+                        image='docker.io/alpine:3.23',
                         command=['sh', '-c'],
                         args=['echo readiness-v1']))
             ]))
@@ -152,6 +154,68 @@ class ActivationClient:
             '/apis/v1beta1/jobs/' + match[1] + '/' + match[2], body)
 
 
+def target_workflow_evidence(client, namespace, case, start, get=kubectl_get):
+    """Correlate candidate recurring runs with their deterministic Workflows.
+
+    The candidate stores the schedule tick as the API display name, but
+    names its Workflow from the run UUID. Source 2.17.2 uses a different
+    contract.
+    """
+    records = live.list_runs(client, namespace, case['schedule_uid'])
+    data, error = get(fixture.CONTEXT, namespace, 'workflows.argoproj.io')
+    if error or not isinstance(data, dict) or not isinstance(
+            data.get('items'), list):
+        raise CollectionError('v1_workflow_collection_failed')
+    workflows = data['items']
+    if len(workflows) > 1000:
+        raise CollectionError('v1_workflow_limit')
+    evidence = []
+    for run in records:
+        run_id = live.field(run, 'run_id', 'runId')
+        if run_id in case['baseline_run_ids'] or live.timestamp(
+                live.field(run, 'created_at', 'createdAt')) < start:
+            continue
+        # Matches util.NewDeterministicUUID and createRunExecution. This fixed
+        # UUID namespace is the production idempotency contract, not a display
+        # name convention or a user-controlled Workflow label alone.
+        expected_name = 'run-' + str(
+            uuid.uuid5(
+                uuid.UUID('c2f3a9d4-1e6b-4c8a-9f7d-0b5e3a1c2d4f'), run_id))
+        matches = [
+            w for w in workflows
+            if w.get('metadata', {}).get('namespace') == namespace and
+            w.get('metadata', {}).get('name') == expected_name and
+            w.get('metadata', {}).get('labels', {}).get(
+                'pipeline/runid') == run_id
+        ]
+        if len(matches) != 1:
+            raise CollectionError('v1_workflow_identity_unavailable')
+        workflow = matches[0]
+        metadata = workflow['metadata']
+        if (not metadata.get('uid') or
+                live.timestamp(metadata.get('creationTimestamp')) < start or
+                not any(
+                    owner.get('uid') == case['schedule_uid'] and owner.get(
+                        'name') == case['schedule_name'] and owner.get('kind')
+                    == 'ScheduledWorkflow' and owner.get('controller') is True
+                    for owner in metadata.get('ownerReferences', []))):
+            raise CollectionError('v1_workflow_owner_mismatch')
+        if (live.field(run, 'service_account',
+                       'serviceAccount') != case['service_account'] or
+                workflow.get('spec', {}).get('serviceAccountName')
+                != case['service_account']):
+            raise CollectionError('v1_workflow_account_mismatch')
+        if workflow.get('status', {}).get('phase') != 'Succeeded':
+            raise CollectionError('v1_workflow_not_successful')
+        evidence.append(
+            dict(
+                run_id=run_id,
+                workflow_uid=metadata['uid'],
+                workflow_name=expected_name,
+                state=run.get('state', 'UNKNOWN')))
+    return evidence
+
+
 def verify_execution(state, client):
     """Require strict API identity plus owned live Workflows after drain."""
     if state.get('enabled') is not False or not state.get('prepared'):
@@ -161,7 +225,8 @@ def verify_execution(state, client):
     for definition in state['schedules']:
         case = dict(definition, baseline_run_ids=[])
         strict = live.run_evidence(client, fixture.NAMESPACE, case, start)
-        workflows = source_run_evidence(client, fixture.NAMESPACE, case, start)
+        workflows = target_workflow_evidence(client, fixture.NAMESPACE, case,
+                                             start)
         if {r['run_id'] for r in strict} != {r['run_id'] for r in workflows}:
             raise FixtureError('v1_workflow_run_set_mismatch')
         if case['scenario'] == 'denied':

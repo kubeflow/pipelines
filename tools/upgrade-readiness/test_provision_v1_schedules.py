@@ -21,6 +21,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+import uuid
 
 import fixture_http
 import live_schedule_check as live
@@ -192,7 +193,7 @@ class V1Tests(unittest.TestCase):
         with mock.patch.object(
                 live, 'run_evidence', return_value=[run]), mock.patch.object(
                     v1,
-                    'source_run_evidence',
+                    'target_workflow_evidence',
                     return_value=[dict(run,
                                        workflow_uid='workflow')]) as workflow:
             report = v1.verify_execution(state, mock.Mock())
@@ -207,9 +208,100 @@ class V1Tests(unittest.TestCase):
             state['schedules'][0]['scenario'] = scenario
             with mock.patch.object(
                     live, 'run_evidence', return_value=runs), mock.patch.object(
-                        v1, 'source_run_evidence', return_value=runs):
+                        v1, 'target_workflow_evidence', return_value=runs):
                 with self.assertRaises(common.FixtureError):
                     v1.verify_execution(state, mock.Mock())
+
+    def test_target_workflow_uses_run_uuid_not_api_display_name(self):
+        run_id = '3ec3b3f2-9ec4-5d4b-af55-2186719bcdec'
+        expected_name = 'run-' + str(
+            uuid.uuid5(
+                uuid.UUID('c2f3a9d4-1e6b-4c8a-9f7d-0b5e3a1c2d4f'), run_id))
+        case = dict(
+            schedule_uid='job',
+            schedule_name='schedule',
+            service_account='readiness-granted',
+            baseline_run_ids=[])
+        run = dict(
+            run_id=run_id,
+            display_name='schedule-123',
+            created_at='2026-01-01T00:01:00Z',
+            service_account='readiness-granted',
+            state='SUCCEEDED')
+        workflow = dict(
+            metadata=dict(
+                name=expected_name,
+                namespace=common.NAMESPACE,
+                uid='workflow-uid',
+                creationTimestamp='2026-01-01T00:01:01Z',
+                labels={'pipeline/runid': run_id},
+                ownerReferences=[
+                    dict(
+                        uid='job',
+                        name='schedule',
+                        kind='ScheduledWorkflow',
+                        controller=True)
+                ]),
+            spec=dict(serviceAccountName='readiness-granted'),
+            status=dict(phase='Succeeded'))
+        start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        with mock.patch.object(live, 'list_runs', return_value=[run]):
+            get = mock.Mock(return_value=(dict(items=[workflow]), None))
+            result = v1.target_workflow_evidence(
+                mock.Mock(), common.NAMESPACE, case, start, get=get)
+            self.assertEqual(result, [
+                dict(
+                    run_id=run_id,
+                    workflow_uid='workflow-uid',
+                    workflow_name=expected_name,
+                    state='SUCCEEDED')
+            ])
+            self.assertNotEqual(expected_name, run['display_name'])
+            # A matching run label alone is insufficient. Require deterministic
+            # name, fresh live UID, namespace, exact owner, account and success.
+            mutations = [
+                ('metadata', 'name', run['display_name']),
+                ('metadata', 'namespace', 'other'),
+                ('metadata', 'uid', ''),
+                ('metadata', 'creationTimestamp', '2025-01-01T00:00:00Z'),
+                ('metadata', 'labels', {
+                    'pipeline/runid': 'other'
+                }),
+                ('metadata', 'ownerReferences', [
+                    dict(
+                        uid='other',
+                        name='schedule',
+                        kind='ScheduledWorkflow',
+                        controller=True)
+                ]),
+                ('metadata', 'ownerReferences', [
+                    dict(
+                        uid='job',
+                        name='other',
+                        kind='ScheduledWorkflow',
+                        controller=True)
+                ]),
+                ('spec', 'serviceAccountName', 'other'),
+                ('status', 'phase', 'Running'),
+            ]
+            for section, key, value in mutations:
+                changed = copy.deepcopy(workflow)
+                changed[section][key] = value
+                get.return_value = (dict(items=[changed]), None)
+                with self.subTest(
+                        section=section,
+                        key=key), self.assertRaises(ValueError):
+                    v1.target_workflow_evidence(
+                        mock.Mock(), common.NAMESPACE, case, start, get=get)
+            get.return_value = (dict(items=[workflow, workflow]), None)
+            with self.assertRaisesRegex(ValueError, 'identity_unavailable'):
+                v1.target_workflow_evidence(
+                    mock.Mock(), common.NAMESPACE, case, start, get=get)
+            get.return_value = (dict(items=[workflow]), None)
+            run['service_account'] = 'other'
+            with self.assertRaisesRegex(ValueError, 'account_mismatch'):
+                v1.target_workflow_evidence(
+                    mock.Mock(), common.NAMESPACE, case, start, get=get)
 
     def test_v1_denial_requires_fresh_exact_controller_event(self):
         case = dict(
