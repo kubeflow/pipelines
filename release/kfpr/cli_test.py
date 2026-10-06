@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Tests for the kfpr CLI."""
 
+import contextlib
 from pathlib import Path
 import re
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest import mock
 
 from kfpr import core
 from kfpr import steps
@@ -92,6 +94,90 @@ class PackageImportTest(unittest.TestCase):
 
 
 class CliTest(unittest.TestCase):
+
+    def test_docs_step_preserves_dirty_checkout_and_checkpoint(self) -> None:
+        """Exercise the CLI guard with real staged and unstaged Git changes."""
+        for consolidated, dry_run in ((False, False), (True, False), (False,
+                                                                      True)):
+            with self.subTest(consolidated=consolidated, dry_run=dry_run), \
+                    TemporaryDirectory() as directory:
+                root = Path(directory) / 'repo'
+                root.mkdir()
+                state_file = Path(directory) / 'state.json'
+
+                def git(*arguments: str) -> str:
+                    return subprocess.check_output(['git', *arguments],
+                                                   cwd=root,
+                                                   text=True)
+
+                git('init', '--quiet')
+                (root / '.readthedocs.yml').write_text('original docs\n')
+                (root / 'unrelated.txt').write_text('original work\n')
+                (root / 'kubernetes_platform').mkdir()
+                gitignore = root / 'kubernetes_platform/.gitignore'
+                gitignore.write_text('build\n')
+                git('add', '.')
+                git('-c', 'user.name=Release test', '-c',
+                    'user.email=release@example.invalid', '-c',
+                    'commit.gpgsign=false', 'commit', '--quiet', '-m',
+                    'fixture')
+                (root / '.readthedocs.yml').write_text('uncommitted docs\n')
+                (root / 'unrelated.txt').write_text('staged work\n')
+                git('add', 'unrelated.txt')
+                before = (
+                    git('rev-parse', 'HEAD'),
+                    git('symbolic-ref', 'HEAD'),
+                    git('status', '--short'),
+                    git('diff', '--cached'),
+                )
+                arguments = [
+                    'run',
+                    'create-kfp-kubernetes-docs-branch',
+                    '--release-type',
+                    'patch',
+                    '--version',
+                    '2.18.1',
+                    '--fork-remote',
+                    'testuser',
+                    '--state-file',
+                    str(state_file),
+                    '--done',
+                ]
+                if dry_run:
+                    arguments.append('--dry-run')
+                with mock.patch.object(
+                        steps, '_sdk_release_is_consolidated',
+                        return_value=consolidated) as layout, \
+                        mock.patch.object(
+                            core.CommandRunner, 'run',
+                            side_effect=AssertionError('Unexpected branch operation')
+                        ) as operation, contextlib.chdir(root):
+                    result = CliRunner().invoke(app, arguments)
+
+                operation.assert_not_called()
+                if not consolidated and not dry_run:
+                    self.assertNotEqual(result.exit_code, 0)
+                    self.assertIsInstance(result.exception, RuntimeError)
+                    self.assertIn('working tree is dirty',
+                                  str(result.exception))
+                else:
+                    self.assertEqual(result.exit_code, 0, result.exception)
+                self.assertEqual(layout.call_count, 0 if dry_run else 1)
+                self.assertEqual(
+                    ReleaseState.load(state_file).is_done(
+                        'create-kfp-kubernetes-docs-branch'), consolidated or
+                    dry_run)
+                self.assertEqual(before, (
+                    git('rev-parse', 'HEAD'),
+                    git('symbolic-ref', 'HEAD'),
+                    git('status', '--short'),
+                    git('diff', '--cached'),
+                ))
+                self.assertEqual((root / '.readthedocs.yml').read_text(),
+                                 'uncommitted docs\n')
+                self.assertEqual((root / 'unrelated.txt').read_text(),
+                                 'staged work\n')
+                self.assertEqual(gitignore.read_text(), 'build\n')
 
     def test_help_lists_full_flow_and_step_commands(self):
         result = CliRunner().invoke(app, ['--help'])

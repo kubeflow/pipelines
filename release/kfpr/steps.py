@@ -956,6 +956,11 @@ def step_create_kfp_kubernetes_docs_branch(context: ReleaseContext) -> None:
         print(
             'Skipping separate Kubernetes docs: included in unified SDK docs.')
         return
+    if context.runner.capture(['git', 'status', '--short'],
+                              cwd=context.root).strip():
+        raise RuntimeError(
+            'git working tree is dirty; commit or stash changes before '
+            'creating the Kubernetes docs branch')
     metadata = context.metadata
     root = context.root
     branch = f'kfp-kubernetes-{metadata.major}.{metadata.minor}'

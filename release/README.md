@@ -109,8 +109,12 @@ to remove legacy file owners before installing the unified wheel. Split tags
 (including the supported 2.18 line) retain all four package installation
 instructions and PyPI checks, without uninstalling Kubernetes helpers.
 `create-kfp-kubernetes-docs-branch` remains a checkpoint and individual command,
-but skips branch changes for unified tags. Both automated ReadTheDocs updates
-and the manual fallback select the same projects. Status output and dry runs
+but skips branch changes for unified tags. For split tags, it requires a clean
+working tree before any branch operations, including when resuming after
+preflight; commit or stash staged, unstaged, and untracked changes first.
+Unified-tag no-ops and dry runs do not require a clean working tree.
+Both automated ReadTheDocs updates and the manual fallback select the same
+projects. Status output and dry runs
 show the conditional legacy checklist without querying an SDK tag that may
 not exist yet.
 

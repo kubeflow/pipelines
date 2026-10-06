@@ -104,8 +104,12 @@ class ReleaseLayoutTest(unittest.TestCase):
 
     def select_layout(self, consolidated: bool) -> None:
         """Return the target tag's layout, opposite to the local checkout."""
-        self.runner.capture.return_value = 'version.py\n' + (
-            'server_api\n' if consolidated else '')
+        contents = 'version.py\n' + ('server_api\n' if consolidated else '')
+
+        def capture(command: list[str], cwd: Path | None = None) -> str:
+            return '' if command == ['git', 'status', '--short'] else contents
+
+        self.runner.capture.side_effect = capture
         local_client = self.root / 'sdk/python/kfp/server_api/__init__.py'
         local_client.parent.mkdir(parents=True, exist_ok=True)
         if consolidated:
@@ -168,6 +172,65 @@ class ReleaseLayoutTest(unittest.TestCase):
                         'kfp-kubernetes-2.18'
                     ],
                                                     cwd=self.root)
+
+    def test_legacy_docs_reject_dirty_tree_before_branch_operations(
+            self) -> None:
+        """Reject staged, unstaged, and untracked changes before any
+        mutation."""
+        for status in ('M  unrelated.txt', ' M .readthedocs.yml',
+                       '?? untracked.txt'):
+            with self.subTest(status=status):
+                self.select_layout(False)
+                self.runner.capture.side_effect = ['version.py\n', status]
+                with self.assertRaisesRegex(RuntimeError,
+                                            'working tree is dirty'):
+                    steps.step_create_kfp_kubernetes_docs_branch(self.context)
+                self.runner.capture.assert_called_with(
+                    ['git', 'status', '--short'], cwd=self.root)
+                self.runner.run.assert_not_called()
+
+    def test_unified_docs_skip_working_tree_check(self) -> None:
+        """A no-op for unified tags must not require a clean checkout."""
+        self.select_layout(True)
+        self.runner.capture.side_effect = [
+            'version.py\nserver_api\n',
+            AssertionError('Unified docs must not inspect the working tree'),
+        ]
+        steps.step_create_kfp_kubernetes_docs_branch(self.context)
+        self.assertEqual(self.runner.capture.call_count, 1)
+        self.runner.run.assert_not_called()
+
+    def test_legacy_docs_stop_when_working_tree_check_fails(self) -> None:
+        """A failed Git status command must not be treated as a clean tree."""
+        self.select_layout(False)
+        self.runner.capture.side_effect = [
+            'version.py\n',
+            subprocess.CalledProcessError(128, ['git', 'status', '--short']),
+        ]
+        with self.assertRaises(subprocess.CalledProcessError):
+            steps.step_create_kfp_kubernetes_docs_branch(self.context)
+        self.runner.run.assert_not_called()
+
+    def test_resumed_legacy_docs_recheck_working_tree(self) -> None:
+        """Completed preflight cannot authorize later dirty branch changes."""
+        self.select_layout(False)
+        step_ids = [
+            step.step_id for step in steps.build_steps('patch', False, True)
+        ]
+        completed = step_ids[:step_ids.index('create-kfp-kubernetes-docs-branch'
+                                            )]
+        self.context.state.completed_steps = completed.copy()
+        self.context.state.save()
+        self.runner.capture.side_effect = [
+            'version.py\n', ' M .readthedocs.yml'
+        ]
+        with self.assertRaisesRegex(RuntimeError, 'working tree is dirty'):
+            steps.run_steps(self.context)
+        self.runner.run.assert_not_called()
+        self.assertEqual(self.context.state.completed_steps, completed)
+        self.assertEqual(
+            core.ReleaseState.load(self.context.state.path).completed_steps,
+            completed)
 
     def test_rtd_automation_and_fallback_follow_target_layout(self) -> None:
         """Automated and manual paths must cover the same projects."""
@@ -2575,7 +2638,8 @@ class DryRunOutputTest(unittest.TestCase):
                 include_sdk=True,
             )
 
-            with mock.patch('builtins.input', return_value='reuse'):
+            with mock.patch('builtins.input', return_value='reuse'), \
+                    mock.patch.object(context.runner, 'capture', return_value=''):
                 steps.step_create_kfp_kubernetes_docs_branch(context)
 
             self.assertEqual(context.runner.commands, [
@@ -2615,7 +2679,8 @@ class DryRunOutputTest(unittest.TestCase):
                 include_sdk=True,
             )
 
-            with mock.patch('builtins.input', return_value='replace'):
+            with mock.patch('builtins.input', return_value='replace'), \
+                    mock.patch.object(context.runner, 'capture', return_value=''):
                 steps.step_create_kfp_kubernetes_docs_branch(context)
 
             self.assertIn(['git', 'push', 'upstream', ':kfp-kubernetes-3.2'],
@@ -2660,7 +2725,8 @@ class DryRunOutputTest(unittest.TestCase):
                 include_sdk=True,
             )
 
-            with mock.patch('builtins.input', return_value='force-push'):
+            with mock.patch('builtins.input', return_value='force-push'), \
+                    mock.patch.object(context.runner, 'capture', return_value=''):
                 steps.step_create_kfp_kubernetes_docs_branch(context)
 
             self.assertIn(['git', 'checkout', '-B', 'kfp-kubernetes-3.2'],
