@@ -31,7 +31,7 @@ for spec in 'ml-pipeline 8888:8888' 'ml-pipeline-ui 3000:80'; do
   (exec kubectl --context "$context" -n kubeflow port-forward --address=127.0.0.1 "service/$service" "$mapping") >"$state/$service-forward.log" 2>&1 &
   pids+=("$!")
   ready=false
-  for attempt in {1..30}; do
+  for _ in {1..30}; do
     kill -0 "${pids[-1]}"
     if grep -q '^Forwarding from 127\.0\.0\.1:' "$state/$service-forward.log"; then ready=true; break; fi
     sleep 1
