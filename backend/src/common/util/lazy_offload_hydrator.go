@@ -17,6 +17,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	argoconfig "github.com/argoproj/argo-workflows/v4/config"
@@ -91,6 +92,47 @@ func (l *lazyOffloadHydrator) ensureInner(ctx context.Context) (hydrator.Interfa
 	return l.inner, nil
 }
 
+// clearInner drops a cached hydrator so the next ensureInner call re-runs initFn.
+func (l *lazyOffloadHydrator) clearInner() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.inner = nil
+}
+
+// isUnusableOffloadSessionError reports errors that mean the cached Argo SessionProxy
+// (or similar DB session) can no longer serve hydrate/dehydrate until re-initialized.
+func isUnusableOffloadSessionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "session proxy is closed") ||
+		strings.Contains(msg, "sql: database is closed")
+}
+
+func (l *lazyOffloadHydrator) callWithSessionRecovery(
+	ctx context.Context,
+	op func(hydrator.Interface) error,
+) error {
+	inner, err := l.ensureInner(ctx)
+	if err != nil {
+		return fmt.Errorf("argo offload hydrator is not ready: %w", err)
+	}
+	err = op(inner)
+	if err == nil || !isUnusableOffloadSessionError(err) {
+		return err
+	}
+	// Argo's SessionProxy closes itself after exhausted reconnect attempts and
+	// stays closed; drop the dead cache and rebuild once so the API server
+	// recovers without a process restart.
+	l.clearInner()
+	inner, initErr := l.ensureInner(ctx)
+	if initErr != nil {
+		return fmt.Errorf("argo offload hydrator is not ready: %w", initErr)
+	}
+	return op(inner)
+}
+
 func (l *lazyOffloadHydrator) IsHydrated(wf *wfv1.Workflow) bool {
 	return wf.Status.CompressedNodes == "" && !wf.Status.IsOffloadNodeStatus()
 }
@@ -103,11 +145,9 @@ func (l *lazyOffloadHydrator) Hydrate(ctx context.Context, wf *wfv1.Workflow) er
 	if !wf.Status.IsOffloadNodeStatus() {
 		return nil
 	}
-	inner, err := l.ensureInner(ctx)
-	if err != nil {
-		return fmt.Errorf("argo offload hydrator is not ready: %w", err)
-	}
-	return inner.Hydrate(ctx, wf)
+	return l.callWithSessionRecovery(ctx, func(inner hydrator.Interface) error {
+		return inner.Hydrate(ctx, wf)
+	})
 }
 
 func (l *lazyOffloadHydrator) Dehydrate(ctx context.Context, wf *wfv1.Workflow) error {
@@ -123,14 +163,13 @@ func (l *lazyOffloadHydrator) Dehydrate(ctx context.Context, wf *wfv1.Workflow) 
 	if !packer.IsTooLargeError(compressErr) {
 		return compressErr
 	}
-	inner, err := l.ensureInner(ctx)
-	if err != nil {
-		return fmt.Errorf("argo offload hydrator is not ready: %w", err)
-	}
-	if inner == hydratorfake.Noop {
-		return compressErr
-	}
-	return inner.Dehydrate(ctx, wf)
+	err := l.callWithSessionRecovery(ctx, func(inner hydrator.Interface) error {
+		if inner == hydratorfake.Noop {
+			return compressErr
+		}
+		return inner.Dehydrate(ctx, wf)
+	})
+	return err
 }
 
 func (l *lazyOffloadHydrator) HydrateWithNodes(wf *wfv1.Workflow, nodes wfv1.Nodes) {
