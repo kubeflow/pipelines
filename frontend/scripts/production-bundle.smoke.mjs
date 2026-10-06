@@ -72,6 +72,32 @@ test('production bundle renders the pipeline upload control', { timeout: 30000 }
 });
 
 test(
+  'expanded navigation footer remains accessible in short windows',
+  { timeout: 30000 },
+  async () => {
+    const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+    try {
+      const page = await browser.newPage({ viewport: { width: 1600, height: 500 } });
+      await routeProductionBundle(page);
+      await page.goto('http://kfp.test/');
+      await page.locator('#createPipelineVersionBtn').waitFor();
+      const navigation = page.getByTestId('sideNav');
+      const reportIssue = navigation.getByRole('link', { name: 'Report an Issue', exact: true });
+      await reportIssue.scrollIntoViewIfNeeded();
+      await reportIssue.click({ trial: true, timeout: 2000 });
+      const version = navigation.getByText('Version:', { exact: true });
+      const bounds = await version.boundingBox();
+      assert.ok(bounds && bounds.height > 0 && bounds.y >= 0 && bounds.y + bounds.height <= 500);
+      await navigation.getByTestId('chevron-toggle').click({ trial: true, timeout: 2000 });
+      await reportIssue.click({ trial: true, timeout: 2000 });
+      await navigation.locator('#pipelinesBtn').click({ trial: true, timeout: 2000 });
+    } finally {
+      await browser.close();
+    }
+  },
+);
+
+test(
   'Timeline keeps task details visible when scrolling long charts',
   { timeout: 60000 },
   async () => {
@@ -185,6 +211,10 @@ test(
         );
         const nextBounds = await inspector.boundingBox();
         assert.ok(nextBounds.y >= 0 && nextBounds.y + nextBounds.height <= height);
+        await page
+          .getByTestId('sideNav')
+          .getByRole('link', { name: 'Report an Issue', exact: true })
+          .click({ trial: true, timeout: 2000 });
       }
       await page.setViewportSize({ width: 1000, height: 900 });
       const chartBounds = await chart.boundingBox();
