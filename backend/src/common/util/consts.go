@@ -63,6 +63,14 @@ const (
 	// reports from stale pre-retry workflow snapshots.
 	AnnotationKeyRetryGeneration = "pipelines.kubeflow.org/retry-generation"
 
+	// AnnotationKeyRetryPlaceholderClaim authenticates a status-free retry
+	// placeholder created for a specific run and ClaimRunForRetry generation.
+	// Value format is "<runID>/<generation>". It is set on NewRetryPlaceholder
+	// (which omits AnnotationKeyRetryGeneration until activation) so RetryRun
+	// can adopt the placeholder's UID without treating a foreign suspended
+	// same-name Workflow as owned.
+	AnnotationKeyRetryPlaceholderClaim = "pipelines.kubeflow.org/retry-placeholder-claim"
+
 	AnnotationKeyIstioSidecarInject           = "sidecar.istio.io/inject"
 	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"
