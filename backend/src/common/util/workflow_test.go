@@ -40,6 +40,9 @@ func TestWorkflow_NewRetryPlaceholder(t *testing.T) {
 			Name:            "retry-workflow",
 			UID:             "previous-uid",
 			ResourceVersion: "12",
+			Labels: map[string]string{
+				LabelKeyWorkflowRunId: "run-123",
+			},
 			Annotations: map[string]string{
 				AnnotationKeyRetryGeneration: "3",
 			},
@@ -63,6 +66,8 @@ func TestWorkflow_NewRetryPlaceholder(t *testing.T) {
 	_, hasRetryGeneration := placeholder.Annotations[AnnotationKeyRetryGeneration]
 	assert.False(t, hasRetryGeneration,
 		"placeholder must not carry the claim marker before the activating update")
+	assert.Equal(t, RetryPlaceholderClaimValue("run-123", 3),
+		placeholder.Annotations[AnnotationKeyRetryPlaceholderClaim])
 
 	assert.Nil(t, workflow.Spec.Suspend)
 	assert.Contains(t, workflow.Status.Nodes, "retained")

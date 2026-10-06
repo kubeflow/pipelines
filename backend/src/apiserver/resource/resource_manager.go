@@ -1384,10 +1384,12 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			liveWorkflow, readError := r.getWorkflowClient(namespace).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
 			switch {
 			case readError == nil && liveWorkflow != nil &&
-				reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == run.RetryGeneration:
-				// The previous retry was applied. Persist its current state
-				// and report success: the retry the user asked for is
-				// already running (or finished).
+				(reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == run.RetryGeneration ||
+					util.RetryPlaceholderClaimMatches(liveWorkflow.ExecutionObjectMeta(), runId, run.RetryGeneration)):
+				// The previous retry was applied (activated workflow or still-
+				// suspended placeholder for this claim). Persist its current
+				// state and report success: the retry the user asked for is
+				// already running, finished, or awaiting activation.
 				glog.Warningf("Run %s has an expired retry claim (generation %d) but its workflow is live; adopting it instead of retrying again", runId, run.RetryGeneration)
 				condition := string(liveWorkflow.ExecutionStatus().Condition())
 				run.Conditions = condition
@@ -1479,21 +1481,29 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		// to determine whether the mutation was applied.
 		workflowClient := r.getWorkflowClient(namespace)
 		liveWorkflow, readError := workflowClient.Get(ctx, retryWorkflowName, v1.GetOptions{})
+		storedUID := types.UID("")
+		if storedIdentity, identityErr := r.storedWorkflowIdentityForRun(run); identityErr == nil {
+			storedUID = storedIdentity.uid
+		}
 		switch {
 		case readError == nil && liveWorkflow != nil &&
-			reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == claimGeneration:
+			(reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == claimGeneration ||
+				util.RetryPlaceholderClaimMatches(liveWorkflow.ExecutionObjectMeta(), runId, claimGeneration)):
 			// The mutation was applied despite the error: the live workflow
-			// carries this claim's generation (it may even be terminal
-			// already if the retry finished quickly). Adopt it and complete
-			// the retry instead of rolling back — a rollback here would
-			// restore a GC-eligible FinishedAtInSec under a live retried
-			// workflow and permit a duplicate retry.
+			// carries this claim's generation (or its authenticated
+			// placeholder claim). It may even be terminal already if the
+			// retry finished quickly. Adopt it and complete the retry
+			// instead of rolling back — a rollback here would restore a
+			// GC-eligible FinishedAtInSec under a live retried workflow and
+			// permit a duplicate retry.
 			glog.Warningf("Retry workflow for run %s returned error but the live workflow carries claim generation %d; adopting it. Original error: %v",
 				runId, claimGeneration, err)
 			newExecSpec = liveWorkflow
-		case readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState():
-			// Workflow exists and is running — mutation was applied.
-			// Preserve the claimed row for reconciliation.
+		case readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState() &&
+			storedUID != "" && liveWorkflow.ExecutionObjectMeta().UID == storedUID:
+			// Same stored object is still live without a matching claim
+			// annotation yet — mutation may have applied. Preserve the
+			// claimed row for reconciliation rather than rolling back.
 			glog.Warningf("Retry workflow for run %s returned error but workflow is live (not terminal). "+
 				"Preserving claimed row for reconciliation. Original error: %v", runId, err)
 			return util.NewUnavailableServerError(err,
@@ -1508,9 +1518,10 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			return util.NewUnavailableServerError(err,
 				"Retry workflow for run %s failed with ambiguous state; claim preserved for reconciliation", runId)
 		default:
-			// Workflow definitively absent (NotFound), or terminal without
-			// this claim's generation — a pre-retry leftover, so the
-			// mutation was provably not applied. Safe to rollback.
+			// Workflow definitively absent (NotFound), terminal without this
+			// claim's generation, or a foreign same-name object (including a
+			// suspended Workflow that lacks our placeholder claim) — mutation
+			// was provably not applied. Safe to rollback.
 			if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec, claimGeneration); rollbackError != nil {
 				glog.Errorf("Failed to rollback retry claim for run %s after workflow reconciliation failure: %v", runId, rollbackError)
 			}
@@ -3266,7 +3277,13 @@ func (r *ResourceManager) repairLegacyStoredWorkflowIdentityBeforeRetryReconcile
 	if run.K8SName != "" && run.K8SName != live.ExecutionName() && storedIdentity.name != live.ExecutionName() {
 		return storedIdentity, r.validateWorkflowReportName(runID, run.K8SName, live.ExecutionName())
 	}
-	verifiedLive, err := r.validateLiveWorkflowReportIdentity(ctx, live, live, runID, "", "", false)
+	scheduledWorkflowID := run.RecurringRunId
+	scheduledWorkflowName, err := r.recurringWorkflowNameForReport(scheduledWorkflowID)
+	if err != nil {
+		return storedIdentity, err
+	}
+	verifiedLive, err := r.validateLiveWorkflowReportIdentity(
+		ctx, live, live, runID, scheduledWorkflowID, scheduledWorkflowName, false)
 	if err != nil {
 		return storedIdentity, err
 	}
@@ -3332,13 +3349,16 @@ func liveWorkflowOwnedForRetryReconcile(
 		return true
 	}
 	// A status-free retry placeholder may exist under a fresh UID while the
-	// claim-generation annotation is applied on the activating update.
+	// claim-generation annotation is applied on the activating update. Only
+	// adopt when the placeholder carries this run's claim marker — a foreign
+	// suspended same-name Workflow with a spoofed run label is not owned.
 	if claimGeneration > 0 &&
 		storedUID != "" &&
 		liveMeta.UID != storedUID &&
 		reportedRetryGeneration(liveMeta) == 0 &&
 		!live.ExecutionStatus().IsInFinalState() &&
-		retryWorkflowIsSuspendedPlaceholder(live) {
+		retryWorkflowIsSuspendedPlaceholder(live) &&
+		util.RetryPlaceholderClaimMatches(liveMeta, runID, claimGeneration) {
 		return true
 	}
 	return false
