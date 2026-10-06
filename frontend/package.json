@@ -137,7 +137,7 @@
     "rollup-plugin-visualizer": "^5.12.0",
     "semver": "^7.7.4",
     "storybook": "^10.2.0",
-    "tailwindcss": "^3.0.11",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.23.12",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
