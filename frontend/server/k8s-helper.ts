@@ -339,7 +339,11 @@ export async function getConfigMap(
       return [undefined, { message: 'Invalid resource name' }];
     }
     const apiError = error as any;
-    const statusCode = apiError?.code || apiError?.statusCode || apiError?.response?.statusCode || apiError?.response?.status;
+    const statusCode =
+      apiError?.code ||
+      apiError?.statusCode ||
+      apiError?.response?.statusCode ||
+      apiError?.response?.status;
     return [
       undefined,
       {
