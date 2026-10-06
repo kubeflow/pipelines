@@ -183,17 +183,47 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 		}
 
 		hasNestedObjects = true
+		if isDirectoryMarker(obj) {
+			// Skip zero-byte "dir/" markers so they don't block creating the directory.
+			continue
+		}
 		if err := downloadListedObject(ctx, bucket, localDir, normalizedBlobDir, obj); err != nil {
 			return err
 		}
 	}
 
-	if exactPrefixObject != nil && !hasNestedObjects {
-		if err := downloadListedObject(ctx, bucket, localDir, normalizedBlobDir, exactPrefixObject); err != nil {
-			return err
-		}
+	if exactPrefixObject == nil || hasNestedObjects {
+		return nil
 	}
-	return nil
+
+	isMarker, err := isExactPrefixDirectoryMarker(exactPrefixObject, localDir)
+	if err != nil || isMarker {
+		return err
+	}
+
+	return downloadListedObject(ctx, bucket, localDir, normalizedBlobDir, exactPrefixObject)
+}
+
+func isDirectoryMarker(obj *blob.ListObject) bool {
+	return obj.Size == 0 && strings.HasSuffix(obj.Key, "/")
+}
+
+// isExactPrefixDirectoryMarker reports whether a lone prefix object is an empty-dir marker, not a file.
+func isExactPrefixDirectoryMarker(obj *blob.ListObject, localPath string) (bool, error) {
+	if isDirectoryMarker(obj) {
+		return true, nil
+	}
+	if obj.Size != 0 {
+		return false, nil
+	}
+	info, err := os.Stat(localPath)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to stat local download path %q: %w", localPath, err)
+	}
+	return info.IsDir(), nil
 }
 
 func downloadListedObject(

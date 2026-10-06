@@ -464,6 +464,105 @@ func TestDownloadBlob_SkipsDirectoryMarkerWhenDownloadingNestedObjects(t *testin
 	assert.Equal(t, "nested content", string(data))
 }
 
+func TestDownloadBlob_SkipsNestedDirectoryMarkers(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	objects := map[string]string{
+		"artifacts/model":                           "",
+		"artifacts/model/saved_model.pb":            "model",
+		"artifacts/model/assets/":                   "",
+		"artifacts/model/variables/":                "",
+		"artifacts/model/variables/variables.index": "index",
+	}
+	for key, content := range objects {
+		require.NoError(t, bucket.WriteAll(ctx, key, []byte(content), nil))
+	}
+
+	localPath := filepath.Join(t.TempDir(), "model")
+	require.NoError(t, DownloadBlob(ctx, bucket, localPath, "artifacts/model"))
+
+	data, err := os.ReadFile(filepath.Join(localPath, "saved_model.pb"))
+	require.NoError(t, err)
+	assert.Equal(t, "model", string(data))
+
+	data, err = os.ReadFile(filepath.Join(localPath, "variables", "variables.index"))
+	require.NoError(t, err)
+	assert.Equal(t, "index", string(data))
+
+	_, statErr := os.Stat(filepath.Join(localPath, "assets"))
+	assert.True(t, os.IsNotExist(statErr), "directory marker must not be written as a file")
+}
+
+func TestDownloadBlob_KeepsNestedEmptyFile(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	require.NoError(t, bucket.WriteAll(ctx, "artifacts/out_ds/empty.txt", []byte{}, nil))
+
+	localPath := filepath.Join(t.TempDir(), "out_ds")
+	require.NoError(t, DownloadBlob(ctx, bucket, localPath, "artifacts/out_ds"))
+
+	info, err := os.Stat(filepath.Join(localPath, "empty.txt"))
+	require.NoError(t, err)
+	assert.False(t, info.IsDir())
+	assert.Zero(t, info.Size())
+}
+
+func TestDownloadBlob_KeepsSingleEmptyFileAtExactPrefix(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	require.NoError(t, bucket.WriteAll(ctx, "artifacts/empty.txt", []byte{}, nil))
+
+	localPath := filepath.Join(t.TempDir(), "empty.txt")
+	require.NoError(t, DownloadBlob(ctx, bucket, localPath, "artifacts/empty.txt"))
+
+	info, err := os.Stat(localPath)
+	require.NoError(t, err)
+	assert.False(t, info.IsDir())
+	assert.Zero(t, info.Size())
+}
+
+func TestDownloadBlob_ExactPrefixMarkerLeavesExistingDirectory(t *testing.T) {
+	for _, markerKey := range []string{"artifacts/emptydir", "artifacts/emptydir/"} {
+		t.Run(markerKey, func(t *testing.T) {
+			ctx := context.Background()
+			bucket := memblob.OpenBucket(nil)
+			defer bucket.Close()
+
+			require.NoError(t, bucket.WriteAll(ctx, markerKey, []byte{}, nil))
+
+			localPath := t.TempDir()
+			require.NoError(t, DownloadBlob(ctx, bucket, localPath, "artifacts/emptydir"))
+
+			info, err := os.Stat(localPath)
+			require.NoError(t, err)
+			assert.True(t, info.IsDir())
+			entries, err := os.ReadDir(localPath)
+			require.NoError(t, err)
+			assert.Empty(t, entries)
+		})
+	}
+}
+
+func TestDownloadBlob_TrailingSlashMarkerIsNotWrittenAsFile(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	require.NoError(t, bucket.WriteAll(ctx, "artifacts/emptydir/", []byte{}, nil))
+
+	localPath := filepath.Join(t.TempDir(), "emptydir")
+	require.NoError(t, DownloadBlob(ctx, bucket, localPath, "artifacts/emptydir"))
+
+	_, statErr := os.Stat(localPath)
+	assert.True(t, os.IsNotExist(statErr), "trailing-slash marker must not be written as a file")
+}
+
 func TestDownloadBlob_SkipsPrefixCollisionOutsideRequestedDirectory(t *testing.T) {
 	ctx := context.Background()
 	bucket := memblob.OpenBucket(nil)
