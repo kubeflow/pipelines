@@ -830,16 +830,29 @@ func (c *replaceOnFirstUpdateWorkflowClient) Update(ctx context.Context, execSpe
 		}
 		suspend := true
 		labels := map[string]string{}
-		if execSpec.ExecutionObjectMeta() != nil && execSpec.ExecutionObjectMeta().Labels != nil {
-			for key, value := range execSpec.ExecutionObjectMeta().Labels {
+		annotations := map[string]string{}
+		meta := execSpec.ExecutionObjectMeta()
+		if meta != nil && meta.Labels != nil {
+			for key, value := range meta.Labels {
 				labels[key] = value
+			}
+		}
+		// Simulate our own create-only placeholder for this claim: it omits
+		// retry-generation but carries the placeholder-claim marker.
+		if meta != nil {
+			runID := labels[util.LabelKeyWorkflowRunId]
+			if generationRaw, ok := meta.Annotations[util.AnnotationKeyRetryGeneration]; ok && runID != "" {
+				if generation, err := strconv.ParseInt(generationRaw, 10, 64); err == nil && generation > 0 {
+					annotations[util.AnnotationKeyRetryPlaceholderClaim] = util.RetryPlaceholderClaimValue(runID, generation)
+				}
 			}
 		}
 		_, err := c.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
 			ObjectMeta: v1.ObjectMeta{
-				Name:      execSpec.ExecutionName(),
-				Namespace: execSpec.ExecutionNamespace(),
-				Labels:    labels,
+				Name:        execSpec.ExecutionName(),
+				Namespace:   execSpec.ExecutionNamespace(),
+				Labels:      labels,
+				Annotations: annotations,
 			},
 			Spec: v1alpha1.WorkflowSpec{Suspend: &suspend},
 		}), v1.CreateOptions{})
@@ -3450,6 +3463,95 @@ func TestRetryRun_RejectsForeignSameNameWorkflow(t *testing.T) {
 	assert.Equal(t, originalUID, storedWorkflowUID(t, unchangedRun))
 }
 
+func TestRetryRun_RejectsForeignSuspendedSameNameWorkflowWithoutClaimMarker(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	originalUID := storedWorkflowUID(t, run)
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+
+	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	suspend := true
+	foreignPlaceholder := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Spec:   v1alpha1.WorkflowSpec{Suspend: &suspend},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowUnknown},
+	})
+	createdForeign, err := workflowClient.Create(ctx, foreignPlaceholder, v1.CreateOptions{})
+	require.NoError(t, err)
+	foreignUID := createdForeign.ExecutionObjectMeta().UID
+	_, hasClaim := createdForeign.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryPlaceholderClaim]
+	require.False(t, hasClaim)
+
+	err = manager.RetryRun(ctx, runDetail.UUID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to this run")
+
+	liveForeign, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, foreignUID, liveForeign.ExecutionObjectMeta().UID)
+	require.NotNil(t, liveForeign.(*util.Workflow).Spec.Suspend)
+	assert.True(t, *liveForeign.(*util.Workflow).Spec.Suspend)
+
+	unchangedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, unchangedRun.State)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, unchangedRun))
+	// RetryGeneration stays monotonic across RollbackRetryClaim.
+	assert.Equal(t, int64(1), unchangedRun.RetryGeneration)
+}
+
+func TestRetryRun_AdoptsOwnedPlaceholderWithClaimMarker(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	originalUID := storedWorkflowUID(t, run)
+	require.NotEmpty(t, originalUID)
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+
+	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	// Pre-create the status-free placeholder that a prior create-only attempt
+	// would have left behind. ClaimRunForRetry will assign generation 1.
+	suspend := true
+	ownedPlaceholder := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				util.AnnotationKeyRetryPlaceholderClaim: util.RetryPlaceholderClaimValue(run.UUID, 1),
+			},
+		},
+		Spec:   v1alpha1.WorkflowSpec{Suspend: &suspend},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowUnknown},
+	})
+	createdPlaceholder, err := workflowClient.Create(ctx, ownedPlaceholder, v1.CreateOptions{})
+	require.NoError(t, err)
+	placeholderUID := createdPlaceholder.ExecutionObjectMeta().UID
+	require.NotEqual(t, originalUID, placeholderUID)
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+
+	retried, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, retried.State)
+	assert.Equal(t, placeholderUID, storedWorkflowUID(t, retried))
+	live, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, placeholderUID, live.ExecutionObjectMeta().UID)
+	assert.Equal(t, "1", live.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+}
+
 func TestRetryRun_LegacyMissingStoredUIDUpdatesExistingWorkflow(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
@@ -3566,7 +3668,10 @@ func TestRetryRun_OffloadedNodeStatus_RecreateUsesNewUID(t *testing.T) {
 	assert.Empty(t, recordingClient.createdSpec.Status.OffloadNodeStatusVersion)
 	_, hasRetryGeneration := recordingClient.createdSpec.Annotations[util.AnnotationKeyRetryGeneration]
 	assert.False(t, hasRetryGeneration,
-		"placeholder must omit the claim marker so create-only failures are not treated as applied")
+		"placeholder must omit retry-generation so create-only failures are not treated as applied")
+	assert.Equal(t, util.RetryPlaceholderClaimValue(runDetail.UUID, 1),
+		recordingClient.createdSpec.Annotations[util.AnnotationKeyRetryPlaceholderClaim],
+		"placeholder must carry a claim marker authenticating this retry create")
 	assert.True(t, recordingClient.updateSawCreationTimestamp,
 		"the activating update must carry the server-assigned creation timestamp")
 
