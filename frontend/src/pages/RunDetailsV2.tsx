@@ -15,6 +15,8 @@
 import { NavigationProps } from 'src/lib/Navigation';
 import {
   MouseEvent as ReactMouseEvent,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -77,7 +79,8 @@ import DagCanvas from './v2/DagCanvas';
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS = 3;
-const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
+const TAB_NAMES = ['Graph', 'Timeline', 'Detail', 'Pipeline Spec'];
+const RunWaterfall = lazy(() => import('./v2/RunWaterfall'));
 
 interface RunDetailsV2Info {
   onRetryStarted?: () => void;
@@ -168,6 +171,18 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [flowElements, setFlowElements] = useState(initialElements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
+  const tabParam = new URLSearchParams(props.location.search).get('tab');
+  const activeTab = tabParam === 'waterfall' ? 1 : selectedTab;
+  const switchTab = (tab: number) => {
+    setSelectedTab(tab === 1 ? 0 : tab);
+    const search = new URLSearchParams(props.location.search);
+    if (tab === 1) search.set('tab', 'waterfall');
+    else search.delete('tab');
+    props.navigate(
+      { pathname: props.location.pathname, search: search.toString() },
+      { replace: true },
+    );
+  };
   const [selectedNodeState, setSelectedNodeState] = useState<SelectedNodeState | null>(null);
   const [layerNavigationError, setLayerNavigationError] = useState<string | null>(null);
   const [, forceUpdate] = useState();
@@ -553,9 +568,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         />
       )}
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs selectedTab={selectedTab} tabs={TAB_NAMES} onSwitch={setSelectedTab} />
+        <MD2Tabs selectedTab={activeTab} tabs={TAB_NAMES} onSwitch={switchTab} />
         {/* DAG tab */}
-        {selectedTab === 0 && (
+        {activeTab === 0 && (
           <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
             <DagCanvas
               layers={layers}
@@ -591,7 +606,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         )}
 
         {/* Run details tab */}
-        {selectedTab === 1 && (
+        {activeTab === 2 && (
           <div className={padding()}>
             <DetailsTable title='Run details' fields={getDetailsFields(run)} />
 
@@ -607,8 +622,26 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           </div>
         )}
 
+        {activeTab === 1 && (
+          <Suspense fallback={<div className={padding()}>Loading component tasks…</div>}>
+            <RunWaterfall
+              run={run}
+              tasks={tasks || []}
+              loading={!isSuccess && !isError}
+              error={isError ? error : undefined}
+              onOpenTask={(taskId) => {
+                const search = new URLSearchParams(location.search);
+                search.delete('tab');
+                search.set(QUERY_PARAMS.taskId, taskId);
+                setSelectedTab(0);
+                navigate({ pathname: location.pathname, search: search.toString() });
+              }}
+            />
+          </Suspense>
+        )}
+
         {/* Pipeline Spec tab */}
-        {selectedTab === 2 && (
+        {activeTab === 3 && (
           <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
             <PipelineSpecTabContent templateString={pipelineJobStr || ''} />
           </div>
