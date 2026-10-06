@@ -300,6 +300,68 @@ func TestLazyOffloadHydrator_DehydrateTooLargeOffloadDisabled(t *testing.T) {
 	assert.NotEmpty(t, wf.Status.Nodes)
 }
 
+type closedSessionHydrator struct {
+	inner        hydrator.Interface
+	failOnce     atomic.Bool
+	hydrateCalls atomic.Int32
+}
+
+func (h *closedSessionHydrator) IsHydrated(wf *workflowapi.Workflow) bool {
+	return h.inner.IsHydrated(wf)
+}
+
+func (h *closedSessionHydrator) Hydrate(ctx context.Context, wf *workflowapi.Workflow) error {
+	h.hydrateCalls.Add(1)
+	if h.failOnce.CompareAndSwap(true, false) {
+		return errors.New("session proxy is closed")
+	}
+	return h.inner.Hydrate(ctx, wf)
+}
+
+func (h *closedSessionHydrator) Dehydrate(ctx context.Context, wf *workflowapi.Workflow) error {
+	return h.inner.Dehydrate(ctx, wf)
+}
+
+func (h *closedSessionHydrator) HydrateWithNodes(wf *workflowapi.Workflow, nodes workflowapi.Nodes) {
+	h.inner.HydrateWithNodes(wf, nodes)
+}
+
+func TestLazyOffloadHydrator_ReinitAfterClosedSession(t *testing.T) {
+	repo := NewMemoryOffloadNodeStatusRepo()
+	repo.Put("wf-uid", "offload-hash", workflowapi.Nodes{
+		"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+	})
+	inner := NewMemoryWorkflowHydrator(repo)
+	closed := &closedSessionHydrator{inner: inner}
+	closed.failOnce.Store(true)
+
+	var initCalls atomic.Int32
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, error) {
+		initCalls.Add(1)
+		return closed, nil
+	})
+
+	wf := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status: workflowapi.WorkflowStatus{
+			OffloadNodeStatusVersion: "offload-hash",
+		},
+	}
+
+	require.NoError(t, lazy.Hydrate(context.Background(), wf))
+	assert.Equal(t, int32(2), initCalls.Load(), "closed session must clear the cache and re-init")
+	assert.Equal(t, int32(2), closed.hydrateCalls.Load())
+	assert.Empty(t, wf.Status.OffloadNodeStatusVersion)
+	assert.Equal(t, workflowapi.NodeSucceeded, wf.Status.Nodes["ok"].Phase)
+
+	// A healthy cached hydrator should not re-init on the next call.
+	wf.Status.OffloadNodeStatusVersion = "offload-hash"
+	wf.Status.Nodes = nil
+	require.NoError(t, lazy.Hydrate(context.Background(), wf))
+	assert.Equal(t, int32(2), initCalls.Load())
+	assert.Equal(t, int32(3), closed.hydrateCalls.Load())
+}
+
 func TestLazyOffloadHydrator_ConcurrentInit(t *testing.T) {
 	repo := NewMemoryOffloadNodeStatusRepo()
 	inner := NewMemoryWorkflowHydrator(repo)
