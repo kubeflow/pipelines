@@ -103,7 +103,7 @@ export default function RunWaterfall({
               onSelect={setSelectedId}
             />
           </div>
-          <TaskInspector row={selected} onOpenTask={onOpenTask} />
+          <TaskInspector key={selected?.id} row={selected} onOpenTask={onOpenTask} />
         </div>
       )}
     </section>

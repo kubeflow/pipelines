@@ -187,12 +187,31 @@ it('keeps status in metadata as selection and task state change, without a relat
   expect(within(inspector).queryByText(/into run/)).not.toBeInTheDocument();
   const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
   await userEvent.click(within(chart).getByRole('button', { name: 'Cached', exact: true }));
-  expect(statusValue).toHaveTextContent('Cached');
+  const cachedMetadata = screen
+    .getByRole('complementary', { name: 'Selected task' })
+    .querySelector('dl') as HTMLElement;
+  const cachedStatus = within(cachedMetadata).getByText('Status').nextElementSibling;
+  expect(cachedStatus).toHaveTextContent('Cached');
   update({
     tasks: tasks.map((item) => (item.task_id === 'Cached' ? { ...item, state: 'FAILED' } : item)),
   });
-  expect(statusValue).toHaveTextContent('Failed');
-  expect(metadata.querySelectorAll('.rt-status')).toHaveLength(1);
+  expect(cachedStatus).toHaveTextContent('Failed');
+  expect(cachedMetadata.querySelectorAll('.rt-status')).toHaveLength(1);
+});
+
+it('preserves details scrolling on refresh but resets it when selecting another task', async () => {
+  const { update } = setup();
+  const chart = screen.getByRole('table', { name: 'Component waterfall timings' });
+  await userEvent.click(within(chart).getByRole('button', { name: 'Alpha', exact: true }));
+  const inspector = screen.getByRole('complementary', { name: 'Selected task' });
+  inspector.scrollTop = 120;
+  update({ tasks: tasks.map((item) => ({ ...item })) });
+  expect(screen.getByRole('complementary', { name: 'Selected task' })).toBe(inspector);
+  expect(inspector.scrollTop).toBe(120);
+  await userEvent.click(within(chart).getByRole('button', { name: 'Charlie', exact: true }));
+  const nextInspector = screen.getByRole('complementary', { name: 'Selected task' });
+  expect(nextInspector).not.toBe(inspector);
+  expect(nextInspector.scrollTop).toBe(0);
 });
 
 it('renders all 25 components and selects the last row without pagination', async () => {

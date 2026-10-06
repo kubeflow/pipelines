@@ -243,6 +243,19 @@
 .rt-history small {
   width: 100%;
 }
+@media (min-width: 1251px) {
+  .run-waterfall {
+    /* Keep long charts from expanding the outer flex layout; this is the scroll owner. */
+    container-type: size;
+  }
+  .rt-inspector {
+    position: sticky;
+    top: 0;
+    box-sizing: border-box;
+    max-height: 100cqh;
+    overflow-y: auto;
+  }
+}
 @media (max-width: 1250px) {
   .rt-split {
     grid-template-columns: minmax(0, 1fr);

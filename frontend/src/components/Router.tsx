@@ -469,9 +469,10 @@ export default Router;
 
 const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
+  // Allow route scroll regions to shrink even when navigation is taller than the viewport.
   return (
     <div className={classes(commonCss.page)}>
-      <div className={classes(commonCss.flexGrow)}>
+      <div className={classes(commonCss.flexGrow)} style={{ minHeight: 0 }}>
         <SideNavigation page={location.pathname} />
         {children}
       </div>

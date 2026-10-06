@@ -14,7 +14,7 @@ Click anywhere on a row to inspect task status, timestamps, elapsed time, and st
 
 This view does not separate driver/executor pods, pending versus executing phases, or individual retry-attempt durations. It relies only on existing task API data.
 
-The scroll container follows the existing run-page layout; the task inspector and column headers are not pinned while scrolling.
+On wide layouts, the Timeline owns its scroll area and the selected-task inspector stays visible alongside the chart. Details are limited to the available height and scroll internally when needed. Selecting another task resets the details scroll position; refreshing the same task preserves it. Narrow layouts keep the inspector below the chart in normal document flow. Column headers scroll with the chart.
 
 ## Development
 
