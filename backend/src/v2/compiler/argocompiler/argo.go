@@ -261,8 +261,82 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	if err := c.ApplyWorkflowSpecPatch(patchJSON); err != nil {
 		return nil, fmt.Errorf("failed to apply workflow spec patch: %w", err)
 	}
+	if common.IsMultiUserMode() && !c.cacheDisabled {
+		if err := addCacheAPICredentials(c.wf); err != nil {
+			return nil, err
+		}
+	}
 
 	return c.wf, nil
+}
+
+func addCacheAPICredentials(wf *wfapi.Workflow) error {
+	const volumeName = "kfp-cache-api-token"
+	const mountPath = "/var/run/secrets/kubeflow/cache-api"
+	validVolume := func(volume k8score.Volume) bool {
+		if volume.Projected == nil {
+			return false
+		}
+		for _, source := range volume.Projected.Sources {
+			if source.ServiceAccountToken != nil && source.ServiceAccountToken.Audience == common.GetTokenReviewAudience() && source.ServiceAccountToken.Path == "token" {
+				return true
+			}
+		}
+		return false
+	}
+	volumeExists := false
+	for _, volume := range wf.Spec.Volumes {
+		if volume.Name == volumeName {
+			if !validVolume(volume) {
+				return fmt.Errorf("reserved volume %s must project the KFP API audience token", volumeName)
+			}
+			volumeExists = true
+		}
+	}
+	if !volumeExists {
+		wf.Spec.Volumes = append(wf.Spec.Volumes, k8score.Volume{
+			Name: volumeName,
+			VolumeSource: k8score.VolumeSource{Projected: &k8score.ProjectedVolumeSource{
+				Sources: []k8score.VolumeProjection{{ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
+					Audience: common.GetTokenReviewAudience(), Path: "token",
+				}}},
+			}},
+		})
+	}
+	for i := range wf.Spec.Templates {
+		volumes := make(map[string]k8score.Volume)
+		for _, volume := range wf.Spec.Volumes {
+			volumes[volume.Name] = volume
+		}
+		for _, volume := range wf.Spec.Templates[i].Volumes {
+			volumes[volume.Name] = volume
+			if volume.Name == volumeName && !validVolume(volume) {
+				return fmt.Errorf("template %s reserved volume %s must project the KFP API audience token", wf.Spec.Templates[i].Name, volumeName)
+			}
+		}
+		container := wf.Spec.Templates[i].Container
+		if container == nil {
+			continue
+		}
+		mounted := false
+		for _, mount := range container.VolumeMounts {
+			if mount.MountPath != mountPath {
+				continue
+			}
+			volume, exists := volumes[mount.Name]
+			mounted = exists && validVolume(volume) && mount.SubPath == "" && mount.SubPathExpr == ""
+			if !mounted {
+				return fmt.Errorf("template %s mount at %s must project the KFP API audience token without subPath", wf.Spec.Templates[i].Name, mountPath)
+			}
+		}
+		if mounted {
+			continue
+		}
+		container.VolumeMounts = append(container.VolumeMounts, k8score.VolumeMount{
+			Name: volumeName, MountPath: mountPath, ReadOnly: true,
+		})
+	}
+	return nil
 }
 
 func retrieveLastValidString(s string) string {

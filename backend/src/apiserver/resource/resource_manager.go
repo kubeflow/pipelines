@@ -1186,6 +1186,12 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunID)
 	}
+	if common.IsMultiUserMode() && !r.IsEmptyNamespace(run.Namespace) {
+		if t.Namespace != "" && t.Namespace != run.Namespace {
+			return nil, util.NewInvalidInputError("Task namespace must match its run namespace")
+		}
+		t.Namespace = run.Namespace
+	}
 	if run.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {

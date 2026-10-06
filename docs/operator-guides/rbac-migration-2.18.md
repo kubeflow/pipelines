@@ -14,8 +14,54 @@ not complete end-user roles.
 | Upload a pipeline version | `create` on `pipelines.pipelines.kubeflow.org` | Parent pipeline namespace; installation namespace for shared parents | Use the intended parent pipeline ID; changing client namespace does not relocate it. |
 | Create a run or recurring run referencing a private pipeline/version | `get` on `pipelines.pipelines.kubeflow.org` | Parent pipeline namespace | Use an experiment in the same namespace as the private pipeline. |
 | Read run logs | `readLog` on `runs.pipelines.kubeflow.org` | Run namespace | Add the custom verb to log-reader roles. |
+| Register a task/cache entry | `createTask` on `runs.pipelines.kubeflow.org` | Persisted run namespace and Kubernetes workflow name | Grant to runtime service accounts and authorized task writers. |
+| List tasks/cache entries | `list` on `runs.pipelines.kubeflow.org` | Explicit namespace resource reference | Update custom TaskService clients to send the namespace reference as well as any filter. |
 | View an existing TensorBoard | `get` on `viewers.kubeflow.org` | Viewer namespace | Retain read access for viewers. |
 | Create or delete TensorBoard | `create` or `delete` on `viewers.kubeflow.org` | Viewer namespace | Give these permissions only to users who should manage TensorBoard instances. |
+
+## Coordinate TaskService and runtime upgrades
+
+Multi-user TaskService calls now require authentication and namespace-scoped
+authorization. Task creation derives ownership from the stored run; a supplied
+task or pipeline namespace cannot select a different tenant. Listing requires
+`resource_reference_key.type=NAMESPACE` and `resource_reference_key.id=<namespace>`;
+a `namespace` predicate in the filter alone is not an authorization scope.
+
+The V2 driver reads cache entries; both driver and launcher can register entries.
+Update the API server, driver and launcher images together. Apply the updated
+`pipeline-runner` Role and aggregated KFP edit role before starting new workloads.
+For custom runtime service accounts, grant `list` and `createTask` on
+`runs.pipelines.kubeflow.org` only in their execution namespace. `createTask` is a
+custom verb, not `create` on runs and not a subresource; it grants no run-creation
+permission. A role restricted by `resourceNames` must use the stored workflow name.
+
+Newly compiled multi-user workflows with deployment-level caching enabled mount
+a projected service-account token with the API server's `TOKEN_REVIEW_AUDIENCE`
+(default `pipelines.kubeflow.org`). Runtime clients read this token for every RPC,
+including after rotation. The dedicated mount is
+`/var/run/secrets/kubeflow/cache-api/token`; custom cache token mounts can set
+`KFP_CACHE_API_TOKEN_PATH`. The SDK's separate `KF_PIPELINES_SA_TOKEN_PATH` and
+PodDefault token mounts are unchanged.
+Keep the cache endpoint configured to the trusted KFP API service. This uses the
+existing API TLS configuration; deployments without API TLS must protect in-cluster
+traffic with their network/service-mesh policy. No token is sent to artifact URLs.
+
+**Drain pre-upgrade workflows before enabling the hardened API.** Already-created
+pods/workflows do not acquire the new credentials or client behavior merely by
+updating the API server. Unauthorized cache lookup/registration is an error, not a
+cache miss: a driver or launcher may fail even after user code completed. Recreate
+legacy schedules as described in the scheduling migration guide and submit fresh
+runs with the upgraded compiler/runtime images. Deployment-level disabled caching
+requires no cache token; this does not disable TaskService authorization.
+Retrying a stored pre-upgrade run reuses its persisted workflow and is **not** a
+credential migration: submit a new run from the pipeline IR instead. Operators
+submitting Argo YAML produced directly by `backend/src/v2/cmd/compiler` must
+provide the dedicated projected token and current runtime images themselves, or
+submit IR through the multi-user API server so it supplies the projection.
+
+Validate one cache-populating run and a subsequent cache hit with the actual
+runtime service account, plus denied reads/writes from a second namespace, before
+reopening submissions.
 
 ## Make upload scope explicit
 

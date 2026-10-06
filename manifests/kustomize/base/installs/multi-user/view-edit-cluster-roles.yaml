@@ -70,6 +70,7 @@ rules:
   - terminate
   - unarchive
   - reportMetrics
+  - createTask
   - readArtifact
   - readLog
 - apiGroups:

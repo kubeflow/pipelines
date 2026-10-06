@@ -18,6 +18,9 @@ import (
 	"context"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	authorizationv1 "k8s.io/api/authorization/v1"
+
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -42,6 +45,19 @@ func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRe
 	modelTask, err := toModelTask(request.GetTask())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new task due to conversion error")
+	}
+	if common.IsMultiUserMode() {
+		attributes := &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbCreateTask}
+		if err := (&BaseRunServer{resourceManager: s.resourceManager}).canAccessRun(ctx, modelTask.RunID, attributes); err != nil {
+			return nil, util.Wrap(err, "Failed to authorize task creation")
+		}
+		if modelTask.Namespace != "" && modelTask.Namespace != attributes.Namespace {
+			return nil, util.NewInvalidInputError("Task namespace must match its run namespace")
+		}
+		modelTask.Namespace = attributes.Namespace
+		if strings.HasPrefix(modelTask.PipelineName, "namespace/") && strings.SplitN(modelTask.PipelineName, "/", 4)[1] != attributes.Namespace {
+			return nil, util.NewInvalidInputError("Pipeline namespace must match the task's run namespace")
+		}
 	}
 
 	task, err := s.resourceManager.CreateTask(modelTask)
@@ -96,6 +112,9 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequest) (
 	*api.ListTasksResponse, error,
 ) {
+	if request == nil {
+		return nil, util.NewInvalidInputError("ListTasksRequest is nil")
+	}
 	opts, err := validatedListOptions(&model.Task{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter, "v1beta1")
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
@@ -104,6 +123,22 @@ func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequ
 	filterContext, err := validateFilterV1(request.ResourceReferenceKey)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed")
+	}
+	if common.IsMultiUserMode() {
+		if filterContext.ReferenceKey == nil || filterContext.ID == "" {
+			return nil, util.NewInvalidInputError("Specify a namespace resource reference when listing tasks in multi-user mode")
+		}
+		attributes := &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbList}
+		switch filterContext.Type {
+		case model.NamespaceResourceType:
+			attributes.Namespace = filterContext.ID
+		default:
+			return nil, util.NewInvalidInputError("Task resource reference must be a namespace in multi-user mode")
+		}
+		if err := (&BaseRunServer{resourceManager: s.resourceManager}).canAccessRun(ctx, "", attributes); err != nil {
+			return nil, util.Wrap(err, "Failed to authorize task listing")
+		}
+		filterContext.Namespace = attributes.Namespace
 	}
 
 	tasks, total_size, nextPageToken, err := s.resourceManager.ListTasks(filterContext, opts)

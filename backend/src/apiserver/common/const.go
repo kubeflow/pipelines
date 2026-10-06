@@ -31,6 +31,7 @@ const (
 	RbacResourceVerbArchive       = "archive"
 	RbacResourceVerbUpdate        = "update"
 	RbacResourceVerbCreate        = "create"
+	RbacResourceVerbCreateTask    = "createTask"
 	RbacResourceVerbDelete        = "delete"
 	RbacResourceVerbDisable       = "disable"
 	RbacResourceVerbEnable        = "enable"

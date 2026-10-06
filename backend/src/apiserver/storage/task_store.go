@@ -243,6 +243,12 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 
 	// SQL for getting the filtered and paginated rows
 	sqlBuilder := qb.Select(dialect.QuoteAll(q, taskColumns)...).From(q("tasks"))
+	if filterContext.Namespace != "" {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.Namespace})
+	}
+	if filterContext.ReferenceKey != nil && filterContext.Type == model.NamespaceResourceType {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.ID})
+	}
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("PipelineName"): filterContext.ID})
 	}
@@ -259,6 +265,12 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
 	sqlBuilder = qb.Select("count(*)").From(q("tasks"))
+	if filterContext.Namespace != "" {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.Namespace})
+	}
+	if filterContext.ReferenceKey != nil && filterContext.Type == model.NamespaceResourceType {
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.ID})
+	}
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("PipelineName"): filterContext.ID})
 	}

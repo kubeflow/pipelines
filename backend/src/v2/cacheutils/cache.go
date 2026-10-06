@@ -7,11 +7,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -93,6 +96,7 @@ func NewClient(mlPipelineServerAddress string, mlPipelineServerPort string, cach
 		cacheEndPoint,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
 		grpc.WithTransportCredentials(creds),
+		grpc.WithUnaryInterceptor(cacheAuthInterceptor),
 	)
 
 	if err != nil {
@@ -126,7 +130,8 @@ func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) 
 	if err != nil {
 		return "", fmt.Errorf("failed to convert filter into JSON: %w", err)
 	}
-	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "created_at desc", PageSize: 1}
+	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "created_at desc", PageSize: 1,
+		ResourceReferenceKey: &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: namespace}}
 	listTasksResponse, err := c.svc.ListTasksV1(context.Background(), listTasksReuqest)
 	if err != nil {
 		return "", fmt.Errorf("failed to list tasks: %w", err)
@@ -137,6 +142,31 @@ func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) 
 	} else {
 		return tasks[0].GetMlmdExecutionID(), nil
 	}
+}
+
+// Read the projected token for each RPC so Kubernetes token rotation is honored.
+// A missing default token is allowed for single-user clients; multi-user servers
+// still reject unauthenticated calls. Explicit token paths must be readable.
+func cacheAuthInterceptor(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	path := os.Getenv("KFP_CACHE_API_TOKEN_PATH")
+	explicit := path != ""
+	if !explicit {
+		path = "/var/run/secrets/kubeflow/cache-api/token"
+	}
+	token, err := os.ReadFile(path)
+	if err != nil {
+		if !explicit && os.IsNotExist(err) {
+			return invoker(ctx, method, req, reply, cc, opts...)
+		}
+		return fmt.Errorf("read cache API service-account token: %w", err)
+	}
+	if strings.TrimSpace(string(token)) == "" {
+		return fmt.Errorf("cache API service-account token is empty")
+	}
+	md, _ := metadata.FromOutgoingContext(ctx)
+	md = md.Copy()
+	md.Set("authorization", "Bearer "+strings.TrimSpace(string(token)))
+	return invoker(metadata.NewOutgoingContext(ctx, md), method, req, reply, cc, opts...)
 }
 
 func (c *client) CreateExecutionCache(ctx context.Context, task *api.Task) error {

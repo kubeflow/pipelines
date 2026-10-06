@@ -4,6 +4,13 @@ metadata:
   name: pipeline-runner
 rules:
 - apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - runs
+  verbs:
+  - list
+  - createTask
+- apiGroups:
   - ""
   resources:
   - secrets

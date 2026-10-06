@@ -179,6 +179,8 @@ type ReferenceKey struct {
 type FilterContext struct {
 	// Filter by a specific reference key
 	*ReferenceKey
+	// Namespace is a trusted scope applied independently of caller filters.
+	Namespace string
 }
 
 func EmptyFilterContext() *FilterContext {

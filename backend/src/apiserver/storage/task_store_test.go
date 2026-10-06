@@ -19,6 +19,9 @@ import (
 	"reflect"
 	"testing"
 
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -218,6 +221,54 @@ func TestListTasks(t *testing.T) {
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageTasks, tasks, "Unexpected Tasks listed")
 	assert.Empty(t, nextPageToken)
+}
+
+func TestListTasksTrustedNamespaceScope(t *testing.T) {
+	db, store := initializeTaskStore()
+	defer db.Close()
+	opts, err := list.NewOptions(&model.Task{}, 1, "", nil)
+	require.NoError(t, err)
+	scope := &model.FilterContext{Namespace: "ns1"}
+	var seen int
+	for {
+		tasks, count, next, err := store.ListTasks(scope, opts)
+		require.NoError(t, err)
+		require.Equal(t, 3, count)
+		for _, task := range tasks {
+			require.Equal(t, "ns1", task.Namespace)
+			seen++
+		}
+		if next == "" {
+			break
+		}
+		opts, err = list.NewOptionsFromToken(next, 1)
+		require.NoError(t, err)
+	}
+	require.Equal(t, 3, seen)
+	// A conflicting caller-provided resource reference cannot widen the trusted scope.
+	tasks, count, _, err := store.ListTasks(&model.FilterContext{Namespace: "ns1", ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "ns2"}}, list.EmptyOptions())
+	require.NoError(t, err)
+	require.Empty(t, tasks)
+	require.Zero(t, count)
+	// Neither a run reference nor a page token minted for another namespace can
+	// remove the independent namespace constraint.
+	foreignFilter, err := filter.New(&api.Filter{Predicates: []*api.Predicate{{Key: "namespace", Op: api.Predicate_EQUALS, Value: &api.Predicate_StringValue{StringValue: "ns2"}}}})
+	require.NoError(t, err)
+	opts, err = list.NewOptions(&model.Task{}, 1, "", foreignFilter)
+	require.NoError(t, err)
+	tasks, count, _, err = store.ListTasks(scope, opts)
+	require.NoError(t, err)
+	require.Empty(t, tasks)
+	require.Zero(t, count)
+	_, _, token, err := store.ListTasks(&model.FilterContext{Namespace: "ns2"}, opts)
+	require.NoError(t, err)
+	require.NotEmpty(t, token)
+	opts, err = list.NewOptionsFromToken(token, 1)
+	require.NoError(t, err)
+	tasks, count, _, err = store.ListTasks(scope, opts)
+	require.NoError(t, err)
+	require.Empty(t, tasks)
+	require.Zero(t, count)
 }
 
 func TestTaskStore_GetTask(t *testing.T) {
