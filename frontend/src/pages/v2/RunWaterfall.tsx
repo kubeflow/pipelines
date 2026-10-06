@@ -17,12 +17,13 @@ import {
 } from 'src/lib/v2/RunTaskTiming';
 import './RunWaterfall.css';
 
+const NEUTRAL_STATE_COLOR = '#637087';
 const STATE_COLORS: Record<string, string> = {
   SUCCEEDED: '#24864b',
   RUNNING: '#1a73e8',
   FAILED: '#c43a35',
   CACHED: '#8152b8',
-  SKIPPED: '#7b8492',
+  SKIPPED: NEUTRAL_STATE_COLOR,
 };
 function timeLabel(ms?: number): string {
   return ms === undefined ? 'Not recorded' : formatDateString(new Date(ms));
@@ -33,7 +34,7 @@ function Status({ state }: { state?: string }) {
       ? state[0] + state.slice(1).toLowerCase()
       : 'Unknown';
   return (
-    <span className='rt-status' style={{ color: STATE_COLORS[state || ''] || '#7b8492' }}>
+    <span className='rt-status' style={{ color: STATE_COLORS[state || ''] || NEUTRAL_STATE_COLOR }}>
       {label}
     </span>
   );
@@ -239,7 +240,7 @@ function Waterfall({
                     style={{
                       left: `${left}%`,
                       width: `${width}%`,
-                      backgroundColor: STATE_COLORS[row.task.state || ''] || '#7b8492',
+                      backgroundColor: STATE_COLORS[row.task.state || ''] || NEUTRAL_STATE_COLOR,
                     }}
                   />
                 ) : (

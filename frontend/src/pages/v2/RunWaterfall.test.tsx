@@ -5,6 +5,7 @@
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { getContrastRatio } from '@mui/material/styles';
 import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
 import RunWaterfall, { RunWaterfallProps } from './RunWaterfall';
 
@@ -59,6 +60,21 @@ function setup(overrides: Partial<RunWaterfallProps> = {}) {
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+});
+
+it.each([
+  'SUCCEEDED',
+  'RUNNING',
+  'FAILED',
+  'CACHED',
+  'SKIPPED',
+  'RUNTIME_STATE_UNSPECIFIED',
+  undefined,
+] as const)('renders %s status text with at least 4.5:1 contrast on white', (state) => {
+  setup({ tasks: [task('Contrast check', 0, 10, { state })] });
+  const inspector = screen.getByRole('complementary', { name: 'Selected task' });
+  const status = inspector.querySelector('dl .rt-status') as HTMLElement;
+  expect(getContrastRatio(getComputedStyle(status).color, '#ffffff')).toBeGreaterThanOrEqual(4.5);
 });
 
 it('renders components chronologically and preserves selection across refreshes', async () => {
