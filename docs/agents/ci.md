@@ -68,3 +68,15 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   payloads, and workflow specifications, but reports retain namespace, resource,
   service-account and run identifiers. Use only the synthetic CI cluster and
   review report contents before sharing; these artifacts are not anonymized.
+
+- `upgrade-test.yml` has a manual, default-off `run_custom_roles` input. Its
+  isolated `kind-kfp-custom-roles` cluster runs candidate API/UI images against
+  namespaced custom-role users: private/shared upload and version inheritance,
+  stored-reference confinement, `runs/readLog`, and TensorBoard viewer/manager
+  permissions. Denials require the exact status and upload authorization
+  diagnostic; the retained JSON report includes positive controls and revision.
+  Trusted identity headers reach localhost-only forwards, and the log source is
+  a controlled real Pod associated with an API-created run. This validates
+  handler authorization and Kubernetes SAR, not ingress authentication, Argo
+  execution, archived logs, browser navigation, or TensorFlow execution. The job
+  deletes its entire disposable cluster even on failure.
