@@ -63,6 +63,8 @@ class SnapshotTests(unittest.TestCase):
         directories = self.api_source_directories()
         self.assertIn('sdk/python/kfp/server_api', directories)
         self.assertIn('backend/api/v2/python_http_client', directories)
+        self.assertIn('backend/api/v2beta1/go_client', directories)
+        self.assertIn('backend/api/v2beta1/go_http_client', directories)
         self.assertIn(
             'snapshot_sources "$source_dir" "${API_SOURCE_DIRECTORIES[@]}"',
             SCRIPT.read_text())
@@ -71,6 +73,8 @@ class SnapshotTests(unittest.TestCase):
         for path in (
                 'sdk/python/kfp/server_api/api_client.py',
                 'backend/api/v2/python_http_client/docs/RunServiceApi.md',
+                'backend/api/v2beta1/go_client/aliases.go',
+                'backend/api/v2beta1/go_http_client/run_model/aliases.go',
         ):
             with self.subTest(path=path):
                 self.write(path, 'before')

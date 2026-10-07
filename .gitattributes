@@ -7,9 +7,7 @@ backend/api/v2/swagger/** linguist-generated
 backend/api/v2/swagger/pipeline.upload.swagger.json -linguist-generated
 backend/api/v2beta1/go_client/** linguist-generated
 backend/api/v2beta1/go_http_client/** linguist-generated
-backend/api/v2beta1/python_http_client/** linguist-generated
-backend/api/v2beta1/swagger/** linguist-generated
-backend/api/v2beta1/swagger/pipeline.upload.swagger.json -linguist-generated
+backend/api/v2beta1/legacy_descriptor.pb binary
 kubernetes_platform/go/** linguist-generated
 kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py linguist-generated
 

@@ -15,6 +15,8 @@ API_SOURCE_DIRECTORIES=(
   backend/api/v2/go_http_client
   backend/api/v2/swagger
   backend/api/v2/python_http_client
+  backend/api/v2beta1/go_client
+  backend/api/v2beta1/go_http_client
   sdk/python/kfp/server_api
 )
 

@@ -63,6 +63,11 @@ generate-from-source: fetch-dependencies .image-built hack/generator.sh $(API_VE
 		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
 		$(IMAGE_TAG) /go/src/github.com/kubeflow/pipelines/backend/api/hack/generator.sh
 
+# Regenerate Go compatibility shims without invoking protoc or Docker.
+.PHONY: generate-compat
+generate-compat:
+	cd ../.. && go run ./backend/api/hack/generate_compat
+
 # Generate KFP server API package using either pre-built image (fast) or source build (current tools).
 # Use USE_PREBUILT_IMAGE=false when pre-built image may have outdated dependencies.
 .PHONY: generate-kfp-server-api-package

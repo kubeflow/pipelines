@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	// Retain the legacy descriptors for gRPC reflection. Requests are decoded
-	// directly into the wire-compatible v2 messages, not legacy server types.
-	_ "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	// Register the frozen legacy descriptors for reflection, without loading a
+	// second generated message or client implementation.
+	_ "github.com/kubeflow/pipelines/backend/api/v2beta1"
 	"google.golang.org/grpc"
 )
 

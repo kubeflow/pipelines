@@ -2,8 +2,11 @@
 
 Never edit generated files. Update their source and regenerate them.
 
-`backend/api/v2` is canonical. `backend/api/v2beta1` is the frozen HTTP/gRPC
-compatibility contract, not another implementation or generation target.
+`backend/api/v2` is canonical. `backend/api/v2beta1` contains generated Go
+import shims plus a frozen descriptor snapshot for wire compatibility/reflection,
+not another implementation or editable proto tree. Backend generation creates
+its aliases automatically; `make -C backend/api generate-compat` regenerates
+only the Go shims. Never regenerate the frozen snapshot from v2.
 Python generation also creates legacy `V2beta1…` model import aliases.
 Backend generation refreshes `docs/_static/kfp_api_single_file.swagger.json`;
 frontend generation removes the retired internal `apisv2beta1` client trees.
