@@ -49,6 +49,12 @@ client.upload_pipeline_version(
 retain the parent's scope. For REST multipart uploads, supply the `namespace`
 query parameter on the pipeline upload endpoint; version uploads use `pipelineid`.
 
+When uploading a version of an existing private pipeline, do not assume that
+`pipeline_name=` uses the client's default namespace. Resolve its ID with an
+explicitly scoped lookup and check for `None`, then upload using `pipeline_id=`.
+The [lookup migration checklist](upgrade-2.18.md#make-pipeline-lookup-namespaces-explicit)
+includes an example and identifies the SDK, CLI and REST callers to review.
+
 For intentional shared publication, leave the upload namespace unset and grant
 publishing permission in the API server's actual `POD_NAMESPACE` (commonly
 `kubeflow`). Supplying `namespace="kubeflow"` creates a namespace-scoped pipeline;

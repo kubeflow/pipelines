@@ -59,6 +59,22 @@ this migration is not a requirement to convert every pipeline to V2.
 
 ## Make pipeline lookup namespaces explicit
 
+This is a client-call change, not a cluster-wide pipeline migration. Existing
+pipeline and version IDs do not need to be recreated. Review callers that find
+pipelines **by name**, especially wrappers that hide the lookup:
+
+| Caller | What to check | Safe migration |
+| --- | --- | --- |
+| SDK `get_pipeline_id(name)` | An omitted namespace searches shared pipelines, not the client's default profile. A miss returns `None`. | Pass the private pipeline's namespace and handle `None` before submitting another request. |
+| SDK `upload_pipeline_version(..., pipeline_name=...)` and its `from_pipeline_func` wrapper | Older clients resolve the parent name only in shared pipelines. | Resolve the private parent explicitly, then pass `pipeline_id=` as below. |
+| CLI `kfp pipeline create-version --pipeline-name ...` or `kfp run create --pipeline-name ...` | Older clients search shared pipelines even when global `--namespace` is set. | Use the intended `--pipeline-id` from the UI or an explicitly scoped SDK lookup. For a private run, also select an experiment in the owning namespace. |
+| Direct REST/generated-client pipeline-by-name request | Multi-user Kubernetes-native storage no longer supplies the installation namespace when the request omits one. | Send the owning namespace in the request. A missing namespace is a client error; a permission denial requires reviewing access, not retrying a different namespace. |
+
+Intentional shared lookups keep their existing scope; do not add a private
+namespace to them automatically. Deployments configured with
+`REQUIRE_NAMESPACE_FOR_PIPELINES=true` reject omitted namespaces rather than
+allowing shared lookup. ID-based calls still require the normal authorization.
+
 With an SDK that provides the 2.18 `namespace` argument, pass the owning namespace
 for a private pipeline even if the client already has a default:
 
@@ -68,6 +84,16 @@ import kfp
 namespace = "team-a"
 client = kfp.Client(namespace=namespace)  # Configure host/credentials as usual.
 pipeline_id = client.get_pipeline_id("training", namespace=namespace)
+if pipeline_id is None:
+    raise ValueError(
+        f"Pipeline 'training' was not found in namespace {namespace!r}; "
+        "check its name and namespace before uploading a version."
+    )
+client.upload_pipeline_version(
+    pipeline_package_path="pipeline.yaml",
+    pipeline_version_name="revision-2",
+    pipeline_id=pipeline_id,
+)
 ```
 
 `get_pipeline_id()` does not inherit the client namespace. Omitting the argument
@@ -77,6 +103,19 @@ requests against multi-user Kubernetes-native storage, supply the namespace quer
 parameter explicitly; omission now fails instead of selecting the API server's
 installation namespace. Test with two profiles containing the same pipeline name
 and verify that each caller resolves only its intended, authorized pipeline.
+
+To find likely callers in application source, search for `get_pipeline_id`,
+`upload_pipeline_version`, `--pipeline-name`, and generated-client
+`get_pipeline_by_name` / `GetPipelineByName` calls. Review scripts and notebooks
+as well as services. This is a source-review starting point, not an exhaustive
+inventory of running clients. A wrong shared lookup can return a same-named
+shared pipeline, not just `None`, so review successful by-name callers too.
+
+If a client offers `namespace=` on version uploads or `--pipeline-namespace` on
+CLI by-name operations, it can make the scope explicit directly. Check that
+client's API documentation or command `--help` before using those options;
+server upgrades do not upgrade installed SDKs or CLI tools. The explicit lookup
+followed by an ID-based call above works without those convenience options.
 
 Private uploads also need their own explicit `namespace=` argument, and stored
 private references must remain in the owning namespace. See the
