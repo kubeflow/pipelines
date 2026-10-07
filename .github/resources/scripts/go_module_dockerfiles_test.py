@@ -30,7 +30,7 @@ class GoModuleDockerfilesTest(unittest.TestCase):
             text=True).splitlines()
         checked = []
         for name in tracked:
-            if not Path(name).name.lower().startswith("dockerfile"):
+            if not Path(name).name.lower().startswith('dockerfile'):
                 continue
             contents = (REPOSITORY_ROOT / name).read_text(encoding='utf-8')
             if 'go mod download' not in contents:
