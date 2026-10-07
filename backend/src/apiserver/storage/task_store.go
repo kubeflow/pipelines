@@ -27,7 +27,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -362,8 +362,8 @@ func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDiale
 		if producer.Valid && producer.String != "" {
 			var producerData model.JSONData
 			if err := json.Unmarshal([]byte(producer.String), &producerData); err == nil {
-				apiProducer, decodeErr := model.JSONDataToProtoMessage(producerData, func() *apiv2beta1.IOProducer {
-					return &apiv2beta1.IOProducer{}
+				apiProducer, decodeErr := model.JSONDataToProtoMessage(producerData, func() *apiv2.IOProducer {
+					return &apiv2.IOProducer{}
 				})
 				if decodeErr == nil && apiProducer != nil {
 					producerProto = &model.IOProducer{
@@ -396,10 +396,10 @@ func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDiale
 			Value:    mArtifact,
 			Producer: producerProto,
 			Key:      key,
-			Type:     apiv2beta1.IOType(linkType.Int32),
+			Type:     apiv2.IOType(linkType.Int32),
 		}
 
-		isOutput, err := iOTypeIsOutput(apiv2beta1.IOType(linkType.Int32))
+		isOutput, err := iOTypeIsOutput(apiv2.IOType(linkType.Int32))
 		if err != nil {
 			return err
 		}
@@ -412,20 +412,20 @@ func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDiale
 	return rows.Err()
 }
 
-func iOTypeIsOutput(ioType apiv2beta1.IOType) (bool, error) {
+func iOTypeIsOutput(ioType apiv2.IOType) (bool, error) {
 	switch ioType {
-	case apiv2beta1.IOType_OUTPUT,
-		apiv2beta1.IOType_ITERATOR_OUTPUT,
-		apiv2beta1.IOType_ONE_OF_OUTPUT,
-		apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT:
+	case apiv2.IOType_OUTPUT,
+		apiv2.IOType_ITERATOR_OUTPUT,
+		apiv2.IOType_ONE_OF_OUTPUT,
+		apiv2.IOType_TASK_FINAL_STATUS_OUTPUT:
 		return true, nil
-	case apiv2beta1.IOType_COMPONENT_INPUT,
-		apiv2beta1.IOType_COLLECTED_INPUTS,
-		apiv2beta1.IOType_TASK_OUTPUT_INPUT,
-		apiv2beta1.IOType_RUNTIME_VALUE_INPUT,
-		apiv2beta1.IOType_ITERATOR_INPUT,
-		apiv2beta1.IOType_ITERATOR_INPUT_RAW,
-		apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT:
+	case apiv2.IOType_COMPONENT_INPUT,
+		apiv2.IOType_COLLECTED_INPUTS,
+		apiv2.IOType_TASK_OUTPUT_INPUT,
+		apiv2.IOType_RUNTIME_VALUE_INPUT,
+		apiv2.IOType_ITERATOR_INPUT,
+		apiv2.IOType_ITERATOR_INPUT_RAW,
+		apiv2.IOType_COMPONENT_DEFAULT_INPUT:
 		return false, nil
 	default:
 		return false, fmt.Errorf("unknown IOType %v", ioType)
@@ -597,11 +597,11 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	// Only append if state_history is empty OR if last state differs from current state
 	if newTask.State != 0 {
 		if len(newTask.StateHistory) == 0 || getLastTaskState(newTask.StateHistory) != newTask.State {
-			taskStatus := &apiv2beta1.PipelineTask_TaskStatus{
+			taskStatus := &apiv2.PipelineTask_TaskStatus{
 				UpdateTime: &timestamppb.Timestamp{Seconds: s.time.Now().Unix()},
-				State:      apiv2beta1.PipelineTask_TaskState(newTask.State),
+				State:      apiv2.PipelineTask_TaskState(newTask.State),
 			}
-			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskStatus{taskStatus})
+			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskStatus{taskStatus})
 			if err != nil {
 				return nil, util.NewInternalServerError(err, "Failed to create state history entry")
 			}
@@ -939,7 +939,7 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 			q("run_details") + "." + q("ImportedFrom") + " IS NULL OR " + q("run_details") + "." + q("ImportedFrom") + " = ''))")).
 		Where(sq.Eq{
 			q("Fingerprint"): fingerprint,
-			q("State"):       model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+			q("State"):       model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 		})
 	if namespace != "" {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): namespace})
@@ -1129,11 +1129,11 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 
 		// Check if we need to append new state to history
 		if len(mergedHistory) == 0 || getLastTaskState(mergedHistory) != new.State {
-			taskStatus := &apiv2beta1.PipelineTask_TaskStatus{
+			taskStatus := &apiv2.PipelineTask_TaskStatus{
 				UpdateTime: &timestamppb.Timestamp{Seconds: s.time.Now().Unix()},
-				State:      apiv2beta1.PipelineTask_TaskState(new.State),
+				State:      apiv2.PipelineTask_TaskState(new.State),
 			}
-			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskStatus{taskStatus})
+			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskStatus{taskStatus})
 			if err != nil {
 				return nil, util.NewInternalServerError(err, "Failed to create state history entry")
 			}
@@ -1313,12 +1313,12 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 	emptyJSONArray := "[]"
 	for _, task := range tasks {
 		mergedHistory := task.StateHistory
-		if len(mergedHistory) == 0 || getLastTaskState(mergedHistory) != model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) {
-			taskStatus := &apiv2beta1.PipelineTask_TaskStatus{
+		if len(mergedHistory) == 0 || getLastTaskState(mergedHistory) != model.TaskStatus(apiv2.PipelineTask_RUNNING) {
+			taskStatus := &apiv2.PipelineTask_TaskStatus{
 				UpdateTime: &timestamppb.Timestamp{Seconds: retryStartedAt},
-				State:      apiv2beta1.PipelineTask_RUNNING,
+				State:      apiv2.PipelineTask_RUNNING,
 			}
-			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskStatus{taskStatus})
+			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskStatus{taskStatus})
 			if err != nil {
 				return util.NewInternalServerError(err, "Failed to build retry state history entry")
 			}
@@ -1334,7 +1334,7 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 		updateSQL, updateArgs, err := qb.
 			Update(q(tableName)).
 			SetMap(sq.Eq{
-				q("State"):            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+				q("State"):            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 				q("StartedInSec"):     retryStartedAt,
 				q("FinishedInSec"):    0,
 				q("StatusMetadata"):   nil,
@@ -1365,8 +1365,8 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 // an iteration identifier, so the value hash remains part of the key to avoid
 // collapsing distinct propagated values into one entry.
 func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
-	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	typeFunc := func() *apiv2.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2.PipelineTask_InputOutputs_IOParameter{}
 	}
 	oldParams, err := model.JSONSliceToProtoSlice(old, typeFunc)
 	if err != nil {
@@ -1376,7 +1376,7 @@ func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 	if err != nil {
 		return nil, err
 	}
-	makeKey := func(p *apiv2beta1.PipelineTask_InputOutputs_IOParameter) (string, error) {
+	makeKey := func(p *apiv2.PipelineTask_InputOutputs_IOParameter) (string, error) {
 		key := fmt.Sprintf("%v-%s", p.Type, p.ParameterKey)
 		if p.Producer != nil {
 			key = fmt.Sprintf("%s-%s", key, p.Producer.TaskName)
@@ -1396,7 +1396,7 @@ func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 		}
 		return key, nil
 	}
-	mergedParams := map[string]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	mergedParams := map[string]*apiv2.PipelineTask_InputOutputs_IOParameter{}
 	for _, p := range oldParams {
 		key, err := makeKey(p)
 		if err != nil {
@@ -1411,7 +1411,7 @@ func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 		}
 		mergedParams[key] = p
 	}
-	paramsSlice := make([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter, 0, len(mergedParams))
+	paramsSlice := make([]*apiv2.PipelineTask_InputOutputs_IOParameter, 0, len(mergedParams))
 	for _, p := range mergedParams {
 		paramsSlice = append(paramsSlice, p)
 	}
@@ -1426,15 +1426,15 @@ func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 // must include the value hash. Collected/iterator payloads sometimes propagate
 // without an iteration index; hashing the value keeps those entries distinct.
 // Ordinary parameters intentionally omit the value so later updates replace earlier ones.
-func parameterMergeKeyNeedsValueHash(p *apiv2beta1.PipelineTask_InputOutputs_IOParameter) bool {
+func parameterMergeKeyNeedsValueHash(p *apiv2.PipelineTask_InputOutputs_IOParameter) bool {
 	if p == nil {
 		return false
 	}
 	switch p.Type {
-	case apiv2beta1.IOType_COLLECTED_INPUTS,
-		apiv2beta1.IOType_ITERATOR_INPUT,
-		apiv2beta1.IOType_ITERATOR_INPUT_RAW,
-		apiv2beta1.IOType_ITERATOR_OUTPUT:
+	case apiv2.IOType_COLLECTED_INPUTS,
+		apiv2.IOType_ITERATOR_INPUT,
+		apiv2.IOType_ITERATOR_INPUT_RAW,
+		apiv2.IOType_ITERATOR_OUTPUT:
 		return p.Producer == nil || p.Producer.Iteration == nil
 	default:
 		return false
@@ -1629,8 +1629,8 @@ func getLastTaskState(history model.JSONSlice) model.TaskStatus {
 	}
 
 	// Convert JSONSlice to TaskStatus protobuf slice
-	typeFunc := func() *apiv2beta1.PipelineTask_TaskStatus {
-		return &apiv2beta1.PipelineTask_TaskStatus{}
+	typeFunc := func() *apiv2.PipelineTask_TaskStatus {
+		return &apiv2.PipelineTask_TaskStatus{}
 	}
 
 	histProtos, err := model.JSONSliceToProtoSlice(history, typeFunc)

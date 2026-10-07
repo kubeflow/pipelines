@@ -19,7 +19,7 @@ import * as React from 'react';
 import BusyButton from 'src/atoms/BusyButton';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import Toolbar, { ToolbarActionMap } from 'src/components/Toolbar';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2RecurringRun, V2RecurringRunStatus } from 'src/apisv2/recurringrun';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { DialogProps, RoutePage, RouteParams } from 'src/components/Router';
 import { Link } from 'react-router';
@@ -36,7 +36,7 @@ export interface RecurringRunListProps extends NavigationProps {
 
 interface RecurringRunListState {
   busyIds: Set<string>;
-  runs: V2beta1RecurringRun[];
+  runs: V2RecurringRun[];
   selectedIds: string[];
   toolbarActionMap: ToolbarActionMap;
 }
@@ -115,20 +115,20 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     );
   };
 
-  public _enabledCustomRenderer: React.FC<CustomRendererProps<V2beta1RecurringRunStatus>> = (
-    props: CustomRendererProps<V2beta1RecurringRunStatus>,
+  public _enabledCustomRenderer: React.FC<CustomRendererProps<V2RecurringRunStatus>> = (
+    props: CustomRendererProps<V2RecurringRunStatus>,
   ) => {
     const isBusy = this.state.busyIds.has(props.id);
     return (
       <BusyButton
-        outlined={props.value === V2beta1RecurringRunStatus.ENABLED}
-        title={props.value === V2beta1RecurringRunStatus.ENABLED ? 'Enabled' : 'Disabled'}
+        outlined={props.value === V2RecurringRunStatus.ENABLED}
+        title={props.value === V2RecurringRunStatus.ENABLED ? 'Enabled' : 'Disabled'}
         busy={isBusy}
         onClick={() => {
           let busyIds = this.state.busyIds;
           busyIds.add(props.id);
           this.setState({ busyIds }, async () => {
-            props.value === V2beta1RecurringRunStatus.ENABLED
+            props.value === V2RecurringRunStatus.ENABLED
               ? await this._setEnabledState(props.id, false)
               : await this._setEnabledState(props.id, true);
             busyIds = this.state.busyIds;
@@ -142,7 +142,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
   };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
-    let runs: V2beta1RecurringRun[] = [];
+    let runs: V2RecurringRun[] = [];
     let nextPageToken = '';
     try {
       const response = await Apis.recurringRunServiceApi.listRecurringRuns(

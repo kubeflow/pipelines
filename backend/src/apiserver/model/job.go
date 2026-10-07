@@ -55,8 +55,8 @@ func (s StatusState) ToString() string {
 	return string(s.ToV2())
 }
 
-// Converts to v2beta1-compatible internal representation of job status.
-// This should be called before converting to v2beta1 API type or writing to a store.
+// Converts to v2-compatible internal representation of job status.
+// This should be called before converting to v2 API type or writing to a store.
 func (s StatusState) ToV2() StatusState {
 	switch s.toUpper() {
 	case StatusStateUnspecified, StatusStateUnspecifiedV1, StatusState(LegacyStateNoStatus).toUpper(), StatusState(LegacyStateEmpty).toUpper():
@@ -98,8 +98,8 @@ type Job struct {
 	PluginsInputString *LargeText `gorm:"column:PluginsInput; default:null;"`
 }
 
-// Converts to v2beta1-compatible internal representation of job.
-// This should be called before converting to v2beta1 API type.
+// Converts to v2-compatible internal representation of job.
+// This should be called before converting to v2 API type.
 func (j *Job) ToV2() *Job {
 	for _, ref := range j.ResourceReferences {
 		switch ref.ReferenceType {
@@ -153,10 +153,10 @@ func (j *Job) DefaultSortField() string {
 }
 
 var jobAPIToModelFieldMap = map[string]string{
-	"id":               "UUID",        // Legacy filter alias retained in the v2beta1 filter contract
-	"recurring_run_id": "UUID",        // v2beta1 API
-	"name":             "DisplayName", // Legacy filter alias retained in the v2beta1 filter contract
-	"display_name":     "DisplayName", // v2beta1 API
+	"id":               "UUID",        // Legacy filter alias retained in the v2 filter contract
+	"recurring_run_id": "UUID",        // v2 API
+	"name":             "DisplayName", // Legacy filter alias retained in the v2 filter contract
+	"display_name":     "DisplayName", // v2 API
 	"created_at":       "CreatedAtInSec",
 	"updated_at":       "UpdatedAtInSec",
 	"description":      "Description",

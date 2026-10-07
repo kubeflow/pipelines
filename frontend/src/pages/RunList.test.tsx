@@ -20,8 +20,8 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import RunList, { RunListProps } from './RunList';
 import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { produce } from 'immer';
-import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-import { V2beta1Run, V2beta1RunStorageState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
+import { V2Run, V2RunStorageState, V2RuntimeState } from 'src/apisv2/run';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { range } from 'lodash';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -100,7 +100,7 @@ describe('RunList', () => {
     await flushPromisesInAct();
   }
 
-  function mockNRuns(n: number, runTemplate: Partial<V2beta1Run>): void {
+  function mockNRuns(n: number, runTemplate: Partial<V2Run>): void {
     getRunSpy.mockImplementation((id) => {
       const pipelineVersionRef = {
         pipeline_id: 'testpipeline' + id,
@@ -112,7 +112,7 @@ describe('RunList', () => {
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
           draft.pipeline_version_reference = pipelineVersionRef;
-          draft.state = draft.state || V2beta1RuntimeState.SUCCEEDED;
+          draft.state = draft.state || V2RuntimeState.SUCCEEDED;
         }),
       );
     });
@@ -125,11 +125,11 @@ describe('RunList', () => {
               pipeline_id: 'testpipeline' + i,
               pipeline_version_id: 'testversion' + i,
             };
-            return produce(runTemplate as Partial<V2beta1Run>, (draft) => {
+            return produce(runTemplate as Partial<V2Run>, (draft) => {
               draft.run_id = 'testrun' + i;
               draft.display_name = 'run with id: testrun' + i;
               draft.pipeline_version_reference = pipelineVersionRef;
-              draft.state = draft.state || V2beta1RuntimeState.SUCCEEDED;
+              draft.state = draft.state || V2RuntimeState.SUCCEEDED;
             });
           }
           return {
@@ -139,8 +139,8 @@ describe('RunList', () => {
               pipeline_id: 'testpipeline' + i,
               pipeline_version_id: 'testversion' + i,
             },
-            state: V2beta1RuntimeState.SUCCEEDED,
-          } as V2beta1Run;
+            state: V2RuntimeState.SUCCEEDED,
+          } as V2Run;
         }),
       }),
     );
@@ -160,7 +160,7 @@ describe('RunList', () => {
   beforeEach(() => {
     onErrorSpy = vi.fn();
     listRunsSpy = vi.spyOn(Apis.runServiceApiV2, 'listRuns').mockResolvedValue({ runs: [] });
-    getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue({} as V2beta1Run);
+    getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue({} as V2Run);
     getPipelineVersionSpy = vi
       .spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion')
       .mockResolvedValue({
@@ -193,7 +193,7 @@ describe('RunList', () => {
   describe('in archived state', () => {
     it('renders the empty experience', async () => {
       const props = generateProps();
-      props.storageState = V2beta1RunStorageState.ARCHIVED;
+      props.storageState = V2RunStorageState.ARCHIVED;
       await renderRunList(props);
       await waitForRunListLoad();
       expect(screen.getByText('No archived runs found.')).toBeInTheDocument();
@@ -202,7 +202,7 @@ describe('RunList', () => {
     it('loads runs whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = V2beta1RunStorageState.AVAILABLE;
+      props.storageState = V2RunStorageState.AVAILABLE;
       await renderRunList(props);
       await waitForRunListLoad();
       listRunsSpy.mockClear();
@@ -220,11 +220,11 @@ describe('RunList', () => {
             predicates: [
               {
                 key: 'storage_state',
-                operation: V2beta1PredicateOperation.NOT_EQUALS,
-                string_value: V2beta1RunStorageState.ARCHIVED.toString(),
+                operation: V2PredicateOperation.NOT_EQUALS,
+                string_value: V2RunStorageState.ARCHIVED.toString(),
               },
             ],
-          } as V2beta1Filter),
+          } as V2Filter),
         ),
         true,
       );
@@ -233,7 +233,7 @@ describe('RunList', () => {
     it('loads runs whose storage state is ARCHIVED when storage state equals ARCHIVED', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = V2beta1RunStorageState.ARCHIVED;
+      props.storageState = V2RunStorageState.ARCHIVED;
       await renderRunList(props);
       await waitForRunListLoad();
       listRunsSpy.mockClear();
@@ -251,11 +251,11 @@ describe('RunList', () => {
             predicates: [
               {
                 key: 'storage_state',
-                operation: V2beta1PredicateOperation.EQUALS,
-                string_value: V2beta1RunStorageState.ARCHIVED.toString(),
+                operation: V2PredicateOperation.EQUALS,
+                string_value: V2RunStorageState.ARCHIVED.toString(),
               },
             ],
-          } as V2beta1Filter),
+          } as V2Filter),
         ),
         true,
       );
@@ -264,7 +264,7 @@ describe('RunList', () => {
     it('augments request filter with storage state predicates', async () => {
       mockNRuns(1, {});
       const props = generateProps();
-      props.storageState = V2beta1RunStorageState.ARCHIVED;
+      props.storageState = V2RunStorageState.ARCHIVED;
       await renderRunList(props);
       await waitForRunListLoad();
       listRunsSpy.mockClear();
@@ -292,11 +292,11 @@ describe('RunList', () => {
               },
               {
                 key: 'storage_state',
-                operation: V2beta1PredicateOperation.EQUALS,
-                string_value: V2beta1RunStorageState.ARCHIVED.toString(),
+                operation: V2PredicateOperation.EQUALS,
+                string_value: V2RunStorageState.ARCHIVED.toString(),
               },
             ],
-          } as V2beta1Filter),
+          } as V2Filter),
         ),
         true,
       );
@@ -405,7 +405,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       created_at: new Date(2018, 10, 10, 10, 10, 10),
       finished_at: new Date(2018, 10, 10, 11, 11, 11),
-      state: V2beta1RuntimeState.SUCCEEDED,
+      state: V2RuntimeState.SUCCEEDED,
     });
     const props = generateProps();
     await renderRunList(props);
@@ -490,11 +490,11 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.IS_SUBSTRING,
+              operation: V2PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
           ],
-        } as V2beta1Filter),
+        } as V2Filter),
       ),
     });
 
@@ -525,12 +525,12 @@ describe('RunList', () => {
           predicates: [
             {
               key: 'name',
-              operation: V2beta1PredicateOperation.IS_SUBSTRING,
+              operation: V2PredicateOperation.IS_SUBSTRING,
               string_value: 'filterRun',
             },
-            { key: 'name', operation: V2beta1PredicateOperation.IS_SUBSTRING, string_value: '1' },
+            { key: 'name', operation: V2PredicateOperation.IS_SUBSTRING, string_value: '1' },
           ],
-        } as V2beta1Filter),
+        } as V2Filter),
       ),
     });
 
@@ -573,7 +573,7 @@ describe('RunList', () => {
             pipeline_id: sharedPipelineId,
             pipeline_version_id: sharedVersionId,
           },
-          state: V2beta1RuntimeState.SUCCEEDED,
+          state: V2RuntimeState.SUCCEEDED,
         },
         {
           run_id: 'run2',
@@ -582,9 +582,9 @@ describe('RunList', () => {
             pipeline_id: sharedPipelineId,
             pipeline_version_id: sharedVersionId,
           },
-          state: V2beta1RuntimeState.SUCCEEDED,
+          state: V2RuntimeState.SUCCEEDED,
         },
-      ] as V2beta1Run[],
+      ] as V2Run[],
     });
     getPipelineVersionSpy.mockResolvedValue({
       pipeline_id: sharedPipelineId,
@@ -619,9 +619,9 @@ describe('RunList', () => {
             pipeline_id: 'test-pipeline-id',
             pipeline_version_id: 'test-version-id',
           },
-          state: V2beta1RuntimeState.SUCCEEDED,
+          state: V2RuntimeState.SUCCEEDED,
         },
-      ] as V2beta1Run[],
+      ] as V2Run[],
     });
     TestUtils.makeErrorResponse(getPipelineVersionSpy as any, 'User not authorized');
 
@@ -775,7 +775,7 @@ describe('RunList', () => {
     const instance = createRunListInstance();
     renderRenderer(
       instance._statusCustomRenderer({
-        value: V2beta1RuntimeState.SUCCEEDED,
+        value: V2RuntimeState.SUCCEEDED,
         id: 'run-id',
       }),
     );

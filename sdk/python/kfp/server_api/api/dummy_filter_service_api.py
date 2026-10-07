@@ -57,7 +57,7 @@ class DummyFilterServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beta1Filter
+        :rtype: V2Filter
         """
         kwargs['_return_http_data_only'] = True
         return self.dummy_filter_service_get_filter_with_http_info(**kwargs)  # noqa: E501
@@ -87,7 +87,7 @@ class DummyFilterServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beta1Filter, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2Filter, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -132,14 +132,14 @@ class DummyFilterServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/filters', 'GET',
+            '/apis/v2/filters', 'GET',
             path_params,
             query_params,
             header_params,
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beta1Filter',  # noqa: E501
+            response_type='V2Filter',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

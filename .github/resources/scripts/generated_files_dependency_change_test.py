@@ -72,7 +72,7 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
 
     def test_existing_generator_input_requires_validation(self):
         self.assertTrue(
-            requires_validation(['backend/api/v2beta1/run.proto'], manifests(),
+            requires_validation(['backend/api/v2/run.proto'], manifests(),
                                 manifests()))
 
     def test_generator_version_sources_are_wired_to_automation(self):

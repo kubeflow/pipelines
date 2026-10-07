@@ -21,8 +21,8 @@ import {
   PipelineTaskTaskPod,
   PipelineTaskTaskPodType,
   PipelineTaskTaskState,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+} from 'src/apisv2/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { buildRuntimeArtifactRows, RuntimeArtifactValue } from 'src/components/RuntimeArtifactRows';
 import Banner from 'src/components/Banner';
@@ -138,14 +138,14 @@ interface TaskNodeDetailProps {
   pipelineJobString?: string;
   runId?: string;
   element?: PipelineFlowElement | null;
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   layers: string[];
   namespace?: string;
   sourceFinished?: boolean;
 }
 
 function getLatestTaskPod(
-  task: V2beta1PipelineTask | undefined,
+  task: V2PipelineTask | undefined,
   type: PipelineTaskTaskPodType,
 ): PipelineTaskTaskPod | undefined {
   const pods = task?.pods || [];
@@ -284,7 +284,7 @@ function TaskNodeDetail({
 
 export function getTaskDetailsFields(
   element?: PipelineFlowElement | null,
-  task?: V2beta1PipelineTask,
+  task?: V2PipelineTask,
 ): Array<KeyValue<string>> {
   if (!element) {
     return [];
@@ -357,7 +357,7 @@ function RuntimeTaskDetails({
   task,
 }: {
   element?: PipelineFlowElement | null;
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
 }) {
   return (
     <>
@@ -489,7 +489,7 @@ function LogsTabPanel({
 }
 
 /** Location of the driver (system) log artifact recorded by the centralized driver, if any. */
-export function getDriverLogUri(task?: V2beta1PipelineTask): string | undefined {
+export function getDriverLogUri(task?: V2PipelineTask): string | undefined {
   const driverLogUri = task?.status_metadata?.custom_properties?.driver_logs_uri;
   return typeof driverLogUri === 'string' && driverLogUri ? driverLogUri : undefined;
 }
@@ -510,7 +510,7 @@ export async function getDriverLogsInfo(
 }
 
 export async function getLogsInfo(
-  task: V2beta1PipelineTask,
+  task: V2PipelineTask,
   runId?: string,
   namespace?: string,
 ): Promise<Map<string, string>> {
@@ -594,7 +594,7 @@ export async function getLogsInfo(
 }
 
 interface ArtifactNodeDetailProps {
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   artifactGroup?: InputOutputsIOArtifact;
   namespace?: string;
   sourceFinished?: boolean;
@@ -677,7 +677,7 @@ function ArtifactInfo({
 
 interface SubDAGNodeDetailProps {
   element: PipelineFlowElement;
-  task?: V2beta1PipelineTask;
+  task?: V2PipelineTask;
   namespace?: string;
 }
 

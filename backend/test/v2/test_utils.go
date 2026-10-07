@@ -22,14 +22,14 @@ import (
 	"testing"
 	"time"
 
-	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
-	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
-	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	experiment_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_model"
+	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
+	recurring_run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
+	run_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/config"
 
@@ -89,11 +89,11 @@ func GetDefaultPipelineRunnerServiceAccount(isKubeflowMode bool) string {
 	}
 }
 
-func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.V2beta1Experiment, int, string, error) {
+func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.V2Experiment, int, string, error) {
 	return ListExperiment(client, &experiment_params.ExperimentServiceListExperimentsParams{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, parameters *experiment_params.ExperimentServiceListExperimentsParams, namespace string) ([]*experiment_model.V2beta1Experiment, int, string, error) {
+func ListExperiment(client *api_server.ExperimentClient, parameters *experiment_params.ExperimentServiceListExperimentsParams, namespace string) ([]*experiment_model.V2Experiment, int, string, error) {
 	if namespace != "" {
 		parameters.Namespace = &namespace
 	}
@@ -110,8 +110,8 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 	}
 }
 
-func MakeExperiment(name string, description string, namespace string) *experiment_model.V2beta1Experiment {
-	experiment := &experiment_model.V2beta1Experiment{
+func MakeExperiment(name string, description string, namespace string) *experiment_model.V2Experiment {
+	experiment := &experiment_model.V2Experiment{
 		DisplayName: name,
 		Description: description,
 	}
@@ -123,14 +123,14 @@ func MakeExperiment(name string, description string, namespace string) *experime
 	return experiment
 }
 
-func ListRuns(client *api_server.RunClient, parameters *run_params.RunServiceListRunsParams, namespace string) ([]*run_model.V2beta1Run, int, string, error) {
+func ListRuns(client *api_server.RunClient, parameters *run_params.RunServiceListRunsParams, namespace string) ([]*run_model.V2Run, int, string, error) {
 	if namespace != "" {
 		parameters.Namespace = &namespace
 	}
 	return client.List(parameters)
 }
 
-func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.V2beta1Run, int, string, error) {
+func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.V2Run, int, string, error) {
 	parameters := &run_params.RunServiceListRunsParams{}
 	return ListRuns(client, parameters, namespace)
 }
@@ -175,14 +175,14 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 	}
 }
 
-func ListRecurringRuns(client *api_server.RecurringRunClient, parameters *recurring_run_params.RecurringRunServiceListRecurringRunsParams, namespace string) ([]*recurring_run_model.V2beta1RecurringRun, int, string, error) {
+func ListRecurringRuns(client *api_server.RecurringRunClient, parameters *recurring_run_params.RecurringRunServiceListRecurringRunsParams, namespace string) ([]*recurring_run_model.V2RecurringRun, int, string, error) {
 	if namespace != "" {
 		parameters.Namespace = &namespace
 	}
 	return client.List(parameters)
 }
 
-func ListAllRecurringRuns(client *api_server.RecurringRunClient, namespace string) ([]*recurring_run_model.V2beta1RecurringRun, int, string, error) {
+func ListAllRecurringRuns(client *api_server.RecurringRunClient, namespace string) ([]*recurring_run_model.V2RecurringRun, int, string, error) {
 	return ListRecurringRuns(client, &recurring_run_params.RecurringRunServiceListRecurringRunsParams{}, namespace)
 }
 
@@ -227,14 +227,14 @@ func DeleteAllRecurringRuns(client *api_server.RecurringRunClient, namespace str
 }
 
 func ListPipelineVersions(client *api_server.PipelineClient, pipelineId string) (
-	[]*pipeline_model.V2beta1PipelineVersion, int, string, error,
+	[]*pipeline_model.V2PipelineVersion, int, string, error,
 ) {
 	parameters := &pipeline_params.PipelineServiceListPipelineVersionsParams{PipelineID: pipelineId}
 	return client.ListPipelineVersions(parameters)
 }
 
 func ListPipelines(client *api_server.PipelineClient) (
-	[]*pipeline_model.V2beta1Pipeline, int, string, error,
+	[]*pipeline_model.V2Pipeline, int, string, error,
 ) {
 	parameters := &pipeline_params.PipelineServiceListPipelinesParams{}
 	return client.List(parameters)

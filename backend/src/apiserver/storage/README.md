@@ -330,7 +330,7 @@ For now, the DBDialect + quoting approach provides a robust solution for multi-d
 
 ### Retired API compatibility and database upgrades
 
-The backend serves only the v2beta1 API and accepts pipeline IR, not raw Argo
+The backend serves only the v2 API and accepts pipeline IR, not raw Argo
 pipeline templates. V2 execution still persists Argo runtime manifests for
 reporting, log retrieval, retries, and workflow identity fencing.
 

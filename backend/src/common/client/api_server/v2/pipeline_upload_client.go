@@ -22,9 +22,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -34,15 +34,15 @@ import (
 const (
 	pipelineUploadFieldName      = "uploadfile"
 	pipelineUploadPath           = "pipelines/upload"
-	pipelineUploadServerBasePath = "/api/v2/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v2beta1/%s"
+	pipelineUploadServerBasePath = "/api/v2/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v2/%s"
 	pipelineUploadContentTypeKey = "Content-Type"
 	pipelineVersionUploadPath    = "pipelines/upload_version"
 )
 
 type PipelineUploadInterface interface {
-	UploadFile(filePath string, parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline, error)
-	UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error)
-	Upload(parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline, error)
+	UploadFile(filePath string, parameters *params.UploadPipelineParams) (*model.V2Pipeline, error)
+	UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V2PipelineVersion, error)
+	Upload(parameters *params.UploadPipelineParams) (*model.V2Pipeline, error)
 }
 
 type PipelineUploadClient struct {
@@ -98,7 +98,7 @@ func NewMultiUserPipelineUploadClient(clientConfig clientcmd.ClientConfig, userT
 }
 
 func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.UploadPipelineParams) (
-	*model.V2beta1Pipeline, error) {
+	*model.V2Pipeline, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, util.NewUserErrorWithSingleMessage(err,
@@ -110,7 +110,7 @@ func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.Up
 	return c.Upload(parameters)
 }
 
-func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline,
+func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.V2Pipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -135,7 +135,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 }
 
 // UploadPipelineVersion uploads pipeline version from local file.
-func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion,
+func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V2PipelineVersion,
 	error) {
 	// Get file
 	file, err := os.Open(filePath)

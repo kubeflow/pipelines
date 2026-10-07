@@ -2,8 +2,12 @@
 
 ## Features
 
+* Backend clients now use the stable `/apis/v2` API and `V2…` models. Upgrade
+  the backend before the SDK. The backend retains `/apis/v2beta1` and legacy
+  gRPC service names as compatibility aliases; Python `V2beta1…` model imports
+  remain aliases of the new models.
 * The accompanying backend enables live pod-log following for direct API callers
-  through `GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/log?follow=true`.
+  through `GET /apis/v2/runs/{run_id}/nodes/{node_id}/log?follow=true`.
   Omitting `follow` still returns a snapshot. Clients should set a deadline or
   cancel the stream; there is no dedicated server-side timeout. The UI's API-log
   proxy does not forward `follow`.

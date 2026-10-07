@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { Alert, Button, CircularProgress, Tooltip } from '@mui/material';
-import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2PipelineTask, V2Run } from 'src/apisv2/run';
 import { hasFinishedV2 } from 'src/lib/StatusUtils';
 import { formatDateString } from 'src/lib/Utils';
 import {
@@ -41,8 +41,8 @@ function Status({ state }: { state?: string }) {
 }
 
 export interface RunTimelineProps {
-  run: V2beta1Run;
-  tasks: V2beta1PipelineTask[];
+  run: V2Run;
+  tasks: V2PipelineTask[];
   loading: boolean;
   error?: Error | null;
   onOpenTask: (taskId: string) => void;

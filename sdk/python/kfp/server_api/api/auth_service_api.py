@@ -153,7 +153,7 @@ class AuthServiceApi(object):
         auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
-            '/apis/v2beta1/auth', 'GET',
+            '/apis/v2/auth', 'GET',
             path_params,
             query_params,
             header_params,

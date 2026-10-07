@@ -25,9 +25,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 	"sigs.k8s.io/yaml"
 
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -154,10 +154,10 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
-		PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
+		PipelineVersion: &pipeline_model.V2PipelineVersion{
 			Name:        "sequential-v2",
 			DisplayName: "sequential",
-			PackageURL: &pipeline_model.V2beta1URL{
+			PackageURL: &pipeline_model.V2URL{
 				PipelineURL: pipelineURL,
 			},
 			PipelineID: pipelineId,
@@ -183,9 +183,9 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	time.Sleep(1 * time.Second)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
-		PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
+		PipelineVersion: &pipeline_model.V2PipelineVersion{
 			DisplayName: "arguments",
-			PackageURL: &pipeline_model.V2beta1URL{
+			PackageURL: &pipeline_model.V2URL{
 				PipelineURL: pipelineURL,
 			},
 			PipelineID: pipelineId,

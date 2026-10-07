@@ -19,7 +19,7 @@ import { SpyInstance } from 'vitest';
 import PipelinesDialogV2, { PipelinesDialogV2Props } from './PipelinesDialogV2';
 import { PageProps } from 'src/pages/Page';
 import { Apis, PipelineSortKeys } from 'src/lib/Apis';
-import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2ListPipelinesResponse } from 'src/apisv2/pipeline';
 import { flushPromisesInAct } from 'src/TestUtils';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
@@ -57,13 +57,13 @@ function generatePageProps(): PageProps {
   };
 }
 
-const oldPipeline: V2beta1Pipeline = {
+const oldPipeline: V2Pipeline = {
   pipeline_id: 'old-run-pipeline-id',
   name: 'old-mock-pipeline-name',
   display_name: 'old mock pipeline name',
 };
 
-const newPipeline: V2beta1Pipeline = {
+const newPipeline: V2Pipeline = {
   pipeline_id: 'new-run-pipeline-id',
   name: 'new-mock-pipeline-name',
   display_name: 'new mock pipeline name',
@@ -77,7 +77,7 @@ describe('PipelinesDialog', () => {
     listPipelineSpy = vi
       .spyOn(Apis.pipelineServiceApiV2, 'listPipelines')
       .mockImplementation((...args) => {
-        const response: V2beta1ListPipelinesResponse = {
+        const response: V2ListPipelinesResponse = {
           pipelines: [oldPipeline, newPipeline],
           total_size: 2,
         };

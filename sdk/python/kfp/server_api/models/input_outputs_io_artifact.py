@@ -33,10 +33,10 @@ class InputOutputsIOArtifact(object):
                             and the value is json key in definition.
     """
     openapi_types = {
-        'artifacts': 'list[V2beta1Artifact]',
-        'type': 'V2beta1IOType',
+        'artifacts': 'list[V2Artifact]',
+        'type': 'V2IOType',
         'artifact_key': 'str',
-        'producer': 'V2beta1IOProducer'
+        'producer': 'V2IOProducer'
     }
 
     attribute_map = {
@@ -73,7 +73,7 @@ class InputOutputsIOArtifact(object):
 
 
         :return: The artifacts of this InputOutputsIOArtifact.  # noqa: E501
-        :rtype: list[V2beta1Artifact]
+        :rtype: list[V2Artifact]
         """
         return self._artifacts
 
@@ -83,7 +83,7 @@ class InputOutputsIOArtifact(object):
 
 
         :param artifacts: The artifacts of this InputOutputsIOArtifact.  # noqa: E501
-        :type artifacts: list[V2beta1Artifact]
+        :type artifacts: list[V2Artifact]
         """
 
         self._artifacts = artifacts
@@ -94,7 +94,7 @@ class InputOutputsIOArtifact(object):
 
 
         :return: The type of this InputOutputsIOArtifact.  # noqa: E501
-        :rtype: V2beta1IOType
+        :rtype: V2IOType
         """
         return self._type
 
@@ -104,7 +104,7 @@ class InputOutputsIOArtifact(object):
 
 
         :param type: The type of this InputOutputsIOArtifact.  # noqa: E501
-        :type type: V2beta1IOType
+        :type type: V2IOType
         """
 
         self._type = type
@@ -136,7 +136,7 @@ class InputOutputsIOArtifact(object):
 
 
         :return: The producer of this InputOutputsIOArtifact.  # noqa: E501
-        :rtype: V2beta1IOProducer
+        :rtype: V2IOProducer
         """
         return self._producer
 
@@ -146,7 +146,7 @@ class InputOutputsIOArtifact(object):
 
 
         :param producer: The producer of this InputOutputsIOArtifact.  # noqa: E501
-        :type producer: V2beta1IOProducer
+        :type producer: V2IOProducer
         """
 
         self._producer = producer

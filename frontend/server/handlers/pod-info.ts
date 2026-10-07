@@ -14,10 +14,7 @@
 
 import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper.js';
-import {
-  AuthorizeResourcesEnum,
-  AuthorizeVerbEnum,
-} from '../src/generated/apisv2beta1/auth/index.js';
+import { AuthorizeResourcesEnum, AuthorizeVerbEnum } from '../src/generated/apisv2/auth/index.js';
 import { AuthorizeFn } from '../helpers/auth.js';
 
 /**

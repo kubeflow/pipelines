@@ -1,4 +1,4 @@
-exclude: ^(backend/api/v2beta1/python_http_client/|sdk/python/kfp/server_api/|sdk/python/kfp/(pipeline_spec/pipeline_spec|kubernetes/kubernetes_executor_config)_pb2\.py$)
+exclude: ^(backend/api/(v2|v2beta1)/python_http_client/|sdk/python/kfp/server_api/|sdk/python/kfp/(pipeline_spec/pipeline_spec|kubernetes/kubernetes_executor_config)_pb2\.py$)
 
 repos:
   # other fast helpful checks

@@ -251,7 +251,7 @@ AddReportEntry("Pod Log", podLogs)
 
 ```go
 // Resource tracking
-createdPipelines = []*upload_model.V2beta1Pipeline{}
+createdPipelines = []*upload_model.V2Pipeline{}
 createdRunIds = make([]string, 0)
 createdExperimentIds = make([]string, 0)
 

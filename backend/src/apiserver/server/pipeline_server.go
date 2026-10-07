@@ -27,7 +27,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -116,7 +116,7 @@ type BasePipelineServer struct {
 
 type PipelineServer struct {
 	*BasePipelineServer
-	apiv2beta1.UnimplementedPipelineServiceServer
+	apiv2.UnimplementedPipelineServiceServer
 }
 
 // Creates a pipeline. Not exported.
@@ -222,8 +222,8 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 }
 
 // Creates a pipeline, but does not create a pipeline version.
-// Supports v2beta1 behavior.
-func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2beta1.CreatePipelineRequest) (*apiv2beta1.Pipeline, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) CreatePipeline(ctx context.Context, request *apiv2.CreatePipelineRequest) (*apiv2.Pipeline, error) {
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
 	}
@@ -264,7 +264,7 @@ func (s *BasePipelineServer) getPipeline(ctx context.Context, pipelineId string)
 
 // Returns a pipeline.
 // Supports v2beta behavior.
-func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2beta1.GetPipelineRequest) (*apiv2beta1.Pipeline, error) {
+func (s *PipelineServer) GetPipeline(ctx context.Context, request *apiv2.GetPipelineRequest) (*apiv2.Pipeline, error) {
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
@@ -295,7 +295,7 @@ func (s *BasePipelineServer) getPipelineByName(ctx context.Context, name string,
 
 // Returns a pipeline given name and namespace.
 // Supports v2beta behavior.
-func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2beta1.GetPipelineByNameRequest) (*apiv2beta1.Pipeline, error) {
+func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *apiv2.GetPipelineByNameRequest) (*apiv2.Pipeline, error) {
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
@@ -332,8 +332,8 @@ func (s *BasePipelineServer) listPipelines(ctx context.Context, namespace string
 }
 
 // Returns pipelines for a given query.
-// Supports v2beta1 behavior.
-func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.ListPipelinesRequest) (*apiv2beta1.ListPipelinesResponse, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2.ListPipelinesRequest) (*apiv2.ListPipelinesResponse, error) {
 	if s.options.CollectMetrics {
 		listPipelineRequests.Inc()
 	}
@@ -362,7 +362,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipelines in namespace %s. Check error stack", namespace)
 	}
-	return &apiv2beta1.ListPipelinesResponse{Pipelines: toApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
+	return &apiv2.ListPipelinesResponse{Pipelines: toApiPipelines(pipelines), TotalSize: int32(totalSize), NextPageToken: nextPageToken}, nil
 }
 
 // extractTagFiltersFromFilterSpec parses a filter spec string, extracts any predicates
@@ -383,22 +383,22 @@ func extractTagFiltersFromFilterSpec(filterSpec string) (string, map[string]stri
 		return filterSpec, nil, util.NewInvalidInputError("failed to decode filter spec: %v", err)
 	}
 
-	f := &apiv2beta1.Filter{}
+	f := &apiv2.Filter{}
 	if err := protojson.Unmarshal([]byte(decoded), f); err != nil {
 		return filterSpec, nil, util.NewInvalidInputError("failed to parse filter spec: %v", err)
 	}
 
-	var remainingPredicates []*apiv2beta1.Predicate
+	var remainingPredicates []*apiv2.Predicate
 	tagFilters := make(map[string]string)
 
 	for _, p := range f.GetPredicates() {
 		key := p.GetKey()
 		if strings.HasPrefix(key, "tags.") {
 			tagKey := strings.TrimPrefix(key, "tags.")
-			if p.GetOperation() != apiv2beta1.Predicate_EQUALS {
+			if p.GetOperation() != apiv2.Predicate_EQUALS {
 				return "", nil, util.NewInvalidInputError("only EQUALS operation is supported for tag filtering, got %v for key %q", p.GetOperation(), key)
 			}
-			sv, ok := p.GetValue().(*apiv2beta1.Predicate_StringValue)
+			sv, ok := p.GetValue().(*apiv2.Predicate_StringValue)
 			if !ok {
 				return "", nil, util.NewInvalidInputError("tag filter value must be a string for key %q", key)
 			}
@@ -416,7 +416,7 @@ func extractTagFiltersFromFilterSpec(filterSpec string) (string, map[string]stri
 	if len(remainingPredicates) == 0 {
 		return "", tagFilters, nil
 	}
-	remainingFilter := &apiv2beta1.Filter{Predicates: remainingPredicates}
+	remainingFilter := &apiv2.Filter{Predicates: remainingPredicates}
 	marshaler := &protojson.MarshalOptions{UseProtoNames: true}
 	data, err := marshaler.Marshal(remainingFilter)
 	if err != nil {
@@ -445,8 +445,8 @@ func (s *BasePipelineServer) deletePipeline(ctx context.Context, pipelineId stri
 }
 
 // Deletes a pipeline.
-// Supports v2beta1 behavior.
-func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2beta1.DeletePipelineRequest) (*emptypb.Empty, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2.DeletePipelineRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deletePipelineRequests.Inc()
 	}
@@ -496,8 +496,8 @@ func NewPipelineServer(resourceManager *resource.ResourceManager, options *Pipel
 }
 
 // Creates a pipeline and a pipeline version in a single transaction.
-// Supports v2beta1 behavior.
-func (s *PipelineServer) CreatePipelineAndVersion(ctx context.Context, request *apiv2beta1.CreatePipelineAndVersionRequest) (*apiv2beta1.Pipeline, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) CreatePipelineAndVersion(ctx context.Context, request *apiv2.CreatePipelineAndVersionRequest) (*apiv2.Pipeline, error) {
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
 		createPipelineVersionRequests.Inc()
@@ -591,8 +591,8 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 }
 
 // Creates a pipeline version.
-// Supports v2beta1 behavior.
-func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *apiv2beta1.CreatePipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *apiv2.CreatePipelineVersionRequest) (*apiv2.PipelineVersion, error) {
 	if s.options.CollectMetrics {
 		createPipelineVersionRequests.Inc()
 	}
@@ -647,8 +647,8 @@ func (s *BasePipelineServer) getPipelineVersion(ctx context.Context, pipelineVer
 }
 
 // Returns a pipeline version.
-// Supports v2beta1 behavior.
-func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2beta1.GetPipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2.GetPipelineVersionRequest) (*apiv2.PipelineVersion, error) {
 	if s.options.CollectMetrics {
 		getPipelineVersionRequests.Inc()
 	}
@@ -685,8 +685,8 @@ func (s *BasePipelineServer) listPipelineVersions(ctx context.Context, pipelineI
 }
 
 // Returns an array of pipeline versions for a given query.
-// Supports v2beta1 behavior.
-func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv2beta1.ListPipelineVersionsRequest) (*apiv2beta1.ListPipelineVersionsResponse, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv2.ListPipelineVersionsRequest) (*apiv2.ListPipelineVersionsResponse, error) {
 	if s.options.CollectMetrics {
 		listPipelineVersionRequests.Inc()
 	}
@@ -715,7 +715,7 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *apiv
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to list pipeline versions for pipeline %s", pipelineId)
 	}
-	return &apiv2beta1.ListPipelineVersionsResponse{
+	return &apiv2.ListPipelineVersionsResponse{
 		PipelineVersions: toApiPipelineVersions(pipelineVersions),
 		NextPageToken:    nextPageToken,
 		TotalSize:        int32(totalSize),
@@ -745,8 +745,8 @@ func (s *BasePipelineServer) deletePipelineVersion(ctx context.Context, pipeline
 }
 
 // Deletes a pipeline version.
-// Supports v2beta1 behavior.
-func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *apiv2beta1.DeletePipelineVersionRequest) (*emptypb.Empty, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *apiv2.DeletePipelineVersionRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deletePipelineVersionRequests.Inc()
 	}
@@ -791,8 +791,8 @@ func recoverClearTagsIntent(ctx context.Context, tags map[string]string) map[str
 }
 
 // UpdatePipeline updates a pipeline's mutable fields (display_name, tags).
-// Supports v2beta1 behavior.
-func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2beta1.UpdatePipelineRequest) (*apiv2beta1.Pipeline, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2.UpdatePipelineRequest) (*apiv2.Pipeline, error) {
 	if s.options.CollectMetrics {
 		updatePipelineRequests.Inc()
 	}
@@ -820,8 +820,8 @@ func (s *PipelineServer) UpdatePipeline(ctx context.Context, request *apiv2beta1
 }
 
 // UpdatePipelineVersion updates a pipeline version's mutable fields (display_name, tags).
-// Supports v2beta1 behavior.
-func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *apiv2beta1.UpdatePipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+// Supports v2 behavior.
+func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *apiv2.UpdatePipelineVersionRequest) (*apiv2.PipelineVersion, error) {
 	if s.options.CollectMetrics {
 		updatePipelineVersionRequests.Inc()
 	}

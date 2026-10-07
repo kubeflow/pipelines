@@ -45,6 +45,7 @@ on:
       - '.github/actions/test-and-report/**'
       - '.github/actions/junit-summary/**'
       - '.github/resources/**'
+      - 'backend/api/v2/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'

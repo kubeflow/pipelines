@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ArtifactServiceApi, Configuration } from '../src/generated/apisv2beta1/artifact/index.js';
+import { ArtifactServiceApi, Configuration } from '../src/generated/apisv2/artifact/index.js';
 import { stripArtifactUriQuery } from './artifact-coordinates.js';
 import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from './artifact-path.js';
 export { buildArtifactUri, requiresArtifactOwnershipValidation } from './artifact-sources.js';

@@ -76,7 +76,7 @@ func TestWaitForReadyUsesConfiguredV2Transport(t *testing.T) {
 			if !tc.tls || tc.trusted {
 				select {
 				case path := <-requests:
-					require.Equal(t, "/apis/v2beta1/healthz", path)
+					require.Equal(t, "/apis/v2/healthz", path)
 				default:
 					t.Fatal("readiness did not contact the configured endpoint")
 				}

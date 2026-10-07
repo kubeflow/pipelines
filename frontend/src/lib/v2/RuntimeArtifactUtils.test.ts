@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {
-  ArtifactArtifactType,
-  PipelineTaskTaskState,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+import { ArtifactArtifactType, PipelineTaskTaskState, V2PipelineTask } from 'src/apisv2/run';
 import {
   flattenArtifactGroups,
   EXECUTOR_LOGS_ARTIFACT_KEY,
@@ -33,7 +29,7 @@ import {
 } from './RuntimeArtifactUtils';
 
 describe('RuntimeArtifactUtils', () => {
-  const task: V2beta1PipelineTask = {
+  const task: V2PipelineTask = {
     outputs: {
       artifacts: [
         {
@@ -99,7 +95,7 @@ describe('RuntimeArtifactUtils', () => {
   });
 
   it('selects executor logs by retry index rather than Artifact API order', () => {
-    const retryLogsTask: V2beta1PipelineTask = {
+    const retryLogsTask: V2PipelineTask = {
       outputs: {
         artifacts: [
           {

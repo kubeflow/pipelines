@@ -11,7 +11,7 @@ data to rich interactive visualizations.
 ## Migrating from the Python visualization server
 
 The Python visualization server and its public
-`POST /apis/v2beta1/visualizations/{namespace}` endpoint have been removed,
+`POST /apis/v2/visualizations/{namespace}` endpoint have been removed,
 including the `VisualizationService.CreateVisualizationV1` RPC and generated
 clients. The `ALLOW_CUSTOM_VISUALIZATIONS` UI setting and
 `GET /visualizations/allowed` route are also removed.

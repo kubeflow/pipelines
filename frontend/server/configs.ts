@@ -17,7 +17,7 @@ import { getArtifactStoreOrigin, parseArtifactStoreEndpoint } from './minio-help
 import { loadJSON } from './utils.js';
 import { loadArtifactsProxyConfig, ArtifactsProxyConfig } from './handlers/artifacts.js';
 export const BASEPATH = '/pipeline';
-export const apiVersion2 = 'v2beta1';
+export const apiVersion2 = 'v2';
 export const apiVersion2Prefix = `apis/${apiVersion2}`;
 
 export enum Deployments {

@@ -174,7 +174,7 @@ describe('UIServer apis', () => {
       .expect(200, expectedIndexHtml);
   });
 
-  describe('/apis/v2beta1/healthz', () => {
+  describe('/apis/v2/healthz', () => {
     it('responds with apiServerReady to be false if ml-pipeline api server is not ready.', async () => {
       (fetch as any).mockImplementationOnce((_url: string, _opt: any) => ({
         json: () => Promise.reject('Unknown error'),
@@ -182,7 +182,7 @@ describe('UIServer apis', () => {
 
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
-      const res = await requests(app.app).get('/apis/v2beta1/healthz').expect(200);
+      const res = await requests(app.app).get('/apis/v2/healthz').expect(200);
       expect(res.body).toMatchObject({
         apiServerReady: false,
         frontendCommitHash: commitHash,
@@ -203,7 +203,7 @@ describe('UIServer apis', () => {
 
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
-      const res = await requests(app.app).get('/apis/v2beta1/healthz').expect(200);
+      const res = await requests(app.app).get('/apis/v2/healthz').expect(200);
       expect(res.body).toMatchObject({
         apiServerCommitHash: 'commit_sha',
         apiServerTagName: '1.0.0',
@@ -217,6 +217,34 @@ describe('UIServer apis', () => {
     });
   });
 
+  describe.each(['', '/pipeline'])('API compatibility under %s', (basePath) => {
+    it.each(['v2', 'v2beta1'])('uses canonical health checks for %s', async (version) => {
+      mockedFetch.mockResolvedValueOnce({
+        json: async () => ({ commit_sha: 'api-commit', tag_name: 'api-tag', multi_user: false }),
+      });
+      app = new UIServer(loadConfigs(argv, {}));
+      const response = await requests(app.app)
+        .get(`${basePath}/apis/${version}/healthz`)
+        .expect(200);
+      expect(response.body.apiServerReady).toBe(true);
+      expect(mockedFetch.mock.calls.at(-1)?.[0]).toContain('/apis/v2/healthz');
+      expect(response.headers.location).toBeUndefined();
+    });
+
+    it.each(['v2', 'v2beta1'])('keeps restricted routes blocked for %s', async (version) => {
+      app = new UIServer(loadConfigs(argv, {}));
+      for (const route of ['workflows', 'scheduledworkflows']) {
+        await requests(app.app).post(`${basePath}/apis/${version}/${route}`).send({}).expect(403);
+      }
+      await requests(app.app).get(`${basePath}/apis/${version}/_proxy/anything`).expect(410);
+    });
+
+    it('does not accept lookalike version prefixes', async () => {
+      app = new UIServer(loadConfigs(argv, {}));
+      await requests(app.app).get(`${basePath}/apis/v2beta10/healthz`).expect(404);
+    });
+  });
+
   describe('deprecated generic proxy routes', () => {
     beforeEach(() => {
       app = new UIServer(loadConfigs(argv, {}));
@@ -224,13 +252,13 @@ describe('UIServer apis', () => {
 
     it('returns gone for the retired generic proxy endpoint', async () => {
       await requests(app.app)
-        .get('/apis/v2beta1/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
+        .get('/apis/v2/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
         .expect(410, 'The generic /_proxy/ endpoint is deprecated and no longer supported.');
     });
 
     it('returns gone for the legacy base-path proxy endpoint', async () => {
       await requests(app.app)
-        .get('/pipeline/apis/v2beta1/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
+        .get('/pipeline/apis/v2/_proxy/http%3A%2F%2Fviewer.test%2Fdata')
         .expect(410, 'The generic /_proxy/ endpoint is deprecated and no longer supported.');
     });
   });
@@ -241,14 +269,16 @@ describe('UIServer apis', () => {
       if (upstream) await new Promise<void>((resolve) => upstream.close(() => resolve()));
     });
 
-    it.each([
-      ['', 'import'],
-      ['/pipeline', 'import'],
-      ['', 'export'],
-      ['/pipeline', 'export'],
-    ])(
-      'preserves raw archive bytes and identity through %s transfer/%s',
-      async (basePath, operation) => {
+    it.each(
+      ['v2', 'v2beta1'].flatMap((version) => [
+        ['', 'import', version],
+        ['/pipeline', 'import', version],
+        ['', 'export', version],
+        ['/pipeline', 'export', version],
+      ]),
+    )(
+      'preserves raw archive bytes and identity through %s transfer/%s (%s)',
+      async (basePath, operation, version) => {
         // Exceed Express's usual 100 KiB JSON parser limit, and include an integer
         // that parsing and reserializing in JavaScript would round.
         const archive = '{"id":9007199254740993,"padding":"' + 'x'.repeat(256 * 1024) + '"}';
@@ -281,9 +311,9 @@ describe('UIServer apis', () => {
             ML_PIPELINE_SERVICE_PORT: String(address.port),
           }),
         );
-        const path = `/apis/v2beta1/transfer/${operation}?namespace=team&dry_run=true`;
+        const path = `/apis/v2/transfer/${operation}?namespace=team&dry_run=true`;
         const response = await requests(app.app)
-          .post(basePath + path)
+          .post(basePath + path.replace('/apis/v2/', `/apis/${version}/`))
           .set('Content-Type', 'application/json')
           .set('Kubeflow-Userid', 'test-user@example.org')
           .set('Authorization', 'Bearer test-token')
@@ -444,7 +474,7 @@ describe('UIServer apis', () => {
     beforeEach(async () => {
       authServer = await new Promise<Server>((resolve) => {
         const server = express()
-          .get('/apis/v2beta1/auth', (_, res) => {
+          .get('/apis/v2/auth', (_, res) => {
             res.status(401).send('Unauthorized');
           })
           .listen(authPort, () => resolve(server));
@@ -547,7 +577,7 @@ describe('UIServer apis', () => {
     beforeEach(async () => {
       authServer = await new Promise<Server>((resolve) => {
         const server = express()
-          .get('/apis/v2beta1/auth', (_, res) => {
+          .get('/apis/v2/auth', (_, res) => {
             res.status(401).send('Unauthorized');
           })
           .listen(authPort, () => resolve(server));
@@ -662,7 +692,7 @@ describe('UIServer apis', () => {
           .expect(status);
         expect(upstreamRequests).toEqual([
           {
-            path: '/apis/v2beta1/runs/run%2Fid/nodes/pod%3Fname/log',
+            path: '/apis/v2/runs/run%2Fid/nodes/pod%3Fname/log',
             user: 'user@example.com',
           },
         ]);
@@ -713,7 +743,7 @@ describe('UIServer apis', () => {
     beforeEach(async () => {
       authServer = await new Promise<Server>((resolve) => {
         const server = express()
-          .get('/apis/v2beta1/auth', (_, res) => {
+          .get('/apis/v2/auth', (_, res) => {
             res.status(401).send('Unauthorized');
           })
           .listen(authPort, () => resolve(server));
@@ -749,17 +779,20 @@ describe('UIServer apis', () => {
     });
   });
 
-  describe('/apis/v2beta1/', () => {
+  describe('/apis/v2/', () => {
     let request: requests.SuperTest<requests.Test>;
     let kfpApiServer: Server;
 
-    beforeEach(() => {
-      const kfpApiPort = 3001;
+    beforeEach(async () => {
       kfpApiServer = express()
         .all('/*', (_, res) => {
           res.status(200).send('KFP API is working');
         })
-        .listen(kfpApiPort);
+        .listen(0);
+      await waitForListening(kfpApiServer);
+      const address = kfpApiServer.address();
+      if (!address || typeof address === 'string') throw new Error('Expected upstream TCP address');
+      const kfpApiPort = address.port;
       app = new UIServer(
         loadConfigs(argv, {
           ML_PIPELINE_SERVICE_PORT: `${kfpApiPort}`,
@@ -778,33 +811,31 @@ describe('UIServer apis', () => {
     it('rejects reportWorkflow because it is not public kfp api', async () => {
       const workflowId = 'a-random-workflow-id';
       await request
-        .post(`/apis/v2beta1/workflows/${workflowId}`)
+        .post(`/apis/v2/workflows/${workflowId}`)
         .expect(
           403,
-          '/apis/v2beta1/workflows/a-random-workflow-id endpoint is not meant for external usage.',
+          '/apis/v2/workflows/a-random-workflow-id endpoint is not meant for external usage.',
         );
     });
 
     it('rejects reportScheduledWorkflow because it is not public kfp api', async () => {
       const swf = 'a-random-swf-id';
       await request
-        .post(`/apis/v2beta1/scheduledworkflows/${swf}`)
+        .post(`/apis/v2/scheduledworkflows/${swf}`)
         .expect(
           403,
-          '/apis/v2beta1/scheduledworkflows/a-random-swf-id endpoint is not meant for external usage.',
+          '/apis/v2/scheduledworkflows/a-random-swf-id endpoint is not meant for external usage.',
         );
     });
 
     it('does not reject similar apis', async () => {
       await request // use reportMetrics as runId to see if it can confuse route parsing
-        .post(`/apis/v2beta1/runs/xxx-reportMetrics:archive`)
+        .post(`/apis/v2/runs/xxx-reportMetrics:archive`)
         .expect(200, 'KFP API is working');
     });
 
     it('proxies other run apis', async () => {
-      await request
-        .post(`/apis/v2beta1/runs/a-random-run-id:archive`)
-        .expect(200, 'KFP API is working');
+      await request.post(`/apis/v2/runs/a-random-run-id:archive`).expect(200, 'KFP API is working');
     });
   });
 });

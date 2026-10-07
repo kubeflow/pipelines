@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	gc "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
@@ -40,7 +40,7 @@ const (
 	defaultMinConnectTimeout          = 20 * time.Second
 )
 
-// Client provides typed clients for KFP v2beta1 API services used by driver/launcher.
+// Client provides typed clients for KFP v2 API services used by driver/launcher.
 type Client struct {
 	Run      gc.RunServiceClient
 	Pipeline gc.PipelineServiceClient
