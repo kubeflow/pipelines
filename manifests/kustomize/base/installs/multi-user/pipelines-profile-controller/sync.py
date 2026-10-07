@@ -19,6 +19,7 @@ from http.server import HTTPServer
 import json
 import os
 
+# From awscli installed in alpine/k8s image
 import botocore.session
 
 S3_BUCKET_NAME = 'mlpipeline'

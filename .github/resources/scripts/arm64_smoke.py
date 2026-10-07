@@ -32,14 +32,9 @@ CI_IMAGES = {
     "kfp-viewer-crd-controller": "viewer-crd-controller",
     "kfp-driver": "driver",
     "kfp-launcher": "launcher",
-    "kfp-profile-controller": "profile-controller",
 }
 IMAGES = set(CI_IMAGES)
-# The profile controller is built and verified on both architectures, but only
-# installed by multi-user overlays; this smoke deploys the standalone overlay.
-CONTROL_IMAGES = IMAGES - {
-    "kfp-driver", "kfp-launcher", "kfp-profile-controller"
-}
+CONTROL_IMAGES = IMAGES - {"kfp-driver", "kfp-launcher"}
 MARKER = "KFP_NATIVE_ARM64_EXECUTION_OK"
 
 

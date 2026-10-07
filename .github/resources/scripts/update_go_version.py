@@ -547,8 +547,7 @@ def _updated_dockerfile(contents: str, metadata: DockerMetadata, version: str,
                         digest: str) -> str:
     replacement = (
         f'FROM golang:{version}{metadata.flavor}@{digest} AS {metadata.stage}')
-    updated = contents[:metadata.start] + replacement + contents[metadata.end:]
-    return updated if updated.endswith('\n') else updated + '\n'
+    return contents[:metadata.start] + replacement + contents[metadata.end:]
 
 
 def plan_update(

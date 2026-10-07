@@ -1,9 +1,5 @@
 name: "Set up Go"
 description: "Sets up Go"
-inputs:
-  cache:
-    description: "Use the Go module/build cache"
-    default: 'true'
 runs:
   using: composite
   steps:
@@ -11,4 +7,3 @@ runs:
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
       with:
         go-version-file: go.mod
-        cache: ${{ inputs.cache }}

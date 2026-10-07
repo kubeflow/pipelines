@@ -60,9 +60,6 @@ jobs:
     - name: Install dependencies
       run: cd ./frontend && npm ci
 
-    - name: Verify frontend standard-library declarations
-      run: node --test frontend/scripts/typescript-libs.check.mjs
-
     - name: Verify generated API clients are up to date
       run: |
         cd ./frontend

@@ -83,9 +83,6 @@ jobs:
           - name: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
-          - name: kfp-profile-controller
-            dockerfile: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/Dockerfile
-            context: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller
 
         arch:
           - arch_name: amd64
@@ -125,7 +122,6 @@ jobs:
           - image: kfp-viewer-crd-controller
           - image: kfp-launcher
           - image: kfp-driver
-          - image: kfp-profile-controller
     uses: ./.github/workflows/create-manifest.yml
     secrets: inherit
     with:

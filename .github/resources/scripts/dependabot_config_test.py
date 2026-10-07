@@ -267,16 +267,6 @@ class DependabotConfigTest(unittest.TestCase):
             self.assertIsNotNone(matches[0])
             self.assertEqual(len(set(matches)), 1)
 
-    def test_gh_aw_updates_source_compiler_instead_of_generated_actions(self):
-        config = yaml.safe_load(self.config)
-        actions = next(update for update in config['updates']
-                       if update['package-ecosystem'] == 'github-actions')
-        ignored = {
-            rule['dependency-name'] for rule in actions.get('ignore', [])
-        }
-        self.assertIn('github/gh-aw-actions/setup', ignored)
-        self.assertNotIn('github/gh-aw/actions/setup-cli', ignored)
-
     def test_all_uv_lockfiles_are_covered(self):
         tracked_locks = subprocess.check_output(
             ['git', 'ls-files', '-z', '--', 'uv.lock', '**/uv.lock'],

@@ -13,15 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Export a caller-selected workspace without running scripts from that workspace.
-# The caller installs uv 0.10.3, matching the requirements consistency check.
+# Run with uv 0.10.3, matching the requirements consistency check.
 set -euo pipefail
 
-if (( $# > 1 )); then
-  echo "Usage: $0 [workspace-directory]" >&2
-  exit 2
-fi
-
-cd -- "${1:-.}"
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.."
 uv export --frozen --no-dev --no-hashes --format requirements-txt -o requirements.txt
 uv export --frozen --no-dev --no-hashes --package kfp --format requirements-txt -o sdk/python/requirements.txt

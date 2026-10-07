@@ -39,7 +39,7 @@ dependencies = [
   "python-dateutil",
   "six>=1.10",
   "PyYAML>=5.3,<7",
-  "requests==2.33.0",
+  "requests>=2.33.0,<3",
   "requests-toolbelt>=0.8.0,<2",
   "tabulate>=0.8.6,<1",
   "urllib3==2.7.0",

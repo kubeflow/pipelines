@@ -279,6 +279,8 @@ class PythonPackagingTest(unittest.TestCase):
                     from pathlib import Path
                     import sys
                     assert '--no-hashes' in sys.argv
+                    assert '--frozen' in sys.argv
+                    assert '--no-dev' in sys.argv
                     output = Path(sys.argv[sys.argv.index('-o') + 1])
                     output.write_text('current\\n')
                 '''))

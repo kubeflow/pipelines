@@ -176,9 +176,6 @@ jobs:
           - image: viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
-          - image: profile-controller
-            dockerfile: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/Dockerfile
-            context: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller
 
     env:
       ARTIFACT_NAME: "${{ matrix.image }}${{ inputs.architecture == 'arm64' && '-arm64' || '' }}"

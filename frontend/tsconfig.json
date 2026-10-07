@@ -15,8 +15,7 @@
       "es6",
       "dom",
       "es2020",
-      "es2022.error",
-      "es2022.array"
+      "es2022.error"
     ],
     "sourceMap": true,
     "allowJs": true,
