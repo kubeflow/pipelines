@@ -2363,7 +2363,18 @@ func (r *ResourceManager) reportWorkflowResource(
 	if jobId != "" && updateError != nil {
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
-		pipelineSpec := recurringJob.PipelineSpec
+		pipelineSpec, err := r.recurringRunReportPipelineSpec(recurringJob, execSpec)
+		if err != nil {
+			return nil, err
+		}
+		displayName := execSpec.ExecutionName()
+		if _, apiCreated := objMeta.Annotations[annotationKeyRecurringRunPipelineVersion]; apiCreated && !common.IsMultiUserMode() {
+			// Multi-user inserts restore the name and timestamps from the
+			// authoritative scheduling claim in the same transaction.
+			if name := objMeta.Annotations[util.AnnotationKeyRunName]; name != "" {
+				displayName = name
+			}
+		}
 		scheduledTimeInSec := execSpec.ScheduledAtInSecOr0()
 		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
@@ -2372,8 +2383,9 @@ func (r *ResourceManager) reportWorkflowResource(
 			UUID:           runId,
 			ExperimentId:   experimentID,
 			RecurringRunId: jobId,
-			DisplayName:    execSpec.ExecutionName(),
+			DisplayName:    displayName,
 			K8SName:        execSpec.ExecutionName(),
+			ServiceAccount: execSpec.ServiceAccount(),
 			StorageState:   model.StorageStateAvailable,
 			Namespace:      namespace,
 			PipelineSpec:   pipelineSpec,
