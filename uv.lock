@@ -744,16 +744,6 @@ wheels = [
 ]
 
 [[package]]
-name = "flake8-black"
-version = "0.1.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "black" },
-    { name = "flake8" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/02/ca/5799bf8afcdcf588c79e4338a4435b00fe2c496052cdb0f7611d87b07e49/flake8-black-0.1.2.tar.gz", hash = "sha256:b79d8d868bd42dc2c1f27469b92a984ecab3579ad285a8708ea5f19bf6c1f3a2", size = 8487, upload-time = "2020-05-18T21:44:17.209Z" }
-
-[[package]]
 name = "furo"
 version = "2025.12.19"
 source = { registry = "https://pypi.org/simple" }
@@ -1152,7 +1142,7 @@ name = "importlib-metadata"
 version = "8.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/49/3b30cad09e7771a4982d9975a8cbf64f00d4a1ececb53297f1d9a7be1b10/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb", size = 57107, upload-time = "2025-12-21T10:00:19.278Z" }
 wheels = [
@@ -1547,7 +1537,6 @@ docs = [
 ]
 legacy-compatible-runtime = [
     { name = "flake8" },
-    { name = "flake8-black" },
     { name = "kubernetes" },
     { name = "lru-dict" },
     { name = "minio" },
@@ -1605,7 +1594,6 @@ requires-dist = [
     { name = "docker", marker = "extra == 'test'" },
     { name = "fire", marker = "extra == 'backend-v2-test'" },
     { name = "flake8", marker = "extra == 'legacy-compatible-runtime'", specifier = "==7.4.*" },
-    { name = "flake8-black", marker = "extra == 'legacy-compatible-runtime'", specifier = "==0.1.*" },
     { name = "furo", marker = "extra == 'docs'", specifier = ">=2024.8.6" },
     { name = "future", marker = "python_full_version < '2.8' and extra == 'legacy-shared'" },
     { name = "google-cloud-pipeline-components", marker = "extra == 'test'" },

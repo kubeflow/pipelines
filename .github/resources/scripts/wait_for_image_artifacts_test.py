@@ -29,6 +29,7 @@ ARTIFACTS = (
     'persistenceagent',
     'frontend',
     'viewer-crd-controller',
+    'profile-controller',
     'driver',
     'launcher',
     'runtime-base-images',
@@ -128,8 +129,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(ready_after=1)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('All 8 branch image artifacts are available',
-                      result.stdout)
+        self.assertIn(
+            f'All {len(ARTIFACTS)} branch image artifacts are available',
+            result.stdout)
         self.assertEqual(attempts, 1)
 
     def test_rejects_invalid_publication_grace(self):
@@ -245,6 +247,22 @@ class WaitForImageArtifactsTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('active producers: runtime-base-images', result.stdout)
+        self.assertEqual(attempts, 3)
+
+    def test_matches_profile_controller_producer(self):
+        directory = 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller'
+        result, attempts = self._run(
+            ready_after=3,
+            attempts=2,
+            missing_artifact='profile-controller',
+            producer_jobs=((
+                f'build / image-build (profile-controller, {directory}/Dockerfile, {directory})',
+                'queued',
+                '',
+            ),),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('active producers: profile-controller', result.stdout)
         self.assertEqual(attempts, 3)
 
     def test_extends_conservatively_when_producer_state_is_unavailable(self):

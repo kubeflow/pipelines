@@ -637,17 +637,25 @@ def _refresh_uv_release_packages(context: ReleaseContext) -> None:
         context.runner.run(['make', '-C', 'sdk', 'generate-python'],
                            cwd=context.root)
         context.runner.run(['uv', 'lock'], cwd=context.root)
-        export_command = ['uv', 'export', '--frozen', '--no-dev', '--no-hashes']
-        context.runner.run(
-            export_command +
-            ['--format', 'requirements-txt', '-o', 'requirements.txt'],
-            cwd=context.root)
-        context.runner.run(
-            export_command + [
-                '--package', 'kfp', '--format', 'requirements-txt', '-o',
-                'sdk/python/requirements.txt'
-            ],
-            cwd=context.root)
+        exporter = '.github/resources/scripts/export_python_requirements.sh'
+        if (context.root / exporter).is_file():
+            context.runner.run(['bash', exporter], cwd=context.root)
+        else:
+            # The CLI can release older consolidated checkouts that predate the
+            # shared exporter, using their original two-export contract.
+            export_command = [
+                'uv', 'export', '--frozen', '--no-dev', '--no-hashes'
+            ]
+            context.runner.run(
+                export_command +
+                ['--format', 'requirements-txt', '-o', 'requirements.txt'],
+                cwd=context.root)
+            context.runner.run(
+                export_command + [
+                    '--package', 'kfp', '--format', 'requirements-txt', '-o',
+                    'sdk/python/requirements.txt'
+                ],
+                cwd=context.root)
         context.runner.run(
             ['uv', 'build', '--package', 'kfp', '--out-dir', 'sdk/python/dist'],
             cwd=context.root)

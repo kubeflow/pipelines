@@ -35,6 +35,7 @@ CALLERS = {
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
     ('.github/workflows/create-manifest.yml', 'create-manifest'),
+    ('.github/workflows/dependabot-completion.yml', 'publish'),
     ('.github/workflows/image-builds-master.yml', 'arm64-smoke'),
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),

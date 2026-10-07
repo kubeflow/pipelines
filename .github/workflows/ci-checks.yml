@@ -12,6 +12,7 @@ on:
       - 'API Server Tests'
       - 'Build tools images'
       - 'CI Scripts Tests'
+      - 'Dependabot completion request'
       - 'Check uv.lock and requirements.txt sync'
       - 'Check uv.lock sync'
       - 'Workflow Compiler Tests'
