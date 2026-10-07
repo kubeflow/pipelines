@@ -10,8 +10,7 @@ import "encoding/json"
 // These DTOs freeze release-2.18's archive wire format. Field order and anonymous
 // embeds are intentional: its digest hashes encoding/json output of the structs.
 // Never substitute current storage models here or add fields to this contract.
-const legacyArchiveFormat = "kfp-namespace-transfer-mlmd-2.18/v1"
-const legacyArchiveFormatV2 = "kfp-namespace-transfer-mlmd-2.18/v2"
+const legacyArchiveFormat = "kfp-namespace-transfer-mlmd-2.18/v2"
 
 type legacyArchive struct {
 	Format            string                    `json:"format"`

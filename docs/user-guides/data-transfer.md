@@ -50,20 +50,13 @@ schedule IDs. Relationships inside the archive are mapped to the destination IDs
 The destination keeps its own default-experiment setting, migration state and
 runtime configuration. Namespace remapping is not supported.
 
-Native-storage destinations also accept `kfp-namespace-transfer-mlmd-2.18/v2`
-archives exported by the 2.18 transfer feature. Use the same upload, validation
-and import steps; the destination converts supported legacy history and lineage
-without connecting to the source database or MLMD service. Review conversion
-warnings during validation. Legacy context relationships become native ownership;
-mutable context bookkeeping is not copied. The source installation does not need a native-storage
+Kubeflow Pipelines 3.0 accepts archives exported by 2.18 through the same upload,
+validation and import steps. The destination detects the archive format and
+converts history and lineage automatically, without a format choice or a warning
+just because the source is 2.18. It does not connect to the source database or
+MLMD service. Context relationships become native ownership; mutable context
+bookkeeping is not copied. The source installation does not need a native-storage
 upgrade. Importing native archives into 2.18 is not supported.
-
-Use the updated source exporter for v2 archives: older v1 archives omitted V2
-runtime parameter overrides. A v1 archive containing schedules is rejected;
-update the exporter and export again. History-only v1 imports display a warning
-that those overrides are unavailable. V2 archives preserve the original runtime
-parameter JSON for runs and schedules.
-
 
 Native-to-native archives still require matching database engines and schemas.
 The 2.18 adapter instead validates the supported archive record format and

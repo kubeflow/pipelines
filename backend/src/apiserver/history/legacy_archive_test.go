@@ -15,10 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func legacyGolden(t *testing.T) legacyArchive {
-	t.Helper()
-	return readLegacyGolden(t, "legacy-218-export.json")
-}
 func readLegacyGolden(t *testing.T, name string) legacyArchive {
 	t.Helper()
 	data, err := os.ReadFile("testdata/" + name)
@@ -29,7 +25,7 @@ func readLegacyGolden(t *testing.T, name string) legacyArchive {
 	b.Digest = ""
 	actual, err := digest(b)
 	require.NoError(t, err)
-	require.Equal(t, checksum, actual, "frozen DTO must reproduce the genuine release exporter digest")
+	require.Equal(t, checksum, actual, "frozen DTO must reproduce the genuine source exporter digest")
 	return b
 }
 func encodeLegacy(t *testing.T, b legacyArchive) []byte {
@@ -42,17 +38,17 @@ func encodeLegacy(t *testing.T, b legacyArchive) []byte {
 	require.NoError(t, err)
 	return data
 }
-func legacyV2Golden(t *testing.T) legacyArchive {
+func legacyGolden(t *testing.T) legacyArchive {
 	t.Helper()
 	return readLegacyGolden(t, "legacy-218-v2-export.json")
 }
-func TestLegacyArchiveReleasedWireDigest(t *testing.T) {
+func TestLegacyArchiveExporterWireDigest(t *testing.T) {
 	b := legacyGolden(t)
 	require.Len(t, b.Experiments, 2)
 	require.Len(t, b.Versions, 2)
 	require.Len(t, b.Schedules, 1)
 	_, _, err := DecodeNamespaceArchive(database(t), encodeLegacy(t, b), "team", "team", false)
-	require.ErrorContains(t, err, "re-export")
+	require.NoError(t, err)
 	// Nonempty runtime-status errors retain their original JSON representation,
 	// including precision above the floating point exact-integer range.
 	b.Runs[0].Run.StateHistory = []*legacyRuntimeStatus{{State: "FAILED", UpdateTimeInSec: 9007199254740993, Error: json.RawMessage(`{"code":3,"message":"failed"}`)}}
@@ -69,12 +65,12 @@ func TestLegacyArchiveReleasedWireDigest(t *testing.T) {
 func TestLegacyArchiveConversionMergePreviewRepeat(t *testing.T) {
 	db := database(t)
 	create(t, db, &model.Experiment{UUID: "existing", Name: "Default", Namespace: "team"})
-	source := legacyV2Golden(t)
+	source := legacyGolden(t)
 	data := encodeLegacy(t, source)
 	decode := func() *NamespaceBundle {
 		b, w, err := DecodeNamespaceArchive(db, data, "team", "team", false)
 		require.NoError(t, err)
-		require.NotEmpty(t, w)
+		require.Empty(t, w)
 		return b
 	}
 	b := decode()
@@ -148,7 +144,7 @@ func TestLegacyArchiveRejectsBeforeDestinationWrites(t *testing.T) {
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
 			db := database(t)
-			b := legacyV2Golden(t)
+			b := legacyGolden(t)
 			mutate(&b)
 			_, _, err := DecodeNamespaceArchive(db, encodeLegacy(t, b), "team", "team", false)
 			require.Error(t, err)
@@ -160,7 +156,7 @@ func TestLegacyArchiveRejectsBeforeDestinationWrites(t *testing.T) {
 }
 func TestLegacyArchiveStrictJSONAndDefaults(t *testing.T) {
 	db := database(t)
-	b := legacyV2Golden(t)
+	b := legacyGolden(t)
 	data := encodeLegacy(t, b)
 	trailing := append(append([]byte{}, data...), []byte(" {}")...)
 	_, _, trailingErr := DecodeNamespaceArchive(db, trailing, "team", "team", false)
@@ -181,15 +177,17 @@ func TestLegacyArchiveStrictJSONAndDefaults(t *testing.T) {
 	_, _, err = DecodeNamespaceArchive(db, encodeLegacy(t, b), "team", "team", true)
 	require.ErrorContains(t, err, "resolve")
 }
-func TestLegacyArchiveV1HistoryWarningAndStateHistory(t *testing.T) {
+func TestLegacyArchiveStateHistory(t *testing.T) {
 	b := legacyGolden(t)
 	b.Schedules = nil
+	b.RuntimeParameters.Schedules = map[string]string{}
+	b.Runs[0].Run.StateHistoryString = ""
 	b.Runs[0].Run.RecurringRunId = ""
 	b.References = nil
 	b.Runs[0].Run.StateHistory = []*legacyRuntimeStatus{{State: "FAILED", UpdateTimeInSec: 10, Error: json.RawMessage(`{"message":"failure"}`)}}
 	converted, warnings, err := DecodeNamespaceArchive(database(t), encodeLegacy(t, b), "team", "team", false)
 	require.NoError(t, err)
-	require.Contains(t, strings.Join(warnings, " "), "omit run runtime parameter overrides")
+	require.Empty(t, warnings)
 	require.Contains(t, string(converted.Entries[0].Run.StateHistoryString), "failure")
 	b.Runs[0].Run.StateHistoryString = `[{"State":"SUCCEEDED"}]`
 	_, _, err = DecodeNamespaceArchive(database(t), encodeLegacy(t, b), "team", "team", false)
@@ -228,7 +226,7 @@ func TestLegacyArchiveActualMLMDExport(t *testing.T) {
 }
 
 func TestLegacyArchiveSingleUserNamespace(t *testing.T) {
-	old := legacyV2Golden(t)
+	old := legacyGolden(t)
 	old.Namespace = ""
 	old.RuntimeNamespace = "runtime"
 	for i := range old.Experiments {

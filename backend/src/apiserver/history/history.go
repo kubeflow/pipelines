@@ -627,10 +627,7 @@ func importValidated(ctx context.Context, db *gorm.DB, bundle *Bundle, opts Impo
 		}
 		for _, entry := range bundle.Entries {
 			sortEntry(&entry)
-			var identity any = entry
-			if entry.Run.RuntimeConfig.Parameters != "" {
-				identity = []any{entry, entry.Run.RuntimeConfig.Parameters}
-			}
+			identity := []any{entry, entry.Run.RuntimeConfig.Parameters}
 			checksum, err := digest(identity)
 			if err != nil {
 				return err

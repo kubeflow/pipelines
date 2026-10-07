@@ -40,6 +40,10 @@ func TestTransferLegacyArchiveThroughResourceManager(t *testing.T) {
 	require.Equal(t, 1, preview.Counts.Runs)
 	require.Equal(t, 1, preview.Counts.Schedules)
 	require.NotEmpty(t, preview.Warnings)
+	for _, warning := range preview.Warnings {
+		require.NotContains(t, warning, "release-2.18")
+		require.NotContains(t, warning, "MLMD")
+	}
 	var count int64
 	require.NoError(t, db.Model(&model.Run{}).Count(&count).Error)
 	require.Zero(t, count)

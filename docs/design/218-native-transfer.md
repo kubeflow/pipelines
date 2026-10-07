@@ -2,15 +2,15 @@
 
 ## User contract
 
-A user exports metadata from the released 2.18 transfer API, uploads the unchanged archive to a native-storage installation, validates, and explicitly imports. The source installation remains usable throughout the overlap. No source storage-generation upgrade, database clone, MLMD service connection, or artifact-file transfer is required. Full parameter fidelity requires the updated 2.18 transfer exporter described below.
+A user exports metadata from the 2.18 transfer API, uploads the unchanged archive to a native-storage installation, validates, and explicitly imports. The source installation remains usable throughout the overlap. No source storage-generation upgrade, database clone, MLMD service connection, or artifact-file transfer is required.
 
-This is one-way compatibility for `kfp-namespace-transfer-mlmd-2.18/v2`, with restricted reading of v1 history. Native exports remain native; reverse conversion is not supported. Existing namespace authorization, archive limits, conflict detection, disabled schedules and imported-history execution/cache isolation remain mandatory.
+This is one-way compatibility for `kfp-namespace-transfer-mlmd-2.18/v2`. Native exports remain native; reverse conversion is not supported. Existing namespace authorization, archive limits, conflict detection, disabled schedules and imported-history execution/cache isolation remain mandatory.
 
 ## Architecture
 
 The native import boundary dispatches by archive format. Native archives retain strict decoding and schema matching. A legacy adapter decodes frozen 2.18 wire records, verifies the source digest, validates ownership and graph integrity, and translates supported records into a native namespace bundle. Only after conversion does it assign the destination native schema signature. The source schema fingerprint is provenance, not evidence that source and destination database schemas match; compatibility is determined by the explicitly supported wire format and record fields.
 
-Conversion is deterministic and performs no writes. The existing native transfer planner maps identities into the destination and records receipts. Catalog and schedule preview runs before publication, followed by the existing staged-resource and transactional SQL import path. Validation and apply use the same conversion. Warnings describe legacy conversion and any preserved historical metadata whose native representation differs.
+Conversion is deterministic and performs no writes. The existing native transfer planner maps identities into the destination and records receipts. Catalog and schedule preview runs before publication, followed by the existing staged-resource and transactional SQL import path. Validation and apply use the same conversion. Supported 2.18 imports produce no source-version or conversion warning. Format detection is internal; users follow the same export and import flow. Operational warnings still describe disabled schedules and external artifact access.
 
 The adapter does not access source storage or execute source manifests. It preserves artifact URIs, leaving destination storage credentials and access configuration to the installation.
 
@@ -32,10 +32,10 @@ Use a fixture emitted by the 2.18 exporter to verify the actual wire contract an
 
 Run imports against a populated destination, then repeat the same archive and overlapping batches. Verify no duplicate records or changed native records, preserved artifact references and disabled schedules. Exercise dry-run without external writes, native-format regressions and MySQL/PostgreSQL integration where available. A deployed source/destination smoke test remains distinct from fixture-backed UI demonstrations.
 
-## Runtime parameter wire correction
+## Runtime parameter representation
 
-The original archive embeds storage models whose V1 `PipelineSpec.Parameters` field shadows V2 `RuntimeConfig.Parameters` during JSON encoding. An importer cannot reconstruct omitted runtime overrides. Both exporters therefore write v2 archives with an explicit `runtime_parameters` object containing `runs` and `schedules` maps. Every archived run and schedule must have a key, including empty parameter strings. Values retain their original JSON text without floating-point reserialization. Parameter values also participate in repeat-import conflict digests.
+The archive storage models embed a V1 `PipelineSpec.Parameters` field that shadows V2 `RuntimeConfig.Parameters` during JSON encoding. Both exporters therefore use an explicit `runtime_parameters` object containing `runs` and `schedules` maps. Every archived run and schedule must have a key, including empty parameter strings. Values retain their original JSON text without floating-point reserialization and participate in repeat-import conflict digests.
 
-V1 archives containing schedules are rejected with an instruction to update the source exporter and export again. V1 history-only imports warn that V2 runtime overrides are unavailable. This is an explicit limitation, not a promise of lossless v1 recovery. Namespace identity and all other validations still apply. V2 legacy archives are decoded with frozen 2.18 DTOs; the optional field is appended after the existing digest field so the v1 checksum serialization stays unchanged when it is absent.
+The incomplete archive format existed only in unreleased code and is not a compatibility contract. Only the current native and 2.18 formats are accepted; unsupported formats reject before writes. No partial-history fallback or missing-parameter warning is needed.
 
 For a previously imported Kubernetes pipeline whose explicit default was cleared, adding new versions and an unpinned schedule can make its future default depend on server-assigned creation timestamps. Validation rejects this combination and asks the user to pin the destination default before retrying. It does not guess which definition will execute.

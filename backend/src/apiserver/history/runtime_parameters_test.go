@@ -70,7 +70,6 @@ func TestNativeRuntimeParameterValidation(t *testing.T) {
 			b.RuntimeParameters.Runs["other"] = ""
 		}},
 		{"not object", func(b *NamespaceBundle) { b.RuntimeParameters.Schedules["schedule"] = "[]" }},
-		{"v1 schedules", func(b *NamespaceBundle) { b.Format = "kfp-namespace-transfer/v1"; b.RuntimeParameters = nil }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			copy := cloneTransfer(t, b)
@@ -82,15 +81,7 @@ func TestNativeRuntimeParameterValidation(t *testing.T) {
 			require.Zero(t, count(t, dest, &model.TransferIdentity{}))
 		})
 	}
-	old := cloneTransfer(t, b)
-	old.Format = "kfp-namespace-transfer/v1"
-	old.RuntimeParameters = nil
-	old.Schedules = nil
-	raw, err := json.Marshal(old)
-	require.NoError(t, err)
-	_, warnings, err := DecodeNamespaceArchive(dest, raw, "team", "team", false)
-	require.NoError(t, err)
-	require.NotEmpty(t, warnings)
+
 }
 
 func TestNativeReaderBudgetsRuntimeOverrides(t *testing.T) {
@@ -101,4 +92,37 @@ func TestNativeReaderBudgetsRuntimeOverrides(t *testing.T) {
 	err := readTransferRows(db, &rows, transfer.NewExportBudget(4096))
 	require.Error(t, err)
 	require.Empty(t, rows, "oversized runtime parameters must be charged before retaining the row")
+}
+
+func TestNamespaceArchiveRejectsUnsupportedFormatsBeforeWrites(t *testing.T) {
+	source, dest := database(t), database(t)
+	native := namespaceFixture(t, source)
+	legacy := legacyGolden(t)
+	for _, format := range []string{"kfp-namespace-transfer/v1", "kfp-namespace-transfer-mlmd-2.18/v1", "kfp-namespace-transfer/v3"} {
+		for _, historyOnly := range []bool{false, true} {
+			t.Run(format+map[bool]string{false: "/namespace", true: "/history-only"}[historyOnly], func(t *testing.T) {
+				n := cloneTransfer(t, native)
+				n.Format = format
+				if historyOnly {
+					n.Schedules = nil
+					n.RuntimeParameters.Schedules = map[string]string{}
+				}
+				raw, err := json.Marshal(n)
+				require.NoError(t, err)
+				_, _, err = DecodeNamespaceArchive(dest, raw, "team", "team", false)
+				require.ErrorContains(t, err, "unsupported namespace archive format")
+				l := legacy
+				l.Format = format
+				if historyOnly {
+					l.Schedules = nil
+					l.RuntimeParameters = &legacyRuntimeParameters{Runs: legacy.RuntimeParameters.Runs, Schedules: map[string]string{}}
+				}
+				_, _, err = DecodeNamespaceArchive(dest, encodeLegacy(t, l), "team", "team", false)
+				require.Error(t, err)
+				require.Zero(t, count(t, dest, &model.TransferIdentity{}))
+				require.Zero(t, count(t, dest, &model.TransferReceipt{}))
+				require.Zero(t, count(t, dest, &model.Run{}))
+			})
+		}
+	}
 }

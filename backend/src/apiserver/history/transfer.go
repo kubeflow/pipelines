@@ -173,7 +173,7 @@ func ExportNamespace(ctx context.Context, db *gorm.DB, namespace, runtimeNamespa
 	for _, j := range b.Schedules {
 		b.RuntimeParameters.Schedules[j.UUID] = string(j.RuntimeConfig.Parameters)
 	}
-	if _, err := restoreNativeRuntimeParameters(b); err != nil {
+	if err := restoreNativeRuntimeParameters(b); err != nil {
 		return nil, err
 	}
 	return b, ValidateNamespace(b, namespace, runtimeNamespace)
@@ -313,13 +313,9 @@ func PrepareTransfer(ctx context.Context, db *gorm.DB, b *NamespaceBundle, opts 
 		identity := []any{opts.NamePrefix, value}
 		switch v := value.(type) {
 		case model.Job:
-			if v.RuntimeConfig.Parameters != "" {
-				identity = append(identity, v.RuntimeConfig.Parameters)
-			}
+			identity = append(identity, v.RuntimeConfig.Parameters)
 		case Entry:
-			if v.Run.RuntimeConfig.Parameters != "" {
-				identity = append(identity, v.Run.RuntimeConfig.Parameters)
-			}
+			identity = append(identity, v.Run.RuntimeConfig.Parameters)
 		}
 		checksum, err := digest(identity)
 		if err != nil {

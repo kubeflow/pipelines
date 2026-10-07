@@ -190,8 +190,8 @@ export function MetadataTransferForm({
             Import metadata
           </Typography>
           <Typography variant='body2'>
-            Choose a native or supported 2.18 archive from the same namespace. Validate it before
-            importing into this installation. Existing records are never overwritten.
+            Choose an archive exported from the same namespace. Validate it before importing into
+            this installation. Existing records are never overwritten.
           </Typography>
           <Box>
             <Typography component='label' htmlFor='metadata-archive' variant='body2'>

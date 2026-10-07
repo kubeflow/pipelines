@@ -36,13 +36,15 @@ func DecodeNamespaceArchive(db *gorm.DB, archive []byte, namespace, runtimeNames
 	if err := json.Unmarshal(archive, &header); err != nil {
 		return nil, nil, util.NewInvalidInputError("invalid archive JSON")
 	}
-	if header.Format != legacyArchiveFormat && header.Format != legacyArchiveFormatV2 {
+	if header.Format != TransferFormat && header.Format != legacyArchiveFormat {
+		return nil, nil, util.NewInvalidInputError("unsupported namespace archive format")
+	}
+	if header.Format == TransferFormat {
 		var bundle NamespaceBundle
 		if err := decodeArchiveJSON(archive, &bundle); err != nil {
 			return nil, nil, err
 		}
-		warnings, err := restoreNativeRuntimeParameters(&bundle)
-		if err != nil {
+		if err := restoreNativeRuntimeParameters(&bundle); err != nil {
 			return nil, nil, err
 		}
 		if err := ValidateNamespace(&bundle, namespace, runtimeNamespace); err != nil {
@@ -55,7 +57,7 @@ func DecodeNamespaceArchive(db *gorm.DB, archive []byte, namespace, runtimeNames
 		if bundle.Schema != schema {
 			return nil, nil, util.NewInvalidInputError("archive schema does not match this server and destination")
 		}
-		return &bundle, warnings, nil
+		return &bundle, nil, nil
 	}
 	var old legacyArchive
 	if err := decodeArchiveJSON(archive, &old); err != nil {
@@ -98,11 +100,7 @@ func DecodeNamespaceArchive(db *gorm.DB, archive []byte, namespace, runtimeNames
 	if err != nil {
 		return nil, nil, err
 	}
-	warnings := []string{"Converted release-2.18 MLMD history to native tasks and artifacts; original artifact URIs are unchanged.", "Imported runs cannot execute and are excluded from cache reuse. MLMD context relationships become native ownership; mutable context bookkeeping is not copied."}
-	if old.Format == legacyArchiveFormat {
-		warnings = append(warnings, "Release-2.18 v1 archives omit run runtime parameter overrides; re-export with an updated release-2.18 server to retain them.")
-	}
-	return bundle, warnings, nil
+	return bundle, nil, nil
 }
 
 func decodeArchiveJSON(data []byte, value any) error {
@@ -124,29 +122,20 @@ func legacyID(id string) bool {
 
 func validateLegacyArchive(b *legacyArchive, namespace, runtimeNamespace string) error {
 	invalid := util.NewInvalidInputError
-	if b.Format != legacyArchiveFormat && b.Format != legacyArchiveFormatV2 {
+	if b.Format != legacyArchiveFormat {
 		return invalid("unsupported legacy archive version")
 	}
-	if b.Format == legacyArchiveFormat {
-		if b.RuntimeParameters != nil {
-			return invalid("v1 legacy archives cannot contain runtime_parameters")
+	if b.RuntimeParameters == nil || len(b.RuntimeParameters.Runs) != len(b.Runs) || len(b.RuntimeParameters.Schedules) != len(b.Schedules) {
+		return invalid("legacy v2 runtime parameters must cover every run and schedule")
+	}
+	for _, r := range b.Runs {
+		if value, ok := b.RuntimeParameters.Runs[r.Run.UUID]; !ok || !validRuntimeParameters(value) {
+			return invalid("legacy v2 run runtime parameters are missing")
 		}
-		if len(b.Schedules) > 0 {
-			return invalid("release-2.18 v1 archives omit schedule runtime parameters; re-export with an updated release-2.18 server")
-		}
-	} else {
-		if b.RuntimeParameters == nil || len(b.RuntimeParameters.Runs) != len(b.Runs) || len(b.RuntimeParameters.Schedules) != len(b.Schedules) {
-			return invalid("legacy v2 runtime parameters must cover every run and schedule")
-		}
-		for _, r := range b.Runs {
-			if value, ok := b.RuntimeParameters.Runs[r.Run.UUID]; !ok || !validRuntimeParameters(value) {
-				return invalid("legacy v2 run runtime parameters are missing")
-			}
-		}
-		for _, j := range b.Schedules {
-			if value, ok := b.RuntimeParameters.Schedules[j.UUID]; !ok || !validRuntimeParameters(value) {
-				return invalid("legacy v2 schedule runtime parameters are missing")
-			}
+	}
+	for _, j := range b.Schedules {
+		if value, ok := b.RuntimeParameters.Schedules[j.UUID]; !ok || !validRuntimeParameters(value) {
+			return invalid("legacy v2 schedule runtime parameters are missing")
 		}
 	}
 	if _, err := uuid.Parse(b.Source); err != nil {
@@ -433,17 +422,14 @@ func convertLegacyArchive(old *legacyArchive) (*NamespaceBundle, error) {
 		}
 		v.Namespace = old.RuntimeNamespace
 		v.ResourceReferences = nil
-		if old.RuntimeParameters != nil {
-			v.RuntimeConfig.Parameters = model.LargeText(old.RuntimeParameters.Schedules[x.UUID])
-		}
+		v.RuntimeConfig.Parameters = model.LargeText(old.RuntimeParameters.Schedules[x.UUID])
 		b.Schedules = append(b.Schedules, v)
 		b.RuntimeParameters.Schedules[v.UUID] = string(v.RuntimeConfig.Parameters)
 	}
 	for _, x := range old.Runs {
 		var e Entry
 		r := x.Run
-		// Hydrated Error interfaces cannot be decoded into the native error interface.
-		// Their canonical persisted representation remains StateHistoryString.
+		// Keep the canonical persisted state history rather than duplicate hydrated records.
 		if len(r.StateHistory) > 0 {
 			historyJSON, err := json.Marshal(r.StateHistory)
 			if err != nil {
@@ -461,9 +447,7 @@ func convertLegacyArchive(old *legacyArchive) (*NamespaceBundle, error) {
 		if err := legacyModel(r, &e.Run); err != nil {
 			return nil, err
 		}
-		if old.RuntimeParameters != nil {
-			e.Run.RuntimeConfig.Parameters = model.LargeText(old.RuntimeParameters.Runs[r.UUID])
-		}
+		e.Run.RuntimeConfig.Parameters = model.LargeText(old.RuntimeParameters.Runs[r.UUID])
 		e.Run.PipelineContextId = 0
 		e.Run.PipelineRunContextId = 0
 		e.Run.Namespace = old.RuntimeNamespace

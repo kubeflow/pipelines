@@ -1,10 +1,9 @@
 # Release-2.18 archive fixtures
 
 These are actual `transfer.Engine.Export` results, not JSON assembled from the
-native importer's DTOs. Tests independently reproduce their released SHA-256
+native importer's DTOs. Tests independently reproduce their SHA-256
 digests before conversion.
 
-- `legacy-218-export.json`: release-2.18 commit `2fbc814ae2f66ebe54f84b93707f3140cb3e6054`, original v1 wire format.
 - `legacy-218-v2-export.json`: release-2.18 base `20bb14761` with the
   `codex/transfer-218-runtime-parameters` exporter change; explicit nonempty run
   and schedule runtime parameter overrides, SQL-only historical task.
