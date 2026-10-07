@@ -8,7 +8,8 @@ info:
   description: >-
     Self-service namespace export/import using the installation's normal HTTP
     authentication. Archives contain definitions and metadata, never artifact
-    output bytes. Native and MLMD storage generations use different archive formats.
+    output bytes. This server exports and imports MLMD v2 archives with explicit
+    runtime parameter maps. Other archive formats are rejected.
 paths:
   /apis/v2beta1/transfer/export:
     post:

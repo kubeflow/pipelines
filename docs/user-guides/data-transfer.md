@@ -49,11 +49,15 @@ definitions stable until the transfer is complete.
 Imported resource IDs may change, especially when Kubernetes assigns catalog or
 schedule IDs. Relationships inside the archive are mapped to the destination IDs.
 The destination keeps its own default-experiment setting, migration state and
-runtime configuration. Namespace remapping and cross-generation imports are not
-supported. Source and destination must use the same database engine and matching
-release schemas. Use the transfer implementation from the
-same storage generation: master/native archives and release-2.18/MLMD archives
-are different formats.
+runtime configuration. Namespace remapping is not supported. When importing into
+2.18, source and destination must use the same database engine and matching
+release schemas.
+
+Archives exported by 2.18 can also be imported into Kubeflow Pipelines 3.0 through
+the same upload, validation and import steps. The destination detects the archive
+format and converts history and lineage automatically. No format choice or
+source-version warning is needed. Runtime parameters for runs and schedules are
+preserved. Importing 3.0 native archives into 2.18 is not supported.
 
 ## Schedules and historical runs
 

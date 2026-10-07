@@ -27,7 +27,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const archiveFormat = "kfp-namespace-transfer-mlmd-2.18/v1"
+const archiveFormat = "kfp-namespace-transfer-mlmd-2.18/v2"
 const maxRecords = 100000
 
 // Catalog stages Kubernetes-backed catalog records; SQL catalogs use the transaction.
@@ -53,20 +53,21 @@ type Engine struct {
 }
 
 type Bundle struct {
-	Format           string                    `json:"format"`
-	Source           string                    `json:"source"`
-	Namespace        string                    `json:"namespace"`
-	RuntimeNamespace string                    `json:"runtime_namespace"`
-	Schema           string                    `json:"schema"`
-	Experiments      []model.Experiment        `json:"experiments"`
-	Pipelines        []model.Pipeline          `json:"pipelines"`
-	CatalogDefaults  map[string]string         `json:"catalog_defaults,omitempty"`
-	Versions         []model.PipelineVersion   `json:"pipeline_versions"`
-	Schedules        []model.Job               `json:"schedules"`
-	Runs             []RunHistory              `json:"runs"`
-	References       []model.ResourceReference `json:"references"`
-	Metadata         Graph                     `json:"metadata"`
-	Digest           string                    `json:"digest"`
+	Format            string                    `json:"format"`
+	Source            string                    `json:"source"`
+	Namespace         string                    `json:"namespace"`
+	RuntimeNamespace  string                    `json:"runtime_namespace"`
+	Schema            string                    `json:"schema"`
+	Experiments       []model.Experiment        `json:"experiments"`
+	Pipelines         []model.Pipeline          `json:"pipelines"`
+	CatalogDefaults   map[string]string         `json:"catalog_defaults,omitempty"`
+	Versions          []model.PipelineVersion   `json:"pipeline_versions"`
+	Schedules         []model.Job               `json:"schedules"`
+	Runs              []RunHistory              `json:"runs"`
+	References        []model.ResourceReference `json:"references"`
+	Metadata          Graph                     `json:"metadata"`
+	Digest            string                    `json:"digest"`
+	RuntimeParameters *RuntimeParameters        `json:"runtime_parameters,omitempty"`
 }
 
 type RunHistory struct {
@@ -124,6 +125,22 @@ func collect[T any](query *gorm.DB, out *[]T, budget *exportBudget) error {
 		data, err := json.Marshal(row)
 		if err != nil {
 			return err
+		}
+		// encoding/json omits the embedded V2 Parameters field. Charge its
+		// explicit archive representation before retaining the source row.
+		var parametersEntry map[string]string
+		switch record := any(row).(type) {
+		case model.Run:
+			parametersEntry = map[string]string{record.UUID: string(record.RuntimeConfig.Parameters)}
+		case model.Job:
+			parametersEntry = map[string]string{record.UUID: string(record.RuntimeConfig.Parameters)}
+		}
+		if parametersEntry != nil {
+			encoded, err := json.Marshal(parametersEntry)
+			if err != nil {
+				return err
+			}
+			budget.bytes += len(encoded)
 		}
 		budget.records++
 		budget.bytes += len(data)
@@ -345,6 +362,10 @@ func (e *Engine) Export(ctx context.Context, namespace string, opts ExportOption
 			}
 		}
 	}
+	b.RuntimeParameters = captureRuntimeParameters(&b)
+	if err := restoreRuntimeParameters(&b); err != nil {
+		return nil, err
+	}
 	if err := validateBundle(&b); err != nil {
 		return nil, err
 	}
@@ -507,6 +528,9 @@ func validateBundle(b *Bundle) error {
 	}
 	for _, h := range b.Runs {
 		r := h.Run
+		if err := validateStateHistory(r.StateHistoryString); err != nil {
+			return err
+		}
 		if (r.Namespace != b.Namespace && r.Namespace != b.RuntimeNamespace) || !sets["experiment"][r.ExperimentId] || !terminal(r) || r.ImportedFrom != nil || r.ImportDigest != nil {
 			return util.NewInvalidInputError("run must be completed native history in the archive namespace")
 		}
@@ -522,6 +546,9 @@ func validateBundle(b *Bundle) error {
 		tasks := map[string]bool{}
 		edges := [][2]string{}
 		for _, t := range h.Tasks {
+			if err := validateStateHistory(t.StateHistoryString); err != nil {
+				return err
+			}
 			if t.RunID != r.UUID || t.Namespace != r.Namespace || t.Run.UUID != "" {
 				return util.NewInvalidInputError("task belongs to a different run or namespace")
 			}
@@ -590,7 +617,11 @@ func receiptFor(b *Bundle, kind, id string, value any, prefix string) model.Tran
 
 func pipelineDigest(x model.Pipeline) any { x.DefaultVersionId = ""; return x }
 
-func scheduleDigest(x model.Job) any { x.UpdatedAtInSec = 0; x.Conditions = ""; return x }
+func scheduleDigest(x model.Job) any {
+	x.UpdatedAtInSec = 0
+	x.Conditions = ""
+	return runtimeParametersDigest(x, string(x.RuntimeConfig.Parameters))
+}
 
 func experimentDigest(x model.Experiment) any { x.LastRunCreatedAtInSec = 0; return x }
 
@@ -614,6 +645,9 @@ func (e *Engine) Import(ctx context.Context, namespace string, data []byte, opts
 	b.Digest = ""
 	if digest == "" || hash(b) != digest {
 		return result, util.NewInvalidInputError("archive digest does not match its contents")
+	}
+	if err := restoreRuntimeParameters(&b); err != nil {
+		return result, err
 	}
 	if namespace != b.Namespace || (namespace == "" && b.RuntimeNamespace != e.RuntimeNamespace) {
 		return result, util.NewInvalidInputError("destination namespace must match archive namespace")
@@ -651,7 +685,7 @@ func (e *Engine) Import(ctx context.Context, namespace string, data []byte, opts
 		add("schedule", x.UUID, scheduleDigest(x))
 	}
 	for _, x := range b.Runs {
-		add("run", x.Run.UUID, x)
+		add("run", x.Run.UUID, runtimeParametersDigest(x, string(x.Run.RuntimeConfig.Parameters)))
 	}
 	for i := range b.Experiments {
 		b.Experiments[i].Name = opts.NamePrefix + b.Experiments[i].Name
@@ -1106,5 +1140,7 @@ func create(db *gorm.DB, row any) error {
 		value, _ := field.ValueOf(context.Background(), rv)
 		values[name] = value
 	}
-	return db.Model(row).Omit(clause.Associations).Create(values).Error
+	// Use database column names directly: ignored hydrated fields can share a
+	// persisted column name, such as Run.StateHistory and Task.StateHistory.
+	return db.Table(stmt.Table).Create(values).Error
 }
