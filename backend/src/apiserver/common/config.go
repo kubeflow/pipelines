@@ -316,7 +316,7 @@ func GetDBCredentialProvider() string {
 
 // GetDBCredentialProviderSettings returns provider-specific settings as the raw
 // JSON object the operator supplied. It is parsed by the credential provider
-// layer, so both binaries parse it the same way.
+// that consumes it, not here.
 func GetDBCredentialProviderSettings() string {
 	return GetStringConfigWithDefault(DBCredentialProviderSettings, "")
 }

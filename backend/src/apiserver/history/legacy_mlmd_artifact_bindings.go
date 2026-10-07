@@ -4,10 +4,8 @@
 package history
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 
 	pipelinespec "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -30,10 +28,8 @@ func legacyMLMDResolveArtifacts(g *legacyMLMDGraph, parents, caches map[int64]in
 			return err
 		}
 		if raw != "" {
-			decoder := json.NewDecoder(strings.NewReader(raw))
-			decoder.DisallowUnknownFields()
 			var ports map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec
-			if err := decoder.Decode(&ports); err != nil {
+			if err := decodeArchiveJSON([]byte(raw), &ports); err != nil {
 				return fmt.Errorf("invalid legacy artifact producer bindings: %w", err)
 			}
 			bindings[id] = ports
@@ -115,6 +111,7 @@ func legacyMLMDResolveArtifacts(g *legacyMLMDGraph, parents, caches map[int64]in
 		}
 		selected := false
 		for _, selector := range spec.GetArtifactSelectors() {
+			selectorMatched := false
 			for _, child := range children[id] {
 				if tasks[child].Name != selector.GetProducerSubtask() {
 					continue
@@ -123,7 +120,7 @@ func legacyMLMDResolveArtifacts(g *legacyMLMDGraph, parents, caches map[int64]in
 				if state != mlmd.Execution_COMPLETE && state != mlmd.Execution_CACHED {
 					continue
 				}
-				if selected {
+				if selectorMatched {
 					return nil, fmt.Errorf("ambiguous legacy DAG artifact producer")
 				}
 				part, err := resolve(child, selector.GetOutputArtifactKey(), depth+1)
@@ -131,7 +128,8 @@ func legacyMLMDResolveArtifacts(g *legacyMLMDGraph, parents, caches map[int64]in
 					return nil, err
 				}
 				selected = true
-				ids = part
+				selectorMatched = true
+				ids = append(ids, part...)
 			}
 		}
 		if !selected {

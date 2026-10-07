@@ -89,6 +89,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'test/install-argo-cli.sh'
+      - 'test/kfp-kubernetes-native-migration-tests/**'
       - 'third_party/argo/COMPATIBILITY_VERSION'
       - 'third_party/argo/Makefile'
       - 'third_party/argo/UPGRADE.md'

@@ -835,8 +835,14 @@ func legacyMLMDArtifacts(source, namespace string, a *mlmd.Artifact, typ *mlmd.A
 			metadata[key] = value
 		}
 	}
-	if ns, ok := metadata["namespace"].(string); ok && ns != "" && ns != namespace {
-		return nil, fmt.Errorf("legacy artifact belongs to another namespace")
+	if value, present := metadata["namespace"]; present {
+		ns, ok := value.(string)
+		if !ok {
+			return nil, fmt.Errorf("legacy artifact namespace must be a string")
+		}
+		if ns != "" && ns != namespace {
+			return nil, fmt.Errorf("legacy artifact belongs to another namespace")
+		}
 	}
 	name := a.GetName()
 	if v, ok := metadata["display_name"].(string); ok && v != "" {
@@ -1107,9 +1113,7 @@ func legacySQLArtifactReferences(sql legacyTask, events []*mlmd.Event) error {
 		var ports map[string]struct {
 			IDs []int64 `json:"artifact_ids"`
 		}
-		dec := json.NewDecoder(strings.NewReader(input.raw))
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&ports); err != nil {
+		if err := decodeArchiveJSON([]byte(input.raw), &ports); err != nil {
 			return fmt.Errorf("invalid legacy SQL artifact bindings: %w", err)
 		}
 		for port, binding := range ports {

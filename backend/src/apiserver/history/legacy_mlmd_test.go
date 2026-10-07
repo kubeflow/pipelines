@@ -210,3 +210,34 @@ func TestLegacyMLMDLoopParameterAndArtifactCollection(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(data), "[0,1]")
 }
+
+func TestLegacyArtifactNamespaceType(t *testing.T) {
+	g, r, e := legacyGraphFixture(t)
+	g["artifacts"][0]["custom_properties"] = map[string]any{"namespace": map[string]any{"int_value": "1"}}
+	_, err := convertLegacyMLMD("source", "ns", r, g, e)
+	require.ErrorContains(t, err, "namespace must be a string")
+}
+
+func TestLegacyArtifactBindingsRejectTrailingJSON(t *testing.T) {
+	g, r, e := legacyGraphFixture(t)
+	g["executions"][0]["custom_properties"].(map[string]any)["artifact_producer_task"] = map[string]any{"string_value": "{} {}"}
+	_, err := convertLegacyMLMD("source", "ns", r, g, e)
+	require.ErrorContains(t, err, "artifact producer bindings")
+	err = legacySQLArtifactReferences(legacyTask{MLMDInputs: "{} {}"}, nil)
+	require.ErrorContains(t, err, "SQL artifact bindings")
+}
+
+func TestLegacyDAGArtifactMultipleSelectors(t *testing.T) {
+	g, r, e := legacyGraphFixture(t)
+	g["executions"] = append(g["executions"], map[string]any{"id": "12", "type_id": "4", "last_known_state": "COMPLETE", "custom_properties": map[string]any{"task_name": map[string]any{"string_value": "second"}, "parent_dag_id": map[string]any{"int_value": "10"}}})
+	g["associations"] = append(g["associations"], map[string]any{"context_id": "2", "execution_id": "12"})
+	g["artifacts"] = append(g["artifacts"], map[string]any{"id": "21", "type_id": "5", "state": "LIVE", "uri": "s3://bucket/second"})
+	g["events"] = append(g["events"], map[string]any{"artifact_id": "21", "execution_id": "12", "type": "OUTPUT", "path": map[string]any{"steps": []any{map[string]any{"key": "dataset"}}}})
+	data, err := json.Marshal(map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{"result": {ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{{ProducerSubtask: "train", OutputArtifactKey: "dataset"}, {ProducerSubtask: "second", OutputArtifactKey: "dataset"}}}})
+	require.NoError(t, err)
+	g["executions"][0]["custom_properties"].(map[string]any)["artifact_producer_task"] = map[string]any{"string_value": string(data)}
+	out, err := convertLegacyMLMD("source", "ns", r, g, e)
+	require.NoError(t, err)
+	require.Len(t, out[0].Links, 4)
+	require.Len(t, out[0].Artifacts, 2)
+}
